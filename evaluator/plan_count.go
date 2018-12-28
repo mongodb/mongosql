@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -37,7 +37,7 @@ func (cs *CountStage) getCount(ctx context.Context, cfg *ExecutionConfig) (int, 
 	var count int
 	var err error
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		count, err = cfg.commandHandler.Count(
 			ctx,
 			cs.mongoSource.dbName,

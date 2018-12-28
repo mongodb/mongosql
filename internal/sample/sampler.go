@@ -9,8 +9,9 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/dsync"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 )
@@ -194,7 +195,7 @@ func (s *Sampler) Run(ctx context.Context) {
 	// does not exist. When sampling occurred and was successful, the sample record will be
 	// returned. Until this completes successfully, we cannot move on.
 	retryWaitTimeSecs := 5 * time.Second
-	util.RetryWithDelay(ctx.Done(), retryWaitTimeSecs, true, func() bool {
+	procutil.RetryWithDelay(ctx.Done(), retryWaitTimeSecs, true, func() bool {
 		s.lgr.Infof(log.Always, "initializing schema")
 		sampleRecord, err = s.initializeSchema(ctx)
 		if err == nil {
@@ -207,7 +208,7 @@ func (s *Sampler) Run(ctx context.Context) {
 
 	refreshChange := make(chan struct{})
 	pastRefreshInterval := s.variables.GetInt64(variable.SampleRefreshIntervalSecs)
-	go util.RetryWithDelay(
+	go procutil.RetryWithDelay(
 		ctx.Done(),
 		retryWaitTimeSecs,
 		false,
@@ -231,7 +232,7 @@ func (s *Sampler) Run(ctx context.Context) {
 		// to begin looping, and if that ever returns (if the user turns refresh
 		// interval back to 0) then we will return false in either case and
 		// continue being vigilant. When vigilant, we re-check every 5 seconds.
-		util.RetryWithDelay(
+		procutil.RetryWithDelay(
 			ctx.Done(),
 			retryWaitTimeSecs,
 			true,
@@ -294,7 +295,7 @@ func (s *Sampler) Run(ctx context.Context) {
 		if err != nil {
 			s.lgr.Errf(log.Admin, "unable to persist initial schema: %v", err)
 
-			util.RetryWithDelay(ctx.Done(), 1*time.Minute, false, func() bool {
+			procutil.RetryWithDelay(ctx.Done(), 1*time.Minute, false, func() bool {
 				err := s.writeInitialSample(ctx, sampleRecord)
 				if err != nil {
 					s.lgr.Errf(log.Admin, "unable to persist initial schema: %v", err)
@@ -336,7 +337,7 @@ func (s *Sampler) initializeSchema(ctx context.Context) (rec *Record, err error)
 	if err != nil {
 		return nil, err
 	}
-	defer util.CheckDeferredFunc(session.Close, &err)
+	defer procutil.CheckDeferredFunc(session.Close, &err)
 
 	var newSchema *schema.Schema
 
@@ -380,7 +381,7 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 	if err != nil {
 		return err
 	}
-	defer util.CheckDeferredFunc(session.Close, &err)
+	defer procutil.CheckDeferredFunc(session.Close, &err)
 
 	var record *Record
 	opts := NewSchemaSampleOptions(s.opts)
@@ -396,7 +397,7 @@ func (s *Sampler) alterAndPersistSchema(ctx context.Context, als []*schema.Alter
 	if err != nil {
 		return err
 	}
-	defer util.CheckDeferredFunc(writeSession.Close, &err)
+	defer procutil.CheckDeferredFunc(writeSession.Close, &err)
 
 	return InsertSampleRecord(ctx, record, writeSession, s.lgr)
 }
@@ -434,7 +435,7 @@ func (s *Sampler) resampleSchema(ctx context.Context) error {
 	alterations := len(s.schema.Alterations())
 	s.schemaLock.RUnlock()
 	if alterations > 0 {
-		alterationStr := util.Pluralize(alterations, "alteration", "alterations")
+		alterationStr := strutil.Pluralize(alterations, "alteration", "alterations")
 		s.lgr.Warnf(log.Admin, "resampling overwrote %d existing %s", alterations, alterationStr)
 	}
 
@@ -508,7 +509,7 @@ func (s *Sampler) resampleAndPersistSchema(ctx context.Context) error {
 	alterations := len(s.schema.Alterations())
 	s.schemaLock.RUnlock()
 	if alterations > 0 {
-		alterationStr := util.Pluralize(alterations, "alteration", "alterations")
+		alterationStr := strutil.Pluralize(alterations, "alteration", "alterations")
 		s.lgr.Warnf(log.Admin, "resampling overwrote %d existing %s", alterations, alterationStr)
 	}
 
@@ -525,7 +526,7 @@ func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *R
 	if err != nil {
 		return err
 	}
-	defer util.CheckDeferredFunc(session.Close, &err)
+	defer procutil.CheckDeferredFunc(session.Close, &err)
 
 	var newSchema *schema.Schema
 	opts := NewSchemaSampleOptions(s.opts)
@@ -555,7 +556,7 @@ func (s *Sampler) writeInitialSample(ctx context.Context, initialSampleRecord *R
 	if err != nil {
 		return err
 	}
-	defer util.CheckDeferredFunc(writeSession.Close, &err)
+	defer procutil.CheckDeferredFunc(writeSession.Close, &err)
 
 	err = InsertSampleRecord(ctx, initialSampleRecord, writeSession, s.lgr)
 	return err

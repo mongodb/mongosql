@@ -18,8 +18,9 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
@@ -190,7 +191,7 @@ func (c *conn) close(ctx context.Context) {
 	// terminate the client connection to ensure we can
 	// cleanly terminate the server when we're blocked on a
 	// client read/write.
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		timer := time.NewTimer(1 * time.Second)
 		<-timer.C
 		timer.Stop()
@@ -210,7 +211,7 @@ func (c *conn) close(ctx context.Context) {
 	_ = c.session.Close()
 	_ = c.conn.Close()
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		c.server.removeConnection(c)
 	}, func(interface{}) {})
 
@@ -278,7 +279,7 @@ func (c *conn) dispatch(ctx context.Context, data []byte) (err error) {
 		c.close(ctx)
 		return nil
 	case ComQuery:
-		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
+		s := strutil.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		c.process.UpdateProcess(CommandQuery, s)
 		err = c.handleQuery(ctx, s)
 		c.process.UpdateProcess(CommandSleep, "")
@@ -286,7 +287,7 @@ func (c *conn) dispatch(ctx context.Context, data []byte) (err error) {
 	case ComPing:
 		return c.writeOK(nil)
 	case ComInitDB:
-		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
+		s := strutil.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		if err := c.useDB(s); err != nil {
 			return err
 		}
@@ -294,7 +295,7 @@ func (c *conn) dispatch(ctx context.Context, data []byte) (err error) {
 	case ComFieldList:
 		return c.handleFieldList(data)
 	case ComStmtPrepare:
-		s := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
+		s := strutil.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(data))
 		return c.handleStmtPrepare(s)
 	case ComStmtExecute:
 		return c.handleStmtExecute(ctx, data)
@@ -660,7 +661,7 @@ func (c *conn) readHandshakeResponse() error {
 	if b == nil {
 		return fmt.Errorf("user name b expected but incomplete")
 	}
-	c.user = util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
+	c.user = strutil.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
 
 	// auth response string[NUL]
 	if (c.capability & ClientPluginAuthLenencClientData) != 0 {
@@ -706,7 +707,7 @@ func (c *conn) readHandshakeResponse() error {
 			return fmt.Errorf("database bytes expected but incomplete")
 		}
 
-		db := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
+		db := strutil.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
 		c.startDB = db
 	}
 
@@ -732,7 +733,7 @@ func (c *conn) readHandshakeResponse() error {
 		}
 
 		// This is always a utf8 string.
-		c.clientRequestedAuthPluginName = util.String(b)
+		c.clientRequestedAuthPluginName = strutil.String(b)
 	}
 
 	// MySQL and the Java SQL driver (and possibly other clients) only set
@@ -762,7 +763,7 @@ func (c *conn) readHandshakeResponse() error {
 				return fmt.Errorf("invalid connection attribute at index %v: EOF", len(attrs))
 			}
 
-			key := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
+			key := strutil.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
 
 			num = readLengthEncodedInt()
 			if num == nil {
@@ -776,7 +777,7 @@ func (c *conn) readHandshakeResponse() error {
 				return fmt.Errorf("invalid connection attribute for key %s: EOF", key)
 			}
 
-			val := util.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
+			val := strutil.String(c.variables.GetCharset(variable.CharacterSetClient).Decode(b))
 
 			attrs = append(attrs, clientConnectionAttribute{key, val})
 			logString += fmt.Sprintf("%s:%s, ", key, val)
@@ -853,7 +854,7 @@ func (c *conn) run(ctx context.Context) {
 	var pkt packetRead
 
 	for {
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			data, err := c.readPacket()
 			packetReadChan <- packetRead{data, err}
 			atomic.StoreInt32(&c.queryRunning, 1)

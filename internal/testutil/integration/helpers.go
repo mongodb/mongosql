@@ -14,11 +14,11 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/testutil/data"
 	"github.com/10gen/sqlproxy/internal/testutil/flags"
 	"github.com/10gen/sqlproxy/internal/testutil/mongodb"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/go-sql-driver/mysql"
 	"github.com/shopspring/decimal"
@@ -486,7 +486,7 @@ func getServerVersion(t *testing.T) []uint8 {
 	version := result.Version
 
 	t.Logf(">> MongoDB server version is %v\n", version)
-	serverVersion, err := util.VersionToSlice(version)
+	serverVersion, err := procutil.VersionToSlice(version)
 	if err != nil {
 		t.Fatalf("Error converting version to slice: %v\n", err)
 	}
@@ -511,24 +511,24 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 	}
 
 	if test.MinServerVersion != "" {
-		minRequiredVersion, err := util.VersionToSlice(test.MinServerVersion)
+		minRequiredVersion, err := procutil.VersionToSlice(test.MinServerVersion)
 		if err != nil {
 			t.Fatalf("error getting test min_server_version: %v", err)
 		}
 
-		if !util.VersionAtLeast(serverVersion, minRequiredVersion) {
+		if !procutil.VersionAtLeast(serverVersion, minRequiredVersion) {
 			t.Skipf("skipping test with min_server_version=%v against MongoDB %v",
 				test.MinServerVersion, serverVersion)
 		}
 	}
 
 	if test.ExactServerVersion != "" {
-		requiredVersion, err := util.VersionToSlice(test.ExactServerVersion)
+		requiredVersion, err := procutil.VersionToSlice(test.ExactServerVersion)
 		if err != nil {
 			t.Fatalf("error getting test exact_server_version: %v", err)
 		}
 
-		if !util.VersionExactly(serverVersion, requiredVersion) {
+		if !procutil.VersionExactly(serverVersion, requiredVersion) {
 			t.Skipf("skipping test with exact_server_version=%v against MongoDB %v",
 				test.ExactServerVersion, serverVersion)
 		}

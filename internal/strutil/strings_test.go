@@ -1,15 +1,15 @@
-package util_test
+package strutil_test
 
 import (
 	"bytes"
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 )
 
 func TestString(t *testing.T) {
 	b := []byte("hello world")
-	a := util.String(b)
+	a := strutil.String(b)
 
 	if a != "hello world" {
 		t.Fatal(a)
@@ -29,7 +29,7 @@ func TestString(t *testing.T) {
 func TestByte(t *testing.T) {
 	a := "hello world"
 
-	b := util.Slice(a)
+	b := strutil.Slice(a)
 
 	if !bytes.Equal(b, []byte("hello world")) {
 		t.Fatal(string(b))

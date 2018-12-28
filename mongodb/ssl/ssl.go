@@ -7,7 +7,7 @@ import (
 
 	"github.com/10gen/openssl"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -157,7 +157,7 @@ func Dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) DialFunc {
 		ch := make(chan struct{})
 		errChan := make(chan error, 1)
 
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			c, err = openssl.DialWithDialer(dialer, network, addr, sslCtx, flags)
 			ch <- struct{}{}
 		}, func(dialErr interface{}) {

@@ -12,9 +12,9 @@ import (
 
 	"github.com/10gen/openssl"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/schema/drdl"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/server"
@@ -78,7 +78,7 @@ func (p *program) Start(s service.Service) error {
 			"mongosqld_%s.pprof",
 			time.Now().Format("2006-01-02-15-04-05.000000"),
 		)
-		err = util.StartCPUProfile(filename)
+		err = procutil.StartCPUProfile(filename)
 		if err != nil {
 			p.cleanup()
 			return err
@@ -124,7 +124,7 @@ func (p *program) Start(s service.Service) error {
 
 	p.svr.StoreStartupInfo(startupInfo)
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		p.svr.Run(serverCtx)
 		p.controlLogger.Infof(log.Always, "[signalProcessingThread] shutting down")
 		p.cleanup()
@@ -163,7 +163,7 @@ func (p *program) cleanup() {
 	if p.cfg.Net.UnixDomainSocket.Enabled {
 		_ = os.Remove(fmt.Sprintf("%s/mysql.sock", p.cfg.Net.UnixDomainSocket.PathPrefix))
 	}
-	util.StopCPUProfile()
+	procutil.StopCPUProfile()
 }
 
 func (p *program) initLog() error {

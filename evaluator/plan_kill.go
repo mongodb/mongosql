@@ -3,8 +3,8 @@ package evaluator
 import (
 	"context"
 
+	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/util"
 )
 
 // KillScope is an enum that represents the scope of a kill command.
@@ -41,7 +41,7 @@ func (k *KillCommand) Execute(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		return err
 	}
 
-	id, err := util.ToInt(eval.Value())
+	id, err := mathutil.ToInt(eval.Value())
 	if err != nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ErNoSuchThread, eval)
 	}

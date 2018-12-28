@@ -9,7 +9,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mongodrdl"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -20,40 +20,40 @@ func main() {
 	opts, err := mongodrdl.NewDrdlOptions()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
-		os.Exit(util.ExitError)
+		os.Exit(procutil.ExitError)
 	}
 
 	args, err := opts.Parse()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
 		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
-		os.Exit(util.ExitBadOptions)
+		os.Exit(procutil.ExitBadOptions)
 	}
 
 	if len(args) > 0 {
 		_, _ = fmt.Fprintf(os.Stderr, "positional arguments not allowed: %v\n", args)
 		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
-		os.Exit(util.ExitBadOptions)
+		os.Exit(procutil.ExitBadOptions)
 	}
 
 	if opts.Version {
 		config.PrintVersionAndGitspec("mongodrdl", os.Stdout)
-		os.Exit(util.ExitClean)
+		os.Exit(procutil.ExitClean)
 	}
 
 	// print help, if specified
 	if opts.PrintHelp(false) {
-		os.Exit(util.ExitClean)
+		os.Exit(procutil.ExitClean)
 	}
 
 	if err = opts.Validate(); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
 		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
-		os.Exit(util.ExitBadOptions)
+		os.Exit(procutil.ExitBadOptions)
 	}
 
 	// connect directly, unless a replica set name is explicitly specified
-	_, setName := util.ParseConnectionString(opts.Host)
+	_, setName := procutil.ParseConnectionString(opts.Host)
 	opts.ReplicaSetName = setName
 
 	verbosity := opts.DrdlLog.Level()
@@ -72,9 +72,9 @@ func main() {
 	err = mongodrdl.GenerateSchema(ctx, lg, *opts)
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
-		if err == util.ErrTerminated {
-			os.Exit(util.ExitKill)
+		if err == procutil.ErrTerminated {
+			os.Exit(procutil.ExitKill)
 		}
-		os.Exit(util.ExitError)
+		os.Exit(procutil.ExitError)
 	}
 }

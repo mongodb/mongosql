@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
 // RotationStrategy is an enum representing mongosqld's supported log rotation
@@ -98,7 +98,7 @@ func (rf *rotatingFile) Write(b []byte) (int, error) {
 // channels to signal when this goroutine should execute a disk operation and
 // to return results back to the signalling goroutine.
 func (rf *rotatingFile) start() {
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		for {
 			select {
 			case <-rf.rotateChan:

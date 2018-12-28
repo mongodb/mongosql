@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 )
 
 // Result holds the status of a MySQL operation, as well as the ResultSet.
@@ -189,7 +189,7 @@ func (r *Resultset) GetString(row, column int) (string, error) {
 	case string:
 		return v, nil
 	case []byte:
-		return util.String(v), nil
+		return strutil.String(v), nil
 	case int64:
 		return strconv.FormatInt(v, 10), nil
 	case uint64:

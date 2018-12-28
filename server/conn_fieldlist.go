@@ -8,7 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -16,8 +16,8 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	index := bytes.IndexByte(data, 0x00)
 	charSetClient := c.variables.GetCharset(variable.CharacterSetClient)
-	tableName := util.String(charSetClient.Decode(data[0:index]))
-	wildcard := util.String(charSetClient.Decode(data[index+1:]))
+	tableName := strutil.String(charSetClient.Decode(data[0:index]))
+	wildcard := strutil.String(charSetClient.Decode(data[index+1:]))
 
 	db, err := c.catalog.Database(c.DB())
 	if err != nil {

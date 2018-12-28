@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -98,7 +98,7 @@ type tableEdge struct {
 // contains returns true if table is referenced
 // on the edge, e.
 func (e *tableEdge) contains(table string) bool {
-	return util.SliceContains(e.tables, table)
+	return strutil.SliceContains(e.tables, table)
 }
 
 // path is a slice of edges.
@@ -125,8 +125,8 @@ func (p *path) contains(edge tableEdge) bool {
 // included to the existing path, and false otherwise.
 func (p *path) canIncludeEdge(edge tableEdge) bool {
 	for _, e := range *p {
-		if util.StringSliceContains(e.tables, edge.tables[0]) ||
-			util.StringSliceContains(e.tables, edge.tables[1]) {
+		if strutil.StringSliceContains(e.tables, edge.tables[0]) ||
+			strutil.StringSliceContains(e.tables, edge.tables[1]) {
 			return true
 		}
 	}
@@ -226,7 +226,7 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		independentlyOptimizeChildren := true
 		kind, matcher := typedN.kind, typedN.matcher
 
-		if util.StringSliceContains(commutativeJoinKinds, string(kind)) {
+		if strutil.StringSliceContains(commutativeJoinKinds, string(kind)) {
 			exprs := v.getInnerJoinExprs(typedN.matcher)
 			if len(exprs) != 0 {
 				v.exprs = append(v.exprs, exprs...)
@@ -608,7 +608,7 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (Node, error) {
 	if lenFreeCriteria := len(freeCriteria); lenFreeCriteria != 0 {
 		msg := fmt.Sprintf("found %v unbound %v after building: %v",
 			lenFreeCriteria,
-			util.Pluralize(lenFreeCriteria, "criterion", "criteria"),
+			strutil.Pluralize(lenFreeCriteria, "criterion", "criteria"),
 			freeCriteria,
 		)
 		panic(msg)

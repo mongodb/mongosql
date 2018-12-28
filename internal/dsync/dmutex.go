@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 )
@@ -80,9 +80,9 @@ func (d *DMutex) Lock(ctx context.Context) error {
 
 	if d.cfg.HeartbeatInterval > 0 && !d.running {
 		d.running = true
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			defer localUnlock()
-			util.RetryWithDelay(d.done, d.cfg.HeartbeatInterval, false, func() bool {
+			procutil.RetryWithDelay(d.done, d.cfg.HeartbeatInterval, false, func() bool {
 				err := d.tryLock(context.Background())
 				if err != nil {
 					d.cfg.Logger.Warnf(log.Dev, "failed to refresh lock %q: %v", d.cfg.Name, err)
@@ -116,7 +116,7 @@ func (d *DMutex) Unlock(ctx context.Context) (err error) {
 		return err
 	}
 
-	defer util.CheckDeferredFunc(session.Close, &err)
+	defer procutil.CheckDeferredFunc(session.Close, &err)
 
 	cmd := bsonutil.NewD(
 		bsonutil.NewDocElem("findAndModify", d.cfg.CollectionName),
@@ -146,7 +146,7 @@ func (d *DMutex) tryLock(ctx context.Context) (err error) {
 		return err
 	}
 
-	defer util.CheckDeferredFunc(session.Close, &err)
+	defer procutil.CheckDeferredFunc(session.Close, &err)
 
 	now := time.Now().UTC()
 	cmd := bsonutil.NewD(

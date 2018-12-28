@@ -12,7 +12,8 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/json"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/mathutil"
+	"github.com/10gen/sqlproxy/internal/strutil"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )
@@ -186,7 +187,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 		if jsonValue, ok := doc["$date"]; ok {
 			switch v := jsonValue.(type) {
 			case string:
-				return util.FormatDate(v)
+				return strutil.FormatDate(v)
 			case bson.D:
 				asMap := v.Map()
 				if jsonValue, ok := asMap["$numberLong"]; ok {
@@ -280,7 +281,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 			}
 
 			if seconds, ok := tsDoc["t"]; ok {
-				if asUint32, err := util.ToUInt32(seconds); err == nil {
+				if asUint32, err := mathutil.ToUInt32(seconds); err == nil {
 					ts.Seconds = asUint32
 				} else {
 					return nil, errors.New("expected $timestamp 't' field to be a numeric type")
@@ -289,7 +290,7 @@ func ParseSpecialKeys(special interface{}) (interface{}, error) {
 				return nil, errors.New("expected $timestamp to have 't' field")
 			}
 			if inc, ok := tsDoc["i"]; ok {
-				if asUint32, err := util.ToUInt32(inc); err == nil {
+				if asUint32, err := mathutil.ToUInt32(inc); err == nil {
 					ts.Increment = asUint32
 				} else {
 					return nil, errors.New("expected $timestamp 'i' field to be  a numeric type")

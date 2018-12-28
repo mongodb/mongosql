@@ -1,4 +1,4 @@
-package util
+package procutil
 
 // PanicSafeGo accepts a closure that may panic and another that is used
 // to handle cases where such panics occur. It executes closureMayPanic in

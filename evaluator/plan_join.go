@@ -6,7 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
 // NestedLoopJoiner is an implementation of a join.
@@ -80,7 +80,7 @@ func (join *JoinStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	initErrChan := make(chan error, 2)
 	initDoneChan := make(chan struct{}, 2)
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		iterator, err := join.left.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
@@ -91,7 +91,7 @@ func (join *JoinStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Execu
 		iter.fetchRows(cancelCtx, iter.left, leftRows, iter.errChan)
 	}, handleError(initErrChan))
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		iterator, err := join.right.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
@@ -140,7 +140,7 @@ func (iter *JoinIter) fetchRows(ctx context.Context,
 	syncChan := make(chan *Row)
 	fetchErrChan := make(chan error, 1)
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 	iterLoop:
 		for it.Next(ctx, r) {
 			select {
@@ -290,14 +290,14 @@ func (nlp *NestedLoopJoiner) readData(ctx context.Context,
 		}
 	}
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		readChan(lChan, &left)
 	}, func(err interface{}) {
 		cancel()
 		errs <- fmt.Errorf("%v", err)
 	})
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		readChan(rChan, &right)
 	}, func(err interface{}) {
 		cancel()
@@ -348,25 +348,25 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 
 	switch nlp.kind {
 	case CrossJoin:
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			nlp.crossJoin(ctx, left, right, ch)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case InnerJoin, StraightJoin:
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			nlp.innerJoin(ctx, left, right, ch)
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case LeftJoin:
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			nlp.leftJoin(ctx, left, right, ch, getNullValues(nlp.rightColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)
 		})
 	case RightJoin:
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			nlp.rightJoin(ctx, left, right, ch, getNullValues(nlp.leftColumns))
 		}, func(err interface{}) {
 			nlp.errChan <- fmt.Errorf("%v", err)

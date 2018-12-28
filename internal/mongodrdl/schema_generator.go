@@ -7,13 +7,14 @@ import (
 	"os"
 	"path/filepath"
 
-	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/schema/drdl"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
+
+	yaml "github.com/10gen/candiedyaml"
 )
 
 const (
@@ -66,7 +67,7 @@ func getOutputWriter(out string) (io.WriteCloser, error) {
 		return nil, err
 	}
 
-	return os.Create(util.ToUniversalPath(out))
+	return os.Create(strutil.ToUniversalPath(out))
 }
 
 // collectionSchema returns marshaled bytes of the generated collection schema.

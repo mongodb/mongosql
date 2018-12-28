@@ -11,7 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/shopspring/decimal"
@@ -283,7 +283,7 @@ func (s BaseSQLDate) WireProtocolEncode(*collation.Charset, int) ([]byte, error)
 	if s.datetime == NullDate {
 		return []byte("0000-00-00"), nil
 	}
-	return util.Slice(s.datetime.Format(schema.DateFormat)), nil
+	return strutil.Slice(s.datetime.Format(schema.DateFormat)), nil
 }
 
 // Size returns the size of this SQLValue in bytes.
@@ -470,7 +470,7 @@ func (s BaseSQLDecimal128) WireProtocolEncode(*collation.Charset, int) ([]byte, 
 	if s.null {
 		return nil, nil
 	}
-	return []byte(util.FormatDecimal(s.val)), nil
+	return []byte(strutil.FormatDecimal(s.val)), nil
 }
 
 // Size returns the size of this SQLValue in bytes.
@@ -1235,9 +1235,9 @@ func (s BaseSQLTimestamp) WireProtocolEncode(*collation.Charset, int) ([]byte, e
 		return []byte("0000-00-00 00:00:00"), nil
 	}
 	if strings.Contains(s.datetime.String(), ".") {
-		return util.Slice(s.datetime.Format(schema.TimestampFormatMicros)), nil
+		return strutil.Slice(s.datetime.Format(schema.TimestampFormatMicros)), nil
 	}
-	return util.Slice(s.datetime.Format(schema.TimestampFormat)), nil
+	return strutil.Slice(s.datetime.Format(schema.TimestampFormat)), nil
 }
 
 // Size returns the size of this SQLValue in bytes.

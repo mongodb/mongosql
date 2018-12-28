@@ -7,8 +7,8 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -1147,7 +1147,7 @@ func setWaitTimeoutSecs(c *Container, v interface{}) error {
 
 	upperLimit := int64(31536000)
 
-	if util.IsWindowsOS {
+	if procutil.IsWindowsOS {
 		upperLimit = int64(2147483)
 	}
 

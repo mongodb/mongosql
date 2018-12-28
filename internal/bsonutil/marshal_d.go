@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/internal/json"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/mathutil"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )
@@ -47,7 +47,7 @@ func (md MarshalD) MarshalJSON() ([]byte, error) {
 func MakeSortString(sortObj bson.D) ([]string, error) {
 	sortStrs := make([]string, 0, len(sortObj))
 	for _, docElem := range sortObj {
-		valueAsNumber, err := util.ToFloat64(docElem.Value)
+		valueAsNumber, err := mathutil.ToFloat64(docElem.Value)
 		if err != nil {
 			return nil, err
 		}

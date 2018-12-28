@@ -1,8 +1,10 @@
-package util
+package strutil
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/shopspring/decimal"
 )
 
 // ByteString takes a count of bytes and creates
@@ -40,4 +42,38 @@ func ByteString(count uint64) string {
 	s := fmt.Sprintf("%.1f", value)
 	s = strings.TrimSuffix(s, ".0")
 	return fmt.Sprintf("%s%s", s, unit)
+}
+
+// FormatDecimal formats a decimal into a string.
+func FormatDecimal(d decimal.Decimal) string {
+
+	exp := int(d.Exponent())
+	if exp >= 0 {
+		return d.String()
+	}
+
+	str := d.String()
+	sign := d.Cmp(decimal.Zero) < 0
+	if sign {
+		str = str[1:]
+	}
+
+	var relExp int
+	idx := strings.Index(str, ".")
+	if idx >= 0 {
+		relExp = exp + (len(str) - 1 - idx)
+	} else {
+		relExp = exp
+		str += "."
+	}
+
+	if relExp < 0 {
+		str += strings.Repeat("0", -relExp)
+	}
+
+	if sign {
+		return "-" + str
+	}
+
+	return str
 }

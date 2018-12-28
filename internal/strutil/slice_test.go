@@ -1,9 +1,9 @@
-package util_test
+package strutil_test
 
 import (
 	"testing"
 
-	. "github.com/10gen/sqlproxy/internal/util"
+	. "github.com/10gen/sqlproxy/internal/strutil"
 )
 
 func TestSliceContains(t *testing.T) {

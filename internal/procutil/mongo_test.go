@@ -1,10 +1,10 @@
-package util_test
+package procutil_test
 
 import (
 	"fmt"
 	"testing"
 
-	. "github.com/10gen/sqlproxy/internal/util"
+	. "github.com/10gen/sqlproxy/internal/procutil"
 
 	"github.com/stretchr/testify/require"
 )

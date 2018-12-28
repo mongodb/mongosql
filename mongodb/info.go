@@ -8,8 +8,8 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 
 	"github.com/10gen/mongo-go-driver/mongo/model"
@@ -76,7 +76,7 @@ func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
 	var array []uint8
 	if compatibleVersion != "" {
 		var err error
-		array, err = util.VersionToSlice(compatibleVersion)
+		array, err = procutil.VersionToSlice(compatibleVersion)
 		if err != nil {
 			return err
 		}
@@ -90,9 +90,9 @@ func (i *Info) SetCompatibleVersion(compatibleVersion string) error {
 // VersionAtLeast indicates whether the MongoDB version is at least the required version.
 func (i *Info) VersionAtLeast(version ...uint8) bool {
 	if len(i.CompatibleVersionArray) > 0 {
-		return util.VersionAtLeast(i.CompatibleVersionArray, version)
+		return procutil.VersionAtLeast(i.CompatibleVersionArray, version)
 	}
-	return util.VersionAtLeast(i.VersionArray, version)
+	return procutil.VersionAtLeast(i.VersionArray, version)
 }
 
 // IsMongos returns true if the connected server is a mongos and false otherwise.

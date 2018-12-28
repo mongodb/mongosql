@@ -8,16 +8,18 @@ import (
 	"strings"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/schema/mapping"
 	"github.com/10gen/sqlproxy/internal/schema/mongo"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+
+	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 )
 
 var (
@@ -135,7 +137,7 @@ func (r *Record) validateNamespaceCount() error {
 // FetchNamespaces returns a map of databases - that
 // exist in the cluster 'session' is connected to - to
 // the collection(s) within the database.
-func FetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *util.Matcher) (NSMapping, error) {
+func FetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) (NSMapping, error) {
 
 	// If the matcher's inclusionary patterns don't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB.
@@ -433,8 +435,8 @@ func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 	namespaces := cfg.namespaces
 
 	var err error
-	var nsMatcher *util.Matcher
-	nsMatcher, err = util.NewMatcher(namespaces)
+	var nsMatcher *strutil.Matcher
+	nsMatcher, err = strutil.NewMatcher(namespaces)
 	if err != nil {
 		return nil, nil, fmt.Errorf("invalid specification: %v", err)
 	}
@@ -530,7 +532,7 @@ func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 			sampleCollection := col
 			quotedNs, ns := namespace.QuotedString(), namespace.String()
 
-			if util.SliceContains(nsSampleBlacklist, quotedNs) {
+			if strutil.SliceContains(nsSampleBlacklist, quotedNs) {
 				lgr.Debugf(log.Dev, "skipping sample source namespace %s", quotedNs)
 				continue
 			}
@@ -689,7 +691,7 @@ func Schema(ctx context.Context, cfg SchemaSampleOptions, processName string,
 	}
 
 	if count := len(sampleNamespaces); count != 0 {
-		nsStr := util.Pluralize(count, "namespace", "namespaces")
+		nsStr := strutil.Pluralize(count, "namespace", "namespaces")
 		lgr.Infof(log.Always, "mapped schema for %v %v: %v", count, nsStr, sampleVersion.Databases)
 	} else {
 		lgr.Infof(log.Always, "no namespaces were sampled")
@@ -741,7 +743,7 @@ func LatestRecord(ctx context.Context, opts SchemaSampleOptions, s *mongodb.Sess
 	if err != nil {
 		return nil, err
 	}
-	defer util.CheckDeferredFuncWithContext(context.Background(), cursor.Close, &err)
+	defer procutil.CheckDeferredFuncWithContext(context.Background(), cursor.Close, &err)
 
 	rec = &Record{}
 	if cursor.Next(ctx, rec) {

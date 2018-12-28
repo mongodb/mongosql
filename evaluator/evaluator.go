@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -59,7 +59,7 @@ func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *Algebrizer
 	parsedStmt := stmt.Copy().(parser.Statement)
 
 	rewritten, err := RewriteQuery(rCfg, stmt)
-	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
 
@@ -92,7 +92,7 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 	parsedStmt := stmt.Copy().(parser.Statement)
 
 	rewritten, err := RewriteQuery(qCfg.rCfg, stmt)
-	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
 
@@ -166,14 +166,14 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 
 	// Step 1: Perform any syntactic rewrites
 	rewritten, err := RewriteQuery(qCfg.rCfg, stmt)
-	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
 
 	// Step 2: Algebrize
 	algebrized, err := AlgebrizeQuery(qCfg.aCfg, rewritten)
 
-	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
 
@@ -181,7 +181,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 
 	// Step 3: Optimize
 	optimized, err := OptimizePlan(ctx, qCfg.oCfg, plan)
-	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
 
@@ -189,7 +189,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 
 	// Step 4: Push Down
 	pushedDown, err := PushdownPlan(qCfg.pCfg, plan)
-	err = util.CheckForContextCancellationAndError(ctx, err)
+	err = procutil.CheckForContextCancellationAndError(ctx, err)
 	if err != nil && !IsNonFatalPushdownError(err) {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 
 	// Step 6: Execute
 	iter, err := ExecutePlan(ctx, qCfg.eCfg, plan)
-	if err = util.CheckForContextCancellationAndError(ctx, err); err != nil {
+	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
 

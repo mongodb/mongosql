@@ -9,8 +9,8 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -162,7 +162,7 @@ func (t *PushdownTranslator) valueKind() SQLValueKind {
 
 // nolint: unparam
 func (t *PushdownTranslator) versionAtLeast(major, minor, patch uint8) bool {
-	return util.VersionAtLeast(t.Cfg.mongoDBVersion, []uint8{major, minor, patch})
+	return procutil.VersionAtLeast(t.Cfg.mongoDBVersion, []uint8{major, minor, patch})
 }
 
 // ToAggregationLanguage translates the provided SQLExpr into something that can

@@ -9,9 +9,9 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/schema/mongo"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -111,7 +111,7 @@ func Map(cfg SchemaMappingConfig) error {
 		cfg.Database,
 		t,
 		cfg.UUIDSubtype3Encoding,
-		util.VersionAtLeast(cfg.Version, []uint8{3, 4, 0}),
+		procutil.VersionAtLeast(cfg.Version, []uint8{3, 4, 0}),
 		mongoNames,
 		mongoNamePrefixes,
 		seenFields,

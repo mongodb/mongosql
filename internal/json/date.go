@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 )
 
 // Transition functions for recognizing Date.
@@ -64,7 +64,7 @@ func (d *decodeState) getDate() interface{} {
 	arg0num, isNumber := args[0].(Number)
 	if !isNumber {
 		// validate the date format of the string
-		_, err := util.FormatDate(args[0].(string))
+		_, err := strutil.FormatDate(args[0].(string))
 		if err != nil {
 			d.error(fmt.Errorf("unexpected ISODate format"))
 		}

@@ -15,9 +15,9 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -7595,13 +7595,13 @@ func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		switch m {
 		case 2:
 			if isLeapYear(y) {
-				d = util.MinInt(d, 29)
+				d = mathutil.MinInt(d, 29)
 			} else {
 
-				d = util.MinInt(d, 28)
+				d = mathutil.MinInt(d, 28)
 			}
 		case 4, 6, 9, 11:
-			d = util.MinInt(d, 30)
+			d = mathutil.MinInt(d, 30)
 		}
 		if ts {
 			return NewSQLTimestamp(cfg.sqlValueKind, time.Date(y,
@@ -7632,13 +7632,13 @@ func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		switch m {
 		case 2:
 			if isLeapYear(y) {
-				d = util.MinInt(d, 29)
+				d = mathutil.MinInt(d, 29)
 			} else {
 
-				d = util.MinInt(d, 28)
+				d = mathutil.MinInt(d, 28)
 			}
 		case 4, 6, 9, 11:
-			d = util.MinInt(d, 30)
+			d = mathutil.MinInt(d, 30)
 		}
 		if ts {
 			return NewSQLTimestamp(cfg.sqlValueKind, time.Date(y,
@@ -7757,12 +7757,12 @@ func (*timestampAddFunc) FuncToAggregationLanguage(t *PushdownTranslator, exprs 
 				// switch m {
 				// case 2:
 				// 	if isLeapYear(y) {
-				// 		d = util.MinInt(d, 29)
+				// 		d = mathutil.MinInt(d, 29)
 				//	} else {
-				//		d = util.MinInt(d, 28)
+				//		d = mathutil.MinInt(d, 28)
 				//	}
 				// case 4, 6, 9, 11:
-				//	d = util.MinInt(d, 30)
+				//	d = mathutil.MinInt(d, 30)
 				// }
 				// otherwise d is left unchanged as the day of the input timestamp.
 				bsonutil.WrapInSwitch(bsonutil.WrapInOp(bsonutil.OpDayOfMonth, timestampArg),

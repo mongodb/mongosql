@@ -11,8 +11,8 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 
 	"github.com/shopspring/decimal"
 )
@@ -835,7 +835,7 @@ func getMongoDBVersion(vars catalog.VariableContainer) []uint8 {
 	if len(compatibilityVersion) == 0 {
 		compatibilityVersion = vars.GetString(variable.MongoDBVersion)
 	}
-	version, err := util.VersionToSlice(compatibilityVersion)
+	version, err := procutil.VersionToSlice(compatibilityVersion)
 	if err != nil {
 		panic(fmt.Sprintf("invalid version provided: %v", compatibilityVersion))
 	}

@@ -3,8 +3,8 @@ package mongodb
 import (
 	"os"
 
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/testutil/flags"
-	"github.com/10gen/sqlproxy/internal/util"
 
 	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"gopkg.in/mgo.v2"
@@ -46,7 +46,7 @@ func VersionAtLeast(session *mgo.Session, minVersion string) (bool, error) {
 		return true, nil
 	}
 
-	minRequiredVersion, err := util.VersionToSlice(minVersion)
+	minRequiredVersion, err := procutil.VersionToSlice(minVersion)
 	if err != nil {
 		return false, err
 	}
@@ -56,12 +56,12 @@ func VersionAtLeast(session *mgo.Session, minVersion string) (bool, error) {
 		return false, err
 	}
 
-	serverVersion, err := util.VersionToSlice(buildInfo.Version)
+	serverVersion, err := procutil.VersionToSlice(buildInfo.Version)
 	if err != nil {
 		return false, err
 	}
 
-	return util.VersionAtLeast(serverVersion, minRequiredVersion), nil
+	return procutil.VersionAtLeast(serverVersion, minRequiredVersion), nil
 }
 
 func getAuthOpts() *toolsoptions.Auth {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -288,7 +288,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 			}
 		}
 
-		isCommutativeJoinKind := util.StringSliceContains(commutativeJoinKinds, string(typedN.kind))
+		isCommutativeJoinKind := strutil.StringSliceContains(commutativeJoinKinds, string(typedN.kind))
 
 		// We have a filter and a join without any criteria and can thus apply the cross join
 		// optimization.

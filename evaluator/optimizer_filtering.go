@@ -1,7 +1,7 @@
 package evaluator
 
 import (
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -83,7 +83,7 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 
 		return n, nil
 	case *JoinStage:
-		if !util.StringSliceContains(commutativeJoinKinds, string(typedN.kind)) {
+		if !strutil.StringSliceContains(commutativeJoinKinds, string(typedN.kind)) {
 			// If we hit a node level where we're unable to optimize - e.g. if it's a left join or a
 			// right join - we can possibly further optimize the subtree rooted at this node.
 			// For example, in the plan tree below, we can optimize the subtree rooted in B.

@@ -14,8 +14,8 @@ import (
 	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/schema"
 	"github.com/10gen/sqlproxy/internal/schema/mongo"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/mongodb"
 
 	"github.com/10gen/mongo-go-driver/bson"
@@ -47,7 +47,7 @@ func TestFetchNamespaces(t *testing.T) {
 	}
 	defer session.Close()
 
-	matcher, err := util.NewMatcher([]string{"*.*"})
+	matcher, err := strutil.NewMatcher([]string{"*.*"})
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -8,8 +8,9 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -145,7 +146,7 @@ func (v *pushdownVisitor) addTableNamesInScope(databaseName string, tableNames .
 // it will build a project with everything not in the passed in body projected as 1, it will also
 // skip any paths prefixed by a string in prefixesToSkip (mainly for avoiding conflicts).
 func (v *pushdownVisitor) buildAddFieldsOrProject(body bson.M, prefixesToSkip []string, mrs ...*mappingRegistry) bson.D {
-	if util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
+	if procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 		return bsonutil.NewD(bsonutil.NewDocElem("$addFields", body))
 	}
 	// Make sure any prefix ends with '.'
@@ -981,7 +982,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 			// $reduce was introduced in Mongo 3.4, so we cannot push down the query if
 			// the user is using an earlier Mongo version.
-			if isGroupConcat && !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
+			if isGroupConcat && !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 				return nil, fmt.Errorf("cannot push down group_concat for versions < 3.4")
 			}
 
@@ -1011,7 +1012,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					} else {
 						// $convert was introduced in Mongo 4.0, so we cannot push down the query if
 						// the user is using an earlier Mongo version.
-						if !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{4, 0, 0}) {
+						if !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{4, 0, 0}) {
 							return nil, fmt.Errorf("cannot push down group_concat of non-strings" +
 								" for versions < 4.0")
 						}
@@ -1644,7 +1645,7 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error) {
 
 	// cannot use expressive lookup before 3.6
-	if !util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 6, 0}) {
+	if !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 6, 0}) {
 		v.logger.Warnf(log.Dev, "cannot push down join stage to expressive lookup: expressive lookup not available")
 		v.addNewPushdownFailure(join, joinStageName, "cannot push down expressive lookup to MongoDB < 3.6")
 		return join, nil
@@ -2087,7 +2088,7 @@ func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceSt
 
 			arrayIdx := fmt.Sprintf("%v", iIndex)
 
-			if !util.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
+			if !strutil.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
 				pipeline.arrayPaths = append(pipeline.arrayPaths, path)
 				pipeline.arrayPathIndexes = append(pipeline.arrayPathIndexes, arrayIdx)
 				if kind == LeftJoin && !isLocal {
@@ -2212,7 +2213,7 @@ func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceSt
 					// for them can actually result in getting
 					// NON-NULL values that *should be* NULL.
 					if pathStartsWithAny(unwindSuffixPaths, "$"+docCol) ||
-						util.StringSliceContains(unwindSuffixIndexes, docCol) {
+						strutil.StringSliceContains(unwindSuffixIndexes, docCol) {
 						continue
 					}
 					uniqueDocCol := v.uniqueFieldName(docCol, local.mappingRegistry,
@@ -2285,7 +2286,7 @@ func createEmptyResultsPipeline(mongoDBVersion []uint8) []bson.D {
 	)
 
 	// $collStats is not available in 3.2, so use limit:1 to get at most one document.
-	if !util.VersionAtLeast(mongoDBVersion, []uint8{3, 4, 0}) {
+	if !procutil.VersionAtLeast(mongoDBVersion, []uint8{3, 4, 0}) {
 		emptyPipeline[0] = bsonutil.NewD(bsonutil.NewDocElem("$limit", int64(1)))
 	}
 
@@ -2465,7 +2466,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 		// If no columns are referenced, we can apply the row generator optimization.
 		if !hasColumnRef {
 			var pipeline bson.D
-			if util.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
+			if procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 				pipeline = bsonutil.NewD(bsonutil.NewDocElem("$count", "rowCount"))
 			} else {
 				pipeline = bsonutil.NewD(bsonutil.NewDocElem("$group", bsonutil.NewM(
@@ -2989,7 +2990,7 @@ func (v *pushdownVisitor) meetsSelfJoinPKCriteria(logger log.Logger, local,
 		loggingPKSetStr := strings.Join(keysStringSet(intersectionPKs), ", ")
 		logger.Debugf(log.Dev, "self-join optimization: criteria conjunction "+
 			"contains %v unique primary key equality %v but need %v - %q",
-			numPKConjunctions, util.Pluralize(numPKConjunctions, "pair",
+			numPKConjunctions, strutil.Pluralize(numPKConjunctions, "pair",
 				"pairs"), numRequiredPKConjunctions, loggingPKSetStr)
 		return false
 	}

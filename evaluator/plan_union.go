@@ -11,7 +11,8 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/mathutil"
+	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
 // UnionKind is an enum representing the different kinds of unions.
@@ -26,7 +27,7 @@ const (
 var (
 	// hashSeed is defined by the FNV algorithm. It's a very large prime number.
 	// see the wiki article for FNV hash: https://bit.ly/2Kcz4Ja
-	hashSeed = util.Uint128{
+	hashSeed = mathutil.Uint128{
 		H: 0x6c62272e07bb0142,
 		L: 0x62b821756295c58d,
 	}
@@ -129,7 +130,7 @@ type FastUnionAllIter struct {
 type FastUnionDistinctIter struct {
 	FastUnionAllIter
 	// distinct set
-	distinct map[util.Uint128]struct{}
+	distinct map[mathutil.Uint128]struct{}
 	// stageMonitor is the memory monitor for the current stage.
 	// FastUnionDistinct requires a map that introduces more
 	// memory usage.
@@ -187,7 +188,7 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 	initErrChan := make(chan error, 2)
 	initDoneChan := make(chan struct{}, 2)
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		fastIterLeft, err := fastPlanLeft.FastOpen(ctx, cfg, st)
 		if err != nil {
 			initErrChan <- err
@@ -197,7 +198,7 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 		initDoneChan <- struct{}{}
 	}, handleError(initErrChan))
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		fastIterRight, err := fastPlanRight.FastOpen(ctx, cfg, st)
 		if err != nil {
 			initErrChan <- err
@@ -242,8 +243,8 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 		}
 	}
 
-	util.PanicSafeGo(iterateSide(iter.left, iter.leftChan), handleError(iter.errChan))
-	util.PanicSafeGo(iterateSide(iter.right, iter.rightChan), handleError(iter.errChan))
+	procutil.PanicSafeGo(iterateSide(iter.left, iter.leftChan), handleError(iter.errChan))
+	procutil.PanicSafeGo(iterateSide(iter.right, iter.rightChan), handleError(iter.errChan))
 
 	if union.kind == UnionDistinct {
 		stageMonitor, err := cfg.memoryMonitor.CreateChild("FastUnionDistinctStage", cfg.maxStageSize)
@@ -253,13 +254,13 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 		if union.is32 {
 			return &FastUnionDistinctIter32{
 				FastUnionAllIter: *iter,
-				distinct:         make(map[util.Uint128]struct{}),
+				distinct:         make(map[mathutil.Uint128]struct{}),
 				stageMonitor:     stageMonitor,
 			}, nil
 		}
 		return &FastUnionDistinctIter{
 			FastUnionAllIter: *iter,
-			distinct:         make(map[util.Uint128]struct{}),
+			distinct:         make(map[mathutil.Uint128]struct{}),
 			stageMonitor:     stageMonitor,
 		}, nil
 	}
@@ -297,14 +298,14 @@ func (iter *FastUnionAllIter) Next(ctx context.Context, doc *bson.RawD) bool {
 	}
 }
 
-func addValueToHash(hash util.Uint128, value bson.Raw) util.Uint128 {
+func addValueToHash(hash mathutil.Uint128, value bson.Raw) mathutil.Uint128 {
 	hash.AddByteToHash(value.Kind)
 	hash.AddByteSliceToHash(value.Data)
 	return hash
 }
 
 // computeHash computes and FNV-1a (plus prime) hash for a bson.RawD.
-func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) util.Uint128 {
+func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) mathutil.Uint128 {
 	columnInfo := iter.columnInfo
 	values := *datum
 	lenColumnFields, lenValues := len(columnInfo), len(values)
@@ -359,7 +360,7 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) util.Uint128 {
 }
 
 // computeHash computes and FNV-1a (plus prime) hash for a bson.RawD on server versions < 3.4.0.
-func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) util.Uint128 {
+func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) mathutil.Uint128 {
 	values := *datum
 	columnInfo := iter.GetColumnInfo()
 	lenColumnInfo := len(columnInfo)
@@ -397,7 +398,7 @@ func (iter *FastUnionDistinctIter) Next(ctx context.Context, doc *bson.RawD) boo
 		hash := iter.computeHash(doc)
 		if _, ok := iter.distinct[hash]; !ok {
 			iter.distinct[hash] = struct{}{}
-			// each util.Uint128 in the map is 16 bytes.
+			// each mathutil.Uint128 in the map is 16 bytes.
 			err := iter.stageMonitor.Acquire(16)
 			if err != nil {
 				iter.errChan <- err
@@ -422,7 +423,7 @@ func (iter *FastUnionDistinctIter32) Next(ctx context.Context, doc *bson.RawD) b
 		hash := iter.computeHash(doc)
 		if _, ok := iter.distinct[hash]; !ok {
 			iter.distinct[hash] = struct{}{}
-			// each util.Uint128 in the map is 16 bytes.
+			// each mathutil.Uint128 in the map is 16 bytes.
 			err := iter.stageMonitor.Acquire(16)
 			if err != nil {
 				iter.errChan <- err
@@ -466,7 +467,7 @@ func (iter *FastUnionAllIter) Close() error {
 
 // Close closes the iterator, and releases the memory monitor memory.
 func (iter *FastUnionDistinctIter) Close() error {
-	// each item in the map is a util.Uint128, which means 16 bytes.
+	// each item in the map is a mathutil.Uint128, which means 16 bytes.
 	err := iter.stageMonitor.Release(16 * uint64(len(iter.distinct)))
 	if err != nil {
 		return err
@@ -497,7 +498,7 @@ func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	leftRows := make(chan *Row)
 	rightRows := make(chan *Row)
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		iterator, err := union.left.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
@@ -509,7 +510,7 @@ func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		iter.errChan <- fmt.Errorf("%v", err)
 	})
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		iterator, err := union.right.Open(ctx, cfg, st)
 		if err != nil {
 			iter.errChan <- err
@@ -532,7 +533,7 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 	syncChan := make(chan *Row)
 	fetchErrChan := make(chan error, 1)
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		for it.Next(ctx, r) {
 
 			inSize := r.Data.Size()
@@ -708,7 +709,7 @@ func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *Row) chan R
 	closeChan := make(chan struct{})
 
 	// cleanup
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		<-closeChan
 		<-closeChan
 		close(closeChan)
@@ -718,7 +719,7 @@ func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *Row) chan R
 	})
 
 	// retrieve rows from left and right stages in parallel
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 	chanLoop:
 		for l := range lChan {
 			select {
@@ -732,7 +733,7 @@ func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *Row) chan R
 		iter.errChan <- fmt.Errorf("left unify error: %v", err)
 	})
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 	chanLoop:
 		for r := range rChan {
 			select {

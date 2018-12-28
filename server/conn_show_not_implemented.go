@@ -8,7 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/parser"
 )
 
@@ -276,7 +276,7 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	for i := range names {
 		field := &Field{
-			Name:    util.Slice(names[i]),
+			Name:    strutil.Slice(names[i]),
 			Charset: uint16(col.ID),
 		}
 

@@ -16,8 +16,9 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -210,9 +211,9 @@ func fastCleanFormat(columnType, evalType evaluator.EvalType, f *dataFormatter) 
 			t = time.Unix(i/1e3, i%1e3*1e6).In(schema.DefaultLocale)
 		}
 		if t.Nanosecond() != 0 {
-			return putLengthEncodedString(util.Slice(t.Format(schema.TimestampFormatMicros))), nil
+			return putLengthEncodedString(strutil.Slice(t.Format(schema.TimestampFormatMicros))), nil
 		}
-		return putLengthEncodedString(util.Slice(t.Format(schema.TimestampFormat))), nil
+		return putLengthEncodedString(strutil.Slice(t.Format(schema.TimestampFormat))), nil
 	case evaluator.EvalNull:
 		return []byte{0xfb}, nil
 	case evaluator.EvalInt32:
@@ -421,8 +422,8 @@ streamer:
 		}
 	}
 
-	c.logger.Infof(log.Admin, "returned %d %s (%s)", count, util.Pluralize(count, "row", "rows"),
-		util.ByteString(totalBytes))
+	c.logger.Infof(log.Admin, "returned %d %s (%s)", count, strutil.Pluralize(count, "row", "rows"),
+		strutil.ByteString(totalBytes))
 
 	if err = ctx.Err(); err != nil {
 		return err
@@ -644,6 +645,6 @@ func (c *conn) streamResultset(ctx context.Context, columns []*evaluator.Column,
 		}
 	}
 
-	util.PanicSafeGo(asyncPacketSender, errorHandler)
+	procutil.PanicSafeGo(asyncPacketSender, errorHandler)
 	return c.streamRows(ctx, packetChan, errChan, columns, iter)
 }

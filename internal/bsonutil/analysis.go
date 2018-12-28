@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/mathutil"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )
@@ -271,7 +271,7 @@ func getPipelineStages(stage string, pipeline []bson.D) []*NumberedDoc {
 // after matching on unwind path.
 func GetUnwindSuffix(unwinds1, unwinds2 []UnwindInfo) ([]UnwindInfo, bool) {
 	ret := make([]UnwindInfo, 0)
-	end := util.MinInt(len(unwinds1), len(unwinds2))
+	end := mathutil.MinInt(len(unwinds1), len(unwinds2))
 	i := 0
 	for ; i < end; i++ {
 		// Prefixes are incompatible, so there is no suffix

@@ -64,7 +64,7 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	}
 
 	lg := log.GlobalLogger()
-	vars := createVariables()
+	vars := createVariables(t.info)
 	catalog, err := createCatalog(t.schema, vars, t.info)
 	if err != nil {
 		return nil, "", err
@@ -99,8 +99,13 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	return ms.Pipeline(), ms.Collection(), nil
 }
 
-func createVariables() *variable.Container {
-	return variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+func createVariables(info *mongodb.Info) *variable.Container {
+	gbl := variable.NewGlobalContainer(nil)
+	gbl.MongoDBVersion = info.Version
+
+	ctn := variable.NewSessionContainer(gbl)
+	ctn.MongoDBVersion = info.Version
+	return ctn
 }
 
 func createCatalog(schema *schema.Schema, vars *variable.Container, info *mongodb.Info) (*catalog.SQLCatalog, error) {

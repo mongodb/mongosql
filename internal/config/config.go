@@ -8,7 +8,8 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -249,20 +250,20 @@ func Validate(cfg *Config) error {
 	}
 
 	if cfg.MongoDB.Net.Auth.Mechanism != "" &&
-		!util.SliceContains(supportedAuthMechanisms,
+		!strutil.SliceContains(supportedAuthMechanisms,
 			cfg.MongoDB.Net.Auth.Mechanism) {
 		return fmt.Errorf("unsupported sample authentication "+
 			"mechanism '%v'", cfg.MongoDB.Net.Auth.Mechanism)
 	}
 
 	if cfg.Net.SSL.MinimumTLSVersion != "" &&
-		!util.SliceContains(supportedTLSVersions, cfg.Net.SSL.MinimumTLSVersion) {
+		!strutil.SliceContains(supportedTLSVersions, cfg.Net.SSL.MinimumTLSVersion) {
 		return fmt.Errorf("unsupported client minimum TLS version '%v'",
 			cfg.Net.SSL.MinimumTLSVersion)
 	}
 
 	if cfg.MongoDB.Net.SSL.MinimumTLSVersion != "" &&
-		!util.SliceContains(supportedTLSVersions, cfg.MongoDB.Net.SSL.MinimumTLSVersion) {
+		!strutil.SliceContains(supportedTLSVersions, cfg.MongoDB.Net.SSL.MinimumTLSVersion) {
 		return fmt.Errorf("unsupported mongo minimum TLS version '%v'",
 			cfg.MongoDB.Net.SSL.MinimumTLSVersion)
 	}
@@ -290,7 +291,7 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid sample max nested table depth: %d", cfg.Schema.Sample.MaxNestedTableDepth)
 	}
 
-	if _, err := util.NewMatcher(cfg.Schema.Sample.Namespaces); err != nil {
+	if _, err := strutil.NewMatcher(cfg.Schema.Sample.Namespaces); err != nil {
 		return fmt.Errorf("invalid specification: %v", err)
 	}
 
@@ -305,7 +306,7 @@ func Validate(cfg *Config) error {
 	}
 
 	if cfg.Schema.Sample.Source != "" {
-		if err := util.ValidateDBName(cfg.Schema.Sample.Source); err != nil {
+		if err := procutil.ValidateDBName(cfg.Schema.Sample.Source); err != nil {
 			return fmt.Errorf("invalid sample source: %v", err)
 		}
 	}

@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
 const (
@@ -345,7 +345,7 @@ func newWriteBuffer(writer io.Writer) *writeBuffer {
 		format:    defaultTimeFormat,
 	}
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		for {
 			select {
 			case <-time.After(flushInterval):

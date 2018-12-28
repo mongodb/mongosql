@@ -18,9 +18,10 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/shopspring/decimal"
@@ -302,7 +303,7 @@ func (s *Server) Run(ctx context.Context) {
 				continue
 			}
 
-			util.PanicSafeGo(func() {
+			procutil.PanicSafeGo(func() {
 				s.serveConnection(ctx, conn)
 			}, func(err interface{}) {
 				s.logger.Errf(log.Always, "unable to serve new connection: %v", err)
@@ -318,7 +319,7 @@ func (s *Server) Run(ctx context.Context) {
 			s.sessionProvider,
 			s.variables,
 		)
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			s.sampler.Run(ctx)
 		}, func(err interface{}) {
 			s.logger.Fatalf(log.Always, "error sampling schema: %v", err)
@@ -327,7 +328,7 @@ func (s *Server) Run(ctx context.Context) {
 	}
 
 	// Asynchronously send metrics records to the current metrics backend.
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		s.runTracker(ctx)
 	}, func(err interface{}) {
 		s.logger.Errf(log.Admin, "unexpected error tracking metrics: %v", err)
@@ -337,7 +338,7 @@ func (s *Server) Run(ctx context.Context) {
 	for _, listener := range s.listeners {
 		newListener := listener
 		s.logger.Infof(log.Always, "waiting for connections at %v", newListener.Addr())
-		util.PanicSafeGo(func() {
+		procutil.PanicSafeGo(func() {
 			listenAndServe(newListener)
 		}, func(err interface{}) {
 			s.logger.Errf(log.Always, "listen and serve error: %v", err)
@@ -379,7 +380,7 @@ func (s *Server) addConnection(c *conn) int {
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
 	atomic.StoreUint32(s.variables.ThreadsConnected, uint32(activeConnections))
-	pluralized := util.Pluralize(activeConnections, "connection", "connections")
+	pluralized := strutil.Pluralize(activeConnections, "connection", "connections")
 	address := c.conn.RemoteAddr().String()
 	if address == "" {
 		address = c.conn.LocalAddr().String()
@@ -401,7 +402,7 @@ func (s *Server) removeConnection(c *conn) {
 	activeConnections := len(s.activeConnections)
 	s.activeConnectionsMx.Unlock()
 	atomic.StoreUint32(s.variables.ThreadsConnected, uint32(activeConnections))
-	pluralized := util.Pluralize(activeConnections, "connection", "connections")
+	pluralized := strutil.Pluralize(activeConnections, "connection", "connections")
 	address := c.conn.RemoteAddr().String()
 	if address == "" {
 		address = c.conn.LocalAddr().String()

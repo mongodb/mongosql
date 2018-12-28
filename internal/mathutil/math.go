@@ -1,11 +1,8 @@
-package util
+package mathutil
 
 import (
 	"fmt"
 	"reflect"
-	"strings"
-
-	"github.com/shopspring/decimal"
 )
 
 // Numeric Conversion Tools
@@ -15,40 +12,6 @@ type converterFunc func(interface{}) (interface{}, error)
 var intConverter = newNumberConverter(reflect.TypeOf(int(0)))
 
 var float64Converter = newNumberConverter(reflect.TypeOf(float64(0)))
-
-// FormatDecimal formats a decimal into a string.
-func FormatDecimal(d decimal.Decimal) string {
-
-	exp := int(d.Exponent())
-	if exp >= 0 {
-		return d.String()
-	}
-
-	str := d.String()
-	sign := d.Cmp(decimal.Zero) < 0
-	if sign {
-		str = str[1:]
-	}
-
-	var relExp int
-	idx := strings.Index(str, ".")
-	if idx >= 0 {
-		relExp = exp + (len(str) - 1 - idx)
-	} else {
-		relExp = exp
-		str += "."
-	}
-
-	if relExp < 0 {
-		str += strings.Repeat("0", -relExp)
-	}
-
-	if sign {
-		return "-" + str
-	}
-
-	return str
-}
 
 // MaxInt returns the maximum of two integers.
 func MaxInt(a, b int) int {

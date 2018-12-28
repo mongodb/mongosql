@@ -1,5 +1,4 @@
-// package util provides commonly used process utility functions.
-package util
+package procutil
 
 import "time"
 

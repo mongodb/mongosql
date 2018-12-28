@@ -7,7 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
 // An OrderByStage sorts records according to one or more keys.
@@ -208,7 +208,7 @@ func (ob *OrderByIter) Err() error {
 
 func (ob *OrderByIter) startIterChan(ctx context.Context, rows []orderByRow) {
 	ob.outChan = make(chan Values)
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 	rowLoop:
 		for _, row := range rows {
 			select {

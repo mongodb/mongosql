@@ -7,7 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
 // orderedGroup holds all the rows belonging to a given key in the groups
@@ -260,7 +260,7 @@ func (gb *GroupByIter) evaluateProjectedColumns(ctx context.Context, r []*Row) (
 func (gb *GroupByIter) iterChan(ctx context.Context) chan aggRowCtx {
 	ch := make(chan aggRowCtx)
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 	keyLoop:
 		for _, key := range gb.finalGrouping.keys {
 			v := gb.finalGrouping.groups[key]

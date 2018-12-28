@@ -10,9 +10,9 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/parser"
 )
 
@@ -296,7 +296,7 @@ func sharesPrefix(strArr1, strArr2 []string) bool {
 	// check that all the strings in strArr1 are equal to the same
 	// position string in strArr2 for the length of of the shorter
 
-	end := util.MinInt(len(strArr1), len(strArr2))
+	end := mathutil.MinInt(len(strArr1), len(strArr2))
 	for i := 0; i < end; i++ {
 		if strArr1[i] != strArr2[i] {
 			return false
@@ -324,27 +324,27 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 		switch typedDoc := currDoc.(type) {
 		case []bson.D:
 			for _, doc := range typedDoc {
-				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case []interface{}:
 			for _, doc := range typedDoc {
-				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case []bson.M:
 			for _, doc := range typedDoc {
-				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case bson.M:
 			for _, doc := range typedDoc {
-				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc, depth+1))
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
 			}
 			return maxChildDepth
 		case bson.D:
 			for _, doc := range typedDoc {
-				maxChildDepth = util.MaxUint32(maxChildDepth, aux(doc.Value, depth+1))
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc.Value, depth+1))
 			}
 			return maxChildDepth
 		default:

@@ -13,8 +13,8 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/option"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/shopspring/decimal"
@@ -2756,5 +2756,5 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 }
 
 func (a *algebrizer) versionAtLeast(major, minor, patch uint8) bool {
-	return util.VersionAtLeast(a.cfg.version, []uint8{major, minor, patch})
+	return procutil.VersionAtLeast(a.cfg.version, []uint8{major, minor, patch})
 }

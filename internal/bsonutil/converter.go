@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/json"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 
 	"github.com/10gen/mongo-go-driver/bson"
 )
@@ -77,7 +77,7 @@ func ConvertJSONValueToBSON(x interface{}) (interface{}, error) {
 
 	case json.ISODate: // ISODate
 		n := string(v)
-		return util.FormatDate(n)
+		return strutil.FormatDate(n)
 
 	case json.NumberLong: // NumberLong
 		return int64(v), nil

@@ -10,8 +10,8 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -264,7 +264,7 @@ func ExecutePlan(ctx context.Context, cfg *ExecutionConfig, plan PlanStage) (Err
 	st := NewExecutionState()
 
 	// If possible, return a fast iterator for this plan.
-	mongodb32 := util.VersionExactly(cfg.mongoDBVersion, []uint8{3, 2})
+	mongodb32 := procutil.VersionExactly(cfg.mongoDBVersion, []uint8{3, 2})
 	fastPlan, ok := getFastPlanStage(plan, mongodb32, false)
 	if ok {
 

@@ -13,8 +13,8 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/schema"
-	"github.com/10gen/sqlproxy/internal/util"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 )
@@ -162,7 +162,7 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *Execu
 	var iter mongodb.Cursor
 	var err error
 
-	util.PanicSafeGo(func() {
+	procutil.PanicSafeGo(func() {
 		iter, err = cfg.commandHandler.Aggregate(ctx, ms.dbName, ms.collectionNames[0], ms.pipeline)
 		errChan <- err
 	}, func(err interface{}) {
@@ -389,7 +389,7 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 
 	// $addFields was introduced in 3.4, only used $addFields if >= 3.4.
 	isAtLeast34 := false
-	if util.VersionAtLeast(cfg.mongoDBVersion, []uint8{3, 4, 0}) {
+	if procutil.VersionAtLeast(cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 		isAtLeast34 = true
 	}
 	fields := make([]string, len(columns))

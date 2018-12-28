@@ -14,7 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/metrics"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/internal/util"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -145,18 +145,18 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 
 func (c *conn) cleanupMemory() error {
 	peakAllocatedDuringQuery := c.memoryMonitor.PeakAllocated()
-	c.logger.Debugf(log.Admin, "%s peak allocated", util.ByteString(peakAllocatedDuringQuery))
+	c.logger.Debugf(log.Admin, "%s peak allocated", strutil.ByteString(peakAllocatedDuringQuery))
 
 	allocated, memErr := c.memoryMonitor.Clear()
 	if memErr != nil {
 		c.logger.Debugf(log.Admin, "%v", memErr)
 	}
 	if allocated > 0 {
-		c.logger.Debugf(log.Admin, "%s released", util.ByteString(allocated))
+		c.logger.Debugf(log.Admin, "%s released", strutil.ByteString(allocated))
 	}
 	if allocated = c.memoryMonitor.Allocated(); allocated != 0 {
 		if os.Getenv(NoMemoryManagerFailpoint) != "" {
-			return fmt.Errorf("didn't release %s of memory", util.ByteString(allocated))
+			return fmt.Errorf("didn't release %s of memory", strutil.ByteString(allocated))
 		}
 	}
 	return nil
