@@ -694,7 +694,7 @@ tasks:
   commands:
     - func: "run unit benchmarks"
       vars:
-        var_package: schema/mapping
+        var_package: internal/schema/mapping
     - func: "process benchmark results"
       vars:
         var_type: unit
