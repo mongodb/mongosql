@@ -692,11 +692,6 @@ func NewSQLConvertExpr(expr SQLExpr, targetType EvalType) *SQLConvertExpr {
 
 // Evaluate evaluates a SQLConvertExpr into a SQLValue.
 func (ce *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// collapse nested SQLConvertExprs
-	if sce, ok := ce.expr.(*SQLConvertExpr); ok {
-		ce.expr = sce.expr
-	}
-
 	v, err := ce.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err

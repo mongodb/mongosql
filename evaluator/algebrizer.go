@@ -2447,6 +2447,14 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
 		}
 		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
+	case "date":
+		return NewSQLConvertExpr(exprs[0], EvalDate), nil
+	case "timestamp":
+		if len(exprs) == 1 {
+			return NewSQLConvertExpr(exprs[0], EvalDatetime), nil
+		} else {
+			return NewSQLScalarFunctionExpr(name, exprs)
+		}
 	case "rand":
 		// We need something unique that we can map.
 		id := a.getUniqueID()

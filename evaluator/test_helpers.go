@@ -258,10 +258,6 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string) (SQLExpr, 
 		expr = group.projectedColumns[0].Expr
 	}
 
-	if conv, ok := expr.(*SQLConvertExpr); ok {
-		expr = conv.expr
-	}
-
 	return expr, nil
 }
 

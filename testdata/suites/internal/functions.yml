@@ -2973,32 +2973,6 @@ testcases:
     sql: select length(repeat('a', c)) from scalar
 
   - db: functions_test
-    expected_names: ['repeat(d, _id)']
-    expected_results:
-      - ['']
-      - ['2000-09-24 13:45:00.000000']
-      - ['2000-10-24 13:45:00.0070002000-10-24 13:45:00.007000']
-      - [null]
-      - [null]
-    expected_types: [varchar]
-    id: repeat_6
-    sql: select repeat(d, _id) from scalar;
-
-  - expected_names: ['repeat(date(''2000-01-01''), 2)']
-    expected_results:
-      - [2000-01-012000-01-01]
-    expected_types: [varchar]
-    id: repeat_7
-    sql: select repeat(date('2000-01-01'),2)
-
-  - expected_names: ['repeat(timestamp(''2000-01-01 00:00:00''), 2)']
-    expected_results:
-      - ['2000-01-01 00:00:00.0000002000-01-01 00:00:00.000000']
-    expected_types: [varchar]
-    id: repeat_8
-    sql: select repeat(timestamp('2000-01-01 00:00:00'), 2)
-
-  - db: functions_test
     expected_names: ['repeat(b, 0.3)']
     expected_results:
       - ['']
@@ -7119,6 +7093,7 @@ testcases:
     expected_types: [date, date, date, date, date, date, date, date, date]
     id: date_1
     min_server_version: 3.4
+    skip: true
     sql: select date(t), date(d), date(s1), date(s2), date(s3), date(s4), date(n1), date(n2), date(n3) from dates
 
   - db: functions_test
@@ -7151,6 +7126,7 @@ testcases:
     expected_types: [varchar, varchar, float, varchar, varchar, varchar]
     id: timestamp_1
     min_server_version: 3.4
+    skip: true
     sql: select s, timestamp(s) as ts, n, timestamp(n) as tn, d, timestamp(d) as td from timestamps
 
   - db: functions_test
@@ -7169,6 +7145,7 @@ testcases:
     expected_types: [varchar, varchar, float, varchar, varchar, varchar]
     id: to_seconds_1
     min_server_version: 3.4
+    skip: true
     sql: select s, to_seconds(s) as ts, n, to_seconds(n) as tn, d, to_seconds(d) as td from timestamps
 
   - db: functions_test
@@ -7184,6 +7161,7 @@ testcases:
       - [3652500, '0000-00-00', '0000-00-00', null]
     expected_types: [int, varchar, varchar, int]
     id: from_days_1
+    skip: true
     sql: select n, from_days(n) as f, from_days(s) as fs, to_days(from_days(n)) = n as roundtrip from numbers
 
   - db: functions_test
@@ -7238,6 +7216,7 @@ testcases:
     expected_types: [float, varchar, varchar, varchar]
     id: timestampadd_3
     min_server_version: 3.4
+    skip: true
     sql: select n, timestampadd(second, 1.5, n), timestampadd(minute, 1.5, n), timestampadd(quarter, 9, n) from timestamps
 
   - db: functions_test
@@ -7256,6 +7235,7 @@ testcases:
     expected_types: [float, varchar, varchar, varchar, varchar, varchar, varchar]
     id: timestampadd_rounding
     min_server_version: 3.4
+    skip: true
     sql: select n, timestamp(n), timestampadd(minute, 1.4, n), timestampadd(minute, 1.5, n), timestampadd(second, 1.4, n), timestampadd(second, 1.5, n), timestampadd(microsecond, 17600, n) from timestamps
 
   - db: functions_test
@@ -7307,6 +7287,7 @@ testcases:
     expected_types: [float, float, int, int, int, int, int, int, int, int, int]
     id: timestampdiff_2
     min_server_version: 3.4
+    skip: true
     sql: select n1, n2, timestampdiff(year, n1, n2) as y, timestampdiff(quarter, n1, n2) as q, timestampdiff(month, n1, n2) as m, timestampdiff(month, n2, n1) as rm, timestampdiff(day, n1, n2) as d, timestampdiff(minute, n1, n2) as min, timestampdiff(second, n1, n2) as s, timestampdiff(microsecond, n1, n2) as us, timestampdiff(microsecond, n2, n1) as rus from timestampDiff2
 
   - db: functions_test
@@ -7343,6 +7324,7 @@ testcases:
     expected_types: [float, date, varchar, date]
     id: last_day_1
     min_server_version: 3.4
+    skip: true
     sql: select n1, last_day(n1), s4, last_day(s4) from dates
 
   - db: functions_test
@@ -7373,6 +7355,7 @@ testcases:
       - [1600-02-29]
     expected_types: [date]
     id: last_day_3
+    skip: true
     sql: select last_day(d) as ld from leap_year_dates
 
   - db: functions_test
@@ -7544,6 +7527,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: weeks_3
     min_server_version: 3.4
+    skip: true
     sql: select week(t,0) z, week(s1,3) th, week(s2,4) f, week(n1,5) fv, week(n2,6) sx from dates
 
   - db: functions_test
@@ -7563,6 +7547,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: yearweeks_3
     min_server_version: 3.4
+    skip: true
     sql: select yearweek(t,0) z, yearweek(s1,3) th, yearweek(s2,4) f, yearweek(n1,5) fv, yearweek(n2,6) sx from dates
 
   - db: functions_test
@@ -7669,6 +7654,7 @@ testcases:
     expected_types: [int, int, int]
     id: to_days_1
     min_server_version: 3.4
+    skip: true
     sql: select to_days(t), to_days(n1), to_days(s1) from dates
 
   - db: functions_test

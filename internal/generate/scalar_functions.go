@@ -20,32 +20,10 @@ type ScalarFuncSpec struct {
 	SeparateInvocationEvaluation bool                   `yaml:"separate_invocation_evaluation"`
 	UseFullEvaluationState       bool                   `yaml:"use_full_evaluation_state"`
 	ValidateArgTypes             bool                   `yaml:"validate_arg_types"`
-	Reconcile                    string                 `yaml:"reconcile"`
+	SkipReconciliation           bool                   `yaml:"no_reconcile"`
 	NoPushdown                   bool                   `yaml:"no_pushdown"`
 	CustomFoldConstants          bool                   `yaml:"custom_fold_constants"`
 	Invocations                  []ScalarFuncInvocation `yaml:"invocations"`
-}
-
-func (sf *ScalarFuncSpec) SkipReconcile() bool {
-	switch sf.Reconcile {
-	case "skip":
-		return true
-	case "", "custom":
-		return false
-	default:
-		panic(fmt.Errorf("unexpected value for 'reconcile' key in '%s' function: %s", sf.ID, sf.Reconcile))
-	}
-}
-
-func (sf *ScalarFuncSpec) CustomReconcile() bool {
-	switch sf.Reconcile {
-	case "custom":
-		return true
-	case "", "skip":
-		return false
-	default:
-		panic(fmt.Errorf("unexpected value for 'reconcile' key in '%s' function: %s", sf.ID, sf.Reconcile))
-	}
 }
 
 // ScalarFuncInvocation represents the specification for a particular invocation
@@ -238,12 +216,12 @@ func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	{{- end}}
 }
 
-{{if $func.SkipReconcile}}// nolint: unparam{{end}}
+{{if $func.SkipReconciliation}}// nolint: unparam{{end}}
 func (f *{{$func.ID}}{{.ID}}Func) reconcile() (SQLExpr, error) {
-    {{- if $func.SkipReconcile}}
+    {{- if $func.SkipReconciliation}}
     return f, nil
     {{- else}}
-    convertedArgs := {{if $func.CustomReconcile}}{{$func.ID}}{{.ID}}ReconcileArgs(f.args){{else}}convertExprs(f.args, f.argTypes()){{end}}
+    convertedArgs := convertExprs(f.args, f.argTypes())
     return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
     {{- end}}
 }

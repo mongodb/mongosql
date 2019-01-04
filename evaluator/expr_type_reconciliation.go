@@ -26,9 +26,6 @@ func isSimilar(leftType, rightType EvalType) bool {
 	if leftType.IsNumeric() && rightType.IsNumeric() {
 		return true
 	}
-	if leftType.IsDate() && rightType.IsDate() {
-		return true
-	}
 	return false
 }
 

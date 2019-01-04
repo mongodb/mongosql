@@ -1820,7 +1820,7 @@ func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *dateAddFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := dateAddReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -2045,7 +2045,7 @@ func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *dateSubFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := dateSubReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -3241,7 +3241,7 @@ func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *lastDayFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := lastDayReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7021,7 +7021,7 @@ func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *timestampAddFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := timestampAddReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7096,7 +7096,7 @@ func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *timestampDiffFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := timestampDiffReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7171,7 +7171,7 @@ func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *toDaysFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := toDaysReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7188,7 +7188,7 @@ var _ SQLScalarFunctionExpr = (*toSecondsFunc)(nil)
 
 // The following constants represent some properties of the toSecondsFunc scalar function.
 var (
-	toSecondsExpectedTypes  []EvalType               = []EvalType{EvalDate}
+	toSecondsExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
 	toSecondsIsVariadic     bool                     = false
 	toSecondsReturnTypeFunc func([]SQLExpr) EvalType = toSecondsEvalType
 )
@@ -7246,7 +7246,7 @@ func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *toSecondsFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := toSecondsReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -8126,7 +8126,7 @@ func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *weekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := weekWithDefaultModeReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -8201,7 +8201,7 @@ func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *weekWithModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := weekWithModeReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -8426,7 +8426,7 @@ func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExp
 }
 
 func (f *yearWeekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := yearWeekWithDefaultModeReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -8501,7 +8501,7 @@ func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 }
 
 func (f *yearWeekWithModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := yearWeekWithModeReconcileArgs(f.args)
+	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 

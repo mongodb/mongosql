@@ -59,6 +59,20 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [0, '0000-00-00']
+      - [1, null]
+      - [2, null]
+      - [50000, '2049-11-30']
+      - [-1, null]
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_date_func
+    sql: select value, date(value) as converted from `int`
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [0, '0000-00-00 00:00:00']
       - [1, null]
       - [2, null]
@@ -68,6 +82,20 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_datetime
     sql: select value, convert(value, DATETIME) as converted from `int`
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '0000-00-00 00:00:00']
+      - [1, null]
+      - [2, null]
+      - [50000, '2049-11-30 00:00:00']
+      - [-1, null]
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_datetime_func
+    sql: select value, timestamp(value) as converted from `int`
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -205,6 +233,25 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [0, '0000-00-00']
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, '2012-02-03']
+      - [20120203.987628, '2012-02-03']
+      - [null, null]
+    expected_types: [float, varchar]
+    id: float_to_date_func
+    sql: select value, date(value) as converted from float
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [0, '0000-00-00 00:00:00']
       - [1, null]
       - [1.1, null]
@@ -219,6 +266,25 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_datetime
     sql: select value, convert(value, DATETIME) as converted from float
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '0000-00-00 00:00:00']
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, '2012-02-03 00:00:00']
+      - [20120203.987628, '2012-02-03 00:00:00']
+      - [null, null]
+    expected_types: [float, varchar]
+    id: float_to_datetime_func
+    sql: select value, timestamp(value) as converted from float
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -361,6 +427,26 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [0, '0000-00-00']
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, '2012-02-03']
+      - [20120203.987628, '2012-02-03']
+      - [null, null]
+    expected_types: [decimal, varchar]
+    id: decimal_to_date_func
+    min_server_version: 3.4
+    sql: select value, date(value) as converted from decimal
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [0, '0000-00-00 00:00:00']
       - [1, null]
       - [1.1, null]
@@ -376,6 +462,26 @@ testcases:
     id: decimal_to_datetime
     min_server_version: 3.4
     sql: select value, convert(value, DATETIME) as converted from decimal
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '0000-00-00 00:00:00']
+      - [1, null]
+      - [1.1, null]
+      - [2.5, null]
+      - [54321.1, null]
+      - [-1, null]
+      - [-1.1, null]
+      - [-2.5, null]
+      - [20120203.080706, '2012-02-03 00:00:00']
+      - [20120203.987628, '2012-02-03 00:00:00']
+      - [null, null]
+    expected_types: [decimal, varchar]
+    id: decimal_to_datetime_func
+    min_server_version: 3.4
+    sql: select value, timestamp(value) as converted from decimal
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -457,10 +563,28 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - ['2000-01-02 12:34:56', '2000-01-02']
+    expected_types: [varchar, varchar]
+    id: datetime_to_date_func
+    sql: select value, date(value) as converted from datetime
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - ['2000-01-02 12:34:56', '2000-01-02 12:34:56']
     expected_types: [varchar, varchar]
     id: datetime_to_datetime
     sql: select value, convert(value, DATETIME) as converted from datetime
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', '2000-01-02 12:34:56']
+    expected_types: [varchar, varchar]
+    id: datetime_to_datetime_func
+    sql: select value, timestamp(value) as converted from datetime
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -538,10 +662,28 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - ['2000-01-02', '2000-01-02']
+    expected_types: [varchar, varchar]
+    id: date_to_date_func
+    sql: select DATE(value) as value, date(DATE(value)) as converted from date
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - ['2000-01-02', '2000-01-02 00:00:00']
     expected_types: [varchar, varchar]
     id: date_to_datetime
     sql: select DATE(value) as value, convert(DATE(value), DATETIME) as converted from date
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', '2000-01-02 00:00:00']
+    expected_types: [varchar, varchar]
+    id: date_to_datetime_func
+    sql: select DATE(value) as value, timestamp(DATE(value)) as converted from date
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -619,10 +761,28 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [53c2ab5e4291b17b666d742a, '2014-07-13']
+    expected_types: [varchar, varchar]
+    id: objectid_to_date_func
+    sql: select value, date(value) as converted from objectid
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [53c2ab5e4291b17b666d742a, '2014-07-13 15:53:02']
     expected_types: [varchar, varchar]
     id: objectid_to_datetime
     sql: select value, convert(value, DATETIME) as converted from objectid
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, '2014-07-13 15:53:02']
+    expected_types: [varchar, varchar]
+    id: objectid_to_datetime_func
+    sql: select value, timestamp(value) as converted from objectid
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -808,6 +968,42 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [570e919f65d33734a8605cb9, '0000-00-00']
+      - ['', '0000-00-00']
+      - ['  abc ', '0000-00-00']
+      - [' 123 ', '0000-00-00']
+      - [' -123.4 ', '0000-00-00']
+      - ['0', '0000-00-00']
+      - ['1', '0000-00-00']
+      - ['true', '0000-00-00']
+      - ['false', '0000-00-00']
+      - [' false ', '0000-00-00']
+      - ['20180101', '2018-01-01']
+      - [' 20180101 ', '0000-00-00']
+      - ['2018-01-01', '2018-01-01']
+      - [' 2018-01-01 ', '2018-01-01']
+      - ['2.8e-3', '0000-00-00']
+      - ['2.8e3', '0000-00-00']
+      - ['   +1111e +3af', '0000-00-00']
+      - ['   +1111e -3af', '0000-00-00']
+      - ['   -1111e +3af', '0000-00-00']
+      - ['   -1111e -3af', '0000-00-00']
+      - ['   -1111 e -3af', '0000-00-00']
+      - ['   -1111 e -3af', '0000-00-00']
+      - ['   +1111 e -3af', '0000-00-00']
+      - ['5:05', '0000-00-00']
+      - [' 5:05 ', '0000-00-00']
+      - ['5:05pm', '0000-00-00']
+      - ['17:05', '0000-00-00']
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_date_func
+    sql: select value, date(value) as converted from string
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [570e919f65d33734a8605cb9, '0000-00-00 00:00:00']
       - ['', '0000-00-00 00:00:00']
       - ['  abc ', '0000-00-00 00:00:00']
@@ -839,6 +1035,42 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_datetime
     sql: select value, convert(value, DATETIME) as converted from string
+    variables: {type_conversion_mode: mysql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, '0000-00-00 00:00:00']
+      - ['', '0000-00-00 00:00:00']
+      - ['  abc ', '0000-00-00 00:00:00']
+      - [' 123 ', '0000-00-00 00:00:00']
+      - [' -123.4 ', '0000-00-00 00:00:00']
+      - ['0', '0000-00-00 00:00:00']
+      - ['1', '0000-00-00 00:00:00']
+      - ['true', '0000-00-00 00:00:00']
+      - ['false', '0000-00-00 00:00:00']
+      - [' false ', '0000-00-00 00:00:00']
+      - ['20180101', '2018-01-01 00:00:00']
+      - [' 20180101 ', '0000-00-00 00:00:00']
+      - ['2018-01-01', '2018-01-01 00:00:00']
+      - [' 2018-01-01 ', '2018-01-01 00:00:00']
+      - ['2.8e-3', '0000-00-00 00:00:00']
+      - ['2.8e3', '0000-00-00 00:00:00']
+      - ['   +1111e +3af', '0000-00-00 00:00:00']
+      - ['   +1111e -3af', '0000-00-00 00:00:00']
+      - ['   -1111e +3af', '0000-00-00 00:00:00']
+      - ['   -1111e -3af', '0000-00-00 00:00:00']
+      - ['   -1111 e -3af', '0000-00-00 00:00:00']
+      - ['   -1111 e -3af', '0000-00-00 00:00:00']
+      - ['   +1111 e -3af', '0000-00-00 00:00:00']
+      - ['5:05', '0000-00-00 00:00:00']
+      - [' 5:05 ', '0000-00-00 00:00:00']
+      - ['5:05pm', '0000-00-00 00:00:00']
+      - ['17:05', '0000-00-00 00:00:00']
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_datetime_func
+    sql: select value, timestamp(value) as converted from string
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
