@@ -120,20 +120,21 @@ test-unit:
 test-module-integration: test-connect-success
 	$(ENV) BUILD_FLAGS="$(BUILD_FLAGS) integration" testdata/bin/run-unit-tests.sh
 
-# include config test targets
-include testdata/config/tests/alter.mk
-include testdata/config/tests/auth.mk
-include testdata/config/tests/cleartext-auth.mk
-include testdata/config/tests/gssapi.mk
-include testdata/config/tests/kill-query.mk
-include testdata/config/tests/log-newlines.mk
-include testdata/config/tests/log-rotation.mk
-include testdata/config/tests/mongo-ssl.mk
-include testdata/config/tests/mongo-uri.mk
-include testdata/config/tests/mongodrdl.mk
-include testdata/config/tests/schema.mk
-include testdata/config/tests/server.mk
-include testdata/config/tests/sharding.mk
-include testdata/config/tests/sqlproxy-ssl.mk
-include testdata/config/tests/system-variables.mk
-include testdata/config/tests/views.mk
+# include e2e test targets
+E2E_TEST_DIR = testdata/e2e/tests
+include $(E2E_TEST_DIR)/alter.mk
+include $(E2E_TEST_DIR)/auth.mk
+include $(E2E_TEST_DIR)/cleartext-auth.mk
+include $(E2E_TEST_DIR)/gssapi.mk
+include $(E2E_TEST_DIR)/kill-query.mk
+include $(E2E_TEST_DIR)/log-newlines.mk
+include $(E2E_TEST_DIR)/log-rotation.mk
+include $(E2E_TEST_DIR)/mongo-ssl.mk
+include $(E2E_TEST_DIR)/mongo-uri.mk
+include $(E2E_TEST_DIR)/mongodrdl.mk
+include $(E2E_TEST_DIR)/schema.mk
+include $(E2E_TEST_DIR)/server.mk
+include $(E2E_TEST_DIR)/sharding.mk
+include $(E2E_TEST_DIR)/sqlproxy-ssl.mk
+include $(E2E_TEST_DIR)/system-variables.mk
+include $(E2E_TEST_DIR)/views.mk

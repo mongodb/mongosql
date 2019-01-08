@@ -71,7 +71,7 @@ mysql
 
 ## Testing the BI Connector
 There are three different categories into which the BI Connector's tests fall:
-unit tests, integration tests, and configuration parameter (config) tests.
+unit tests, integration tests, and end-to-end (e2e) tests.
 
 ### Unit Tests
 Most of the packages in this repository include unit tests.
@@ -157,12 +157,11 @@ In the future, we hope to support automating mongod, mongosqld, and various
 other parts of our test infrastructure via the `-automate` flag. In the meantime,
 the helper scripts in `testdata/bin` can be used to spin up those components.
 
-### Config Tests
-The BI Connector's config tests are end-to-end tests that verify various
-mongosqld behaviors under many permutations of mysql client, mongosqld, and
-MongoDB configuration options. Each config test is a make target in one of the
-`*.mk` files found at `testdata/config/tests`. To run a config test, run
-`make clean <target>` from the root of the repository.
+### e2e Tests
+The BI Connector's end-to-end tests verify various mongosqld behaviors under many
+permutations of mysql client, mongosqld, and MongoDB configuration options. Each
+e2e test is a make target in one of the `*.mk` files found at `testdata/e2e/tests`.
+To run an e2e test, run `make clean <target>` from the root of the repository.
 
 ## Customizations
 If you prefer a file-based schema approach, you can generate and use a `.drdl` file:

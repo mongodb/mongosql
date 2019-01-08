@@ -2128,7 +2128,7 @@ buildvariants:
 # and we currently have no way to point to a specific version of openssl
 # to compile mongosqld with.
 - matrix_name: config-tests
-  display_name: "Configuration Parameter Tests (${os_full_matrix})"
+  display_name: "End-to-End Tests (${os_full_matrix})"
   tasks:
     - ".test .config !.gssapi"
   matrix_spec:

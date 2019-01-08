@@ -1,2 +1,2 @@
 *.sh eol=lf
-testdata/config/**/* eol=lf
+testdata/e2e/**/* eol=lf

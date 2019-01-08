@@ -47,9 +47,9 @@ PATH="$GOBINDIR:$PYTHON_PATH:$MYSQL_PATH:$MONGODB_BINARIES:$PATH:$MINGW_PATH:$LI
 
 # source infrastructure config files
 for infra_config in $( echo $INFRASTRUCTURE_CONFIG | sed "s/,/ /g" ); do
-	echo "loading config... $PROJECT_DIR/testdata/config/$infra_config"
+	echo "loading config... $PROJECT_DIR/testdata/e2e/$infra_config"
 
-    . "$PROJECT_DIR/testdata/config/$infra_config"
+    . "$PROJECT_DIR/testdata/e2e/$infra_config"
     [ "$?" = "0" ] || exit 1
 done
 
