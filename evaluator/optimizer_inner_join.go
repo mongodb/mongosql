@@ -800,10 +800,8 @@ func (s sortablePaths) pathSelfJoinPotential(path path) int {
 			break
 		}
 
-		// TODO BI-1884
-		var v *pushdownVisitor
-		canSelfJoinEdge = v.canSelfJoinTables(s.logger, leftSource, rightSource,
-			s.matcher, InnerJoin)
+		canSelfJoinEdge = canSelfInnerJoinTables(s.logger, leftSource, rightSource,
+			s.matcher, emptyDbData)
 		s.cachedEdgeSelfJoinPotential[edgeKey] = canSelfJoinEdge
 		reversedEdgeKey := fmt.Sprintf("%v-%v", edge.tables[1], edge.tables[0])
 		s.cachedEdgeSelfJoinPotential[reversedEdgeKey] = canSelfJoinEdge

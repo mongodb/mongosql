@@ -76,13 +76,24 @@ func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, PushdownError) {
 	return p, nil
 }
 
+// dbData is a map from database name to tableData.
+type dbData map[string]tableData
+
+// tableData is a map from table name to columnData.
+type tableData map[string]columnData
+
+// columnData is map from original column name to its rename.
+type columnData map[string]string
+
+var emptyDbData = make(dbData)
+
 type pushdownVisitor struct {
 	cfg                   *PushdownConfig
 	logger                log.Logger
 	selectIDsInScope      []int
 	tableNamesInScope     map[string][]string
 	columnTracker         *columnTracker
-	leftJoinOriginalNames map[string]map[string]map[string]string
+	leftJoinOriginalNames dbData
 	depth                 int
 	pushdownFailures      map[PlanStage][]PushdownFailure
 }
@@ -93,7 +104,7 @@ func newPushdownVisitor(cfg *PushdownConfig) *pushdownVisitor {
 		logger:                cfg.lg,
 		depth:                 0,
 		columnTracker:         newColumnTracker(),
-		leftJoinOriginalNames: make(map[string]map[string]map[string]string),
+		leftJoinOriginalNames: make(dbData),
 		pushdownFailures:      make(map[PlanStage][]PushdownFailure),
 	}
 }
@@ -1234,7 +1245,7 @@ func (v *pushdownVisitor) getFixedLookupFieldName(combinedMappingRegistry *mappi
 	// matter is if <=> or is NULL is in the predicate, and even if that is the case,
 	// it would already be NULL from being a left join, anyway. If it is instead <> NULL
 	// the predicate is essentially a no-op
-	fieldName, _, _, ok := v.lookupSQLColumnForJoin(db, tbl, col, registries)
+	fieldName, _, _, ok := lookupSQLColumnForJoin(db, tbl, col, registries, v.leftJoinOriginalNames)
 	if !ok {
 		panic(fmt.Sprintf("could not find column: %q.%q, "+
 			"this should never happen, registries were: %v", tbl, col, registries))
@@ -1969,13 +1980,11 @@ func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQL
 // semantic identity of columns for the purposes of PK equality matching
 // constraints as we need to identify two columns as being semantically
 // isomorphic if they have been aliased at the SQL level.
-func (v *pushdownVisitor) lookupSQLColumnForJoin(databaseName, tableName, columnName string,
-	mappingRegistries []*mappingRegistry) (string, string, int, bool) {
+func lookupSQLColumnForJoin(databaseName, tableName, columnName string,
+	mappingRegistries []*mappingRegistry, leftJoinOriginalNames dbData) (string, string, int, bool) {
 	var renamedField string
 	var ok bool
-	if v == nil {
-		renamedField = ""
-	} else if renamedField, ok = v.leftJoinOriginalNames[databaseName][tableName][columnName]; !ok {
+	if renamedField, ok = leftJoinOriginalNames[databaseName][tableName][columnName]; !ok {
 		renamedField = ""
 	}
 	for i, registry := range mappingRegistries {
@@ -2197,13 +2206,13 @@ func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceSt
 		for databaseName, tables := range foreign.mappingRegistry.fields {
 			_, ok := v.leftJoinOriginalNames[databaseName]
 			if !ok {
-				v.leftJoinOriginalNames[databaseName] = make(map[string]map[string]string)
+				v.leftJoinOriginalNames[databaseName] = make(tableData)
 			}
 
 			for tableName, fields := range tables {
 				leftJoinOriginalNames, ok := v.leftJoinOriginalNames[databaseName][tableName]
 				if !ok {
-					leftJoinOriginalNames = make(map[string]string)
+					leftJoinOriginalNames = make(columnData)
 					v.leftJoinOriginalNames[databaseName][tableName] = leftJoinOriginalNames
 				}
 				for tableCol, docCol := range fields {
@@ -2766,9 +2775,14 @@ func (v *pushdownVisitor) uniqueRegistryName(mr *mappingRegistry, databaseName, 
 
 func (v *pushdownVisitor) canSelfJoinTables(logger log.Logger, local, foreign *MongoSourceStage,
 	matcher SQLExpr, kind JoinKind) bool {
-	return sharesRootTable(logger, local, foreign) &&
-		v.meetsSelfJoinPKCriteria(logger, local, foreign, matcher) &&
+	return canSelfInnerJoinTables(logger, local, foreign, matcher, v.leftJoinOriginalNames) &&
 		(kind != LeftJoin || v.meetsLeftSelfJoinPipelineCriteria(logger, local, foreign, matcher))
+}
+
+func canSelfInnerJoinTables(logger log.Logger, local, foreign *MongoSourceStage,
+	matcher SQLExpr, leftJoinOriginalNames dbData) bool {
+	return sharesRootTable(logger, local, foreign) &&
+		meetsSelfJoinPKCriteria(logger, local, foreign, matcher, leftJoinOriginalNames)
 }
 
 func (v *pushdownVisitor) remainingJoinPredicate(msLocal, msForeign *MongoSourceStage,
@@ -2782,15 +2796,15 @@ func (v *pushdownVisitor) remainingJoinPredicate(msLocal, msForeign *MongoSource
 			c2, _ := equalExpr.right.(SQLColumnExpr)
 			if c1.selectID == c2.selectID {
 
-				originalC1Name, _, c1RegistryIdx, ok := v.lookupSQLColumnForJoin(c1.databaseName,
-					c1.tableName, c1.columnName, registries)
+				originalC1Name, _, c1RegistryIdx, ok := lookupSQLColumnForJoin(c1.databaseName,
+					c1.tableName, c1.columnName, registries, v.leftJoinOriginalNames)
 				if !ok {
 					panic("unable to find field mapping for self-join optimization " +
 						"c1. This should never happen.")
 				}
 
-				originalC2Name, _, c2RegistryIdx, ok := v.lookupSQLColumnForJoin(c2.databaseName,
-					c2.tableName, c2.columnName, registries)
+				originalC2Name, _, c2RegistryIdx, ok := lookupSQLColumnForJoin(c2.databaseName,
+					c2.tableName, c2.columnName, registries, v.leftJoinOriginalNames)
 				if !ok {
 					panic("unable to find field mapping for self-join optimization " +
 						"c2. This should never happen.")
@@ -2866,8 +2880,8 @@ func (v *pushdownVisitor) meetsLeftSelfJoinPipelineCriteria(logger log.Logger, l
 	return false
 }
 
-func (v *pushdownVisitor) meetsSelfJoinPKCriteria(logger log.Logger, local,
-	foreign *MongoSourceStage, matcher SQLExpr) bool {
+func meetsSelfJoinPKCriteria(logger log.Logger, local,
+	foreign *MongoSourceStage, matcher SQLExpr, leftJoinOriginalNames dbData) bool {
 	// Don't perform optimization on MongoDB views as
 	// renames might have occurred on fields.
 	if local.isView() {
@@ -2944,15 +2958,15 @@ func (v *pushdownVisitor) meetsSelfJoinPKCriteria(logger log.Logger, local,
 				continue
 			}
 
-			originalC1Name, _, c1RegistryIdx, ok := v.lookupSQLColumnForJoin(column1.databaseName,
-				column1.tableName, column1.columnName, registries)
+			originalC1Name, _, c1RegistryIdx, ok := lookupSQLColumnForJoin(column1.databaseName,
+				column1.tableName, column1.columnName, registries, leftJoinOriginalNames)
 			if !ok {
 				panic(fmt.Sprintf("unable to find field mapping for merge column1:  %s.%s.%s."+
 					" This should never happen.", column1.databaseName, column1.tableName,
 					column1.columnName))
 			}
-			originalC2Name, _, c2RegistryIdx, ok := v.lookupSQLColumnForJoin(column2.databaseName,
-				column2.tableName, column2.columnName, registries)
+			originalC2Name, _, c2RegistryIdx, ok := lookupSQLColumnForJoin(column2.databaseName,
+				column2.tableName, column2.columnName, registries, leftJoinOriginalNames)
 			if !ok {
 				panic(fmt.Sprintf("unable to find field mapping for merge column2: %s.%s.%s."+
 					" This should never happen.", column2.databaseName, column2.tableName,
@@ -3122,8 +3136,8 @@ func (v *pushdownVisitor) canPushdownForeignJoinSourcePipeline(join *JoinStage, 
 					// sides of the join equivalence, so we
 					// can't use else here.
 					if containsString(msForeign.aliasNames, column1.tableName) {
-						_, columnName, _, _ := v.lookupSQLColumnForJoin(column1.databaseName,
-							column1.tableName, column1.columnName, registries)
+						_, columnName, _, _ := lookupSQLColumnForJoin(column1.databaseName,
+							column1.tableName, column1.columnName, registries, v.leftJoinOriginalNames)
 
 						if columnName == unwindIndexName {
 							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
@@ -3134,8 +3148,8 @@ func (v *pushdownVisitor) canPushdownForeignJoinSourcePipeline(join *JoinStage, 
 						}
 					}
 					if containsString(msForeign.aliasNames, column2.tableName) {
-						_, columnName, _, _ := v.lookupSQLColumnForJoin(column2.databaseName,
-							column2.tableName, column2.columnName, registries)
+						_, columnName, _, _ := lookupSQLColumnForJoin(column2.databaseName,
+							column2.tableName, column2.columnName, registries, v.leftJoinOriginalNames)
 
 						if columnName == unwindIndexName {
 							v.logger.Debugf(log.Dev, "$lookup translation: cannot use foreign "+
