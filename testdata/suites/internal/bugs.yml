@@ -213,3 +213,11 @@ testcases:
     expected_types: [varchar]
     id: BI-1997-left join
     sql: select a._id from oid a left join oid b on a._id=b._id
+
+  - description: BI-1949 subquery comparison type reconciliation failure
+    expected_names: [cmp]
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: BI-1949-subquery-comparison-reconcile
+    sql: select (select 1, 2, 3) < (select 1, 2, 3) as cmp

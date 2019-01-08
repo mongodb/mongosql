@@ -43,6 +43,25 @@ testcases:
     sql: select a, b from tupleTable where (a, b) = (3, 4);
 
   - db: tuple_test
+    description: Correct simple GT
+    expected_names: [a, b]
+    expected_results:
+      - [2, 3]
+    expected_types: [int, int]
+    id: '4gt'
+    sql: select a, b from tupleTable where (a, b) > (2, 1);
+
+  - db: tuple_test
+    description: Correct simple LT
+    expected_names: [a, b]
+    expected_results:
+      - [0, 3]
+      - [1, 1]
+    expected_types: [int, int]
+    id: '4lt'
+    sql: select a, b from tupleTable where (a, b) < (2, 1);
+
+  - db: tuple_test
     description: Incorrect IN with nested tuple expression
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '5'

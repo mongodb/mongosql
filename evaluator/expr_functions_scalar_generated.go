@@ -1585,7 +1585,7 @@ func (f *dateAddFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *dateAddFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := dateAddReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -1768,7 +1768,7 @@ func (f *dateSubFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *dateSubFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := dateSubReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -2923,7 +2923,7 @@ func (f *lastDayFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *lastDayFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := lastDayReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -6096,7 +6096,7 @@ func (f *timestampAddFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *timestampAddFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := timestampAddReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -6157,7 +6157,7 @@ func (f *timestampDiffFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *timestampDiffFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := timestampDiffReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -6218,7 +6218,7 @@ func (f *toDaysFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *toDaysFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := toDaysReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -6279,7 +6279,7 @@ func (f *toSecondsFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *toSecondsFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := toSecondsReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7017,7 +7017,7 @@ func (f *weekWithDefaultModeFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *weekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := weekWithDefaultModeReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7078,7 +7078,7 @@ func (f *weekWithModeFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *weekWithModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := weekWithModeReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7261,7 +7261,7 @@ func (f *yearWeekWithDefaultModeFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *yearWeekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := yearWeekWithDefaultModeReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
@@ -7322,7 +7322,7 @@ func (f *yearWeekWithModeFunc) Normalize(kind SQLValueKind) Node {
 }
 
 func (f *yearWeekWithModeFunc) reconcile() (SQLExpr, error) {
-	convertedArgs := convertExprs(f.args, f.argTypes())
+	convertedArgs := yearWeekWithModeReconcileArgs(f.args)
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 

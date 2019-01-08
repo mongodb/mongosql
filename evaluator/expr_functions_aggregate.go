@@ -163,6 +163,11 @@ func (*SQLAvgFunctionExpr) Name() string {
 	return "avg"
 }
 
+// nolint: unparam
+func (f *SQLAvgFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
+}
+
 // String converts to string.
 func (f *SQLAvgFunctionExpr) String() string {
 	return basicSQLAggFunctionToString(f.Name(), f.distinct, f.exprs)
@@ -269,6 +274,11 @@ func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfi
 // Name returns name.
 func (*SQLCountFunctionExpr) Name() string {
 	return "count"
+}
+
+// nolint: unparam
+func (f *SQLCountFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
 }
 
 // String converts to string.
@@ -475,6 +485,11 @@ func (*SQLGroupConcatFunctionExpr) Name() string {
 	return "group_concat"
 }
 
+// nolint: unparam
+func (f *SQLGroupConcatFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
+}
+
 // String converts to a string.
 func (f *SQLGroupConcatFunctionExpr) String() string {
 	var distinct, separator string
@@ -550,6 +565,11 @@ func (f *SQLMaxFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 // Name returns name.
 func (*SQLMaxFunctionExpr) Name() string {
 	return "max"
+}
+
+// nolint: unparam
+func (f *SQLMaxFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
 }
 
 // String converts to string.
@@ -638,6 +658,11 @@ func (f *SQLMinFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 // Name returns name.
 func (*SQLMinFunctionExpr) Name() string {
 	return "min"
+}
+
+// nolint: unparam
+func (f *SQLMinFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
 }
 
 // String converts to string.
@@ -761,6 +786,11 @@ func (f *SQLSumFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 // Name returns name.
 func (*SQLSumFunctionExpr) Name() string {
 	return "sum"
+}
+
+// nolint: unparam
+func (f *SQLSumFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
 }
 
 // String converts to string.
@@ -911,6 +941,11 @@ func (f *SQLStdDevFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 // Name returns name.
 func (f *SQLStdDevFunctionExpr) Name() string {
 	return f.name
+}
+
+// nolint: unparam
+func (f *SQLStdDevFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
 }
 
 // String converts to string.
@@ -1064,6 +1099,11 @@ func (f *SQLStdDevSampleFunctionExpr) Evaluate(ctx context.Context, cfg *Executi
 // Name returns name.
 func (*SQLStdDevSampleFunctionExpr) Name() string {
 	return "stddev_samp"
+}
+
+// nolint: unparam
+func (f *SQLStdDevSampleFunctionExpr) reconcile() (SQLExpr, error) {
+	return f, nil
 }
 
 // String converts to string.

@@ -87,6 +87,11 @@ func (s BaseSQLBool) Size() uint64 {
 	return 1
 }
 
+// nolint: unparam
+func (s BaseSQLBool) reconcile() (SQLExpr, error) {
+	return s.SQLBool(), nil
+}
+
 // String returns the string representation of this SQLValue.
 // String should return the same value regardless of the SQLValue's kind, and
 // should not be overridden by any embedding SQLValue implementers.
@@ -287,6 +292,11 @@ func (s BaseSQLDate) Size() uint64 {
 	return 8
 }
 
+// nolint: unparam
+func (s BaseSQLDate) reconcile() (SQLExpr, error) {
+	return s.SQLDate(), nil
+}
+
 // String returns the string representation of this SQLValue.
 // String should return the same value regardless of the SQLValue's kind, and
 // should not be overridden by any embedding SQLValue implementers.
@@ -470,6 +480,11 @@ func (s BaseSQLDecimal128) WireProtocolEncode(*collation.Charset, int) ([]byte, 
 // Size returns the size of this SQLValue in bytes.
 func (s BaseSQLDecimal128) Size() uint64 {
 	return 16
+}
+
+// nolint: unparam
+func (s BaseSQLDecimal128) reconcile() (SQLExpr, error) {
+	return s.SQLDecimal128(), nil
 }
 
 // String returns the string representation of this SQLValue.
@@ -661,6 +676,11 @@ func (s BaseSQLFloat) Size() uint64 {
 	return 8
 }
 
+// nolint: unparam
+func (s BaseSQLFloat) reconcile() (SQLExpr, error) {
+	return s.SQLFloat(), nil
+}
+
 // String returns the string representation of this SQLValue.
 // String should return the same value regardless of the SQLValue's kind, and
 // should not be overridden by any embedding SQLValue implementers.
@@ -839,6 +859,11 @@ func (s BaseSQLInt64) WireProtocolEncode(*collation.Charset, int) ([]byte, error
 // Size returns the size of this SQLValue in bytes.
 func (s BaseSQLInt64) Size() uint64 {
 	return 8
+}
+
+// nolint: unparam
+func (s BaseSQLInt64) reconcile() (SQLExpr, error) {
+	return s.SQLInt(), nil
 }
 
 // String returns the string representation of this SQLValue.
@@ -1039,6 +1064,11 @@ func (s BaseSQLObjectID) Size() uint64 {
 	return uint64(len(s.val))
 }
 
+// nolint: unparam
+func (s BaseSQLObjectID) reconcile() (SQLExpr, error) {
+	return s.SQLObjectID(), nil
+}
+
 // String returns the string representation of this SQLValue.
 // String should return the same value regardless of the SQLValue's kind, and
 // should not be overridden by any embedding SQLValue implementers.
@@ -1231,6 +1261,11 @@ func (s BaseSQLTimestamp) Size() uint64 {
 	return 8
 }
 
+// nolint: unparam
+func (s BaseSQLTimestamp) reconcile() (SQLExpr, error) {
+	return s.SQLTimestamp(), nil
+}
+
 // String returns the string representation of this SQLValue.
 // String should return the same value regardless of the SQLValue's kind, and
 // should not be overridden by any embedding SQLValue implementers.
@@ -1411,6 +1446,11 @@ func (s BaseSQLUint64) Evaluate(_ context.Context, _ *ExecutionConfig, _ *Execut
 // Size returns the size of this SQLValue in bytes.
 func (s BaseSQLUint64) Size() uint64 {
 	return 8
+}
+
+// nolint: unparam
+func (s BaseSQLUint64) reconcile() (SQLExpr, error) {
+	return s.SQLUint(), nil
 }
 
 // String returns the string representation of this SQLValue.
@@ -1649,6 +1689,11 @@ func (s BaseSQLVarchar) WireProtocolEncode(charSet *collation.Charset,
 // Size returns the size of this SQLValue in bytes.
 func (s BaseSQLVarchar) Size() uint64 {
 	return uint64(len(s.val))
+}
+
+// nolint: unparam
+func (s BaseSQLVarchar) reconcile() (SQLExpr, error) {
+	return s.SQLVarchar(), nil
 }
 
 // String returns the string representation of this SQLValue.

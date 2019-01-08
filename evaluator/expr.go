@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/shopspring/decimal"
 )
 
 // These are the possible values for the ArithmeticOperator enum.
@@ -46,17 +47,14 @@ type SQLExpr interface {
 	EvalType() EvalType
 	// ExprName returns a string representing this SQLExpr's name.
 	ExprName() string
-
 	// ToAggregationPredicate translates this expression to the aggregation language
 	// to be evaluated as a predicate directly in a $match stage via $expr.
 	ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure)
-
 	// ToAggregationLanguage translates a SQLExpr to a MongoDB aggregation expression.
 	ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure)
-}
-
-type reconcilingSQLExpr interface {
-	SQLExpr
+	// reconcile returns a transformed version of this SQLExpr that has wrapped
+	// its children in SQLConvertExprs to ensure that they are the correct
+	// types.
 	reconcile() (SQLExpr, error)
 }
 
@@ -81,6 +79,11 @@ var _ translatableToMatch = (*MongoFilterExpr)(nil)
 // Evaluate evaluates a MongoFilterExpr into a SQLValue.
 func (fe *MongoFilterExpr) Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error) {
 	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
+}
+
+// nolint: unparam
+func (fe *MongoFilterExpr) reconcile() (SQLExpr, error) {
+	return fe, nil
 }
 
 func (fe *MongoFilterExpr) String() string {
@@ -145,6 +148,11 @@ func eatChildren(operatorName string, left, right interface{}) []interface{} {
 // SQLAddExpr evaluates to the sum of two expressions.
 type SQLAddExpr sqlBinaryNode
 
+// NewSQLAddExpr is a constructor for SQLAddExpr.
+func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
+	return &SQLAddExpr{left, right}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLAddExpr) ExprName() string {
 	return "SQLAddExpr"
@@ -167,6 +175,15 @@ func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	return doArithmetic(leftVal, rightVal, ADD)
+}
+
+func (add *SQLAddExpr) reconcile() (SQLExpr, error) {
+	bin, err := sqlBinaryNode(*add).reconcileArithmetic()
+	if err != nil {
+		return nil, err
+	}
+	newExpr := SQLAddExpr(bin)
+	return &newExpr, nil
 }
 
 func (add *SQLAddExpr) String() string {
@@ -208,8 +225,6 @@ type SQLAndExpr sqlBinaryNode
 func (*SQLAndExpr) ExprName() string {
 	return "SQLAndExpr"
 }
-
-var _ reconcilingSQLExpr = (*SQLAndExpr)(nil)
 
 var _ translatableToMatch = (*SQLAndExpr)(nil)
 
@@ -462,6 +477,11 @@ func (e *SQLAssignmentExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	return value, err
 }
 
+// nolint: unparam
+func (e *SQLAssignmentExpr) reconcile() (SQLExpr, error) {
+	return e, nil
+}
+
 func (e *SQLAssignmentExpr) String() string {
 	return fmt.Sprintf("%s := %s", e.variable.String(), e.expr.String())
 }
@@ -528,6 +548,11 @@ func (e SQLBenchmarkExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	return NewSQLInt64(cfg.sqlValueKind, 0), nil
 }
 
+// nolint: unparam
+func (e *SQLBenchmarkExpr) reconcile() (SQLExpr, error) {
+	return e, nil
+}
+
 func (e SQLBenchmarkExpr) String() string {
 	return fmt.Sprintf("benchmark(%s, %s)", e.count.String(), e.expr.String())
 }
@@ -567,7 +592,7 @@ func NewSQLCaseExpr(elseValue SQLExpr, caseConditions ...caseCondition) *SQLCase
 }
 
 // ExprName returns a string representing this SQLExpr's name.
-func (*SQLCaseExpr) ExprName() string {
+func (SQLCaseExpr) ExprName() string {
 	return "SQLCaseExpr"
 }
 
@@ -585,6 +610,11 @@ func (e SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	return e.elseValue.Evaluate(ctx, cfg, st)
+}
+
+// nolint: unparam
+func (e *SQLCaseExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 func (e SQLCaseExpr) String() string {
@@ -682,6 +712,21 @@ type SQLColumnExpr struct {
 	correlated   bool
 }
 
+// NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
+// NewSQLColumnExpr is a constructor for SQLColumnExpr.
+func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, evalType EvalType, mongoType schema.MongoType) SQLColumnExpr {
+	return SQLColumnExpr{
+		selectID:     selectID,
+		databaseName: databaseName,
+		tableName:    tableName,
+		columnName:   columnName,
+		columnType: *NewColumnType(
+			evalType,
+			mongoType,
+		),
+	}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (SQLColumnExpr) ExprName() string {
 	return "SQLColumnExpr"
@@ -705,6 +750,11 @@ func (c SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	panic(fmt.Sprintf("cannot find column %q", c))
+}
+
+// nolint: unparam
+func (c SQLColumnExpr) reconcile() (SQLExpr, error) {
+	return c, nil
 }
 
 func (c SQLColumnExpr) String() string {
@@ -833,6 +883,11 @@ func (ce *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	}
 
 	return ConvertTo(v, ce.targetType), nil
+}
+
+// nolint: unparam
+func (ce *SQLConvertExpr) reconcile() (SQLExpr, error) {
+	return ce, nil
 }
 
 func (ce *SQLConvertExpr) String() string {
@@ -1107,6 +1162,11 @@ func (ce *SQLConvertExpr) ToAggregationPredicate(t *PushdownTranslator) (interfa
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
 type SQLDivideExpr sqlBinaryNode
 
+// NewSQLDivideExpr is a constructor for SQLDivideExpr.
+func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
+	return &SQLDivideExpr{left, right}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLDivideExpr) ExprName() string {
 	return "SQLDivideExpr"
@@ -1138,6 +1198,15 @@ func (div *SQLDivideExpr) Normalize(kind SQLValueKind) Node {
 		return NewSQLNull(kind, div.EvalType())
 	}
 	return div
+}
+
+func (div *SQLDivideExpr) reconcile() (SQLExpr, error) {
+	bin, err := sqlBinaryNode(*div).reconcileArithmetic()
+	if err != nil {
+		return nil, err
+	}
+	newExpr := SQLDivideExpr(bin)
+	return &newExpr, nil
 }
 
 func (div *SQLDivideExpr) String() string {
@@ -1236,8 +1305,6 @@ type SQLEqualsExpr sqlBinaryNode
 func (*SQLEqualsExpr) ExprName() string {
 	return "SQLEqualsExpr"
 }
-
-var _ reconcilingSQLExpr = (*SQLEqualsExpr)(nil)
 
 var _ translatableToMatch = (*SQLEqualsExpr)(nil)
 
@@ -1445,6 +1512,11 @@ func (se *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return se.cache, nil
 }
 
+// nolint: unparam
+func (se *SQLExistsExpr) reconcile() (SQLExpr, error) {
+	return se, nil
+}
+
 func (se *SQLExistsExpr) String() string {
 	return fmt.Sprintf("exists(%s)", PrettyPrintPlan(se.plan))
 }
@@ -1521,6 +1593,14 @@ func (gt *SQLGreaterThanExpr) Normalize(kind SQLValueKind) Node {
 	}
 
 	return gt
+}
+
+func (gt *SQLGreaterThanExpr) reconcile() (SQLExpr, error) {
+	left, right, err := ReconcileSQLExprs(gt.left, gt.right)
+	if err != nil {
+		return nil, err
+	}
+	return &SQLGreaterThanExpr{left, right}, nil
 }
 
 func (gt *SQLGreaterThanExpr) String() string {
@@ -1612,6 +1692,14 @@ func (gte *SQLGreaterThanOrEqualExpr) Normalize(kind SQLValueKind) Node {
 	return gte
 }
 
+func (gte *SQLGreaterThanOrEqualExpr) reconcile() (SQLExpr, error) {
+	left, right, err := ReconcileSQLExprs(gte.left, gte.right)
+	if err != nil {
+		return nil, err
+	}
+	return &SQLGreaterThanOrEqualExpr{left, right}, nil
+}
+
 func (gte *SQLGreaterThanOrEqualExpr) String() string {
 	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
 }
@@ -1649,6 +1737,11 @@ func (*SQLGreaterThanOrEqualExpr) EvalType() EvalType {
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
 type SQLIDivideExpr sqlBinaryNode
 
+// NewSQLIDivideExpr is a constructor for SQLIDivideExpr.
+func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
+	return &SQLIDivideExpr{left, right}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLIDivideExpr) ExprName() string {
 	return "SQLIDivideExpr"
@@ -1682,6 +1775,15 @@ func (div *SQLIDivideExpr) Normalize(kind SQLValueKind) Node {
 		return NewSQLNull(kind, div.EvalType())
 	}
 	return div
+}
+
+func (div *SQLIDivideExpr) reconcile() (SQLExpr, error) {
+	bin, err := sqlBinaryNode(*div).reconcileArithmetic()
+	if err != nil {
+		return nil, err
+	}
+	newExpr := SQLIDivideExpr(bin)
+	return &newExpr, nil
 }
 
 func (div *SQLIDivideExpr) String() string {
@@ -1741,6 +1843,11 @@ func (div *SQLIDivideExpr) EvalType() EvalType {
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.
 type SQLIsExpr sqlBinaryNode
 
+// NewSQLIsExpr is a constructor for SQLIsExpr.
+func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
+	return &SQLIsExpr{left, right}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLIsExpr) ExprName() string {
 	return "SQLIsExpr"
@@ -1777,6 +1884,18 @@ func (is *SQLIsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 
+}
+
+// nolint: unparam
+func (is *SQLIsExpr) reconcile() (SQLExpr, error) {
+	if is.right.EvalType() == EvalBoolean {
+		leftType := is.left.EvalType()
+		if !(leftType.IsNumeric() || leftType == EvalBoolean) {
+			reconciled := convertAllExprs([]SQLExpr{is.left, is.right}, EvalBoolean)
+			return &SQLIsExpr{reconciled[0], reconciled[1]}, nil
+		}
+	}
+	return is, nil
 }
 
 func (is *SQLIsExpr) String() string {
@@ -1944,6 +2063,14 @@ func (lt *SQLLessThanExpr) Normalize(kind SQLValueKind) Node {
 	return lt
 }
 
+func (lt *SQLLessThanExpr) reconcile() (SQLExpr, error) {
+	left, right, err := ReconcileSQLExprs(lt.left, lt.right)
+	if err != nil {
+		return nil, err
+	}
+	return &SQLLessThanExpr{left, right}, nil
+}
+
 func (lt *SQLLessThanExpr) String() string {
 	return fmt.Sprintf("%v<%v", lt.left, lt.right)
 }
@@ -2033,6 +2160,14 @@ func (lte *SQLLessThanOrEqualExpr) Normalize(kind SQLValueKind) Node {
 	}
 
 	return lte
+}
+
+func (lte *SQLLessThanOrEqualExpr) reconcile() (SQLExpr, error) {
+	left, right, err := ReconcileSQLExprs(lte.left, lte.right)
+	if err != nil {
+		return nil, err
+	}
+	return &SQLLessThanOrEqualExpr{left, right}, nil
 }
 
 func (lte *SQLLessThanOrEqualExpr) String() string {
@@ -2159,6 +2294,11 @@ func (l *SQLLikeExpr) Normalize(kind SQLValueKind) Node {
 	return l
 }
 
+// nolint: unparam
+func (l *SQLLikeExpr) reconcile() (SQLExpr, error) {
+	return l, nil
+}
+
 func (l *SQLLikeExpr) String() string {
 	likeType := "like"
 	if l.caseSensitive {
@@ -2237,6 +2377,11 @@ func (l *SQLLikeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 // SQLModExpr evaluates the modulus of two expressions
 type SQLModExpr sqlBinaryNode
 
+// NewSQLModExpr is a constructor for SQLModExpr.
+func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
+	return &SQLModExpr{left, right}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLModExpr) ExprName() string {
 	return "SQLModExpr"
@@ -2266,6 +2411,15 @@ func (mod *SQLModExpr) Evaluate(ctx context.Context,
 	}
 
 	return NewSQLFloat(cfg.sqlValueKind, modVal), nil
+}
+
+func (mod *SQLModExpr) reconcile() (SQLExpr, error) {
+	bin, err := sqlBinaryNode(*mod).reconcileArithmetic()
+	if err != nil {
+		return nil, err
+	}
+	newExpr := SQLModExpr(bin)
+	return &newExpr, nil
 }
 
 func (mod *SQLModExpr) String() string {
@@ -2307,6 +2461,11 @@ func (mod *SQLModExpr) EvalType() EvalType {
 // SQLMultiplyExpr evaluates to the product of two expressions
 type SQLMultiplyExpr sqlBinaryNode
 
+// NewSQLMultiplyExpr is a constructor for SQLMultiplyExpr.
+func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
+	return &SQLMultiplyExpr{left, right}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLMultiplyExpr) ExprName() string {
 	return "SQLMultiplyExpr"
@@ -2330,6 +2489,15 @@ func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context,
 	}
 
 	return doArithmetic(leftVal, rightVal, MULT)
+}
+
+func (mult *SQLMultiplyExpr) reconcile() (SQLExpr, error) {
+	bin, err := sqlBinaryNode(*mult).reconcileArithmetic()
+	if err != nil {
+		return nil, err
+	}
+	newExpr := SQLMultiplyExpr(bin)
+	return &newExpr, nil
 }
 
 func (mult *SQLMultiplyExpr) String() string {
@@ -2422,6 +2590,14 @@ func (neq *SQLNotEqualsExpr) Normalize(kind SQLValueKind) Node {
 	return neq
 }
 
+func (neq *SQLNotEqualsExpr) reconcile() (SQLExpr, error) {
+	left, right, err := ReconcileSQLExprs(neq.left, neq.right)
+	if err != nil {
+		return nil, err
+	}
+	return &SQLNotEqualsExpr{left, right}, nil
+}
+
 func (neq *SQLNotEqualsExpr) String() string {
 	return fmt.Sprintf("%v != %v", neq.left, neq.right)
 }
@@ -2479,13 +2655,15 @@ func (*SQLNotEqualsExpr) EvalType() EvalType {
 // SQLNotExpr evaluates to the inverse of its child.
 type SQLNotExpr sqlUnaryNode
 
-var _ reconcilingSQLExpr = (*SQLNotExpr)(nil)
-
 var _ translatableToMatch = (*SQLNotExpr)(nil)
 
 // NewSQLNotExpr is a constructor for SQLNotExpr.
 func NewSQLNotExpr(operand SQLExpr) *SQLNotExpr {
 	return &SQLNotExpr{operand}
+}
+
+func (*SQLNotExpr) ExprName() string {
+	return "SQLNotExpr"
 }
 
 // Evaluate evaluates a SQLNotExpr into a SQLValue.
@@ -2676,6 +2854,14 @@ func (nse *SQLNullSafeEqualsExpr) Normalize(kind SQLValueKind) Node {
 	return nse
 }
 
+func (nse *SQLNullSafeEqualsExpr) reconcile() (SQLExpr, error) {
+	left, right, err := ReconcileSQLExprs(nse.left, nse.right)
+	if err != nil {
+		return nil, err
+	}
+	return &SQLNullSafeEqualsExpr{left, right}, nil
+}
+
 func (nse *SQLNullSafeEqualsExpr) String() string {
 	return fmt.Sprintf("%v <=> %v", nse.left, nse.right)
 }
@@ -2718,8 +2904,6 @@ type SQLOrExpr sqlBinaryNode
 func (*SQLOrExpr) ExprName() string {
 	return "SQLOrExpr"
 }
-
-var _ reconcilingSQLExpr = (*SQLOrExpr)(nil)
 
 var _ translatableToMatch = (*SQLOrExpr)(nil)
 
@@ -2991,6 +3175,11 @@ func (reg *SQLRegexExpr) Evaluate(ctx context.Context,
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
+// nolint: unparam
+func (reg *SQLRegexExpr) reconcile() (SQLExpr, error) {
+	return reg, nil
+}
+
 func (reg *SQLRegexExpr) String() string {
 	return fmt.Sprintf("%s matches %s", reg.operand.String(), reg.pattern.String())
 }
@@ -3243,6 +3432,11 @@ func (si *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
+// nolint: unparam
+func (si *SQLInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return si, nil
+}
+
 func (si *SQLInSubqueryExpr) String() string {
 	return fmt.Sprintf("%v in (%s)", si.left, PrettyPrintPlan(si.plan))
 }
@@ -3380,6 +3574,11 @@ func (ni *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 		return NewSQLNullUntyped(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, true), nil
+}
+
+// nolint: unparam
+func (ni *SQLNotInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return ni, nil
 }
 
 func (ni *SQLNotInSubqueryExpr) String() string {
@@ -3525,6 +3724,11 @@ func (sa *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
+// nolint: unparam
+func (sa *SQLAnyExpr) reconcile() (SQLExpr, error) {
+	return sa, nil
+}
+
 func (sa *SQLAnyExpr) String() string {
 	return fmt.Sprintf("%v %s any (%s)", sa.left, sa.operator, PrettyPrintPlan(sa.plan))
 }
@@ -3660,6 +3864,11 @@ func (sa *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return NewSQLBool(cfg.sqlValueKind, true), nil
 }
 
+// nolint: unparam
+func (sa *SQLAllExpr) reconcile() (SQLExpr, error) {
+	return sa, nil
+}
+
 func (sa *SQLAllExpr) String() string {
 	return fmt.Sprintf("%v %s all (%s)", sa.left, sa.operator, PrettyPrintPlan(sa.plan))
 }
@@ -3721,6 +3930,11 @@ func NewSQLRightSubqueryCmpExpr(
 // constant-fold this expression.
 func (*SQLRightSubqueryCmpExpr) SkipConstantFolding() bool {
 	return true
+}
+
+// nolint: unparam
+func (sr *SQLRightSubqueryCmpExpr) reconcile() (SQLExpr, error) {
+	return sr, nil
 }
 
 // Evaluate evaluates a SQLRightSubqueryCmpExpr into a SQLValue.
@@ -3837,6 +4051,11 @@ func NewSQLFullSubqueryCmpExpr(
 // constant-fold this expression.
 func (*SQLFullSubqueryCmpExpr) SkipConstantFolding() bool {
 	return true
+}
+
+// nolint: unparam
+func (sf *SQLFullSubqueryCmpExpr) reconcile() (SQLExpr, error) {
+	return sf, nil
 }
 
 // Evaluate evaluates a SQLFullSubqueryCmpExpr into a SQLValue.
@@ -4071,6 +4290,11 @@ func (sa *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 	return NewSQLBool(cfg.sqlValueKind, true), nil
 }
 
+// nolint: unparam
+func (sa *SQLSubqueryAllExpr) reconcile() (SQLExpr, error) {
+	return sa, nil
+}
+
 func (sa *SQLSubqueryAllExpr) String() string {
 	return fmt.Sprintf("%s\n%s all\n(%s)",
 		PrettyPrintPlan(sa.leftPlan), sa.operator, PrettyPrintPlan(sa.rightPlan))
@@ -4238,6 +4462,11 @@ func (sa *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
+// nolint: unparam
+func (sa *SQLSubqueryAnyExpr) reconcile() (SQLExpr, error) {
+	return sa, nil
+}
+
 func (sa *SQLSubqueryAnyExpr) String() string {
 	return fmt.Sprintf("%s\n%s any\n(%s)",
 		PrettyPrintPlan(sa.leftPlan), sa.operator, PrettyPrintPlan(sa.rightPlan))
@@ -4286,6 +4515,11 @@ func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubquery
 		allowRows:  allowRows,
 		plan:       plan,
 	}
+}
+
+// nolint: unparam
+func (se *SQLSubqueryExpr) reconcile() (SQLExpr, error) {
+	return se, nil
 }
 
 // ToAggregationLanguage translates SQLSubqueryExpr into something that can
@@ -4457,6 +4691,11 @@ func (*SQLSubqueryInSubqueryExpr) SkipConstantFolding() bool {
 	return true
 }
 
+// nolint: unparam
+func (si *SQLSubqueryInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return si, nil
+}
+
 // Evaluate evaluates a SQLSubqueryInSubqueryExpr into a SQLValue.
 // IN performs a series of comparisons. IN always performs equality comparisons.
 // The resulting comparisons within columns of a row are ANDed together.
@@ -4616,6 +4855,11 @@ func (*SQLSubqueryNotInSubqueryExpr) SkipConstantFolding() bool {
 	return true
 }
 
+// nolint: unparam
+func (ni *SQLSubqueryNotInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return ni, nil
+}
+
 // Evaluate evaluates a SQLSubqueryNotInSubqueryExpr into a SQLValue.
 // NOT IN performs a series of comparisons. NOT IN always performs not-equals comparisons.
 // The resulting comparisons within columns of a row are ANDed together.
@@ -4731,6 +4975,11 @@ func (ni *SQLSubqueryNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTransla
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 type SQLSubtractExpr sqlBinaryNode
 
+// NewSQLSubtractExpr is a constructor for SQLSubtractExpr.
+func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
+	return &SQLSubtractExpr{left, right}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLSubtractExpr) ExprName() string {
 	return "SQLSubtractExpr"
@@ -4754,6 +5003,15 @@ func (sub *SQLSubtractExpr) Evaluate(ctx context.Context,
 	}
 
 	return doArithmetic(leftVal, rightVal, SUB)
+}
+
+func (sub *SQLSubtractExpr) reconcile() (SQLExpr, error) {
+	bin, err := sqlBinaryNode(*sub).reconcileArithmetic()
+	if err != nil {
+		return nil, err
+	}
+	newExpr := SQLSubtractExpr(bin)
+	return &newExpr, nil
 }
 
 func (sub *SQLSubtractExpr) String() string {
@@ -4799,6 +5057,10 @@ func NewSQLUnaryMinusExpr(operand SQLExpr) *SQLUnaryMinusExpr {
 	return &SQLUnaryMinusExpr{operand}
 }
 
+func (*SQLUnaryMinusExpr) ExprName() string {
+	return "SQLUnaryMinusExpr"
+}
+
 // Evaluate evaluates a SQLUnaryMinusExpr into a SQLValue.
 func (um *SQLUnaryMinusExpr) Evaluate(ctx context.Context,
 	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
@@ -4833,6 +5095,19 @@ func (um *SQLUnaryMinusExpr) Normalize(kind SQLValueKind) Node {
 	}
 
 	return um
+}
+
+// nolint: unparam
+func (um *SQLUnaryMinusExpr) reconcile() (SQLExpr, error) {
+	child := um.SQLExpr
+	typ := child.EvalType()
+	if typ.IsNumeric() || typ == EvalNull {
+		return um, nil
+	}
+	if typ == EvalString {
+		return NewSQLUnaryMinusExpr(NewSQLConvertExpr(child, EvalDouble)), nil
+	}
+	return NewSQLUnaryMinusExpr(NewSQLConvertExpr(child, EvalInt64)), nil
 }
 
 func (um *SQLUnaryMinusExpr) String() string {
@@ -4874,6 +5149,8 @@ func (um *SQLUnaryMinusExpr) EvalType() EvalType {
 	return um.SQLExpr.EvalType()
 }
 
+var _ SQLExpr = (*SQLUnaryTildeExpr)(nil)
+
 // SQLUnaryTildeExpr invert all bits in the operand
 // and returns an unsigned 64-bit integer.
 type SQLUnaryTildeExpr sqlUnaryNode
@@ -4881,6 +5158,10 @@ type SQLUnaryTildeExpr sqlUnaryNode
 // NewSQLUnaryTildeExpr is a constructor for SQLUnaryTildeExpr.
 func NewSQLUnaryTildeExpr(operand SQLExpr) *SQLUnaryTildeExpr {
 	return &SQLUnaryTildeExpr{operand}
+}
+
+func (*SQLUnaryTildeExpr) ExprName() string {
+	return "SQLUnaryTildeExpr"
 }
 
 // Evaluate evaluates a SQLUnaryTildeExpr into a SQLValue.
@@ -4907,6 +5188,19 @@ func (td *SQLUnaryTildeExpr) Normalize(kind SQLValueKind) Node {
 	return td
 }
 
+func (td *SQLUnaryTildeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(td)
+}
+
+func (td *SQLUnaryTildeExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return td.ToAggregationLanguage(t)
+}
+
+// nolint: unparam
+func (td *SQLUnaryTildeExpr) reconcile() (SQLExpr, error) {
+	return td, nil
+}
+
 func (td *SQLUnaryTildeExpr) String() string {
 	return fmt.Sprintf("~%v", td.SQLExpr)
 }
@@ -4925,6 +5219,17 @@ type SQLVariableExpr struct {
 	SQLType schema.SQLType
 }
 
+// NewSQLVariableExpr is a constructor for SQLVariableExpr.
+func NewSQLVariableExpr(name string, kind variable.Kind, scope variable.Scope, sqlType schema.SQLType, value interface{}) *SQLVariableExpr {
+	return &SQLVariableExpr{
+		Name:    name,
+		Kind:    kind,
+		Scope:   scope,
+		SQLType: sqlType,
+		Value:   value,
+	}
+}
+
 // ExprName returns a string representing this SQLExpr's name.
 func (*SQLVariableExpr) ExprName() string {
 	return "SQLVariableExpr"
@@ -4941,6 +5246,11 @@ func (v *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *E
 	val := GoValueToSQLValue(cfg.sqlValueKind, v.Value)
 	converted := ConvertTo(val, SQLTypeToEvalType(v.SQLType))
 	return converted, nil
+}
+
+// nolint: unparam
+func (v *SQLVariableExpr) reconcile() (SQLExpr, error) {
+	return v, nil
 }
 
 func (v *SQLVariableExpr) String() string {
@@ -4991,8 +5301,6 @@ type SQLXorExpr sqlBinaryNode
 func (*SQLXorExpr) ExprName() string {
 	return "SQLXorExpr"
 }
-
-var _ reconcilingSQLExpr = (*SQLXorExpr)(nil)
 
 // Evaluate evaluates a SQLXorExpr into a SQLValue.
 func (xor *SQLXorExpr) Evaluate(ctx context.Context,
@@ -5148,107 +5456,51 @@ type sqlBinaryNode struct {
 	left, right SQLExpr
 }
 
-type sqlUnaryNode struct {
-	SQLExpr
-}
+func (n sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
+	var err error
+	kind := MongoSQLValueKind
 
-// NewSQLAddExpr is a constructor for SQLAddExpr.
-func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
-	return &SQLAddExpr{reconciled[0], reconciled[1]}
-}
+	left := n.left
+	right := n.right
 
-// NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
-// NewSQLColumnExpr is a constructor for SQLColumnExpr.
-func NewSQLColumnExpr(
-	selectID int,
-	databaseName,
-	tableName,
-	columnName string,
-	evalType EvalType,
-	mongoType schema.MongoType) SQLColumnExpr {
-	return SQLColumnExpr{
-		selectID:     selectID,
-		databaseName: databaseName,
-		tableName:    tableName,
-		columnName:   columnName,
-		columnType: *NewColumnType(
-			evalType,
-			mongoType,
-		),
-	}
-}
+	if left.EvalType() == EvalDatetime || right.EvalType() == EvalDatetime {
+		// Arithmetic with Timestamps should treat them as floating points due to fractional seconds.
 
-// NewSQLDivideExpr is a constructor for SQLDivideExpr.
-func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
-	return &SQLDivideExpr{reconciled[0], reconciled[1]}
-}
+		left, _, err = ReconcileSQLExprs(left, NewSQLDecimal128(kind, decimal.NewFromFloat(0.0)))
+		if err != nil {
+			return n, err
+		}
+		_, right, err = ReconcileSQLExprs(NewSQLDecimal128(kind, decimal.NewFromFloat(0.0)), right)
+		if err != nil {
+			return n, err
+		}
 
-func isBooleanColumnAndNumber(left, right SQLExpr) bool {
-	if _, ok := left.(SQLColumnExpr); !ok {
-		return false
-	}
+	} else if left.EvalType() == EvalDate || right.EvalType() == EvalDate {
+		// Arithmetic with Dates should treat them as integers.
 
-	if left.EvalType() != EvalBoolean {
-		return false
-	}
+		left, _, err = ReconcileSQLExprs(left, NewSQLInt64(kind, 0))
+		if err != nil {
+			return n, err
+		}
+		_, right, err = ReconcileSQLExprs(NewSQLInt64(kind, 0), right)
+		if err != nil {
+			return n, err
+		}
 
-	if _, ok := right.(SQLNumber); !ok {
-		return false
-	}
-
-	if _, ok := right.(SQLBool); ok {
-		return false
-	}
-
-	return true
-}
-
-// NewSQLIDivideExpr is a constructor for SQLIDivideExpr.
-func NewSQLIDivideExpr(left, right SQLExpr) *SQLIDivideExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
-	return &SQLIDivideExpr{reconciled[0], reconciled[1]}
-}
-
-// NewSQLIsExpr is a constructor for SQLIsExpr.
-func NewSQLIsExpr(left, right SQLExpr) *SQLIsExpr {
-	if right.EvalType() == EvalBoolean {
-		leftType := left.EvalType()
-		if !(leftType.IsNumeric() || leftType == EvalBoolean) {
-			reconciled := convertAllExprs([]SQLExpr{left, right}, EvalBoolean)
-			return &SQLIsExpr{reconciled[0], reconciled[1]}
+	} else {
+		// otherwise, reconcile left and right side with each other
+		left, right, err = ReconcileSQLExprs(left, right)
+		if err != nil {
+			return n, err
 		}
 	}
-	return &SQLIsExpr{left, right}
-}
 
-// NewSQLModExpr is a constructor for SQLModExpr.
-func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
+	// now convert them all to doubles
 	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
-	return &SQLModExpr{reconciled[0], reconciled[1]}
+
+	return sqlBinaryNode{reconciled[0], reconciled[1]}, nil
 }
 
-// NewSQLMultiplyExpr is a constructor for SQLMultiplyExpr.
-func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
-	return &SQLMultiplyExpr{reconciled[0], reconciled[1]}
-}
-
-// NewSQLSubtractExpr is a constructor for SQLSubtractExpr.
-func NewSQLSubtractExpr(left, right SQLExpr) *SQLSubtractExpr {
-	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
-	return &SQLSubtractExpr{reconciled[0], reconciled[1]}
-}
-
-// NewSQLVariableExpr is a constructor for SQLVariableExpr.
-func NewSQLVariableExpr(name string, kind variable.Kind,
-	scope variable.Scope, sqlType schema.SQLType, value interface{}) *SQLVariableExpr {
-	return &SQLVariableExpr{
-		Name:    name,
-		Kind:    kind,
-		Scope:   scope,
-		SQLType: sqlType,
-		Value:   value,
-	}
+type sqlUnaryNode struct {
+	SQLExpr SQLExpr
 }

@@ -1659,17 +1659,34 @@ func (a *algebrizer) translateSimpleTableExpr(
 	}
 }
 
-func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryExpr, error) {
+func (a *algebrizer) translateSubqueryPlan(expr *parser.Subquery) (PlanStage, bool, error) {
 	subqueryAlgebrizer := a.newSubqueryExprAlgebrizer()
 
 	plan, err := subqueryAlgebrizer.translateSelectStatement(expr.Select)
 	if err != nil {
+		return nil, false, err
+	}
+
+	return plan, subqueryAlgebrizer.correlated, nil
+}
+
+func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryExpr, error) {
+	plan, correlated, err := a.translateSubqueryPlan(expr)
+	if err != nil {
 		return nil, err
+	}
+
+	// SQLSubqueryExprs are only valid if they return a single value. As such,
+	// we know immediately that there is an error if we have more than one
+	// column in the plan.
+	numCols := len(plan.Columns())
+	if numCols != 1 {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 	}
 
 	return &SQLSubqueryExpr{
 		plan:       plan,
-		correlated: subqueryAlgebrizer.correlated,
+		correlated: correlated,
 	}, nil
 }
 
@@ -1687,175 +1704,177 @@ func (a *algebrizer) translateExistsExpr(expr *parser.ExistsExpr) (*SQLExistsExp
 	}, nil
 }
 
-func shouldReconcileComparison(expr *parser.ComparisonExpr) bool {
-	reconcile := true
-	if (expr.Operator == parser.AST_EQ && expr.SubqueryOperator == "") ||
-		expr.Operator == parser.AST_IS ||
-		expr.Operator == parser.AST_IS_NOT ||
-		expr.SubqueryOperator != "" {
-		reconcile = false
-	}
-	return reconcile
-}
-
 // This includes both comparisons with a quantifying keyword such as ANY or ALL
 // and those without.
 // Note: this does not handle EXISTS or subqueries resulting in a
 // single-column scalar.
 func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLExpr, error) {
 
-	reconcile := shouldReconcileComparison(expr)
+	var err error
+	var leftPlan, rightPlan PlanStage
+	var leftIsCorrelated, rightIsCorrelated bool
+	var leftExpr SQLExpr
 
-	leftExpr, rightExpr, err := a.translateLeftRightExprs(expr.Left, expr.Right, reconcile)
+	// If the left side is a subquery, translate it into a PlanStage.
+	// Otherwise, translate it to a SQLExpr.
+	lsq, leftIsPlan := expr.Left.(*parser.Subquery)
+	if leftIsPlan {
+		leftPlan, leftIsCorrelated, err = a.translateSubqueryPlan(lsq)
+	} else {
+		leftExpr, err = a.translateExpr(expr.Left)
+	}
 	if err != nil {
 		return nil, err
 	}
 
+	// If the right side is a subquery, translate it into a PlanStage.
+	rsq, rightIsPlan := expr.Right.(*parser.Subquery)
+	if rightIsPlan {
+		rightPlan, rightIsCorrelated, err = a.translateSubqueryPlan(rsq)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	switch expr.SubqueryOperator {
 	case "":
-		leftSq, leftOk := leftExpr.(*SQLSubqueryExpr)
-		rightSq, rightOk := rightExpr.(*SQLSubqueryExpr)
-		// if left and right sides are both SQLSubqueryExprs, create a SQLFullSubqueryCmp
-		if leftOk && rightOk {
+		// if left and right sides are both subqueries, create a SQLFullSubqueryCmp
+		if leftIsPlan && rightIsPlan {
 			cmp := NewSQLFullSubqueryCmpExpr(
-				leftSq.correlated, rightSq.correlated,
-				leftSq.plan, rightSq.plan,
+				leftIsCorrelated, rightIsCorrelated,
+				leftPlan, rightPlan,
 				expr.Operator,
 			)
 			return cmp, nil
 		}
 
-		// if just the right side is a SQLSubqueryExpr, create a SQLRightSubqueryCmp
-		if rightOk {
+		// if just the right side is a subquery, create a SQLRightSubqueryCmp
+		if rightIsPlan {
 			cmp := NewSQLRightSubqueryCmpExpr(
-				rightSq.correlated,
+				rightIsCorrelated,
 				leftExpr,
-				rightSq.plan,
+				rightPlan,
 				expr.Operator,
 			)
 			return cmp, nil
 		}
 
-		// if just the left side is a SQLSubqueryExpr, our desugarer did not run or
+		// if just the left side is a subquery, our desugarer did not run or
 		// has become buggy, panic accordingly.
-		if leftOk {
+		if leftIsPlan {
 			panic("found left-side only subquery, this should have been rewritten during desugaring")
 		}
 
 	case parser.AST_IN:
 		// The right Expr must be a subquery at this point.
-		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
-		if !rightIsSubquery {
-			panic("right side was not a SQLSubqueryExpr")
+		if !rightIsPlan {
+			panic("right side of an IN expr was not a subquery")
 		}
 
-		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
-		if leftIsSubquery {
+		if leftIsPlan {
 			cmp := NewSQLSubqueryInSubqueryExpr(
-				leftSubquery.correlated,
-				rightSubquery.correlated,
-				leftSubquery.plan,
-				rightSubquery.plan,
+				leftIsCorrelated,
+				rightIsCorrelated,
+				leftPlan,
+				rightPlan,
 			)
 			return cmp, nil
 		}
 
 		cmp := NewSQLInSubqueryExpr(
-			rightSubquery.correlated,
+			rightIsCorrelated,
 			leftExpr,
-			rightSubquery.plan,
+			rightPlan,
 		)
 		return cmp, nil
 
 	case parser.AST_NOT_IN:
 		// The right Expr must be a subquery at this point.
-		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
-		if !rightIsSubquery {
-			panic("right side was not a SQLSubqueryExpr")
+		if !rightIsPlan {
+			panic("right side of a NOT IN expr was not a subquery")
 		}
 
-		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
-		if leftIsSubquery {
+		if leftIsPlan {
 			cmp := NewSQLSubqueryNotInSubqueryExpr(
-				leftSubquery.correlated,
-				rightSubquery.correlated,
-				leftSubquery.plan,
-				rightSubquery.plan,
+				leftIsCorrelated,
+				rightIsCorrelated,
+				leftPlan,
+				rightPlan,
 			)
 			return cmp, nil
 		}
 
 		cmp := NewSQLNotInSubqueryExpr(
-			rightSubquery.correlated,
+			rightIsCorrelated,
 			leftExpr,
-			rightSubquery.plan,
+			rightPlan,
 		)
 		return cmp, nil
 
 	case parser.AST_ANY:
 		// The right Expr must be a subquery at this point.
-		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
-		if !rightIsSubquery {
-			panic("right side was not a SQLSubqueryExpr")
+		if !rightIsPlan {
+			panic("right side of an ANY expr was not a subquery")
 		}
 
-		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
-		if leftIsSubquery {
+		if leftIsPlan {
 			cmp := NewSQLSubqueryAnyExpr(
-				leftSubquery.correlated,
-				rightSubquery.correlated,
-				leftSubquery.plan,
-				rightSubquery.plan,
+				leftIsCorrelated,
+				rightIsCorrelated,
+				leftPlan,
+				rightPlan,
 				expr.Operator,
 			)
 			return cmp, nil
 		}
 
 		cmp := NewSQLAnyExpr(
-			rightSubquery.correlated,
+			rightIsCorrelated,
 			leftExpr,
-			rightSubquery.plan,
+			rightPlan,
 			expr.Operator,
 		)
 		return cmp, nil
 
 	case parser.AST_ALL:
-		// The right Expr must be a subquery at this point.
-		rightSubquery, rightIsSubquery := rightExpr.(*SQLSubqueryExpr)
-		if !rightIsSubquery {
-			panic("right side was not a SQLSubqueryExpr")
+		if !rightIsPlan {
+			panic("right side of an ALL expr was not a subquery")
 		}
 
-		leftSubquery, leftIsSubquery := leftExpr.(*SQLSubqueryExpr)
-		if leftIsSubquery {
+		if leftIsPlan {
 			cmp := NewSQLSubqueryAllExpr(
-				leftSubquery.correlated,
-				rightSubquery.correlated,
-				leftSubquery.plan,
-				rightSubquery.plan,
+				leftIsCorrelated,
+				rightIsCorrelated,
+				leftPlan,
+				rightPlan,
 				expr.Operator,
 			)
 			return cmp, nil
 		}
 
 		cmp := NewSQLAllExpr(
-			rightSubquery.correlated,
+			rightIsCorrelated,
 			leftExpr,
-			rightSubquery.plan,
+			rightPlan,
 			expr.Operator,
 		)
 		return cmp, nil
 	}
 
 	// if we get here, we made an error invoking this function
-	panic("neither left nor right side was a SQLSubqueryExpr")
+	panic("neither left nor right side of a subquery comparison expr was a subquery")
 }
 
 func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 	switch typedE := expr.(type) {
 	case *parser.AndExpr:
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -1870,42 +1889,6 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		right, err := a.translateExpr(typedE.Right)
 		if err != nil {
 			return nil, err
-		}
-
-		leftTy, rightTy := left.EvalType(), right.EvalType()
-		// Arithmetic with Timestamps should be floating points due to fractional seconds.
-		// Arithmetic with Date should be integer.
-		if leftTy == EvalDatetime || rightTy == EvalDatetime {
-			left, _, err = ReconcileSQLExprs(
-				left,
-				NewSQLDecimal128(a.valueKind(), decimal.NewFromFloat(0.0)),
-			)
-			if err != nil {
-				return nil, err
-			}
-
-			_, right, err = ReconcileSQLExprs(
-				NewSQLDecimal128(a.valueKind(), decimal.NewFromFloat(0.0)),
-				right,
-			)
-			if err != nil {
-				return nil, err
-			}
-		} else if leftTy == EvalDate || rightTy == EvalDate {
-			left, _, err = ReconcileSQLExprs(left, NewSQLInt64(a.valueKind(), 0))
-			if err != nil {
-				return nil, err
-			}
-
-			_, right, err = ReconcileSQLExprs(NewSQLInt64(a.valueKind(), 0), right)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			left, right, err = ReconcileSQLExprs(left, right)
-			if err != nil {
-				return nil, err
-			}
 		}
 
 		switch typedE.Operator {
@@ -1944,8 +1927,12 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return a.translateSubqueryCmpExpr(typedE)
 		}
 
-		reconcile := shouldReconcileComparison(typedE)
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, reconcile)
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -2019,7 +2006,12 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 	case parser.KeywordVal:
 		return NewSQLVarchar(a.valueKind(), string(typedE)), nil
 	case *parser.LikeExpr:
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -2118,7 +2110,12 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		return NewSQLDecimal128(a.valueKind(), i), nil
 	case *parser.OrExpr:
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -2126,7 +2123,12 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		return &SQLOrExpr{left, right}, nil
 	case *parser.XorExpr:
 
-		left, right, err := a.translateLeftRightExprs(typedE.Left, typedE.Right, false)
+		left, err := a.translateExpr(typedE.Left)
+		if err != nil {
+			return nil, err
+		}
+
+		right, err := a.translateExpr(typedE.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -2169,14 +2171,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Operator {
 		case parser.AST_UMINUS:
-			ty := child.EvalType()
-			if ty.IsNumeric() || ty == EvalNull {
-				return &SQLUnaryMinusExpr{child}, nil
-			}
-			if ty == EvalString {
-				return &SQLUnaryMinusExpr{NewSQLConvertExpr(child, EvalDouble)}, nil
-			}
-			return &SQLUnaryMinusExpr{NewSQLConvertExpr(child, EvalInt64)}, nil
+			return &SQLUnaryMinusExpr{child}, nil
 		case parser.AST_TILDA:
 			return &SQLUnaryTildeExpr{child}, nil
 		case parser.AST_UPLUS:
@@ -2198,14 +2193,12 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	if err != nil {
 		return nil, err
 	}
-	if reconcilingExpr, ok := translatedExpr.(reconcilingSQLExpr); ok {
-		ret, err := reconcilingExpr.reconcile()
-		if err != nil {
-			return nil, err
-		}
-		return ret, nil
+
+	reconciled, err := translatedExpr.reconcile()
+	if err != nil {
+		return nil, err
 	}
-	return translatedExpr, nil
+	return reconciled, nil
 }
 
 func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, error) {
@@ -2233,24 +2226,6 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, 
 	}
 
 	return a.translateExpr(expr)
-}
-
-func (a *algebrizer) translateLeftRightExprs(left, right parser.Expr, reconcile bool) (SQLExpr, SQLExpr, error) {
-	leftEval, err := a.translateExpr(left)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rightEval, err := a.translateExpr(right)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	if reconcile {
-		leftEval, rightEval, err = ReconcileSQLExprs(leftEval, rightEval)
-	}
-
-	return leftEval, rightEval, err
 }
 
 func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
@@ -2481,72 +2456,32 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		)
 	case "isnull":
 		return NewSQLIsExpr(exprs[0], NewSQLNullUntyped(a.valueKind())), nil
-	case "week_day", "last_day", "to_days":
-		dateArg, err := NewSQLScalarFunctionExpr("date", exprs)
-		if err != nil {
-			return nil, err
-		}
-		return NewSQLScalarFunctionExpr(name, []SQLExpr{dateArg})
-	case "to_seconds":
-		dateArg, err := NewSQLScalarFunctionExpr("timestamp", exprs)
-		if err != nil {
-			return nil, err
-		}
-		return NewSQLScalarFunctionExpr(name, []SQLExpr{dateArg})
 	case "date_add", "adddate", "date_sub", "subdate":
-		tsArg, err := NewSQLScalarFunctionExpr("timestamp", exprs[0:1])
-		if err != nil {
-			return nil, err
-		}
 		if len(exprs) == 2 {
 			return NewSQLScalarFunctionExpr(
 				name,
-				[]SQLExpr{tsArg, exprs[1], NewSQLVarchar(a.valueKind(), Day)},
+				[]SQLExpr{exprs[0], exprs[1], NewSQLVarchar(a.valueKind(), Day)},
 			)
 		}
-		return NewSQLScalarFunctionExpr(name, []SQLExpr{tsArg, exprs[1], exprs[2]})
-	case "timestampadd":
-		tsArg, err := NewSQLScalarFunctionExpr("timestamp", exprs[2:])
-		if err != nil {
-			return nil, err
-		}
-		return NewSQLScalarFunctionExpr(name, []SQLExpr{exprs[0], exprs[1], tsArg})
-	case "timestampdiff":
-		tsArg1, err := NewSQLScalarFunctionExpr("timestamp", exprs[1:2])
-		if err != nil {
-			return nil, err
-		}
-		tsArg2, err := NewSQLScalarFunctionExpr("timestamp", exprs[2:3])
-		if err != nil {
-			return nil, err
-		}
-		return NewSQLScalarFunctionExpr(name, []SQLExpr{exprs[0], tsArg1, tsArg2})
+		return NewSQLScalarFunctionExpr(name, []SQLExpr{exprs[0], exprs[1], exprs[2]})
 	case "week", "weekofyear":
-		dateArg, err := NewSQLScalarFunctionExpr("date", exprs[0:1])
-		if err != nil {
-			return nil, err
-		}
 		if len(exprs) == 2 {
-			return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, exprs[1]})
+			return NewSQLScalarFunctionExpr("week", []SQLExpr{exprs[0], exprs[1]})
 		}
 		if name == "week" {
 			return NewSQLScalarFunctionExpr(
 				"week",
-				[]SQLExpr{dateArg, NewSQLInt64(a.valueKind(), 0)},
+				[]SQLExpr{exprs[0], NewSQLInt64(a.valueKind(), 0)},
 			)
 		}
-		return NewSQLScalarFunctionExpr("week", []SQLExpr{dateArg, NewSQLInt64(a.valueKind(), 3)})
+		return NewSQLScalarFunctionExpr("week", []SQLExpr{exprs[0], NewSQLInt64(a.valueKind(), 3)})
 	case "yearweek":
-		dateArg, err := NewSQLScalarFunctionExpr("date", exprs[0:1])
-		if err != nil {
-			return nil, err
-		}
 		if len(exprs) == 2 {
-			return NewSQLScalarFunctionExpr("yearweek", []SQLExpr{dateArg, exprs[1]})
+			return NewSQLScalarFunctionExpr("yearweek", []SQLExpr{exprs[0], exprs[1]})
 		}
 		return NewSQLScalarFunctionExpr(
 			"yearweek",
-			[]SQLExpr{dateArg, NewSQLInt64(a.valueKind(), 0)},
+			[]SQLExpr{exprs[0], NewSQLInt64(a.valueKind(), 0)},
 		)
 	default:
 		return NewSQLScalarFunctionExpr(name, exprs)

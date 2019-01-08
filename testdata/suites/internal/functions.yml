@@ -341,7 +341,7 @@ testcases:
     expected_results:
       - ['2001-01-01 00:00:00']
     expected_types: [varchar]
-    id: '3'
+    id: 'timstampadd_plus_operator_1'
     sql: SELECT (cast('1996-01-01 00:00:00' as datetime) + INTERVAL FLOOR(5) YEAR) as res
 
   - db: functions_test
@@ -349,7 +349,7 @@ testcases:
     expected_results:
       - ['2009-01-01 00:00:00']
     expected_types: [varchar]
-    id: '4'
+    id: 'timestampadd_plus_operator_2'
     sql: SELECT '2008-12-31 23:59:59' + INTERVAL 1 SECOND as res
 
   - db: functions_test
@@ -5260,7 +5260,7 @@ testcases:
       - [-4]
       - [null]
     expected_types: [int]
-    id: '285'
+    id: 'unary_minus_1'
     sql: select - a from scalar
 
   - db: functions_test
@@ -5272,7 +5272,7 @@ testcases:
       - [0]
       - [null]
     expected_types: [int]
-    id: '286'
+    id: 'unary_minus_2'
     sql: select - b from scalar
 
   - db: functions_test
@@ -5284,7 +5284,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [decimal]
-    id: '287'
+    id: 'unary_minus_3'
     sql: select - c from scalar
 
   - db: functions_test
@@ -5296,7 +5296,7 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '288'
+    id: 'unary_minus_4'
     sql: select - d from scalar
 
   - db: functions_test
@@ -7804,12 +7804,12 @@ testcases:
 
   - db: functions_test
     description: benchmark with a nested, correlated subquery
-    expected_names: ['benchmark(10, (select b1.a, (select b1.a+b2.a from scalar as b2 limit 1) from scalar as b1 limit 1))']
+    expected_names: ['benchmark(10, (select (select b1.a+b2.a from scalar as b2 limit 1) from scalar as b1 limit 1))']
     expected_results:
       - [0]
     expected_types: [int]
     id: benchmark_correlated_subquery
-    sql: select benchmark(10, (select b1.a, (select b1.a+b2.a from scalar as b2 limit 1) from scalar as b1 limit 1))
+    sql: select benchmark(10, (select (select b1.a+b2.a from scalar as b2 limit 1) from scalar as b1 limit 1))
 
   - db: functions_test
     description: benchmark with a correlated subquery inside the expression

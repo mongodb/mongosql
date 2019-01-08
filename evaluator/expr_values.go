@@ -517,6 +517,11 @@ func (sv *SQLValues) Size() uint64 {
 	return s
 }
 
+// nolint: unparam
+func (sv *SQLValues) reconcile() (SQLExpr, error) {
+	return sv, nil
+}
+
 func (sv *SQLValues) String() string {
 	var values []string
 	for _, n := range sv.Values {

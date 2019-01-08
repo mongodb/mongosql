@@ -1676,3 +1676,23 @@ func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
 		return 0, fmt.Errorf("cannot compute milliseconds for the unit %v", unit)
 	}
 }
+
+func isBooleanColumnAndNumber(left, right SQLExpr) bool {
+	if _, ok := left.(SQLColumnExpr); !ok {
+		return false
+	}
+
+	if left.EvalType() != EvalBoolean {
+		return false
+	}
+
+	if _, ok := right.(SQLNumber); !ok {
+		return false
+	}
+
+	if _, ok := right.(SQLBool); ok {
+		return false
+	}
+
+	return true
+}

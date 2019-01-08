@@ -19,11 +19,33 @@ type ScalarFuncSpec struct {
 	Names                        []string               `yaml:"names"`
 	SeparateInvocationEvaluation bool                   `yaml:"separate_invocation_evaluation"`
 	ValidateArgTypes             bool                   `yaml:"validate_arg_types"`
-	SkipReconciliation           bool                   `yaml:"no_reconcile"`
+	Reconcile                    string                 `yaml:"reconcile"`
 	SkipConstantFolding          bool                   `yaml:"skip_constant_folding"`
 	NoPushdown                   bool                   `yaml:"no_pushdown"`
 	CustomNormalize              bool                   `yaml:"custom_normalize"`
 	Invocations                  []ScalarFuncInvocation `yaml:"invocations"`
+}
+
+func (sf *ScalarFuncSpec) SkipReconcile() bool {
+	switch sf.Reconcile {
+	case "skip":
+		return true
+	case "", "custom":
+		return false
+	default:
+		panic(fmt.Errorf("unexpected value for 'reconcile' key in '%s' function: %s", sf.ID, sf.Reconcile))
+	}
+}
+
+func (sf *ScalarFuncSpec) CustomReconcile() bool {
+	switch sf.Reconcile {
+	case "custom":
+		return true
+	case "", "skip":
+		return false
+	default:
+		panic(fmt.Errorf("unexpected value for 'reconcile' key in '%s' function: %s", sf.ID, sf.Reconcile))
+	}
 }
 
 // ScalarFuncInvocation represents the specification for a particular invocation
@@ -180,12 +202,12 @@ func (f *{{$func.ID}}{{.ID}}Func) Normalize(kind SQLValueKind) Node {
     {{- end}}
 }
 
-{{if $func.SkipReconciliation}}// nolint: unparam{{end}}
+{{if $func.SkipReconcile}}// nolint: unparam{{end}}
 func (f *{{$func.ID}}{{.ID}}Func) reconcile() (SQLExpr, error) {
-    {{- if $func.SkipReconciliation}}
+    {{- if $func.SkipReconcile}}
     return f, nil
     {{- else}}
-    convertedArgs := convertExprs(f.args, f.argTypes())
+    convertedArgs := {{if $func.CustomReconcile}}{{$func.ID}}{{.ID}}ReconcileArgs(f.args){{else}}convertExprs(f.args, f.argTypes()){{end}}
     return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
     {{- end}}
 }

@@ -9,7 +9,8 @@ import (
 )
 
 type SQLScalarFunctionExpr interface {
-	reconcilingSQLExpr
+	normalizingNode
+	SQLExpr
 	iSQLScalarFunctionExpr()
 	invokedName() string
 	getArgsPointer() *[]SQLExpr

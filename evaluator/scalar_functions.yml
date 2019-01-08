@@ -15,10 +15,13 @@
 # may be called. For many functions there is only one name, but some scalar
 # functions have synonyms.
 #
-# The `no_reconcile` field indicates that this function's generated
-# `reconcile()` implementation should not modify its arguments. This is needed
-# to replicate the existing behavior of some scalar functions, but should
-# eventually be eliminated.
+# The `reconcile` field indicates that this function's generated should do
+# something other than the default reconciliation behavior. If its value is
+# `skip`, the generated `reconcile()` implementation will not modify its
+# arguments. This is needed to replicate the existing behavior of some scalar
+# functions, but should eventually be eliminated. If its value is `custom`, the
+# generated `reconcile()` implementation will call a user-defined reconciliation
+# function.
 #
 # The `validate_arg_types` field indicates whether this functions's 'Evaluate'
 # func should check its argument's types as well as count. At the moment, no
@@ -74,7 +77,7 @@ functions:
     description: returns the arc cosine of the provided number.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_acos
     names: ['acos']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - eval_type: EvalDouble
@@ -85,7 +88,7 @@ functions:
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_ascii
     names: ['ascii']
     no_pushdown: true
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - eval_type: EvalString
@@ -95,7 +98,7 @@ functions:
     description: returns the arc sine of the provided number.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_asin
     names: ['asin']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - eval_type: EvalDouble
@@ -274,7 +277,7 @@ functions:
     description: extracts the date part of the provided date or datetime expression.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date
     names: ['date']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - id: FromDatetime
         arguments:
@@ -289,6 +292,7 @@ functions:
     description: adds a specified number of datetime units to the provided datetime value.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-add
     names: ['date_add', 'adddate']
+    reconcile: custom
     invocations:
       - arguments:
           - { name: date, eval_type: EvalDatetime }
@@ -320,6 +324,7 @@ functions:
     description: subtracts a specified number of datetime units from the provided datetime value.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-sub
     names: ['date_sub', 'subdate']
+    reconcile: custom
     invocations:
       - arguments:
           - { name: date, eval_type: EvalDatetime }
@@ -377,7 +382,7 @@ functions:
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_elt
     names: ['elt']
     custom_normalize: true
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - { name: n, eval_type: EvalInt64 }
@@ -460,7 +465,7 @@ functions:
     description: returns the hour for the provided time.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_hour
     names: ['hour']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - eval_type: EvalDatetime # NOTE actually supposed to be a time
@@ -503,6 +508,7 @@ functions:
     description: takes a date or datetime value and returns the corresponding value for the last day of the month.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_last-day
     names: ['last_day']
+    reconcile: custom
     invocations:
       - arguments:
           - eval_type: EvalDate
@@ -650,7 +656,7 @@ functions:
     description: returns the microseconds from the provided expression.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_microsecond
     names: ['microsecond']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - eval_type: EvalDatetime
@@ -671,7 +677,7 @@ functions:
     description: returns the minute for the provided time.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
     names: ['minute']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - eval_type: EvalDatetime # NOTE actually supposed to be a time
@@ -847,7 +853,7 @@ functions:
     description: returns the second for the provided time, in the range 0-59.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_second
     names: ['second']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - arguments:
           - eval_type: EvalDatetime # NOTE actually supposed to be a time
@@ -962,7 +968,7 @@ functions:
     description: returns the provided time argument, converted to seconds.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_time-to-sec
     names: ['time_to_sec']
-    no_reconcile: true
+    reconcile: skip
     no_pushdown: true
     invocations:
       - arguments:
@@ -973,7 +979,7 @@ functions:
     description: returns the provided argument as a datetime value. With two arguments, adds the provided time expression to the first argument and returns the result as a datetime.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestamp
     names: ['timestamp']
-    no_reconcile: true
+    reconcile: skip
     invocations:
       - id: Convert
         arguments:
@@ -989,6 +995,7 @@ functions:
     description: adds the integer expression interval to the date or datetime expression datetime_expr. The unit for interval is given by the unit argument, which should be one of MICROSECOND (microseconds), SECOND, MINUTE, HOUR, DAY, WEEK, MONTH, QUARTER, or YEAR.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestampadd
     names: ['timestampadd']
+    reconcile: custom
     invocations:
       - arguments:
           - { name: unit, eval_type: EvalString }
@@ -1000,6 +1007,7 @@ functions:
     description: subtracts the provided timestamps, returning the difference in the specified unit.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestampdiff
     names: ['timestampdiff']
+    reconcile: custom
     invocations:
       - arguments:
           - { name: unit, eval_type: EvalString }
@@ -1011,6 +1019,7 @@ functions:
     description: returns the number of days since year zero for the provided date.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
     names: ['to_days']
+    reconcile: custom
     invocations:
       - arguments:
           - eval_type: EvalDate
@@ -1020,6 +1029,7 @@ functions:
     description: returns the number of seconds since year zero for the provided date.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-seconds
     names: ['to_seconds']
+    reconcile: custom
     invocations:
       - arguments:
           - eval_type: EvalDate
@@ -1120,6 +1130,7 @@ functions:
     description: returns the week number for date.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_week
     names: ['week']
+    reconcile: custom
     invocations:
       - id: WithDefaultMode
         arguments:
@@ -1153,6 +1164,7 @@ functions:
     description: returns the year and week for a date.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_yearweek
     names: ['yearweek']
+    reconcile: custom
     invocations:
       - id: WithDefaultMode
         arguments:
