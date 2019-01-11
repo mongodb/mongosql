@@ -184,14 +184,14 @@ func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
 	return NewMongoSourceDualStage(dualDb, dualTable, a.selectID, "")
 }
 
-// findMongoDatabaseAndTable searches the catalog for a MongoTable and returns it along with its containing database
+// findMongoDatabaseAndTable searches the catalog for a MongoDBTable and returns it along with its containing database
 // if found, otherwise the function returns nil for both.
-func findMongoDatabaseAndTable(cl catalog.Catalog) (catalog.Database, catalog.Table, bool) {
+func findMongoDatabaseAndTable(cl catalog.Catalog) (catalog.Database, catalog.MongoDBTable, bool) {
 	for _, db := range cl.Databases() {
 		tables := db.Tables()
 		for _, table := range tables {
-			if table.IsMongoTable() {
-				return db, table, true
+			if mongoTable, ok := table.(catalog.MongoDBTable); ok {
+				return db, mongoTable, true
 			}
 		}
 	}
@@ -507,7 +507,7 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 		return nil, err
 	}
 
-	if !table.IsMongoTable() {
+	if _, ok := table.(catalog.MongoDBTable); !ok {
 		return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(alter.Table))
 	}
 
@@ -618,7 +618,7 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 			return nil, err
 		}
 
-		if !table.IsMongoTable() {
+		if _, ok := table.(catalog.MongoDBTable); !ok {
 			return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(spec.Table))
 		}
 
@@ -1594,7 +1594,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 			}
 
 			switch t := table.(type) {
-			case *catalog.MongoTable:
+			case catalog.MongoDBTable:
 				plan = NewMongoSourceStage(db, t, a.selectID, aliasName)
 			case *catalog.DynamicTable:
 				plan = NewDynamicSourceStage(db, t, a.selectID, aliasName)

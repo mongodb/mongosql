@@ -192,19 +192,23 @@ type Table interface {
 	ForeignKeys() []ForeignKey
 	// Indexes return the indexes for this table.
 	Indexes() []Index
-	// IsMongoTable return true if this is a table from MongoDB.
-	IsMongoTable() bool
-	// IsSharded return true if is a MongoDB table that is sharded and false otherwise.
-	IsSharded() bool
 	// Name gets the name of the table.
 	Name() TableName
-	// Pipeline returns the BSON pipeline to be prepended for this table.
-	Pipeline() []bson.D
 	// PrimaryKeys returns the primary keys
 	// for this table.
 	PrimaryKeys() []Column
 	// Type is the type of the table.
 	Type() TableType
+}
+
+type MongoDBTable interface {
+	Table
+	// Collection returns the name of the underlying MongoDB collection.
+	Collection() string
+	// IsSharded returns true if is a MongoDB table that is sharded and false otherwise.
+	IsSharded() bool
+	// Pipeline returns the BSON pipeline to be prepended for this table.
+	Pipeline() []bson.D
 }
 
 // TableType is the type of a table.

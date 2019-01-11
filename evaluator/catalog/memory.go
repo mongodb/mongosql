@@ -3,7 +3,6 @@ package catalog
 import (
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 )
@@ -84,29 +83,14 @@ func (_ *InMemoryTable) Indexes() []Index {
 	return nil
 }
 
-// IsMongoTable return true if this is a table from MongoDB.
-func (t *InMemoryTable) IsMongoTable() bool {
-	return false
-}
-
 // Insert inserts a row into the InMemoryTable, t.
 func (t *InMemoryTable) Insert(values ...interface{}) {
 	t.Rows = append(t.Rows, &DataRow{Values: values})
 }
 
-// IsSharded returns false for any InMemoryTable.
-func (_ *InMemoryTable) IsSharded() bool {
-	return false
-}
-
 // Name returns the name for the InMemoryTable, t.
 func (t *InMemoryTable) Name() TableName {
 	return t.name
-}
-
-// Pipeline returns nil for any InMemoryTable.
-func (_ *InMemoryTable) Pipeline() []bson.D {
-	return nil
 }
 
 // PrimaryKeys returns the primary keys for

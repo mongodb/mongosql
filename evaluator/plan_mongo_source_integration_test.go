@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
@@ -80,9 +81,15 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	if err != nil {
 		panic("database doesn't exist")
 	}
+
 	table, err := db.Table(tableThreeName)
 	if err != nil {
 		panic("table doesn't exist")
+	}
+
+	mongoTable, ok := table.(catalog.MongoDBTable)
+	if !ok {
+		panic("table is not a MongoDB table")
 	}
 
 	t.Run("with no memory limit", func(t *testing.T) {
@@ -91,7 +98,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
-		plan := evaluator.NewMongoSourceStage(db, table, 1, "")
+		plan := evaluator.NewMongoSourceStage(db, mongoTable, 1, "")
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
@@ -115,7 +122,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
-		plan := evaluator.NewMongoSourceStage(db, table, 1, "")
+		plan := evaluator.NewMongoSourceStage(db, mongoTable, 1, "")
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 

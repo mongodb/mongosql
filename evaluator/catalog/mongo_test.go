@@ -26,7 +26,7 @@ func TestMongoTable(t *testing.T) {
 	mt := catalog.NewMongoTable(tbl, catalog.BaseTable, collation.Default)
 
 	req.Equal("foo", string(mt.Name()), "incorrect sql name for table")
-	req.Equal("fooCollection", mt.MongoName(), "incorrect collection name for table")
+	req.Equal("fooCollection", mt.Collection(), "incorrect collection name for table")
 	req.Len(mt.Columns(), 4, "incorrect column count")
 
 	column, err := mt.Column("id")

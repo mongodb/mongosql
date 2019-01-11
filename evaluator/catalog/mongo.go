@@ -146,13 +146,8 @@ func (t *MongoTable) Indexes() []Index {
 	return t.indexes
 }
 
-// IsMongoTable return true if this is a table from MongoDB.
-func (t *MongoTable) IsMongoTable() bool {
-	return true
-}
-
-// MongoName is the name of the collection underlying MongoTable, t.
-func (t *MongoTable) MongoName() string {
+// Collection returns the name of the collection underlying MongoTable, t.
+func (t *MongoTable) Collection() string {
 	return t.collectionName
 }
 

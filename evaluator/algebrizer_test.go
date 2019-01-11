@@ -30,7 +30,8 @@ var (
 
 func createMongoSource(selectID int, tableName, aliasName string) evaluator.PlanStage {
 	db, _ := testCatalog.Database(defaultDbName)
-	table, _ := db.Table(tableName)
+	tbl, _ := db.Table(tableName)
+	table, _ := tbl.(catalog.MongoDBTable)
 	return evaluator.NewMongoSourceStage(db, table, selectID, aliasName)
 }
 
@@ -1334,7 +1335,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 	}
 
 	dualDb, _ := testCatalog.Database("foo")
-	dualTable, _ := dualDb.Table("bar")
+	table, _ := dualDb.Table("bar")
+	dualTable, _ := table.(catalog.MongoDBTable)
 
 	// Select Statements
 	// Dual Queries
@@ -4381,7 +4383,8 @@ func TestAlgebrizeCommand(t *testing.T) {
 
 func TestAlgebrizeExpr(t *testing.T) {
 	testDB, _ := testCatalog.Database("test")
-	fooTable, _ := testDB.Table("foo")
+	table, _ := testDB.Table("foo")
+	fooTable, _ := table.(catalog.MongoDBTable)
 	source := evaluator.NewMongoSourceStage(testDB, fooTable, 1, "foo")
 
 	type test struct {
