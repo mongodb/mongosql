@@ -205,7 +205,7 @@ type MongoDBTable interface {
 	Table
 	// Collection returns the name of the underlying MongoDB collection.
 	Collection() string
-	// IsSharded returns true if is a MongoDB table that is sharded and false otherwise.
+	// IsSharded returns true if this MongoDB table is sharded and false otherwise.
 	IsSharded() bool
 	// Pipeline returns the BSON pipeline to be prepended for this table.
 	Pipeline() []bson.D
