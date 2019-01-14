@@ -539,39 +539,39 @@ func TestTranslate(t *testing.T) {
 		"predicate": translatePredicate,
 	}
 
-	// run a subtest for each type of translation
-	for typ, translator := range translators {
-		t.Run(typ, func(t *testing.T) {
-			if cache[typ] == nil {
-				cache[typ] = make(map[string]map[string]string)
+	// run a subtest for each expression
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if cache[test.name] == nil {
+				cache[test.name] = make(map[string]map[string]string)
 			}
 
-			// run a subtest for each version
-			for _, version := range versions {
-				v := formatVersion(version)
-				t.Run(v, func(t *testing.T) {
-					if cache[typ][v] == nil {
-						cache[typ][v] = make(map[string]string)
+			// run a subtest for each type of translation
+			for typ, translator := range translators {
+				t.Run(typ, func(t *testing.T) {
+					if cache[test.name][typ] == nil {
+						cache[test.name][typ] = make(map[string]string)
 					}
 
-					// run a subtest for each expression
-					for _, test := range tests {
-						t.Run(test.name, func(t *testing.T) {
+					// run a subtest for each version
+					for _, version := range versions {
+						v := formatVersion(version)
+						t.Run(v, func(t *testing.T) {
 							req = require.New(t)
 							actual := translator(t, version, test.sql)
 							if *update {
-								cache[typ][v][test.name] = actual
+								cache[test.name][typ][v] = actual
 								return
 							}
-							expected, ok := cache[typ][v][test.name]
+							expected, ok := cache[test.name][typ][v]
 							req.True(ok, "test case not found in cache")
 							req.Equal(expected, actual, "result does not match cached result")
+
 						})
 					}
 
 				})
 			}
-
 		})
 	}
 

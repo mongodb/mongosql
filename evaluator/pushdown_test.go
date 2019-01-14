@@ -403,24 +403,24 @@ func TestPushdownPlan(t *testing.T) {
 		{4, 0, 0},
 	}
 
-	// run a subtest for each version
-	for _, version := range versions {
-		v := formatVersion(version)
-		t.Run(v, func(t *testing.T) {
-			if cache[v] == nil {
-				cache[v] = make(map[string]string)
+	// run a subtest for each query
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if cache[test.name] == nil {
+				cache[test.name] = make(map[string]string)
 			}
 
-			// run a subtest for each query
-			for _, test := range tests {
-				t.Run(test.name, func(t *testing.T) {
+			// run a subtest for each version
+			for _, version := range versions {
+				v := formatVersion(version)
+				t.Run(v, func(t *testing.T) {
 					req = require.New(t)
 					actual := optimizePlan(t, version, test.sql)
 					if *update {
-						cache[v][test.name] = actual
+						cache[test.name][v] = actual
 						return
 					}
-					expected, ok := cache[v][test.name]
+					expected, ok := cache[test.name][v]
 					req.True(ok, "test case not found in cache")
 					if expected == "" || actual == "" {
 						req.Equal(expected, actual, "result does not match cached result")
