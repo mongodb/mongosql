@@ -209,7 +209,6 @@ functions:
     description: converts the provided expression into a value of the specified type.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/cast-functions.html#function_convert
     names: ['convert', 'cast']
-    no_generate: true
     invocations:
       - arguments:
           - eval_type: EvalNone
@@ -272,16 +271,7 @@ functions:
     description: extracts the date part of the provided date or datetime expression.
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_date
     names: ['date']
-    no_reconcile: true
-    invocations:
-      - id: FromDatetime
-        arguments:
-          - eval_type: EvalDatetime
-        return_type: EvalDate
-      - id: FromDate
-        arguments:
-          - eval_type: EvalDate
-        return_type: EvalDate
+    no_generate: true
 
   - id: dateAdd
     description: adds a specified number of datetime units to the provided datetime value.
@@ -940,10 +930,6 @@ functions:
     names: ['timestamp']
     no_reconcile: true
     invocations:
-      - id: Convert
-        arguments:
-          - { name: datetime, eval_type: EvalDatetime }
-        return_type: EvalDatetime
       - id: AddTime
         arguments:
           - { name: datetime, eval_type: EvalDatetime }

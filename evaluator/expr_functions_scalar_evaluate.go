@@ -336,42 +336,6 @@ func (f baseScalarFunctionExpr) dateFormatEvaluate(sqlValueKind SQLValueKind,
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dateEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	// Too-short numbers are padded differently than too-short strings.
-	// strToDateTime (called by parseDateTime) handles padding in the too-short
-	// string case. We need to fix the string here, where we can still find out
-	// the original input type.
-	var str string
-	switch values[0].(type) {
-	case SQLFloat, SQLDecimal128, SQLInt64:
-		noDecimal := strings.Split(values[0].String(), ".")[0]
-		intLength := len(noDecimal)
-		if intLength > 14 {
-			return NewSQLNull(sqlValueKind, f.EvalType()), nil
-		}
-		padLen := 0
-		switch intLength {
-		case 5, 7, 11, 13:
-			padLen = 1
-		case 3, 4:
-			padLen = 6 - intLength
-		case 9, 10:
-			padLen = 12 - intLength
-		}
-		str = strings.Repeat("0", padLen) + noDecimal
-	default:
-		str = values[0].String()
-	}
-
-	t, _, ok := parseDateTime(str)
-	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
-	}
-
-	return NewSQLDate(sqlValueKind, t.Truncate(24*time.Hour)), nil
-}
-
-// nolint: unparam
 func (f baseScalarFunctionExpr) dateSubEvaluate(sqlValueKind SQLValueKind, collation *collation.Collation, values []SQLValue) (SQLValue, error) {
 	if hasNullValue(values...) {
 		return NewSQLNull(sqlValueKind, f.EvalType()), nil

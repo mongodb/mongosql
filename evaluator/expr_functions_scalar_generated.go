@@ -9,6 +9,7 @@ import (
 
 const (
 	noMatchingInvocationMessage = "provided arguments do not match any invocations for '%s' scalar function"
+	algebrizationProblemMessage = "scalar function '%s' is supported, but should have been transformed to another expr in the algebrizer or desugarer"
 )
 
 type absFunc struct {
@@ -1601,156 +1602,6 @@ func (f *databaseFunc) reconcile() (SQLExpr, error) {
 
 func databaseEvalType(_ []SQLExpr) EvalType {
 	return EvalString
-}
-
-type dateFromDatetimeFunc struct {
-	baseScalarFunctionExpr
-}
-
-// dateFromDatetimeFunc must satisfy the SQLScalarFunctionExpr interface.
-var _ SQLScalarFunctionExpr = (*dateFromDatetimeFunc)(nil)
-
-// The following constants represent some properties of the dateFromDatetimeFunc scalar function.
-var (
-	dateFromDatetimeExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	dateFromDatetimeIsVariadic     bool                     = false
-	dateFromDatetimeReturnTypeFunc func([]SQLExpr) EvalType = dateFromDatetimeEvalType
-)
-
-func (f *dateFromDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// Validate this function's argument count.
-	err := f.validateArgCount()
-	if err != nil {
-		return nil, err
-	}
-
-	// evaluate arguments
-	args := []SQLValue{}
-	for i, arg := range f.args {
-		val, err := arg.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
-		}
-		args = append(args, val)
-	}
-	// Call the value based evaluation function that contains the appropriate evaluation logic.
-	return f.dateEvaluate(cfg.sqlValueKind, st.collation, args)
-}
-
-func (f *dateFromDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.dateToAggregationLanguage(t, f.args)
-}
-
-func (f *dateFromDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.ToAggregationLanguage(t)
-}
-
-func (f *dateFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
-	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
-		} else {
-			allVals = false
-		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
-	}
-	if !allVals {
-		return f
-	}
-	// Call the function that contains the appropriate evaluation logic.
-	val, err := f.dateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
-	if err != nil {
-		return f
-	}
-	return val
-}
-
-// nolint: unparam
-func (f *dateFromDatetimeFunc) reconcile() (SQLExpr, error) {
-	return f, nil
-}
-
-func dateFromDatetimeEvalType(_ []SQLExpr) EvalType {
-	return EvalDate
-}
-
-type dateFromDateFunc struct {
-	baseScalarFunctionExpr
-}
-
-// dateFromDateFunc must satisfy the SQLScalarFunctionExpr interface.
-var _ SQLScalarFunctionExpr = (*dateFromDateFunc)(nil)
-
-// The following constants represent some properties of the dateFromDateFunc scalar function.
-var (
-	dateFromDateExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	dateFromDateIsVariadic     bool                     = false
-	dateFromDateReturnTypeFunc func([]SQLExpr) EvalType = dateFromDateEvalType
-)
-
-func (f *dateFromDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// Validate this function's argument count.
-	err := f.validateArgCount()
-	if err != nil {
-		return nil, err
-	}
-
-	// evaluate arguments
-	args := []SQLValue{}
-	for i, arg := range f.args {
-		val, err := arg.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
-		}
-		args = append(args, val)
-	}
-	// Call the value based evaluation function that contains the appropriate evaluation logic.
-	return f.dateEvaluate(cfg.sqlValueKind, st.collation, args)
-}
-
-func (f *dateFromDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.dateToAggregationLanguage(t, f.args)
-}
-
-func (f *dateFromDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.ToAggregationLanguage(t)
-}
-
-func (f *dateFromDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
-	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
-		} else {
-			allVals = false
-		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
-	}
-	if !allVals {
-		return f
-	}
-	// Call the function that contains the appropriate evaluation logic.
-	val, err := f.dateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
-	if err != nil {
-		return f
-	}
-	return val
-}
-
-// nolint: unparam
-func (f *dateFromDateFunc) reconcile() (SQLExpr, error) {
-	return f, nil
-}
-
-func dateFromDateEvalType(_ []SQLExpr) EvalType {
-	return EvalDate
 }
 
 type dateAddFunc struct {
@@ -6804,81 +6655,6 @@ func timeToSecEvalType(_ []SQLExpr) EvalType {
 	return EvalInt64
 }
 
-type timestampConvertFunc struct {
-	baseScalarFunctionExpr
-}
-
-// timestampConvertFunc must satisfy the SQLScalarFunctionExpr interface.
-var _ SQLScalarFunctionExpr = (*timestampConvertFunc)(nil)
-
-// The following constants represent some properties of the timestampConvertFunc scalar function.
-var (
-	timestampConvertExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	timestampConvertIsVariadic     bool                     = false
-	timestampConvertReturnTypeFunc func([]SQLExpr) EvalType = timestampConvertEvalType
-)
-
-func (f *timestampConvertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	// Validate this function's argument count.
-	err := f.validateArgCount()
-	if err != nil {
-		return nil, err
-	}
-
-	// evaluate arguments
-	args := []SQLValue{}
-	for i, arg := range f.args {
-		val, err := arg.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
-		}
-		args = append(args, val)
-	}
-	// Call the value based evaluation function that contains the appropriate evaluation logic.
-	return f.timestampEvaluate(cfg.sqlValueKind, st.collation, args)
-}
-
-func (f *timestampConvertFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.timestampToAggregationLanguage(t, f.args)
-}
-
-func (f *timestampConvertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return f.ToAggregationLanguage(t)
-}
-
-func (f *timestampConvertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
-	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
-		} else {
-			allVals = false
-		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
-	}
-	if !allVals {
-		return f
-	}
-	// Call the function that contains the appropriate evaluation logic.
-	val, err := f.timestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
-	if err != nil {
-		return f
-	}
-	return val
-}
-
-// nolint: unparam
-func (f *timestampConvertFunc) reconcile() (SQLExpr, error) {
-	return f, nil
-}
-
-func timestampConvertEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
-}
-
 type timestampAddTimeFunc struct {
 	baseScalarFunctionExpr
 }
@@ -8941,38 +8717,7 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
 
 	case "date":
-		var base baseScalarFunctionExpr
-		var err error
-
-		// check whether provided arguments are valid for dateFromDatetimeFunc
-		base = baseScalarFunctionExpr{
-			invokedAs: name,
-			args:      exprs,
-
-			expectedTypes:  dateFromDatetimeExpectedTypes,
-			variadic:       dateFromDatetimeIsVariadic,
-			returnTypeFunc: dateFromDatetimeReturnTypeFunc,
-		}
-		err = base.validateArgCount()
-		if err == nil {
-			return &dateFromDatetimeFunc{base}, nil
-		}
-
-		// check whether provided arguments are valid for dateFromDateFunc
-		base = baseScalarFunctionExpr{
-			invokedAs: name,
-			args:      exprs,
-
-			expectedTypes:  dateFromDateExpectedTypes,
-			variadic:       dateFromDateIsVariadic,
-			returnTypeFunc: dateFromDateReturnTypeFunc,
-		}
-		err = base.validateArgCount()
-		if err == nil {
-			return &dateFromDateFunc{base}, nil
-		}
-
-		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
 
 	case "date_add", "adddate":
 		var base baseScalarFunctionExpr
@@ -10321,20 +10066,6 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 	case "timestamp":
 		var base baseScalarFunctionExpr
 		var err error
-
-		// check whether provided arguments are valid for timestampConvertFunc
-		base = baseScalarFunctionExpr{
-			invokedAs: name,
-			args:      exprs,
-
-			expectedTypes:  timestampConvertExpectedTypes,
-			variadic:       timestampConvertIsVariadic,
-			returnTypeFunc: timestampConvertReturnTypeFunc,
-		}
-		err = base.validateArgCount()
-		if err == nil {
-			return &timestampConvertFunc{base}, nil
-		}
 
 		// check whether provided arguments are valid for timestampAddTimeFunc
 		base = baseScalarFunctionExpr{

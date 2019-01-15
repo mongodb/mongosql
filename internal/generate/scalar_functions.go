@@ -17,6 +17,7 @@ type ScalarFuncSpec struct {
 	Description                  string                 `yaml:"description"`
 	MySQLDocURL                  string                 `yaml:"mysql_doc_url"`
 	Names                        []string               `yaml:"names"`
+	NoGenerate                   bool                   `yaml:"no_generate"`
 	SeparateInvocationEvaluation bool                   `yaml:"separate_invocation_evaluation"`
 	UseFullEvaluationState       bool                   `yaml:"use_full_evaluation_state"`
 	ValidateArgTypes             bool                   `yaml:"validate_arg_types"`
@@ -95,10 +96,12 @@ import (
 )
 
 const (
-	noMatchingInvocationMessage = "provided arguments do not match any invocations for '%s' scalar function"
+    noMatchingInvocationMessage = "provided arguments do not match any invocations for '%s' scalar function"
+    algebrizationProblemMessage = "scalar function '%s' is supported, but should have been transformed to another expr in the algebrizer or desugarer"
 )
 
 {{range .Functions -}}
+{{if .NoGenerate}}{{else}}
 {{$func := .}}
 {{- range .Invocations}}
 
@@ -234,14 +237,18 @@ func {{$func.ID}}{{.ID}}EvalType(_ []SQLExpr) EvalType {
 
 {{- end}}
 {{- end}}
+{{- end}}
 
 func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionExpr, error) {
 	switch name {
 	{{range .Functions}}
 	{{- $func := .}}
 	case {{range $i, $name := .Names}}{{if $i}},{{end}}"{{$name}}"{{end}}:
-		var base baseScalarFunctionExpr
-		var err error
+        {{- if .NoGenerate}}
+        panic(fmt.Errorf(algebrizationProblemMessage, name))
+        {{- else}}
+        var base baseScalarFunctionExpr
+        var err error
 		{{- range .Invocations}}
 
 		// check whether provided arguments are valid for {{$func.ID}}{{.ID}}Func
@@ -259,7 +266,8 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		}
 		{{- end}}
 
-		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+        return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+        {{- end}}
 	{{end}}
 	default:
 		return nil, fmt.Errorf("scalar function '%s' is not supported", name)
