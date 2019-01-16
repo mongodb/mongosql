@@ -36,6 +36,7 @@ const (
 	WaitTimeoutSecs        Name = "wait_timeout"
 
 	// mongosqld-defined system variables below.
+	AnonymizeMetrics              Name = "anonymize_metrics"
 	EnableTableAlterations        Name = "enable_table_alterations"
 	FullPushdownExecMode          Name = "full_pushdown_exec_mode"
 	LogLevel                      Name = "log_level"
@@ -162,6 +163,15 @@ func init() {
 		},
 		GetRawValue: func(c *Container) interface{} { return c.collationServer },
 		SetValue:    setCollationServer,
+	}
+
+	definitions[AnonymizeMetrics] = &definition{
+		Name:             AnonymizeMetrics,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		SQLType:          schema.SQLBoolean,
+		GetValue:         func(c *Container) interface{} { return c.anonymizeMetrics },
+		SetValue:         setAnonymizeMetrics,
 	}
 
 	definitions[EnableTableAlterations] = &definition{
@@ -690,6 +700,16 @@ func setCollationServer(c *Container, v interface{}) error {
 	}
 
 	c.collationServer = col
+	return nil
+}
+
+func setAnonymizeMetrics(c *Container, v interface{}) error {
+	b, ok := convertBool(v)
+	if !ok {
+		return wrongTypeError(AnonymizeMetrics, v)
+	}
+
+	c.anonymizeMetrics = b
 	return nil
 }
 

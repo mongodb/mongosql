@@ -84,6 +84,10 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 			mongoVersion := strings.Join(strings.Split(c.variables.GetString(variable.MongoDBVersion), ".")[:2], ".")
 			biVersion := c.variables.GetString(variable.MongosqldVersion)
 
+			if c.variables.GetBool(variable.AnonymizeMetrics) {
+				trackedStmt = parser.AnonymizeStatement(trackedStmt)
+			}
+
 			record, recErr := metrics.NewRecord(trackedStmt, mongoVersion, biVersion, planStats, latencyMs)
 			if recErr != nil {
 				c.logger.Errf(log.Always, "failed to build metrics record: %v", err)

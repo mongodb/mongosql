@@ -1453,3 +1453,36 @@ testcases:
     expected_error: 'Error 1621: GLOBAL variable ''mongosqld_version'' is read-only.'
     id: mongosqld_version_set_global_error
     sql: set global mongosqld_version = 'no'
+
+  - db: set_test
+    description: SET @@global.anonymize_metrics = DEFAULT with no error
+    expected_names: ['@@global.anonymize_metrics']
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: anonymize_metrics_default_value
+    sql: SET @@global.anonymize_metrics = DEFAULT
+    sync: true
+    verify: SELECT @@global.anonymize_metrics
+
+  - db: set_test
+    description: SET @@global.anonymize_metrics = 1 with no error
+    expected_names: ['@@global.anonymize_metrics']
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: anonymize_metrics_to_1
+    sql: SET @@global.anonymize_metrics = 1
+    sync: true
+    verify: SELECT @@global.anonymize_metrics
+
+  - db: set_test
+    description: SET @@global.anonymize_metrics = 0 with no error
+    expected_names: ['@@global.anonymize_metrics']
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: anonymize_metrics_to_0
+    sql: SET @@global.anonymize_metrics = 0
+    sync: true
+    verify: SELECT @@global.anonymize_metrics

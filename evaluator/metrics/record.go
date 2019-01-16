@@ -18,13 +18,11 @@ type Record interface {
 }
 
 // NewRecord returns a new metrics.Record from the provided information.
-func NewRecord(stmt parser.Statement, mongoVerson, biVersion string, stats *evaluator.PlanStats, latency int64) (Record, error) {
+func NewRecord(anonStmt parser.Statement, mongoVerson, biVersion string, stats *evaluator.PlanStats, latency int64) (Record, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
 	}
-
-	anonStmt := parser.AnonymizeStatement(stmt)
 
 	rec := &record{
 		ID:       id.String(),

@@ -98,6 +98,7 @@ type Container struct {
 	ThreadsConnected *uint32
 
 	// Backing storage for mongosqld-defined variables below.
+	anonymizeMetrics              bool
 	enableTableAlterations        bool
 	FullPushdownExecMode          bool
 	GroupConcatMaxLen             int64
@@ -230,6 +231,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		ThreadsConnected: &threadsConnected,
 
 		// Default values for mongosqld-defined variables.
+		anonymizeMetrics:              true,
 		enableTableAlterations:        enableTableAlterations,
 		FullPushdownExecMode:          false,
 		logLevel:                      logLevel,
