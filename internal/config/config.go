@@ -586,6 +586,7 @@ type Metrics struct {
 
 // SetParameter holds miscellaneous configuration options.
 type SetParameter struct {
+	AnonymizeMetrics              bool `config:"anonymize_metrics"`
 	EnableTableAlterations        bool
 	MetricsBackend                string `config:"metrics_backend"`
 	OptimizeCrossJoins            bool   `config:"optimize_cross_joins"`

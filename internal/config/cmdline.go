@@ -380,6 +380,15 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 	for key, val := range o.Params {
 		invalidValueErr := fmt.Errorf("invalid value for setParameter %s: %s", key, val)
 		switch key {
+		case "anonymize_metrics":
+			switch val {
+			case "true":
+				cfg.SetParameter.AnonymizeMetrics = true
+			case "false":
+				cfg.SetParameter.AnonymizeMetrics = false
+			default:
+				return invalidValueErr
+			}
 		case "enableTableAlterations", "enable_table_alterations":
 			switch val {
 			case "true":

@@ -90,6 +90,7 @@ processManagement:
     description: doompa tee do
 
 setParameter:
+  anonymize_metrics: false
   enableTableAlterations: true
 `))
 	if err != nil {
@@ -219,6 +220,12 @@ setParameter:
 		cfg.SetParameter.EnableTableAlterations,
 		true,
 		"cfg.SetParameter.EnableTableAlterations",
+	)
+
+	testBool(t,
+		cfg.SetParameter.AnonymizeMetrics,
+		false,
+		"cfg.SetParameter.AnonymizeMetrics",
 	)
 }
 

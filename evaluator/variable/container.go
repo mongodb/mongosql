@@ -145,6 +145,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 
 	// These variables' default values can be set in the
 	// setParameter section of the config.
+	anonymizeMetrics := true
 	enableTableAlterations := false
 	metricsBackend := defaultMetricsBackend
 	optimizeEvaluations := true
@@ -176,6 +177,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 
 	if cfg != nil {
 		// defaults from SetParameter config section
+		anonymizeMetrics = cfg.SetParameter.AnonymizeMetrics
 		enableTableAlterations = cfg.SetParameter.EnableTableAlterations
 		metricsBackend = cfg.SetParameter.MetricsBackend
 		optimizeEvaluations = cfg.SetParameter.OptimizeEvaluations
@@ -231,7 +233,7 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		ThreadsConnected: &threadsConnected,
 
 		// Default values for mongosqld-defined variables.
-		anonymizeMetrics:              true,
+		anonymizeMetrics:              anonymizeMetrics,
 		enableTableAlterations:        enableTableAlterations,
 		FullPushdownExecMode:          false,
 		logLevel:                      logLevel,
