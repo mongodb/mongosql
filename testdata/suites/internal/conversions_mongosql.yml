@@ -59,6 +59,20 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [0, '1970-01-01']
+      - [1, '1970-01-01']
+      - [2, '1970-01-01']
+      - [50000, '1970-01-01']
+      - [-1, '1969-12-31']
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_date_func
+    sql: select value, date(value) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [0, '1970-01-01 00:00:00']
       - [1, '1970-01-01 00:00:00.001000']
       - [2, '1970-01-01 00:00:00.002000']
@@ -68,6 +82,20 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_datetime
     sql: select value, convert(value, DATETIME) as converted from `int`
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '1970-01-01 00:00:00']
+      - [1, '1970-01-01 00:00:00.001000']
+      - [2, '1970-01-01 00:00:00.002000']
+      - [50000, '1970-01-01 00:00:50']
+      - [-1, '1969-12-31 23:59:59.999000']
+      - [null, null]
+    expected_types: [int, varchar]
+    id: int_to_datetime_func
+    sql: select value, timestamp(value) as converted from `int`
     variables: {type_conversion_mode: mongosql}
 
   - db: conversions_test
@@ -206,6 +234,25 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [0, 1970-01-01]
+      - [1, 1970-01-01]
+      - [1.1, 1970-01-01]
+      - [2.5, 1970-01-01]
+      - [54321.1, 1970-01-01]
+      - [-1, 1969-12-31]
+      - [-1.1, 1969-12-31]
+      - [-2.5, 1969-12-31]
+      - [20120203.080706, 1970-01-01]
+      - [20120203.987628, 1970-01-01]
+      - [null, null]
+    expected_types: [float, date]
+    id: float_to_date_func
+    sql: select value, date(value) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [0, '1970-01-01 00:00:00']
       - [1, '1970-01-01 00:00:00.001000']
       - [1.1, '1970-01-01 00:00:00.001000']
@@ -220,6 +267,25 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_datetime
     sql: select value, convert(value, DATETIME) as converted from float
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '1970-01-01 00:00:00']
+      - [1, '1970-01-01 00:00:00.001000']
+      - [1.1, '1970-01-01 00:00:00.001000']
+      - [2.5, '1970-01-01 00:00:00.002000']
+      - [54321.1, '1970-01-01 00:00:54.321000']
+      - [-1, '1969-12-31 23:59:59.999000']
+      - [-1.1, '1969-12-31 23:59:59.999000']
+      - [-2.5, '1969-12-31 23:59:59.998000']
+      - [20120203.080706, '1970-01-01 05:35:20.203000']
+      - [20120203.987628, '1970-01-01 05:35:20.203000']
+      - [null, null]
+    expected_types: [float, varchar]
+    id: float_to_datetime_func
+    sql: select value, timestamp(value) as converted from float
     variables: {type_conversion_mode: mongosql}
 
   - db: conversions_test
@@ -362,6 +428,26 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [0, 1970-01-01]
+      - [1, 1970-01-01]
+      - [1.1, 1970-01-01]
+      - [2.5, 1970-01-01]
+      - [54321.1, 1970-01-01]
+      - [-1, 1969-12-31]
+      - [-1.1, 1969-12-31]
+      - [-2.5, 1969-12-31]
+      - [20120203.080706, 1970-01-01]
+      - [20120203.987628, 1970-01-01]
+      - [null, null]
+    expected_types: [decimal, date]
+    id: decimal_to_date_func
+    min_server_version: 3.4
+    sql: select value, date(value) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [0, '1970-01-01 00:00:00']
       - [1, '1970-01-01 00:00:00.001000']
       - [1.1, '1970-01-01 00:00:00.001000']
@@ -377,6 +463,26 @@ testcases:
     id: decimal_to_datetime
     min_server_version: 3.4
     sql: select value, convert(value, DATETIME) as converted from decimal
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [0, '1970-01-01 00:00:00']
+      - [1, '1970-01-01 00:00:00.001000']
+      - [1.1, '1970-01-01 00:00:00.001000']
+      - [2.5, '1970-01-01 00:00:00.002000']
+      - [54321.1, '1970-01-01 00:00:54.321000']
+      - [-1, '1969-12-31 23:59:59.999000']
+      - [-1.1, '1969-12-31 23:59:59.999000']
+      - [-2.5, '1969-12-31 23:59:59.998000']
+      - [20120203.080706, '1970-01-01 05:35:20.203000']
+      - [20120203.987628, '1970-01-01 05:35:20.203000']
+      - [null, null]
+    expected_types: [decimal, varchar]
+    id: decimal_to_datetime_func
+    min_server_version: 3.4
+    sql: select value, timestamp(value) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
   - db: conversions_test
@@ -477,10 +583,28 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - ['2000-01-02 12:34:56', '2000-01-02']
+    expected_types: [varchar, varchar]
+    id: datetime_to_date_func
+    sql: select value, date(value) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - ['2000-01-02 12:34:56', '2000-01-02 12:34:56']
     expected_types: [varchar, varchar]
     id: datetime_to_datetime
     sql: select value, convert(value, DATETIME) as converted from datetime
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02 12:34:56', '2000-01-02 12:34:56']
+    expected_types: [varchar, varchar]
+    id: datetime_to_datetime_func
+    sql: select value, timestamp(value) as converted from datetime
     variables: {type_conversion_mode: mongosql}
 
   - db: conversions_test
@@ -558,10 +682,28 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - ['2000-01-02', '2000-01-02']
+    expected_types: [varchar, varchar]
+    id: date_to_date_func
+    sql: select DATE(value) as value, date(DATE(value)) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - ['2000-01-02', '2000-01-02 00:00:00']
     expected_types: [varchar, varchar]
     id: date_to_datetime
     sql: select DATE(value) as value, convert(DATE(value), DATETIME) as converted from date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - ['2000-01-02', '2000-01-02 00:00:00']
+    expected_types: [varchar, varchar]
+    id: date_to_datetime_func
+    sql: select DATE(value) as value, timestamp(DATE(value)) as converted from date
     variables: {type_conversion_mode: mongosql}
 
   - db: conversions_test
@@ -639,10 +781,28 @@ testcases:
   - db: conversions_test
     expected_names: [value, converted]
     expected_results:
+      - [53c2ab5e4291b17b666d742a, '2014-07-13']
+    expected_types: [varchar, varchar]
+    id: objectid_to_date_func
+    sql: select value, date(value) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
       - [53c2ab5e4291b17b666d742a, '2014-07-13 15:53:02']
     expected_types: [varchar, varchar]
     id: objectid_to_datetime
     sql: select value, convert(value, DATETIME) as converted from objectid
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [53c2ab5e4291b17b666d742a, '2014-07-13 15:53:02']
+    expected_types: [varchar, varchar]
+    id: objectid_to_datetime_func
+    sql: select value, timestamp(value) as converted from objectid
     variables: {type_conversion_mode: mongosql}
 
   - db: conversions_test
@@ -838,6 +998,42 @@ testcases:
       - ['true', null]
       - ['false', null]
       - [' false ', null]
+      - ['20180101', '2018-01-01']
+      - [' 20180101 ', '2018-01-01']
+      - ['2018-01-01', '2018-01-01']
+      - [' 2018-01-01 ', '2018-01-01']
+      - ['2.8e-3', null]
+      - ['2.8e3', null]
+      - ['   +1111e +3af', null]
+      - ['   +1111e -3af', null]
+      - ['   -1111e +3af', null]
+      - ['   -1111e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   +1111 e -3af', null]
+      - ['5:05', null]
+      - [' 5:05 ', null]
+      - ['5:05pm', null]
+      - ['17:05', null]
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_date_func
+    sql: select value, date(value) as converted from string
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, null]
+      - ['', null]
+      - ['  abc ', null]
+      - [' 123 ', null]
+      - [' -123.4 ', null]
+      - ['0', null]
+      - ['1', null]
+      - ['true', null]
+      - ['false', null]
+      - [' false ', null]
       - ['20180101', '2018-01-01 00:00:00']
       - [' 20180101 ', '2018-01-01 00:00:00']
       - ['2018-01-01', '2018-01-01 00:00:00']
@@ -859,6 +1055,42 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_datetime
     sql: select value, convert(value, DATETIME) as converted from string
+    variables: {type_conversion_mode: mongosql}
+
+  - db: conversions_test
+    expected_names: [value, converted]
+    expected_results:
+      - [570e919f65d33734a8605cb9, null]
+      - ['', null]
+      - ['  abc ', null]
+      - [' 123 ', null]
+      - [' -123.4 ', null]
+      - ['0', null]
+      - ['1', null]
+      - ['true', null]
+      - ['false', null]
+      - [' false ', null]
+      - ['20180101', '2018-01-01 00:00:00']
+      - [' 20180101 ', '2018-01-01 00:00:00']
+      - ['2018-01-01', '2018-01-01 00:00:00']
+      - [' 2018-01-01 ', '2018-01-01 00:00:00']
+      - ['2.8e-3', null]
+      - ['2.8e3', null]
+      - ['   +1111e +3af', null]
+      - ['   +1111e -3af', null]
+      - ['   -1111e +3af', null]
+      - ['   -1111e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   -1111 e -3af', null]
+      - ['   +1111 e -3af', null]
+      - ['5:05', null]
+      - [' 5:05 ', null]
+      - ['5:05pm', null]
+      - ['17:05', null]
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: varchar_to_datetime_func
+    sql: select value, timestamp(value) as converted from string
     variables: {type_conversion_mode: mongosql}
 
   - db: conversions_test

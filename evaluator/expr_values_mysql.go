@@ -334,7 +334,7 @@ func (s MySQLVarchar) SQLDate() SQLDate {
 	}
 	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
-		return NewSQLDate(MySQLValueKind, NullDate)
+		return nullSQLDate(MySQLValueKind)
 	}
 	t = t.In(schema.DefaultLocale)
 	return NewSQLDate(
@@ -393,7 +393,7 @@ func (s MySQLVarchar) SQLTimestamp() SQLTimestamp {
 	}
 	t, _, ok := parseDateTime(s.varchar())
 	if !ok {
-		return NewSQLTimestamp(MySQLValueKind, NullDate)
+		return nullSQLTimestamp(MySQLValueKind)
 	}
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(MySQLValueKind, t)

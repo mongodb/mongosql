@@ -278,7 +278,7 @@ func TestEvaluates(t *testing.T) {
 				"DATE '2014-04-13' > DATE '2014-04-14'",
 				NewSQLBool(knd, false),
 			},
-			{"sql_date_equality_0", "DATE '2014-04-13' = '0'", NewSQLBool(knd, false)},
+			{"sql_date_equality_0", "DATE '2014-04-13' = '0'", NewPolymorphicSQLNull(knd)},
 			{"sql_date_equality_1", "DATE '2014-04-13' = DATE '2014-04-13'", NewSQLBool(knd, true)},
 			{"sql_date_equality_2", "DATE '2014-04-13' = 0", NewSQLBool(knd, false)},
 			{
@@ -1896,8 +1896,8 @@ func TestEvaluates(t *testing.T) {
 				NewSQLInt64(knd, 94224),
 			},
 			{"sql_to_days_0", "TO_DAYS(NULL)", NewPolymorphicSQLNull(knd)},
-			//{"sql_to_days_1", "TO_DAYS('')", NewPolymorphicSQLNull(knd)},
-			//{"sql_to_days_2", "TO_DAYS('0000-00-00')", NewPolymorphicSQLNull(knd)},
+			{"sql_to_days_1", "TO_DAYS('')", NewPolymorphicSQLNull(knd)},
+			{"sql_to_days_2", "TO_DAYS('0000-00-00')", NewPolymorphicSQLNull(knd)},
 			{"sql_to_days_3", "TO_DAYS('0000-01-01')", NewSQLInt64(knd, 1)},
 			{"sql_to_days_4", "TO_DAYS('0000-11-11')", NewSQLInt64(knd, 315)},
 			{"sql_to_days_5", "TO_DAYS('00-11-11')", NewSQLInt64(knd, 730800)},
@@ -1913,8 +1913,8 @@ func TestEvaluates(t *testing.T) {
 			{"sql_to_days_15", "TO_DAYS('2000-09-24 13:45:00')", NewSQLInt64(knd, 730752)},
 			{"sql_to_days_16", "TO_DAYS('2000-10-24 13:45:00')", NewSQLInt64(knd, 730782)},
 			{"sql_to_seconds_0", "TO_SECONDS(NULL)", NewPolymorphicSQLNull(knd)},
-			//{"sql_to_seconds_1", "TO_SECONDS('')", NewPolymorphicSQLNull(knd)},
-			//{"sql_to_seconds_2", "TO_SECONDS('0000-00-00')", NewPolymorphicSQLNull(knd)},
+			{"sql_to_seconds_1", "TO_SECONDS('')", NewPolymorphicSQLNull(knd)},
+			{"sql_to_seconds_2", "TO_SECONDS('0000-00-00')", NewPolymorphicSQLNull(knd)},
 			{"sql_to_seconds_3", "TO_SECONDS('0000-01-01')", NewSQLInt64(knd, 86400)},
 			{"sql_to_seconds_4", "TO_SECONDS('0000-11-11')", NewSQLInt64(knd, 27216000)},
 			{"sql_to_seconds_5", "TO_SECONDS('00-11-11')", NewSQLInt64(knd, 63141120000)},
@@ -2018,7 +2018,7 @@ func TestEvaluates(t *testing.T) {
 				test{"sql_unix_timestamp_11", "UNIX_TIMESTAMP('1985-12-01')", SQLUint(502261200)},
 			*/
 			{"sql_week_0", "WEEK(NULL)", NewPolymorphicSQLNull(knd)},
-			//{"sql_week_1", "WEEK('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_week_1", "WEEK('sdg')", NewPolymorphicSQLNull(knd)},
 			{"sql_week_2", "WEEK('2016-1-01 10:23:52')", NewSQLInt64(knd, 0)},
 			{"sql_week_3", "WEEK(DATE '2009-1-01')", NewSQLInt64(knd, 0)},
 			{"sql_week_4", "WEEK(DATE '2009-1-01',0)", NewSQLInt64(knd, 0)},
@@ -2062,7 +2062,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_weekday_5", "WEEKDAY(DATE '2016-7-11')", NewSQLInt64(knd, 0)},
 			{"sql_weekday_6", "WEEKDAY(TIMESTAMP '2016-7-13 21:22:23')", NewSQLInt64(knd, 2)},
 			{"sql_weekofyear_0", "WEEKOFYEAR(NULL)", NewPolymorphicSQLNull(knd)},
-			//{"sql_weekofyear_1", "WEEKOFYEAR('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_weekofyear_1", "WEEKOFYEAR('sdg')", NewPolymorphicSQLNull(knd)},
 			{"sql_weekofyear_2", "WEEKOFYEAR('2008-02-20')", NewSQLInt64(knd, 8)},
 			{"sql_weekofyear_3", "WEEKOFYEAR('2009-01-01')", NewSQLInt64(knd, 1)},
 			{"sql_weekofyear_4", "WEEKOFYEAR(DATE '2009-01-05')", NewSQLInt64(knd, 2)},
@@ -2579,7 +2579,7 @@ func TestEvaluates(t *testing.T) {
 				{"sql_convert_expr_70", "CONVERT(NULL, DATETIME)", NewPolymorphicSQLNull(knd)},
 				{"sql_convert_expr_71", "CONVERT(-3.4, DATETIME)", NewPolymorphicSQLNull(knd)},
 				{"sql_convert_expr_72", "CONVERT('janna', DATETIME)",
-					NewSQLTimestamp(knd, NullDate)},
+					NewPolymorphicSQLNull(knd)},
 				{
 					"sql_convert_expr_73",
 					"CONVERT('2006-05-11', DATETIME)",
@@ -2608,7 +2608,7 @@ func TestEvaluates(t *testing.T) {
 				//	SQLTimestamp{Time: time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)},
 				//},
 				{"sql_convert_expr_80", "CONVERT('0', DATE)",
-					NewSQLDate(knd, NullDate)},
+					NewPolymorphicSQLNull(knd)},
 				{"sql_convert_expr_81", "CONVERT(0, DATE)",
 					NewSQLDate(knd, NullDate)},
 			}
@@ -2672,11 +2672,11 @@ func TestEvaluates(t *testing.T) {
 				// invalid inputs
 				{"sql_date_invalid_0", "DATE(NULL)", NewPolymorphicSQLNull(knd)},
 				{"sql_date_invalid_1", "DATE(23)", NewPolymorphicSQLNull(knd)},
-				//{"sql_date_invalid_2", "DATE('cat')", NewPolymorphicSQLNull(knd)},
+				{"sql_date_invalid_2", "DATE('cat')", NewPolymorphicSQLNull(knd)},
 				{"sql_date_invalid_3", "DATE(6911)", NewPolymorphicSQLNull(knd)},
 				{"sql_date_invalid_4", "DATE(2017110722040)", NewPolymorphicSQLNull(knd)},
 				{"sql_date_invalid_5", "DATE(-50)", NewPolymorphicSQLNull(knd)},
-				//{"sql_date_invalid_6", "DATE('')", NewPolymorphicSQLNull(knd)},
+				{"sql_date_invalid_6", "DATE('')", NewPolymorphicSQLNull(knd)},
 
 				// explicitly labeling input as date/timestamp
 				{"sql_date_explicit_label_0", "DATE(TIMESTAMP '2016-03-01 12:32:23')", dExpected},
@@ -3199,9 +3199,9 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
-				//{"sql_last_day_0", "LAST_DAY('')", NewPolymorphicSQLNull(knd)},
+				{"sql_last_day_0", "LAST_DAY('')", NewPolymorphicSQLNull(knd)},
 				{"sql_last_day_1", "LAST_DAY(NULL)", NewPolymorphicSQLNull(knd)},
-				//{"sql_last_day_2", "LAST_DAY('2003-03-32')", NewPolymorphicSQLNull(knd)},
+				{"sql_last_day_2", "LAST_DAY('2003-03-32')", NewPolymorphicSQLNull(knd)},
 				{"sql_last_day_3", "LAST_DAY('2003-02-05')", NewSQLDate(knd, d1)},
 				{"sql_last_day_4", "LAST_DAY('2004-02-05')", NewSQLDate(knd, d2)},
 				{"sql_last_day_5", "LAST_DAY('2004-01-01 01:01:01')", NewSQLDate(knd, d3)},
