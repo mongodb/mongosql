@@ -18,7 +18,7 @@ type Record interface {
 }
 
 // NewRecord returns a new metrics.Record from the provided information.
-func NewRecord(anonStmt parser.Statement, mongoVerson, biVersion string, stats *evaluator.PlanStats, latency int64) (Record, error) {
+func NewRecord(stmt parser.Statement, mongoVerson, biVersion string, stats *evaluator.PlanStats, latency int64) (Record, error) {
 	id, err := uuid.NewV4()
 	if err != nil {
 		return nil, err
@@ -29,8 +29,8 @@ func NewRecord(anonStmt parser.Statement, mongoVerson, biVersion string, stats *
 		Protocol: currentProtocol,
 		ExpireAt: getExpirationTime(),
 		Query: queryRecord{
-			SQL:  parser.String(anonStmt),
-			Meta: newQueryMeta(parser.GetQueryStats(anonStmt)),
+			SQL:  parser.String(stmt),
+			Meta: newQueryMeta(parser.GetQueryStats(stmt)),
 			Plan: newQueryPlan(stats),
 			Execution: queryExecution{
 				Success:   true,

@@ -133,6 +133,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
 
+	testBool(t, cfg.SetParameter.AnonymizeMetrics, true, "cfg.SetParameter.AnonymizeMetrics")
 	testBool(t, cfg.SetParameter.EnableTableAlterations, false, "cfg.SetParameter.EnableTableAlterations")
 	testString(t, cfg.SetParameter.MetricsBackend, "off", "cfg.SetParameter.MetricsBackend")
 	testBool(t, cfg.SetParameter.OptimizeCrossJoins, true, "cfg.SetParameter.OptimizeCrossJoins")

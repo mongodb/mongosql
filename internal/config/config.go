@@ -149,6 +149,7 @@ func Default() *Config {
 
 	cfg.Debug.ProfileScope = "queries"
 
+	cfg.SetParameter.AnonymizeMetrics = true
 	cfg.SetParameter.EnableTableAlterations = false
 	cfg.SetParameter.MetricsBackend = "off"
 	cfg.SetParameter.OptimizeCrossJoins = true
