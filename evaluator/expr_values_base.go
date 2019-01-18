@@ -589,7 +589,10 @@ func (s BaseSQLDecimal128) SQLDate() SQLDate {
 	if s.null {
 		return nullSQLDate(s.kind)
 	}
-	t := time.Unix(0, s.val.IntPart()*1000000)
+	i := s.val.IntPart()
+	sec := i / 1000
+	nsec := (i % 1000) * 1000000
+	t := time.Unix(sec, nsec)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLDate(
 		s.kind,
@@ -635,7 +638,10 @@ func (s BaseSQLDecimal128) SQLTimestamp() SQLTimestamp {
 	if s.null {
 		return nullSQLTimestamp(s.kind)
 	}
-	t := time.Unix(0, s.val.IntPart()*1000000)
+	i := s.val.IntPart()
+	sec := i / 1000
+	nsec := (i % 1000) * 1000000
+	t := time.Unix(sec, nsec)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(s.kind, t)
 }
@@ -781,7 +787,10 @@ func (s BaseSQLFloat) SQLDate() SQLDate {
 	if s.null {
 		return nullSQLDate(s.kind)
 	}
-	t := time.Unix(0, int64(s.val)*1000000)
+	i := int64(s.val)
+	sec := i / 1000
+	nsec := (i % 1000) * 1000000
+	t := time.Unix(sec, nsec)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLDate(
 		s.kind,
@@ -823,7 +832,10 @@ func (s BaseSQLFloat) SQLTimestamp() SQLTimestamp {
 	if s.null {
 		return nullSQLTimestamp(s.kind)
 	}
-	t := time.Unix(0, int64(s.val)*1000000)
+	i := int64(s.val)
+	sec := i / 1000
+	nsec := (i % 1000) * 1000000
+	t := time.Unix(sec, nsec)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(s.kind, t)
 
@@ -1000,7 +1012,9 @@ func (s BaseSQLInt64) SQLDate() SQLDate {
 	if s.null {
 		return nullSQLDate(s.kind)
 	}
-	t := time.Unix(0, s.val*1000000)
+	sec := s.val / 1000
+	nsec := (s.val % 1000) * 1000000
+	t := time.Unix(sec, nsec)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLDate(
 		s.kind,
@@ -1042,7 +1056,9 @@ func (s BaseSQLInt64) SQLTimestamp() SQLTimestamp {
 	if s.null {
 		return NewSQLNull(s.kind, EvalTimestamp).(SQLTimestamp)
 	}
-	t := time.Unix(0, s.val*1000000)
+	sec := s.val / 1000
+	nsec := (s.val % 1000) * 1000000
+	t := time.Unix(sec, nsec)
 	t = t.In(schema.DefaultLocale)
 	return NewSQLTimestamp(s.kind, t)
 }

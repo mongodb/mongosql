@@ -942,7 +942,7 @@ func (f *baseScalarFunctionExpr) fromDaysToAggregationLanguage(t *PushdownTransl
 		t.ColumnsToNullCheck(),
 		bsonutil.MgoNullLiteral,
 		bsonutil.WrapInCond(
-			0,
+			nil,
 			body,
 			bsonutil.WrapInOp(bsonutil.OpGt, n, maxFromDays),
 			bsonutil.WrapInOp(bsonutil.OpLt, n, 366),

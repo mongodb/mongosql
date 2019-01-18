@@ -2651,22 +2651,20 @@ func TestEvaluates(t *testing.T) {
 			postCutoff, err := time.Parse(fmtString, "1970-01-01")
 			req.Nil(err, "unable to parse time from string")
 
-			/*
-				jan112000, err := time.Parse(fmtString, "2000-01-11")
-				req.Nil(err, "unable to parse time from string")
+			jan112000, err := time.Parse(fmtString, "2000-01-11")
+			req.Nil(err, "unable to parse time from string")
 
-				nov102000, err := time.Parse(fmtString, "2000-11-10")
-				req.Nil(err, "unable to parse time from string")
+			nov102000, err := time.Parse(fmtString, "2000-11-10")
+			req.Nil(err, "unable to parse time from string")
 
-				nov102006, err := time.Parse(fmtString, "2006-11-10")
-				req.Nil(err, "unable to parse time from string")
+			nov102006, err := time.Parse(fmtString, "2006-11-10")
+			req.Nil(err, "unable to parse time from string")
 
-				nov100116, err := time.Parse(fmtString, "0116-11-10")
-				req.Nil(err, "unable to parse time from string")
+			nov100116, err := time.Parse(fmtString, "0116-11-10")
+			req.Nil(err, "unable to parse time from string")
 
-				may042000, err := time.Parse(fmtString, "2000-05-04")
-				req.Nil(err, "unable to parse time from string")
-			*/
+			may042000, err := time.Parse(fmtString, "2000-05-04")
+			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
 				// invalid inputs
@@ -2698,25 +2696,23 @@ func TestEvaluates(t *testing.T) {
 				{"sql_date_non_paddable_1", "DATE(11)", NewPolymorphicSQLNull(knd)},
 
 				// number inputs requiring padding
-				/*
-					{"sql_date_padded_nums_0", "DATE(111)", NewSQLDate(knd, jan112000)},
-					{"sql_date_padded_nums_1", "DATE(1110)", NewSQLDate(knd, nov102000)},
-					{"sql_date_padded_nums_2", "DATE(61110)", NewSQLDate(knd, nov102006)},
-					{"sql_date_padded_nums_3", "DATE(1161110)", NewSQLDate(knd, nov100116)},
-					{"sql_date_padded_nums_4", "DATE(504123025)", NewSQLDate(knd, may042000)},
-					{"sql_date_padded_nums_5", "DATE(1110123025)", NewSQLDate(knd, nov102000)},
-					{"sql_date_padded_nums_6", "DATE(61110123025)", NewSQLDate(knd, nov102006)},
-					{
-						"sql_date_padded_nums_7",
-						"DATE(61110123025.22)",
-						NewSQLDate(knd, nov102006),
-					},
-					{
-						"sql_date_padded_nums_8",
-						"DATE(1161110123025)",
-						NewSQLDate(knd, nov100116),
-					},
-				*/
+				{"sql_date_padded_nums_0", "DATE(111)", NewSQLDate(knd, jan112000)},
+				{"sql_date_padded_nums_1", "DATE(1110)", NewSQLDate(knd, nov102000)},
+				{"sql_date_padded_nums_2", "DATE(61110)", NewSQLDate(knd, nov102006)},
+				{"sql_date_padded_nums_3", "DATE(1161110)", NewSQLDate(knd, nov100116)},
+				{"sql_date_padded_nums_4", "DATE(504123025)", NewSQLDate(knd, may042000)},
+				{"sql_date_padded_nums_5", "DATE(1110123025)", NewSQLDate(knd, nov102000)},
+				{"sql_date_padded_nums_6", "DATE(61110123025)", NewSQLDate(knd, nov102006)},
+				{
+					"sql_date_padded_nums_7",
+					"DATE(61110123025.22)",
+					NewSQLDate(knd, nov102006),
+				},
+				{
+					"sql_date_padded_nums_8",
+					"DATE(1161110123025)",
+					NewSQLDate(knd, nov100116),
+				},
 
 				// alternate delimiters
 				{"sql_date_alternate_delimiters_0", "DATE('16-03-01')", dExpected},
@@ -3056,14 +3052,14 @@ func TestEvaluates(t *testing.T) {
 
 			tests := []test{
 				{"sql_from_days_0", "FROM_DAYS(NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_from_days_1", "FROM_DAYS('sdg')", NewSQLVarchar(knd, "0000-00-00")},
-				{"sql_from_days_2", "FROM_DAYS(1.23)", NewSQLVarchar(knd, "0000-00-00")},
-				{"sql_from_days_3", "FROM_DAYS(-1.23)", NewSQLVarchar(knd, "0000-00-00")},
-				{"sql_from_days_4", "FROM_DAYS(-223.33)", NewSQLVarchar(knd, "0000-00-00")},
-				{"sql_from_days_5", "FROM_DAYS(223.33)", NewSQLVarchar(knd, "0000-00-00")},
-				{"sql_from_days_6", "FROM_DAYS(365.33)", NewSQLVarchar(knd, "0000-00-00")},
-				{"sql_from_days_7", "FROM_DAYS(3652499.5)", NewSQLVarchar(knd, "0000-00-00")},
-				{"sql_from_days_8", "FROM_DAYS(-771399.216)", NewSQLVarchar(knd, "0000-00-00")},
+				{"sql_from_days_1", "FROM_DAYS('sdg')", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_2", "FROM_DAYS(1.23)", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_3", "FROM_DAYS(-1.23)", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_4", "FROM_DAYS(-223.33)", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_5", "FROM_DAYS(223.33)", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_6", "FROM_DAYS(365.33)", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_7", "FROM_DAYS(3652499.5)", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_8", "FROM_DAYS(-771399.216)", NewSQLNull(knd, EvalDate)},
 				{"sql_from_days_9", "FROM_DAYS(365.93)", NewSQLDate(knd, t1)},
 				{"sql_from_days_10", "FROM_DAYS(343+23)", NewSQLDate(knd, t1)},
 				{"sql_from_days_11", "FROM_DAYS(730669)", NewSQLDate(knd, t2)},

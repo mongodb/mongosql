@@ -1,7 +1,6 @@
 package evaluator
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -76,18 +75,18 @@ func (s MySQLDecimal128) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(MySQLValueKind, NullDate)
 	}
 
-	str := fmt.Sprintf("%d", s.val.IntPart())
-	t, _, ok := parseDateTime(str)
+	dateStr, ok := paddedDateString(s)
+	if !ok {
+		return nullSQLTimestamp(MySQLValueKind)
+	}
+
+	t, _, ok := parseDateTime(dateStr)
 	if !ok {
 		return nullSQLTimestamp(MySQLValueKind)
 	}
 
 	t = t.In(schema.DefaultLocale)
-
-	return NewSQLTimestamp(
-		MySQLValueKind,
-		time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale),
-	)
+	return NewSQLTimestamp(MySQLValueKind, t)
 }
 
 // SQLDate converts the SQLDecimal128 receiver, s, to a SQLDate.
@@ -99,8 +98,12 @@ func (s MySQLDecimal128) SQLDate() SQLDate {
 		return NewSQLDate(MySQLValueKind, NullDate)
 	}
 
-	str := fmt.Sprintf("%d", s.val.IntPart())
-	t, _, ok := parseDateTime(str)
+	dateStr, ok := paddedDateString(s)
+	if !ok {
+		return nullSQLDate(MySQLValueKind)
+	}
+
+	t, _, ok := parseDateTime(dateStr)
 	if !ok {
 		return nullSQLDate(MySQLValueKind)
 	}
@@ -127,8 +130,12 @@ func (s MySQLFloat) SQLDate() SQLDate {
 		return NewSQLDate(MySQLValueKind, NullDate)
 	}
 
-	str := fmt.Sprintf("%d", int(s.val))
-	t, _, ok := parseDateTime(str)
+	dateStr, ok := paddedDateString(s)
+	if !ok {
+		return nullSQLDate(MySQLValueKind)
+	}
+
+	t, _, ok := parseDateTime(dateStr)
 	if !ok {
 		return nullSQLDate(MySQLValueKind)
 	}
@@ -150,18 +157,18 @@ func (s MySQLFloat) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(MySQLValueKind, NullDate)
 	}
 
-	str := fmt.Sprintf("%d", int(s.val))
-	t, _, ok := parseDateTime(str)
+	dateStr, ok := paddedDateString(s)
+	if !ok {
+		return nullSQLTimestamp(MySQLValueKind)
+	}
+
+	t, _, ok := parseDateTime(dateStr)
 	if !ok {
 		return nullSQLTimestamp(MySQLValueKind)
 	}
 
 	t = t.In(schema.DefaultLocale)
-
-	return NewSQLTimestamp(
-		MySQLValueKind,
-		time.Date(t.Year(), t.Month(), t.Day(), 0, 0, 0, 0, schema.DefaultLocale),
-	)
+	return NewSQLTimestamp(MySQLValueKind, t)
 }
 
 // MySQLInt64 represents a 64-bit integer value with MySQL type conversion semantics.
@@ -178,7 +185,12 @@ func (s MySQLInt64) SQLDate() SQLDate {
 		return NewSQLDate(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.varchar())
+	dateStr, ok := paddedDateString(s)
+	if !ok {
+		return nullSQLDate(MySQLValueKind)
+	}
+
+	t, _, ok := parseDateTime(dateStr)
 	if !ok {
 		return nullSQLDate(MySQLValueKind)
 	}
@@ -198,7 +210,12 @@ func (s MySQLInt64) SQLTimestamp() SQLTimestamp {
 		return NewSQLTimestamp(MySQLValueKind, NullDate)
 	}
 
-	t, _, ok := parseDateTime(s.varchar())
+	dateStr, ok := paddedDateString(s)
+	if !ok {
+		return nullSQLTimestamp(MySQLValueKind)
+	}
+
+	t, _, ok := parseDateTime(dateStr)
 	if !ok {
 		return nullSQLTimestamp(MySQLValueKind)
 	}

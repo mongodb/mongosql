@@ -116,6 +116,36 @@
     - {value: " 5:05 "}
     - {value: "5:05pm"}
     - {value: "17:05"}
+    - {value: '10/10/11'}
+    - {value: '10/10/11T11:10:23'}
+    - {value: '10/10/11 11:10:23'}
+    - {value: '20101011111023'}
+    - {value: '10$10$11 11$10$23'}
+    - {value: '10$10$11 11$10$23.123'}
+    - {value: '2003-08-31'}
+    - {value: '2004-01-30'}
+    - {value: '2003-01-30'}
+    - {value: '2017-11-07'}
+    - {value: '2017.11.07'}
+    - {value: '17/11@7'}
+    - {value: '2017-11-07 10:15:05.253'}
+    - {value: '2017$11$10'}
+    - {value: '17-11-10'}
+    - {value: '20171110'}
+    - {value: '2017-11-10T10:15:05.253'}
+    - {value: '2017-09-07'}
+    - {value: '17-9-7'}
+    - {value: '2017.9.7'}
+    - {value: '2017/9/7 xxxx1234'}
+    - {value: '1970-11-07'}
+    - {value: '70-11-7'}
+    - {value: '701107'}
+    - {value: '70/11/7T22:11:5'}
+    - {value: '2069-11-07'}
+    - {value: '69-11-07'}
+    - {value: '691107'}
+    - {value: '2069.11.7 1969.11.8'}
+    - {value: ~}
     - {}
 
 - db: "conversions_test"
@@ -124,8 +154,31 @@
     - {value: 0}
     - {value: 1}
     - {value: 2}
-    - {value: 50000}
     - {value: -1}
+    - {value: 20171107}
+    - {value: 171107}
+    - {value: 19701107}
+    - {value: 701107}
+    - {value: 691107}
+    - {value: -50}
+    - {value: 2017110}
+    - {value: 6911}
+    - {value: 1110}
+    - {value: 61110}
+    - {value: 1161110}
+    - {value: 504123025}
+    - {value: 1204123025}
+    - {value: 11}
+    - {value: 111}
+    - {value: {$numberLong: "20171107220405"}}
+    - {value: {$numberLong: "171110220405"}}
+    - {value: {$numberLong: "61204123025"}}
+    - {value: {$numberLong: "1161204123025"}}
+    - {value: {$numberLong: "2017110722040"}}
+    - {value: {$numberLong: "701107111111"}}
+    - {value: {$numberLong: "691107111111"}}
+    - {value: {$numberLong: "201711271230252"}}
+    - {value: null}
     - {}
 
 - db: "conversions_test"
@@ -141,6 +194,10 @@
     - {value: -2.5}
     - {value: 20120203.080706}
     - {value: 20120203.987628}
+    - {value: 20101011111023.12}
+    - {value: 111}
+    - {value: 111.2}
+    - {value: null}
     - {}
 
 - db: "conversions_test"
@@ -157,6 +214,10 @@
     - {value: {$numberDecimal: "-2.5"}}
     - {value: {$numberDecimal: "20120203.080706"}}
     - {value: {$numberDecimal: "20120203.987628"}}
+    - {value: {$numberDecimal: "20101011111023.12"}}
+    - {value: {$numberDecimal: "111"}}
+    - {value: {$numberDecimal: "111.2"}}
+    - {value: null}
     - {}
 
 - db: "conversions_test"
@@ -273,17 +334,14 @@
 
 - db: "functions_test"
   collection: "timestamps"
-  min_server_version: 3.4
   docs:
-    - {s: '10/10/11', n: {$numberDecimal: "20101011111023.12"}, d: {$date: {$numberLong: "20101011111023"}}}
-    - {s: '10/10/11T11:10:23', n: {$numberDecimal: "20101011111023"}, d: {$date: {$numberLong: "20101011111023"}}}
-    - {s: '10/10/11 11:10:23', n: {$numberDecimal: "101011111023"}, d: {$date: {$numberLong: "101011111023"}}}
-    - {s: '20101011111023', n: {$numberDecimal: "101010"}, d: {$date: {$numberLong: "101010"}}}
-    - {s: '10$10$11 11$10$23', n: {$numberDecimal: "20101010"}, d: {$date: {$numberLong: "20101010"}}}
-    - {s: '10$10$11 11$10$23.123'}
-    - {s: '2003-08-31'}
-    - {s: '2004-01-30'}
-    - {s: '2003-01-30'}
+    - {t: '2010-10-11 00:00:00'}
+    - {t: '2010-10-11 11:10:23'}
+    - {t: '2010-10-11 11:10:23.123'}
+    - {t: '2003-08-31 00:00:00'}
+    - {t: '2004-01-30 00:00:00'}
+    - {t: null}
+    - {}
 
 - db: "functions_test"
   collection: "inserts"
@@ -325,31 +383,6 @@
 
 - db: "functions_test"
   collection: "timestampDiff"
-  docs:
-    - {"s1": "2000-12-04 12:30:25", "s2": "2006-12-04 12:30:25"}
-    - {"s1": "2000-12-04 12:30:25.01", "s2": "2006-12-04 12:30:25"}
-    - {"s1": "2000-12-04 12:30:26", "s2": "2006-12-04 12:30:25"}
-    - {"s1": "2000-12-04 12:31:25", "s2": "2006-12-04 12:30:25"}
-    - {"s1": "2000-12-04 13:30:25", "s2": "2006-12-04 12:30:25"}
-    - {"s1": "2000-12-05 12:30:25", "s2": "2006-12-04 12:30:25"}
-    - {"s1": "2000-12-04 12:30:25", "s2": "2006-11-04 12:30:25"}
-    - {"s1": "2000-12-04 12:30:25", "s2": "2006-09-04 12:30:25"}
-
-- db: "functions_test"
-  collection: "timestampDiff2"
-  min_server_version: 3.4
-  docs:
-    - {"n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20061204123025"}}
-    - {"n1": {$numberDecimal: "20001204123025.01"}, "n2": {$numberDecimal: "20061204123025"}}
-    - {"n1": {$numberDecimal: "20001204123026"}, "n2": {$numberDecimal: "20061204123025"}}
-    - {"n1": {$numberDecimal: "20001204123125"}, "n2": {$numberDecimal: "20061204123025"}}
-    - {"n1": {$numberDecimal: "20001204133025"}, "n2": {$numberDecimal: "20061204123025"}}
-    - {"n1": {$numberDecimal: "20001205123025"}, "n2": {$numberDecimal: "20061204123025"}}
-    - {"n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20061104123025"}}
-    - {"n1": {$numberDecimal: "20001204123025"}, "n2": {$numberDecimal: "20060904123025"}}
-
-- db: "functions_test"
-  collection: "timestampDiff3"
   min_server_version: 3.4
   docs:
     - {"d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
@@ -363,22 +396,6 @@
 
 - db: "functions_test"
   collection: "dates"
-  min_server_version: 3.4
-  docs:
-    - {t: {$date: {$numberLong: "1510012805000"}}, d: {$date: {$numberLong: "1510012805000"}}, s1: "2017-11-07", s2: "2017.11.07", s3: "17/11@7", s4: "2017-11-07 10:15:05.253", n1: 20171107, n2: 171107, n3: 20171107220405}  # 11/7/2017
-    - {t: {$date: {$numberLong: "1510272830080"}}, d: {$date: {$numberLong: "1510272830080"}}, s1: "2017$11$10", s2: "17-11-10", s3: "20171110", s4: "2017-11-10T10:15:05.253", n1: {$numberLong: "20171110"}, n2: {$numberDecimal: "171110"}, n3: 171110220405}  # 11/10/2017
-    - {t: {$date: {$numberLong: "1504742935200"}}, d: {$date: {$numberLong: "1504742935200"}}, s1: "2017-09-07", s2: "17-9-7", s3: "2017.9.7", s4: "2017/9/7 xxxx1234", n1: 20170907, n2: {$numberLong: "170907"}, n3: {$numberDecimal: "20170907111111"}}  # 9/7/2017
-    - {t: {$date: {$numberLong: "26784001500"}}, d: {$date: {$numberLong: "26784001500"}}, s1: "1970-11-07", s2: "70-11-7", s3: "701107", s4: "70/11/7T22:11:5", n1: 19701107, n2: 701107, n3: 701107111111}    # 11/7/1970
-    - {t: {$date: {$numberLong: "3151008111099"}}, d: {$date: {$numberLong: "26784001500"}}, s1: "2069-11-07", s2: "69-11-07", s3: "691107", s4: "2069.11.7 1969.11.8", n1: {$numberDecimal: "20691107"}, n2: 691107, n3: {$numberLong: "691107111111"}}  # 11/7/2069
-    - {s1: "", s2: "hi", s4: " ", n1: -50, n2: 201711271230252, n3: 0}  # some invalid/special inputs
-    - {n1: 2017110, n2: 6911, n3: 2017110722040}  # more invalid inputs
-    - {n1: 1110, n2: 61110, n3: 1161110}  # numbers that are not 6, 8, 12, or 14 digits should be padded (len 4, 5, 7)
-    - {n1: 504123025, n2: 1204123025, n3: 61204123025}  # len 9, 10, 11
-    - {n1: 61204123025.22, n2: 1161204123025}  # len 11 + fractional part, 13
-    - {n1: 1, n2: 11, n3: 111}  # len 1 and 2 return null, len 3 should be padded.
-
-- db: "functions_test"
-  collection: "more_dates"
   docs:
     - {d: "2017-12-12"}
     - {d: "1066-01-02"}
@@ -546,14 +563,14 @@
 - db: "functions_test"
   collection: "numbers"
   docs:
-    - {n: 365, s: '    365xyyz'}
-    - {n: 366, s: '366-34-56'}
-    - {n: 1366, s: '1366xyz'}
-    - {n: 4366, s: '4366rawr'}
-    - {n: 5300, s: '5300--42'}
-    - {n: 115300, s: '115300hello.world'}
-    - {n: 3652424, s: '      3652424    '}
-    - {n: 3652500, s: '3652500      '}
+    - {n: 365}
+    - {n: 366}
+    - {n: 1366}
+    - {n: 4366}
+    - {n: 5300}
+    - {n: 115300}
+    - {n: 3652424}
+    - {n: 3652500}
 
 - db: "functions_test"
   collection: "strings"

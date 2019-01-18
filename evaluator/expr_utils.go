@@ -783,6 +783,33 @@ func GoValueToSQLValue(kind SQLValueKind, v interface{}) SQLValue {
 	}
 }
 
+func paddedDateString(val SQLValue) (string, bool) {
+	switch val.(type) {
+	case SQLFloat, SQLDecimal128, SQLInt64:
+		noDecimal := strings.Split(val.String(), ".")[0]
+
+		intLength := len(noDecimal)
+		if intLength > 14 {
+			return "", false
+		}
+
+		padLen := 0
+		switch intLength {
+		case 5, 7, 11, 13:
+			padLen = 1
+		case 3, 4:
+			padLen = 6 - intLength
+		case 9, 10:
+			padLen = 12 - intLength
+		}
+
+		str := strings.Repeat("0", padLen) + noDecimal
+		return str, true
+	}
+
+	panic(fmt.Errorf("paddedDateString cannot be called with argument of type %T", val))
+}
+
 // panicIfNotPlanStage returns a PlanStage from a Node n, or panics if the Node is not a PlanStage.
 func panicIfNotPlanStage(s string, n Node) PlanStage {
 	ret, ok := n.(PlanStage)

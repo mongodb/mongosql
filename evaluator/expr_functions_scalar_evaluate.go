@@ -523,17 +523,14 @@ func (f baseScalarFunctionExpr) fromDaysEvaluate(sqlValueKind SQLValueKind, _ *c
 	}
 	value, err := strconv.ParseFloat(parseNumeric(v), 64)
 	if err != nil {
-		return NewSQLVarchar(sqlValueKind, "0000-00-00"), nil
+		return NewSQLNull(sqlValueKind, EvalDate), nil
 	}
 	if neg {
 		value = -value
 	}
 
 	if value <= 365.5 || value >= 3652499.5 {
-		// Go's zero time starts January 1, year 1, 00:00:00 UTC
-		// and thus can not represent the date "0000-00-00". To
-		// handle this, we return a varchar instead
-		return NewSQLVarchar(sqlValueKind, "0000-00-00"), nil
+		return NewSQLNull(sqlValueKind, EvalDate), nil
 	}
 
 	abs, maxGoDurationHours := math.Abs(value-366), int64(106751)
