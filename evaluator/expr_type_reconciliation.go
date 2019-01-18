@@ -20,7 +20,7 @@ func isSimilar(leftType, rightType EvalType) bool {
 	if leftType == EvalNull || rightType == EvalNull {
 		return true
 	}
-	if leftType == EvalNone || rightType == EvalNone {
+	if leftType == EvalPolymorphic || rightType == EvalPolymorphic {
 		return true
 	}
 	if leftType.IsNumeric() && rightType.IsNumeric() {
@@ -40,8 +40,9 @@ func convertExprs(exprs []SQLExpr, targetTypes []EvalType) []SQLExpr {
 		targetType := targetTypes[i]
 		exprType := expr.EvalType()
 
-		if targetType == EvalNone {
-			// EvalNone indicates that we shouldn't convert this argument
+		if targetType == EvalPolymorphic {
+			// EvalPolymorphic indicates that there is no need to convert this argument,
+			// as it accepts any argument.
 			newExprs[i] = expr
 		} else if cexpr, ok := expr.(SQLColumnExpr); ok && IsUUID(cexpr.columnType.MongoType) {
 			// SQLColumnExpr may have a MongoType of UUID, which should be
@@ -84,7 +85,7 @@ func preferentialTypeWithSorter(s *EvalTypeSorter, exprs ...SQLExpr) EvalType {
 	}
 
 	if len(s.Types) == 0 {
-		return EvalNone
+		return EvalPolymorphic
 	}
 
 	sort.Sort(s)

@@ -1,7 +1,7 @@
 package evaluator
 
 func convertEvalType(exprs []SQLExpr) EvalType {
-	typ, ok := sqlTypeFromSQLExpr(exprs[1])
+	typ, ok := evalTypeFromSQLExpr(exprs[1])
 	if !ok {
 		return EvalString
 	}

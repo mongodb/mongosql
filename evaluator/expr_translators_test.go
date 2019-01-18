@@ -811,7 +811,7 @@ func TestTranslateSQLValue(t *testing.T) {
 		{"SQLUint", evaluator.NewSQLUint64(evaluator.MySQLValueKind, 32), `{"$literal":32}`},
 		{"SQLVarchar", evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "vc"),
 			`{"$literal":"vc"}`},
-		{"SQLNull", evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind),
+		{"SQLNull", evaluator.NewPolymorphicSQLNull(evaluator.MySQLValueKind),
 			`{"$literal":null}`},
 		{"SQLDate", evaluator.NewSQLDate(evaluator.MySQLValueKind, datetime),
 			`{"$literal":"2012-12-07T00:00:00Z"}`},

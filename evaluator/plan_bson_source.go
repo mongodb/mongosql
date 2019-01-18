@@ -104,7 +104,7 @@ func (bs *BSONSourceStage) Columns() []*Column {
 			v.Name,
 			v.Name,
 			"",
-			EvalNone,
+			EvalPolymorphic,
 			schema.MongoNone,
 			false,
 		)

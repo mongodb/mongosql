@@ -200,7 +200,7 @@ func (f baseScalarFunctionExpr) convertEvaluate(sqlValueKind SQLValueKind, _ *co
 		return NewSQLNull(sqlValueKind, f.EvalType()), nil
 	}
 
-	typ, ok := sqlTypeFromSQLExpr(values[1])
+	typ, ok := evalTypeFromSQLExpr(values[1])
 	if !ok {
 		return NewSQLNull(sqlValueKind, f.EvalType()), nil
 	}

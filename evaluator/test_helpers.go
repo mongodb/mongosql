@@ -92,7 +92,7 @@ func CreateProjectedColumnFromSQLExpr(selectID int,
 	column := &Column{
 		SelectID: selectID,
 		Name:     columnName,
-		ColumnType: *NewColumnType(
+		ColumnType: NewColumnType(
 			expr.EvalType(),
 			schema.MongoNone,
 		),

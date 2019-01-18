@@ -211,7 +211,7 @@ functions:
     names: ['convert', 'cast']
     invocations:
       - arguments:
-          - eval_type: EvalNone
+          - eval_type: EvalPolymorphic
           - eval_type: EvalString
 
   - id: cos
@@ -418,8 +418,8 @@ functions:
     names: ['greatest']
     invocations:
       - arguments:
-          - { eval_type: EvalNone }
-          - { variadic: true, eval_type: EvalNone }
+          - { eval_type: EvalPolymorphic }
+          - { variadic: true, eval_type: EvalPolymorphic }
 
   - id: hour
     description: returns the hour for the provided time.
@@ -477,8 +477,8 @@ functions:
     names: ['least']
     invocations:
       - arguments:
-          - { eval_type: EvalNone }
-          - { variadic: true, eval_type: EvalNone }
+          - { eval_type: EvalPolymorphic }
+          - { variadic: true, eval_type: EvalPolymorphic }
 
   - id: left
     description: returns the leftmost n characters from the provided string, or NULL if either argument is NULL.
@@ -666,7 +666,7 @@ functions:
     custom_fold_constants: true
     invocations:
       - arguments:
-          - eval_type: EvalNone
+          - eval_type: EvalPolymorphic
 
   - id: pi
     description: returns the value of pi.

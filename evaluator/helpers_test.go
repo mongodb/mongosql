@@ -125,7 +125,7 @@ func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, 
 			ColumnType: evaluator.ColumnType{
 				EvalType:    column.EvalType,
 				MongoType:   column.MongoType,
-				UUIDSubType: evaluator.EvalNone,
+				UUIDSubType: evaluator.EvalBinary,
 			},
 			PrimaryKey: column.PrimaryKey,
 		},

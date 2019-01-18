@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 func (a *algebrizer) translateShow(show *parser.Show) (PlanStage, error) {
@@ -196,7 +197,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				"",
 				"",
 				EvalString,
-				"",
+				schema.MongoNone,
 				false,
 			),
 			Expr: NewSQLVarchar(a.valueKind(), databaseName),
@@ -210,7 +211,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				"",
 				"",
 				EvalString,
-				"",
+				schema.MongoNone,
 				false,
 			),
 			Expr: NewSQLVarchar(a.valueKind(), catalog.GenerateCreateDatabase(databaseName,
@@ -261,7 +262,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				"",
 				"",
 				EvalString,
-				"",
+				schema.MongoNone,
 				false,
 			),
 			Expr: NewSQLVarchar(a.valueKind(), string(table.Name())),
@@ -275,7 +276,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				"",
 				"",
 				EvalString,
-				"",
+				schema.MongoNone,
 				false,
 			),
 			Expr: NewSQLVarchar(a.valueKind(), createTableSQL),

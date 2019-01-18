@@ -307,7 +307,7 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
 	dbName := getDatabaseName(expr)
 	pc := &ProjectedColumn{
-		Column: NewColumn(b.selectID, "", "", dbName, "", "", "", EvalNone, "", false),
+		Column: NewColumn(b.selectID, "", "", dbName, "", "", "", EvalPolymorphic, schema.MongoNone, false),
 		Expr:   expr,
 	}
 

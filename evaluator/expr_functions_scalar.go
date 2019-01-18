@@ -97,7 +97,9 @@ func (sf baseScalarFunctionExpr) validateArgs() error {
 
 	argTypes := sf.argTypes()
 	for i, typ := range argTypes {
-		if typ == EvalNone {
+		// If the type is declared as polymorphic, there is nothing to check,
+		// as all types are conforming.
+		if typ == EvalPolymorphic {
 			continue
 		}
 		if sf.args[i].EvalType() != typ {

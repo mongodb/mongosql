@@ -27,11 +27,27 @@ type Column struct {
 	PrimaryKey          bool
 }
 
-// NewColumnType returns a *ColumnType with the specified EvalType and MongoType.
-func NewColumnType(evalType EvalType, mongoType schema.MongoType) *ColumnType {
-	return &ColumnType{
+// NewColumnType returns a ColumnType with the specified EvalType and MongoType.
+func NewColumnType(evalType EvalType, mongoType schema.MongoType) ColumnType {
+	return ColumnType{
 		EvalType:  evalType,
 		MongoType: mongoType,
+		// Because the need to set the UUIDSubType is so rare, we just use
+		// the default EvalBinary encoding unless otherwise specified with the
+		// other constructor.
+		UUIDSubType: EvalBinary,
+	}
+}
+
+// NewColumnTypeWithUUIDSubtype returns a ColumnType with the specified EvalType, MongoType, and
+// UUIDSubType.
+func NewColumnTypeWithUUIDSubtype(evalType EvalType,
+	mongoType schema.MongoType,
+	uuidSubType EvalType) ColumnType {
+	return ColumnType{
+		EvalType:    evalType,
+		MongoType:   mongoType,
+		UUIDSubType: uuidSubType,
 	}
 }
 
@@ -39,7 +55,7 @@ func NewColumnType(evalType EvalType, mongoType schema.MongoType) *ColumnType {
 func NewColumn(selectID int, table, originalTable, database, name,
 	originalName, mappingRegistryName string, evalType EvalType,
 	mongoType schema.MongoType, primaryKey bool) *Column {
-	uuidSubType := EvalNone
+	uuidSubType := EvalBinary
 	if mongoType == schema.MongoUUIDJava {
 		uuidSubType = EvalJavaUUID
 	} else if mongoType == schema.MongoUUIDCSharp {

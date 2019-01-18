@@ -41,15 +41,45 @@ const (
 	EvalMaxKey       EvalType = 0x7F
 	// Types not corresponding directly to BSON types.
 	//-------
-	EvalNone       EvalType = 0x00
-	EvalDate       EvalType = 0xFD
-	EvalTime       EvalType = 0xFC
-	EvalUint32     EvalType = 0xFB
-	EvalUint64     EvalType = 0xFA
+	// EvalPolymorphic can represent any underlying type,
+	// it is used in situations where types either cannot
+	// be determined statically, or where we just do not care
+	// what the type is.
+	// An example of non-statically determinable type is a case
+	// expression:
+	//   select case
+	//          when x=1 then 3.14
+	//          when x=2 then "hello"
+	//        end
+	//        from foo
+	// In fact, the type here can vary from row to row.
+	// As an example of a place where we just do not care about the type,
+	// consider the arguments to the convert function:
+	//   select convert(x, INT) from foo
+	// We actually do not need to worry about the type of x at query planning
+	// time, any type is viable in this expression. This is conversely to something
+	// like
+	//   select x + 3 from foo
+	// where the type of x needs to be numeric or converted to numeric before
+	// the addition occurs.
+	EvalPolymorphic EvalType = 0x00
+	// MongoDB does not have a Date type, only a Datetime type,
+	// we maintain this so that we can correctly drop the time
+	// portions for display purposes.
+	EvalDate EvalType = 0xFD
+	// MongoDB also does not support a Time type, only a Datetime type.
+	EvalTime EvalType = 0xFC
+	// MongoDB does not have unsigned types, we keep these next two types
+	// so that we can correctly display the signed integers as unsigned
+	// (e.g., -1 becomes max uint32 or max uint64 as appropriate.)
+	EvalUint32 EvalType = 0xFB
+	EvalUint64 EvalType = 0xFA
+	// The next two types are used for the two uuid subtybe 3 encodings.
 	EvalJavaUUID   EvalType = 0xF9
 	EvalCSharpUUID EvalType = 0xF8
-	EvalTuple      EvalType = 0xF7
-	// ArrNumeric is for specially handling legacy 2d arrays
+	// MongoDB does not have tuples, but MySQL does.
+	EvalTuple EvalType = 0xF7
+	// ArrNumeric is for specially handling legacy 2d arrays.
 	EvalArrNumeric EvalType = 0xF6
 )
 
@@ -109,8 +139,8 @@ func (e EvalType) ZeroValue(kind SQLValueKind) SQLValue {
 		return NewSQLVarchar(kind, "")
 	case EvalDecimal128:
 		return NewSQLDecimal128(kind, decimal.Decimal{})
-	case EvalNone:
-		return NewSQLNullUntyped(kind)
+	case EvalPolymorphic:
+		return NewPolymorphicSQLNull(kind)
 	default:
 		panic(fmt.Sprintf("invalid EvalType %x in call to ZeroValue", e))
 	}
@@ -118,18 +148,18 @@ func (e EvalType) ZeroValue(kind SQLValueKind) SQLValue {
 
 // evalTypeToMongoType returns the schema.MongoType for a byte kind.
 var evalTypeToMongoType = map[EvalType]schema.MongoType{
-	EvalBoolean:    schema.MongoBool,
-	EvalDatetime:   schema.MongoDate,
-	EvalDecimal128: schema.MongoDecimal128,
-	EvalDouble:     schema.MongoFloat,
-	EvalInt32:      schema.MongoInt,
-	EvalInt64:      schema.MongoInt64,
-	EvalNone:       schema.MongoNone,
-	EvalNull:       schema.MongoNull,
-	EvalObjectID:   schema.MongoObjectID,
-	EvalBinary:     schema.MongoUUID,
-	EvalString:     schema.MongoString,
-	EvalArrNumeric: schema.MongoArray,
+	EvalBoolean:     schema.MongoBool,
+	EvalDatetime:    schema.MongoDate,
+	EvalDecimal128:  schema.MongoDecimal128,
+	EvalDouble:      schema.MongoFloat,
+	EvalInt32:       schema.MongoInt,
+	EvalInt64:       schema.MongoInt64,
+	EvalPolymorphic: schema.MongoNone,
+	EvalNull:        schema.MongoNull,
+	EvalObjectID:    schema.MongoObjectID,
+	EvalBinary:      schema.MongoUUID,
+	EvalString:      schema.MongoString,
+	EvalArrNumeric:  schema.MongoArray,
 
 	EvalRegex:        schema.MongoNull,
 	EvalDBPointer:    schema.MongoNull,
@@ -163,20 +193,20 @@ func EvalTypeToMongoType(e EvalType) schema.MongoType {
 
 // sqlTypeToEvalType returns the EvalType kind for a schema.SQLType.
 var sqlTypeToEvalType = map[schema.SQLType]EvalType{
-	schema.SQLArrNumeric: EvalArrNumeric,
-	schema.SQLBoolean:    EvalBoolean,
-	schema.SQLDate:       EvalDate,
-	schema.SQLDecimal:    EvalDecimal128,
-	schema.SQLFloat:      EvalDouble,
-	schema.SQLInt:        EvalInt64,
-	schema.SQLNone:       EvalNone,
-	schema.SQLNull:       EvalNull,
-	schema.SQLObjectID:   EvalObjectID,
-	schema.SQLTimestamp:  EvalDatetime,
-	schema.SQLUint:       EvalUint64,
-	schema.SQLUUID:       EvalBinary,
-	schema.SQLVarchar:    EvalString,
-	schema.SQLNumeric:    EvalDouble,
+	schema.SQLArrNumeric:  EvalArrNumeric,
+	schema.SQLBoolean:     EvalBoolean,
+	schema.SQLDate:        EvalDate,
+	schema.SQLDecimal:     EvalDecimal128,
+	schema.SQLFloat:       EvalDouble,
+	schema.SQLInt:         EvalInt64,
+	schema.SQLPolymorphic: EvalPolymorphic,
+	schema.SQLNull:        EvalNull,
+	schema.SQLObjectID:    EvalObjectID,
+	schema.SQLTimestamp:   EvalDatetime,
+	schema.SQLUint:        EvalUint64,
+	schema.SQLUUID:        EvalBinary,
+	schema.SQLVarchar:     EvalString,
+	schema.SQLNumeric:     EvalDouble,
 }
 
 // SQLTypeToEvalType returns the EvalType kind for a schema.SQLType.
@@ -189,24 +219,24 @@ func SQLTypeToEvalType(s schema.SQLType) EvalType {
 
 // evalTypeToSQLType returns the schema.SQLType for a EvalType.
 var evalTypeToSQLType = map[EvalType]schema.SQLType{
-	EvalArrNumeric: schema.SQLArrNumeric,
-	EvalBoolean:    schema.SQLBoolean,
-	EvalDate:       schema.SQLDate,
-	EvalTime:       schema.SQLTime,
-	EvalDecimal128: schema.SQLDecimal,
-	EvalDouble:     schema.SQLFloat,
-	EvalInt32:      schema.SQLInt,
-	EvalUint64:     schema.SQLUint,
-	EvalInt64:      schema.SQLInt,
-	EvalNone:       schema.SQLNone,
-	EvalNull:       schema.SQLNull,
-	EvalObjectID:   schema.SQLObjectID,
-	EvalDatetime:   schema.SQLTimestamp,
-	EvalBinary:     schema.SQLUUID,
-	EvalJavaUUID:   schema.SQLUUID,
-	EvalCSharpUUID: schema.SQLUUID,
-	EvalString:     schema.SQLVarchar,
-	EvalTuple:      schema.SQLTuple,
+	EvalArrNumeric:  schema.SQLArrNumeric,
+	EvalBoolean:     schema.SQLBoolean,
+	EvalDate:        schema.SQLDate,
+	EvalTime:        schema.SQLTime,
+	EvalDecimal128:  schema.SQLDecimal,
+	EvalDouble:      schema.SQLFloat,
+	EvalInt32:       schema.SQLInt,
+	EvalUint64:      schema.SQLUint,
+	EvalInt64:       schema.SQLInt,
+	EvalPolymorphic: schema.SQLPolymorphic,
+	EvalNull:        schema.SQLNull,
+	EvalObjectID:    schema.SQLObjectID,
+	EvalDatetime:    schema.SQLTimestamp,
+	EvalBinary:      schema.SQLUUID,
+	EvalJavaUUID:    schema.SQLUUID,
+	EvalCSharpUUID:  schema.SQLUUID,
+	EvalString:      schema.SQLVarchar,
+	EvalTuple:       schema.SQLTuple,
 }
 
 // EvalTypeToSQLType returns the schema.SQLType for a EvalType.
@@ -246,7 +276,8 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 	}
 
 	switch t1 {
-	case EvalNone, EvalNull:
+	// Polymorphic is less than all type.
+	case EvalPolymorphic:
 		return true
 	case EvalString:
 		switch t2 {
@@ -303,6 +334,8 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 		default:
 			return false
 		}
+	case EvalNull:
+		panic("EvalNull should never exist outside of BSON Documents")
 	}
 	return false
 }

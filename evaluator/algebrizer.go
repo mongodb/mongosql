@@ -2045,7 +2045,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		return NewSQLNotExpr(child), nil
 	case *parser.NullVal:
-		return NewSQLNullUntyped(a.valueKind()), nil
+		return NewPolymorphicSQLNull(a.valueKind()), nil
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
@@ -2181,7 +2181,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"No support for operator '%v'", typedE.Operator)
 	case *parser.UnknownVal:
-		return NewSQLNullUntyped(a.valueKind()), nil
+		return NewPolymorphicSQLNull(a.valueKind()), nil
 	default:
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"No support for '%v'", parser.String(typedE))
@@ -2280,7 +2280,7 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 
 	var elseValue SQLExpr
 	if expr.Else == nil {
-		elseValue = NewSQLNullUntyped(a.valueKind())
+		elseValue = NewPolymorphicSQLNull(a.valueKind())
 	} else if elseValue, err = a.translateExpr(expr.Else); err != nil {
 		return nil, err
 	}
@@ -2463,7 +2463,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			append([]SQLExpr{NewSQLUint64(a.valueKind(), id)}, exprs...),
 		)
 	case "isnull":
-		return NewSQLIsExpr(exprs[0], NewSQLNullUntyped(a.valueKind())), nil
+		return NewSQLIsExpr(exprs[0], NewPolymorphicSQLNull(a.valueKind())), nil
 	case "date_add", "adddate", "date_sub", "subdate":
 		if len(exprs) == 2 {
 			return NewSQLScalarFunctionExpr(

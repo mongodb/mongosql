@@ -111,17 +111,22 @@ func NewSQLNull(kind SQLValueKind, typ EvalType) SQLValue {
 		return nullSQLBool(kind)
 	case EvalDecimal128:
 		return nullSQLDecimal128(kind)
-	case EvalNone, EvalTuple, EvalBinary:
+	case EvalTuple, EvalBinary:
 		return nullSQLVarchar(kind)
+	case EvalPolymorphic:
+		return NewPolymorphicSQLNull(kind)
 	default:
 		panic(fmt.Sprintf("invalid EvalType %x in call to NewSQLNull", typ))
 	}
 }
 
-// NewSQLNullUntyped returns a new SQLValue of the provided SQLValueKind and with
+// NewPolymorphicSQLNull returns a new SQLValue of the provided SQLValueKind and with
 // the default EvalType (currently EvalVarchar).
-func NewSQLNullUntyped(kind SQLValueKind) SQLValue {
-	return NewSQLNull(kind, EvalNone)
+func NewPolymorphicSQLNull(kind SQLValueKind) SQLValue {
+	// We will just use a NULL varchar for untyped NULLs.
+	// This saves us from create a new untyped SQLValue that
+	// is only ever NULL.
+	return newSQLVarchar(kind, "", true)
 }
 
 // SQLBool represents a boolean.
@@ -583,7 +588,7 @@ func (sv *SQLValues) EvalType() EvalType {
 	if len(sv.Values) == 1 {
 		return sv.Values[0].EvalType()
 	} else if len(sv.Values) == 0 {
-		return EvalNone
+		return EvalPolymorphic
 	}
 
 	return EvalTuple
@@ -825,7 +830,7 @@ func ConvertTo(v SQLValue, evalType EvalType) SQLValue {
 		return v.SQLInt()
 	case EvalInt64:
 		return v.SQLInt()
-	case EvalNone:
+	case EvalPolymorphic:
 		return v
 	case EvalNull:
 		return NewSQLNull(v.Kind(), evalType)
@@ -1001,12 +1006,12 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 		// For another other type of BinData we return a SQLNull
 		return NewSQLNull(kind, EvalString), nil
 	case EvalNull:
-		return NewSQLNullUntyped(kind), nil
+		return NewPolymorphicSQLNull(kind), nil
 	default:
 		// Rather than return an error, we will just return NULL for
 		// other types of BSON. This function now only returns error
 		// on malformed Decimal128 values.
-		return NewSQLNullUntyped(kind), nil
+		return NewPolymorphicSQLNull(kind), nil
 	}
 }
 

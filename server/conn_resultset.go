@@ -52,21 +52,21 @@ func fastFormat(f dataFormatter, valueKind evaluator.SQLValueKind) ([]byte, erro
 
 	// If we can serialize directly from MongoDB to MySQL's wire protocol, do that. There are a few
 	// conditions under which we can do that. For all conditions, the UUID subtype must be
-	// EvalNone.
+	// EvalBinary.
 	//
 	// 1. If the columnType is equal to the evalType, we do not need to go through any type
 	//	   conversions, so we can send data straight from MongoDB to the MySQL wire protocol.
-	// 2. If the columnType is evaluator.EvalNone because that is used when the BIC does not care
+	// 2. If the columnType is evaluator.EvalPolymorphic because that is used when the BIC does not care
 	// 	  about the output type.
 	// 3. If the MongoDB type is ObjectID and the column type is SQLVarchar (evaluator.EvalString),
 	//	  since ObjectID's are serialized as strings by default.
 
 	isSameEvalType := columnType == evalType
-	isEvalNoneType := columnType == evaluator.EvalNone
+	isEvalPolymorphicType := columnType == evaluator.EvalPolymorphic
 	isObjectIDType := columnType == evaluator.EvalString && evalType == evaluator.EvalObjectID
-	hasNoUUIDSubtype := uuidSubtype == evaluator.EvalNone
+	hasStandardUUIDSubtype := uuidSubtype == evaluator.EvalBinary
 
-	if hasNoUUIDSubtype && (isSameEvalType || isEvalNoneType || isObjectIDType) {
+	if hasStandardUUIDSubtype && (isSameEvalType || isEvalPolymorphicType || isObjectIDType) {
 		return fastCleanFormat(columnType, evalType, &f)
 	}
 

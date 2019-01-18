@@ -161,7 +161,7 @@ func TestJoinPlanStage(t *testing.T) {
 			if expectedResults[i].Amount == nil {
 				req.Zero(convey.ShouldHaveSameTypeAs(
 					row.Data[4].Data,
-					evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind),
+					evaluator.NewPolymorphicSQLNull(evaluator.MySQLValueKind),
 				))
 			} else {
 				req.Equal(row.Data[4].Data.Value(), expectedResults[i].Amount)
@@ -202,7 +202,7 @@ func TestJoinPlanStage(t *testing.T) {
 			if expectedResults[i].Name == nil {
 				req.Zero(convey.ShouldHaveSameTypeAs(
 					row.Data[0].Data,
-					evaluator.NewSQLNullUntyped(evaluator.MySQLValueKind),
+					evaluator.NewPolymorphicSQLNull(evaluator.MySQLValueKind),
 				))
 			} else {
 				req.Equal(row.Data[0].Data.Value(), expectedResults[i].Name)

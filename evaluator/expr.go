@@ -520,7 +520,7 @@ func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, 
 		databaseName: databaseName,
 		tableName:    tableName,
 		columnName:   columnName,
-		columnType: *NewColumnType(
+		columnType: NewColumnType(
 			evalType,
 			mongoType,
 		),
@@ -1564,7 +1564,7 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 		// MySQL specific behavior here.
 		for lcv := 0; lcv < len(plan.Columns()); lcv++ {
 			valueRow.Values = append(valueRow.Values,
-				NewSQLNullUntyped(cfg.sqlValueKind))
+				NewPolymorphicSQLNull(cfg.sqlValueKind))
 		}
 	}
 
@@ -1696,7 +1696,7 @@ func (si *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 
 	// left expression not found in right table.
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
@@ -1852,7 +1852,7 @@ func (ni *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 
 	// left expression not found in right table.
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, true), nil
 }
@@ -2012,7 +2012,7 @@ func (sa *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 
 	// left expression not comparing successfully to any row in the right table
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
@@ -2164,7 +2164,7 @@ func (sa *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 
 	// left expression compared successfully to all rows in the right table
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, true), nil
 }
@@ -2620,7 +2620,7 @@ func (sa *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 
 	// left expression compared successfully to all rows in the right table
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, true), nil
 }
@@ -2801,7 +2801,7 @@ func (sa *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 
 	// The left expression did not compare successfully to any row in the right table.
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
@@ -3143,7 +3143,7 @@ func (si *SQLSubqueryInSubqueryExpr) Evaluate(ctx context.Context, cfg *Executio
 
 	// The left expression was not found in right table.
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, false), nil
 }
@@ -3317,7 +3317,7 @@ func (ni *SQLSubqueryNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *Execu
 
 	// left expression not found in right table.
 	if sawNull {
-		return NewSQLNullUntyped(cfg.sqlValueKind), nil
+		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
 	}
 	return NewSQLBool(cfg.sqlValueKind, true), nil
 }

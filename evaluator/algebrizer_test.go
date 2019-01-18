@@ -802,21 +802,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewDualStage(),
 				evaluator.ProjectedColumn{
 					Column: &evaluator.Column{
-						SelectID: 1,
-						Name:     "Database",
-						ColumnType: evaluator.ColumnType{
-							EvalType: evaluator.EvalString,
-						},
+						SelectID:   1,
+						Name:       "Database",
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, dbName),
 				},
 				evaluator.ProjectedColumn{
 					Column: &evaluator.Column{
-						SelectID: 1,
-						Name:     "Create Database",
-						ColumnType: evaluator.ColumnType{
-							EvalType: evaluator.EvalString,
-						},
+						SelectID:   1,
+						Name:       "Create Database",
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(
 						valKind, catalog.GenerateCreateDatabase(dbName, ""),
@@ -830,21 +826,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewDualStage(),
 				evaluator.ProjectedColumn{
 					Column: &evaluator.Column{
-						SelectID: 1,
-						Name:     "Database",
-						ColumnType: evaluator.ColumnType{
-							EvalType: evaluator.EvalString,
-						},
+						SelectID:   1,
+						Name:       "Database",
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, dbName),
 				},
 				evaluator.ProjectedColumn{
 					Column: &evaluator.Column{
-						SelectID: 1,
-						Name:     "Create Database",
-						ColumnType: evaluator.ColumnType{
-							EvalType: evaluator.EvalString,
-						},
+						SelectID:   1,
+						Name:       "Create Database",
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind,
 						catalog.GenerateCreateDatabase(dbName, "IF NOT EXISTS")),
@@ -868,10 +860,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Table",
-						ColumnType: evaluator.ColumnType{
-							EvalType:    evaluator.EvalString,
-							UUIDSubType: evaluator.EvalNone,
-						},
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString,
+							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, string(tbl.Name())),
 				},
@@ -879,10 +869,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						ColumnType: evaluator.ColumnType{
-							EvalType:    evaluator.EvalString,
-							UUIDSubType: evaluator.EvalNone,
-						},
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString,
+							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, createTableSQL),
 				},
@@ -896,10 +884,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Table",
-						ColumnType: evaluator.ColumnType{
-							EvalType:    evaluator.EvalString,
-							UUIDSubType: evaluator.EvalNone,
-						},
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString,
+							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, string(tbl.Name())),
 				},
@@ -907,10 +893,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						ColumnType: evaluator.ColumnType{
-							EvalType:    evaluator.EvalString,
-							UUIDSubType: evaluator.EvalNone,
-						},
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString,
+							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, createTableSQL),
 				},
@@ -924,10 +908,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Table",
-						ColumnType: evaluator.ColumnType{
-							EvalType:    evaluator.EvalString,
-							UUIDSubType: evaluator.EvalNone,
-						},
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString,
+							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, string(tbl.Name())),
 				},
@@ -935,10 +917,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					Column: &evaluator.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						ColumnType: evaluator.ColumnType{
-							EvalType:    evaluator.EvalString,
-							UUIDSubType: evaluator.EvalNone,
-						},
+						ColumnType: evaluator.NewColumnType(evaluator.EvalString,
+							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLVarchar(valKind, createTableSQL),
 				},
@@ -4274,7 +4254,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"t1",
 							variable.UserKind,
 							variable.SessionScope,
-							schema.SQLNone,
+							schema.SQLPolymorphic,
 							nil,
 						),
 						evaluator.NewSQLInt64(valKind, 132),
@@ -4369,7 +4349,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 							"interactive_timeout",
 							variable.UserKind,
 							variable.SessionScope,
-							schema.SQLNone,
+							schema.SQLPolymorphic,
 							nil,
 						),
 						evaluator.NewSQLInt64(valKind, 1111),
@@ -4621,7 +4601,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		"a IS NULL",
 		evaluator.NewSQLIsExpr(
 			createSQLColumnExpr("a"),
-			evaluator.NewSQLNullUntyped(valKind),
+			evaluator.NewPolymorphicSQLNull(valKind),
 		),
 		testVersion,
 	}, {
@@ -4629,7 +4609,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		evaluator.NewSQLNotExpr(
 			evaluator.NewSQLIsExpr(
 				createSQLColumnExpr("a"),
-				evaluator.NewSQLNullUntyped(valKind),
+				evaluator.NewPolymorphicSQLNull(valKind),
 			),
 		),
 		testVersion,
@@ -4676,7 +4656,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		testVersion,
 	}, {
 		"NULL",
-		evaluator.NewSQLNullUntyped(valKind),
+		evaluator.NewPolymorphicSQLNull(valKind),
 		testVersion,
 	}, {
 		"TRUE",

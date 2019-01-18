@@ -384,7 +384,7 @@ func (f *baseScalarFunctionExpr) convToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) convertToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	typ, ok := sqlTypeFromSQLExpr(exprs[1])
+	typ, ok := evalTypeFromSQLExpr(exprs[1])
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(convert)",

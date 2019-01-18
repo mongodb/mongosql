@@ -757,7 +757,7 @@ func getMySQLVersion(vars catalog.VariableContainer) string {
 func GoValueToSQLValue(kind SQLValueKind, v interface{}) SQLValue {
 	switch vTyped := v.(type) {
 	case nil:
-		return NewSQLNullUntyped(kind)
+		return NewPolymorphicSQLNull(kind)
 	case bool:
 		return NewSQLBool(kind, vTyped)
 	case int:
@@ -994,10 +994,10 @@ func baseIsInvalid(base int64) bool {
 	return false
 }
 
-func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
+func evalTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 	val, ok := expr.(SQLValue)
 	if !ok {
-		return EvalNone, false
+		panic("argument to evalTypeFromSQLExpr must be a SQLValue representing a viable convert target type")
 	}
 
 	var typ EvalType
@@ -1019,12 +1019,13 @@ func sqlTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 	case string(parser.DECIMAL_BYTES):
 		typ = EvalDecimal128
 	case string(parser.BINARY_BYTES):
-		// although we represent binary as a string, conversions
-		// to it are always going to be invalid
+		// Although we represent binary as a string, conversions
+		// to it are always going to be invalid.
 		return EvalString, false
 	case string(parser.TIME_BYTES):
-		// this type is not supported yet
-		return EvalNone, false
+		// We do not support the TIME type yet. Just use EvalDatetime
+		// for now.
+		return EvalDatetime, false
 	default:
 		panic(fmt.Errorf("invalid value %q", val.String()))
 	}

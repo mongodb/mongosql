@@ -46,7 +46,10 @@ func getSQLTypeFromColumnType(colTyp string) (SQLType, error) {
 	case "char", "varchar", "binary", "varbinary", "blob", "text":
 		return SQLVarchar, nil
 	default:
-		return SQLNone, fmt.Errorf("no SQLType mapping for column type %q", colTyp)
+		// This value should never be used due to the error here. The result is not actually
+		// polymorphic. SQLInvalidType is not a key in any type conversion maps, which will
+		// cause a panic if this type is accidentally used.
+		return SQLInvalidType, fmt.Errorf("no SQLType mapping for column type %q", colTyp)
 	}
 }
 
@@ -160,7 +163,7 @@ var sqlTypes = map[string]SQLType{
 	"decimal":   SQLDecimal,
 	"float":     SQLFloat,
 	"int":       SQLInt,
-	"":          SQLNone,
+	"":          SQLPolymorphic,
 	"null":      SQLNull,
 	"numeric":   SQLNumeric,
 	"objectid":  SQLObjectID,
@@ -174,20 +177,21 @@ var sqlTypes = map[string]SQLType{
 
 // Constants for SQLType - coupled with the `sqlTypes` map.
 const (
-	SQLArrNumeric SQLType = "numeric[]"
-	SQLBoolean    SQLType = "boolean"
-	SQLDate       SQLType = "date"
-	SQLDecimal    SQLType = "decimal"
-	SQLFloat      SQLType = "float"
-	SQLInt        SQLType = "int"
-	SQLNone       SQLType = ""
-	SQLNull       SQLType = "null"
-	SQLNumeric    SQLType = "numeric"
-	SQLObjectID   SQLType = "objectid"
-	SQLTime       SQLType = "time"
-	SQLTimestamp  SQLType = "timestamp"
-	SQLTuple      SQLType = "tuple"
-	SQLUint       SQLType = "uint"
-	SQLUUID       SQLType = "uuid"
-	SQLVarchar    SQLType = "varchar"
+	SQLArrNumeric  SQLType = "numeric[]"
+	SQLBoolean     SQLType = "boolean"
+	SQLDate        SQLType = "date"
+	SQLDecimal     SQLType = "decimal"
+	SQLFloat       SQLType = "float"
+	SQLInt         SQLType = "int"
+	SQLInvalidType SQLType = "invalid type"
+	SQLPolymorphic SQLType = ""
+	SQLNull        SQLType = "null"
+	SQLNumeric     SQLType = "numeric"
+	SQLObjectID    SQLType = "objectid"
+	SQLTime        SQLType = "time"
+	SQLTimestamp   SQLType = "timestamp"
+	SQLTuple       SQLType = "tuple"
+	SQLUint        SQLType = "uint"
+	SQLUUID        SQLType = "uuid"
+	SQLVarchar     SQLType = "varchar"
 )

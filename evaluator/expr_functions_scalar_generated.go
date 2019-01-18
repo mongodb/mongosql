@@ -1102,7 +1102,7 @@ var _ SQLScalarFunctionExpr = (*convertFunc)(nil)
 
 // The following constants represent some properties of the convertFunc scalar function.
 var (
-	convertExpectedTypes  []EvalType               = []EvalType{EvalNone, EvalString}
+	convertExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic, EvalString}
 	convertIsVariadic     bool                     = false
 	convertReturnTypeFunc func([]SQLExpr) EvalType = convertEvalType
 )
@@ -2738,7 +2738,7 @@ var _ SQLScalarFunctionExpr = (*greatestFunc)(nil)
 
 // The following constants represent some properties of the greatestFunc scalar function.
 var (
-	greatestExpectedTypes  []EvalType               = []EvalType{EvalNone, EvalNone}
+	greatestExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic, EvalPolymorphic}
 	greatestIsVariadic     bool                     = true
 	greatestReturnTypeFunc func([]SQLExpr) EvalType = greatestEvalType
 )
@@ -3184,7 +3184,7 @@ var _ SQLScalarFunctionExpr = (*leastFunc)(nil)
 
 // The following constants represent some properties of the leastFunc scalar function.
 var (
-	leastExpectedTypes  []EvalType               = []EvalType{EvalNone, EvalNone}
+	leastExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic, EvalPolymorphic}
 	leastIsVariadic     bool                     = true
 	leastReturnTypeFunc func([]SQLExpr) EvalType = leastEvalType
 )
@@ -4646,7 +4646,7 @@ var _ SQLScalarFunctionExpr = (*nopushdownFunc)(nil)
 
 // The following constants represent some properties of the nopushdownFunc scalar function.
 var (
-	nopushdownExpectedTypes  []EvalType               = []EvalType{EvalNone}
+	nopushdownExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic}
 	nopushdownIsVariadic     bool                     = false
 	nopushdownReturnTypeFunc func([]SQLExpr) EvalType = nopushdownEvalType
 )

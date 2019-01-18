@@ -239,7 +239,7 @@ func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, 
 			continue
 		}
 		uniqueFields[mappedFieldName] = struct{}{}
-		uuidSubType := EvalNone
+		uuidSubType := EvalBinary
 		if c.MongoType == schema.MongoUUIDJava {
 			uuidSubType = EvalJavaUUID
 		} else if c.MongoType == schema.MongoUUIDCSharp {

@@ -319,7 +319,7 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 			values = append(values, Value{
 				Name:    k,
 				Kind:    UserKind,
-				SQLType: schema.SQLNone,
+				SQLType: schema.SQLPolymorphic,
 				Value:   v,
 			})
 		}
@@ -371,7 +371,7 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 		return Value{
 			Name:    name,
 			Kind:    kind,
-			SQLType: schema.SQLNone,
+			SQLType: schema.SQLPolymorphic,
 			Value:   v,
 		}, nil
 	}
