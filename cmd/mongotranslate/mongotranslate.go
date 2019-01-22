@@ -1,91 +1,36 @@
 package main
 
 import (
-	"context"
+	"flag"
+	"fmt"
 	"log"
-	"strings"
 
-	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
-	"github.com/10gen/sqlproxy/evaluator/variable"
-	sqlLgr "github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/schema"
-)
-
-var (
-	namespaces = []string{
-		"foo$a$b$c",
-		"bar$c$d$e",
-	}
+	"github.com/10gen/sqlproxy/internal/mongotranslate"
 )
 
 const (
-	defaultDbName = "test"
-	mdbVersion    = "4.0.0"
-	sql           = "explain select * from foo t1 join foo t2 on t1.a = t2.b"
+	defaultDbName     = "test"
+	defaultMdbVersion = "4.0.0"
 )
 
 func main() {
-	ctlg, err := getTestCatalog(mdbVersion)
+	sqlQuery := flag.String("query", "", "The sql query to translate into MongoDB aggregation language.")
+	defaultDB := flag.String("defaultDB", defaultDbName, "The default database name to use for unqualified tables in the query.")
+	mdbVersion := flag.String("mdbVersion", defaultMdbVersion, "The MongoDB version to which to translate the query.")
+
+	showInferredSchema := flag.Bool("showSchema", false, "When true, the inferred schema will be printed before the translation.")
+
+	flag.Parse()
+
+	if *sqlQuery == "" {
+		log.Fatalln("no query provided")
+		return
+	}
+
+	explainPlan, err := mongotranslate.TranslateSQLQuery(*sqlQuery, *defaultDB, *mdbVersion, *showInferredSchema)
 	if err != nil {
-		log.Fatalf("fatal error creating catalog: %v", err)
+		log.Fatal(err)
 	}
 
-	qCfg := evaluator.NewDefaultQueryConfig(mdbVersion, ctlg)
-
-	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sql)
-	if err != nil {
-		log.Fatalf("fatal error executing sql %q: %v", sql, err)
-	}
-
-	if len(res.Stats.Explain) != 1 {
-		log.Fatalf("query not fully pushed down: %v", res.Stats.Explain[0].PushdownFailures[0])
-	}
-
-	log.Printf("explain plan is: \n%v", res.Stats.Explain[0].Pipeline.Else(""))
-}
-
-func getTestCatalog(mdbVersion string) (catalog.Catalog, error) {
-	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBVersion = mdbVersion
-	gbl.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
-	gbl.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
-
-	vars := variable.NewSessionContainer(gbl)
-	vars.MongoDBVersion = mdbVersion
-	vars.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
-	vars.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
-
-	ctlg := catalog.New("", vars)
-
-	db, err := ctlg.AddDatabase(defaultDbName)
-	if err != nil {
-		return nil, err
-	}
-
-	lgr := sqlLgr.GlobalLogger()
-
-	for _, ns := range namespaces {
-		split := strings.SplitN(ns, "$", 2)
-		tableName, columnNames := split[0], split[1]
-
-		table, err := schema.NewTable(lgr, tableName, tableName, nil, nil)
-		if err != nil {
-			return nil, err
-		}
-
-		columns := strings.Split(columnNames, "$")
-		for _, columnName := range columns {
-			column := schema.NewColumn(columnName, schema.SQLInt, columnName, schema.MongoInt)
-			table.AddColumn(lgr, column, false)
-		}
-
-		err = db.AddTable(catalog.NewMongoTable(table, catalog.BaseTable, collation.Default))
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return ctlg, nil
+	fmt.Println(explainPlan)
 }

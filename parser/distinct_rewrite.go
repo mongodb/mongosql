@@ -19,7 +19,7 @@ func RewriteDistinct(stmt Statement) Statement {
 
 	stmtCopy := stmt.Copy()
 	// Attempt the rewrite.
-	newStmt, err := walk(distinctRw, stmtCopy)
+	newStmt, err := Walk(distinctRw, stmtCopy)
 	if err != nil {
 		panic(err)
 	}
@@ -35,7 +35,7 @@ type distinctFuncState struct {
 	expressionIndex int
 }
 
-var _ walker = (*DistinctRewriter)(nil)
+var _ Walker = (*DistinctRewriter)(nil)
 
 // DistinctRewriter tries to rewrite queries using GROUP BY in sub queries
 // instead of as distinct aggregation functions.
@@ -84,7 +84,7 @@ func (d *DistinctRewriter) PreVisit(current CST) (CST, error) {
 		// we decided not to support that at this time.
 		if typed.Having != nil {
 			f := &distinctFuncExprFinder{}
-			_, err := walk(f, typed.Having)
+			_, err := Walk(f, typed.Having)
 			if err != nil {
 				return nil, err
 			}
@@ -95,7 +95,7 @@ func (d *DistinctRewriter) PreVisit(current CST) (CST, error) {
 		foundOneDistinct := false
 		for i, expr := range typed.SelectExprs {
 			f := &distinctFuncExprFinder{}
-			_, err := walk(f, expr)
+			_, err := Walk(f, expr)
 			if err != nil {
 				return nil, err
 			}
@@ -173,7 +173,7 @@ func (d *DistinctRewriter) PreVisit(current CST) (CST, error) {
 	return current, nil
 }
 
-var _ walker = (*distinctFuncExprFinder)(nil)
+var _ Walker = (*distinctFuncExprFinder)(nil)
 
 // distinctFuncExprFinder will find all distinct FuncExprs
 // under a given root expression.

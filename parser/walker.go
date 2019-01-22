@@ -4,9 +4,9 @@ import (
 	"reflect"
 )
 
-// A parser.walker visits each node in a CST allowing in-place mutation.
+// A parser.Walker visits each node in a CST allowing in-place mutation.
 // Implement this interface for each phase of operation on the CST.
-type walker interface {
+type Walker interface {
 	// PreVisit is called for every node before its children are walked.
 	// Mutation of the current node is enabled through the current
 	// interface.
@@ -23,9 +23,9 @@ type walker interface {
 	PostVisit(current CST) (CST, error)
 }
 
-// walk implements the routing logic to visit each node in a CST tree.
+// Walk implements the routing logic to visit each node in a CST tree.
 // The walk is ended eagerly if an error occurs.
-func walk(w walker, node CST) (CST, error) {
+func Walk(w Walker, node CST) (CST, error) {
 	node, err := w.PreVisit(node)
 	if err != nil {
 		return nil, err
@@ -38,7 +38,7 @@ func walk(w walker, node CST) (CST, error) {
 		val := reflect.ValueOf(node)
 		if val.Kind() == reflect.String || !val.IsNil() {
 			for i, child := range node.Children() {
-				replacement, werr := walk(w, child)
+				replacement, werr := Walk(w, child)
 				if werr != nil {
 					return nil, werr
 				}

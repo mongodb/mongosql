@@ -29,8 +29,7 @@ type QueryConfig struct {
 }
 
 // NewDefaultQueryConfig returns a new default QueryConfig for the given version.
-func NewDefaultQueryConfig(mdbVersion string, ctlg catalog.Catalog) *QueryConfig {
-	defaultDbName := "test"
+func NewDefaultQueryConfig(mdbVersion, defaultDbName string, ctlg catalog.Catalog) *QueryConfig {
 	lgr := log.GlobalLogger()
 	vars := ctlg.Variables()
 	rCfg := NewRewriterConfig(lgr, false)

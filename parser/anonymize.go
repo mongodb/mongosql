@@ -18,7 +18,7 @@ func AnonymizeStatement(stmt Statement) Statement {
 		))
 	}
 
-	newStmt, err := walk(newAnonymizer(), stmt.Copy())
+	newStmt, err := Walk(newAnonymizer(), stmt.Copy())
 	if err != nil {
 		panic(err)
 	}

@@ -11,7 +11,7 @@ type QueryStats struct {
 // GetQueryStats returns QueryStats for the provided statement.
 func GetQueryStats(stmt Statement) *QueryStats {
 	stats := newQueryStats()
-	_, err := walk(stats, stmt)
+	_, err := Walk(stats, stmt)
 	if err != nil {
 		panic(err)
 	}

@@ -56,7 +56,7 @@ func (*namer) PreVisit(current CST) (CST, error) {
 	return current, nil
 }
 
-var _ walker = (*namer)(nil)
+var _ Walker = (*namer)(nil)
 
 // PostVisit is called for every node after its children are walked.
 func (*namer) PostVisit(current CST) (CST, error) {
@@ -68,6 +68,6 @@ func (*namer) PostVisit(current CST) (CST, error) {
 // These column names fill out empty alias slots in the CST.
 func NameColumns(statement Statement) Statement {
 	// This call ignores errors because it cannot fail.
-	result, _ := walk(&namer{}, statement)
+	result, _ := Walk(&namer{}, statement)
 	return result.(Statement)
 }
