@@ -8496,6 +8496,9 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
 
+	case "coalesce":
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
+
 	case "concat":
 		var base baseScalarFunctionExpr
 		var err error
@@ -8899,6 +8902,9 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
 
+	case "elt":
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
+
 	case "exp":
 		var base baseScalarFunctionExpr
 		var err error
@@ -8938,6 +8944,9 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		}
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+
+	case "field":
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
 
 	case "floor":
 		var base baseScalarFunctionExpr
@@ -9053,6 +9062,12 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
 
+	case "if":
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
+
+	case "ifnull":
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
+
 	case "insert":
 		var base baseScalarFunctionExpr
 		var err error
@@ -9092,6 +9107,9 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		}
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+
+	case "interval":
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
 
 	case "last_day":
 		var base baseScalarFunctionExpr
@@ -9540,6 +9558,9 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		}
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+
+	case "nullif":
+		panic(fmt.Errorf(algebrizationProblemMessage, name))
 
 	case "pi":
 		var base baseScalarFunctionExpr

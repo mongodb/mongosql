@@ -165,6 +165,12 @@ functions:
           - eval_type: EvalString
         return_type: EvalInt64
 
+  - id: coalesce
+    description: returns the first non-null value in the list, or null if there are no non-null values.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_coalesce
+    names: ['coalesce']
+    no_generate: true
+
   - id: concat
     description: returns the string that results from concatenating the arguments.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_concat
@@ -357,6 +363,12 @@ functions:
           - eval_type: EvalDouble
         return_type: EvalDouble
 
+  - id: elt
+    description: returns the Nth element of the list of strings.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_elt
+    names: ['elt']
+    no_generate: true
+
   - id: exp
     description: returns the value of e raised to the provided power.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_exp
@@ -375,6 +387,12 @@ functions:
           - { name: unit, eval_type: EvalString }
           - { name: date, eval_type: EvalDatetime }
         return_type: EvalInt64
+
+  - id: field
+    description: returns the index of the first argument in the list of the remaining arguments.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.7/en/string-functions.html#function_field
+    names: ['field']
+    no_generate: true
 
   - id: floor
     description: returns the largest integer value not greater than the provided argument.
@@ -428,6 +446,18 @@ functions:
           - eval_type: EvalDatetime # NOTE actually supposed to be a time
         return_type: EvalInt64
 
+  - id: if
+    description: returns the second argument if the first is true, and the third argument otherwise.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_if
+    names: ['if']
+    no_generate: true
+
+  - id: ifnull
+    description: returns the first argument if it is not null, and the second argument otherwise.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_ifnull
+    names: ['ifnull']
+    no_generate: true
+
   - id: insert
     description: returns the string str, with the substring beginning at position pos and len characters long replaced by the string newstr.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_insert
@@ -449,6 +479,12 @@ functions:
           - { name: str, eval_type: EvalString }
           - { name: substr, eval_type: EvalString }
         return_type: EvalInt64
+
+  - id: interval
+    description: returns 0 if N < N1, 1 if N < N2, and so on.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.7/en/comparison-operators.html#function_interval
+    names: ['interval']
+    no_generate: true
 
   - id: lastDay
     description: takes a date or datetime value and returns the corresponding value for the last day of the month.
@@ -664,6 +700,12 @@ functions:
     invocations:
       - arguments:
           - eval_type: EvalPolymorphic
+
+  - id: nullif
+    description: returns null if the two arguments are equal, and the first argument otherwise.
+    mysql_doc_url: https://dev.mysql.com/doc/refman/5.7/en/control-flow-functions.html#function_nullif
+    names: ['nullif']
+    no_generate: true
 
   - id: pi
     description: returns the value of pi.
