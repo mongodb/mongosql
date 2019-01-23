@@ -153,9 +153,9 @@ func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	return val
 }
 
-// nolint: unparam
 func (f *acosFunc) reconcile() (SQLExpr, error) {
-	return f, nil
+	convertedArgs := convertExprs(f.args, f.argTypes())
+	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
 func acosEvalType(_ []SQLExpr) EvalType {
@@ -228,9 +228,9 @@ func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	return val
 }
 
-// nolint: unparam
 func (f *asciiFunc) reconcile() (SQLExpr, error) {
-	return f, nil
+	convertedArgs := convertExprs(f.args, f.argTypes())
+	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
 func asciiEvalType(_ []SQLExpr) EvalType {
@@ -303,9 +303,9 @@ func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	return val
 }
 
-// nolint: unparam
 func (f *asinFunc) reconcile() (SQLExpr, error) {
-	return f, nil
+	convertedArgs := convertExprs(f.args, f.argTypes())
+	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
 func asinEvalType(_ []SQLExpr) EvalType {
