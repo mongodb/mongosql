@@ -312,6 +312,32 @@ func sanitizeFieldName(fieldName string) string {
 	return strings.Replace(r, "$", Dollar, -1)
 }
 
+// sanitizeLetVarName replaces invalid characters in let variables with '_'.
+// If the first character is not in [a-z], it will be replaced with 'z'.
+func sanitizeLetVarName(varName string) string {
+	if !validStartFieldNameRegex.MatchString(string(varName[0])) {
+		varName = dollarLetStartReplacementChar + varName[1:]
+	}
+
+	if !validFieldNameRegex.MatchString(varName) {
+		varName = replaceInvalidFieldNameRegex.ReplaceAllString(varName,
+			dollarLetGenericReplacementChar)
+	}
+	return varName
+}
+
+// toNullCheckedLetVarName sanitizes a variable name and appends "IsNull"
+// to the name (for use in $let-bindings).
+func toNullCheckedLetVarName(varName string) string {
+	return fmt.Sprintf("%sIsNull", sanitizeLetVarName(varName))
+}
+
+// toNullCheckedLetVarRef returns the result of toNullCheckedVarName
+// prepended with "$$".
+func toNullCheckedLetVarRef(fieldName string) string {
+	return fmt.Sprintf("$$%s", toNullCheckedLetVarName(fieldName))
+}
+
 // ComputeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document
 // with a depth level at which we can abort early to reduce the cost of checking.
 func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32 {

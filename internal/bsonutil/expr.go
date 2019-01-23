@@ -15,6 +15,7 @@ const (
 	OpAnd            = "$and"
 	OpAnyElementTrue = "$anyElementTrue"
 	OpArrElemAt      = "$arrayElemAt"
+	OpAvg            = "$avg"
 	OpCeil           = "$ceil"
 	OpConcat         = "$concat"
 	OpCond           = "$cond"
@@ -67,11 +68,16 @@ const (
 	OpSlice          = "$slice"
 	OpSplit          = "$split"
 	OpSqrt           = "$sqrt"
+	OpStdDevPop      = "$stdDevPop"
+	OpStdDevSamp     = "$stdDevSamp"
+	OpStrLenBytes    = "$strLenBytes"
 	OpStrlenCP       = "$strLenCP"
 	OpSubstr         = "$substrCP"
 	OpSubtract       = "$subtract"
 	OpSum            = "$sum"
 	OpSwitch         = "$switch"
+	OpToLower        = "$toLower"
+	OpToUpper        = "$toUpper"
 	OpTrim           = "$trim"
 	OpTrunc          = "$trunc"
 	OpType           = "$type"
@@ -198,10 +204,13 @@ func WrapInConcat(exprs []interface{}) bson.M {
 func WrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface{} {
 	var condition interface{}
 
-	if len(conds) > 1 {
-		condition = NewM(NewDocElem(OpOr, conds))
-	} else {
+	switch len(conds) {
+	case 0:
+		return falsePart
+	case 1:
 		condition = conds[0]
+	default:
+		condition = WrapInOp(OpOr, conds...)
 	}
 
 	return NewM(NewDocElem(OpCond, NewArray(
@@ -252,7 +261,9 @@ func WrapInCosPowerSeries(expr interface{}) bson.M {
 // WrapInDateFormat wraps an Aggregation Expression that evaluates to a date
 // in a date_format expression that will use '$dateFromString' to format
 // a date to a string.
-func WrapInDateFormat(date interface{}, mysqlFormat string) (interface{}, bool) {
+// The conditions on which to return nil may be provided; otherwise the date will
+// be wrapped in a null-check.
+func WrapInDateFormat(date interface{}, mysqlFormat string, conds ...interface{}) (interface{}, bool) {
 	var format string
 	for i := 0; i < len(mysqlFormat); i++ {
 		if mysqlFormat[i] == '%' {
@@ -293,12 +304,19 @@ func WrapInDateFormat(date interface{}, mysqlFormat string) (interface{}, bool) 
 		}
 	}
 
-	return WrapInNullCheckedCond(
-		nil, NewM(NewDocElem(OpDateToString, NewM(
+	if val, ok := GetLiteral(date); ok && val == nil {
+		return nil, true
+	} else if len(conds) == 0 {
+		conds = append(conds, WrapInNullCheck(date))
+	}
+
+	return WrapInCond(
+		nil,
+		NewM(NewDocElem(OpDateToString, NewM(
 			NewDocElem("format", format),
 			NewDocElem("date", date),
-		)),
-		), date,
+		))),
+		conds...,
 	), true
 }
 
@@ -480,7 +498,7 @@ func WrapInNullCheck(v interface{}) interface{} {
 		return v
 	}
 
-	return WrapInOp(OpEq, WrapInIfNull(v, nil), nil)
+	return WrapInOp(OpLte, v, nil)
 }
 
 // WrapInNullCheckedCond returns a document that evaluates to truePart

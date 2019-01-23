@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/shopspring/decimal"
@@ -83,6 +84,38 @@ func floatingPointAggregationFunctionEvalType(e EvalType) EvalType {
 		return EvalDecimal128
 	}
 	return EvalDouble
+}
+
+// nullCheckAndWrapInAggOp returns a document for the provided aggregation function
+// with the operand wrapped in a null-check $let binding (if one is needed). It also clears
+// the PushdownTranslator's column references.
+//
+// In general, columns that need to be null-checked anywhere in a pipeline are null-checked
+// in an outer $let binding. The $group stage has the following prototype form:
+//   { $group: { _id: <expr>, <field1>: { <accumulator>: <expr> }, ... } }
+// The <exprs> may be wrapped in $let, but the outer <accumulators> cannot.
+// This function is used for this situation: the operand of the accumulator (<expr>) is
+// wrapped in the $let instead of the entire accumulator.
+//
+// For example, nullCheckAndWrapInAggOp("$avg", { $cond: [$$aIsNull, 0, $a] }, t) produces:
+//   {
+//     $avg: {
+//       $let: {
+//         vars: { aIsNull: { $lte: [$a, null] } },
+//         in: { $cond: [$$aIsNull, 0, $a] }
+//       }
+//   }
+// as opposed to the INVALID translation:
+//  {
+//    $let: {
+//      vars: { aIsNull: { $lte: [$a, null] } },
+//      in: { $avg: { $cond: [$$aIsNull, 0, $a] } }
+//    }
+//  }
+func (t *PushdownTranslator) nullCheckAndWrapInAggOp(aggOp string, operand interface{}) bson.D {
+	nullCheckedOperand := t.withNullCheckedColumnsScope(operand)
+	t.ClearColumnsToNullCheck()
+	return bsonutil.NewD(bsonutil.NewDocElem(aggOp, nullCheckedOperand))
 }
 
 // SQLAvgFunctionExpr computes average.
@@ -218,7 +251,7 @@ func (f *SQLAvgFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$avg", transExpr)), nil
+	return t.nullCheckAndWrapInAggOp(bsonutil.OpAvg, transExpr), nil
 }
 
 // SQLCountFunctionExpr counts.
@@ -630,7 +663,7 @@ func (f *SQLMaxFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bsonutil.NewD(bsonutil.NewDocElem("$max", transExpr)), nil
+	return t.nullCheckAndWrapInAggOp(bsonutil.OpMax, transExpr), nil
 }
 
 // SQLMinFunctionExpr is a function that finds the minimal element.
@@ -725,7 +758,7 @@ func (f *SQLMinFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bsonutil.NewD(bsonutil.NewDocElem("$min", transExpr)), nil
+	return t.nullCheckAndWrapInAggOp(bsonutil.OpMin, transExpr), nil
 }
 
 // SQLSumFunctionExpr computes the summation of elements.
@@ -859,7 +892,7 @@ func (f *SQLSumFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$sum", transExpr)), nil
+	return t.nullCheckAndWrapInAggOp(bsonutil.OpSum, transExpr), nil
 }
 
 // SQLStdDevFunctionExpr computes a normal standard distribution for a population.
@@ -1018,7 +1051,7 @@ func (f *SQLStdDevFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (in
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$stdDevPop", transExpr)), nil
+	return t.nullCheckAndWrapInAggOp(bsonutil.OpStdDevPop, transExpr), nil
 }
 
 // SQLStdDevSampleFunctionExpr computes standard deviation of a sample.
@@ -1178,5 +1211,5 @@ func (f *SQLStdDevSampleFunctionExpr) ToAggregationLanguage(t *PushdownTranslato
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return bsonutil.NewD(bsonutil.NewDocElem("$stdDevSamp", transExpr)), nil
+	return t.nullCheckAndWrapInAggOp(bsonutil.OpStdDevSamp, transExpr), nil
 }

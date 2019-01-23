@@ -126,15 +126,16 @@ type FieldNameLookup func(databaseName, tableName, columnName string) (string, b
 
 // PushdownTranslator handles the state necessary to do pushdown translation.
 type PushdownTranslator struct {
-	LookupFieldName   FieldNameLookup
-	Cfg               *PushdownConfig
-	piecewiseDeps     []*NonCorrelatedSubqueryFuture
-	correlatedColumns []*CorrelatedSubqueryColumnFuture
+	LookupFieldName    FieldNameLookup
+	Cfg                *PushdownConfig
+	piecewiseDeps      []*NonCorrelatedSubqueryFuture
+	correlatedColumns  []*CorrelatedSubqueryColumnFuture
+	columnsToNullCheck map[string]struct{}
 }
 
 // NewPushdownTranslator returns a new PushdownTranslator.
 func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldName FieldNameLookup) *PushdownTranslator {
-	return &PushdownTranslator{Cfg: cfg, LookupFieldName: lookupFieldName}
+	return &PushdownTranslator{Cfg: cfg, LookupFieldName: lookupFieldName, columnsToNullCheck: map[string]struct{}{}}
 }
 
 func (t *PushdownTranslator) addNonCorrelatedSubqueryFuture(p PlanStage) *NonCorrelatedSubqueryFuture {
@@ -156,6 +157,17 @@ func (t *PushdownTranslator) valueKind() SQLValueKind {
 // nolint: unparam
 func (t *PushdownTranslator) versionAtLeast(major, minor, patch uint8) bool {
 	return procutil.VersionAtLeast(t.Cfg.mongoDBVersion, []uint8{major, minor, patch})
+}
+
+// ClearColumnsToNullCheck clears this translator's collection of columns
+// to null-check.
+func (t *PushdownTranslator) ClearColumnsToNullCheck() {
+	t.columnsToNullCheck = map[string]struct{}{}
+}
+
+// ColumnsToNullCheck returns the columnsToNullCheck map.
+func (t *PushdownTranslator) ColumnsToNullCheck() map[string]struct{} {
+	return t.columnsToNullCheck
 }
 
 // ToAggregationLanguage translates the provided SQLExpr into something that can
@@ -184,12 +196,30 @@ func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
 	return nil, e
 }
 
+// withNullCheckedColumnsScope wraps the argument in a $let with the
+// variable bindings for this translator's columns to null-check (if any exist).
+func (t *PushdownTranslator) withNullCheckedColumnsScope(evaluation interface{}) interface{} {
+	assignments := make([]bson.DocElem, len(t.columnsToNullCheck))
+	i := 0
+	for columnName := range t.columnsToNullCheck {
+		assignments[i] = bsonutil.NewDocElem(
+			toNullCheckedLetVarName(columnName), bsonutil.WrapInNullCheck(columnName))
+		i++
+	}
+
+	return wrapInLet(assignments, evaluation)
+}
+
 // TranslateExpr is a wrapper around ToAggregationLanguage that will fail to
 // translate the expr if the resulting aggregation exceeds the maximum allowed
 // nesting depth for BSON documents.
 func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (interface{}, PushdownFailure) {
 	doc, err, _ := t.translateExprWithDepth(e)
-	return doc, err
+	if err != nil {
+		return doc, err
+	}
+
+	return t.withNullCheckedColumnsScope(doc), nil
 }
 
 // nolint: unparam
@@ -219,7 +249,11 @@ func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, Pus
 // allowed nesting depth for BSON documents.
 func (t *PushdownTranslator) TranslateAggPredicate(e SQLExpr) (interface{}, PushdownFailure) {
 	doc, err, _ := t.translateAggPredicateWithDepth(e)
-	return doc, err
+	if err != nil {
+		return doc, err
+	}
+
+	return t.withNullCheckedColumnsScope(doc), nil
 }
 
 func (t *PushdownTranslator) translateAggPredicateWithDepth(e SQLExpr) (interface{}, PushdownFailure, uint32) {

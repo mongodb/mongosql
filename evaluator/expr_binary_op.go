@@ -129,33 +129,36 @@ func (n *sqlBinaryNode) toAggregationLanguageArgs(t *PushdownTranslator) (interf
 	return left, right, nil
 }
 
-// eatChildren attempts to consume the immediate left and right children of the
+// eatChildren attempts to recursively consume the left and right children of the
 // current node. Consumption consists of removal of the node and adoption of its
 // children. Consumption of a node will succeed only if the consumer and consumed
 // are of the same type. The result of the operation is children for the current
 // node to adopt.
-func eatChildren(operatorName string, left, right interface{}) []interface{} {
-	eat := func(child interface{}) []interface{} {
-		if bs, ok := child.(bson.M); ok {
-			if descendants, ok := bs[operatorName]; ok {
-				return descendants.([]interface{})
-			}
-		}
-		return nil
+// Invoking eatChildren with more than 2 SQLExprs will cause a panic.
+func eatChildren(opName string, leftAndRight []SQLExpr) []SQLExpr {
+	if len(leftAndRight) != 2 {
+		panic("eatChildren called with more than 2 children")
 	}
 
-	newChildren := make([]interface{}, 0)
-	if desc := eat(left); desc != nil {
-		newChildren = append(newChildren, desc...)
-	} else {
-		newChildren = append(newChildren, left)
+	children := make([]SQLExpr, 0)
+
+	for _, c := range leftAndRight {
+		switch t := c.(type) {
+		// The only operators supported for eating children are Add, And, Multiply, Or, and Xor.
+		case *SQLAddExpr, *SQLAndExpr, *SQLMultiplyExpr, *SQLOrExpr, *SQLXorExpr:
+			if c.ExprName() == opName {
+				// if the child c is one of the same type as the parent (the opName
+				// argument), recursively consume its children.
+				children = append(children, eatChildren(opName, t.Children())...)
+				continue
+			}
+		}
+
+		// if that is not the case, just include c in the list of children
+		children = append(children, c)
 	}
-	if desc := eat(right); desc != nil {
-		newChildren = append(newChildren, desc...)
-	} else {
-		newChildren = append(newChildren, right)
-	}
-	return newChildren
+
+	return children
 }
 
 // SQLAddExpr evaluates to the sum of two expressions.
@@ -232,11 +235,17 @@ func (add *SQLAddExpr) String() string {
 // be used in an aggregation pipeline. If SQLAddExpr cannot be translated,
 // it will return nil and error.
 func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, right, err := add.toAggregationLanguageArgs(t)
-	if err != nil {
-		return nil, err
+	children := eatChildren(add.ExprName(), add.Children())
+	ops := make([]interface{}, len(children))
+
+	var err PushdownFailure
+	for i, c := range children {
+		if ops[i], err = t.ToAggregationLanguage(c); err != nil {
+			return nil, err
+		}
 	}
-	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, eatChildren(bsonutil.OpAdd, left, right))), nil
+
+	return bsonutil.WrapInOp(bsonutil.OpAdd, ops...), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -341,85 +350,64 @@ func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
 // it will return nil and error.
 func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, right, err := and.toAggregationLanguageArgs(t)
+	children := eatChildren(and.ExprName(), and.Children())
+
+	args, err := t.typedTranslateArgs(children)
 	if err != nil {
 		return nil, err
 	}
 
-	letAssignment := bsonutil.NewM(
-		bsonutil.NewDocElem("left", left),
-		bsonutil.NewDocElem("right", right),
-	)
+	numChildren := len(children)
 
-	var leftValue, rightValue interface{}
-	var leftIsNull, rightIsNull, leftIsFalse, rightIsFalse, leftIsZero, rightIsZero interface{}
+	assignments := make([]bson.DocElem, 0, numChildren)
+	nullChecks := make([]interface{}, 0, numChildren)
+	falsyChecks := make([]interface{}, 0, numChildren)
 
-	var leftIsLiteral, leftIsNullLiteral bool
-	var rightIsLiteral, rightIsNullLiteral bool
+	containsNullLiteral := false
 
-	var conds []interface{}
-	var truePart, falsePart interface{}
+	columnsToNullCheck := t.ColumnsToNullCheck()
 
-	if leftValue, leftIsLiteral = bsonutil.GetLiteral(left); leftIsLiteral {
-		if leftValue == 0 || leftValue == false {
-			return false, nil
+	for i, arg := range args {
+		var ref interface{}
+		switch arg.t {
+		case argLiteralType:
+			containsNullLiteral = containsNullLiteral || arg.v == nil
+			continue
+		case argColumnType:
+			columnName := arg.v.(string)
+			ref = columnName
+
+			columnsToNullCheck[columnName] = struct{}{}
+
+			nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
+		case argOtherType:
+			binding := fmt.Sprintf("expr%d", i)
+			ref = fmt.Sprintf("$$%s", binding)
+
+			assignments = append(assignments, bsonutil.NewDocElem(binding, arg.v))
+
+			nullChecks = append(nullChecks, bsonutil.WrapInNullCheck(ref))
 		}
-		leftIsNullLiteral = leftValue == nil
+
+		falsyChecks = append(falsyChecks, bsonutil.WrapInOp(bsonutil.OpEq, ref, 0), bsonutil.WrapInOp(bsonutil.OpEq, ref, false))
+	}
+
+	var evaluation interface{}
+	if containsNullLiteral {
+		// if there is a null literal, return false if any operand is false and null otherwise.
+		evaluation = bsonutil.WrapInCond(false, nil, falsyChecks...)
 	} else {
-		leftIsNull = bsonutil.WrapInNullCheck("$$left")
-		leftIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", false)
-		leftIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", 0)
+		// contains no literals (or only truthy literals).
+		evaluation = bsonutil.WrapInCond(
+			// if any operand is false, return false.
+			false,
+			// else if any operand is null, return null; else return true.
+			bsonutil.WrapInCond(nil, true, nullChecks...),
+			falsyChecks...,
+		)
 	}
 
-	if rightValue, rightIsLiteral = bsonutil.GetLiteral(right); rightIsLiteral {
-		if rightValue == 0 || rightValue == false {
-			return false, nil
-		}
-		rightIsNullLiteral = rightValue == nil
-	} else {
-		rightIsNull = bsonutil.WrapInNullCheck("$$right")
-		rightIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", false)
-		rightIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", 0)
-	}
-
-	// if both are literals, can fully solve
-	if leftIsLiteral && rightIsLiteral {
-		if leftIsNullLiteral || rightIsNullLiteral {
-			return bsonutil.MgoNullLiteral, nil
-		}
-
-		return true, nil
-	} else if leftIsLiteral { // right is not literal
-		if leftIsNullLiteral {
-			conds = []interface{}{rightIsFalse, rightIsZero}
-			truePart = false
-			falsePart = nil
-		} else {
-			// left is truthy
-			conds = []interface{}{rightIsNull}
-			truePart = nil
-			falsePart = bsonutil.WrapInOp(bsonutil.OpAnd, "$$right", true) // coerce into boolean result
-		}
-	} else if rightIsLiteral { // left is not literal
-		if rightIsNullLiteral {
-			conds = []interface{}{leftIsFalse, leftIsZero}
-			truePart = false
-			falsePart = nil
-		} else {
-			// left is truthy
-			conds = []interface{}{leftIsNull}
-			truePart = nil
-			falsePart = bsonutil.WrapInOp(bsonutil.OpAnd, "$$left", true) // coerce into boolean result
-		}
-	} else { // neither is literal
-		conds = []interface{}{leftIsFalse, leftIsZero, rightIsFalse, rightIsZero}
-		truePart = false
-		falsePart = bsonutil.WrapInCond(nil, true, leftIsNull, rightIsNull)
-	}
-
-	letEvaluation := bsonutil.WrapInCond(truePart, falsePart, conds...)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+	return wrapInLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -602,45 +590,28 @@ func (div *SQLDivideExpr) EvalType() EvalType {
 	return EvalDouble
 }
 
+func getStringColumnReference(expr SQLExpr, translation interface{}) (string, bool) {
+	_, isColumnExpr := expr.(SQLColumnExpr)
+	name, isString := translation.(string)
+	return name, isColumnExpr && isString
+}
+
 // compExprToAggregationLanguageHelper translates a binary comparison SQLExpr
 // into something that can be used in an aggregation pipeline.
 // This helper is specifically intended for use with =, <>, <, <=, >, and >=.
 // If the expression cannot be translated, it will return nil and error.
 func compExprToAggregationLanguageHelper(leftExpr, rightExpr SQLExpr, cmpOp string, t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, err := t.ToAggregationLanguage(leftExpr)
+	args, err := t.typedTranslateArgs([]SQLExpr{leftExpr, rightExpr})
 	if err != nil {
 		return nil, err
 	}
 
-	right, err := t.ToAggregationLanguage(rightExpr)
-	if err != nil {
-		return nil, err
-	}
+	assignments, args := minimizeLetAssignments([]string{"left", "right"}, args)
 
-	letAssignment := bsonutil.NewM(
-		bsonutil.NewDocElem("left", left),
-		bsonutil.NewDocElem("right", right),
-	)
+	comparison := bsonutil.WrapInOp(cmpOp, args[0].v, args[1].v)
+	evaluation := wrapInNullCheckedCond(t.ColumnsToNullCheck(), bsonutil.MgoNullLiteral, comparison, args...)
 
-	var conds []interface{}
-	if _, ok := bsonutil.GetLiteral(left); !ok {
-		conds = append(conds, "$$left")
-	}
-
-	if _, ok := bsonutil.GetLiteral(right); !ok {
-		conds = append(conds, "$$right")
-	}
-
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil, bsonutil.NewM(
-			bsonutil.NewDocElem(cmpOp, bsonutil.NewArray(
-				"$$left",
-				"$$right",
-			)),
-		), conds...,
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+	return wrapInLet(assignments, evaluation), nil
 }
 
 // SQLEqualsExpr evaluates to true if the left equals the right.
@@ -1693,12 +1664,17 @@ func (mult *SQLMultiplyExpr) String() string {
 // be used in an aggregation pipeline. If SQLMultiplyExpr cannot be translated,
 // it will return nil and error.
 func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, right, err := mult.toAggregationLanguageArgs(t)
-	if err != nil {
-		return nil, err
+	children := eatChildren(mult.ExprName(), mult.Children())
+	ops := make([]interface{}, len(children))
+
+	var err PushdownFailure
+	for i, c := range children {
+		if ops[i], err = t.ToAggregationLanguage(c); err != nil {
+			return nil, err
+		}
 	}
 
-	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, eatChildren(bsonutil.OpMultiply, left, right))), nil
+	return bsonutil.WrapInOp(bsonutil.OpMultiply, ops...), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2024,97 +2000,88 @@ func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLOrExpr cannot be translated,
 // it will return nil and error.
 func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, right, err := or.toAggregationLanguageArgs(t)
+	children := eatChildren(or.ExprName(), or.Children())
+
+	args, err := t.typedTranslateArgs(children)
 	if err != nil {
 		return nil, err
 	}
 
-	letAssignment := bsonutil.NewM(
-		bsonutil.NewDocElem("left", left),
-		bsonutil.NewDocElem("right", right),
-	)
+	numChildren := len(children)
 
-	var leftValue, rightValue interface{}
-	var leftIsNull, rightIsNull, leftIsFalse, rightIsFalse, leftIsZero, rightIsZero interface{}
+	// the operands of the OR
+	ops := make([]interface{}, 0, numChildren)
 
-	var leftIsLiteral, leftIsNullLiteral, leftIsFalsyLiteral bool
-	var rightIsLiteral, rightIsNullLiteral, rightIsFalsyLiteral bool
+	// the conditions of the OR
+	// if any condition is true, the OR will evaluate to null;
+	// if none of the conditions are true, the OR will evaluate.
+	conds := make([]interface{}, 0)
 
-	if leftValue, leftIsLiteral = bsonutil.GetLiteral(left); leftIsLiteral {
-		leftIsNullLiteral = leftValue == nil
-		leftIsFalsyLiteral = leftValue == 0 || leftValue == false
-	} else {
-		leftIsNull = bsonutil.WrapInNullCheck("$$left")
-		leftIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", false)
-		leftIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$left", 0)
-	}
+	assignments := make([]bson.DocElem, 0, numChildren)
+	nullChecks := make([]interface{}, 0, numChildren)
+	notChecks := make([]interface{}, 0, numChildren)
 
-	if rightValue, rightIsLiteral = bsonutil.GetLiteral(right); rightIsLiteral {
-		rightIsNullLiteral = rightValue == nil
-		rightIsFalsyLiteral = rightValue == 0 || rightValue == false
-	} else {
-		// right is non-literal
-		rightIsNull = bsonutil.WrapInNullCheck("$$right")
-		rightIsFalse = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", false)
-		rightIsZero = bsonutil.WrapInOp(bsonutil.OpEq, "$$right", 0)
-	}
+	containsLiteral := false
+	containsNullLiteral := false
+	containsFalsyLiteral := false
 
-	var falsePart interface{}
-	var conds []interface{}
+	columnsToNullCheck := t.ColumnsToNullCheck()
 
-	// if both are literals, can fully solve
-	if leftIsLiteral && rightIsLiteral {
-		if (leftIsNullLiteral && (rightIsNullLiteral || rightIsFalsyLiteral)) || (rightIsNullLiteral && leftIsFalsyLiteral) {
-			return bsonutil.MgoNullLiteral, nil
-		}
+	for i, arg := range args {
+		switch arg.t {
+		case argLiteralType:
+			containsNullLiteral = containsNullLiteral || arg.v == nil
+			containsFalsyLiteral = containsFalsyLiteral || (arg.v == false || arg.v == 0)
+			containsLiteral = true
+		case argColumnType:
+			columnName := arg.v.(string)
 
-		if leftIsFalsyLiteral && rightIsFalsyLiteral {
-			return false, nil
-		}
+			columnsToNullCheck[columnName] = struct{}{}
 
-		return true, nil
-	} else if leftIsLiteral { // right is not literal
-		if leftIsNullLiteral {
-			falsePart = true
-			conds = []interface{}{rightIsNull, rightIsFalse, rightIsZero}
-		} else if leftIsFalsyLiteral {
-			falsePart = bsonutil.WrapInOp(bsonutil.OpOr, "$$right", false) // coerce into boolean result
-			conds = []interface{}{rightIsNull}
-		} else {
-			// left is truthy
-			return true, nil
-		}
-	} else if rightIsLiteral { // left is not literal
-		if rightIsNullLiteral {
-			falsePart = true
-			conds = []interface{}{leftIsNull, leftIsFalse, leftIsZero}
-		} else if rightIsFalsyLiteral {
-			falsePart = bsonutil.WrapInOp(bsonutil.OpOr, "$$left", false) // coerce into boolean result
-			conds = []interface{}{leftIsNull}
-		} else {
-			// right is truthy
-			return true, nil
-		}
-	} else { // neither is literal
-		falsePart = bsonutil.WrapInOp(bsonutil.OpOr, "$$left", "$$right")
-		conds = []interface{}{
-			// if left is null AND right is null or falsy, return null
-			bsonutil.WrapInOp(bsonutil.OpAnd,
-				leftIsNull,
-				bsonutil.WrapInOp(bsonutil.OpOr, rightIsNull, rightIsFalse, rightIsZero),
-			),
-			// or if right is null AND left is falsy, return null
-			// (no need to check left is null here since rightIsNull AND leftIsNull would be caught above)
-			bsonutil.WrapInOp(bsonutil.OpAnd,
-				rightIsNull,
-				bsonutil.WrapInOp(bsonutil.OpOr, leftIsFalse, leftIsZero),
-			),
+			ops = append(ops, columnName)
+			nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
+			notChecks = append(notChecks, bsonutil.WrapInOp(bsonutil.OpNot, columnName))
+		case argOtherType:
+			binding := fmt.Sprintf("expr%d", i)
+			bindingRef := fmt.Sprintf("$$%s", binding)
+
+			assignments = append(assignments, bsonutil.NewDocElem(binding, arg.v))
+
+			ops = append(ops, bindingRef)
+			nullChecks = append(nullChecks, bsonutil.WrapInNullCheck(bindingRef))
+			notChecks = append(notChecks, bsonutil.WrapInOp(bsonutil.OpNot, bindingRef))
 		}
 	}
 
-	letEvaluation := bsonutil.WrapInCond(nil, falsePart, conds...)
+	// if there is at least one literal, and there are no null or falsy literals, whole expression evaluates to true.
+	if containsLiteral && !containsNullLiteral && !containsFalsyLiteral {
+		return bsonutil.WrapInLiteral(true), nil
+	}
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+	// build the conditions
+	// if there is a null literal, return null if all other expressions are falsy.
+	if containsNullLiteral {
+		conds = []interface{}{bsonutil.WrapInOp(bsonutil.OpAnd, notChecks...)}
+	} else if containsFalsyLiteral { // if there is a falsy literal, return null if all other expressions are null.
+		conds = []interface{}{bsonutil.WrapInOp(bsonutil.OpAnd, nullChecks...)}
+	} else { // if there are no literals, return null using the following condition:
+		for i := range nullChecks {
+			// If the "i"th expression is null, and all of the others are falsy,
+			nots := append(append([]interface{}{}, notChecks[:i]...), notChecks[i+1:]...)
+			if len(nots) > 0 {
+				// need to include the null check along with all the other nots.
+				nots = append(nots, nullChecks[i])
+				conds = append(conds, bsonutil.WrapInOp(bsonutil.OpAnd, nots...))
+			} else {
+				conds = append(conds, nullChecks[i])
+			}
+		}
+	}
+
+	// build the expression
+	evaluation := bsonutil.WrapInCond(nil, bsonutil.WrapInOp(bsonutil.OpOr, ops...), conds...)
+
+	return wrapInLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2346,45 +2313,64 @@ func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
 // it will return nil and error.
 func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, right, err := xor.toAggregationLanguageArgs(t)
+	children := eatChildren(xor.ExprName(), xor.Children())
+
+	args, err := t.typedTranslateArgs(children)
 	if err != nil {
 		return nil, err
 	}
 
-	letAssignment := bsonutil.NewM(
-		bsonutil.NewDocElem("left", left),
-		bsonutil.NewDocElem("right", right),
-	)
+	numChildren := len(children)
 
-	var conds []interface{}
+	ops := make([]interface{}, 0, numChildren)
+	assignments := make([]bson.DocElem, 0, numChildren)
+	nullChecks := make([]interface{}, 0, numChildren)
 
-	if leftValue, ok := bsonutil.GetLiteral(left); ok {
-		if leftValue == nil {
-			return bsonutil.MgoNullLiteral, nil
+	initialValue := false
+
+	columnsToNullCheck := t.ColumnsToNullCheck()
+
+	for i, arg := range args {
+		switch arg.t {
+		case argLiteralType:
+			if arg.v == nil {
+				return bsonutil.MgoNullLiteral, nil
+			}
+
+			valueIsFalsy := arg.v == 0 || arg.v == false
+			initialValue = initialValue == valueIsFalsy
+		case argColumnType:
+			columnName := arg.v.(string)
+
+			columnsToNullCheck[columnName] = struct{}{}
+
+			ops = append(ops, columnName)
+			nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
+		case argOtherType:
+			binding := fmt.Sprintf("expr%d", i)
+			bindingRef := fmt.Sprintf("$$%s", binding)
+
+			assignments = append(assignments, bsonutil.NewDocElem(binding, arg.v))
+
+			ops = append(ops, bindingRef)
+			nullChecks = append(nullChecks, bsonutil.WrapInNullCheck(bindingRef))
 		}
-	} else {
-		conds = append(conds, bsonutil.WrapInNullCheck("$$left"))
 	}
 
-	if rightValue, ok := bsonutil.GetLiteral(right); ok {
-		if rightValue == nil {
-			return bsonutil.MgoNullLiteral, nil
-		}
-	} else {
-		conds = append(conds, bsonutil.WrapInNullCheck("$$right"))
-	}
-
-	letEvaluation := bsonutil.WrapInCond(
-		nil,
-		bsonutil.WrapInOp(bsonutil.OpNeq,
-			// X or 0 is a way to covert X to boolean on versions of MongoDB before $convert.
-			bsonutil.WrapInOp(bsonutil.OpOr, "$$left", 0),
-			bsonutil.WrapInOp(bsonutil.OpOr, "$$right", 0)),
-		conds...,
+	evaluation := bsonutil.WrapInCond(
+		bsonutil.MgoNullLiteral,
+		bsonutil.WrapInReduce(
+			ops,
+			initialValue,
+			bsonutil.WrapInOp(bsonutil.OpAnd,
+				bsonutil.WrapInOp(bsonutil.OpOr, "$$this", "$$value"),
+				bsonutil.WrapInOp(bsonutil.OpNot, bsonutil.WrapInOp(bsonutil.OpAnd, "$$this", "$$value")),
+			),
+		),
+		nullChecks...,
 	)
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
+	return wrapInLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language

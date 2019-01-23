@@ -369,6 +369,14 @@ testcases:
     sql: select avg(null) from scalar
 
   - db: functions_test
+    expected_names: [avg(case when b = 'yo' then 1  else 0 end)]
+    expected_results:
+      - [0.2]
+    expected_types: [float]
+    id: avg_non_simple_argument
+    sql: select avg(case when b = 'yo' then 1 else 0 end) from scalar
+
+  - db: functions_test
     expected_names: [count(a)]
     expected_results:
       - [3]
@@ -569,6 +577,14 @@ testcases:
     sql: select max(null) from scalar
 
   - db: functions_test
+    expected_names: [max(case when b = 'yo' then 1  else 0 end)]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: max_non_simple_argument
+    sql: select max(case when b = 'yo' then 1 else 0 end) from scalar
+
+  - db: functions_test
     expected_names: [min(a)]
     expected_results:
       - [-3]
@@ -583,6 +599,14 @@ testcases:
     expected_types: [int]
     id: '12'
     sql: select min(null) from scalar
+
+  - db: functions_test
+    expected_names: [min(case when b = 'yo' then 0  else 1 end)]
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: min_non_simple_argument
+    sql: select min(case when b = 'yo' then 0 else 1 end) from scalar
 
   - db: functions_test
     expected_names: [std(a)]
@@ -663,6 +687,14 @@ testcases:
     expected_types: [int]
     id: '22'
     sql: select sum(null) from scalar
+
+  - db: functions_test
+    expected_names: [sum(case when a > 0 then 1  else 0 end)]
+    expected_results:
+      - [2]
+    expected_types: [int]
+    id: sum_non_simple_argument
+    sql: select sum(case when a > 0 then 1 else 0 end) from scalar
 
   - db: functions_test
     expected_names: [d+100]
@@ -4552,8 +4584,20 @@ testcases:
       - [null]
       - [null]
     expected_types: [int]
-    id: '221'
+    id: 'xor_two_columns'
     sql: select a xor c from scalar
+
+  - db: functions_test
+    expected_names: [_id xor a xor c]
+    expected_results:
+      - [0]
+      - [null]
+      - [1]
+      - [null]
+      - [null]
+    expected_types: [int]
+    id: 'xor_three_columns'
+    sql: select _id xor a xor c from scalar
 
   - db: functions_test
     expected_names: [23 xor 'ssd']

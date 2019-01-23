@@ -916,37 +916,19 @@ func TestPushdownSharding(t *testing.T) {
 				bsonutil.NewDocElem("cond", bsonutil.NewM(
 					bsonutil.NewDocElem("$let", bsonutil.NewM(
 						bsonutil.NewDocElem("vars", bsonutil.NewM(
-							bsonutil.NewDocElem("left", "$$this.a"), bsonutil.NewDocElem("right", "$d.f"))),
+							bsonutil.NewDocElem("z_this_aIsNull", bsonutil.WrapInNullCheck("$$this.a")),
+							bsonutil.NewDocElem("zd_fIsNull", bsonutil.WrapInNullCheck("$d.f")))),
 						bsonutil.NewDocElem("in", bsonutil.NewM(
 							bsonutil.NewDocElem("$cond", bsonutil.NewArray(
 								bsonutil.NewM(
 									bsonutil.NewDocElem("$or", bsonutil.NewArray(
-										bsonutil.NewM(
-											bsonutil.NewDocElem("$eq", bsonutil.NewArray(
-												bsonutil.NewM(
-													bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
-														"$$left",
-														nil,
-													)),
-												),
-												nil,
-											)),
-										),
-										bsonutil.NewM(
-											bsonutil.NewDocElem("$eq", bsonutil.NewArray(
-												bsonutil.NewM(
-													bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
-														"$$right",
-														nil,
-													))),
-												nil,
-											))),
+										"$$z_this_aIsNull", "$$zd_fIsNull",
 									))),
-								nil,
+								bsonutil.MgoNullLiteral,
 								bsonutil.NewM(
 									bsonutil.NewDocElem("$eq", bsonutil.NewArray(
-										"$$left",
-										"$$right",
+										"$$this.a",
+										"$d.f",
 									))),
 							)))),
 					)))),
@@ -1020,42 +1002,21 @@ func TestPushdownSharding(t *testing.T) {
 							bsonutil.NewDocElem("predicate", bsonutil.NewM(
 								bsonutil.NewDocElem("$let", bsonutil.NewM(
 									bsonutil.NewDocElem("vars", bsonutil.NewM(
-										bsonutil.NewDocElem("right", "$d.f"),
-										bsonutil.NewDocElem("left", "$__joined_bar.a"),
+										bsonutil.NewDocElem("zd_fIsNull", bsonutil.WrapInNullCheck("$d.f")),
+										bsonutil.NewDocElem("z_joined_bar_aIsNull", bsonutil.WrapInNullCheck("$__joined_bar.a")),
 									)),
 									bsonutil.NewDocElem("in", bsonutil.NewM(
 										bsonutil.NewDocElem("$cond", bsonutil.NewArray(
 											bsonutil.NewM(
 												bsonutil.NewDocElem("$or", bsonutil.NewArray(
-													bsonutil.NewM(
-														bsonutil.NewDocElem("$eq", bsonutil.NewArray(
-															bsonutil.NewM(
-																bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
-																	"$$left",
-																	nil,
-																)),
-															),
-															nil,
-														)),
-													),
-													bsonutil.NewM(
-														bsonutil.NewDocElem("$eq", bsonutil.NewArray(
-															bsonutil.NewM(
-																bsonutil.NewDocElem("$ifNull", bsonutil.NewArray(
-																	"$$right",
-																	nil,
-																)),
-															),
-															nil,
-														)),
-													),
+													"$$z_joined_bar_aIsNull", "$$zd_fIsNull",
 												)),
 											),
-											nil,
+											bsonutil.MgoNullLiteral,
 											bsonutil.NewM(
 												bsonutil.NewDocElem("$eq", bsonutil.NewArray(
-													"$$left",
-													"$$right",
+													"$__joined_bar.a",
+													"$d.f",
 												)),
 											),
 										)),

@@ -109,29 +109,32 @@ func (not *SQLNotExpr) String() string {
 // be used in an aggregation pipeline. If SQLNotExpr cannot be translated,
 // it will return nil and error.
 func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	op, err := t.ToAggregationLanguage(not.expr)
+	args, err := t.typedTranslateArgs([]SQLExpr{not.expr})
 	if err != nil {
 		return nil, err
 	}
 
-	if opValue, ok := bsonutil.GetLiteral(op); ok {
-		if opValue == nil {
+	assignments, args := minimizeLetAssignments([]string{"op"}, args)
+
+	if args[0].t == argLiteralType {
+		switch args[0].v {
+		case nil:
 			return bsonutil.MgoNullLiteral, nil
-		} else if opValue == false || opValue == 0 {
+		case false, 0:
 			return true, nil
-		} else {
+		default:
 			return false, nil
 		}
 	}
 
-	letAssignment := bsonutil.NewM(bsonutil.NewDocElem("op", op))
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil,
-		bsonutil.WrapInOp(bsonutil.OpNot, "$$op"),
-		"$$op",
+	evaluation := wrapInNullCheckedCond(
+		t.ColumnsToNullCheck(),
+		bsonutil.MgoNullLiteral,
+		bsonutil.WrapInOp(bsonutil.OpNot, args[0].v),
+		args...,
 	)
 
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
+	return wrapInLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -244,24 +247,20 @@ func (um *SQLUnaryMinusExpr) String() string {
 // be used in an aggregation pipeline. If SQLUnaryMinusExpr cannot be translated,
 // it will return nil and error.
 func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	operand, err := t.ToAggregationLanguage(um.expr)
+	args, err := t.typedTranslateArgs([]SQLExpr{um.expr})
 	if err != nil {
 		return nil, err
 	}
 
-	letAssignment := bsonutil.NewM(
-		bsonutil.NewDocElem("operand", operand),
+	assignments, args := minimizeLetAssignments([]string{"operand"}, args)
+	evaluation := wrapInNullCheckedCond(
+		t.ColumnsToNullCheck(),
+		bsonutil.MgoNullLiteral,
+		bsonutil.WrapInOp(bsonutil.OpMultiply, -1, args[0].v),
+		args...,
 	)
 
-	letEvaluation := bsonutil.WrapInNullCheckedCond(
-		nil, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
-			-1,
-			"$$operand",
-		))), "$$operand",
-	)
-
-	return bsonutil.WrapInLet(letAssignment, letEvaluation), nil
-
+	return wrapInLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language

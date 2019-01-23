@@ -2608,7 +2608,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				},
 			)
 		}
-
+		t.ClearColumnsToNullCheck()
 	}
 
 	if len(fieldsToProject) == 0 {
@@ -2743,15 +2743,7 @@ TOP:
 // uniqueLetVarName creates a field name that is unique across all tables in a
 // set of registries for use within a $let var block.
 func (v *pushdownVisitor) uniqueLetVarName(fieldName string, mrs ...*mappingRegistry) string {
-	if !validStartFieldNameRegex.MatchString(string(fieldName[0])) {
-		fieldName = dollarLetStartReplacementChar + fieldName[1:]
-	}
-
-	if !validFieldNameRegex.MatchString(fieldName) {
-		fieldName = replaceInvalidFieldNameRegex.ReplaceAllString(fieldName,
-			dollarLetGenericReplacementChar)
-	}
-	return v.uniqueFieldName(fieldName, mrs...)
+	return v.uniqueFieldName(sanitizeLetVarName(fieldName), mrs...)
 }
 
 // uniqueRegistryName creates a name that is unique to a table: they can be
