@@ -20,6 +20,16 @@ type DualIter struct {
 	called bool
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (DualStage) Children() []Node {
+	return []Node{}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (DualStage) ReplaceChild(i int, n Node) {
+	panicWithInvalidIndex("DualStage", i, -1)
+}
+
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (d *DualStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (Iter, error) {

@@ -34,6 +34,25 @@ type JoinStage struct {
 	kind        JoinKind
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (join JoinStage) Children() []Node {
+	return []Node{join.left, join.right, join.matcher}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (join *JoinStage) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		join.left = panicIfNotPlanStage("JoinStage", n)
+	case 1:
+		join.right = panicIfNotPlanStage("JoinStage", n)
+	case 2:
+		join.matcher = panicIfNotSQLExpr("JoinStage", n)
+	default:
+		panicWithInvalidIndex("JoinStage", i, 2)
+	}
+}
+
 // NewJoinStage returns a new JoinStage.
 func NewJoinStage(kind JoinKind, left, right PlanStage, predicate SQLExpr) *JoinStage {
 	return &JoinStage{

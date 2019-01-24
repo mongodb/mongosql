@@ -12,17 +12,17 @@ type sqlUnaryNode struct {
 	expr SQLExpr
 }
 
-// Children returns the arguments.
-func (u sqlUnaryNode) Children() []SQLExpr {
-	return []SQLExpr{u.expr}
+// Children returns a slice of all the Node children of the Node.
+func (u sqlUnaryNode) Children() []Node {
+	return []Node{u.expr}
 }
 
-// ReplaceChild sets the argument.
-func (u *sqlUnaryNode) ReplaceChild(i int, e SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (u *sqlUnaryNode) ReplaceChild(i int, n Node) {
 	if i != 0 {
-		panic(fmt.Sprintf("unary nodes only have one child, index %v is out of range", i))
+		panicWithInvalidIndex("sqlUnaryNode", i, 0)
 	}
-	u.expr = e
+	u.expr = panicIfNotSQLExpr("sqlUnaryNode", n)
 }
 
 // SQLNotExpr evaluates to the inverse of its child.

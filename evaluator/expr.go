@@ -39,15 +39,11 @@ const (
 // SQLExpr is the base type for a SQL expression.
 type SQLExpr interface {
 	Node
-	// Children returns the arguments of the SQLExpr.
-	Children() []SQLExpr
 	// Evaluate evaluates the receiver expression in memory.
 	Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error)
 	// FoldConstants performs constant-folding on this SQLExpr, returning a
 	// SQLExpr that is simplified as much as possible.
 	FoldConstants(cfg *OptimizerConfig) SQLExpr
-	// ReplaceChild sets the value of argument i.
-	ReplaceChild(int, SQLExpr)
 	// String renders a string representation of the receiver expression.
 	String() string
 	// EvalType returns the EvalType resulting from evaluating the expression
@@ -77,24 +73,24 @@ type MongoFilterExpr struct {
 	query  bson.M
 }
 
-// Children returns the arguments.
-func (fe *MongoFilterExpr) Children() []SQLExpr {
-	return []SQLExpr{fe.column, fe.expr}
+// Children returns a slice of all the Node children of the Node.
+func (e *MongoFilterExpr) Children() []Node {
+	return []Node{e.column, e.expr}
 }
 
-// ReplaceChild does nothing for this MongoFilterExpr type.
-func (fe *MongoFilterExpr) ReplaceChild(i int, expr SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *MongoFilterExpr) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
-		ce, ok := expr.(SQLColumnExpr)
+		ce, ok := n.(SQLColumnExpr)
 		if !ok {
-			panic(fmt.Sprintf("child 0 to MongoFilterExpr must be a SQLColumnExpr not %T", expr))
+			panic(fmt.Sprintf("child 0 to MongoFilterExpr must be a SQLColumnExpr not %T", n))
 		}
-		fe.column = ce
+		e.column = ce
 	case 1:
-		fe.expr = expr
+		e.expr = panicIfNotSQLExpr(e.ExprName(), n)
 	default:
-		panic(fmt.Sprintf("child number %d is out of range for MongoFilterExpr", i))
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
 }
 
@@ -106,43 +102,43 @@ func (*MongoFilterExpr) ExprName() string {
 var _ translatableToMatch = (*MongoFilterExpr)(nil)
 
 // Evaluate evaluates a MongoFilterExpr into a SQLValue.
-func (fe *MongoFilterExpr) Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error) {
+func (e *MongoFilterExpr) Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error) {
 	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
 }
 
 // nolint: unparam
-func (fe *MongoFilterExpr) reconcile() (SQLExpr, error) {
-	return fe, nil
+func (e *MongoFilterExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *MongoFilterExpr.
-func (fe *MongoFilterExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return fe
+func (e *MongoFilterExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
-func (fe *MongoFilterExpr) String() string {
-	return fmt.Sprintf("%v=%v", fe.column.String(), fe.expr.String())
+func (e *MongoFilterExpr) String() string {
+	return fmt.Sprintf("%v=%v", e.column.String(), e.expr.String())
 }
 
 // ToMatchLanguage translates MongoFilterExpr into something that can
 // be used in an match expression. If MongoFilterExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original MongoFilterExpr.
-func (fe *MongoFilterExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	return fe.query, nil
+func (e *MongoFilterExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+	return e.query, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (fe *MongoFilterExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return fe.ToAggregationLanguage(t)
+func (e *MongoFilterExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates MongoFilterExpr into something that can
 // be used in an aggregation pipeline. If MongoFilterExpr cannot be translated,
 // it will return nil and error.
-func (fe *MongoFilterExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(fe)
+func (e *MongoFilterExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // EvalType returns the EvalType associated with MongoFilterExpr.
@@ -156,24 +152,24 @@ type SQLAssignmentExpr struct {
 	expr     SQLExpr
 }
 
-// Children returns the arguments.
-func (e *SQLAssignmentExpr) Children() []SQLExpr {
-	return []SQLExpr{e.variable, e.expr}
+// Children returns a slice of all the Node children of the Node.
+func (e *SQLAssignmentExpr) Children() []Node {
+	return []Node{e.variable, e.expr}
 }
 
-// ReplaceChild does nothing for this SQLAssignmentExpr type.
-func (e *SQLAssignmentExpr) ReplaceChild(i int, expr SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLAssignmentExpr) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
-		ve, ok := expr.(*SQLVariableExpr)
+		ve, ok := n.(*SQLVariableExpr)
 		if !ok {
-			panic(fmt.Sprintf("child 0 to SQLAssignmentExpr must be a *SQLVariableExpr not %T", expr))
+			panic(fmt.Sprintf("child 0 to SQLAssignmentExpr must be a *SQLVariableExpr not %T", n))
 		}
 		e.variable = ve
 	case 1:
-		e.expr = expr
+		e.expr = panicIfNotSQLExpr(e.ExprName(), n)
 	default:
-		panic(fmt.Sprintf("child number %d is out of range for SQLAssignmentExpr", i))
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
 }
 
@@ -239,20 +235,20 @@ type SQLBenchmarkExpr struct {
 	expr  SQLExpr
 }
 
-// Children returns the arguments.
-func (e *SQLBenchmarkExpr) Children() []SQLExpr {
-	return []SQLExpr{e.count, e.expr}
+// Children returns a slice of all the Node children of the Node.
+func (e *SQLBenchmarkExpr) Children() []Node {
+	return []Node{e.count, e.expr}
 }
 
-// ReplaceChild does nothing for this SQLBenchmarkExpr type.
-func (e *SQLBenchmarkExpr) ReplaceChild(i int, expr SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLBenchmarkExpr) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
-		e.count = expr
+		e.count = panicIfNotSQLExpr(e.ExprName(), n)
 	case 1:
-		e.expr = expr
+		e.expr = panicIfNotSQLExpr(e.ExprName(), n)
 	default:
-		panic(fmt.Sprintf("child number %d is out of range for SQLBenchmarkExpr", i))
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
 }
 
@@ -335,9 +331,9 @@ func NewSQLCaseExpr(elseValue SQLExpr, caseConditions ...caseCondition) *SQLCase
 	}
 }
 
-// Children returns the arguments.
-func (e *SQLCaseExpr) Children() []SQLExpr {
-	ret := make([]SQLExpr, 2*len(e.caseConditions)+1)
+// Children returns a slice of all the Node children of the Node.
+func (e *SQLCaseExpr) Children() []Node {
+	ret := make([]Node, 2*len(e.caseConditions)+1)
 	for i := 0; i < 2*len(e.caseConditions); i += 2 {
 		caseCond := e.caseConditions[i/2]
 		ret[i], ret[i+1] = caseCond.matcher, caseCond.then
@@ -346,20 +342,20 @@ func (e *SQLCaseExpr) Children() []SQLExpr {
 	return ret
 }
 
-// ReplaceChild does nothing for this SQLCaseExpr type.
-func (e *SQLCaseExpr) ReplaceChild(i int, expr SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLCaseExpr) ReplaceChild(i int, n Node) {
 	if i < 0 || i > 2*len(e.caseConditions) {
-		panic(fmt.Sprintf("child number %d is out of range for SQLCaseExpr: %#v", i, e))
+		panicWithInvalidIndex(e.ExprName(), i, 2*len(e.caseConditions))
 	}
 	if i == 2*len(e.caseConditions) {
-		e.elseValue = expr
+		e.elseValue = panicIfNotSQLExpr(e.ExprName(), n)
 		return
 	}
 	if i%2 == 0 {
-		e.caseConditions[i/2].matcher = expr
+		e.caseConditions[i/2].matcher = panicIfNotSQLExpr(e.ExprName(), n)
 		return
 	}
-	e.caseConditions[i/2].then = expr
+	e.caseConditions[i/2].then = panicIfNotSQLExpr(e.ExprName(), n)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -534,104 +530,104 @@ func (SQLColumnExpr) ExprName() string {
 
 var _ translatableToMatch = (*SQLColumnExpr)(nil)
 
-// Children returns the arguments for c.
-func (SQLColumnExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (SQLColumnExpr) Children() []Node {
+	return []Node{}
 }
 
 // Evaluate evaluates a SQLColumnExpr into a SQLValue.
-func (c SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
 	for _, row := range st.rows {
-		if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
-			return ConvertTo(value, c.EvalType()), nil
+		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
+			return ConvertTo(value, e.EvalType()), nil
 		}
 	}
 
 	for _, row := range st.correlatedRows {
-		if value, ok := row.GetField(c.selectID, c.databaseName, c.tableName, c.columnName); ok {
-			return ConvertTo(value, c.EvalType()), nil
+		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
+			return ConvertTo(value, e.EvalType()), nil
 		}
 	}
 
-	panic(fmt.Sprintf("cannot find column %q", c))
+	panic(fmt.Sprintf("cannot find column %q", e))
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for SQLColumnExpr.
-func (c SQLColumnExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return c
+func (e SQLColumnExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (c SQLColumnExpr) reconcile() (SQLExpr, error) {
-	return c, nil
+func (e SQLColumnExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-// ReplaceChild sets and argument for c.
-func (SQLColumnExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLColumnExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e SQLColumnExpr) ReplaceChild(i int, n Node) {
+	panicWithInvalidIndex(e.ExprName(), i, -1)
 }
 
-func (c SQLColumnExpr) String() string {
+func (e SQLColumnExpr) String() string {
 	var str string
-	if c.databaseName != "" {
-		str += c.databaseName + "."
+	if e.databaseName != "" {
+		str += e.databaseName + "."
 	}
 
-	if c.tableName != "" {
-		str += c.tableName + "."
+	if e.tableName != "" {
+		str += e.tableName + "."
 	}
-	str += c.columnName
+	str += e.columnName
 	return str
 }
 
 // ToAggregationLanguage translates SQLColumnExpr into something that can
 // be used in an aggregation pipeline. If SQLColumnExpr cannot be translated,
 // it will return nil and error.
-func (c SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	if c.correlated {
-		cc := t.addCorrelatedSubqueryColumnFuture(&c)
+func (e SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	if e.correlated {
+		cc := t.addCorrelatedSubqueryColumnFuture(&e)
 		return bsonutil.WrapInLiteral(cc), nil
 	}
 
-	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
+	name, ok := t.LookupFieldName(e.databaseName, e.tableName, e.columnName)
 	if !ok {
 		return nil, newPushdownFailure(
-			c.ExprName(),
+			e.ExprName(),
 			"failed to find field name",
-			"expr", c.String(),
+			"expr", e.String(),
 		)
 	}
 
-	return getProjectedFieldName(name, c.columnType.EvalType), nil
+	return getProjectedFieldName(name, e.columnType.EvalType), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (c SQLColumnExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return c.ToAggregationLanguage(t)
+func (e SQLColumnExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToMatchLanguage translates SQLColumnExpr into something that can
 // be used in an match expression. If SQLColumnExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLColumnExpr.
-func (c SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	if c.correlated {
-		cc := t.addCorrelatedSubqueryColumnFuture(&c)
+func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+	if e.correlated {
+		cc := t.addCorrelatedSubqueryColumnFuture(&e)
 		return bsonutil.WrapInLiteral(cc), nil
 	}
-	name, ok := t.LookupFieldName(c.databaseName, c.tableName, c.columnName)
+	name, ok := t.LookupFieldName(e.databaseName, e.tableName, e.columnName)
 	if !ok {
-		return nil, c
+		return nil, e
 	}
 
-	if c.EvalType() != EvalBoolean {
+	if e.EvalType() != EvalBoolean {
 		return bsonutil.NewM(
 			bsonutil.NewDocElem(name, bsonutil.NewM(
 				bsonutil.NewDocElem(bsonutil.OpNeq, nil),
 			)),
-		), c
+		), e
 	}
 
 	return bsonutil.NewM(
@@ -656,12 +652,12 @@ func (c SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 }
 
 // EvalType returns the EvalType associated with SQLColumnExpr.
-func (c SQLColumnExpr) EvalType() EvalType {
-	return c.columnType.EvalType
+func (e SQLColumnExpr) EvalType() EvalType {
+	return e.columnType.EvalType
 }
 
-func (c SQLColumnExpr) isAggregateReplacementColumn() bool {
-	return c.tableName == ""
+func (e SQLColumnExpr) isAggregateReplacementColumn() bool {
+	return e.tableName == ""
 }
 
 // SQLConvertExpr represents a conversion
@@ -672,9 +668,9 @@ type SQLConvertExpr struct {
 	targetType EvalType
 }
 
-// Children returns the arguments for c.
-func (ce *SQLConvertExpr) Children() []SQLExpr {
-	return []SQLExpr{ce.expr}
+// Children returns a slice of all the Node children of the Node.
+func (e *SQLConvertExpr) Children() []Node {
+	return []Node{e.expr}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -691,67 +687,67 @@ func NewSQLConvertExpr(expr SQLExpr, targetType EvalType) *SQLConvertExpr {
 }
 
 // Evaluate evaluates a SQLConvertExpr into a SQLValue.
-func (ce *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	v, err := ce.expr.Evaluate(ctx, cfg, st)
+func (e *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	v, err := e.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	return ConvertTo(v, ce.targetType), nil
+	return ConvertTo(v, e.targetType), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLConvertExpr.
-func (ce *SQLConvertExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if exprVal, ok := ce.expr.(SQLValue); ok {
-		out := ConvertTo(exprVal, ce.targetType)
+func (e *SQLConvertExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	if exprVal, ok := e.expr.(SQLValue); ok {
+		out := ConvertTo(exprVal, e.targetType)
 		return out
 	}
-	return ce
+	return e
 }
 
 // nolint: unparam
-func (ce *SQLConvertExpr) reconcile() (SQLExpr, error) {
-	return ce, nil
+func (e *SQLConvertExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-// ReplaceChild sets argument i to arg.
-func (ce *SQLConvertExpr) ReplaceChild(i int, arg SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLConvertExpr) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
-		ce.expr = arg
+		e.expr = panicIfNotSQLExpr(e.ExprName(), n)
 	default:
-		panic(fmt.Sprintf("child number %d is out of range for SQLConvertExpr", i))
+		panicWithInvalidIndex(e.ExprName(), i, 0)
 	}
 }
 
-func (ce *SQLConvertExpr) String() string {
-	prettyTypeName := string(EvalTypeToSQLType(ce.targetType))
-	return "Convert(" + ce.expr.String() + ", " + prettyTypeName + ")"
+func (e *SQLConvertExpr) String() string {
+	prettyTypeName := string(EvalTypeToSQLType(e.targetType))
+	return "Convert(" + e.expr.String() + ", " + prettyTypeName + ")"
 }
 
 // EvalType returns the EvalType associated with SQLConvertExpr.
-func (ce *SQLConvertExpr) EvalType() EvalType {
-	return ce.targetType
+func (e *SQLConvertExpr) EvalType() EvalType {
+	return e.targetType
 }
 
-func (ce *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(4, 0, 0) {
 		return nil, newPushdownFailure(
-			ce.ExprName(),
+			e.ExprName(),
 			"cannot push down mongosql-mode conversions to MongoDB < 4.0",
 		)
 	}
 
-	expr, err := t.ToAggregationLanguage(ce.expr)
+	expr, err := t.ToAggregationLanguage(e.expr)
 	if err != nil {
 		return nil, err
 	}
 
-	converted := translateConvert(expr, ce.expr.EvalType(), ce.targetType)
+	converted := translateConvert(expr, e.expr.EvalType(), e.targetType)
 	return converted, nil
 }
 
-func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	//
 	// The following type conversions are pushed down:
 	//
@@ -769,15 +765,15 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pu
 
 	if !t.versionAtLeast(3, 6, 0) {
 		return nil, newPushdownFailure(
-			ce.ExprName(),
+			e.ExprName(),
 			"cannot push down mysql-mode conversions to MongoDB < 3.6",
 		)
 	}
 
-	fromType := ce.expr.EvalType()
-	toType := ce.targetType
+	fromType := e.expr.EvalType()
+	toType := e.targetType
 
-	expr, err := t.ToAggregationLanguage(ce.expr)
+	expr, err := t.ToAggregationLanguage(e.expr)
 	if err != nil {
 		return nil, err
 	}
@@ -792,7 +788,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pu
 			EvalUint32, EvalUint64,
 			EvalDecimal128, EvalDouble,
 			EvalString, EvalBoolean:
-			return ce.translateMongoSQL(t)
+			return e.translateMongoSQL(t)
 		}
 
 	case EvalDouble:
@@ -800,7 +796,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pu
 		case EvalInt32, EvalInt64,
 			EvalUint32, EvalUint64,
 			EvalDecimal128, EvalBoolean:
-			return ce.translateMongoSQL(t)
+			return e.translateMongoSQL(t)
 		}
 
 	case EvalDatetime:
@@ -945,7 +941,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pu
 	case EvalObjectID:
 		switch toType {
 		case EvalString:
-			return ce.translateMongoSQL(t)
+			return e.translateMongoSQL(t)
 		}
 
 	default:
@@ -953,7 +949,7 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pu
 	}
 
 	return nil, newPushdownFailure(
-		ce.ExprName(),
+		e.ExprName(),
 		fmt.Sprintf(
 			"cannot push down mysql-mode conversion from type '%s'",
 			EvalTypeToMongoType(fromType),
@@ -964,12 +960,12 @@ func (ce *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pu
 // ToAggregationLanguage translates SQLConvertExpr into something that can
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
 // translated, so this function will always return nil and error.
-func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	if ce.targetType == EvalObjectID {
-		sv, ok := ce.expr.(SQLVarchar)
+func (e *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	if e.targetType == EvalObjectID {
+		sv, ok := e.expr.(SQLVarchar)
 		if !ok {
 			return nil, newPushdownFailure(
-				ce.ExprName(),
+				e.ExprName(),
 				"can only push down SQLVarchar as ObjectId",
 			)
 		}
@@ -979,9 +975,9 @@ func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 	mode := t.Cfg.sqlValueKind
 	switch mode {
 	case MySQLValueKind:
-		return ce.translateMySQL(t)
+		return e.translateMySQL(t)
 	case MongoSQLValueKind:
-		return ce.translateMongoSQL(t)
+		return e.translateMongoSQL(t)
 	default:
 		panic(fmt.Errorf("impossible value %v for cfg.sqlValueKind", mode))
 	}
@@ -989,8 +985,8 @@ func (ce *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (ce *SQLConvertExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return ce.ToAggregationLanguage(t)
+func (e *SQLConvertExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // SQLExistsExpr is a wrapper around a PlanStage representing a check for
@@ -1005,14 +1001,19 @@ type SQLExistsExpr struct {
 	cache SQLBool
 }
 
-// Children returns the arguments.
-func (*SQLExistsExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (e *SQLExistsExpr) Children() []Node {
+	return []Node{e.plan}
 }
 
-// ReplaceChild does nothing for this SQLExistsExpr type.
-func (*SQLExistsExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLExistsExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLExistsExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.plan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 0)
+	}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1052,34 +1053,34 @@ func (*SQLExistsExpr) evaluateFromPlan(ctx context.Context, cfg *ExecutionConfig
 // Evaluate evaluates a SQLExistsExpr into a SQLValue.
 // EXISTS returns true if its subquery returns at least one row.
 // False is returned if there are no rows. EXISTS never returns NULL.
-func (se *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	if se.correlated {
-		return se.evaluateFromPlan(ctx, cfg, st.SubqueryState(), se.plan)
+func (e *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	if e.correlated {
+		return e.evaluateFromPlan(ctx, cfg, st.SubqueryState(), e.plan)
 	}
-	if se.cache == nil {
+	if e.cache == nil {
 		var err error
 		// Populate cache.
-		se.cache, err = se.evaluateFromPlan(ctx, cfg, st, se.plan)
+		e.cache, err = e.evaluateFromPlan(ctx, cfg, st, e.plan)
 		if err != nil {
 			return nil, err
 		}
 	}
 	// Read from cache.
-	return se.cache, nil
+	return e.cache, nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLExistsExpr.
-func (se *SQLExistsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return se
+func (e *SQLExistsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (se *SQLExistsExpr) reconcile() (SQLExpr, error) {
-	return se, nil
+func (e *SQLExistsExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (se *SQLExistsExpr) String() string {
-	return fmt.Sprintf("exists(%s)", PrettyPrintPlan(se.plan))
+func (e *SQLExistsExpr) String() string {
+	return fmt.Sprintf("exists(%s)", PrettyPrintPlan(e.plan))
 }
 
 // EvalType returns the EvalType associated with SQLExistsExpr.
@@ -1089,15 +1090,15 @@ func (*SQLExistsExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (se *SQLExistsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return se.ToAggregationLanguage(t)
+func (e *SQLExistsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLExistsExpr into something that can
 // be used in an aggregation pipeline. If SQLExistsExpr cannot be translated,
 // it will return nil and error.
-func (se *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(se)
+func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLLikeExpr evaluates to true if the left is 'like' the right.
@@ -1125,36 +1126,36 @@ func NewSQLLikeExpr(left, right, escape SQLExpr, caseSensitive bool) *SQLLikeExp
 	}
 }
 
-// Children returns the arguments.
-func (l *SQLLikeExpr) Children() []SQLExpr {
-	return []SQLExpr{l.left, l.right, l.escape}
+// Children returns a slice of all the Node children of the Node.
+func (e *SQLLikeExpr) Children() []Node {
+	return []Node{e.left, e.right, e.escape}
 }
 
 // Evaluate evaluates a SQLLikeExpr into a SQLValue.
-func (l *SQLLikeExpr) Evaluate(ctx context.Context,
+func (e *SQLLikeExpr) Evaluate(ctx context.Context,
 	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 
-	value, err := l.left.Evaluate(ctx, cfg, st)
+	value, err := e.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if hasNullValue(value) {
-		return NewSQLNull(cfg.sqlValueKind, l.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, e.EvalType()), nil
 	}
 
 	data := value.String()
 
-	value, err = l.right.Evaluate(ctx, cfg, st)
+	value, err = e.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if hasNullValue(value) {
-		return NewSQLNull(cfg.sqlValueKind, l.EvalType()), nil
+		return NewSQLNull(cfg.sqlValueKind, e.EvalType()), nil
 	}
 
-	escape, err := l.escape.Evaluate(ctx, cfg, st)
+	escape, err := e.escape.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
@@ -1170,7 +1171,7 @@ func (l *SQLLikeExpr) Evaluate(ctx context.Context,
 	}
 
 	pattern := "(?i)"
-	if l.caseSensitive {
+	if e.caseSensitive {
 		pattern = ""
 	}
 	pattern += ConvertSQLValueToPattern(value, escapeChar)
@@ -1183,78 +1184,66 @@ func (l *SQLLikeExpr) Evaluate(ctx context.Context,
 	return NewSQLBool(cfg.sqlValueKind, matches), nil
 }
 
-// Normalize will attempt to change SQLLikeExpr into a more recognizeable form that
-// may be more amenable to MongoDB's query language.
-func (l *SQLLikeExpr) Normalize(kind SQLValueKind) Node {
-	if right, ok := l.right.(SQLValue); ok {
-		if hasNullValue(right) {
-			return NewSQLNull(kind, l.EvalType())
-		}
-	}
-
-	return l
-}
-
 // nolint: unparam
-func (l *SQLLikeExpr) reconcile() (SQLExpr, error) {
-	return l, nil
+func (e *SQLLikeExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-// ReplaceChild does nothing for this SQLLikeExpr type.
-func (l *SQLLikeExpr) ReplaceChild(i int, e SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLLikeExpr) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
-		l.left = e
+		e.left = panicIfNotSQLExpr(e.ExprName(), n)
 	case 1:
-		l.right = e
+		e.right = panicIfNotSQLExpr(e.ExprName(), n)
 	case 2:
-		l.escape = e
+		e.escape = panicIfNotSQLExpr(e.ExprName(), n)
 	default:
-		panic(fmt.Sprintf("child number %d is out of range for SQLLikeExpr", i))
+		panicWithInvalidIndex(e.ExprName(), i, 2)
 	}
 }
 
-func (l *SQLLikeExpr) String() string {
+func (e *SQLLikeExpr) String() string {
 	likeType := "like"
-	if l.caseSensitive {
+	if e.caseSensitive {
 		likeType = "like binary"
 	}
-	return fmt.Sprintf("%v %v %v", l.left, likeType, l.right)
+	return fmt.Sprintf("%v %v %v", e.left, likeType, e.right)
 }
 
 // ToMatchLanguage translates SQLLikeExpr into something that can
 // be used in an match expression. If SQLLikeExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLLikeExpr.
-func (l *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	// we cannot do a like comparison on an ObjectID in mongodb.
-	if c, ok := l.left.(SQLColumnExpr); ok &&
+	if c, ok := e.left.(SQLColumnExpr); ok &&
 		c.columnType.MongoType == schema.MongoObjectID {
-		return nil, l
+		return nil, e
 	}
 
-	name, ok := t.getFieldName(l.left)
+	name, ok := t.getFieldName(e.left)
 	if !ok {
-		return nil, l
+		return nil, e
 	}
 
-	value, ok := l.right.(SQLValue)
+	value, ok := e.right.(SQLValue)
 	if !ok {
-		return nil, l
+		return nil, e
 	}
 
 	if hasNullValue(value) {
-		return nil, l
+		return nil, e
 	}
 
-	escape, ok := l.escape.(SQLValue)
+	escape, ok := e.escape.(SQLValue)
 	if !ok {
-		return nil, l
+		return nil, e
 	}
 
 	escapeSeq := []rune(escape.String())
 	if len(escapeSeq) > 1 {
-		return nil, l
+		return nil, e
 	}
 
 	var escapeChar rune
@@ -1264,7 +1253,7 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 
 	pattern := ConvertSQLValueToPattern(value, escapeChar)
 	opts := "i"
-	if l.caseSensitive {
+	if e.caseSensitive {
 		opts = ""
 	}
 
@@ -1272,7 +1261,7 @@ func (l *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 }
 
 // evaluate performs evaluation given all SQLValues.
-func (l *SQLLikeExpr) evaluate(sqlValueKind SQLValueKind, left, right, escape SQLValue) (SQLValue, error) {
+func (e *SQLLikeExpr) evaluate(sqlValueKind SQLValueKind, left, right, escape SQLValue) (SQLValue, error) {
 	if hasNullValue(left) {
 		return left, nil
 	}
@@ -1294,7 +1283,7 @@ func (l *SQLLikeExpr) evaluate(sqlValueKind SQLValueKind, left, right, escape SQ
 	}
 
 	pattern := "(?i)"
-	if l.caseSensitive {
+	if e.caseSensitive {
 		pattern = ""
 	}
 	pattern += ConvertSQLValueToPattern(right, escapeChar)
@@ -1313,46 +1302,46 @@ func (*SQLLikeExpr) EvalType() EvalType {
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLLikeExpr.
-func (l *SQLLikeExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (e *SQLLikeExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	valCount := 0
 	var left, right, escape SQLValue
 	var ok bool
-	if left, ok = l.left.(SQLValue); ok {
+	if left, ok = e.left.(SQLValue); ok {
 		if left.IsNull() {
 			return NewSQLNull(cfg.sqlValueKind, left.EvalType())
 		}
 		valCount++
 	}
-	if right, ok = l.right.(SQLValue); ok {
+	if right, ok = e.right.(SQLValue); ok {
 		if right.IsNull() {
 			return NewSQLNull(cfg.sqlValueKind, right.EvalType())
 		}
 		valCount++
 	}
-	if escape, ok = l.escape.(SQLValue); ok {
+	if escape, ok = e.escape.(SQLValue); ok {
 		valCount++
 	}
 	if valCount == 3 {
-		val, err := l.evaluate(cfg.sqlValueKind, left, right, escape)
+		val, err := e.evaluate(cfg.sqlValueKind, left, right, escape)
 		if err != nil {
 			return NewSQLNull(cfg.sqlValueKind, left.EvalType())
 		}
 		return val
 	}
-	return l
+	return e
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (l *SQLLikeExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return l.ToAggregationLanguage(t)
+func (e *SQLLikeExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLLikeExpr into something that can
 // be used in an aggregation pipeline. If SQLLikeExpr cannot be translated,
 // it will return nil and error.
-func (l *SQLLikeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(l)
+func (e *SQLLikeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLRegexExpr evaluates to true if the operand matches the regex patttern.
@@ -1360,20 +1349,20 @@ type SQLRegexExpr struct {
 	operand, pattern SQLExpr
 }
 
-// Children returns the arguments.
-func (reg *SQLRegexExpr) Children() []SQLExpr {
-	return []SQLExpr{reg.operand, reg.pattern}
+// Children returns a slice of all the Node children of the Node.
+func (e *SQLRegexExpr) Children() []Node {
+	return []Node{e.operand, e.pattern}
 }
 
-// ReplaceChild does nothing for this SQLRegexExpr type.
-func (reg *SQLRegexExpr) ReplaceChild(i int, e SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLRegexExpr) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
-		reg.operand = e
+		e.operand = panicIfNotSQLExpr(e.ExprName(), n)
 	case 1:
-		reg.pattern = e
+		e.pattern = panicIfNotSQLExpr(e.ExprName(), n)
 	default:
-		panic(fmt.Sprintf("child number %d is out of range for SQLRegexExpr", i))
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
 }
 
@@ -1385,24 +1374,24 @@ func (*SQLRegexExpr) ExprName() string {
 var _ translatableToMatch = (*SQLRegexExpr)(nil)
 
 // Evaluate evaluates a SQLRegexExpr into a SQLValue.
-func (reg *SQLRegexExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	operand, err := reg.operand.Evaluate(ctx, cfg, st)
+func (e *SQLRegexExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	operand, err := e.operand.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	pattern, err := reg.pattern.Evaluate(ctx, cfg, st)
+	pattern, err := e.pattern.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	return reg.evaluate(cfg.sqlValueKind, operand.SQLVarchar(), pattern.SQLVarchar())
+	return e.evaluate(cfg.sqlValueKind, operand.SQLVarchar(), pattern.SQLVarchar())
 }
 
 // evaluate performs evaluation given all SQLValues.
-func (reg *SQLRegexExpr) evaluate(sqlValueKind SQLValueKind, operand, pattern SQLValue) (SQLValue, error) {
+func (e *SQLRegexExpr) evaluate(sqlValueKind SQLValueKind, operand, pattern SQLValue) (SQLValue, error) {
 	if hasNullValue(operand, pattern) {
-		return NewSQLNull(sqlValueKind, reg.EvalType()), nil
+		return NewSQLNull(sqlValueKind, e.EvalType()), nil
 	}
 
 	matcher, err := regexp.CompilePOSIX(pattern.String())
@@ -1417,55 +1406,55 @@ func (reg *SQLRegexExpr) evaluate(sqlValueKind SQLValueKind, operand, pattern SQ
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLRegexExpr.
-func (reg *SQLRegexExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (e *SQLRegexExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	var operand, pattern SQLValue
 	var ok bool
 	valCount := 0
-	if operand, ok = reg.operand.(SQLValue); ok {
+	if operand, ok = e.operand.(SQLValue); ok {
 		valCount++
 	}
-	if pattern, ok = reg.pattern.(SQLValue); ok {
+	if pattern, ok = e.pattern.(SQLValue); ok {
 		valCount++
 	}
 	if valCount == 2 {
-		val, err := reg.evaluate(cfg.sqlValueKind, operand.SQLVarchar(), pattern.SQLVarchar())
+		val, err := e.evaluate(cfg.sqlValueKind, operand.SQLVarchar(), pattern.SQLVarchar())
 		if err != nil {
-			return NewSQLNull(cfg.sqlValueKind, reg.EvalType())
+			return NewSQLNull(cfg.sqlValueKind, e.EvalType())
 		}
 		return val
 	}
-	return reg
+	return e
 }
 
 // nolint: unparam
-func (reg *SQLRegexExpr) reconcile() (SQLExpr, error) {
-	return reg, nil
+func (e *SQLRegexExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (reg *SQLRegexExpr) String() string {
-	return fmt.Sprintf("%s matches %s", reg.operand.String(), reg.pattern.String())
+func (e *SQLRegexExpr) String() string {
+	return fmt.Sprintf("%s matches %s", e.operand.String(), e.pattern.String())
 }
 
 // ToMatchLanguage translates SQLRegexExpr into something that can
 // be used in an match expression. If SQLRegexExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLRegexExpr.
-func (reg *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	name, ok := t.getFieldName(reg.operand)
+func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+	name, ok := t.getFieldName(e.operand)
 	if !ok {
-		return nil, reg
+		return nil, e
 	}
 
-	pattern, ok := reg.pattern.(SQLVarchar)
+	pattern, ok := e.pattern.(SQLVarchar)
 	if !ok {
-		return nil, reg
+		return nil, e
 	}
 	// We need to check if the pattern is valid Extended POSIX regex
 	// because MongoDB supports a superset of this specification called
 	// PCRE.
 	_, err := regexp.CompilePOSIX(pattern.String())
 	if err != nil {
-		return nil, reg
+		return nil, e
 	}
 	return bsonutil.NewM(
 		bsonutil.NewDocElem(name, bsonutil.NewM(
@@ -1484,15 +1473,15 @@ func (*SQLRegexExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (reg *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return reg.ToAggregationLanguage(t)
+func (e *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLRegexExpr into something that can
 // be used in an aggregation pipeline. If SQLRegexExpr cannot be translated,
 // it will return nil and error.
-func (reg *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(reg)
+func (e *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // evaluatePlan converts a PlanStage into a table in memory, represented
@@ -1597,17 +1586,21 @@ type SQLInSubqueryExpr struct {
 	cache *SQLValues
 }
 
-// Children returns the arguments.
-func (si SQLInSubqueryExpr) Children() []SQLExpr {
-	return []SQLExpr{si.left}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLInSubqueryExpr) Children() []Node {
+	return []Node{e.left, e.plan}
 }
 
-// ReplaceChild does nothing for this SQLInSubqueryExpr type.
-func (si *SQLInSubqueryExpr) ReplaceChild(i int, e SQLExpr) {
-	if i != 0 {
-		panic("SQLInSubqueryExpr has only one child")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLInSubqueryExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.left = panicIfNotSQLExpr(e.ExprName(), n)
+	case 1:
+		e.plan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
-	si.left = e
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1636,33 +1629,33 @@ func NewSQLInSubqueryExpr(
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
 // Else, the result is false.
-func (si *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var table *SQLValues
 	var err error
-	if si.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), si.plan)
+	if e.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if si.cache == nil {
+		if e.cache == nil {
 			// Populate cache.
-			si.cache, err = evaluatePlan(ctx, cfg, st, si.plan)
+			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(si.cache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		table = si.cache
+		table = e.cache
 	}
 
 	// Determine length of the left expression.
 	var leftLen int
-	leftValues, isVals := si.left.(*SQLValues)
+	leftValues, isVals := e.left.(*SQLValues)
 	if isVals {
 		leftLen = len(leftValues.Values)
 	} else {
@@ -1680,7 +1673,7 @@ func (si *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
 		}
 
-		eq := NewSQLEqualsExpr(si.left, right)
+		eq := NewSQLEqualsExpr(e.left, right)
 		var result SQLValue
 		result, err = eq.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1702,17 +1695,17 @@ func (si *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLInSubqueryExpr.
-func (si *SQLInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return si
+func (e *SQLInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (si *SQLInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return si, nil
+func (e *SQLInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (si *SQLInSubqueryExpr) String() string {
-	return fmt.Sprintf("%v in (%s)", si.left, PrettyPrintPlan(si.plan))
+func (e *SQLInSubqueryExpr) String() string {
+	return fmt.Sprintf("%v in (%s)", e.left, PrettyPrintPlan(e.plan))
 }
 
 // EvalType returns the EvalType associated with SQLInSubqueryExpr.
@@ -1722,15 +1715,15 @@ func (*SQLInSubqueryExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (si *SQLInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return si.ToAggregationLanguage(t)
+func (e *SQLInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLInSubqueryExpr into something that can
 // be used in an aggregation pipeline. If SQLInSubqueryExpr cannot be translated,
 // it will return nil and error.
-func (si *SQLInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(si)
+func (e *SQLInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLNotInSubqueryExpr evaluates to true if the left expression is not equal
@@ -1753,17 +1746,21 @@ type SQLNotInSubqueryExpr struct {
 	cache *SQLValues
 }
 
-// Children returns the arguments.
-func (ni SQLNotInSubqueryExpr) Children() []SQLExpr {
-	return []SQLExpr{ni.left}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLNotInSubqueryExpr) Children() []Node {
+	return []Node{e.left, e.plan}
 }
 
-// ReplaceChild does nothing for this SQLInSubqueryExpr type.
-func (ni *SQLNotInSubqueryExpr) ReplaceChild(i int, e SQLExpr) {
-	if i != 0 {
-		panic("SQLNotInSubqueryExpr has only one child")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLNotInSubqueryExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.left = panicIfNotSQLExpr(e.ExprName(), n)
+	case 1:
+		e.plan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
-	ni.left = e
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1792,33 +1789,33 @@ func NewSQLNotInSubqueryExpr(
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
 // Else, the result is true.
-func (ni *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var table *SQLValues
 	var err error
-	if ni.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), ni.plan)
+	if e.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if ni.cache == nil {
+		if e.cache == nil {
 			// Populate cache.
-			ni.cache, err = evaluatePlan(ctx, cfg, st, ni.plan)
+			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(ni.cache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		table = ni.cache
+		table = e.cache
 	}
 
 	// Determine length of the left expression.
 	var leftLen int
-	leftValues, isVals := ni.left.(*SQLValues)
+	leftValues, isVals := e.left.(*SQLValues)
 	if isVals {
 		leftLen = len(leftValues.Values)
 	} else {
@@ -1836,7 +1833,7 @@ func (ni *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
 		}
 
-		eq := NewSQLNotEqualsExpr(ni.left, right)
+		eq := NewSQLNotEqualsExpr(e.left, right)
 		var result SQLValue
 		result, err = eq.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1858,17 +1855,17 @@ func (ni *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLNotInSubqueryExpr.
-func (ni *SQLNotInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return ni
+func (e *SQLNotInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (ni *SQLNotInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return ni, nil
+func (e *SQLNotInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (ni *SQLNotInSubqueryExpr) String() string {
-	return fmt.Sprintf("%v not in (%s)", ni.left, PrettyPrintPlan(ni.plan))
+func (e *SQLNotInSubqueryExpr) String() string {
+	return fmt.Sprintf("%v not in (%s)", e.left, PrettyPrintPlan(e.plan))
 }
 
 // EvalType returns the EvalType associated with SQLNotInSubqueryExpr.
@@ -1878,15 +1875,15 @@ func (*SQLNotInSubqueryExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (ni *SQLNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return ni.ToAggregationLanguage(t)
+func (e *SQLNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLNotInSubqueryExpr into something that can
 // be used in an aggregation pipeline. If SQLNotInSubqueryExpr cannot be translated,
 // it will return nil and error.
-func (ni *SQLNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(ni)
+func (e *SQLNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLAnyExpr evaluates to true if the left expression compares true to
@@ -1907,17 +1904,21 @@ type SQLAnyExpr struct {
 	cache *SQLValues
 }
 
-// Children returns the arguments.
-func (sa SQLAnyExpr) Children() []SQLExpr {
-	return []SQLExpr{sa.left}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLAnyExpr) Children() []Node {
+	return []Node{e.left, e.plan}
 }
 
-// ReplaceChild does nothing for this SQLInSubqueryExpr type.
-func (sa *SQLAnyExpr) ReplaceChild(i int, e SQLExpr) {
-	if i != 0 {
-		panic("SQLAnyExpr has only one child")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLAnyExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.left = panicIfNotSQLExpr(e.ExprName(), n)
+	case 1:
+		e.plan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
-	sa.left = e
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1948,33 +1949,33 @@ func NewSQLAnyExpr(
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
 // Else, the result is true.
-func (sa *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var table *SQLValues
 	var err error
-	if sa.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.plan)
+	if e.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if sa.cache == nil {
+		if e.cache == nil {
 			// Populate cache.
-			sa.cache, err = evaluatePlan(ctx, cfg, st, sa.plan)
+			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sa.cache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		table = sa.cache
+		table = e.cache
 	}
 
 	// Determine length of the left expression.
 	var leftLen int
-	leftValues, isVals := sa.left.(*SQLValues)
+	leftValues, isVals := e.left.(*SQLValues)
 	if isVals {
 		leftLen = len(leftValues.Values)
 	} else {
@@ -1993,7 +1994,7 @@ func (sa *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 
 		var comp SQLExpr
-		comp, err = comparisonExpr(sa.left, right, sa.operator)
+		comp, err = comparisonExpr(e.left, right, e.operator)
 		if err != nil {
 			return nil, err
 		}
@@ -2018,17 +2019,17 @@ func (sa *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLAnyExpr.
-func (sa *SQLAnyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return sa
+func (e *SQLAnyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (sa *SQLAnyExpr) reconcile() (SQLExpr, error) {
-	return sa, nil
+func (e *SQLAnyExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (sa *SQLAnyExpr) String() string {
-	return fmt.Sprintf("%v %s any (%s)", sa.left, sa.operator, PrettyPrintPlan(sa.plan))
+func (e *SQLAnyExpr) String() string {
+	return fmt.Sprintf("%v %s any (%s)", e.left, e.operator, PrettyPrintPlan(e.plan))
 }
 
 // EvalType returns the EvalType associated with SQLAnyExpr.
@@ -2038,15 +2039,15 @@ func (*SQLAnyExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (sa *SQLAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sa.ToAggregationLanguage(t)
+func (e *SQLAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLAnyExpr into something that can
 // be used in an aggregation pipeline. If SQLAnyExpr cannot be translated,
 // it will return nil and error.
-func (sa *SQLAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sa)
+func (e *SQLAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLAllExpr evaluates to true if the left expression compares true to
@@ -2067,17 +2068,21 @@ type SQLAllExpr struct {
 	cache *SQLValues
 }
 
-// Children returns the arguments.
-func (sa SQLAllExpr) Children() []SQLExpr {
-	return []SQLExpr{sa.left}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLAllExpr) Children() []Node {
+	return []Node{e.left, e.plan}
 }
 
-// ReplaceChild does nothing for this SQLInSubqueryExpr type.
-func (sa *SQLAllExpr) ReplaceChild(i int, e SQLExpr) {
-	if i != 0 {
-		panic("SQLAllExpr has only one child")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLAllExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.left = panicIfNotSQLExpr(e.ExprName(), n)
+	case 1:
+		e.plan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
-	sa.left = e
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -2100,33 +2105,33 @@ func NewSQLAllExpr(
 }
 
 // Evaluate evaluates a SQLAllExpr into a SQLValue.
-func (sa *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var table *SQLValues
 	var err error
-	if sa.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.plan)
+	if e.correlated {
+		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if sa.cache == nil {
+		if e.cache == nil {
 			// Populate cache.
-			sa.cache, err = evaluatePlan(ctx, cfg, st, sa.plan)
+			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sa.cache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		table = sa.cache
+		table = e.cache
 	}
 
 	// Determine length of the left expression.
 	var leftLen int
-	leftValues, isVals := sa.left.(*SQLValues)
+	leftValues, isVals := e.left.(*SQLValues)
 	if isVals {
 		leftLen = len(leftValues.Values)
 	} else {
@@ -2145,7 +2150,7 @@ func (sa *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		}
 
 		var comp SQLExpr
-		comp, err = comparisonExpr(sa.left, right, sa.operator)
+		comp, err = comparisonExpr(e.left, right, e.operator)
 		if err != nil {
 			return nil, err
 		}
@@ -2170,17 +2175,17 @@ func (sa *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLAllExpr.
-func (sa *SQLAllExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return sa
+func (e *SQLAllExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (sa *SQLAllExpr) reconcile() (SQLExpr, error) {
-	return sa, nil
+func (e *SQLAllExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (sa *SQLAllExpr) String() string {
-	return fmt.Sprintf("%v %s all (%s)", sa.left, sa.operator, PrettyPrintPlan(sa.plan))
+func (e *SQLAllExpr) String() string {
+	return fmt.Sprintf("%v %s all (%s)", e.left, e.operator, PrettyPrintPlan(e.plan))
 }
 
 // EvalType returns the EvalType associated with SQLAllExpr.
@@ -2190,15 +2195,15 @@ func (*SQLAllExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (sa *SQLAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sa.ToAggregationLanguage(t)
+func (e *SQLAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLAllExpr into something that can
 // be used in an aggregation pipeline. If SQLAllExpr cannot be translated,
 // it will return nil and error.
-func (sa *SQLAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sa)
+func (e *SQLAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLRightSubqueryCmpExpr evaluates to true if the left expression compares true to
@@ -2217,17 +2222,21 @@ type SQLRightSubqueryCmpExpr struct {
 	cache *SQLValues
 }
 
-// Children returns the arguments.
-func (sr SQLRightSubqueryCmpExpr) Children() []SQLExpr {
-	return []SQLExpr{sr.left}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLRightSubqueryCmpExpr) Children() []Node {
+	return []Node{e.left, e.plan}
 }
 
-// ReplaceChild does nothing for this SQLExpr type.
-func (sr *SQLRightSubqueryCmpExpr) ReplaceChild(i int, e SQLExpr) {
-	if i != 0 {
-		panic("SQLRightSubqueryCmpExpr has only one child")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLRightSubqueryCmpExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.left = panicIfNotSQLExpr(e.ExprName(), n)
+	case 1:
+		e.plan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
 	}
-	sr.left = e
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -2250,34 +2259,34 @@ func NewSQLRightSubqueryCmpExpr(
 }
 
 // nolint: unparam
-func (sr *SQLRightSubqueryCmpExpr) reconcile() (SQLExpr, error) {
-	return sr, nil
+func (e *SQLRightSubqueryCmpExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 // Evaluate evaluates a SQLRightSubqueryCmpExpr into a SQLValue.
-func (sr *SQLRightSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLRightSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var row *SQLValues
 	var err error
-	if sr.correlated {
-		row, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sr.plan)
+	if e.correlated {
+		row, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.plan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if sr.cache == nil {
+		if e.cache == nil {
 			// Populate cache.
-			sr.cache, err = evaluatePlanToScalar(ctx, cfg, st, sr.plan)
+			e.cache, err = evaluatePlanToScalar(ctx, cfg, st, e.plan)
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		row = sr.cache
+		row = e.cache
 	}
 
 	// Determine length of the left expression.
 	var leftLen int
-	leftValues, isVals := sr.left.(*SQLValues)
+	leftValues, isVals := e.left.(*SQLValues)
 	if isVals {
 		leftLen = len(leftValues.Values)
 	} else {
@@ -2291,7 +2300,7 @@ func (sr *SQLRightSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionC
 	}
 
 	var comp SQLExpr
-	comp, err = comparisonExpr(sr.left, row, sr.operator)
+	comp, err = comparisonExpr(e.left, row, e.operator)
 	if err != nil {
 		return nil, err
 	}
@@ -2299,12 +2308,12 @@ func (sr *SQLRightSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionC
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLRightSubqueryCmpExpr.
-func (sr *SQLRightSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return sr
+func (e *SQLRightSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
-func (sr *SQLRightSubqueryCmpExpr) String() string {
-	return fmt.Sprintf("%v %s (%s)", sr.left, sr.operator, PrettyPrintPlan(sr.plan))
+func (e *SQLRightSubqueryCmpExpr) String() string {
+	return fmt.Sprintf("%v %s (%s)", e.left, e.operator, PrettyPrintPlan(e.plan))
 }
 
 // EvalType returns the EvalType associated with SQLRightSubqueryCmpExpr.
@@ -2314,15 +2323,15 @@ func (*SQLRightSubqueryCmpExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (sr *SQLRightSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sr.ToAggregationLanguage(t)
+func (e *SQLRightSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLRightSubqueryCmpExpr into something that can
 // be used in an aggregation pipeline. If SQLRightSubqueryCmpExpr cannot be translated,
 // it will return nil and error.
-func (sr *SQLRightSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sr)
+func (e *SQLRightSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLFullSubqueryCmpExpr evaluates to true if the right subquery compares true to
@@ -2348,14 +2357,21 @@ type SQLFullSubqueryCmpExpr struct {
 	fullCache SQLBool
 }
 
-// Children returns the arguments.
-func (SQLFullSubqueryCmpExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLFullSubqueryCmpExpr) Children() []Node {
+	return []Node{e.leftPlan, e.rightPlan}
 }
 
-// ReplaceChild does nothing for this SQLExpr type.
-func (SQLFullSubqueryCmpExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLFullSubqueryCmpExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLFullSubqueryCmpExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
+	case 1:
+		e.rightPlan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
+	}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -2380,54 +2396,54 @@ func NewSQLFullSubqueryCmpExpr(
 }
 
 // nolint: unparam
-func (sf *SQLFullSubqueryCmpExpr) reconcile() (SQLExpr, error) {
-	return sf, nil
+func (e *SQLFullSubqueryCmpExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 // Evaluate evaluates a SQLFullSubqueryCmpExpr into a SQLValue.
-func (sf *SQLFullSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	if !sf.leftCorrelated && !sf.rightCorrelated && sf.fullCache != nil {
-		return sf.fullCache, nil
+func (e *SQLFullSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	if !e.leftCorrelated && !e.rightCorrelated && e.fullCache != nil {
+		return e.fullCache, nil
 	}
 
 	var leftRow *SQLValues
 	var rightRow *SQLValues
 	var err error
-	if sf.leftCorrelated && !sf.rightCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.leftPlan)
+	if e.leftCorrelated && !e.rightCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
 			return nil, err
 		}
-		if sf.rightCache == nil {
+		if e.rightCache == nil {
 			// Populate cache.
-			sf.rightCache, err = evaluatePlanToScalar(ctx, cfg, st, sf.rightPlan)
+			e.rightCache, err = evaluatePlanToScalar(ctx, cfg, st, e.rightPlan)
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		rightRow = sf.rightCache
-	} else if sf.rightCorrelated && !sf.leftCorrelated {
-		rightRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.rightPlan)
+		rightRow = e.rightCache
+	} else if e.rightCorrelated && !e.leftCorrelated {
+		rightRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
 			return nil, err
 		}
-		if sf.leftCache == nil {
+		if e.leftCache == nil {
 			// Populate cache.
-			sf.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, sf.leftPlan)
+			e.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, e.leftPlan)
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		leftRow = sf.leftCache
+		leftRow = e.leftCache
 		// Either both sides are correlated or neither are.
 	} else {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.leftPlan)
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
 			return nil, err
 		}
-		rightRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sf.rightPlan)
+		rightRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
 			return nil, err
 		}
@@ -2439,7 +2455,7 @@ func (sf *SQLFullSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionCo
 	}
 
 	var comp SQLExpr
-	comp, err = comparisonExpr(leftRow, rightRow, sf.operator)
+	comp, err = comparisonExpr(leftRow, rightRow, e.operator)
 	if err != nil {
 		return nil, err
 	}
@@ -2450,21 +2466,21 @@ func (sf *SQLFullSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionCo
 	}
 
 	// Populate full cache.
-	if !sf.leftCorrelated && !sf.rightCorrelated {
-		sf.fullCache = result.(SQLBool)
+	if !e.leftCorrelated && !e.rightCorrelated {
+		e.fullCache = result.(SQLBool)
 	}
 
 	return result, nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLFullSubqueryCmpExpr.
-func (sf *SQLFullSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return sf
+func (e *SQLFullSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
-func (sf *SQLFullSubqueryCmpExpr) String() string {
-	return fmt.Sprintf("(%s) %s (%s)", PrettyPrintPlan(sf.leftPlan),
-		sf.operator, PrettyPrintPlan(sf.rightPlan))
+func (e *SQLFullSubqueryCmpExpr) String() string {
+	return fmt.Sprintf("(%s) %s (%s)", PrettyPrintPlan(e.leftPlan),
+		e.operator, PrettyPrintPlan(e.rightPlan))
 }
 
 // EvalType returns the EvalType associated with SQLFullSubqueryCmpExpr.
@@ -2474,15 +2490,15 @@ func (*SQLFullSubqueryCmpExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (sf *SQLFullSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sf.ToAggregationLanguage(t)
+func (e *SQLFullSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLFullSubqueryCmpExpr into something that can
 // be used in an aggregation pipeline. If SQLFullSubqueryCmpExpr cannot be translated,
 // it will return nil and error.
-func (sf *SQLFullSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sf)
+func (e *SQLFullSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLSubqueryAllExpr evaluates to true if the left subquery expression compares true to
@@ -2503,14 +2519,21 @@ type SQLSubqueryAllExpr struct {
 	rightCache *SQLValues
 }
 
-// Children returns the arguments.
-func (SQLSubqueryAllExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLSubqueryAllExpr) Children() []Node {
+	return []Node{e.leftPlan, e.rightPlan}
 }
 
-// ReplaceChild does nothing for this SQLSubqueryAllExpr type.
-func (SQLSubqueryAllExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLSubqueryAllExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLSubqueryAllExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
+	case 1:
+		e.rightPlan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
+	}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -2535,57 +2558,57 @@ func NewSQLSubqueryAllExpr(
 }
 
 // Evaluate evaluates a SQLSubqueryAllExpr into a SQLValue.
-func (sa *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var leftRow *SQLValues
 	var err error
-	if sa.leftCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sa.leftPlan)
+	if e.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if sa.leftCache == nil {
+		if e.leftCache == nil {
 			// Populate cache.
-			sa.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, sa.leftPlan)
+			e.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, e.leftPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sa.leftCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		// Read from cache.
-		leftRow = sa.leftCache
+		leftRow = e.leftCache
 	}
 
 	var rightTable *SQLValues
-	if sa.rightCorrelated {
-		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.rightPlan)
+	if e.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if sa.rightCache == nil {
+		if e.rightCache == nil {
 			// Populate cache.
-			sa.rightCache, err = evaluatePlan(ctx, cfg, st, sa.rightPlan)
+			e.rightCache, err = evaluatePlan(ctx, cfg, st, e.rightPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sa.rightCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		rightTable = sa.rightCache
+		rightTable = e.rightCache
 	}
 
 	leftLen := len(leftRow.Values)
 	// <> ALL is rewritten in MySQL to NOT IN.
 	// This is the only case when ALL will handle multi column expressions.
-	if leftLen > 1 && sa.operator != sqlOpNEQ {
+	if leftLen > 1 && e.operator != sqlOpNEQ {
 		// https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.7/en/subquery-restrictions.html
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 	}
@@ -2601,7 +2624,7 @@ func (sa *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 		}
 
 		var comp SQLExpr
-		comp, err = comparisonExpr(leftRow, right, sa.operator)
+		comp, err = comparisonExpr(leftRow, right, e.operator)
 		if err != nil {
 			return nil, err
 		}
@@ -2626,18 +2649,18 @@ func (sa *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryAllExpr.
-func (sa *SQLSubqueryAllExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return sa
+func (e *SQLSubqueryAllExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (sa *SQLSubqueryAllExpr) reconcile() (SQLExpr, error) {
-	return sa, nil
+func (e *SQLSubqueryAllExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (sa *SQLSubqueryAllExpr) String() string {
+func (e *SQLSubqueryAllExpr) String() string {
 	return fmt.Sprintf("%s\n%s all\n(%s)",
-		PrettyPrintPlan(sa.leftPlan), sa.operator, PrettyPrintPlan(sa.rightPlan))
+		PrettyPrintPlan(e.leftPlan), e.operator, PrettyPrintPlan(e.rightPlan))
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryAllExpr.
@@ -2647,15 +2670,15 @@ func (*SQLSubqueryAllExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (sa *SQLSubqueryAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sa.ToAggregationLanguage(t)
+func (e *SQLSubqueryAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLSubqueryAllExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryAllExpr cannot be translated,
 // it will return nil and error.
-func (sa *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sa)
+func (e *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLSubqueryAnyExpr evaluates to true if the left subquery expression compares true to
@@ -2676,14 +2699,21 @@ type SQLSubqueryAnyExpr struct {
 	rightCache *SQLValues
 }
 
-// Children returns the arguments.
-func (SQLSubqueryAnyExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLSubqueryAnyExpr) Children() []Node {
+	return []Node{e.leftPlan, e.rightPlan}
 }
 
-// ReplaceChild does nothing for this SQLSubqueryAnyExpr type.
-func (SQLSubqueryAnyExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLSubqueryAnyExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLSubqueryAnyExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
+	case 1:
+		e.rightPlan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
+	}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -2716,57 +2746,57 @@ func NewSQLSubqueryAnyExpr(
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
 // Else, the result is true.
-func (sa *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var leftRow *SQLValues
 	var err error
-	if sa.leftCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), sa.leftPlan)
+	if e.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if sa.leftCache == nil {
+		if e.leftCache == nil {
 			// Populate cache.
-			sa.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, sa.leftPlan)
+			e.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, e.leftPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sa.leftCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		// Read from cache.
-		leftRow = sa.leftCache
+		leftRow = e.leftCache
 	}
 
 	var rightTable *SQLValues
-	if sa.rightCorrelated {
-		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), sa.rightPlan)
+	if e.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if sa.rightCache == nil {
+		if e.rightCache == nil {
 			// Populate cache.
-			sa.rightCache, err = evaluatePlan(ctx, cfg, st, sa.rightPlan)
+			e.rightCache, err = evaluatePlan(ctx, cfg, st, e.rightPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sa.rightCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		rightTable = sa.rightCache
+		rightTable = e.rightCache
 	}
 
 	leftLen := len(leftRow.Values)
 	// = ANY is rewritten in MySQL to IN.
 	// This is the only case when ANY will handle multi column expressions.
-	if leftLen > 1 && sa.operator != sqlOpEQ {
+	if leftLen > 1 && e.operator != sqlOpEQ {
 		// https://dev.mysql.com/doc/mysql-reslimits-excerpt/5.7/en/subquery-restrictions.html
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 	}
@@ -2782,7 +2812,7 @@ func (sa *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 		}
 
 		var comp SQLExpr
-		comp, err = comparisonExpr(leftRow, right, sa.operator)
+		comp, err = comparisonExpr(leftRow, right, e.operator)
 		if err != nil {
 			return nil, err
 		}
@@ -2807,18 +2837,18 @@ func (sa *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryAnyExpr.
-func (sa *SQLSubqueryAnyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return sa
+func (e *SQLSubqueryAnyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // nolint: unparam
-func (sa *SQLSubqueryAnyExpr) reconcile() (SQLExpr, error) {
-	return sa, nil
+func (e *SQLSubqueryAnyExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
-func (sa *SQLSubqueryAnyExpr) String() string {
+func (e *SQLSubqueryAnyExpr) String() string {
 	return fmt.Sprintf("%s\n%s any\n(%s)",
-		PrettyPrintPlan(sa.leftPlan), sa.operator, PrettyPrintPlan(sa.rightPlan))
+		PrettyPrintPlan(e.leftPlan), e.operator, PrettyPrintPlan(e.rightPlan))
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryAnyExpr.
@@ -2828,15 +2858,15 @@ func (*SQLSubqueryAnyExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (sa *SQLSubqueryAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sa.ToAggregationLanguage(t)
+func (e *SQLSubqueryAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLSubqueryAnyExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryAnyExpr cannot be translated,
 // it will return nil and error.
-func (sa *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(sa)
+func (e *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing a subquery
@@ -2852,14 +2882,19 @@ type SQLSubqueryExpr struct {
 	cache SQLValue
 }
 
-// Children returns the arguments.
-func (SQLSubqueryExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLSubqueryExpr) Children() []Node {
+	return []Node{e.plan}
 }
 
-// ReplaceChild does nothing for this SQLExpr type.
-func (SQLSubqueryExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLSubqueryExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLSubqueryExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.plan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 0)
+	}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -2877,32 +2912,32 @@ func NewSQLSubqueryExpr(correlated, allowRows bool, plan PlanStage) *SQLSubquery
 }
 
 // nolint: unparam
-func (se *SQLSubqueryExpr) reconcile() (SQLExpr, error) {
-	return se, nil
+func (e *SQLSubqueryExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 // ToAggregationLanguage translates SQLSubqueryExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryExpr cannot be translated,
 // it will return nil and error.
-func (se *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	if se.correlated {
+func (e *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	if e.correlated {
 		return nil, newPushdownFailure(
-			se.ExprName(),
+			e.ExprName(),
 			"cannot push down correlated subqueries",
 		)
 	}
 
-	piece := t.addNonCorrelatedSubqueryFuture(se.plan)
+	piece := t.addNonCorrelatedSubqueryFuture(e.plan)
 	return bsonutil.WrapInLiteral(piece), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (se *SQLSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return se.ToAggregationLanguage(t)
+func (e *SQLSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
-func (se *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
+func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 	cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (SQLValue, error) {
 	var err error
 	var iter Iter
@@ -2947,7 +2982,7 @@ func (se *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 
 	switch len(row.Data) {
 	case 0:
-		return NewSQLNull(cfg.sqlValueKind, se.EvalType()), iter.Close()
+		return NewSQLNull(cfg.sqlValueKind, e.EvalType()), iter.Close()
 	case 1:
 		return row.Data[0].Data, iter.Close()
 	default:
@@ -2960,27 +2995,27 @@ func (se *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 }
 
 // Evaluate evaluates a SQLSubqueryExpr into a SQLValue.
-func (se *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	if se.correlated {
-		return se.evaluateFromPlan(ctx, cfg, st.SubqueryState(), se.plan)
+func (e *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	if e.correlated {
+		return e.evaluateFromPlan(ctx, cfg, st.SubqueryState(), e.plan)
 	}
 
 	var err error
-	if se.cache == nil {
+	if e.cache == nil {
 		// Populate cache.
-		se.cache, err = se.evaluateFromPlan(ctx, cfg, st, se.plan)
+		e.cache, err = e.evaluateFromPlan(ctx, cfg, st, e.plan)
 		if err != nil {
 			return nil, err
 		}
 	}
 	// Read from cache.
-	return se.cache, nil
+	return e.cache, nil
 }
 
 // Exprs returns all the SQLColumnExprs associated with the columns of SQLSubqueryExpr.
-func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
+func (e *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
-	for _, c := range se.plan.Columns() {
+	for _, c := range e.plan.Columns() {
 		exprs = append(exprs, NewSQLColumnExpr(c.SelectID,
 			c.Database, c.Table, c.Name, c.EvalType, c.MongoType))
 	}
@@ -2988,13 +3023,13 @@ func (se *SQLSubqueryExpr) Exprs() []SQLExpr {
 	return exprs
 }
 
-func (se *SQLSubqueryExpr) String() string {
-	return PrettyPrintPlan(se.plan)
+func (e *SQLSubqueryExpr) String() string {
+	return PrettyPrintPlan(e.plan)
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryExpr.
-func (se *SQLSubqueryExpr) EvalType() EvalType {
-	columns := se.plan.Columns()
+func (e *SQLSubqueryExpr) EvalType() EvalType {
+	columns := e.plan.Columns()
 	if len(columns) == 1 {
 		return columns[0].EvalType
 	}
@@ -3025,14 +3060,21 @@ type SQLSubqueryInSubqueryExpr struct {
 	rightCache *SQLValues
 }
 
-// Children returns the arguments.
-func (SQLSubqueryInSubqueryExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLSubqueryInSubqueryExpr) Children() []Node {
+	return []Node{e.leftPlan, e.rightPlan}
 }
 
-// ReplaceChild does nothing for this SQLInSubqueryExpr type.
-func (SQLSubqueryInSubqueryExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLSubqueryInSubqueryExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLSubqueryInSubqueryExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
+	case 1:
+		e.rightPlan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
+	}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -3055,8 +3097,8 @@ func NewSQLSubqueryInSubqueryExpr(
 }
 
 // nolint: unparam
-func (si *SQLSubqueryInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return si, nil
+func (e *SQLSubqueryInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 // Evaluate evaluates a SQLSubqueryInSubqueryExpr into a SQLValue.
@@ -3068,51 +3110,51 @@ func (si *SQLSubqueryInSubqueryExpr) reconcile() (SQLExpr, error) {
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
 // Else, the result is false.
-func (si *SQLSubqueryInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLSubqueryInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var leftRow *SQLValues
 	var err error
-	if si.leftCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), si.leftPlan)
+	if e.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if si.leftCache == nil {
+		if e.leftCache == nil {
 			// Populate cache.
-			si.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, si.leftPlan)
+			e.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, e.leftPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(si.leftCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		// Read from cache.
-		leftRow = si.leftCache
+		leftRow = e.leftCache
 	}
 
 	var rightTable *SQLValues
-	if si.rightCorrelated {
-		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), si.rightPlan)
+	if e.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if si.rightCache == nil {
+		if e.rightCache == nil {
 			// Populate cache.
-			si.rightCache, err = evaluatePlan(ctx, cfg, st, si.rightPlan)
+			e.rightCache, err = evaluatePlan(ctx, cfg, st, e.rightPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(si.rightCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		rightTable = si.rightCache
+		rightTable = e.rightCache
 	}
 
 	leftLen := len(leftRow.Values)
@@ -3149,12 +3191,12 @@ func (si *SQLSubqueryInSubqueryExpr) Evaluate(ctx context.Context, cfg *Executio
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryInSubqueryExpr.
-func (si *SQLSubqueryInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return si
+func (e *SQLSubqueryInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
-func (si *SQLSubqueryInSubqueryExpr) String() string {
-	return fmt.Sprintf("%s\nin\n(%s)", PrettyPrintPlan(si.leftPlan), PrettyPrintPlan(si.rightPlan))
+func (e *SQLSubqueryInSubqueryExpr) String() string {
+	return fmt.Sprintf("%s\nin\n(%s)", PrettyPrintPlan(e.leftPlan), PrettyPrintPlan(e.rightPlan))
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryInSubqueryExpr.
@@ -3164,15 +3206,15 @@ func (*SQLSubqueryInSubqueryExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (si *SQLSubqueryInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return si.ToAggregationLanguage(t)
+func (e *SQLSubqueryInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLSubqueryInSubqueryExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryInSubqueryExpr cannot be translated,
 // it will return nil and error.
-func (si *SQLSubqueryInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(si)
+func (e *SQLSubqueryInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLSubqueryNotInSubqueryExpr evaluates to true if the left subquery expression is
@@ -3198,14 +3240,21 @@ type SQLSubqueryNotInSubqueryExpr struct {
 	rightCache *SQLValues
 }
 
-// Children returns the arguments.
-func (SQLSubqueryNotInSubqueryExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (e SQLSubqueryNotInSubqueryExpr) Children() []Node {
+	return []Node{e.leftPlan, e.rightPlan}
 }
 
-// ReplaceChild does nothing for this SQLSubqueryNotInSubqueryExpr type.
-func (SQLSubqueryNotInSubqueryExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLSubqueryNotInSubqueryExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLSubqueryNotInSubqueryExpr) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
+	case 1:
+		e.rightPlan = panicIfNotPlanStage(e.ExprName(), n)
+	default:
+		panicWithInvalidIndex(e.ExprName(), i, 1)
+	}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -3228,8 +3277,8 @@ func NewSQLSubqueryNotInSubqueryExpr(
 }
 
 // nolint: unparam
-func (ni *SQLSubqueryNotInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return ni, nil
+func (e *SQLSubqueryNotInSubqueryExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 // Evaluate evaluates a SQLSubqueryNotInSubqueryExpr into a SQLValue.
@@ -3241,51 +3290,51 @@ func (ni *SQLSubqueryNotInSubqueryExpr) reconcile() (SQLExpr, error) {
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
 // Else, the result is true.
-func (ni *SQLSubqueryNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLSubqueryNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	var leftRow *SQLValues
 	var err error
-	if ni.leftCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), ni.leftPlan)
+	if e.leftCorrelated {
+		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if ni.leftCache == nil {
+		if e.leftCache == nil {
 			// Populate cache.
-			ni.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, ni.leftPlan)
+			e.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, e.leftPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(ni.leftCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		// Read from cache.
-		leftRow = ni.leftCache
+		leftRow = e.leftCache
 	}
 
 	var rightTable *SQLValues
-	if ni.rightCorrelated {
-		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), ni.rightPlan)
+	if e.rightCorrelated {
+		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		if ni.rightCache == nil {
+		if e.rightCache == nil {
 			// Populate cache.
-			ni.rightCache, err = evaluatePlan(ctx, cfg, st, ni.rightPlan)
+			e.rightCache, err = evaluatePlan(ctx, cfg, st, e.rightPlan)
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(ni.rightCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
 			if err != nil {
 				return nil, err
 			}
 		}
 		// Read from cache.
-		rightTable = ni.rightCache
+		rightTable = e.rightCache
 	}
 
 	leftLen := len(leftRow.Values)
@@ -3323,17 +3372,17 @@ func (ni *SQLSubqueryNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *Execu
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryNotInSubqueryExpr.
-func (ni *SQLSubqueryNotInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return ni
+func (e *SQLSubqueryNotInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryExpr.
-func (se *SQLSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return se
+func (e *SQLSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
-func (ni *SQLSubqueryNotInSubqueryExpr) String() string {
-	return fmt.Sprintf("%s\nnot in\n(%s)", PrettyPrintPlan(ni.leftPlan), PrettyPrintPlan(ni.rightPlan))
+func (e *SQLSubqueryNotInSubqueryExpr) String() string {
+	return fmt.Sprintf("%s\nnot in\n(%s)", PrettyPrintPlan(e.leftPlan), PrettyPrintPlan(e.rightPlan))
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryNotInSubqueryExpr.
@@ -3343,15 +3392,15 @@ func (*SQLSubqueryNotInSubqueryExpr) EvalType() EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (ni *SQLSubqueryNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return ni.ToAggregationLanguage(t)
+func (e *SQLSubqueryNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLSubqueryNotInSubqueryExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryNotInSubqueryExpr cannot be translated,
 // it will return nil and error.
-func (ni *SQLSubqueryNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(ni)
+func (e *SQLSubqueryNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLVariableExpr represents a variable lookup.
@@ -3374,9 +3423,9 @@ func NewSQLVariableExpr(name string, kind variable.Kind, scope variable.Scope, s
 	}
 }
 
-// Children returns the arguments for c.
-func (*SQLVariableExpr) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (*SQLVariableExpr) Children() []Node {
+	return []Node{}
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -3385,33 +3434,33 @@ func (*SQLVariableExpr) ExprName() string {
 }
 
 // Evaluate evaluates a SQLVariableExpr into a SQLValue.
-func (v *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
-	val := GoValueToSQLValue(cfg.sqlValueKind, v.Value)
-	converted := ConvertTo(val, SQLTypeToEvalType(v.SQLType))
+func (e *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
+	val := GoValueToSQLValue(cfg.sqlValueKind, e.Value)
+	converted := ConvertTo(val, SQLTypeToEvalType(e.SQLType))
 	return converted, nil
 }
 
 // nolint: unparam
-func (v *SQLVariableExpr) reconcile() (SQLExpr, error) {
-	return v, nil
+func (e *SQLVariableExpr) reconcile() (SQLExpr, error) {
+	return e, nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLVariableExpr..
 // Because variable assignments (even to globals) are not allowed to change during a query,
 // it can be constant folded as its value.
-func (v *SQLVariableExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	val := GoValueToSQLValue(cfg.sqlValueKind, v.Value)
-	converted := ConvertTo(val, SQLTypeToEvalType(v.SQLType))
+func (e *SQLVariableExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	val := GoValueToSQLValue(cfg.sqlValueKind, e.Value)
+	converted := ConvertTo(val, SQLTypeToEvalType(e.SQLType))
 	return converted
 }
 
-func (v *SQLVariableExpr) String() string {
+func (e *SQLVariableExpr) String() string {
 	prefix := ""
-	switch v.Kind {
+	switch e.Kind {
 	case variable.UserKind:
 		prefix = "@"
 	default:
-		switch v.Scope {
+		switch e.Scope {
 		case variable.GlobalScope:
 			prefix = "@@global."
 		case variable.SessionScope:
@@ -3419,36 +3468,36 @@ func (v *SQLVariableExpr) String() string {
 		}
 	}
 
-	return prefix + v.Name
+	return prefix + e.Name
 }
 
 // EvalType returns the EvalType associated with SQLVariableExpr.
-func (v *SQLVariableExpr) EvalType() EvalType {
-	return SQLTypeToEvalType(v.SQLType)
+func (e *SQLVariableExpr) EvalType() EvalType {
+	return SQLTypeToEvalType(e.SQLType)
 }
 
-// ReplaceChild sets and argument for c.
-func (*SQLVariableExpr) ReplaceChild(i int, e SQLExpr) {
-	panic("SQLVariableExpr has no children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e *SQLVariableExpr) ReplaceChild(i int, n Node) {
+	panicWithInvalidIndex(e.ExprName(), i, -1)
 }
 
 // ToAggregationLanguage translates SQLVariableExpr into something that can
 // be used in an aggregation pipeline. If SQLVariableExpr cannot be translated,
 // it will return nil and error.
-func (v *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 
-	e := SQLTypeToEvalType(v.SQLType)
-	if e != EvalBoolean {
-		return nil, newPushdownFailure(v.ExprName(), "can only push down boolean variables")
+	eb := SQLTypeToEvalType(e.SQLType)
+	if eb != EvalBoolean {
+		return nil, newPushdownFailure(e.ExprName(), "can only push down boolean variables")
 	}
 
-	return bsonutil.WrapInLiteral(v.Value), nil
+	return bsonutil.WrapInLiteral(e.Value), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (v *SQLVariableExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return v.ToAggregationLanguage(t)
+func (e *SQLVariableExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // caseCondition holds a matcher used in evaluating case expressions and

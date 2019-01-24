@@ -17,6 +17,29 @@ type ProjectStage struct {
 	source PlanStage
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (ps ProjectStage) Children() []Node {
+	out := make([]Node, len(ps.projectedColumns)+1)
+	for i := range ps.projectedColumns {
+		out[i] = ps.projectedColumns[i].Expr
+	}
+	out[len(ps.projectedColumns)] = ps.source
+	return out
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (ps *ProjectStage) ReplaceChild(i int, n Node) {
+	if i == len(ps.projectedColumns) {
+		ps.source = n.(PlanStage)
+		return
+	}
+	if 0 <= i && i < len(ps.projectedColumns) {
+		ps.projectedColumns[i].Expr = panicIfNotSQLExpr("ProjectStage", n)
+		return
+	}
+	panicWithInvalidIndex("ProjectStage", i, len(ps.projectedColumns))
+}
+
 // NewProjectStage creates a new project stage.
 func NewProjectStage(source PlanStage, projectedColumns ...ProjectedColumn) *ProjectStage {
 	return &ProjectStage{

@@ -51,6 +51,16 @@ type MongoSourceStage struct {
 	correlatedColumns []*CorrelatedSubqueryColumnFuture
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (MongoSourceStage) Children() []Node {
+	return []Node{}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (MongoSourceStage) ReplaceChild(i int, e Node) {
+	panicWithInvalidIndex("MongoSourceStage", i, -1)
+}
+
 func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, selectID int, aliasName string) *MongoSourceStage {
 	ms := &MongoSourceStage{
 		selectIDs:         []int{selectID},

@@ -14,13 +14,7 @@ func OptimizeEvaluations(cfg *OptimizerConfig, n Node) (Node, error) {
 		return n, nil
 	}
 
-	newN := FoldConstants(cfg, n)
+	n = FoldConstants(cfg, n)
 
-	if n != newN {
-		// normalized and partially evaluated trees might allow for further
-		// optimization
-		return OptimizeEvaluations(cfg, newN)
-	}
-
-	return newN, nil
+	return n, nil
 }

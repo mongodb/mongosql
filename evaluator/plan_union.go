@@ -40,6 +40,23 @@ type UnionStage struct {
 	is32        bool
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (union UnionStage) Children() []Node {
+	return []Node{union.left, union.right}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (union *UnionStage) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		union.left = panicIfNotPlanStage("UnionStage", n)
+	case 1:
+		union.right = panicIfNotPlanStage("UnionStage", n)
+	default:
+		panicWithInvalidIndex("UnionStage", i, 1)
+	}
+}
+
 // NewUnionStage creates a new UnionStage.
 func NewUnionStage(kind UnionKind, left, right PlanStage) *UnionStage {
 	return &UnionStage{
@@ -209,12 +226,12 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 	}, handleError(initErrChan))
 
 	// Wait for initialization.
-	for doneCount := 0; doneCount < 2; {
+	for doneUnion := 0; doneUnion < 2; {
 		select {
 		case err := <-initErrChan:
 			return nil, err
 		case <-initDoneChan:
-			doneCount++
+			doneUnion++
 		}
 	}
 

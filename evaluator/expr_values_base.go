@@ -27,14 +27,14 @@ type BaseSQLBool struct {
 	kind SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLBool) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLBool) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this SQLValue type.
-func (s BaseSQLBool) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLBool) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLBool", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -250,14 +250,14 @@ type BaseSQLDate struct {
 	kind     SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLDate) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLDate) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this SQLValue type.
-func (s BaseSQLDate) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLDate) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLDate", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -459,14 +459,14 @@ type BaseSQLDecimal128 struct {
 	kind SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLDecimal128) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLDecimal128) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (s BaseSQLDecimal128) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLDecimal128) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLDecimal128", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -668,14 +668,14 @@ type BaseSQLFloat struct {
 	kind SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLFloat) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLFloat) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (s BaseSQLFloat) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLFloat) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLFloat", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -868,14 +868,14 @@ type BaseSQLInt64 struct {
 	kind SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLInt64) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLInt64) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (s BaseSQLInt64) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLInt64) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLInt64", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1074,14 +1074,14 @@ type BaseSQLObjectID struct {
 	kind SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLObjectID) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLObjectID) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (s BaseSQLObjectID) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLObjectID) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLObjectID", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1292,14 +1292,14 @@ type BaseSQLTimestamp struct {
 	kind     SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLTimestamp) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLTimestamp) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (s BaseSQLTimestamp) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLTimestamp) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLTimestamp", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1509,14 +1509,14 @@ type BaseSQLUint64 struct {
 	kind SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLUint64) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLUint64) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (s BaseSQLUint64) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLUint64) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLUint64", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1740,14 +1740,14 @@ type BaseSQLVarchar struct {
 	kind SQLValueKind
 }
 
-// Children returns the arguments.
-func (s BaseSQLVarchar) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (s BaseSQLVarchar) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (s BaseSQLVarchar) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do not have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s BaseSQLVarchar) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("BaseSQLVarchar", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.

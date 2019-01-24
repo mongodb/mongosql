@@ -36,6 +36,21 @@ type LimitIter struct {
 	err    error
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (l LimitStage) Children() []Node {
+	return []Node{l.source}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (l *LimitStage) ReplaceChild(i int, e Node) {
+	switch i {
+	case 0:
+		l.source = e.(PlanStage)
+	default:
+		panicWithInvalidIndex("LimitStage", i, 0)
+	}
+}
+
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
 func (l *LimitStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {

@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// SQLScalarFunctionExpr is the interface describing scalar function expressions.
 type SQLScalarFunctionExpr interface {
 	SQLExpr
 	iSQLScalarFunctionExpr()
@@ -33,7 +34,6 @@ type baseScalarFunctionExpr struct {
 	returnTypeFunc func([]SQLExpr) EvalType
 }
 
-func (baseScalarFunctionExpr) astnode()                {}
 func (baseScalarFunctionExpr) iSQLScalarFunctionExpr() {}
 
 func (sf baseScalarFunctionExpr) invokedName() string {
@@ -44,15 +44,22 @@ func (sf baseScalarFunctionExpr) getArgsPointer() *[]SQLExpr {
 	return &sf.args
 }
 
-func (sf baseScalarFunctionExpr) Children() []SQLExpr {
-	return sf.args
+// Children returns a slice of all the Node children of the Node.
+func (sf baseScalarFunctionExpr) Children() []Node {
+	out := make([]Node, len(sf.args))
+	for i := range sf.args {
+		out[i] = sf.args[i]
+	}
+	return out
 }
 
-func (sf *baseScalarFunctionExpr) ReplaceChild(i int, e SQLExpr) {
-	if i < 0 || i >= len(sf.args) {
-		panic(fmt.Sprintf("child number %v is out of range for scalar function '%s'", i, sf.invokedAs))
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (sf *baseScalarFunctionExpr) ReplaceChild(i int, n Node) {
+	if 0 <= i && i < len(sf.args) {
+		sf.args[i] = panicIfNotSQLExpr("baseScalarFunctionExpr", n)
+		return
 	}
-	sf.args[i] = e
+	panicWithInvalidIndex("baseScalarFunctionExpr", i, len(sf.args)-1)
 }
 
 // argTypes returns a slice of length len(sf.args) that contains the expected

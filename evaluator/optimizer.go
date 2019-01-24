@@ -73,15 +73,15 @@ var optimizerStages = []optimizerStage{
 func optimize(ctx context.Context, cfg *OptimizerConfig, n Node) (Node, error) {
 	for _, stage := range optimizerStages {
 		cfg.lg.Infof(log.Dev, "running optimization stage '%s'", stage.name)
-		newN, err := stage.f(cfg, n)
+		var err error
+		n, err = stage.f(cfg, n)
 
 		_, pde := err.(*pushdownError)
 		if err != nil && !pde {
 			cfg.lg.Warnf(log.Admin, "error running optimization stage '%s': %v", stage.name, err)
 			// don't exit here. Just because we couldn't apply one optimization doesn't mean
 			// others aren't valid
-		} else if newN != n {
-			n = newN
+		} else {
 			cfg.lg.Debugf(log.Dev, "optimized plan after"+
 				" '%s': \n%v", stage.name, prettyPrintNode(n))
 		}

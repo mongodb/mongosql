@@ -13,7 +13,7 @@ func optimizeFiltering(cfg *OptimizerConfig, n Node) (Node, error) {
 	}
 
 	v := newFilteringOptimizer(cfg)
-	newN, err := v.visit(n)
+	n, err := v.visit(n)
 	if err != nil {
 		return nil, err
 	}
@@ -21,10 +21,9 @@ func optimizeFiltering(cfg *OptimizerConfig, n Node) (Node, error) {
 	if len(v.predicateParts) != 0 {
 		v.cfg.lg.Warnf(log.Admin, "filtering optimizer"+
 			" failed to re-add all predicate parts. skipping optimization.")
-		return n, nil
 	}
 
-	return newN, nil
+	return n, nil
 }
 
 type filteringOptimizer struct {
@@ -50,7 +49,23 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 				return nil, err
 			}
 			v.predicateParts = append(v.predicateParts, parts...)
-			return v.visit(typedN.source)
+			newSource, err := v.visit(typedN.source)
+			if err != nil {
+				return nil, err
+			}
+			if len(v.predicateParts) == 0 {
+				// If len(v.predicateParts) is 0, we managed to move the entire predicate,
+				// which means we do not need the FilterStage anymore.
+				return newSource, nil
+			}
+			// Otherwise, we copy the newSource to the source of this FilterStage, because
+			// we cannot remove the FilterStage. This might result in some term duplication
+			// between the FilterStage and the source, but that will not add a large amount
+			// of overhead. Moving part of the filter, even doubling up, is still useful.
+			if newSource != typedN.source {
+				typedN.source = newSource.(PlanStage)
+			}
+			return typedN, nil
 		}
 
 	case *MongoSourceStage:

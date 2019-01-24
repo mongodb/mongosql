@@ -10,23 +10,27 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-func (n sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
+type sqlBinaryNode struct {
+	left, right SQLExpr
+}
+
+func (bn sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
 	var err error
 	kind := MongoSQLValueKind
 
-	left := n.left
-	right := n.right
+	left := bn.left
+	right := bn.right
 
 	if left.EvalType() == EvalDatetime || right.EvalType() == EvalDatetime {
 		// Arithmetic with Timestamps should treat them as floating points due to fractional seconds.
 
 		left, _, err = ReconcileSQLExprs(left, NewSQLDecimal128(kind, decimal.NewFromFloat(0.0)))
 		if err != nil {
-			return n, err
+			return bn, err
 		}
 		_, right, err = ReconcileSQLExprs(NewSQLDecimal128(kind, decimal.NewFromFloat(0.0)), right)
 		if err != nil {
-			return n, err
+			return bn, err
 		}
 
 	} else if left.EvalType() == EvalDate || right.EvalType() == EvalDate {
@@ -34,18 +38,18 @@ func (n sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
 
 		left, _, err = ReconcileSQLExprs(left, NewSQLInt64(kind, 0))
 		if err != nil {
-			return n, err
+			return bn, err
 		}
 		_, right, err = ReconcileSQLExprs(NewSQLInt64(kind, 0), right)
 		if err != nil {
-			return n, err
+			return bn, err
 		}
 
 	} else {
 		// otherwise, reconcile left and right side with each other
 		left, right, err = ReconcileSQLExprs(left, right)
 		if err != nil {
-			return n, err
+			return bn, err
 		}
 	}
 
@@ -55,24 +59,20 @@ func (n sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
 	return sqlBinaryNode{reconciled[0], reconciled[1]}, nil
 }
 
-type sqlBinaryNode struct {
-	left, right SQLExpr
+// Children returns a slice of all the Node children of the Node.
+func (bn sqlBinaryNode) Children() []Node {
+	return []Node{bn.left, bn.right}
 }
 
-// Children gets the children for a sqlBinaryNode as a slice.
-func (n sqlBinaryNode) Children() []SQLExpr {
-	return []SQLExpr{n.left, n.right}
-}
-
-// ReplaceChild sets the i'th child of a sqlBinaryNode to arg.
-func (n *sqlBinaryNode) ReplaceChild(i int, arg SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (bn *sqlBinaryNode) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
-		n.left = arg
+		bn.left = panicIfNotSQLExpr("sqlBinaryNode", n)
 	case 1:
-		n.right = arg
+		bn.right = panicIfNotSQLExpr("sqlBinaryNode", n)
 	default:
-		panic(fmt.Sprintf("child number %d is out of range for sqlBinaryNodes", i))
+		panicWithInvalidIndex("sqlBinaryNode", i, 1)
 	}
 }
 
@@ -87,9 +87,9 @@ const (
 
 // sqlValueArgEnum returns the left and right SQLValue arguments, if any, and a enum that tells us
 // which arguments are SQLValues.
-func (n *sqlBinaryNode) sqlValueArgEnum() (SQLValue, SQLValue, valueArgsEnum) {
-	leftVal, leftIsVal := n.left.(SQLValue)
-	rightVal, rightIsVal := n.right.(SQLValue)
+func (bn *sqlBinaryNode) sqlValueArgEnum() (SQLValue, SQLValue, valueArgsEnum) {
+	leftVal, leftIsVal := bn.left.(SQLValue)
+	rightVal, rightIsVal := bn.right.(SQLValue)
 	if leftIsVal && rightIsVal {
 		return leftVal, rightVal, bothValueArgs
 	}
@@ -102,27 +102,27 @@ func (n *sqlBinaryNode) sqlValueArgEnum() (SQLValue, SQLValue, valueArgsEnum) {
 	return nil, nil, noValueArgs
 }
 
-func (n *sqlBinaryNode) evaluateArgs(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, SQLValue, error) {
-	leftVal, err := n.left.Evaluate(ctx, cfg, st)
+func (bn *sqlBinaryNode) evaluateArgs(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, SQLValue, error) {
+	leftVal, err := bn.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	rightVal, err := n.right.Evaluate(ctx, cfg, st)
+	rightVal, err := bn.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, nil, err
 	}
 	return leftVal, rightVal, nil
 }
 
-func (n *sqlBinaryNode) toAggregationLanguageArgs(t *PushdownTranslator) (interface{}, interface{}, PushdownFailure) {
+func (bn *sqlBinaryNode) toAggregationLanguageArgs(t *PushdownTranslator) (interface{}, interface{}, PushdownFailure) {
 
-	left, err := t.ToAggregationLanguage(n.left)
+	left, err := t.ToAggregationLanguage(bn.left)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	right, err := t.ToAggregationLanguage(n.right)
+	right, err := t.ToAggregationLanguage(bn.right)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -16,6 +16,16 @@ type DynamicSourceStage struct {
 	dbName    string
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (DynamicSourceStage) Children() []Node {
+	return []Node{}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (DynamicSourceStage) ReplaceChild(i int, n Node) {
+	panicWithInvalidIndex("DynamicSourceStage", i, -1)
+}
+
 // NewDynamicSourceStage creates a new DynamicSourceStage.
 func NewDynamicSourceStage(db catalog.Database, table *catalog.DynamicTable,
 	selectID int, aliasName string) *DynamicSourceStage {

@@ -49,6 +49,21 @@ func NewExplainStage(plan PlanStage, cfg *ExecutionConfig) *ExplainStage {
 	}
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (es ExplainStage) Children() []Node {
+	return []Node{es.plan}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (es *ExplainStage) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		es.plan = panicIfNotPlanStage("ExplainStage", n)
+	default:
+		panicWithInvalidIndex("ExplainStage", i, 0)
+	}
+}
+
 // Open creates a visitor that will walk through the explain plan
 // and return an iterator with the rows for the table.
 func (es *ExplainStage) Open(_ context.Context, pCfg *PushdownConfig, eCfg *ExecutionConfig, _ *ExecutionState) (Iter, error) {

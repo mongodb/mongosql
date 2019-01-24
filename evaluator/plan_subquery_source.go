@@ -21,6 +21,21 @@ type SubquerySourceStage struct {
 	fromCTE bool
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (s SubquerySourceStage) Children() []Node {
+	return []Node{s.source}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s *SubquerySourceStage) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		s.source = panicIfNotPlanStage("SubquerySourceStage", n)
+	default:
+		panicWithInvalidIndex("SubquerySourceStage", i, 0)
+	}
+}
+
 // NewSubquerySourceStage creates a new SubquerySourceStage.
 func NewSubquerySourceStage(source PlanStage, selectID int, dbName,
 	aliasName string, fromCTE bool) *SubquerySourceStage {

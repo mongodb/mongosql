@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/10gen/sqlproxy/evaluator/variable"
 )
@@ -9,6 +10,28 @@ import (
 // SetCommand handles setting variables.
 type SetCommand struct {
 	assignments []*SQLAssignmentExpr
+}
+
+// Children returns a slice of all the Node children of the Node.
+func (s SetCommand) Children() []Node {
+	out := make([]Node, len(s.assignments))
+	for i := range s.assignments {
+		out[i] = s.assignments[i]
+	}
+	return out
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (s *SetCommand) ReplaceChild(i int, n Node) {
+	if 0 <= i && i < len(s.assignments) {
+		var ok bool
+		s.assignments[i], ok = n.(*SQLAssignmentExpr)
+		if !ok {
+			panic(fmt.Sprintf("attempt to convert Node %v to *SQLAssignmentExpr in ReplaceChild for SetCommand failed", n))
+		}
+		return
+	}
+	panicWithInvalidIndex("SetCommand", i, len(s.assignments)-1)
 }
 
 // NewSetCommand creates a new SetCommand.

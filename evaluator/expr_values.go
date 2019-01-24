@@ -476,14 +476,14 @@ type SQLValues struct {
 	Values []SQLValue
 }
 
-// Children returns the arguments.
-func (sv *SQLValues) Children() []SQLExpr {
-	return []SQLExpr{}
+// Children returns a slice of all the Node children of the Node.
+func (sv *SQLValues) Children() []Node {
+	return []Node{}
 }
 
-// ReplaceChild does nothing for this Value type.
-func (sv *SQLValues) ReplaceChild(i int, expr SQLExpr) {
-	panic("values do no have children")
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (sv *SQLValues) ReplaceChild(i int, expr Node) {
+	panicWithInvalidIndex("SQLValues", i, -1)
 }
 
 // ExprName returns a string representing this SQLExpr's name.

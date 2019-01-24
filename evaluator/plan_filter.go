@@ -21,6 +21,23 @@ func NewFilterStage(source PlanStage, predicate SQLExpr) *FilterStage {
 	}
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (fs FilterStage) Children() []Node {
+	return []Node{fs.matcher, fs.source}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (fs *FilterStage) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		fs.matcher = panicIfNotSQLExpr("FilterStage", n)
+	case 1:
+		fs.source = panicIfNotPlanStage("FilterStage", n)
+	default:
+		panicWithInvalidIndex("FilterStage", i, 1)
+	}
+}
+
 // FilterIter returns only the rows that match the filter expression.
 type FilterIter struct {
 	cfg     *ExecutionConfig

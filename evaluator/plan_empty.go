@@ -18,6 +18,16 @@ func NewEmptyStage(columns []*Column, collation *collation.Collation) *EmptyStag
 	return &EmptyStage{columns, collation}
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (EmptyStage) Children() []Node {
+	return []Node{}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (EmptyStage) ReplaceChild(i int, e Node) {
+	panicWithInvalidIndex("EmptyStage", i, -1)
+}
+
 // An EmptyIter returns no rows.
 type EmptyIter struct{}
 

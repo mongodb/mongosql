@@ -34,6 +34,21 @@ func NewKillCommand(id SQLExpr, scope KillScope) *KillCommand {
 	return &KillCommand{id, scope}
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (k KillCommand) Children() []Node {
+	return []Node{k.ID}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (k *KillCommand) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		k.ID = panicIfNotSQLExpr("KillCommand", n)
+	default:
+		panicWithInvalidIndex("KillCommand", i, 0)
+	}
+}
+
 // Execute runs this command.
 func (k *KillCommand) Execute(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
 	eval, err := k.ID.Evaluate(ctx, cfg, st)

@@ -24,6 +24,28 @@ func NewOrderByStage(source PlanStage, terms ...*OrderByTerm) *OrderByStage {
 	}
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (ob OrderByStage) Children() []Node {
+	out := make([]Node, 1+len(ob.terms))
+	out[0] = ob.source
+	for i := range ob.terms {
+		out[i+1] = ob.terms[i].expr
+	}
+	return out
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (ob *OrderByStage) ReplaceChild(i int, n Node) {
+	if i < 0 || i > len(ob.terms) {
+		panicWithInvalidIndex("OrderByStage", i, len(ob.terms))
+	}
+	if i == 0 {
+		ob.source = panicIfNotPlanStage("OrderByStage", n)
+		return
+	}
+	ob.terms[i-1].expr = panicIfNotSQLExpr("OrderByStage", n)
+}
+
 // OrderByIter returns ordered rows.
 type OrderByIter struct {
 	cfg *ExecutionConfig

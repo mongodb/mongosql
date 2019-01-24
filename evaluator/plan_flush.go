@@ -24,6 +24,16 @@ func NewFlushCommand(kind FlushKind) *FlushCommand {
 	return &FlushCommand{kind}
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (FlushCommand) Children() []Node {
+	return []Node{}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (FlushCommand) ReplaceChild(i int, n Node) {
+	panicWithInvalidIndex("FlushCommand", i, -1)
+}
+
 // Execute runs this command.
 func (f *FlushCommand) Execute(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
 	switch f.kind {

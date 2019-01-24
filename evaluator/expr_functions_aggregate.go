@@ -55,15 +55,21 @@ func (b baseAggFunctionExpr) Exprs() []SQLExpr {
 	return b.exprs
 }
 
-func (b baseAggFunctionExpr) Children() []SQLExpr {
-	return b.exprs
+// Children returns a slice of all the Node children of the Node.
+func (b baseAggFunctionExpr) Children() []Node {
+	out := make([]Node, len(b.exprs))
+	for i := range b.exprs {
+		out[i] = b.exprs[i]
+	}
+	return out
 }
 
-func (b baseAggFunctionExpr) ReplaceChild(i int, e SQLExpr) {
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (b baseAggFunctionExpr) ReplaceChild(i int, n Node) {
 	if i < 0 || i >= len(b.exprs) {
-		panic(fmt.Sprintf("child %v is out of range for aggregation function", i))
+		panicWithInvalidIndex("baseAggFunctionExpr", i, len(b.exprs)-1)
 	}
-	b.exprs[i] = e
+	b.exprs[i] = panicIfNotSQLExpr("baseAggFunctionExpr", n)
 }
 
 // basicSQLAggFunctionToString() is a helper to convert SQLAggFunctions to strings.

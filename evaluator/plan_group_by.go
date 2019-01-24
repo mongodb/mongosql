@@ -44,6 +44,35 @@ type GroupByStage struct {
 	keys []SQLExpr
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (gb GroupByStage) Children() []Node {
+	out := make([]Node, len(gb.projectedColumns)+1+len(gb.keys))
+	for i := range gb.projectedColumns {
+		out[i] = gb.projectedColumns[i].Expr
+	}
+	out[len(gb.projectedColumns)] = gb.source
+	for i := range gb.keys {
+		out[i+len(gb.projectedColumns)+1] = gb.keys[i]
+	}
+	return out
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (gb *GroupByStage) ReplaceChild(i int, n Node) {
+	if i < 0 || i > len(gb.projectedColumns)+len(gb.keys) {
+		panicWithInvalidIndex("GroupByStage", i, len(gb.projectedColumns)+len(gb.keys))
+	}
+	if i == len(gb.projectedColumns) {
+		gb.source = panicIfNotPlanStage("GroupByStage", n)
+		return
+	}
+	if i < len(gb.projectedColumns) {
+		gb.projectedColumns[i].Expr = panicIfNotSQLExpr("GroupByStage", n)
+		return
+	}
+	gb.keys[i-1-len(gb.projectedColumns)] = panicIfNotSQLExpr("GroupByStage", n)
+}
+
 // NewGroupByStage returns a new GroupByStage.
 func NewGroupByStage(source PlanStage,
 	keys []SQLExpr,

@@ -783,6 +783,32 @@ func GoValueToSQLValue(kind SQLValueKind, v interface{}) SQLValue {
 	}
 }
 
+// panicIfNotPlanStage returns a PlanStage from a Node n, or panics if the Node is not a PlanStage.
+func panicIfNotPlanStage(s string, n Node) PlanStage {
+	ret, ok := n.(PlanStage)
+	if ok {
+		return ret
+	}
+	panic(fmt.Sprintf("attempted to convert Node %v to PlanStage in ReplaceChild for %s", n, s))
+}
+
+// panicIfNotSQLExpr returns a SQLExpr from a Node n, or panics if the Node is not a SQLExpr.
+func panicIfNotSQLExpr(s string, n Node) SQLExpr {
+	ret, ok := n.(SQLExpr)
+	if ok {
+		return ret
+	}
+	panic(fmt.Sprintf("attempted to convert Node %v to SQLExpr in ReplaceChild for %s", n, s))
+}
+
+// panicWithInvalidIndex formats the panics for ReplaceChild methods.
+func panicWithInvalidIndex(s string, index, max int) {
+	if max < 0 {
+		panic(fmt.Sprintf("%v requested ReplaceChild of index %d, but has no children", s, index))
+	}
+	panic(fmt.Sprintf("%v requested ReplaceChild of index %d (has max index of %d)", s, index, max))
+}
+
 // nolint: unparam
 func parseDateTime(s string) (time.Time, int, bool) {
 	return strToDateTime(s, false)

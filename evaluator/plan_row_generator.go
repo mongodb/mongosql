@@ -17,6 +17,21 @@ type RowGeneratorStage struct {
 	rowCountColumn *Column
 }
 
+// Children returns a slice of all the Node children of the Node.
+func (rg RowGeneratorStage) Children() []Node {
+	return []Node{rg.source}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (rg *RowGeneratorStage) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		rg.source = panicIfNotPlanStage("RowGeneratorStage", n)
+	default:
+		panicWithInvalidIndex("RowGeneratorStage", i, 0)
+	}
+}
+
 // NewRowGeneratorStage creates a new RowGeneratorStage.
 func NewRowGeneratorStage(source PlanStage, rowCountColumn *Column) *RowGeneratorStage {
 	return &RowGeneratorStage{

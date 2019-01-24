@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -12,6 +13,27 @@ import (
 type CountStage struct {
 	mongoSource     *MongoSourceStage
 	projectedColumn ProjectedColumn
+}
+
+// Children returns a slice of all the Node children of the Node.
+func (cs CountStage) Children() []Node {
+	return []Node{cs.mongoSource, cs.projectedColumn.Expr}
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (cs *CountStage) ReplaceChild(i int, n Node) {
+	switch i {
+	case 0:
+		var ok bool
+		cs.mongoSource, ok = n.(*MongoSourceStage)
+		if !ok {
+			panic(fmt.Sprintf("attempt to convert %v to *MongoSourceStage in ReplaceChild for CountStage", n))
+		}
+	case 1:
+		cs.projectedColumn.Expr = panicIfNotSQLExpr("CountStage", n)
+	default:
+		panicWithInvalidIndex("CountStage", i, 1)
+	}
 }
 
 // CountIter is an iter that iterates over one row, which contains the count for a table.
