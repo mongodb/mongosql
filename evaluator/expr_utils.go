@@ -1609,6 +1609,18 @@ func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
 	}
 }
 
+func nodesToExprs(nodes []Node) []SQLExpr {
+	ok := false
+	ret := make([]SQLExpr, len(nodes))
+	for i := range nodes {
+		ret[i], ok = nodes[i].(SQLExpr)
+		if !ok {
+			panic(fmt.Sprintf("non-SQLExpr %v: %T found in nodesToExprs", nodes[i], nodes[i]))
+		}
+	}
+	return ret
+}
+
 func isBooleanColumnAndNumber(left, right SQLExpr) bool {
 	if _, ok := left.(SQLColumnExpr); !ok {
 		return false

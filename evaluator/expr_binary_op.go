@@ -149,7 +149,7 @@ func eatChildren(opName string, leftAndRight []SQLExpr) []SQLExpr {
 			if c.ExprName() == opName {
 				// if the child c is one of the same type as the parent (the opName
 				// argument), recursively consume its children.
-				children = append(children, eatChildren(opName, t.Children())...)
+				children = append(children, eatChildren(opName, nodesToExprs(t.Children()))...)
 				continue
 			}
 		}
@@ -235,7 +235,7 @@ func (add *SQLAddExpr) String() string {
 // be used in an aggregation pipeline. If SQLAddExpr cannot be translated,
 // it will return nil and error.
 func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	children := eatChildren(add.ExprName(), add.Children())
+	children := eatChildren(add.ExprName(), nodesToExprs(add.Children()))
 	ops := make([]interface{}, len(children))
 
 	var err PushdownFailure
@@ -350,7 +350,7 @@ func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
 // it will return nil and error.
 func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	children := eatChildren(and.ExprName(), and.Children())
+	children := eatChildren(and.ExprName(), nodesToExprs(and.Children()))
 
 	args, err := t.typedTranslateArgs(children)
 	if err != nil {
@@ -1664,7 +1664,7 @@ func (mult *SQLMultiplyExpr) String() string {
 // be used in an aggregation pipeline. If SQLMultiplyExpr cannot be translated,
 // it will return nil and error.
 func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	children := eatChildren(mult.ExprName(), mult.Children())
+	children := eatChildren(mult.ExprName(), nodesToExprs(mult.Children()))
 	ops := make([]interface{}, len(children))
 
 	var err PushdownFailure
@@ -2000,7 +2000,7 @@ func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLOrExpr cannot be translated,
 // it will return nil and error.
 func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	children := eatChildren(or.ExprName(), or.Children())
+	children := eatChildren(or.ExprName(), nodesToExprs(or.Children()))
 
 	args, err := t.typedTranslateArgs(children)
 	if err != nil {
@@ -2313,7 +2313,7 @@ func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
 // it will return nil and error.
 func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	children := eatChildren(xor.ExprName(), xor.Children())
+	children := eatChildren(xor.ExprName(), nodesToExprs(xor.Children()))
 
 	args, err := t.typedTranslateArgs(children)
 	if err != nil {
