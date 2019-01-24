@@ -1610,7 +1610,7 @@ func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
 }
 
 func nodesToExprs(nodes []Node) []SQLExpr {
-	ok := false
+	ok := true
 	ret := make([]SQLExpr, len(nodes))
 	for i := range nodes {
 		ret[i], ok = nodes[i].(SQLExpr)
