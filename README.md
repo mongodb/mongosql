@@ -150,7 +150,7 @@ all the data needed for those tests is inserted into the running MongoDB
 instance:
 
 ```
-go test -v -tags=integration -run /tdvt/ -automate data,sample
+go test -v -tags=integration -run /tdvt/ -automate data,schema
 ```
 
 In the future, we hope to support automating mongod, mongosqld, and various
