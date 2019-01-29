@@ -1940,21 +1940,11 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		if typedE.Operator == parser.AST_IS {
 			return NewSQLIsExpr(left, right), nil
 		} else if typedE.Operator == parser.AST_IS_NOT {
-			return NewSQLNotExpr(NewSQLIsExpr(left, right)), nil
+			panic("IS NOT must be eliminated in the desugarer")
 		}
 
-		canTranslate := (left.EvalType() == EvalTuple || right.EvalType() == EvalTuple)
-
-		shouldTranslate := containsString(
-			[]string{
-				sqlOpNEQ, sqlOpEQ,
-				sqlOpGT, sqlOpGTE,
-				sqlOpLT, sqlOpLTE,
-				sqlOpNSE,
-			}, typedE.Operator)
-
-		if canTranslate && shouldTranslate {
-			return a.translateTupleExpr(left, right, typedE.Operator)
+		if left.EvalType() == EvalTuple || right.EvalType() == EvalTuple {
+			panic("tuple comparisons must be eliminated in the desugarer")
 		}
 
 		comp, err := comparisonExpr(left, right, typedE.Operator)
@@ -2495,116 +2485,6 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		return NewSQLScalarFunctionExpr(name, exprs)
 	}
 
-}
-
-func (a *algebrizer) translateTupleExpr(leftExpr, rightExpr SQLExpr, op string) (SQLExpr, error) {
-	// This check catches cases where an equality comparison is made between a
-	// tuple and a non-tuple in either order:
-	// e.g.
-	//      SELECT * FROM foo WHERE (a, b) = 4; & SELECT * FROM foo WHERE 4 = (a, b);
-	if leftExpr.EvalType() != rightExpr.EvalType() {
-		if leftExpr.EvalType() == EvalTuple {
-			left, err := getExprs(leftExpr)
-			if err != nil {
-				return nil, err
-			}
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(left))
-		}
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
-	}
-
-	left, right, err := getSQLTupleExprs(leftExpr, rightExpr)
-	if err != nil {
-		return nil, err
-	}
-
-	if len(left) != len(right) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(left))
-	}
-
-	checkTupleDimensions := func(left, right SQLExpr) error {
-		leftEvalType := left.EvalType()
-		rightEvalType := right.EvalType()
-		if leftEvalType == EvalTuple && rightEvalType == EvalTuple {
-			leftExprs, rightExprs, err := getSQLTupleExprs(left, right)
-			if err != nil {
-				return err
-			}
-
-			if len(leftExprs) != len(rightExprs) {
-				return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(leftExprs))
-			}
-		} else if leftEvalType == EvalTuple {
-			leftExprs, err := getExprs(left)
-			if err != nil {
-				return err
-			}
-
-			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(leftExprs))
-		} else if rightEvalType == EvalTuple {
-			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
-		}
-
-		return nil
-	}
-
-	var constructTupleExpr func(string, []SQLExpr, []SQLExpr, bool) (SQLExpr, error)
-	constructTupleExpr = func(op string, left, right []SQLExpr, isEqual bool) (SQLExpr, error) {
-		err := checkTupleDimensions(left[0], right[0])
-		if err != nil {
-			return nil, err
-		}
-
-		if len(left) == 1 {
-			return comparisonExpr(left[0], right[0], op)
-		}
-
-		rightChild, err := constructTupleExpr(op, left[1:], right[1:], isEqual)
-		if !isEqual {
-			return NewSQLOrExpr(NewSQLNotEqualsExpr(left[0], right[0]), rightChild), err
-		}
-		return NewSQLAndExpr(NewSQLEqualsExpr(left[0], right[0]), rightChild), err
-	}
-
-	var translationFunc func(int) (SQLExpr, error)
-	translationFunc = func(i int) (SQLExpr, error) {
-		if len(left[i:]) == 0 {
-			return NewSQLBool(a.valueKind(), false), nil
-		}
-		var leftChild SQLExpr
-		var err error
-
-		if i == 0 {
-			cmpOp := op
-			if op == sqlOpLTE {
-				cmpOp = sqlOpLT
-			} else if op == sqlOpGTE {
-				cmpOp = sqlOpGT
-			}
-			leftChild, err = comparisonExpr(left[0], right[0], cmpOp)
-		} else {
-			leftChild, err = constructTupleExpr(op, left[:i+1], right[:i+1], true)
-		}
-
-		if err != nil {
-			return nil, err
-		}
-
-		rightChild, err := translationFunc(i + 1)
-
-		return NewSQLOrExpr(leftChild, rightChild), err
-	}
-
-	switch op {
-	case sqlOpEQ:
-		return constructTupleExpr(op, left, right, true)
-	case sqlOpNEQ:
-		return constructTupleExpr(op, left, right, false)
-	case sqlOpNSE:
-		return constructTupleExpr(op, left, right, true)
-	default:
-		return translationFunc(0)
-	}
 }
 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {

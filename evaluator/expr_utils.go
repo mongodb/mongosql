@@ -171,19 +171,6 @@ func fast2Sum(a, b float64) (float64, float64) {
 	return s, t
 }
 
-func getExprs(expr SQLExpr) ([]SQLExpr, error) {
-	switch typedE := expr.(type) {
-	case *SQLValues:
-		var exprs []SQLExpr
-		for _, value := range typedE.Values {
-			exprs = append(exprs, value)
-		}
-		return exprs, nil
-	default:
-		return nil, fmt.Errorf("invalid SQLTupleExpr type '%T'", expr)
-	}
-}
-
 func getPlanStats(plan PlanStage, pCfg *PushdownConfig) (*PlanStats, error) {
 	pushedDown := IsFullyPushedDown(plan) == nil
 
@@ -197,21 +184,6 @@ func getPlanStats(plan PlanStage, pCfg *PushdownConfig) (*PlanStats, error) {
 		Explain:         explain,
 	}
 	return stats, nil
-}
-
-func getSQLTupleExprs(left, right SQLExpr) ([]SQLExpr, []SQLExpr, error) {
-
-	leftExprs, err := getExprs(left)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	rightExprs, err := getExprs(right)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return leftExprs, rightExprs, nil
 }
 
 // hasNullValue returns true if any of the value in values
@@ -1637,7 +1609,7 @@ func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
 }
 
 func nodesToExprs(nodes []Node) []SQLExpr {
-	ok := true
+	var ok bool
 	ret := make([]SQLExpr, len(nodes))
 	for i := range nodes {
 		ret[i], ok = nodes[i].(SQLExpr)

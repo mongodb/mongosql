@@ -282,9 +282,14 @@ func testDesugar(t *testing.T) {
 			expected: "select case when x = 12 then 1 when x = 22 then 2 when x = 23 then 3 when x = 24 then 4 when x = 25 then 5  else 0 end from foo",
 		},
 		{
+			desc:     "replace is not with not is",
+			query:    "select a is not true from foo",
+			expected: "select not a is true from foo",
+		},
+		{
 			desc:     "replace coalesce with case",
 			query:    "select coalesce(x, 12, 22, 23, 24, 25) from foo",
-			expected: "select case when x is not null then x when 12 is not null then 12 when 22 is not null then 22 when 23 is not null then 23 when 24 is not null then 24 when 25 is not null then 25  end from foo",
+			expected: "select case when not x is null then x when not 12 is null then 12 when not 22 is null then 22 when not 23 is null then 23 when not 24 is null then 24 when not 25 is null then 25  end from foo",
 		},
 		{
 			desc:     "replace elt with case",
