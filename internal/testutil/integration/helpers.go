@@ -578,38 +578,21 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 }
 
 func setupIntegrationSuite(t *testing.T, suite string) *TestSuite {
-	var restoreData bool
-	var flushSample bool
-
-	for _, opt := range strings.Split(*flags.Automate, ",") {
-		switch opt {
-		case "data":
-			restoreData = true
-		case "schema":
-			flushSample = true
-		case "none":
-			restoreData = false
-			flushSample = false
-		default:
-			t.Fatalf("unrecognized integration test automation flag %q", opt)
-		}
-	}
-
-	if restoreData {
+	automate_opts := strings.Split(*flags.Automate, ",")
+	if automate_opts[0] == "data" {
 		t.Logf(">> Restoring %s data...\n", suite)
 		err := RestoreSuiteData(suite)
 		if err != nil {
 			t.Fatalf("error restoring data: %v\n", err)
 		}
 		t.Logf(">> Done restoring %s data\n", suite)
-	}
 
-	if flushSample {
-		// Issue a flush sample command to resample the schema from
-		// potentially-updated data.
-		err := data.FlushSample()
-		if err != nil {
-			t.Fatalf("error issuing flush sample: %v\n", err)
+		// Issue a flush sample command to resample the restored data.
+		if len(automate_opts) > 1 && automate_opts[1] == "schema" {
+			err = data.FlushSample()
+			if err != nil {
+				t.Fatalf("error issuing flush sample: %v\n", err)
+			}
 		}
 	}
 

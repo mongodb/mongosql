@@ -24,7 +24,6 @@ func DesugarQuery(statement Statement) (Statement, error) {
 	}
 
 	desugarers := []desugarPass{
-		{&notComparisonDesugarer{}, option.NoneString(), option.NoneString()},
 		{&unwrapSingleTuples{}, option.NoneString(), option.NoneString()},
 		{&subqueryOrderDesugarer{}, option.NoneString(), option.NoneString()},
 		{&someToAnyDesugarer{}, option.NoneString(), option.NoneString()},
@@ -51,37 +50,6 @@ func DesugarQuery(statement Statement) (Statement, error) {
 	}
 
 	return result.(Statement), nil
-}
-
-var _ Walker = (*notComparisonDesugarer)(nil)
-
-// notComparisonDesugarer replaces `x IS NOT y` with `NOT(x IS y)`
-type notComparisonDesugarer struct{}
-
-// PreVisit is called for every node before its children are walked.
-func (*notComparisonDesugarer) PreVisit(current CST) (CST, error) {
-	return current, nil
-}
-
-// PostVisit is called for every node after its children are walked.
-func (*notComparisonDesugarer) PostVisit(current CST) (CST, error) {
-	cmp, ok := current.(*ComparisonExpr)
-	if !ok {
-		return current, nil
-	}
-
-	switch cmp.Operator {
-	case AST_IS_NOT:
-		return &NotExpr{
-			Expr: &ComparisonExpr{
-				Left:     cmp.Left,
-				Right:    cmp.Right,
-				Operator: AST_IS,
-			},
-		}, nil
-	default:
-		return current, nil
-	}
 }
 
 // betweenDesugarer replaces SOME with ANY.
@@ -144,12 +112,10 @@ func desugarCoalesce(node *FuncExpr) (CST, error) {
 	caseConditions := make([]*When, len(node.Exprs))
 	for i, expr := range node.Exprs {
 		caseConditions[i] = &When{
-			Cond: &NotExpr{
-				Expr: &ComparisonExpr{
-					Operator: AST_IS,
-					Left:     expr.(*NonStarExpr).Expr,
-					Right:    &NullVal{},
-				},
+			Cond: &ComparisonExpr{
+				Operator: AST_IS_NOT,
+				Left:     expr.(*NonStarExpr).Expr,
+				Right:    &NullVal{},
 			},
 			Val: expr.(*NonStarExpr).Expr,
 		}
@@ -361,10 +327,14 @@ func flipComparisonOperator(operator string) string {
 		return AST_GE
 	case AST_GE:
 		return AST_LE
-	case AST_EQ, AST_NE, AST_NSE, AST_IN, AST_NOT_IN, AST_IS:
+	case AST_EQ,
+		AST_NE,
+		AST_NSE,
+		AST_IN,
+		AST_NOT_IN,
+		AST_IS,
+		AST_IS_NOT:
 		return operator
-	case AST_IS_NOT:
-		panic("AST_IS_NOT must be removed by notComparisonDesugarer")
 	}
 	panic("unkown comparison operator in flipComparisonOperator")
 }
