@@ -1940,7 +1940,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		if typedE.Operator == parser.AST_IS {
 			return NewSQLIsExpr(left, right), nil
 		} else if typedE.Operator == parser.AST_IS_NOT {
-			return NewSQLNotExpr(NewSQLIsExpr(left, right)), nil
+			panic("IS NOT must be eliminated in the desugarer")
 		}
 
 		if left.EvalType() == EvalTuple || right.EvalType() == EvalTuple {
