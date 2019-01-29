@@ -71,7 +71,7 @@ func ExecuteSQL(ctx context.Context, qCfg *QueryConfig, sql string) (*QueryResul
 	qCfg.lg.Infof(log.Dev, "generating plan for sql...")
 
 	switch v := stmt.(type) {
-	case *parser.Select, *parser.SimpleSelect, *parser.Union:
+	case *parser.Select, *parser.Union:
 		return EvaluateQuery(ctx, qCfg, v)
 	case *parser.Show:
 		return EvaluateShow(ctx, qCfg, v)

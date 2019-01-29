@@ -155,16 +155,22 @@ func (node *Select) Format(buf *TrackedBuffer) {
 	if node.With != nil {
 		buf.Fprintf("%v ", node.With)
 	}
-	var distinct, straightJoin string
-	if node.QueryGlobals.Distinct {
-		distinct = "distinct "
+	var distinct, straightJoin, from string
+	if node.QueryGlobals != nil {
+		if node.QueryGlobals.Distinct {
+			distinct = "distinct "
+		}
+		if node.QueryGlobals.StraightJoin {
+			straightJoin = "straight join "
+		}
 	}
-	if node.QueryGlobals.StraightJoin {
-		straightJoin = "straight join "
+	if node.From != nil {
+		from = " from "
 	}
-	buf.Fprintf("select %v%s%s%v from %v%v%v%v%v%v%s",
+
+	buf.Fprintf("select %v%s%s%v%s%v%v%v%v%v%v%s",
 		node.Comments, distinct, straightJoin,
-		node.SelectExprs, node.From, node.Where,
+		node.SelectExprs, from, node.From, node.Where,
 		node.GroupBy, node.Having, node.OrderBy,
 		node.Limit, node.Lock)
 }
@@ -974,29 +980,6 @@ type UpdateExpr struct {
 func (node *UpdateExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v = %v", node.Name, node.Expr)
 }
-
-type SimpleSelect struct {
-	Comments     Comments
-	QueryGlobals *QueryGlobals
-	SelectExprs  SelectExprs
-	Limit        *Limit
-}
-
-func (node *SimpleSelect) Format(buf *TrackedBuffer) {
-	var distinct, straightJoin string
-	if node.QueryGlobals != nil {
-		if node.QueryGlobals.Distinct {
-			distinct = "distinct "
-		}
-		if node.QueryGlobals.StraightJoin {
-			straightJoin = "straight join "
-		}
-	}
-	buf.Fprintf("select %v%s%s%v", node.Comments, distinct, straightJoin, node.SelectExprs)
-}
-
-func (*SimpleSelect) IStatement()       {}
-func (*SimpleSelect) ISelectStatement() {}
 
 const (
 	AST_SHOW_NO_MOD   = ""

@@ -11,7 +11,7 @@ import (
 // distinct aggregation operators in terms of grouped subqueries.
 func RewriteDistinct(stmt Statement) Statement {
 	switch stmt.(type) {
-	case *Select, *SimpleSelect, *Union:
+	case *Select, *Union:
 	default:
 		return stmt
 	}

@@ -1373,6 +1373,28 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewSQLAddExpr(evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2)),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 3)))),
 			)
+		}}, {
+
+		"select sum(2)",
+		func() evaluator.PlanStage {
+			source := evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, "")
+			return evaluator.NewProjectStage(
+				evaluator.NewGroupByStage(source,
+					nil,
+					evaluator.ProjectedColumns{
+						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(2)",
+							evaluator.NewSQLAggregationFunctionExpr(
+								"sum",
+								false,
+								[]evaluator.SQLExpr{evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2))},
+							),
+						),
+					},
+				),
+				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(2)",
+					evaluator.NewSQLColumnExpr(1, "", "", "sum(2)",
+						types.EvalDouble, schema.MongoNone)),
+			)
 		}},
 	}
 	runTestsAsSubtest("Select Dual Queries", selectDualTests)

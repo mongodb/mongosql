@@ -7,7 +7,7 @@ import (
 
 func AnonymizeStatement(stmt Statement) Statement {
 	switch stmt.(type) {
-	case *Select, *SimpleSelect, *Union:
+	case *Select, *Union:
 		// these are the only kinds of queries we should be attempting
 		// to anonymize (i.e. only SELECT queries)
 	default:

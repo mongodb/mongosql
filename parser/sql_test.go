@@ -283,7 +283,7 @@ func TestSetCharset(t *testing.T) {
 	testParse(t, sql)
 }
 
-func TestSimpleSelect(t *testing.T) {
+func TestSelect(t *testing.T) {
 	sql := "select last_insert_id() as a"
 	testParse(t, sql)
 }

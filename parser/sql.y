@@ -244,7 +244,7 @@ select_statement:
   }
 | SELECT comment_opt query_globals_opt select_expression_list limit_opt
   {
-    $$ = &SimpleSelect{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, Limit: $5}
+    $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, Limit: $5} 
   }
 | SELECT comment_opt query_globals_opt select_expression_list FROM dual_table
   {

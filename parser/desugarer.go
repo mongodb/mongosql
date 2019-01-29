@@ -33,6 +33,7 @@ func DesugarQuery(statement Statement) (Statement, error) {
 		{&inSubqueryDesugarer{}, option.NoneString(), option.NoneString()},
 		{&inListConverter{}, option.NoneString(), option.NoneString()},
 		{&detupler{}, option.NoneString(), option.NoneString()},
+		{&makeDualExplicit{}, option.NoneString(), option.NoneString()},
 	}
 
 	result := statement.(CST)
@@ -83,6 +84,27 @@ func (*isNotDesugarer) PostVisit(current CST) (CST, error) {
 		return current, nil
 	}
 }
+
+// makeDualExplicit sets the name of the From field in a Select statement
+// to "DUAL" when the user does not explicitly name the DUAL table.
+type makeDualExplicit struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*makeDualExplicit) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*makeDualExplicit) PostVisit(current CST) (CST, error) {
+	if node, isSelect := current.(*Select); isSelect {
+		if node.From == nil {
+			node.From = TableExprs{&DualTableExpr{}}
+		}
+	}
+	return current, nil
+}
+
+var _ Walker = (*makeDualExplicit)(nil)
 
 // betweenDesugarer replaces SOME with ANY.
 type betweenDesugarer struct{}
@@ -718,7 +740,7 @@ func detupleToSubquery(node ValTuple) *Subquery {
 		selExprs[i] = &NonStarExpr{Expr: expr}
 	}
 	return &Subquery{
-		&SimpleSelect{SelectExprs: selExprs},
+		&Select{SelectExprs: selExprs, QueryGlobals: &QueryGlobals{}},
 		false,
 	}
 }

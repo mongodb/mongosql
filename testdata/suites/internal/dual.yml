@@ -80,7 +80,7 @@ testcases:
     id: '9'
     sql: select @@version = version();
 
-  - description: values from dual with limit
+  - description: values with limit
     expected_names: ["3"]
     expected_results:
       - [3]
@@ -107,3 +107,19 @@ testcases:
     expected_error: "Error 1096: No tables used"
     id: '14'
     sql: select * from DUAL
+
+  - description: aggregate function applied to value
+    expected_names: ['sum(2)']
+    expected_results:
+      - [2]
+    expected_types: [int]
+    id: '15'
+    sql: select sum(2)
+
+  - description: aggregate function applied to value from dual
+    expected_names: ['sum(2)']
+    expected_results:
+      - [2]
+    expected_types: [int]
+    id: '16'
+    sql: select sum(2) from dual

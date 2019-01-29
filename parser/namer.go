@@ -21,18 +21,6 @@ func (*namer) PreVisit(current CST) (CST, error) {
 		for _, expr := range node.SelectExprs {
 			if column, yes := expr.(*NonStarExpr); yes && column.As.IsNone() {
 				if colRef, isColRef := column.Expr.(*ColName); isColRef {
-					// Lone column references are named without their
-					// qualifiers in MySQL.
-					column.As.Set(colRef.Name)
-				} else {
-					column.As.Set(String(column))
-				}
-			}
-		}
-	case *SimpleSelect:
-		for _, expr := range node.SelectExprs {
-			if column, yes := expr.(*NonStarExpr); yes && column.As.IsNone() {
-				if colRef, isColRef := column.Expr.(*ColName); isColRef {
 					// Lone column references are named without their qualifiers
 					// in MySQL. However, for global variables, our parser puts
 					// the "@@global" into the qualifier, so we need to check

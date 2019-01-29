@@ -839,8 +839,6 @@ func (a *algebrizer) translateSelectStatement(
 			}
 		}
 		return a.translateSelect(typedS)
-	case *parser.SimpleSelect:
-		return a.translateSimpleSelect(typedS)
 	case *parser.Union:
 		if typedS.With != nil {
 			if typedS.With.Recursive {
@@ -857,32 +855,6 @@ func (a *algebrizer) translateSelectStatement(
 			mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
 				parser.String(selectStatement))
 	}
-}
-
-func (a *algebrizer) translateSimpleSelect(sel *parser.SimpleSelect) (PlanStage, error) {
-	a.currentClause = fieldList
-	projectedColumns, err := a.translateSelectExprs(sel.SelectExprs)
-	if err != nil {
-		return nil, err
-	}
-
-	if sel.Limit != nil {
-		a.currentClause = limitClause
-		offset, limit, err := a.translateLimit(sel.Limit)
-		if err != nil {
-			return nil, err
-		}
-
-		plan := a.newMongoSourceOrDualStage()
-
-		return NewProjectStage(NewLimitStage(plan,
-			offset, limit), projectedColumns...,
-		), nil
-	}
-
-	plan := a.newMongoSourceOrDualStage()
-
-	return NewProjectStage(plan, projectedColumns...), nil
 }
 
 func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
@@ -1619,10 +1591,11 @@ func (a *algebrizer) translateSimpleTableExpr(
 		}
 
 		columns := plan.Columns()
-
-		err = a.registerColumns(columns)
-		if err != nil {
-			return nil, nil, err
+		if !strings.EqualFold(tableName, "DUAL") {
+			err = a.registerColumns(columns)
+			if err != nil {
+				return nil, nil, err
+			}
 		}
 
 		return plan, columns, nil

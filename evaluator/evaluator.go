@@ -15,7 +15,7 @@ const mongoPrimaryKey string = "_id"
 // Constant values for QueryOp returned by evaluator
 const (
 	COMMAND     QueryOp = iota // commands: AlterTable, DropTable, Flush, Kill, RenameTable, Set, Use
-	QUERY                      // queries: Select, SimpleSelect, Union
+	QUERY                      // queries: Select, Union
 	SHOW                       // show command
 	SHOWNOTIMPL                // show command that is not implemented
 	EXPLAIN                    // explain query
