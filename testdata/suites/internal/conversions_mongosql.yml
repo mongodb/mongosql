@@ -1435,7 +1435,7 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_date
-    pushdown_only: true
+    skip: true
     sql: select value, convert(value, DATE) as converted from string
     variables: {type_conversion_mode: mongosql}
 
@@ -1502,7 +1502,7 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_date_func
-    pushdown_only: true
+    skip: true
     sql: select value, date(value) as converted from string
     variables: {type_conversion_mode: mongosql}
 
@@ -1569,7 +1569,7 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_datetime
-    pushdown_only: true
+    skip: true
     sql: select value, convert(value, DATETIME) as converted from string
     variables: {type_conversion_mode: mongosql}
 
@@ -1636,7 +1636,7 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_datetime_func
-    pushdown_only: true
+    skip: true
     sql: select value, timestamp(value) as converted from string
     variables: {type_conversion_mode: mongosql}
 
