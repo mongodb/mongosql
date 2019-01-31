@@ -270,14 +270,14 @@ func (s *Server) loadMongoDBInfo(ctx context.Context) error {
 
 	}
 
-	topology := string(variable.StandaloneTopology)
+	topology := "standalone"
 	if i.IsMongos() {
-		topology = string(variable.MongosTopology)
+		topology = "mongos"
 	}
 
-	s.variables.MongoDBGitVersion = i.GitVersion
-	s.variables.MongoDBTopology = topology
-	s.variables.MongoDBVersion = i.Version
+	s.variables.SetSystemVariable(variable.MongoDBGitVersion, i.GitVersion)
+	s.variables.SetSystemVariable(variable.MongoDBTopology, topology)
+	s.variables.SetSystemVariable(variable.MongoDBVersion, i.Version)
 	return nil
 }
 

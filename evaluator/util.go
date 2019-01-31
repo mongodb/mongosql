@@ -435,7 +435,7 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 // SQLValues based on the type_conversion_mode variable in the provided container.
 func GetSQLValueKind(vars catalog.VariableContainer) values.SQLValueKind {
 	mode := vars.GetString(variable.TypeConversionMode)
-	switch variable.TypeConversionModeType(mode) {
+	switch mode {
 	case variable.MongoSQLTypeConversionMode:
 		return values.MongoSQLValueKind
 	case variable.MySQLTypeConversionMode:

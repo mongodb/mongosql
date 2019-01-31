@@ -13,7 +13,7 @@ import (
 // For more details on the meaning of each field, see the comment at the top of
 // scalar_functions.yml.
 type ScalarFuncSpec struct {
-	ID                           string                 `yaml:"id"`
+	ID                           string                 `yaml:"_id"`
 	Description                  string                 `yaml:"description"`
 	MySQLDocURL                  string                 `yaml:"mysql_doc_url"`
 	Names                        []string               `yaml:"names"`
@@ -31,7 +31,7 @@ type ScalarFuncSpec struct {
 // of a scalar function. For more details on the meaning of each field, see the
 // comment at the top of scalar_functions.yml.
 type ScalarFuncInvocation struct {
-	ID             string               `yaml:"id"`
+	ID             string               `yaml:"_id"`
 	Children       []ScalarFuncArgument `yaml:"arguments"`
 	ReturnEvalType string               `yaml:"return_type"`
 }

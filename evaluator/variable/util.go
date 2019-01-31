@@ -2,6 +2,7 @@ package variable
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 )
@@ -54,9 +55,26 @@ func convertUint64(v interface{}) (uint64, bool) {
 		return uint64(tv), true
 	case uint64:
 		return tv, true
-	default:
+	}
+	i, ok := convertInt64(v)
+	if !ok {
 		return 0, false
 	}
+	if i < 0 {
+		return 0, true
+	}
+	return uint64(i), true
+}
+
+func convertUint16(v interface{}) (uint16, bool) {
+	u, ok := convertUint64(v)
+	if !ok {
+		return 0, false
+	}
+	if u > math.MaxUint16 {
+		return math.MaxUint16, true
+	}
+	return uint16(u), true
 }
 
 func convertString(v interface{}) (string, bool) {
@@ -64,32 +82,12 @@ func convertString(v interface{}) (string, bool) {
 	return s, ok
 }
 
-func kindToString(k Kind) string {
-	switch k {
-	case SystemKind:
-		return "system"
-	case StatusKind:
-		return "status"
-	case UserKind:
-		return "user"
-	default:
-		return "unknown kind"
-	}
-}
-
 // nolint: unparam
 func invalidValueError(n Name, v interface{}) error {
 	return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, n, fmt.Sprintf("%v", v))
-
 }
 
 func wrongTypeError(n Name, v interface{}) error {
 	return mysqlerrors.Newf(mysqlerrors.ErWrongTypeForVar,
 		"Incorrect arg type for variable %s: %T", n, v)
-}
-
-// nolint: unparam
-func wrongStringValueError(n Name, s string, expected string) error {
-	return mysqlerrors.Newf(mysqlerrors.ErWrongValue,
-		"Incorrect arg value for variable %s: %s, expected %s", n, s, expected)
 }

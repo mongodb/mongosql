@@ -86,7 +86,7 @@ func TestMapSchema(t *testing.T) {
 func testMapSchemaFromJson(collection string, prejoined bool, mappingMode config.MappingMode) error {
 	dir := "testdata/" + collection + "/"
 
-	expectedFile := dir + string(mappingMode) + "_schema.yml"
+	expectedFile := dir + mappingMode + "_schema.yml"
 	jsonFile := dir + "schema.json"
 
 	if prejoined {
@@ -118,7 +118,7 @@ func testMapSchemaFromJson(collection string, prejoined bool, mappingMode config
 func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
 	dir := "testdata/" + collection + "/"
 
-	expectedFile := dir + string(mode) + "_schema.yml"
+	expectedFile := dir + mode + "_schema.yml"
 	sampleFile := dir + "sample.json"
 
 	// load the expected relational drdl

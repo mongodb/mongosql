@@ -110,14 +110,14 @@ func CreateProjectedColumnFromSQLExpr(selectID int,
 // CreateTestVariables creates a container from a mongoDB config for testing.
 func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBVersion = info.Version
-	gbl.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
-	gbl.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
+	gbl.SetSystemVariable(variable.MongoDBVersion, info.Version)
+	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
+	gbl.SetSystemVariable(variable.TypeConversionMode, variable.MySQLTypeConversionMode)
 
 	ctn := variable.NewSessionContainer(gbl)
-	ctn.MongoDBVersion = info.Version
-	ctn.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
-	ctn.SetSystemVariable(variable.TypeConversionMode, string(variable.MySQLTypeConversionMode))
+	gbl.SetSystemVariable(variable.MongoDBVersion, info.Version)
+	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
+	ctn.SetSystemVariable(variable.TypeConversionMode, variable.MySQLTypeConversionMode)
 	return ctn
 }
 

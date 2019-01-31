@@ -1617,11 +1617,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 		{
 			"select g.a from (select a from foo) g",
 			func() *variable.Container {
-				vars := &variable.Container{
-					MongoDBGitVersion:           testInfo.GitVersion,
-					MongoDBVersion:              testInfo.Version,
-					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-				}
+				vars := &variable.Container{}
+				vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+				vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+				vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
@@ -1642,11 +1641,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 		{
 			"select fast.a from (select a from foo) fast",
 			func() *variable.Container {
-				vars := &variable.Container{
-					MongoDBGitVersion:           testInfo.GitVersion,
-					MongoDBVersion:              testInfo.Version,
-					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-				}
+				vars := &variable.Container{}
+				vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+				vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+				vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
@@ -1667,11 +1665,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 		{
 			"select safe.a from (select a from foo) safe",
 			func() *variable.Container {
-				vars := &variable.Container{
-					MongoDBGitVersion:           testInfo.GitVersion,
-					MongoDBVersion:              testInfo.Version,
-					MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-				}
+				vars := &variable.Container{}
+				vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+				vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+				vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
@@ -3839,11 +3836,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 	limitVariableTests := []variableTest{{
 		"select a from foo",
 		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBGitVersion:           testInfo.GitVersion,
-				MongoDBVersion:              testInfo.Version,
-				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-			}
+			vars := &variable.Container{}
+			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 			vars.SetSystemVariable(variable.SQLSelectLimit, 10)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
@@ -3862,11 +3858,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select b from foo",
 		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBGitVersion:           testInfo.GitVersion,
-				MongoDBVersion:              testInfo.Version,
-				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-			}
+			vars := &variable.Container{}
+			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
@@ -3885,11 +3880,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select b from foo fast",
 		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBGitVersion:           testInfo.GitVersion,
-				MongoDBVersion:              testInfo.Version,
-				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-			}
+			vars := &variable.Container{}
+			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
@@ -3908,11 +3902,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select b from foo safe",
 		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBGitVersion:           testInfo.GitVersion,
-				MongoDBVersion:              testInfo.Version,
-				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-			}
+			vars := &variable.Container{}
+			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
@@ -3938,11 +3931,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select b from foo limit 10, 20",
 		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBGitVersion:           testInfo.GitVersion,
-				MongoDBVersion:              testInfo.Version,
-				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-			}
+			vars := &variable.Container{}
+			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
@@ -3961,11 +3953,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select b from foo fast limit 10, 20",
 		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBGitVersion:           testInfo.GitVersion,
-				MongoDBVersion:              testInfo.Version,
-				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-			}
+			vars := &variable.Container{}
+			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
@@ -3984,11 +3975,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select b from foo safe limit 10, 20",
 		func() *variable.Container {
-			vars := &variable.Container{
-				MongoDBGitVersion:           testInfo.GitVersion,
-				MongoDBVersion:              testInfo.Version,
-				MongoDBVersionCompatibility: testInfo.CompatibleVersion,
-			}
+			vars := &variable.Container{}
+			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
+			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
+			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
 			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
 			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
 			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")

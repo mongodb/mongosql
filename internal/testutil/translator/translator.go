@@ -100,10 +100,10 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 
 func createVariables(info *mongodb.Info) catalog.VariableContainer {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBVersion = info.Version
+	gbl.SetSystemVariable(variable.MongoDBVersion, info.Version)
 
 	ctn := variable.NewSessionContainer(gbl)
-	ctn.MongoDBVersion = info.Version
+	ctn.SetSystemVariable(variable.MongoDBVersion, info.Version)
 	return ctn
 }
 

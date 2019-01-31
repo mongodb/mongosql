@@ -33,7 +33,7 @@ type AlgebrizerConfig struct {
 	sqlValueKind                  values.SQLValueKind
 	sqlSelectLimit                uint64
 	maxVarcharLength              uint16
-	polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType
+	polymorphicTypeConversionMode string
 	version                       []uint8
 }
 
@@ -46,12 +46,12 @@ func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog) *Algeb
 		lg:                            lg,
 		dbName:                        dbName,
 		catalog:                       c,
-		isMongos:                      vars.GetString(variable.MongoDBTopology) == string(variable.MongosTopology),
+		isMongos:                      vars.GetString(variable.MongoDBTopology) == "mongos",
 		sqlValueKind:                  GetSQLValueKind(vars),
 		sqlSelectLimit:                vars.GetUint64(variable.SQLSelectLimit),
 		maxVarcharLength:              vars.GetUint16(variable.MongoDBMaxVarcharLength),
 		groupConcatMaxLen:             vars.GetInt64(variable.GroupConcatMaxLen),
-		polymorphicTypeConversionMode: catalog.GetPolymorphicTypeConversionMode(vars),
+		polymorphicTypeConversionMode: vars.GetString(variable.PolymorphicTypeConversionMode),
 		version:                       getMongoDBVersion(vars),
 	}
 }
@@ -414,7 +414,7 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 		if catalogErr != nil {
 			return nil, catalogErr
 		}
-		mode := string(a.cfg.polymorphicTypeConversionMode)
+		mode := a.cfg.polymorphicTypeConversionMode
 		if catalogColumn != nil && catalogColumn.ShouldConvert(mode) {
 			return NewSQLConvertExpr(colExpr, column.EvalType), nil
 		}
@@ -1042,7 +1042,7 @@ func (a *algebrizer) translateSelectExprs(
 	selectExprs parser.SelectExprs) (ProjectedColumns, error) {
 	var projectedColumns ProjectedColumns
 	hasGlobalStar := false
-	mode := string(a.cfg.polymorphicTypeConversionMode)
+	mode := a.cfg.polymorphicTypeConversionMode
 
 	for _, selectExpr := range selectExprs {
 		switch typedE := selectExpr.(type) {

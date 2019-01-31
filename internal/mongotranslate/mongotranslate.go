@@ -61,14 +61,14 @@ func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion string, showInferredSchem
 // getCatalog copies the inferred schema into a Catalog and returns it.
 func getCatalog(mdbVersion string, is InferredSchema) (catalog.Catalog, error) {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.MongoDBVersion = mdbVersion
-	gbl.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
-	gbl.SetSystemVariable(variable.TypeConversionMode, string(variable.MongoSQLTypeConversionMode))
+	gbl.SetSystemVariable(variable.MongoDBVersion, mdbVersion)
+	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
+	gbl.SetSystemVariable(variable.TypeConversionMode, variable.MongoSQLTypeConversionMode)
 
 	vars := variable.NewSessionContainer(gbl)
-	vars.MongoDBVersion = mdbVersion
-	vars.PolymorphicTypeConversionMode = string(variable.PolymorphicTypeConversionModeOff)
-	vars.SetSystemVariable(variable.TypeConversionMode, string(variable.MongoSQLTypeConversionMode))
+	vars.SetSystemVariable(variable.MongoDBVersion, mdbVersion)
+	vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
+	vars.SetSystemVariable(variable.TypeConversionMode, variable.MongoSQLTypeConversionMode)
 
 	ctlg := catalog.New("", vars)
 

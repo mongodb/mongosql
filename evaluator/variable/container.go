@@ -2,7 +2,6 @@ package variable
 
 import (
 	"fmt"
-	"math"
 	"strings"
 	"sync"
 	"time"
@@ -10,54 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
-)
-
-type MongoDBTopologyType string
-
-const (
-	MongosTopology     MongoDBTopologyType = "mongos"
-	StandaloneTopology MongoDBTopologyType = "standalone"
-)
-
-// TypeConversionModeType is an enum of TypeConversionMode values.
-type TypeConversionModeType string
-
-// These are the permitted values for the type_conversion_mode variable.
-const (
-	MongoSQLTypeConversionMode TypeConversionModeType = "mongosql"
-	MySQLTypeConversionMode    TypeConversionModeType = "mysql"
-)
-
-// These are the permitted values for the metrics_backend variable.
-const (
-	NoMetricsBackend     = "off"
-	LogMetricsBackend    = "log"
-	StitchMetricsBackend = "stitch"
-)
-
-// PolymorphicTypeConversionModeType is an enum of PolymorphicTypeConversionMode values.
-type PolymorphicTypeConversionModeType string
-
-const (
-	// PolymorphicTypeConversionModeSafe sets the polymorphic_type_conversion_mode to safe,
-	// which inserts SQLConvertExprs to the column type on any column from a MongoSourceStage.
-	// It is "safe", because it should protect against any unsampled data types on versions
-	// of MongoDB server that support $convert.
-	PolymorphicTypeConversionModeSafe PolymorphicTypeConversionModeType = "safe"
-	// PolymorphicTypeConversionTypeModeFast sets the polymorphic_type_conversion_mode to fast.
-	// This mode will insert SQLConvertExprs on any column from a MongoSourceStage that was
-	// sampled with more than one type, but not on others.
-	PolymorphicTypeConversionTypeModeFast PolymorphicTypeConversionModeType = "fast"
-	// PolymorphicTypeConversionModeOff sets the polymorphic_type_conversion_mode to off.
-	// No extra SQLConvertExprs are inserted in this mode.
-	PolymorphicTypeConversionModeOff PolymorphicTypeConversionModeType = "off"
-)
-
-const (
-	defaultMetricsBackend     = NoMetricsBackend
-	defaultTypeConversionMode = MongoSQLTypeConversionMode
 )
 
 // Container holds variables based on a scope.
@@ -69,25 +21,8 @@ type Container struct {
 	// userValues is storage for user variables
 	userValues map[Name]interface{}
 
-	// Backing storage for non-user MySQL system variables below.
-	autoCommit             bool
-	characterSetClient     string
-	characterSetConnection string
-	characterSetDatabase   string
-	characterSetResults    string
-	collationConnection    string
-	collationDatabase      string
-	collationServer        string
-	interactiveTimeoutSecs int64
-	maxAllowedPacket       int64
-	MaxConnections         int64
-	MaxTimeMS              int64
-	socket                 string
-	sqlAutoIsNull          bool
-	sqlSelectLimit         uint64
-	version                string
-	versionComment         string
-	waitTimeoutSecs        int64
+	// Backing storage for system variables
+	systemVariableContainer
 
 	// Backing storage for non-user MySQL status variables below.
 	BytesReceived    *uint64
@@ -97,43 +32,18 @@ type Container struct {
 	StartTime        time.Time
 	ThreadsConnected *uint32
 
-	// Backing storage for mongosqld-defined variables below.
-	anonymizeMetrics              bool
-	enableTableAlterations        bool
-	FullPushdownExecMode          bool
-	GroupConcatMaxLen             int64
-	logLevel                      int64
-	maxNestedTableDepth           int64
-	maxNumColumnsPerTable         int64
-	metricsBackend                string
-	mongoDBMaxServerSize          uint64
-	mongoDBMaxConnectionSize      uint64
-	mongoDBMaxStageSize           uint64
-	mongoDBMaxVarcharLength       uint16
-	MongoDBGitVersion             string
-	MongoDBTopology               string
-	MongoDBVersion                string
-	MongoDBVersionCompatibility   string
-	mongosqldVersion              string
-	OptimizeCrossJoins            bool
-	OptimizeEvaluations           bool
-	OptimizeFiltering             bool
-	OptimizeInnerJoins            bool
-	OptimizeSelfJoins             bool
-	OptimizeViewSampling          bool
-	PolymorphicTypeConversionMode string
-	Pushdown                      bool
-	sampleRefreshIntervalSecs     int64
-	sampleSize                    int64
-	rewriteDistinctAsGroup        bool
-	SchemaMappingMode             string
-	typeConversionMode            string
-
 	AllocatedMemory func() uint64
 }
 
 // NewGlobalContainer creates a container with a GlobalScope.
 func NewGlobalContainer(cfg *config.Config) *Container {
+
+	// Initialize system variables from defaults and, if applicable, config.
+	sysVars := systemVariableContainer{}
+	sysVars.setDefaults()
+	if cfg != nil {
+		sysVars.setFromConfig(cfg)
+	}
 
 	// Initialize server status variables here
 	bytesReceived := uint64(0)
@@ -143,86 +53,9 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 	startTime := time.Now()
 	threadsConnected := uint32(0)
 
-	// These variables' default values can be set in the
-	// setParameter section of the config.
-	anonymizeMetrics := true
-	enableTableAlterations := false
-	metricsBackend := defaultMetricsBackend
-	optimizeEvaluations := true
-	optimizeCrossJoins := true
-	optimizeInnerJoins := true
-	optimizeFiltering := true
-	optimizeSelfJoins := true
-	optimizeViewSampling := true
-	polymorphicTypeConversionMode := string(PolymorphicTypeConversionModeOff)
-	pushdown := true
-	rewriteDistinctAsGroup := false
-	typeConversionMode := string(defaultTypeConversionMode)
-
-	// These variables' default values can be set via other
-	// config flags/config file options.
-	mappingMode := string(config.LatticeMappingMode)
-	sampleSize := int64(config.DefaultSampleSize)
-	sampleRefreshIntervalSecs := int64(config.DefaultSampleRefreshIntervalSecs)
-	maxNumColumnsPerTable := int64(config.DefaultMaxNumColumnsPerTable)
-	maxNestedTableDepth := int64(config.DefaultMaxNestedTableDepth)
-
-	logLevel := int64(0)
-	if cfg != nil {
-		logLevel = int64(cfg.SystemLog.Verbosity)
-		if cfg.SystemLog.Quiet {
-			logLevel = -1
-		}
-	}
-
-	if cfg != nil {
-		// defaults from SetParameter config section
-		anonymizeMetrics = cfg.SetParameter.AnonymizeMetrics
-		enableTableAlterations = cfg.SetParameter.EnableTableAlterations
-		metricsBackend = cfg.SetParameter.MetricsBackend
-		optimizeEvaluations = cfg.SetParameter.OptimizeEvaluations
-		optimizeCrossJoins = cfg.SetParameter.OptimizeCrossJoins
-		optimizeInnerJoins = cfg.SetParameter.OptimizeInnerJoins
-		optimizeFiltering = cfg.SetParameter.OptimizeFiltering
-		optimizeSelfJoins = cfg.SetParameter.OptimizeSelfJoins
-		optimizeViewSampling = cfg.SetParameter.OptimizeViewSampling
-		polymorphicTypeConversionMode = cfg.SetParameter.PolymorphicTypeConversionMode
-		pushdown = cfg.SetParameter.Pushdown
-		rewriteDistinctAsGroup = cfg.SetParameter.RewriteDistinctAsGroup
-		typeConversionMode = cfg.SetParameter.TypeConversionMode
-
-		// defaults from other config sections
-		mappingMode = string(cfg.Schema.Sample.SchemaMappingMode)
-		sampleSize = cfg.Schema.Sample.Size
-		sampleRefreshIntervalSecs = cfg.Schema.Sample.RefreshIntervalSecs
-		maxNumColumnsPerTable = cfg.Schema.Sample.MaxNumColumnsPerTable
-		maxNestedTableDepth = cfg.Schema.Sample.MaxNestedTableDepth
-	}
-	logLevel = log.NormalizeVerbosityLevel(logLevel)
-
-	container := &Container{
-		scope: GlobalScope,
-
-		// Default values for non-user MySQL system variables below.
-		autoCommit:             true,
-		characterSetClient:     string(collation.DefaultCharset.Name),
-		characterSetConnection: string(collation.DefaultCharset.Name),
-		characterSetDatabase:   string(collation.DefaultCharset.Name),
-		characterSetResults:    string(collation.DefaultCharset.Name),
-		collationConnection:    string(collation.Default.Name),
-		collationDatabase:      string(collation.Default.Name),
-		collationServer:        string(collation.Default.Name),
-		GroupConcatMaxLen:      1024,
-		interactiveTimeoutSecs: 28800,
-		maxAllowedPacket:       config.DefaultMaxAllowedPacket,
-		MaxConnections:         0, // represents unlimited connections
-		MaxTimeMS:              0, // A value of 0 represents no timeout is enabled.
-		socket:                 "",
-		sqlAutoIsNull:          false,
-		sqlSelectLimit:         math.MaxUint64,
-		version:                "5.7.12",
-		versionComment:         "mongosqld " + config.VersionStr,
-		waitTimeoutSecs:        28800,
+	return &Container{
+		scope:                   GlobalScope,
+		systemVariableContainer: sysVars,
 
 		// Default values for non-user MySQL status variables below.
 		BytesReceived:    &bytesReceived,
@@ -232,50 +65,8 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 		StartTime:        startTime,
 		ThreadsConnected: &threadsConnected,
 
-		// Default values for mongosqld-defined variables.
-		anonymizeMetrics:              anonymizeMetrics,
-		enableTableAlterations:        enableTableAlterations,
-		FullPushdownExecMode:          false,
-		logLevel:                      logLevel,
-		maxNumColumnsPerTable:         maxNumColumnsPerTable,
-		maxNestedTableDepth:           maxNestedTableDepth,
-		metricsBackend:                metricsBackend,
-		mongoDBMaxServerSize:          0,
-		mongoDBMaxConnectionSize:      0,
-		mongoDBMaxStageSize:           0,
-		mongoDBMaxVarcharLength:       math.MaxUint16,
-		MongoDBTopology:               "",
-		MongoDBGitVersion:             "",
-		MongoDBVersion:                "",
-		MongoDBVersionCompatibility:   "",
-		mongosqldVersion:              config.VersionStr,
-		OptimizeEvaluations:           optimizeEvaluations,
-		OptimizeCrossJoins:            optimizeCrossJoins,
-		OptimizeInnerJoins:            optimizeInnerJoins,
-		OptimizeFiltering:             optimizeFiltering,
-		OptimizeSelfJoins:             optimizeSelfJoins,
-		OptimizeViewSampling:          optimizeViewSampling,
-		PolymorphicTypeConversionMode: polymorphicTypeConversionMode,
-		Pushdown:                      pushdown,
-		sampleRefreshIntervalSecs:     sampleRefreshIntervalSecs,
-		sampleSize:                    sampleSize,
-		SchemaMappingMode:             mappingMode,
-		rewriteDistinctAsGroup:        rewriteDistinctAsGroup,
-		typeConversionMode:            typeConversionMode,
-
 		AllocatedMemory: func() uint64 { return 0 },
 	}
-
-	// Initializing Global Container
-	if cfg != nil {
-		container.mongoDBMaxServerSize = cfg.Runtime.Memory.MaxPerServer
-		container.mongoDBMaxConnectionSize = cfg.Runtime.Memory.MaxPerConnection
-		container.mongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
-		container.mongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
-		container.MongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
-	}
-
-	return container
 }
 
 // NewSessionContainer creates a container with a SessionScope.
@@ -483,28 +274,77 @@ func (c *Container) GetUint64(name Name) uint64 {
 
 // Set sets the value of a variable with the specified name, scope, and kind.
 func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) error {
-	if c.scope == GlobalScope && kind == SystemKind {
+	lowerName := Name(strings.ToLower(string(name)))
+	switch kind {
+	case UserKind:
+		if scope != SessionScope {
+			panic(fmt.Sprintf("cannot set user variable: %v on a global scope: %v", name, scope))
+		}
+		c.userValues[lowerName] = value
+		return nil
+	case StatusKind:
+		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
+	case SystemKind:
+		if err := validateSetScope(scope, name); err != nil {
+			return err
+		}
+		return c.setSystemVariable(scope, name, value)
+	default:
+		panic(fmt.Sprintf("unknown variable kind %v", kind))
+	}
+}
+
+func (c *Container) setSystemVariable(scope Scope, name Name, value interface{}) error {
+	def, err := getDefinition(name)
+	if err != nil {
+		return err
+	}
+
+	if c.scope == GlobalScope {
 		c.lock.Lock()
 		defer c.lock.Unlock()
 	}
 
-	lowerName := Name(strings.ToLower(string(name)))
-	if kind == UserKind {
-		if scope != SessionScope {
-			panic(fmt.Sprintf("cannot set user variable: %v on a global scope: %v", name, scope))
+	if fmt.Sprintf("%v", value) == "default" {
+		value, err := NewGlobalContainer(nil).Get(name, GlobalScope, SystemKind)
+		if err != nil {
+			return err
 		}
-
-		c.userValues[lowerName] = value
-		return nil
+		return c.setSystemVariable(scope, name, value.Value)
 	}
 
-	if kind == StatusKind {
-		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
+	if c.scope == scope {
+		return def.SetValue(c, value)
+	} else if c.parent != nil {
+		return c.parent.setSystemVariable(scope, name, value)
 	}
 
+	panic(fmt.Sprintf("illegal scope %v", scope))
+}
+
+// SetSystemVariable sets the value of the variable with the specified name for
+// system variable. This function skips set scope validation, so it should only
+// be used to initialize variables, not as part of a SET command.
+func (c *Container) SetSystemVariable(name Name, value interface{}) {
+	err := c.setSystemVariable(c.scope, name, value)
+	if err != nil {
+		panic(fmt.Sprintf("unexpected error initializing system variable '%s': %v", name, err))
+	}
+}
+
+func getDefinition(name Name) (*definition, error) {
+	lowerName := Name(strings.ToLower(string(name)))
 	def, ok := definitions[lowerName]
 	if !ok {
-		return mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
+	}
+	return def, nil
+}
+
+func validateSetScope(scope Scope, name Name) error {
+	def, err := getDefinition(name)
+	if err != nil {
+		return err
 	}
 
 	if (def.AllowedSetScopes & scope) != scope {
@@ -517,31 +357,5 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 		return mysqlerrors.Defaultf(mysqlerrors.ErLocalVariable, name)
 	}
 
-	if def.SetValue == nil {
-		return mysqlerrors.Defaultf(mysqlerrors.ErVariableIsReadonly, kindToString(kind), name)
-	}
-
-	if fmt.Sprintf("%v", value) == "default" {
-		value, err := NewGlobalContainer(nil).Get(name, GlobalScope, kind)
-		if err != nil {
-			return err
-		}
-		return c.Set(name, scope, kind, value.Value)
-	}
-
-	if c.scope == scope {
-		return def.SetValue(c, value)
-	} else if c.parent != nil {
-		return c.parent.Set(name, scope, kind, value)
-	}
-
-	panic(fmt.Sprintf("illegal scope %v", scope))
-}
-
-// SetSystemVariable sets the value of the variable with the specified name for system variable.
-func (c *Container) SetSystemVariable(name Name, value interface{}) {
-	err := c.Set(name, c.scope, SystemKind, value)
-	if err != nil {
-		panic(fmt.Sprintf("cannot set system variable %v: %v", name, err))
-	}
+	return nil
 }

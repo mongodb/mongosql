@@ -23,8 +23,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
-	testString(t, string(cfg.Schema.Sample.SchemaMappingMode), "lattice",
-		"cfg.Schema.Sample.SchemaMappingMode")
+	testString(t, cfg.Schema.Sample.SchemaMappingMode, "lattice", "cfg.Schema.Sample.SchemaMappingMode")
 	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, false, "cfg.Schema.Sample.PreJoin")
@@ -164,8 +163,7 @@ func TestLoad(t *testing.T) {
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
 	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
-	testString(t, string(cfg.Schema.Sample.SchemaMappingMode), "majority",
-		"cfg.Schema.Sample.SchemaMappingMode")
+	testString(t, cfg.Schema.Sample.SchemaMappingMode, "majority", "cfg.Schema.Sample.SchemaMappingMode")
 	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
@@ -468,7 +466,7 @@ func TestValidate_Sample_Invalid_SchemaMappingMode(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(string(test.schemaMappingMode), func(t *testing.T) {
+		t.Run(test.schemaMappingMode, func(t *testing.T) {
 			cfg := Default()
 			cfg.Schema.Sample.SchemaMappingMode = test.schemaMappingMode
 

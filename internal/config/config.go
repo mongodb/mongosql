@@ -400,6 +400,13 @@ type SystemLog struct {
 	Verbosity int
 }
 
+func (cfg SystemLog) Level() int64 {
+	if cfg.Quiet {
+		return -1
+	}
+	return int64(cfg.Verbosity)
+}
+
 // Runtime holds runtime configuration.
 type Runtime struct {
 	Memory RuntimeMemory
@@ -429,7 +436,7 @@ const (
 )
 
 // MappingMode is a name for the sampling mode to use.
-type MappingMode string
+type MappingMode = string
 
 // Values for MappingMode.
 const (

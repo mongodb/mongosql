@@ -107,7 +107,7 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 	qCfg := evaluator.NewQueryConfig(lg, rCfg, aCfg, oCfg, pCfg, eCfg)
 
 	var queryCtx context.Context
-	maxTimeMS := c.variables.MaxTimeMS
+	maxTimeMS := c.variables.GetInt64(variable.MaxTimeMS)
 	// When the user has supplied a max execution time we create a time bounded context for
 	// the query so that the query will be cancelled if the time deadline is reached.
 	// A MaxTimeMS of `0` means no max time set.

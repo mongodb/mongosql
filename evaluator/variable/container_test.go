@@ -4,175 +4,184 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator/variable"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGlobalVariable(t *testing.T) {
-	Convey("Subject: Global Container", t, func() {
 
+	t.Run("default_value", func(t *testing.T) {
+		req := require.New(t)
 		subject := variable.NewGlobalContainer(nil)
 
-		Convey("Get should fail with invalid system variable name", func() {
-			_, err := subject.Get(variable.Name("test"), variable.GlobalScope, variable.SystemKind)
-			So(err, ShouldNotBeNil)
-		})
+		v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(true, v.Value)
+	})
 
-		Convey("Get should fail with invalid scope", func() {
-			_, err := subject.Get(variable.Name("autocommit"), variable.SessionScope,
-				variable.SystemKind)
-			So(err, ShouldNotBeNil)
-		})
+	t.Run("invalid_name", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewGlobalContainer(nil)
 
-		Convey("Get should panic with invalid kind", func() {
-			f := func() {
-				_, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope,
-					variable.UserKind)
-				So(err, ShouldBeNil)
-			}
-			So(f, ShouldPanic)
-		})
+		_, err := subject.Get(variable.Name("test"), variable.GlobalScope, variable.SystemKind)
+		req.Error(err)
 
-		Convey("Get should get the default value of a variable", func() {
-			v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, true)
-		})
+		err = subject.Set(variable.Name("test"), variable.GlobalScope, variable.SystemKind, false)
+		req.Error(err)
+	})
 
-		Convey("Set should fail with invalid name", func() {
-			err := subject.Set(variable.Name("test"), variable.GlobalScope, variable.SystemKind,
-				false)
-			So(err, ShouldNotBeNil)
-		})
+	t.Run("invalid_scope", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewGlobalContainer(nil)
 
-		Convey("Set should fail with invalid scope", func() {
-			f := func() {
-				err := subject.Set(variable.Name("autocommit"), variable.SessionScope,
-					variable.SystemKind, false)
-				So(err, ShouldBeNil)
-			}
-			So(f, ShouldPanic)
-		})
+		f := func() {
+			_ = subject.Set(variable.Name("autocommit"), variable.SessionScope, variable.SystemKind, false)
+		}
+		req.Panics(f)
 
-		Convey("Set should fail with invalid kind", func() {
-			f := func() {
-				err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
-					variable.UserKind, false)
-				So(err, ShouldBeNil)
-			}
-			So(f, ShouldPanic)
-		})
+		_, err := subject.Get(variable.Name("autocommit"), variable.SessionScope, variable.SystemKind)
+		req.Error(err)
+	})
 
-		Convey("Set should fail for an invalid type", func() {
-			err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind, "yeahaehasdh")
-			So(err, ShouldNotBeNil)
-		})
+	t.Run("invalid_kind", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewGlobalContainer(nil)
 
-		Convey("Set should succeed when variable name and scope are valid", func() {
-			err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind, false)
-			So(err, ShouldBeNil)
+		f := func() {
+			_ = subject.Set(variable.Name("autocommit"), variable.GlobalScope, variable.UserKind, false)
+		}
+		req.Panics(f)
 
-			v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, false)
-		})
+		f = func() {
+			_, _ = subject.Get(variable.Name("autocommit"), variable.GlobalScope, variable.UserKind)
+		}
+		req.Panics(f)
+	})
+
+	t.Run("invalid_type", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewGlobalContainer(nil)
+
+		err := subject.Set(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind, "yeahaehasdh")
+		req.Error(err)
+	})
+
+	t.Run("valid_name_and_scope", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewGlobalContainer(nil)
+
+		err := subject.Set(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind, false)
+		req.NoError(err)
+
+		v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(false, v.Value)
 	})
 }
 
 func TestSessionVariable(t *testing.T) {
-	Convey("Subject: Session Container", t, func() {
+	t.Run("invalid_system_variable", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+		_, err := subject.Get(variable.Name("test"), variable.SessionScope, variable.SystemKind)
+		req.Error(err)
+	})
 
+	t.Run("default_value", func(t *testing.T) {
+		req := require.New(t)
 		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
 
-		Convey("Get should fail with invalid system variable name", func() {
-			_, err := subject.Get(variable.Name("test"), variable.SessionScope, variable.SystemKind)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Get should get the default value of a variable", func() {
-			v, err := subject.Get(variable.Name("autocommit"), variable.SessionScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, true)
-		})
-
-		Convey("Get should fallback to the parent with a different scope", func() {
-			v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, true)
-		})
-
-		Convey("Get should get nil for a non-existing user variable", func() {
-			v, err := subject.Get(variable.Name("test"), variable.SessionScope, variable.UserKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldBeNil)
-		})
-
-		Convey("Set should fail with invalid name", func() {
-			err := subject.Set(variable.Name("test"), variable.SessionScope, variable.SystemKind,
-				false)
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Set should fail with invalid kind", func() {
-			f := func() {
-				err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
-					variable.UserKind, false)
-				So(err, ShouldBeNil)
-			}
-			So(f, ShouldPanic)
-		})
-
-		Convey("Set should fail for an invalid type", func() {
-			err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind, "yeahaehasdh")
-			So(err, ShouldNotBeNil)
-		})
-
-		Convey("Set should succeed with parent scope", func() {
-			err := subject.Set(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind, false)
-			So(err, ShouldBeNil)
-
-			v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, false)
-
-			v, err = subject.Get(variable.Name("autocommit"), variable.SessionScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, true)
-		})
-
-		Convey("Set should succeed with current scope", func() {
-			err := subject.Set(variable.Name("autocommit"), variable.SessionScope,
-				variable.SystemKind, false)
-			So(err, ShouldBeNil)
-
-			v, err := subject.Get(variable.Name("autocommit"), variable.SessionScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, false)
-
-			v, err = subject.Get(variable.Name("autocommit"), variable.GlobalScope,
-				variable.SystemKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, true)
-		})
-
-		Convey("Set should succeed for when setting a user variable", func() {
-			err := subject.Set(variable.Name("test"), variable.SessionScope, variable.UserKind,
-				"yeah")
-			So(err, ShouldBeNil)
-
-			v, err := subject.Get(variable.Name("test"), variable.SessionScope, variable.UserKind)
-			So(err, ShouldBeNil)
-			So(v.Value, ShouldEqual, "yeah")
-		})
+		v, err := subject.Get(variable.Name("autocommit"), variable.SessionScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(true, v.Value)
 	})
+
+	t.Run("fallback_to_parent", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(true, v.Value)
+	})
+
+	t.Run("unset_user_variable", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		v, err := subject.Get(variable.Name("test"), variable.SessionScope, variable.UserKind)
+		req.NoError(err)
+		req.Nil(v.Value)
+	})
+
+	t.Run("invalid_name", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		err := subject.Set(variable.Name("test"), variable.SessionScope, variable.SystemKind, false)
+		req.Error(err)
+	})
+
+	t.Run("invalid_kind", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		f := func() {
+			_ = subject.Set(variable.Name("autocommit"), variable.GlobalScope,
+				variable.UserKind, false)
+		}
+		req.Panics(f)
+	})
+
+	t.Run("invalid_type", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		err := subject.Set(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind, "yeahaehasdh")
+		req.Error(err)
+	})
+
+	t.Run("parent_scope", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		err := subject.Set(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind, false)
+		req.NoError(err)
+
+		v, err := subject.Get(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(false, v.Value)
+
+		v, err = subject.Get(variable.Name("autocommit"), variable.SessionScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(true, v.Value)
+	})
+
+	t.Run("current_scope", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		err := subject.Set(variable.Name("autocommit"), variable.SessionScope, variable.SystemKind, false)
+		req.NoError(err)
+
+		v, err := subject.Get(variable.Name("autocommit"), variable.SessionScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(false, v.Value)
+
+		v, err = subject.Get(variable.Name("autocommit"), variable.GlobalScope, variable.SystemKind)
+		req.NoError(err)
+		req.Equal(true, v.Value)
+	})
+
+	t.Run("set user variable", func(t *testing.T) {
+		req := require.New(t)
+		subject := variable.NewSessionContainer(variable.NewGlobalContainer(nil))
+
+		err := subject.Set(variable.Name("test"), variable.SessionScope, variable.UserKind, "yeah")
+		req.NoError(err)
+
+		v, err := subject.Get(variable.Name("test"), variable.SessionScope, variable.UserKind)
+		req.NoError(err)
+		req.Equal("yeah", v.Value)
+	})
+
 }

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -109,19 +108,6 @@ func getKeyToParentTable(foreignKeys foreignKeyCandidates, depth int) *foreignKe
 		break
 	}
 	return keyToParent
-}
-
-// GetPolymorphicTypeConversionMode converts a string to a PolymorphicConversionMode if it
-// is viable, or else panics.
-func GetPolymorphicTypeConversionMode(vars VariableContainer) variable.PolymorphicTypeConversionModeType {
-	str := vars.GetString(variable.PolymorphicTypeConversionMode)
-	out := variable.PolymorphicTypeConversionModeType(str)
-	switch out {
-	case variable.PolymorphicTypeConversionTypeModeFast, variable.PolymorphicTypeConversionModeSafe,
-		variable.PolymorphicTypeConversionModeOff:
-		return out
-	}
-	panic(fmt.Sprintf("'%s' is not a valid value for PolymorphicTypeConversionMode", str))
 }
 
 // getUnwindPaths returns a list of unwind paths found in the aggregation pipeline

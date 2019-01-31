@@ -186,10 +186,10 @@ type MongoColumn struct {
 // PolymorphicConversionMode is "PolymorphicConversionModeSafe". "PolymorphicTypeConversionModeOff"
 // always returns false.
 func (c *MongoColumn) ShouldConvert(mode string) bool {
-	if variable.PolymorphicTypeConversionModeType(mode) == variable.PolymorphicTypeConversionModeOff {
+	if mode == variable.OffPolymorphicTypeConversionMode {
 		return false
 	}
-	if variable.PolymorphicTypeConversionModeType(mode) == variable.PolymorphicTypeConversionModeSafe {
+	if mode == variable.SafePolymorphicTypeConversionMode {
 		return true
 	}
 	// In fast mode, we only want to introduce converts when we think they are

@@ -12,7 +12,7 @@
     export LC_ALL=en_US.UTF-8
     cd $PROJECT_DIR
     echo $PROJECT_DIR
-    yamllint -c $PROJECT_DIR/.yamllint testdata
+    yamllint -c $PROJECT_DIR/.yamllint testdata evaluator
 
 ) > $LOG_FILE 2>&1
 

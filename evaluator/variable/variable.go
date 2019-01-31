@@ -1,5 +1,7 @@
 package variable
 
+//go:generate go run testdata/generate.go variables.yml variables_generated.go
+
 import (
 	"strings"
 

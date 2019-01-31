@@ -919,13 +919,13 @@ func (c *conn) setStatusVariables() {
 	sessionVariables.ThreadsConnected = globalVariables.ThreadsConnected
 	sessionVariables.StartTime = globalVariables.StartTime
 
-	topology := string(variable.StandaloneTopology)
+	topology := "standalone"
 	if c.mongoDBInfo.IsMongos() {
-		topology = string(variable.MongosTopology)
+		topology = "mongos"
 	}
-	sessionVariables.MongoDBGitVersion = c.mongoDBInfo.GitVersion
-	sessionVariables.MongoDBTopology = topology
-	sessionVariables.MongoDBVersion = c.mongoDBInfo.Version
+	sessionVariables.SetSystemVariable(variable.MongoDBGitVersion, c.mongoDBInfo.GitVersion)
+	sessionVariables.SetSystemVariable(variable.MongoDBTopology, topology)
+	sessionVariables.SetSystemVariable(variable.MongoDBVersion, c.mongoDBInfo.Version)
 }
 
 // loadMongoDBInfo sets system variables that store information about MongoDB.
