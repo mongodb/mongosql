@@ -71,13 +71,13 @@ type Container struct {
 
 	// Backing storage for non-user MySQL system variables below.
 	autoCommit             bool
-	characterSetClient     *collation.Charset
-	characterSetConnection *collation.Charset
-	characterSetDatabase   *collation.Charset
-	characterSetResults    *collation.Charset
-	collationConnection    *collation.Collation
-	collationDatabase      *collation.Collation
-	collationServer        *collation.Collation
+	characterSetClient     string
+	characterSetConnection string
+	characterSetDatabase   string
+	characterSetResults    string
+	collationConnection    string
+	collationDatabase      string
+	collationServer        string
 	interactiveTimeoutSecs int64
 	maxAllowedPacket       int64
 	MaxConnections         int64
@@ -205,13 +205,13 @@ func NewGlobalContainer(cfg *config.Config) *Container {
 
 		// Default values for non-user MySQL system variables below.
 		autoCommit:             true,
-		characterSetClient:     collation.DefaultCharset,
-		characterSetConnection: collation.DefaultCharset,
-		characterSetDatabase:   collation.DefaultCharset,
-		characterSetResults:    collation.DefaultCharset,
-		collationConnection:    collation.Default,
-		collationDatabase:      collation.Default,
-		collationServer:        collation.Default,
+		characterSetClient:     string(collation.DefaultCharset.Name),
+		characterSetConnection: string(collation.DefaultCharset.Name),
+		characterSetDatabase:   string(collation.DefaultCharset.Name),
+		characterSetResults:    string(collation.DefaultCharset.Name),
+		collationConnection:    string(collation.Default.Name),
+		collationDatabase:      string(collation.Default.Name),
+		collationServer:        string(collation.Default.Name),
 		GroupConcatMaxLen:      1024,
 		interactiveTimeoutSecs: 28800,
 		maxAllowedPacket:       config.DefaultMaxAllowedPacket,
@@ -382,15 +382,6 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 
 	if c.scope == scope {
 		if def, ok := definitions[lowerName]; ok && def.Kind == kind {
-			if def.GetRawValue != nil {
-				return Value{
-					Name:     name,
-					Kind:     def.Kind,
-					SQLType:  def.SQLType,
-					Value:    def.GetValue(c),
-					RawValue: def.GetRawValue(c),
-				}, nil
-			}
 			return Value{
 				Name:    name,
 				Kind:    def.Kind,
@@ -421,21 +412,29 @@ func (c *Container) GetBool(name Name) bool {
 func (c *Container) GetCharset(name Name) *collation.Charset {
 	value, err := c.Get(name, c.scope, SystemKind)
 	if err != nil {
-		panic(fmt.Sprintf("cannot get collation.Charset system variable %v: %v", name, err))
+		panic(fmt.Sprintf("cannot get string system variable %v: %v", name, err))
 	}
 
-	return value.RawValue.(*collation.Charset)
+	if value.Value == nil {
+		return collation.NullCharset
+	}
+
+	cs, err := collation.GetCharset(collation.CharsetName(value.Value.(string)))
+	if err != nil {
+		panic(err)
+	}
+	return cs
 }
 
 // GetCollation gets the value of the variable with the specified name for system variable of
 // collation.Collation type.
 func (c *Container) GetCollation(name Name) *collation.Collation {
-	value, err := c.Get(name, c.scope, SystemKind)
+	cName := c.GetString(name)
+	col, err := collation.Get(collation.Name(cName))
 	if err != nil {
-		panic(fmt.Sprintf("cannot get collation.Collation system variable %v: %v", name, err))
+		panic(err)
 	}
-
-	return value.RawValue.(*collation.Collation)
+	return col
 }
 
 // GetInt64 gets the value of the variable with the specified name for system variable of

@@ -83,11 +83,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return string(c.characterSetClient.Name)
-		},
-		GetRawValue: func(c *Container) interface{} { return c.characterSetClient },
-		SetValue:    setCharacterSetClient,
+		GetValue:         func(c *Container) interface{} { return c.characterSetClient },
+		SetValue:         setCharacterSetClient,
 	}
 
 	definitions[CharacterSetConnection] = &definition{
@@ -95,11 +92,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return string(c.characterSetConnection.Name)
-		},
-		GetRawValue: func(c *Container) interface{} { return c.characterSetConnection },
-		SetValue:    setCharacterSetConnection,
+		GetValue:         func(c *Container) interface{} { return c.characterSetConnection },
+		SetValue:         setCharacterSetConnection,
 	}
 
 	definitions[CharacterSetDatabase] = &definition{
@@ -107,11 +101,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return string(c.characterSetDatabase.Name)
-		},
-		GetRawValue: func(c *Container) interface{} { return c.characterSetDatabase },
-		SetValue:    setCharacterSetDatabase,
+		GetValue:         func(c *Container) interface{} { return c.characterSetDatabase },
+		SetValue:         setCharacterSetDatabase,
 	}
 
 	definitions[CharacterSetResults] = &definition{
@@ -120,13 +111,12 @@ func init() {
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
 		GetValue: func(c *Container) interface{} {
-			if c.characterSetResults.Name == "" {
+			if c.characterSetResults == "" {
 				return nil
 			}
-			return string(c.characterSetResults.Name)
+			return c.characterSetResults
 		},
-		GetRawValue: func(c *Container) interface{} { return c.characterSetResults },
-		SetValue:    setCharacterSetResults,
+		SetValue: setCharacterSetResults,
 	}
 
 	definitions[CollationConnection] = &definition{
@@ -134,11 +124,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return string(c.collationConnection.Name)
-		},
-		GetRawValue: func(c *Container) interface{} { return c.collationConnection },
-		SetValue:    setCollationConnection,
+		GetValue:         func(c *Container) interface{} { return c.collationConnection },
+		SetValue:         setCollationConnection,
 	}
 
 	definitions[CollationDatabase] = &definition{
@@ -146,11 +133,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return string(c.collationDatabase.Name)
-		},
-		GetRawValue: func(c *Container) interface{} { return c.collationDatabase },
-		SetValue:    setCollationDatabase,
+		GetValue:         func(c *Container) interface{} { return c.collationDatabase },
+		SetValue:         setCollationDatabase,
 	}
 
 	definitions[CollationServer] = &definition{
@@ -158,11 +142,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return string(c.collationServer.Name)
-		},
-		GetRawValue: func(c *Container) interface{} { return c.collationServer },
-		SetValue:    setCollationServer,
+		GetValue:         func(c *Container) interface{} { return c.collationServer },
+		SetValue:         setCollationServer,
 	}
 
 	definitions[AnonymizeMetrics] = &definition{
@@ -424,11 +405,8 @@ func init() {
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
 		SQLType:          schema.SQLVarchar,
-		GetValue: func(c *Container) interface{} {
-			return c.PolymorphicTypeConversionMode
-		},
-		GetRawValue: func(c *Container) interface{} { return c.collationServer },
-		SetValue:    setPolymorphicTypeConversionMode,
+		GetValue:         func(c *Container) interface{} { return c.PolymorphicTypeConversionMode },
+		SetValue:         setPolymorphicTypeConversionMode,
 	}
 
 	definitions[RewriteDistinctAsGroup] = &definition{
@@ -561,7 +539,7 @@ func setCharacterSetClient(c *Container, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.characterSetClient = cs
+	c.characterSetClient = string(cs.Name)
 	return nil
 }
 
@@ -585,8 +563,8 @@ func setCharacterSetConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetConnection = cs
-	c.collationConnection = col
+	c.characterSetConnection = string(cs.Name)
+	c.collationConnection = string(col.Name)
 	return nil
 }
 
@@ -610,14 +588,14 @@ func setCharacterSetDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetDatabase = cs
-	c.collationDatabase = col
+	c.characterSetDatabase = string(cs.Name)
+	c.collationDatabase = string(col.Name)
 	return nil
 }
 
 func setCharacterSetResults(c *Container, v interface{}) error {
 	if v == nil {
-		c.characterSetResults = collation.NullCharset
+		c.characterSetResults = string(collation.NullCharset.Name)
 		return nil
 	}
 
@@ -630,7 +608,7 @@ func setCharacterSetResults(c *Container, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	c.characterSetResults = cs
+	c.characterSetResults = string(cs.Name)
 	return nil
 }
 
@@ -654,8 +632,8 @@ func setCollationConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetConnection = cs
-	c.collationConnection = col
+	c.characterSetConnection = string(cs.Name)
+	c.collationConnection = string(col.Name)
 	return nil
 }
 
@@ -679,8 +657,8 @@ func setCollationDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetDatabase = cs
-	c.collationDatabase = col
+	c.characterSetDatabase = string(cs.Name)
+	c.collationDatabase = string(col.Name)
 	return nil
 }
 
@@ -699,7 +677,7 @@ func setCollationServer(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.collationServer = col
+	c.collationServer = string(col.Name)
 	return nil
 }
 
