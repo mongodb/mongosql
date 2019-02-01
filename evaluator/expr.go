@@ -1485,11 +1485,11 @@ func (e *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 }
 
 // evaluatePlan converts a PlanStage into a table in memory, represented
-// as a SQLValues of SQLValues. This table is used as the runtime value of a
+// as a slice of slices of SQLValue. This table is used as the runtime value of a
 // subquery expression and can be cached. Optimization opportunity:
 // this function copies all of its input data, value-by-value.
 func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
-	st *ExecutionState, plan PlanStage) (*SQLValues, error) {
+	st *ExecutionState, plan PlanStage) ([][]SQLValue, error) {
 
 	iter, err := plan.Open(ctx, cfg, st)
 	if err != nil {
@@ -1497,10 +1497,10 @@ func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	row := &Row{}
-	valueTable := &SQLValues{}
+	var valueTable [][]SQLValue
 
 	for iter.Next(ctx, row) {
-		valueRow := &SQLValues{}
+		valueRow := make([]SQLValue, len(row.Data))
 		// release this memory here... it will be re-allocated by a consuming
 		// stage
 		if err = cfg.memoryMonitor.Release(row.Data.Size()); err != nil {
@@ -1510,23 +1510,23 @@ func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
 
 		// The full data copy here is unwanted.
 		// This is a good place to attempt to improve performance.
-		for _, value := range row.Data {
-			valueRow.Values = append(valueRow.Values, value.Data)
+		for i, value := range row.Data {
+			valueRow[i] = value.Data
 		}
-		valueTable.Values = append(valueTable.Values, valueRow)
+		valueTable = append(valueTable, valueRow)
 	}
 
 	return valueTable, iter.Close()
 }
 
 // evaluatePlanToScalar converts a PlanStage into a row in memory, represented
-// as a SQLValues. This row is used as the runtime value of a
+// as a slice of SQLValue. This row is used as the runtime value of a
 // subquery expression and can be cached. Optimization opportunity:
 // this function copies all of its input data, value-by-value.
 // This function implements the MySQL behavior of evaluating an empty input
 // into a row of NULLs with the same dimension as the input.
 func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
-	st *ExecutionState, plan PlanStage) (*SQLValues, error) {
+	st *ExecutionState, plan PlanStage) ([]SQLValue, error) {
 
 	iter, err := plan.Open(ctx, cfg, st)
 	if err != nil {
@@ -1535,7 +1535,7 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 
 	row := &Row{}
 
-	valueRow := &SQLValues{}
+	var valueRow []SQLValue
 	if iter.Next(ctx, row) {
 		// release this memory here... it will be re-allocated by a consuming
 		// stage
@@ -1546,14 +1546,15 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 
 		// The full data copy here is unwanted.
 		// This is a good place to attempt to improve performance.
-		for _, value := range row.Data {
-			valueRow.Values = append(valueRow.Values, value.Data)
+		valueRow = make([]SQLValue, len(row.Data))
+		for i, value := range row.Data {
+			valueRow[i] = value.Data
 		}
 	} else {
 		// MySQL specific behavior here.
-		for lcv := 0; lcv < len(plan.Columns()); lcv++ {
-			valueRow.Values = append(valueRow.Values,
-				NewPolymorphicSQLNull(cfg.sqlValueKind))
+		valueRow = make([]SQLValue, len(plan.Columns()))
+		for i := range valueRow {
+			valueRow[i] = NewPolymorphicSQLNull(cfg.sqlValueKind)
 		}
 	}
 
@@ -1564,326 +1565,6 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	return valueRow, iter.Close()
-}
-
-// SQLInSubqueryExpr evaluates to true if the left expression is equal to any
-// of the rows returned by the right subquery.
-// Multi-column right subqueries are valid if the left is a tuple or
-// subquery with the same number of columns.
-// Multirow left subqueries are never valid.
-// Note: This should not be confused with SQL's IN list construct which uses
-// the same keyword.
-// Note: This should not be. {A NOT IN (...)} is trivial to rewrite to
-// {A = ANY (...)}.
-type SQLInSubqueryExpr struct {
-	correlated bool
-	left       SQLExpr
-	plan       PlanStage
-	// We always cache non-correlated subquery results in their entirety.
-	// This is a fine place to be more clever in the future.
-	// SQLInSubqueryExpr can cache a whole table, with each row being compared
-	// to the value result of the left expression.
-	cache *SQLValues
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (e SQLInSubqueryExpr) Children() []Node {
-	return []Node{e.left, e.plan}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLInSubqueryExpr) ReplaceChild(i int, n Node) {
-	switch i {
-	case 0:
-		e.left = panicIfNotSQLExpr(e.ExprName(), n)
-	case 1:
-		e.plan = panicIfNotPlanStage(e.ExprName(), n)
-	default:
-		panicWithInvalidIndex(e.ExprName(), i, 1)
-	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLInSubqueryExpr) ExprName() string {
-	return "SQLInSubqueryExpr"
-}
-
-// NewSQLInSubqueryExpr is a constructor for SQLInSubqueryExpr.
-func NewSQLInSubqueryExpr(
-	correlated bool,
-	left SQLExpr,
-	plan PlanStage) *SQLInSubqueryExpr {
-	return &SQLInSubqueryExpr{
-		correlated: correlated,
-		left:       left,
-		plan:       plan,
-	}
-}
-
-// Evaluate evaluates a SQLInSubqueryExpr into a SQLValue.
-// IN performs a series of comparisons. IN always performs equality comparisons.
-// The resulting comparisons within columns of a row are ANDed together.
-// Comparisons from separate rows are ORed together.
-// Using SQL three-value boolean logic, the results are as follows:
-// If a series of comparisons within any row is all true, the result is true.
-// If not, if any of the series returns NULL (the series contains NULL and no falses),
-// the result is NULL.
-// Else, the result is false.
-func (e *SQLInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var table *SQLValues
-	var err error
-	if e.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.cache == nil {
-			// Populate cache.
-			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		table = e.cache
-	}
-
-	// Determine length of the left expression.
-	var leftLen int
-	leftValues, isVals := e.left.(*SQLValues)
-	if isVals {
-		leftLen = len(leftValues.Values)
-	} else {
-		leftLen = 1
-	}
-
-	sawNull := false
-	for _, row := range table.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same number of columns as what
-		// it's being compared to.
-		// Note: This is redundant to do for each row.
-		if leftLen != len(right.Values) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		eq := NewSQLEqualsExpr(e.left, right)
-		var result SQLValue
-		result, err = eq.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, err
-		}
-		if Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, true), nil
-		}
-		if result.IsNull() {
-			sawNull = true
-		}
-	}
-
-	// left expression not found in right table.
-	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
-	}
-	return NewSQLBool(cfg.sqlValueKind, false), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLInSubqueryExpr.
-func (e *SQLInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-// nolint: unparam
-func (e *SQLInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return e, nil
-}
-
-func (e *SQLInSubqueryExpr) String() string {
-	return fmt.Sprintf("%v in (%s)", e.left, PrettyPrintPlan(e.plan))
-}
-
-// EvalType returns the EvalType associated with SQLInSubqueryExpr.
-func (*SQLInSubqueryExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return e.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLInSubqueryExpr into something that can
-// be used in an aggregation pipeline. If SQLInSubqueryExpr cannot be translated,
-// it will return nil and error.
-func (e *SQLInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
-}
-
-// SQLNotInSubqueryExpr evaluates to true if the left expression is not equal
-// to all of the rows returned by the right subquery.
-// Multi-column right subqueries are valid if the left is a tuple or
-// subquery with the same number of columns.
-// Multirow left subqueries are never valid.
-// Note: This should not be confused with SQL's NOT IN list construct which uses
-// the same keyword.
-// Note: This should not be. {A NOT IN (...)} is trivial to rewrite to
-// {A <> ALL (...)}.
-type SQLNotInSubqueryExpr struct {
-	correlated bool
-	left       SQLExpr
-	plan       PlanStage
-	// We always cache non-correlated subquery results in their entirety.
-	// This is a fine place to be more clever in the future.
-	// SQLNotInSubqueryExpr can cache a whole table, with each row being compared
-	// to the value result of the left expression.
-	cache *SQLValues
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (e SQLNotInSubqueryExpr) Children() []Node {
-	return []Node{e.left, e.plan}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLNotInSubqueryExpr) ReplaceChild(i int, n Node) {
-	switch i {
-	case 0:
-		e.left = panicIfNotSQLExpr(e.ExprName(), n)
-	case 1:
-		e.plan = panicIfNotPlanStage(e.ExprName(), n)
-	default:
-		panicWithInvalidIndex(e.ExprName(), i, 1)
-	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLNotInSubqueryExpr) ExprName() string {
-	return "SQLNotInSubqueryExpr"
-}
-
-// NewSQLNotInSubqueryExpr is a constructor for SQLNotInSubqueryExpr.
-func NewSQLNotInSubqueryExpr(
-	correlated bool,
-	left SQLExpr,
-	plan PlanStage) *SQLNotInSubqueryExpr {
-	return &SQLNotInSubqueryExpr{
-		correlated: correlated,
-		left:       left,
-		plan:       plan,
-	}
-}
-
-// Evaluate evaluates a SQLNotInSubqueryExpr into a SQLValue.
-// NOT IN performs a series of comparisons. NOT IN always performs not-equals comparisons.
-// The resulting comparisons within columns of a row are ANDed together.
-// Comparisons from separate rows are ORed together.
-// Using SQL three-value boolean logic, the results are as follows:
-// If a series of comparisons within any row is all true, the result is false.
-// If not, if any of the series returns NULL (the series contains NULL and no falses),
-// the result is NULL.
-// Else, the result is true.
-func (e *SQLNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var table *SQLValues
-	var err error
-	if e.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.cache == nil {
-			// Populate cache.
-			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		table = e.cache
-	}
-
-	// Determine length of the left expression.
-	var leftLen int
-	leftValues, isVals := e.left.(*SQLValues)
-	if isVals {
-		leftLen = len(leftValues.Values)
-	} else {
-		leftLen = 1
-	}
-
-	sawNull := false
-	for _, row := range table.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same number of columns as what
-		// it's being compared to.
-		// Note: This is redundant to do for each row.
-		if leftLen != len(right.Values) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		eq := NewSQLNotEqualsExpr(e.left, right)
-		var result SQLValue
-		result, err = eq.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, err
-		}
-		if !Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, false), nil
-		}
-		if result.IsNull() {
-			sawNull = true
-		}
-	}
-
-	// left expression not found in right table.
-	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
-	}
-	return NewSQLBool(cfg.sqlValueKind, true), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLNotInSubqueryExpr.
-func (e *SQLNotInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-// nolint: unparam
-func (e *SQLNotInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return e, nil
-}
-
-func (e *SQLNotInSubqueryExpr) String() string {
-	return fmt.Sprintf("%v not in (%s)", e.left, PrettyPrintPlan(e.plan))
-}
-
-// EvalType returns the EvalType associated with SQLNotInSubqueryExpr.
-func (*SQLNotInSubqueryExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return e.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLNotInSubqueryExpr into something that can
-// be used in an aggregation pipeline. If SQLNotInSubqueryExpr cannot be translated,
-// it will return nil and error.
-func (e *SQLNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
 }
 
 // SQLSubqueryCmpExpr evaluates to true if the right subquery compares true to
@@ -1898,10 +1579,10 @@ type SQLSubqueryCmpExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// This cache is for the left-hand side.
 	// SQLSubqueryCmpExpr's left cache is scalar but it can be multicolumn.
-	leftCache *SQLValues
+	leftCache []SQLValue
 	// This cache is for the right-hand side.
 	// SQLSubqueryCmpExpr's right cache is scalar but it can be multicolumn.
-	rightCache *SQLValues
+	rightCache []SQLValue
 	// This cache is for the result. It is used if both sides are non-correlated.
 	// This cache consists of a boolean.
 	fullCache SQLBool
@@ -1960,8 +1641,8 @@ func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		return e.fullCache, nil
 	}
 
-	var leftRow *SQLValues
-	var rightRow *SQLValues
+	var leftRow []SQLValue
+	var rightRow []SQLValue
 	var err error
 	if e.leftCorrelated && !e.rightCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
@@ -2004,17 +1685,11 @@ func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	// Make sure both subqueres return the same number of columns.
-	if len(leftRow.Values) != len(rightRow.Values) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(rightRow.Values))
+	if len(leftRow) != len(rightRow) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(rightRow))
 	}
 
-	var comp SQLExpr
-	comp, err = comparisonExpr(leftRow, rightRow, e.operator)
-	if err != nil {
-		return nil, err
-	}
-	var result SQLValue
-	result, err = comp.Evaluate(ctx, cfg, st)
+	result, err := evaluateComparison(leftRow, rightRow, e.operator, cfg.sqlValueKind, st.collation)
 	if err != nil {
 		return nil, err
 	}
@@ -2067,10 +1742,10 @@ type SQLSubqueryAllExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// SQLSubqueryAllExpr can cache a row, which is being compared
 	// to the value result of the right expression.
-	leftCache *SQLValues
+	leftCache []SQLValue
 	// SQLSubqueryAllExpr can cache a whole table, with each row being compared
 	// to the value result of the left expression.
-	rightCache *SQLValues
+	rightCache [][]SQLValue
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -2113,7 +1788,7 @@ func NewSQLSubqueryAllExpr(
 
 // Evaluate evaluates a SQLSubqueryAllExpr into a SQLValue.
 func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var leftRow *SQLValues
+	var leftRow []SQLValue
 	var err error
 	if e.leftCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
@@ -2127,7 +1802,7 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.leftCache))
 			if err != nil {
 				return nil, err
 			}
@@ -2137,7 +1812,7 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		leftRow = e.leftCache
 	}
 
-	var rightTable *SQLValues
+	var rightTable [][]SQLValue
 	if e.rightCorrelated {
 		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
@@ -2150,7 +1825,7 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.rightCache...))
 			if err != nil {
 				return nil, err
 			}
@@ -2159,7 +1834,7 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		rightTable = e.rightCache
 	}
 
-	leftLen := len(leftRow.Values)
+	leftLen := len(leftRow)
 	// <> ALL is rewritten in MySQL to NOT IN.
 	// This is the only case when ALL will handle multi column expressions.
 	if leftLen > 1 && e.operator != sqlOpNEQ {
@@ -2167,23 +1842,14 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 	}
 
+	// Make sure the right subquery returns the same amount of columns as the left.
+	if len(rightTable) > 0 && len(rightTable[0]) != leftLen {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+	}
+
 	sawNull := false
-	for _, row := range rightTable.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the right subquery returns the same amount of columns as the left.
-		// Note: This is redundant to do for each row.
-		if len(right.Values) != leftLen {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		var comp SQLExpr
-		comp, err = comparisonExpr(leftRow, right, e.operator)
-		if err != nil {
-			return nil, err
-		}
-		var result SQLValue
-		result, err = comp.Evaluate(ctx, cfg, st)
+	for _, rightRow := range rightTable {
+		result, err := evaluateComparison(leftRow, rightRow, e.operator, cfg.sqlValueKind, st.collation)
 		if err != nil {
 			return nil, err
 		}
@@ -2251,10 +1917,10 @@ type SQLSubqueryAnyExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// SQLSubqueryAnyExpr can cache a row, which is being compared
 	// to the value result of the right expression.
-	leftCache *SQLValues
+	leftCache []SQLValue
 	// SQLSubqueryAnyExpr can cache a whole table, with each row being compared
 	// to the value result of the left expression.
-	rightCache *SQLValues
+	rightCache [][]SQLValue
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -2300,12 +1966,12 @@ func NewSQLSubqueryAnyExpr(
 // The resulting comparisons within columns of a row are ANDed together.
 // Comparisons from separate rows are ORed together.
 // Using SQL three-value boolean logic, the results are as follows:
-// If a series of comparisons within any row is all true, the result is false.
+// If a series of comparisons within any row is all true, the result is true.
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
-// Else, the result is true.
+// Else, the result is false.
 func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var leftRow *SQLValues
+	var leftRow []SQLValue
 	var err error
 	if e.leftCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
@@ -2319,7 +1985,7 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.leftCache))
 			if err != nil {
 				return nil, err
 			}
@@ -2329,7 +1995,7 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		leftRow = e.leftCache
 	}
 
-	var rightTable *SQLValues
+	var rightTable [][]SQLValue
 	if e.rightCorrelated {
 		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
@@ -2342,7 +2008,7 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
+			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.rightCache...))
 			if err != nil {
 				return nil, err
 			}
@@ -2351,7 +2017,7 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		rightTable = e.rightCache
 	}
 
-	leftLen := len(leftRow.Values)
+	leftLen := len(leftRow)
 	// = ANY is rewritten in MySQL to IN.
 	// This is the only case when ANY will handle multi column expressions.
 	if leftLen > 1 && e.operator != sqlOpEQ {
@@ -2359,23 +2025,14 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 	}
 
+	// Make sure the subquery returns the same amount of columns as the left subquery.
+	if len(rightTable) > 0 && len(rightTable[0]) != leftLen {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
+	}
+
 	sawNull := false
-	for _, row := range rightTable.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same amount of columns as the left subquery.
-		// Note: This is redundant to do for each row.
-		if len(right.Values) != leftLen {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		var comp SQLExpr
-		comp, err = comparisonExpr(leftRow, right, e.operator)
-		if err != nil {
-			return nil, err
-		}
-		var result SQLValue
-		result, err = comp.Evaluate(ctx, cfg, st)
+	for _, rightRow := range rightTable {
+		result, err := evaluateComparison(leftRow, rightRow, e.operator, cfg.sqlValueKind, st.collation)
 		if err != nil {
 			return nil, err
 		}
@@ -2525,9 +2182,7 @@ func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 	}
 
 	row := &Row{}
-
-	hasNext := iter.Next(ctx, row)
-	if hasNext {
+	if iter.Next(ctx, row) {
 
 		// release this memory here... it will be re-allocated by a consuming stage
 		if err = cfg.memoryMonitor.Release(row.Data.Size()); err != nil {
@@ -2548,11 +2203,7 @@ func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 	case 1:
 		return row.Data[0].Data, iter.Close()
 	default:
-		eval := &SQLValues{}
-		for _, value := range row.Data {
-			eval.Values = append(eval.Values, value.Data)
-		}
-		return eval, iter.Close()
+		panic(fmt.Sprintf("SQLSubqueryExpr must evaluate to a single column scalar, instead got %d columns", len(row.Data)))
 	}
 }
 
@@ -2572,6 +2223,11 @@ func (e *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	}
 	// Read from cache.
 	return e.cache, nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryExpr.
+func (e *SQLSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
 }
 
 // Exprs returns all the SQLColumnExprs associated with the columns of SQLSubqueryExpr.
@@ -2596,373 +2252,7 @@ func (e *SQLSubqueryExpr) EvalType() EvalType {
 		return columns[0].EvalType
 	}
 
-	return EvalTuple
-}
-
-// SQLSubqueryInSubqueryExpr evaluates to true if the left subquery expression is equal to any
-// of the rows returned by the right subquery.
-// Multi-column right subqueries are valid if the left is a tuple or
-// subquery with the same number of columns.
-// Multirow left subqueries are never valid.
-// Note: This should not be confused with SQL's IN list construct which uses
-// the same keyword.
-// Note: This should not be. {A IN (...)} is trivial to rewrite to
-// {A = ANY (...)}.
-type SQLSubqueryInSubqueryExpr struct {
-	leftCorrelated  bool
-	rightCorrelated bool
-	leftPlan        PlanStage
-	rightPlan       PlanStage
-	// We always cache non-correlated subquery results in their entirety.
-	// SQLSubqueryInSubqueryExpr can cache a row, which is being compared
-	// to the value result of the right expression.
-	leftCache *SQLValues
-	// SQLSubqueryInSubqueryExpr can cache a whole table, with each row being compared
-	// to the value result of the left expression.
-	rightCache *SQLValues
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (e SQLSubqueryInSubqueryExpr) Children() []Node {
-	return []Node{e.leftPlan, e.rightPlan}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLSubqueryInSubqueryExpr) ReplaceChild(i int, n Node) {
-	switch i {
-	case 0:
-		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
-	case 1:
-		e.rightPlan = panicIfNotPlanStage(e.ExprName(), n)
-	default:
-		panicWithInvalidIndex(e.ExprName(), i, 1)
-	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLSubqueryInSubqueryExpr) ExprName() string {
-	return "SQLSubqueryInSubqueryExpr"
-}
-
-// NewSQLSubqueryInSubqueryExpr is a constructor for SQLSubqueryInSubqueryExpr.
-func NewSQLSubqueryInSubqueryExpr(
-	leftCorrelated bool,
-	rightCorrelated bool,
-	leftPlan PlanStage,
-	rightPlan PlanStage) *SQLSubqueryInSubqueryExpr {
-	return &SQLSubqueryInSubqueryExpr{
-		leftCorrelated:  leftCorrelated,
-		rightCorrelated: rightCorrelated,
-		leftPlan:        leftPlan,
-		rightPlan:       rightPlan,
-	}
-}
-
-// nolint: unparam
-func (e *SQLSubqueryInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return e, nil
-}
-
-// Evaluate evaluates a SQLSubqueryInSubqueryExpr into a SQLValue.
-// IN performs a series of comparisons. IN always performs equality comparisons.
-// The resulting comparisons within columns of a row are ANDed together.
-// Comparisons from separate rows are ORed together.
-// Using SQL three-value boolean logic, the results are as follows:
-// If a series of comparisons within any row is all true, the result is true.
-// If not, if any of the series returns NULL (the series contains NULL and no falses),
-// the result is NULL.
-// Else, the result is false.
-func (e *SQLSubqueryInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var leftRow *SQLValues
-	var err error
-	if e.leftCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.leftCache == nil {
-			// Populate cache.
-			e.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, e.leftPlan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Read from cache.
-		leftRow = e.leftCache
-	}
-
-	var rightTable *SQLValues
-	if e.rightCorrelated {
-		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.rightCache == nil {
-			// Populate cache.
-			e.rightCache, err = evaluatePlan(ctx, cfg, st, e.rightPlan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		rightTable = e.rightCache
-	}
-
-	leftLen := len(leftRow.Values)
-	sawNull := false
-	for _, row := range rightTable.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same number of columns as what
-		// it's being compared to.
-		// Note: This is redundant to do for each row.
-		if leftLen != len(right.Values) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		eq := NewSQLEqualsExpr(leftRow, right)
-		var result SQLValue
-		result, err = eq.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, err
-		}
-		if Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, true), nil
-		}
-		if result.IsNull() {
-			sawNull = true
-		}
-	}
-
-	// The left expression was not found in right table.
-	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
-	}
-	return NewSQLBool(cfg.sqlValueKind, false), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryInSubqueryExpr.
-func (e *SQLSubqueryInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-func (e *SQLSubqueryInSubqueryExpr) String() string {
-	return fmt.Sprintf("%s\nin\n(%s)", PrettyPrintPlan(e.leftPlan), PrettyPrintPlan(e.rightPlan))
-}
-
-// EvalType returns the EvalType associated with SQLSubqueryInSubqueryExpr.
-func (*SQLSubqueryInSubqueryExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLSubqueryInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return e.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLSubqueryInSubqueryExpr into something that can
-// be used in an aggregation pipeline. If SQLSubqueryInSubqueryExpr cannot be translated,
-// it will return nil and error.
-func (e *SQLSubqueryInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
-}
-
-// SQLSubqueryNotInSubqueryExpr evaluates to true if the left subquery expression is
-// not equal to all of the rows returned by the right subquery.
-// Multi-column right subqueries are valid if the left is a subquery
-// with the same number of columns.
-// Multirow left subqueries are never valid.
-// Note: This should not be confused with SQL's NOT IN list construct which uses
-// the same keyword.
-// Note: This should not be. {A NOT IN (...)} is trivial to rewrite to
-// {A <> ALL (...)}.
-type SQLSubqueryNotInSubqueryExpr struct {
-	leftCorrelated  bool
-	rightCorrelated bool
-	leftPlan        PlanStage
-	rightPlan       PlanStage
-	// We always cache non-correlated subquery results in their entirety.
-	// SQLSubqueryNotInSubqueryExpr can cache a row, which is being compared
-	// to the value result of the right expression.
-	leftCache *SQLValues
-	// SQLSubqueryNotInSubqueryExpr can cache a whole table, with each row being compared
-	// to the value result of the left expression.
-	rightCache *SQLValues
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (e SQLSubqueryNotInSubqueryExpr) Children() []Node {
-	return []Node{e.leftPlan, e.rightPlan}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLSubqueryNotInSubqueryExpr) ReplaceChild(i int, n Node) {
-	switch i {
-	case 0:
-		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
-	case 1:
-		e.rightPlan = panicIfNotPlanStage(e.ExprName(), n)
-	default:
-		panicWithInvalidIndex(e.ExprName(), i, 1)
-	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLSubqueryNotInSubqueryExpr) ExprName() string {
-	return "SQLSubqueryNotInSubqueryExpr"
-}
-
-// NewSQLSubqueryNotInSubqueryExpr is a constructor for SQLSubqueryNotInSubqueryExpr.
-func NewSQLSubqueryNotInSubqueryExpr(
-	leftCorrelated bool,
-	rightCorrelated bool,
-	leftPlan PlanStage,
-	rightPlan PlanStage) *SQLSubqueryNotInSubqueryExpr {
-	return &SQLSubqueryNotInSubqueryExpr{
-		leftCorrelated:  leftCorrelated,
-		rightCorrelated: rightCorrelated,
-		leftPlan:        leftPlan,
-		rightPlan:       rightPlan,
-	}
-}
-
-// nolint: unparam
-func (e *SQLSubqueryNotInSubqueryExpr) reconcile() (SQLExpr, error) {
-	return e, nil
-}
-
-// Evaluate evaluates a SQLSubqueryNotInSubqueryExpr into a SQLValue.
-// NOT IN performs a series of comparisons. NOT IN always performs not-equals comparisons.
-// The resulting comparisons within columns of a row are ANDed together.
-// Comparisons from separate rows are ORed together.
-// Using SQL three-value boolean logic, the results are as follows:
-// If a series of comparisons within any row is all true, the result is false.
-// If not, if any of the series returns NULL (the series contains NULL and no falses),
-// the result is NULL.
-// Else, the result is true.
-func (e *SQLSubqueryNotInSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var leftRow *SQLValues
-	var err error
-	if e.leftCorrelated {
-		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.leftCache == nil {
-			// Populate cache.
-			e.leftCache, err = evaluatePlanToScalar(ctx, cfg, st, e.leftPlan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.leftCache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		// Read from cache.
-		leftRow = e.leftCache
-	}
-
-	var rightTable *SQLValues
-	if e.rightCorrelated {
-		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.rightCache == nil {
-			// Populate cache.
-			e.rightCache, err = evaluatePlan(ctx, cfg, st, e.rightPlan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.rightCache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		rightTable = e.rightCache
-	}
-
-	leftLen := len(leftRow.Values)
-
-	sawNull := false
-	for _, row := range rightTable.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same number of columns as what
-		// it's being compared to.
-		// Note: This is redundant to do for each row.
-		if leftLen != len(right.Values) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		eq := NewSQLNotEqualsExpr(leftRow, right)
-		var result SQLValue
-		result, err = eq.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, err
-		}
-		if !Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, false), nil
-		}
-		if result.IsNull() {
-			sawNull = true
-		}
-	}
-
-	// left expression not found in right table.
-	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
-	}
-	return NewSQLBool(cfg.sqlValueKind, true), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryNotInSubqueryExpr.
-func (e *SQLSubqueryNotInSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryExpr.
-func (e *SQLSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-func (e *SQLSubqueryNotInSubqueryExpr) String() string {
-	return fmt.Sprintf("%s\nnot in\n(%s)", PrettyPrintPlan(e.leftPlan), PrettyPrintPlan(e.rightPlan))
-}
-
-// EvalType returns the EvalType associated with SQLSubqueryNotInSubqueryExpr.
-func (*SQLSubqueryNotInSubqueryExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLSubqueryNotInSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return e.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLSubqueryNotInSubqueryExpr into something that can
-// be used in an aggregation pipeline. If SQLSubqueryNotInSubqueryExpr cannot be translated,
-// it will return nil and error.
-func (e *SQLSubqueryNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
+	panic(fmt.Sprintf("SQLSubqueryExpr must evaluate to a single column scalar, instead got %d columns", len(columns)))
 }
 
 // SQLVariableExpr represents a variable lookup.

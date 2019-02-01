@@ -103,10 +103,6 @@ func preferentialTypeWithSorter(s *EvalTypeSorter, exprs ...SQLExpr) EvalType {
 func ReconcileSQLExprs(left, right SQLExpr, preferVarchar ...bool) (SQLExpr, SQLExpr, error) {
 	leftType, rightType := left.EvalType(), right.EvalType()
 
-	if leftType == EvalTuple || rightType == EvalTuple {
-		panic("ReconcileSQLExprs should never be called for non-scalar SQLExprs")
-	}
-
 	if leftType == rightType || isSimilar(leftType, rightType) {
 		return left, right, nil
 	}

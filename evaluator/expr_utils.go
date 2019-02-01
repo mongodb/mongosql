@@ -189,16 +189,9 @@ func getPlanStats(plan PlanStage, pCfg *PushdownConfig) (*PlanStats, error) {
 // hasNullValue returns true if any of the value in values
 // is of type SQLNoValue or SQLNullValue.
 func hasNullValue(values ...SQLValue) bool {
-	for _, value := range values {
-		switch v := value.(type) {
-		case *SQLValues:
-			if hasNullValue(v.Values...) {
-				return true
-			}
-		default:
-			if v.IsNull() {
-				return true
-			}
+	for _, v := range values {
+		if v.IsNull() {
+			return true
 		}
 	}
 	return false
@@ -209,10 +202,10 @@ func hasNullValue(values ...SQLValue) bool {
 func hasNullExpr(exprs ...SQLExpr) bool {
 	for _, e := range exprs {
 		switch typedE := e.(type) {
-		case *SQLValues:
-			return hasNullValue(typedE.Values...)
 		case SQLValue:
-			return typedE.IsNull()
+			if typedE.IsNull() {
+				return true
+			}
 		}
 	}
 

@@ -542,3 +542,77 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 
 	runTests(tests)
 }
+
+func TestEvaluateComparison(t *testing.T) {
+	//evaluateComparison(left, right, op, sqlvaluekind, collation)
+	knd := MySQLValueKind
+
+	// different lengths => error
+	t.Run("different length slices returns an error", func(t *testing.T) {
+		_, err := evaluateComparison([]SQLValue{}, []SQLValue{NewSQLInt64(knd, 1)}, sqlOpEQ, knd, nil)
+		require.NotNil(t, err, "expected error")
+	})
+
+	oneTwoThree := []SQLValue{newSQLInt64(knd, 1, false), newSQLInt64(knd, 2, false), newSQLInt64(knd, 3, false)}
+	twoTwoThree := []SQLValue{newSQLInt64(knd, 2, false), newSQLInt64(knd, 2, false), newSQLInt64(knd, 3, false)}
+	oneNullThree := []SQLValue{newSQLInt64(knd, 1, false), newSQLInt64(knd, 2, true), newSQLInt64(knd, 3, false)}
+
+	type test struct {
+		name, op    string
+		left, right []SQLValue
+		expected    SQLValue
+	}
+
+	tests := []test{
+		{"equals true case (eq)", sqlOpEQ, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
+		{"equals false case (lt)", sqlOpEQ, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
+		{"equals false case (gt)", sqlOpEQ, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"equals null on right case", sqlOpEQ, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
+		{"equals null on left case", sqlOpEQ, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+
+		{"greater than false case (eq)", sqlOpGT, oneTwoThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"greater than false case (lt)", sqlOpGT, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
+		{"greater than true case (gt)", sqlOpGT, twoTwoThree, oneTwoThree, NewSQLBool(knd, true)},
+		{"greater than null on right case", sqlOpGT, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
+		{"greater than null on left case", sqlOpGT, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+
+		{"greater than or equals true case (eq)", sqlOpGTE, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
+		{"greater than or equals false case (lt)", sqlOpGTE, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
+		{"greater than or equals true case (gt)", sqlOpGTE, twoTwoThree, oneTwoThree, NewSQLBool(knd, true)},
+		{"greater than or equals null on right case", sqlOpGTE, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
+		{"greater than or equals null on left case", sqlOpGTE, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+
+		{"less than false case (eq)", sqlOpLT, oneTwoThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"less than true case (lt)", sqlOpLT, oneTwoThree, twoTwoThree, NewSQLBool(knd, true)},
+		{"less than false case (gt)", sqlOpLT, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"less than null on right case", sqlOpLT, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
+		{"less than null on left case", sqlOpLT, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+
+		{"less than or equals true case (eq)", sqlOpLTE, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
+		{"less than or equals true case (lt)", sqlOpLTE, oneTwoThree, twoTwoThree, NewSQLBool(knd, true)},
+		{"less than or equals false case (gt)", sqlOpLTE, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"less than or equals null on right case", sqlOpLTE, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
+		{"less than or equals null on left case", sqlOpLTE, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+
+		{"not equals false case (eq)", sqlOpNEQ, oneTwoThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"not equals true case (lt)", sqlOpNEQ, oneTwoThree, twoTwoThree, NewSQLBool(knd, true)},
+		{"not equals true case (gt)", sqlOpNEQ, twoTwoThree, oneTwoThree, NewSQLBool(knd, true)},
+		{"not equals null on right case", sqlOpNEQ, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
+		{"not equals null on left case", sqlOpNEQ, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+
+		{"null-safe equals true case (eq)", sqlOpNSE, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
+		{"null-safe equals false case (lt)", sqlOpNSE, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
+		{"null-safe equals false case (gt)", sqlOpNSE, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"null-safe equals null on right false case", sqlOpNSE, oneTwoThree, oneNullThree, NewSQLBool(knd, false)},
+		{"null-safe equals null on left false case", sqlOpNSE, oneNullThree, oneTwoThree, NewSQLBool(knd, false)},
+		{"null-safe equals null true case", sqlOpNSE, oneNullThree, oneNullThree, NewSQLBool(knd, true)},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := evaluateComparison(tc.left, tc.right, tc.op, knd, nil)
+			require.Nil(t, err, "unexpected error")
+			require.Equal(t, tc.expected, result)
+		})
+	}
+}

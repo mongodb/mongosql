@@ -134,7 +134,6 @@ var sqlTypeAliases = map[string]SQLType{
 	"sqluint":    SQLUint,
 	"sqluint32":  SQLUint,
 	"sqluint64":  SQLUint,
-	"sqltuple":   SQLTuple,
 	"string":     SQLVarchar,
 	"uint32":     SQLUint,
 	"uint64":     SQLUint,
@@ -169,7 +168,6 @@ var sqlTypes = map[string]SQLType{
 	"objectid":  SQLObjectID,
 	"time":      SQLTime,
 	"timestamp": SQLTimestamp,
-	"tuple":     SQLTuple,
 	"uint":      SQLUint,
 	"uuid":      SQLUUID,
 	"varchar":   SQLVarchar,
@@ -190,7 +188,6 @@ const (
 	SQLObjectID    SQLType = "objectid"
 	SQLTime        SQLType = "time"
 	SQLTimestamp   SQLType = "timestamp"
-	SQLTuple       SQLType = "tuple"
 	SQLUint        SQLType = "uint"
 	SQLUUID        SQLType = "uuid"
 	SQLVarchar     SQLType = "varchar"

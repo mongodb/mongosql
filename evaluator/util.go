@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -88,6 +89,49 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 		return NewSQLNotEqualsExpr(left, right), nil
 	case sqlOpNSE:
 		return NewSQLNullSafeEqualsExpr(left, right), nil
+	case sqlOpIn:
+		panic("IN must be eliminated in the desugarer")
+	case sqlOpNotIn:
+		panic("NOT IN must be eliminated in the desugarer")
+	default:
+		return nil,
+			mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
+				"No support for comparison operator '%v'",
+				op)
+	}
+}
+
+// evaluateComparison performs a pairwise comparison of left and right using
+// the provided comparison op.
+func evaluateComparison(left, right []SQLValue, op string, knd SQLValueKind, collation *collation.Collation) (SQLValue, error) {
+	// any comparison operator other than null-safe equal will return null
+	// if the left or right side has a null value.
+	if op != sqlOpNSE {
+		if hasNullValue(left...) || hasNullValue(right...) {
+			return NewSQLNull(knd, EvalBoolean), nil
+		}
+	}
+
+	c, err := CompareToPairwise(left, right, collation)
+	if err != nil {
+		return nil, err
+	}
+
+	switch op {
+	case sqlOpEQ:
+		return NewSQLBool(knd, c == 0), nil
+	case sqlOpLT:
+		return NewSQLBool(knd, c == -1), nil
+	case sqlOpGT:
+		return NewSQLBool(knd, c == 1), nil
+	case sqlOpLTE:
+		return NewSQLBool(knd, c <= 0), nil
+	case sqlOpGTE:
+		return NewSQLBool(knd, c >= 0), nil
+	case sqlOpNEQ:
+		return NewSQLBool(knd, c != 0), nil
+	case sqlOpNSE:
+		return NewSQLBool(knd, c == 0), nil
 	case sqlOpIn:
 		panic("IN must be eliminated in the desugarer")
 	case sqlOpNotIn:

@@ -3756,10 +3756,6 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLInt64(knd, 1), NewPolymorphicSQLNull(knd), 1},
 			{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "bac"), 1},
-			{NewSQLInt64(knd, 1), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
-			{NewSQLInt64(knd, 1), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
 			{NewSQLInt64(knd, 1), NewSQLDate(knd, now), -1},
 			{NewSQLInt64(knd, 1), NewSQLTimestamp(knd, now), -1},
 		}
@@ -3778,10 +3774,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLFloat(knd, 0.1), NewPolymorphicSQLNull(knd), 1},
 			{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "bac"), 1},
-			{NewSQLFloat(knd, 0.0), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-			{NewSQLFloat(knd, 0.1), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
+			{NewSQLFloat(knd, 0.0), NewSQLInt64(knd, 1), -1},
 			{NewSQLFloat(knd, 0.1), NewSQLDate(knd, now), -1},
 			{NewSQLFloat(knd, 0.1), NewSQLTimestamp(knd, now), -1},
 		}
@@ -3800,10 +3793,6 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLBool(knd, true), NewPolymorphicSQLNull(knd), 1},
 			{NewSQLBool(knd, true), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLBool(knd, true), NewSQLVarchar(knd, "bac"), 1},
-			{NewSQLBool(knd, true), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
-			{NewSQLBool(knd, true), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
 			{NewSQLBool(knd, true), NewSQLDate(knd, now), -1},
 			{NewSQLBool(knd, true), NewSQLTimestamp(knd, now), -1},
 			{NewSQLBool(knd, false), NewSQLInt64(knd, 0), 0},
@@ -3816,10 +3805,6 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLBool(knd, false), NewPolymorphicSQLNull(knd), 1},
 			{NewSQLBool(knd, false), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLBool(knd, false), NewSQLVarchar(knd, "bac"), 0},
-			{NewSQLBool(knd, false), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-			{NewSQLBool(knd, false), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
 			{NewSQLBool(knd, false), NewSQLDate(knd, now), -1},
 			{NewSQLBool(knd, false), NewSQLTimestamp(knd, now), -1},
 		}
@@ -3836,13 +3821,8 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLDate(knd, now), NewSQLBool(knd, false), 1},
 			{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(diff)), -1},
 			{NewSQLDate(knd, now), NewPolymorphicSQLNull(knd), 1},
-			{NewSQLDate(knd, now),
-				NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
+			{NewSQLDate(knd, now), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
 			{NewSQLDate(knd, now), NewSQLVarchar(knd, "bac"), 1},
-			{NewSQLDate(knd, now), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 1},
-			{NewSQLDate(knd, now), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
 			{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(-diff)), 1},
 			{NewSQLDate(knd, now), NewSQLTimestamp(knd, now.Add(diff)), -1},
 			{NewSQLDate(knd, now), NewSQLTimestamp(knd, now.Add(-diff)), 1},
@@ -3860,23 +3840,15 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLTimestamp(knd, now), NewSQLFloat(knd, 1), 1},
 			{NewSQLTimestamp(knd, now), NewSQLBool(knd, false), 1},
 			{NewSQLTimestamp(knd, now), NewPolymorphicSQLNull(knd), 1},
-			{NewSQLTimestamp(knd, now),
-				NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
+			{NewSQLTimestamp(knd, now), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
 			{NewSQLTimestamp(knd, now), NewSQLVarchar(knd, "bac"), 1},
-			{NewSQLTimestamp(knd, now), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, 1},
-			{NewSQLTimestamp(knd, now), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
-			{NewSQLTimestamp(knd, now),
-				NewSQLTimestamp(knd, now.Add(diff)), -1},
-			{NewSQLTimestamp(knd, now),
-				NewSQLTimestamp(knd, now.Add(-diff)), 1},
+			{NewSQLTimestamp(knd, now), NewSQLTimestamp(knd, now.Add(diff)), -1},
+			{NewSQLTimestamp(knd, now), NewSQLTimestamp(knd, now.Add(-diff)), 1},
 			{NewSQLTimestamp(knd, now), NewSQLTimestamp(knd, now), 0},
 			{NewSQLTimestamp(knd, now), NewSQLDate(knd, now), 1},
-			{NewSQLTimestamp(knd, now.Add(sameDayDiff)),
-				NewSQLDate(knd, now), 1},
 			{NewSQLTimestamp(knd, now), NewSQLDate(knd, now.Add(diff)), -1},
 			{NewSQLTimestamp(knd, now), NewSQLDate(knd, now.Add(-diff)), 1},
+			{NewSQLTimestamp(knd, now.Add(sameDayDiff)), NewSQLDate(knd, now), 1},
 		}
 		runTests(t, tests)
 	})
@@ -3891,10 +3863,6 @@ func TestCompareTo(t *testing.T) {
 			{NewPolymorphicSQLNull(knd), NewSQLBool(knd, false), -1},
 			{NewPolymorphicSQLNull(knd), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewPolymorphicSQLNull(knd), NewSQLVarchar(knd, "bac"), -1},
-			{NewPolymorphicSQLNull(knd), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-			{NewPolymorphicSQLNull(knd), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 0},
 			{NewPolymorphicSQLNull(knd), NewSQLDate(knd, now), -1},
 			{NewPolymorphicSQLNull(knd), NewSQLTimestamp(knd, now), -1},
 			{NewPolymorphicSQLNull(knd), NewPolymorphicSQLNull(knd), 0},
@@ -3914,57 +3882,97 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "cba"), -1},
 			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "bac"), 0},
 			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "abc"), 1},
-			{NewSQLVarchar(knd, "bac"), &SQLValues{
-				Values: []SQLValue{NewSQLInt64(knd, 1)}}, -1},
-			{NewSQLVarchar(knd, "bac"), &SQLValues{
-				Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
-			{NewSQLVarchar(knd, "bac"), &SQLValues{
-				Values: []SQLValue{NewSQLVarchar(knd, "bac")}}, 0},
+			{NewSQLVarchar(knd, "bac"), NewPolymorphicSQLNull(knd), 1},
 		}
 		runTests(t, tests)
+	})
+}
+
+func TestCompareToPairwise(t *testing.T) {
+	// different lengths => error
+	t.Run("different length slices returns an error", func(t *testing.T) {
+		_, err := CompareToPairwise([]SQLValue{}, []SQLValue{NewSQLInt64(knd, 1)}, nil)
+		require.NotNil(t, err, "expected error")
 	})
 
-	t.Run("SQLValues", func(t *testing.T) {
-		tests := []test{
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLInt64(knd, 0), 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLInt64(knd, 1), 0},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLInt64(knd, 2), -1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLUint64(knd, 1), 0},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLUint64(knd, 11), -1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLUint64(knd, 0), 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLFloat(knd, 1.1), -1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLFloat(knd, 0.1), 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLBool(knd, false), 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLVarchar(knd, "abc"), 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewPolymorphicSQLNull(knd), 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}}, 0},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				&SQLValues{Values: []SQLValue{NewSQLInt64(knd, -1)}}, 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 2)}}, -1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				&SQLValues{Values: []SQLValue{NewPolymorphicSQLNull(knd)}}, 1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLDate(knd, now), -1},
-			{&SQLValues{Values: []SQLValue{NewSQLInt64(knd, 1)}},
-				NewSQLTimestamp(knd, now), -1},
-		}
-		runTests(t, tests)
-	})
+	type test struct {
+		name     string
+		left     []SQLValue
+		right    []SQLValue
+		expected int
+	}
+
+	tests := []test{
+		{"empty = empty", []SQLValue{}, []SQLValue{}, 0},
+		{
+			"single value = single value",
+			[]SQLValue{NewSQLInt64(knd, 0)},
+			[]SQLValue{NewSQLInt64(knd, 0)},
+			0,
+		},
+		{
+			"single value < single value",
+			[]SQLValue{NewSQLInt64(knd, 0)},
+			[]SQLValue{NewSQLInt64(knd, 1)},
+			-1,
+		},
+		{
+			"single value > single value",
+			[]SQLValue{NewSQLInt64(knd, 1)},
+			[]SQLValue{NewSQLInt64(knd, 0)},
+			1,
+		},
+		{
+			"multiple values first <",
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			[]SQLValue{NewSQLInt64(knd, 1), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			-1,
+		},
+		{
+			"multiple values first >",
+			[]SQLValue{NewSQLInt64(knd, 1), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			1,
+		},
+		{
+			"multiple values first =, mid <",
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 0), NewSQLInt64(knd, 2)},
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			-1,
+		},
+		{
+			"multiple values first =, mid >",
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 0), NewSQLInt64(knd, 2)},
+			1,
+		},
+		{
+			"multiple values first =, mid =, last <",
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 1)},
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			-1,
+		},
+		{
+			"multiple values first =, mid =, last >",
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 1)},
+			1,
+		},
+		{
+			"multiple values all equal",
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			[]SQLValue{NewSQLInt64(knd, 0), NewSQLInt64(knd, 1), NewSQLInt64(knd, 2)},
+			0,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			actual, err := CompareToPairwise(tc.left, tc.right, nil)
+			require.Nil(t, err, "unexpected error")
+			require.Equal(t, tc.expected, actual)
+		})
+	}
 }
 
 func TestBoolIsFalsy(t *testing.T) {

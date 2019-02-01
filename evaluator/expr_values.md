@@ -1,7 +1,7 @@
 
-# SQLValues Overview
+# SQLValue Overview
 
-This document gives an overview of all the types that pertain to SQLValues, how they relate to each other, and what they are for.
+This document gives an overview of all the types that pertain to `SQLValue`s, how they relate to each other, and what they are for.
 The types discussed here can be found in `expr_values.go`, `expr_values_base.go`, `expr_values_mongosql.go`, and `expr_value_mysql.go`.
 
 ## SQLValue Interface
@@ -78,7 +78,7 @@ interface returns a `SQLBool` (i.e. a `MySQLBool` or a `MongoSQLBool`), as oppos
 
 ## NewSQL* Constructors
 
-Each of the types of `SQLValues` listed above has a constructor (`NewSQLBool`, for example) that takes a `SQLValueKind` and a go value.
+Each of the types of `SQLValue`s listed above has a constructor (`NewSQLBool`, for example) that takes a `SQLValueKind` and a go value.
 First, the constructor will create a `BaseSQLBool` instance from the value and kind parameters.
 Then, depending on the `SQLValueKind` provided, it will wrap the `BaseSQLBool` in either a `MongoSQLBool` or a `MySQLBool` and return it.
 
@@ -118,7 +118,7 @@ The `BaseSQL` types are intended only for embedding in other types (in this way,
 When we return a `SQLValue` from a `BaseSQL*` method, we always want the `SQLValue` returned to be either a `MongoSQL` type
 or a `MySQL` type, never a `BaseSQL` type.
 
-To accomplish this goal, we store the `SQLValueKind` on each `BaseSQL*` struct, and return `SQLValues` created by `NewSQL*`
+To accomplish this goal, we store the `SQLValueKind` on each `BaseSQL*` struct, and return `SQLValue`s created by `NewSQL*`
 constructors instead of returning `BaseSQL` literals.
 Because of the constructor implementation described above, this ensures that the `BaseSQL` methods always return values
 of the correct types.

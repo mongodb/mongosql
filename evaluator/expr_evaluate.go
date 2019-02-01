@@ -7,7 +7,7 @@ import "fmt"
 func doArithmetic(leftVal, rightVal SQLValue, op ArithmeticOperator) (SQLValue, error) {
 	if leftVal.Kind() != rightVal.Kind() {
 		err := fmt.Errorf(
-			"left and right SQLValues are not of same kind (%x and %x, respectively)",
+			"left SQLValue and right SQLValue are not of same kind (%x and %x, respectively)",
 			leftVal.Kind(), rightVal.Kind(),
 		)
 		panic(err)

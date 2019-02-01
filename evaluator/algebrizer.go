@@ -1110,10 +1110,6 @@ func (a *algebrizer) translateSelectExprs(
 					a.aggregates[currentAggregateLength]
 			}
 
-			if translatedExpr.EvalType() == EvalTuple {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
-			}
-
 			var projectedColumn *ProjectedColumn
 
 			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
@@ -1739,22 +1735,6 @@ func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLE
 			expr.Operator,
 		), nil
 
-	case parser.AST_IN:
-		return NewSQLSubqueryInSubqueryExpr(
-			leftIsCorrelated,
-			rightIsCorrelated,
-			leftPlan,
-			rightPlan,
-		), nil
-
-	case parser.AST_NOT_IN:
-		return NewSQLSubqueryNotInSubqueryExpr(
-			leftIsCorrelated,
-			rightIsCorrelated,
-			leftPlan,
-			rightPlan,
-		), nil
-
 	case parser.AST_ANY:
 		return NewSQLSubqueryAnyExpr(
 			leftIsCorrelated,
@@ -1854,10 +1834,6 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 			return NewSQLIsExpr(left, right), nil
 		} else if typedE.Operator == parser.AST_IS_NOT {
 			panic("IS NOT must be eliminated in the desugarer")
-		}
-
-		if left.EvalType() == EvalTuple || right.EvalType() == EvalTuple {
-			panic("tuple comparisons must be eliminated in the desugarer")
 		}
 
 		comp, err := comparisonExpr(left, right, typedE.Operator)

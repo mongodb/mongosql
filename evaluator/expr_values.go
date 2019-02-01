@@ -1,17 +1,14 @@
 package evaluator
 
 import (
-	"context"
 	"encoding/hex"
 	"fmt"
 	"math"
 	"strconv"
-	"strings"
 	"time"
 	"unicode/utf8"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -111,7 +108,7 @@ func NewSQLNull(kind SQLValueKind, typ EvalType) SQLValue {
 		return nullSQLBool(kind)
 	case EvalDecimal128:
 		return nullSQLDecimal128(kind)
-	case EvalTuple, EvalBinary:
+	case EvalBinary:
 		return nullSQLVarchar(kind)
 	case EvalPolymorphic:
 		return NewPolymorphicSQLNull(kind)
@@ -471,252 +468,30 @@ func isZero(v SQLValue) bool {
 	return v.SQLFloat().Value().(float64) == 0.0
 }
 
-// SQLValues represents multiple sql values.
-type SQLValues struct {
-	Values []SQLValue
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (sv *SQLValues) Children() []Node {
-	return []Node{}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (sv *SQLValues) ReplaceChild(i int, expr Node) {
-	panicWithInvalidIndex("SQLValues", i, -1)
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLValues) ExprName() string {
-	return "SQLValues"
-}
-
-// IsNull returns false, because a SQLValues instance can never be null.
-func (*SQLValues) IsNull() bool {
-	return false
-}
-
-// Kind returns the SQLValueKind of this SQLValue.
-func (sv *SQLValues) Kind() SQLValueKind {
-	var kind SQLValueKind
-	for _, val := range sv.Values {
-		if kind == NoSQLValueKind {
-			kind = val.Kind()
-			continue
-		}
-		if kind != val.Kind() {
-			panic("kinds of values in sqlvalues do not match")
-		}
-	}
-
-	if kind == NoSQLValueKind {
-		panic("no values in sqlvalues")
-	}
-
-	return kind
-}
-
-// Evaluate evaluates a SQLExpr and returns a SQLValue.
-// For a SQLValue, this means that Evaluate is the identity function.
-func (sv *SQLValues) Evaluate(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
-	return sv, nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLValues
-func (sv *SQLValues) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return sv
-}
-
-// Normalize will attempt to change SQLValues into a more recognizeable form that
-// may be more amenable to MongoDB's query language.
-func (sv *SQLValues) Normalize(_ SQLValueKind) Node {
-	if len(sv.Values) == 1 {
-		return sv.Values[0]
-	}
-
-	return sv
-}
-
-// Size returns the size of this SQLValue in bytes.
-func (sv *SQLValues) Size() uint64 {
+// Size returns the combined size of these SQLValues in bytes.
+func sqlValuesSize(svs ...[]SQLValue) uint64 {
 	s := uint64(0)
-	for _, v := range sv.Values {
-		s += v.Size()
+	for _, sv := range svs {
+		for _, v := range sv {
+			s += v.Size()
+		}
 	}
 
 	return s
 }
 
-// nolint: unparam
-func (sv *SQLValues) reconcile() (SQLExpr, error) {
-	return sv, nil
-}
-
-func (sv *SQLValues) String() string {
-	var values []string
-	for _, n := range sv.Values {
-		values = append(values, n.String())
-	}
-	return strings.Join(values, ", ")
-}
-
-// ToAggregationLanguage translates SQLValues into something that can
-// be used in an aggregation pipeline. If SQLValues cannot be translated,
-// it will return nil and error.
-func (sv *SQLValues) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	var transExprs []interface{}
-
-	for _, expr := range sv.Values {
-		transExpr, err := t.ToAggregationLanguage(expr)
-		if err != nil {
-			return nil, err
-		}
-		transExprs = append(transExprs, transExpr)
-	}
-
-	return transExprs, nil
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (sv *SQLValues) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return sv.ToAggregationLanguage(t)
-}
-
-// EvalType returns the EvalType of this SQLValue.
-func (sv *SQLValues) EvalType() EvalType {
-	if len(sv.Values) == 1 {
-		return sv.Values[0].EvalType()
-	} else if len(sv.Values) == 0 {
-		return EvalPolymorphic
-	}
-
-	return EvalTuple
-}
-
-// Value returns an interface{} that represents the literal value of this SQLValue.
-func (sv *SQLValues) Value() interface{} {
-	values := []interface{}{}
-	for _, v := range sv.Values {
-		values = append(values, v.Value())
-	}
-	return values
-}
-
-// WireProtocolEncode returns a byte slice that contains a wire-protocol
-// representation of this SQLValue.
-func (sv *SQLValues) WireProtocolEncode(*collation.Charset, int) ([]byte, error) {
-	return nil, mysqlerrors.Unknownf("unsupported type %T for wire protocol", sv)
-}
-
-// ConvertTo converts the *SQLValues receiver, s, to the specified EvalType.
-func (sv *SQLValues) ConvertTo(evalType EvalType) SQLValue {
-	return ConvertTo(sv.Values[0], evalType)
-}
-
-// SQLBool converts the *SQLValues receiver, s, to a SQLBool.
-func (sv *SQLValues) SQLBool() SQLBool {
-	return sv.Values[0].SQLBool()
-}
-
-// SQLDate converts the *SQLValues receiver, s, to a SQLDate.
-func (sv *SQLValues) SQLDate() SQLDate {
-	return sv.Values[0].SQLDate()
-}
-
-// SQLDecimal128 converts the *SQLValues receiver, s, to a SQLDecimal128.
-func (sv *SQLValues) SQLDecimal128() SQLDecimal128 {
-	return sv.Values[0].SQLDecimal128()
-}
-
-// SQLFloat converts the *SQLValues receiver, s, to a SQLFloat.
-func (sv *SQLValues) SQLFloat() SQLFloat {
-	return sv.Values[0].SQLFloat()
-}
-
-// SQLInt converts the *SQLValues receiver, s, to a SQLInt.
-func (sv *SQLValues) SQLInt() SQLInt64 {
-	return sv.Values[0].SQLInt()
-}
-
-// SQLObjectID converts the *SQLValues receiver, s, to a SQLObjectID.
-func (sv *SQLValues) SQLObjectID() SQLObjectID {
-	return sv.Values[0].SQLObjectID()
-}
-
-// SQLTimestamp converts the *SQLValues receiver, s, to a SQLTimestamp.
-func (sv *SQLValues) SQLTimestamp() SQLTimestamp {
-	return sv.Values[0].SQLTimestamp()
-}
-
-// SQLUint converts the *SQLValues receiver, s, to a SQLUint64.
-func (sv *SQLValues) SQLUint() SQLUint64 {
-	return sv.Values[0].SQLUint()
-}
-
-// SQLVarchar converts the *SQLValues receiver, s, to a SQLVarchar.
-func (sv *SQLValues) SQLVarchar() SQLVarchar {
-	values := make([]string, len(sv.Values))
-	for i, n := range sv.Values {
-		if n, ok := n.SQLVarchar().(SQLVarchar); ok {
-			values[i] = String(n)
-		}
-		values[i] = "NULL"
-	}
-	return NewSQLVarchar(sv.Kind(), strings.Join(values, ", "))
-}
-
-// CompareTo compares two SQLValues. It returns -1 if
-// left compares less than right; 1, if left compares
-// greater than right; and 0 if left compares equal to
-// right.
+// CompareTo compares a SQLValue to another SQLValue. It returns -1 if left
+// compares less than right; 1, if left compares greater than right; and 0
+// if left compares equal to right.
 func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error) {
 	if left.Kind() != right.Kind() {
 		err := fmt.Errorf(
-			"left and right SQLValues are not of same kind (%x and %x, respectively)",
+			"left SQLValue and right SQLValue are not of same kind (%x and %x, respectively)",
 			left.Kind(), right.Kind(),
 		)
 		panic(err)
 	}
 	valueKind := left.Kind()
-
-	switch leftVal := left.(type) {
-	case *SQLValues:
-		err := fmt.Errorf("operand should contain %v columns", len(leftVal.Values))
-
-		rightVal, ok := right.(*SQLValues)
-		if !ok {
-			// This allows for comparisons such as:
-			// `select a, b from foo where (a) < 3`
-			if len(leftVal.Values) != 1 {
-				return -1, err
-			}
-			rightVal = &SQLValues{[]SQLValue{right}}
-		} else if len(leftVal.Values) != len(rightVal.Values) {
-			return -1, err
-		}
-
-		for i := 0; i < len(leftVal.Values); i++ {
-			c, err := CompareTo(leftVal.Values[i], rightVal.Values[i], collation)
-			if err != nil {
-				return c, err
-			}
-
-			if c != 0 {
-				return c, nil
-			}
-		}
-		return 0, nil
-	default:
-		switch right.(type) {
-		case *SQLValues:
-			i, err := CompareTo(right, left, collation)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		}
-	}
 
 	if right.IsNull() {
 		if left.IsNull() {
@@ -727,16 +502,7 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 	}
 
 	if left.IsNull() {
-		switch right.(type) {
-		case *SQLValues:
-			i, err := CompareTo(right, left, collation)
-			if err != nil {
-				return i, err
-			}
-			return -i, nil
-		default:
-			return -1, nil
-		}
+		return -1, nil
 	}
 
 	if left.EvalType() == right.EvalType() {
@@ -750,9 +516,6 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 
 	switch lVal := left.(type) {
 	case SQLVarchar:
-		if right.IsNull() {
-			return 1, nil
-		}
 		switch right.(type) {
 		case SQLDate, SQLTimestamp:
 			// MySQL throws an error if you try to compare varchar =,<,> date/timestamp.
@@ -762,9 +525,6 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 			return compareDecimal128(Decimal(left), Decimal(right))
 		}
 	case SQLDate:
-		if right.IsNull() {
-			return 1, nil
-		}
 		switch rVal := right.(type) {
 		case SQLVarchar:
 			t, _, ok := parseDateTime(right.String())
@@ -783,9 +543,6 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 			return compareDecimal128(Decimal(left), Decimal(right))
 		}
 	case SQLTimestamp:
-		if right.IsNull() {
-			return 1, nil
-		}
 		switch rVal := right.(type) {
 		case SQLVarchar:
 			t, _, ok := parseDateTime(right.String())
@@ -804,14 +561,38 @@ func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error
 			return compareDecimal128(Decimal(left), Decimal(right))
 		}
 	default:
-		if right.IsNull() {
-			return 1, nil
-		}
 		switch right.(type) {
 		default:
 			return compareDecimal128(Decimal(left), Decimal(right))
 		}
 	}
+}
+
+// CompareToPairwise compares two slices of SQLValue in a pairwise manner. It
+// returns -1 if the left compares less than the right; 1, if left compares
+// greater than right; and 0 if left compares equal to right.
+// The pairwise comparison means that left[0] is compared to right[0], left[1]
+// is compared to right[1], and so on, using CompareTo(left[i], right[i]). If
+// a pairwise comparison returns 0, the next pair is compared. If it returns
+// non-0, this function returns that result. If all pairs are compared and
+// found to be equal, this function returns 0.
+func CompareToPairwise(left, right []SQLValue, collation *collation.Collation) (int, error) {
+	if len(left) != len(right) {
+		return -1, fmt.Errorf("different number of values on each side (left: %v, right: %v)", len(left), len(right))
+	}
+
+	for i, lv := range left {
+		c, err := CompareTo(lv, right[i], collation)
+		if err != nil {
+			return -1, err
+		}
+
+		if c != 0 {
+			return c, nil
+		}
+	}
+
+	return 0, nil
 }
 
 // ConvertTo takes a SQLValue v and an evalType, that determines what
@@ -887,7 +668,7 @@ func String(v SQLValue) string {
 	return v.SQLVarchar().Value().(string)
 }
 
-// BSONValueToSQLValue deserializes raw BSON into SQLValues directly.
+// BSONValueToSQLValue deserializes raw BSON into a SQLValue directly.
 func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 	data []byte) (SQLValue, error) {
 	switch evalType {

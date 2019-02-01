@@ -269,7 +269,7 @@ func fastCleanFormat(columnType, evalType evaluator.EvalType, f *dataFormatter) 
 
 func formatHeaderField(variables *variable.Container, field *Field,
 	value evaluator.SQLValue) error {
-	switch typedV := value.(type) {
+	switch value.(type) {
 	case evaluator.SQLFloat:
 		field.Type = MySQLTypeDouble
 		field.Decimal = 0x1f
@@ -297,11 +297,6 @@ func formatHeaderField(variables *variable.Container, field *Field,
 		field.Type = MySQLTypeDate
 	case evaluator.SQLTimestamp:
 		field.Type = MySQLTypeDatetime
-	case *evaluator.SQLValues:
-		if len(typedV.Values) != 1 {
-			return mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
-		}
-		return formatHeaderField(variables, field, typedV.Values[0])
 	case nil:
 		field.Type = MySQLTypeNull
 	default:

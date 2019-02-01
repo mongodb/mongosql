@@ -77,8 +77,6 @@ const (
 	// The next two types are used for the two uuid subtybe 3 encodings.
 	EvalJavaUUID   EvalType = 0xF9
 	EvalCSharpUUID EvalType = 0xF8
-	// MongoDB does not have tuples, but MySQL does.
-	EvalTuple EvalType = 0xF7
 	// ArrNumeric is for specially handling legacy 2d arrays.
 	EvalArrNumeric EvalType = 0xF6
 )
@@ -175,7 +173,6 @@ var evalTypeToMongoType = map[EvalType]schema.MongoType{
 	EvalUint64:     schema.MongoInt64,
 	EvalJavaUUID:   schema.MongoUUIDJava,
 	EvalCSharpUUID: schema.MongoUUIDCSharp,
-	EvalTuple:      schema.MongoArray,
 	// mappings that indicate presence of dirty/unsupported data.
 	EvalDocument:  schema.MongoDocument,
 	EvalArray:     schema.MongoArray,
@@ -236,7 +233,6 @@ var evalTypeToSQLType = map[EvalType]schema.SQLType{
 	EvalJavaUUID:    schema.SQLUUID,
 	EvalCSharpUUID:  schema.SQLUUID,
 	EvalString:      schema.SQLVarchar,
-	EvalTuple:       schema.SQLTuple,
 }
 
 // EvalTypeToSQLType returns the schema.SQLType for a EvalType.
