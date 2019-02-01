@@ -800,6 +800,15 @@ func panicIfNotSQLExpr(s string, n Node) SQLExpr {
 	panic(fmt.Sprintf("attempted to convert Node %v to SQLExpr in ReplaceChild for %s", n, s))
 }
 
+// panicIfNotProjectStage returns a *ProjectStage from a PlanStage p, or panics if the PlanStage is not a *ProjectStage.
+func panicIfNotProjectStage(side string, p PlanStage) *ProjectStage {
+	ret, ok := p.(*ProjectStage)
+	if ok {
+		return ret
+	}
+	panic(fmt.Sprintf("expected ProjectStage for %s PlanStage, got %T", side, p))
+}
+
 // panicWithInvalidIndex formats the panics for ReplaceChild methods.
 func panicWithInvalidIndex(s string, index, max int) {
 	if max < 0 {

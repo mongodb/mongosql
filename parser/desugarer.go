@@ -541,11 +541,10 @@ func (*detupler) PostVisit(current CST) (CST, error) {
 
 		left, leftIsTuple := node.Left.(ValTuple)
 		right, rightIsTuple := node.Right.(ValTuple)
+		_, leftIsSubquery := node.Left.(*Subquery)
+		_, rightIsSubquery := node.Right.(*Subquery)
 
 		if leftIsTuple || rightIsTuple {
-			_, leftIsSubquery := node.Left.(*Subquery)
-			_, rightIsSubquery := node.Right.(*Subquery)
-
 			if leftIsSubquery {
 				node.Right = detupleToSubquery(right)
 			} else if rightIsSubquery {
@@ -557,6 +556,11 @@ func (*detupler) PostVisit(current CST) (CST, error) {
 					return nil, err
 				}
 			}
+		} else if !leftIsSubquery && !leftIsTuple && rightIsSubquery {
+			// Even non-tuple comparison operands are converted into subqueries,
+			// as this allows us to always produce full subquery comparisons
+			// where the left and right operands are both subqueries.
+			node.Left = detupleToSubquery(ValTuple{node.Left})
 		}
 	}
 	return current, nil
@@ -709,9 +713,9 @@ func detupleInequality(operator string, leftExprs, rightExprs Exprs) Expr {
 // disjunctions of comparisons or subquery comparisons. This function handles
 // the second case.
 func detupleToSubquery(node ValTuple) *Subquery {
-	var selExprs SelectExprs
-	for _, expr := range node {
-		selExprs = append(selExprs, &NonStarExpr{Expr: expr})
+	selExprs := make(SelectExprs, len(node))
+	for i, expr := range node {
+		selExprs[i] = &NonStarExpr{Expr: expr}
 	}
 	return &Subquery{
 		&SimpleSelect{SelectExprs: selExprs},

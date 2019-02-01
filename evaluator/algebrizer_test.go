@@ -28,11 +28,25 @@ var (
 	defaultDbName = "test"
 )
 
+const (
+	// foo.bar is the default test namespace for a dual source
+	// for this test schema (testSchema1).
+	defaultDualDbName    = "foo"
+	defaultDualTableName = "bar"
+)
+
 func createMongoSource(selectID int, tableName, aliasName string) evaluator.PlanStage {
 	db, _ := testCatalog.Database(defaultDbName)
 	tbl, _ := db.Table(tableName)
 	table, _ := tbl.(catalog.MongoDBTable)
 	return evaluator.NewMongoSourceStage(db, table, selectID, aliasName)
+}
+
+func createMongoDualSource(selectID int) evaluator.PlanStage {
+	db, _ := testCatalog.Database(defaultDualDbName)
+	tbl, _ := db.Table(defaultDualTableName)
+	table, _ := tbl.(catalog.MongoDBTable)
+	return evaluator.NewMongoSourceDualStage(db, table, selectID, defaultDualTableName)
 }
 
 func TestAlgebrizeQuery(t *testing.T) {
@@ -1314,8 +1328,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		runTestsAsSubtest(fmt.Sprintf("Show Full Tables %s", from), tests)
 	}
 
-	dualDb, _ := testCatalog.Database("foo")
-	table, _ := dualDb.Table("bar")
+	dualDb, _ := testCatalog.Database(defaultDualDbName)
+	table, _ := dualDb.Table(defaultDualTableName)
 	dualTable, _ := table.(catalog.MongoDBTable)
 
 	// Select Statements
@@ -2925,13 +2939,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select a from foo where (b) = (select b from bar where foo.a = bar.a)",
 		func() evaluator.PlanStage {
 			fooSource := createMongoSource(1, "foo", "foo")
-			barSource := createMongoSource(2, "bar", "bar")
+			dualSource := createMongoDualSource(2)
+			barSource := createMongoSource(3, "bar", "bar")
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(
 					fooSource,
-					evaluator.NewSQLRightSubqueryCmpExpr(
-						true,
-						createSQLColumnExprFromSource(fooSource, "foo", "b"),
+					evaluator.NewSQLSubqueryCmpExpr(
+						true, true,
+						evaluator.NewProjectStage(
+							dualSource,
+							createProjectedColumn(1, fooSource, "foo", "b", "foo", "b"),
+						),
 						evaluator.NewProjectStage(
 							evaluator.NewFilterStage(
 								barSource,
@@ -2942,7 +2960,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 										barSource, "bar", "a"),
 								),
 							),
-							createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
+							createProjectedColumn(3, barSource, "bar", "b", "bar", "b"),
 						),
 						"=",
 					),
@@ -2955,14 +2973,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"exists(select 1 from foo where f.a = a))",
 		func() evaluator.PlanStage {
 			fooSource := createMongoSource(1, "foo", "f")
-			barSource := createMongoSource(2, "bar", "bar")
-			foo3Source := createMongoSource(3, "foo", "foo")
+			dualSource := createMongoDualSource(2)
+			barSource := createMongoSource(3, "bar", "bar")
+			foo4Source := createMongoSource(4, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(
 					fooSource,
-					evaluator.NewSQLRightSubqueryCmpExpr(
-						true,
-						createSQLColumnExprFromSource(fooSource, "f", "b"),
+					evaluator.NewSQLSubqueryCmpExpr(
+						true, true,
+						evaluator.NewProjectStage(
+							dualSource,
+							createProjectedColumn(1, fooSource, "f", "b", "f", "b"),
+						),
 						evaluator.NewProjectStage(
 							evaluator.NewFilterStage(
 								barSource,
@@ -2970,20 +2992,20 @@ func TestAlgebrizeQuery(t *testing.T) {
 									true,
 									evaluator.NewProjectStage(
 										evaluator.NewFilterStage(
-											foo3Source,
+											foo4Source,
 											evaluator.NewSQLEqualsExpr(
 												createSQLColumnExprFromSource(
 													fooSource, "f", "a"),
 												createSQLColumnExprFromSource(
-													foo3Source, "foo", "a"),
+													foo4Source, "foo", "a"),
 											),
 										),
-										evaluator.CreateProjectedColumnFromSQLExpr(3,
+										evaluator.CreateProjectedColumnFromSQLExpr(4,
 											"1", evaluator.NewSQLInt64(valKind, 1)),
 									),
 								),
 							),
-							createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
+							createProjectedColumn(3, barSource, "bar", "b", "bar", "b"),
 						),
 						"=",
 					),
@@ -2996,14 +3018,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"exists(select 1 from foo where bar.a = a))",
 		func() evaluator.PlanStage {
 			fooSource := createMongoSource(1, "foo", "foo")
-			barSource := createMongoSource(2, "bar", "bar")
-			foo3Source := createMongoSource(3, "foo", "foo")
+			dualSource := createMongoDualSource(2)
+			barSource := createMongoSource(3, "bar", "bar")
+			foo3Source := createMongoSource(4, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(
 					fooSource,
-					evaluator.NewSQLRightSubqueryCmpExpr(
-						false,
-						createSQLColumnExprFromSource(fooSource, "foo", "b"),
+					evaluator.NewSQLSubqueryCmpExpr(
+						true, false,
+						evaluator.NewProjectStage(
+							dualSource,
+							createProjectedColumn(1, fooSource, "foo", "b", "foo", "b"),
+						),
 						evaluator.NewProjectStage(
 							evaluator.NewFilterStage(
 								barSource,
@@ -3019,12 +3045,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 													foo3Source, "foo", "a"),
 											),
 										),
-										evaluator.CreateProjectedColumnFromSQLExpr(3,
+										evaluator.CreateProjectedColumnFromSQLExpr(4,
 											"1", evaluator.NewSQLInt64(valKind, 1)),
 									),
 								),
 							),
-							createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
+							createProjectedColumn(3, barSource, "bar", "b", "bar", "b"),
 						),
 						"=",
 					),

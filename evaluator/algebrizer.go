@@ -1709,156 +1709,69 @@ func (a *algebrizer) translateExistsExpr(expr *parser.ExistsExpr) (*SQLExistsExp
 // Note: this does not handle EXISTS or subqueries resulting in a
 // single-column scalar.
 func (a *algebrizer) translateSubqueryCmpExpr(expr *parser.ComparisonExpr) (SQLExpr, error) {
-
-	var err error
-	var leftPlan, rightPlan PlanStage
-	var leftIsCorrelated, rightIsCorrelated bool
-	var leftExpr SQLExpr
-
-	// If the left side is a subquery, translate it into a PlanStage.
-	// Otherwise, translate it to a SQLExpr.
+	// Both the left and right Exprs must be subqueries at this point.
 	lsq, leftIsPlan := expr.Left.(*parser.Subquery)
-	if leftIsPlan {
-		leftPlan, leftIsCorrelated, err = a.translateSubqueryPlan(lsq)
-	} else {
-		leftExpr, err = a.translateExpr(expr.Left)
+	rsq, rightIsPlan := expr.Right.(*parser.Subquery)
+
+	// If one is not, our desugarer did not run or has become buggy, panic accordingly.
+	if !leftIsPlan {
+		panic(fmt.Sprintf("expected parser.Subquery for left side of subquery cmp expr, but got %T", expr.Left))
 	}
+	if !rightIsPlan {
+		panic(fmt.Sprintf("expected parser.Subquery for right side of subquery cmp expr, but got %T", expr.Right))
+	}
+
+	leftPlan, leftIsCorrelated, err := a.translateSubqueryPlan(lsq)
 	if err != nil {
 		return nil, err
 	}
 
-	// If the right side is a subquery, translate it into a PlanStage.
-	rsq, rightIsPlan := expr.Right.(*parser.Subquery)
-	if rightIsPlan {
-		rightPlan, rightIsCorrelated, err = a.translateSubqueryPlan(rsq)
-		if err != nil {
-			return nil, err
-		}
+	rightPlan, rightIsCorrelated, err := a.translateSubqueryPlan(rsq)
+	if err != nil {
+		return nil, err
 	}
 
 	switch expr.SubqueryOperator {
 	case "":
-		// if left and right sides are both subqueries, create a SQLFullSubqueryCmp
-		if leftIsPlan && rightIsPlan {
-			cmp := NewSQLFullSubqueryCmpExpr(
-				leftIsCorrelated, rightIsCorrelated,
-				leftPlan, rightPlan,
-				expr.Operator,
-			)
-			return cmp, nil
-		}
-
-		// if just the right side is a subquery, create a SQLRightSubqueryCmp
-		if rightIsPlan {
-			cmp := NewSQLRightSubqueryCmpExpr(
-				rightIsCorrelated,
-				leftExpr,
-				rightPlan,
-				expr.Operator,
-			)
-			return cmp, nil
-		}
-
-		// if just the left side is a subquery, our desugarer did not run or
-		// has become buggy, panic accordingly.
-		if leftIsPlan {
-			panic("found left-side only subquery, this should have been rewritten during desugaring")
-		}
+		return NewSQLSubqueryCmpExpr(
+			leftIsCorrelated, rightIsCorrelated,
+			leftPlan, rightPlan,
+			expr.Operator,
+		), nil
 
 	case parser.AST_IN:
-		// The right Expr must be a subquery at this point.
-		if !rightIsPlan {
-			panic("right side of an IN expr was not a subquery")
-		}
-
-		if leftIsPlan {
-			cmp := NewSQLSubqueryInSubqueryExpr(
-				leftIsCorrelated,
-				rightIsCorrelated,
-				leftPlan,
-				rightPlan,
-			)
-			return cmp, nil
-		}
-
-		cmp := NewSQLInSubqueryExpr(
+		return NewSQLSubqueryInSubqueryExpr(
+			leftIsCorrelated,
 			rightIsCorrelated,
-			leftExpr,
+			leftPlan,
 			rightPlan,
-		)
-		return cmp, nil
+		), nil
 
 	case parser.AST_NOT_IN:
-		// The right Expr must be a subquery at this point.
-		if !rightIsPlan {
-			panic("right side of a NOT IN expr was not a subquery")
-		}
-
-		if leftIsPlan {
-			cmp := NewSQLSubqueryNotInSubqueryExpr(
-				leftIsCorrelated,
-				rightIsCorrelated,
-				leftPlan,
-				rightPlan,
-			)
-			return cmp, nil
-		}
-
-		cmp := NewSQLNotInSubqueryExpr(
+		return NewSQLSubqueryNotInSubqueryExpr(
+			leftIsCorrelated,
 			rightIsCorrelated,
-			leftExpr,
+			leftPlan,
 			rightPlan,
-		)
-		return cmp, nil
+		), nil
 
 	case parser.AST_ANY:
-		// The right Expr must be a subquery at this point.
-		if !rightIsPlan {
-			panic("right side of an ANY expr was not a subquery")
-		}
-
-		if leftIsPlan {
-			cmp := NewSQLSubqueryAnyExpr(
-				leftIsCorrelated,
-				rightIsCorrelated,
-				leftPlan,
-				rightPlan,
-				expr.Operator,
-			)
-			return cmp, nil
-		}
-
-		cmp := NewSQLAnyExpr(
+		return NewSQLSubqueryAnyExpr(
+			leftIsCorrelated,
 			rightIsCorrelated,
-			leftExpr,
+			leftPlan,
 			rightPlan,
 			expr.Operator,
-		)
-		return cmp, nil
+		), nil
 
 	case parser.AST_ALL:
-		if !rightIsPlan {
-			panic("right side of an ALL expr was not a subquery")
-		}
-
-		if leftIsPlan {
-			cmp := NewSQLSubqueryAllExpr(
-				leftIsCorrelated,
-				rightIsCorrelated,
-				leftPlan,
-				rightPlan,
-				expr.Operator,
-			)
-			return cmp, nil
-		}
-
-		cmp := NewSQLAllExpr(
+		return NewSQLSubqueryAllExpr(
+			leftIsCorrelated,
 			rightIsCorrelated,
-			leftExpr,
+			leftPlan,
 			rightPlan,
 			expr.Operator,
-		)
-		return cmp, nil
+		), nil
 	}
 
 	// if we get here, we made an error invoking this function

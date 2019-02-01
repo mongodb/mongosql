@@ -1886,460 +1886,10 @@ func (e *SQLNotInSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (int
 	return nil, newUntranslatableExprFailure(e)
 }
 
-// SQLAnyExpr evaluates to true if the left expression compares true to
-// any of the rows returned by the right subquery by a provided comparison
-// operator.
-// Multi-column right subqueries are valid if the left is a tuple or
-// subquery with the same number of columns.
-// Multirow left subqueries are never valid.
-type SQLAnyExpr struct {
-	correlated bool
-	left       SQLExpr
-	plan       PlanStage
-	operator   string
-	// We always cache non-correlated subquery results in their entirety.
-	// This is a fine place to be more clever in the future.
-	// SQLAnyExpr can cache a whole table, with each row being compared
-	// to the value result of the left expression.
-	cache *SQLValues
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (e SQLAnyExpr) Children() []Node {
-	return []Node{e.left, e.plan}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLAnyExpr) ReplaceChild(i int, n Node) {
-	switch i {
-	case 0:
-		e.left = panicIfNotSQLExpr(e.ExprName(), n)
-	case 1:
-		e.plan = panicIfNotPlanStage(e.ExprName(), n)
-	default:
-		panicWithInvalidIndex(e.ExprName(), i, 1)
-	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLAnyExpr) ExprName() string {
-	return "SQLAnyExpr"
-}
-
-// NewSQLAnyExpr is a constructor for SQLAnyExpr.
-func NewSQLAnyExpr(
-	correlated bool,
-	left SQLExpr,
-	plan PlanStage,
-	operator string) *SQLAnyExpr {
-	return &SQLAnyExpr{
-		correlated: correlated,
-		left:       left,
-		plan:       plan,
-		operator:   operator,
-	}
-}
-
-// Evaluate evaluates a SQLAnyExpr into a SQLValue.
-// ANY performs a series of comparisons. ANY uses the provided comparison operator.
-// The resulting comparisons within columns of a row are ANDed together.
-// Comparisons from separate rows are ORed together.
-// Using SQL three-value boolean logic, the results are as follows:
-// If a series of comparisons within any row is all true, the result is false.
-// If not, if any of the series returns NULL (the series contains NULL and no falses),
-// the result is NULL.
-// Else, the result is true.
-func (e *SQLAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var table *SQLValues
-	var err error
-	if e.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.cache == nil {
-			// Populate cache.
-			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		table = e.cache
-	}
-
-	// Determine length of the left expression.
-	var leftLen int
-	leftValues, isVals := e.left.(*SQLValues)
-	if isVals {
-		leftLen = len(leftValues.Values)
-	} else {
-		leftLen = 1
-	}
-
-	sawNull := false
-	for _, row := range table.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same number of columns as what
-		// it's being compared to.
-		// Note: This is redundant to do for each row.
-		if leftLen != len(right.Values) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		var comp SQLExpr
-		comp, err = comparisonExpr(e.left, right, e.operator)
-		if err != nil {
-			return nil, err
-		}
-		var result SQLValue
-		result, err = comp.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, err
-		}
-		if Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, true), nil
-		}
-		if result.IsNull() {
-			sawNull = true
-		}
-	}
-
-	// left expression not comparing successfully to any row in the right table
-	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
-	}
-	return NewSQLBool(cfg.sqlValueKind, false), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLAnyExpr.
-func (e *SQLAnyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-// nolint: unparam
-func (e *SQLAnyExpr) reconcile() (SQLExpr, error) {
-	return e, nil
-}
-
-func (e *SQLAnyExpr) String() string {
-	return fmt.Sprintf("%v %s any (%s)", e.left, e.operator, PrettyPrintPlan(e.plan))
-}
-
-// EvalType returns the EvalType associated with SQLAnyExpr.
-func (*SQLAnyExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return e.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLAnyExpr into something that can
-// be used in an aggregation pipeline. If SQLAnyExpr cannot be translated,
-// it will return nil and error.
-func (e *SQLAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
-}
-
-// SQLAllExpr evaluates to true if the left expression compares true to
-// all of the rows returned by the right subquery by a provided comparison
-// operator.
-// Multi-column right subqueries are valid if the left is a tuple or
-// subquery with the same number of columns.
-// Multirow left subqueries are never valid.
-type SQLAllExpr struct {
-	correlated bool
-	left       SQLExpr
-	plan       PlanStage
-	operator   string
-	// We always cache non-correlated subquery results in their entirety.
-	// This is a fine place to be more clever in the future.
-	// SQLAllExpr can cache a whole table, with each row being compared
-	// to the value result of the left expression.
-	cache *SQLValues
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (e SQLAllExpr) Children() []Node {
-	return []Node{e.left, e.plan}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLAllExpr) ReplaceChild(i int, n Node) {
-	switch i {
-	case 0:
-		e.left = panicIfNotSQLExpr(e.ExprName(), n)
-	case 1:
-		e.plan = panicIfNotPlanStage(e.ExprName(), n)
-	default:
-		panicWithInvalidIndex(e.ExprName(), i, 1)
-	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLAllExpr) ExprName() string {
-	return "SQLAllExpr"
-}
-
-// NewSQLAllExpr is a constructor for SQLAllExpr.
-func NewSQLAllExpr(
-	correlated bool,
-	left SQLExpr,
-	plan PlanStage,
-	operator string) *SQLAllExpr {
-	return &SQLAllExpr{
-		correlated: correlated,
-		left:       left,
-		plan:       plan,
-		operator:   operator,
-	}
-}
-
-// Evaluate evaluates a SQLAllExpr into a SQLValue.
-func (e *SQLAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var table *SQLValues
-	var err error
-	if e.correlated {
-		table, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.plan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.cache == nil {
-			// Populate cache.
-			e.cache, err = evaluatePlan(ctx, cfg, st, e.plan)
-			if err != nil {
-				return nil, err
-			}
-			err = cfg.memoryMonitor.AcquireGlobal(e.cache.Size())
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		table = e.cache
-	}
-
-	// Determine length of the left expression.
-	var leftLen int
-	leftValues, isVals := e.left.(*SQLValues)
-	if isVals {
-		leftLen = len(leftValues.Values)
-	} else {
-		leftLen = 1
-	}
-
-	sawNull := false
-	for _, row := range table.Values {
-		right := row.(*SQLValues)
-
-		// Make sure the subquery returns the same number of columns as what
-		// it's being compared to.
-		// Note: This is redundant to do for each row.
-		if leftLen != len(right.Values) {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-		}
-
-		var comp SQLExpr
-		comp, err = comparisonExpr(e.left, right, e.operator)
-		if err != nil {
-			return nil, err
-		}
-		var result SQLValue
-		result, err = comp.Evaluate(ctx, cfg, st)
-		if err != nil {
-			return nil, err
-		}
-		if !Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, false), nil
-		}
-		if result.IsNull() {
-			sawNull = true
-		}
-	}
-
-	// left expression compared successfully to all rows in the right table
-	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
-	}
-	return NewSQLBool(cfg.sqlValueKind, true), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLAllExpr.
-func (e *SQLAllExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-// nolint: unparam
-func (e *SQLAllExpr) reconcile() (SQLExpr, error) {
-	return e, nil
-}
-
-func (e *SQLAllExpr) String() string {
-	return fmt.Sprintf("%v %s all (%s)", e.left, e.operator, PrettyPrintPlan(e.plan))
-}
-
-// EvalType returns the EvalType associated with SQLAllExpr.
-func (*SQLAllExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return e.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLAllExpr into something that can
-// be used in an aggregation pipeline. If SQLAllExpr cannot be translated,
-// it will return nil and error.
-func (e *SQLAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
-}
-
-// SQLRightSubqueryCmpExpr evaluates to true if the left expression compares true to
-// the single row returned by the right subquery by a provided comparison
-// operator. The right subquery must be scalar. The left expression is not a subquery.
-// See SQLFullSubqueryCmpExpr for representation of other
-// cases.
-type SQLRightSubqueryCmpExpr struct {
-	correlated bool
-	left       SQLExpr
-	plan       PlanStage
-	operator   string
-	// We always cache non-correlated subquery results in their entirety.
-	// This is a fine place to be more clever in the future.
-	// SQLRightSubqueryCmpExpr caches a scalar but it can be multicolumn.
-	cache *SQLValues
-}
-
-// Children returns a slice of all the Node children of the Node.
-func (e SQLRightSubqueryCmpExpr) Children() []Node {
-	return []Node{e.left, e.plan}
-}
-
-// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLRightSubqueryCmpExpr) ReplaceChild(i int, n Node) {
-	switch i {
-	case 0:
-		e.left = panicIfNotSQLExpr(e.ExprName(), n)
-	case 1:
-		e.plan = panicIfNotPlanStage(e.ExprName(), n)
-	default:
-		panicWithInvalidIndex(e.ExprName(), i, 1)
-	}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLRightSubqueryCmpExpr) ExprName() string {
-	return "SQLRightSubqueryCmpExpr"
-}
-
-// NewSQLRightSubqueryCmpExpr is a constructor for SQLRightSubqueryCmpExpr.
-func NewSQLRightSubqueryCmpExpr(
-	correlated bool,
-	left SQLExpr,
-	plan PlanStage,
-	operator string) *SQLRightSubqueryCmpExpr {
-	return &SQLRightSubqueryCmpExpr{
-		correlated: correlated,
-		left:       left,
-		plan:       plan,
-		operator:   operator,
-	}
-}
-
-// nolint: unparam
-func (e *SQLRightSubqueryCmpExpr) reconcile() (SQLExpr, error) {
-	return e, nil
-}
-
-// Evaluate evaluates a SQLRightSubqueryCmpExpr into a SQLValue.
-func (e *SQLRightSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var row *SQLValues
-	var err error
-	if e.correlated {
-		row, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.plan)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if e.cache == nil {
-			// Populate cache.
-			e.cache, err = evaluatePlanToScalar(ctx, cfg, st, e.plan)
-			if err != nil {
-				return nil, err
-			}
-		}
-		// Read from cache.
-		row = e.cache
-	}
-
-	// Determine length of the left expression.
-	var leftLen int
-	leftValues, isVals := e.left.(*SQLValues)
-	if isVals {
-		leftLen = len(leftValues.Values)
-	} else {
-		leftLen = 1
-	}
-
-	// Make sure the subquery returns the same number of columns as what
-	// it's being compared to.
-	if leftLen != len(row.Values) {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, leftLen)
-	}
-
-	var comp SQLExpr
-	comp, err = comparisonExpr(e.left, row, e.operator)
-	if err != nil {
-		return nil, err
-	}
-	return comp.Evaluate(ctx, cfg, st)
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLRightSubqueryCmpExpr.
-func (e *SQLRightSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
-}
-
-func (e *SQLRightSubqueryCmpExpr) String() string {
-	return fmt.Sprintf("%v %s (%s)", e.left, e.operator, PrettyPrintPlan(e.plan))
-}
-
-// EvalType returns the EvalType associated with SQLRightSubqueryCmpExpr.
-func (*SQLRightSubqueryCmpExpr) EvalType() EvalType {
-	return EvalBoolean
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLRightSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return e.ToAggregationLanguage(t)
-}
-
-// ToAggregationLanguage translates SQLRightSubqueryCmpExpr into something that can
-// be used in an aggregation pipeline. If SQLRightSubqueryCmpExpr cannot be translated,
-// it will return nil and error.
-func (e *SQLRightSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
-}
-
-// SQLFullSubqueryCmpExpr evaluates to true if the right subquery compares true to
+// SQLSubqueryCmpExpr evaluates to true if the right subquery compares true to
 // the left subquery by a provided comparison operator.
 // The left and right subqueries need not be scalar but must produce the same number of rows.
-// See SQLRightSubqueryCmpExpr and SQLFullSubqueryCmpExpr for representation of other
-// cases.
-type SQLFullSubqueryCmpExpr struct {
+type SQLSubqueryCmpExpr struct {
 	leftCorrelated  bool
 	rightCorrelated bool
 	leftPlan        PlanStage
@@ -2347,10 +1897,10 @@ type SQLFullSubqueryCmpExpr struct {
 	operator        string
 	// We always cache non-correlated subquery results in their entirety.
 	// This cache is for the left-hand side.
-	// SQLFullSubqueryCmpExpr's left cache is scalar but it can be multicolumn.
+	// SQLSubqueryCmpExpr's left cache is scalar but it can be multicolumn.
 	leftCache *SQLValues
 	// This cache is for the right-hand side.
-	// SQLFullSubqueryCmpExpr's right cache is scalar but it can be multicolumn.
+	// SQLSubqueryCmpExpr's right cache is scalar but it can be multicolumn.
 	rightCache *SQLValues
 	// This cache is for the result. It is used if both sides are non-correlated.
 	// This cache consists of a boolean.
@@ -2358,12 +1908,12 @@ type SQLFullSubqueryCmpExpr struct {
 }
 
 // Children returns a slice of all the Node children of the Node.
-func (e SQLFullSubqueryCmpExpr) Children() []Node {
+func (e SQLSubqueryCmpExpr) Children() []Node {
 	return []Node{e.leftPlan, e.rightPlan}
 }
 
 // ReplaceChild replaces the i'th child of the receiver Node with the Node n.
-func (e *SQLFullSubqueryCmpExpr) ReplaceChild(i int, n Node) {
+func (e *SQLSubqueryCmpExpr) ReplaceChild(i int, n Node) {
 	switch i {
 	case 0:
 		e.leftPlan = panicIfNotPlanStage(e.ExprName(), n)
@@ -2375,18 +1925,18 @@ func (e *SQLFullSubqueryCmpExpr) ReplaceChild(i int, n Node) {
 }
 
 // ExprName returns a string representing this SQLExpr's name.
-func (*SQLFullSubqueryCmpExpr) ExprName() string {
-	return "SQLFullSubqueryCmpExpr"
+func (*SQLSubqueryCmpExpr) ExprName() string {
+	return "SQLSubqueryCmpExpr"
 }
 
-// NewSQLFullSubqueryCmpExpr is a constructor for SQLFullSubqueryCmpExpr.
-func NewSQLFullSubqueryCmpExpr(
+// NewSQLSubqueryCmpExpr is a constructor for SQLSubqueryCmpExpr.
+func NewSQLSubqueryCmpExpr(
 	leftCorrelated bool,
 	rightCorrelated bool,
 	leftPlan PlanStage,
 	rightPlan PlanStage,
-	operator string) *SQLFullSubqueryCmpExpr {
-	return &SQLFullSubqueryCmpExpr{
+	operator string) *SQLSubqueryCmpExpr {
+	return &SQLSubqueryCmpExpr{
 		leftCorrelated:  leftCorrelated,
 		rightCorrelated: rightCorrelated,
 		leftPlan:        leftPlan,
@@ -2395,13 +1945,17 @@ func NewSQLFullSubqueryCmpExpr(
 	}
 }
 
-// nolint: unparam
-func (e *SQLFullSubqueryCmpExpr) reconcile() (SQLExpr, error) {
-	return e, nil
+func (e *SQLSubqueryCmpExpr) reconcile() (SQLExpr, error) {
+	leftPlan, rightPlan, err := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSQLSubqueryCmpExpr(e.leftCorrelated, e.rightCorrelated, leftPlan, rightPlan, e.operator), nil
 }
 
-// Evaluate evaluates a SQLFullSubqueryCmpExpr into a SQLValue.
-func (e *SQLFullSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLSubqueryCmpExpr into a SQLValue.
+func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
 	if !e.leftCorrelated && !e.rightCorrelated && e.fullCache != nil {
 		return e.fullCache, nil
 	}
@@ -2473,31 +2027,31 @@ func (e *SQLFullSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionCon
 	return result, nil
 }
 
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLFullSubqueryCmpExpr.
-func (e *SQLFullSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+// FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryCmpExpr.
+func (e *SQLSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	return e
 }
 
-func (e *SQLFullSubqueryCmpExpr) String() string {
+func (e *SQLSubqueryCmpExpr) String() string {
 	return fmt.Sprintf("(%s) %s (%s)", PrettyPrintPlan(e.leftPlan),
 		e.operator, PrettyPrintPlan(e.rightPlan))
 }
 
-// EvalType returns the EvalType associated with SQLFullSubqueryCmpExpr.
-func (*SQLFullSubqueryCmpExpr) EvalType() EvalType {
+// EvalType returns the EvalType associated with SQLSubqueryCmpExpr.
+func (*SQLSubqueryCmpExpr) EvalType() EvalType {
 	return EvalBoolean
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLFullSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
-// ToAggregationLanguage translates SQLFullSubqueryCmpExpr into something that can
-// be used in an aggregation pipeline. If SQLFullSubqueryCmpExpr cannot be translated,
+// ToAggregationLanguage translates SQLSubqueryCmpExpr into something that can
+// be used in an aggregation pipeline. If SQLSubqueryCmpExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLFullSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	return nil, newUntranslatableExprFailure(e)
 }
 
@@ -2653,9 +2207,13 @@ func (e *SQLSubqueryAllExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	return e
 }
 
-// nolint: unparam
 func (e *SQLSubqueryAllExpr) reconcile() (SQLExpr, error) {
-	return e, nil
+	leftPlan, rightPlan, err := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSQLSubqueryAllExpr(e.leftCorrelated, e.rightCorrelated, leftPlan, rightPlan, e.operator), nil
 }
 
 func (e *SQLSubqueryAllExpr) String() string {
@@ -2841,9 +2399,13 @@ func (e *SQLSubqueryAnyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	return e
 }
 
-// nolint: unparam
 func (e *SQLSubqueryAnyExpr) reconcile() (SQLExpr, error) {
-	return e, nil
+	leftPlan, rightPlan, err := reconcileSubqueryPlans(e.leftPlan, e.rightPlan)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSQLSubqueryAnyExpr(e.leftCorrelated, e.rightCorrelated, leftPlan, rightPlan, e.operator), nil
 }
 
 func (e *SQLSubqueryAnyExpr) String() string {
@@ -3518,4 +3080,31 @@ func newCaseCondition(matcher, then SQLExpr) caseCondition {
 
 func (c *caseCondition) String() string {
 	return fmt.Sprintf("when (%v) then %v", c.matcher, c.then)
+}
+
+func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage, error) {
+	leftPlan := panicIfNotProjectStage("left", left)
+	rightPlan := panicIfNotProjectStage("right", right)
+
+	leftColumns := leftPlan.projectedColumns
+	rightColumns := rightPlan.projectedColumns
+
+	if len(leftColumns) != len(rightColumns) {
+		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(rightColumns))
+	}
+
+	for i, lc := range leftColumns {
+		newLeft, newRight, err := ReconcileSQLExprs(lc.Expr, rightColumns[i].Expr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		leftColumns[i].Expr = newLeft
+		rightColumns[i].Expr = newRight
+	}
+
+	leftPlan.projectedColumns = leftColumns
+	rightPlan.projectedColumns = rightColumns
+
+	return leftPlan, rightPlan, nil
 }

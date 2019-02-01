@@ -234,37 +234,37 @@ func testDesugar(t *testing.T) {
 		{
 			desc:     "reorder = subquery comparisons to non-subqueries",
 			query:    "select (select * from foo) = 1",
-			expected: "select 1 = (select * from foo)",
+			expected: "select (select 1) = (select * from foo)",
 		},
 		{
 			desc:     "reorder <=> subquery comparisons to non-subqueries",
 			query:    "select (select * from foo) <=> 1",
-			expected: "select 1 <=> (select * from foo)",
+			expected: "select (select 1) <=> (select * from foo)",
 		},
 		{
 			desc:     "reorder < subquery comparisons to non-subqueries",
 			query:    "select (select * from foo) < 1",
-			expected: "select 1 > (select * from foo)",
+			expected: "select (select 1) > (select * from foo)",
 		},
 		{
 			desc:     "reorder > subquery comparisons to non-subqueries",
 			query:    "select (select * from foo) > 1",
-			expected: "select 1 < (select * from foo)",
+			expected: "select (select 1) < (select * from foo)",
 		},
 		{
 			desc:     "reorder <= subquery comparisons to non-subqueries",
 			query:    "select (select * from foo) <= 1",
-			expected: "select 1 >= (select * from foo)",
+			expected: "select (select 1) >= (select * from foo)",
 		},
 		{
 			desc:     "reorder >= subquery comparisons to non-subqueries",
 			query:    "select (select * from foo) >= 1",
-			expected: "select 1 <= (select * from foo)",
+			expected: "select (select 1) <= (select * from foo)",
 		},
 		{
 			desc:     "reorder = nested subquery",
 			query:    "select * from (select (select * from foo) = 1)",
-			expected: "select * from (select 1 = (select * from foo))",
+			expected: "select * from (select (select 1) = (select * from foo))",
 		},
 		{
 			desc:     "replace between with conjunction",
@@ -379,22 +379,22 @@ func testDesugar(t *testing.T) {
 		{
 			desc:     "subquery operator some",
 			query:    "select a < some (select b, c from bar) from foo",
-			expected: "select a < any (select b, c from bar) from foo",
+			expected: "select (select a) < any (select b, c from bar) from foo",
 		},
 		{
 			desc:     "subquery operator any",
 			query:    "select a < any (select b, c from bar) from foo",
-			expected: "select a < any (select b, c from bar) from foo",
+			expected: "select (select a) < any (select b, c from bar) from foo",
 		},
 		{
 			desc:     "subquery operator all",
 			query:    "select a < all (select b, c from bar) from foo",
-			expected: "select a < all (select b, c from bar) from foo",
+			expected: "select (select a) < all (select b, c from bar) from foo",
 		},
 		{
 			desc:     "subquery operator none",
 			query:    "select a < (select b, c from bar) from foo",
-			expected: "select a < (select b, c from bar) from foo",
+			expected: "select (select a) < (select b, c from bar) from foo",
 		},
 	}
 
