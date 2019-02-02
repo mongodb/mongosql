@@ -6,8 +6,10 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	. "github.com/10gen/sqlproxy/evaluator/types"
+	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
@@ -16,7 +18,7 @@ import (
 func TestMemoryLimits(t *testing.T) {
 	bgCtx := context.Background()
 	execCfg := createExecutionCfg("evaluator_unit_test_dbname", 100, []uint8{4, 0, 0})
-	execState := evaluator.NewExecutionState()
+	execState := NewExecutionState()
 
 	t.Run("group_by", func(t *testing.T) { testGroupByMemoryLimits(bgCtx, t, execCfg, execState) })
 	t.Run("order_by", func(t *testing.T) { testOrderByMemoryLimits(bgCtx, t, execCfg, execState) })
@@ -25,18 +27,18 @@ func TestMemoryLimits(t *testing.T) {
 	t.Run("join", func(t *testing.T) { testJoinMemoryLimits(t, bgCtx, execCfg, execState) })
 }
 
-func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *evaluator.ExecutionConfig, st *evaluator.ExecutionState) {
+func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfig, st *ExecutionState) {
 	req := require.New(t)
 
-	runTest := func(projectedColumns evaluator.ProjectedColumns, keys []evaluator.SQLExpr, rows []bson.D) {
-		bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+	runTest := func(projectedColumns ProjectedColumns, keys []SQLExpr, rows []bson.D) {
+		bss := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
-		groupBy := evaluator.NewGroupByStage(bss, keys, projectedColumns)
+		groupBy := NewGroupByStage(bss, keys, projectedColumns)
 
 		iter, err := groupBy.Open(ctx, cfg, st)
 		req.NoError(err)
 
-		row := &evaluator.Row{}
+		row := &Row{}
 
 		ok := iter.Next(ctx, row)
 		req.False(ok)
@@ -51,55 +53,55 @@ func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *evaluator.E
 		bsonutil.NewD(bsonutil.NewDocElem("_id", 3), bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 9)),
 	)
 
-	projectedColumns := evaluator.ProjectedColumns{
-		evaluator.ProjectedColumn{
-			Column: &evaluator.Column{SelectID: 1, Table: tableOneName,
-				OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a",
+	projectedColumns := ProjectedColumns{
+		ProjectedColumn{
+			Column: &Column{SelectID: 1, Table: tableOneName,
+				OriginalTable: tableOneName, Database: BSONSourceDB, Name: "a",
 				OriginalName: "a", MappingRegistryName: "",
-				ColumnType: evaluator.ColumnType{
-					EvalType:  evaluator.EvalString,
+				ColumnType: ColumnType{
+					EvalType:  EvalString,
 					MongoType: schema.MongoInt,
 				}, PrimaryKey: false},
-			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-				evaluator.EvalString, schema.MongoString),
+			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+				EvalString, schema.MongoString),
 		},
-		evaluator.ProjectedColumn{
-			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
-				Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
+		ProjectedColumn{
+			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
+				Database: BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
 				MappingRegistryName: "",
-				ColumnType: evaluator.ColumnType{
-					EvalType:  evaluator.EvalDouble,
+				ColumnType: ColumnType{
+					EvalType:  EvalDouble,
 					MongoType: schema.MongoNone,
 				},
 				PrimaryKey: false},
-			Expr: evaluator.NewSQLAggregationFunctionExpr(
+			Expr: NewSQLAggregationFunctionExpr(
 				"sum",
 				false,
-				[]evaluator.SQLExpr{
-					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
-						evaluator.EvalInt64, schema.MongoInt),
+				[]SQLExpr{
+					NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
+						EvalInt64, schema.MongoInt),
 				},
 			),
 		},
 	}
 
-	keys := []evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-		tableOneName, "a", evaluator.EvalString, schema.MongoString)}
+	keys := []SQLExpr{NewSQLColumnExpr(1, BSONSourceDB,
+		tableOneName, "a", EvalString, schema.MongoString)}
 
 	runTest(projectedColumns, keys, data)
 }
 
-func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *evaluator.ExecutionConfig, st *evaluator.ExecutionState) {
+func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfig, st *ExecutionState) {
 	req := require.New(t)
 
-	runTest := func(terms []*evaluator.OrderByTerm, rows []bson.D) {
-		ts := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+	runTest := func(terms []*OrderByTerm, rows []bson.D) {
+		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
-		orderby := evaluator.NewOrderByStage(ts, terms...)
+		orderby := NewOrderByStage(ts, terms...)
 		iter, err := orderby.Open(ctx, cfg, st)
 		req.NoError(err)
 
-		row := &evaluator.Row{}
+		row := &Row{}
 
 		ok := iter.Next(ctx, row)
 		req.False(ok)
@@ -115,41 +117,41 @@ func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *evaluator.E
 		bsonutil.NewD(bsonutil.NewDocElem("_id", 4), bsonutil.NewDocElem("a", "B"), bsonutil.NewDocElem("b", 7)),
 	)
 
-	terms := []*evaluator.OrderByTerm{
-		evaluator.NewOrderByTerm(evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-			tableOneName, "a", evaluator.EvalString, schema.MongoString), true),
+	terms := []*OrderByTerm{
+		NewOrderByTerm(NewSQLColumnExpr(1, BSONSourceDB,
+			tableOneName, "a", EvalString, schema.MongoString), true),
 	}
 
 	runTest(terms, data)
 }
 
-func testJoinMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.ExecutionConfig, st *evaluator.ExecutionState) {
+func testJoinMemoryLimits(t *testing.T, ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) {
 
-	criteria := evaluator.NewSQLEqualsExpr(
-		evaluator.NewSQLColumnExpr(
+	criteria := NewSQLEqualsExpr(
+		NewSQLColumnExpr(
 			1,
-			evaluator.BSONSourceDB,
+			BSONSourceDB,
 			tableOneName,
 			"orderid",
-			evaluator.EvalInt64,
+			EvalInt64,
 			schema.MongoInt,
 		),
-		evaluator.NewSQLColumnExpr(
+		NewSQLColumnExpr(
 			1,
-			evaluator.BSONSourceDB,
+			BSONSourceDB,
 			tableTwoName,
 			"orderid",
-			evaluator.EvalInt64,
+			EvalInt64,
 			schema.MongoInt,
 		),
 	)
 
-	row := &evaluator.Row{}
+	row := &Row{}
 
 	t.Run("inner_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
+		operator := setupJoinOperator(criteria, InnerJoin)
 
 		iter, err := operator.Open(ctx, cfg, st)
 		req.NoError(err)
@@ -164,7 +166,7 @@ func testJoinMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.Exec
 	t.Run("left_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.LeftJoin)
+		operator := setupJoinOperator(criteria, LeftJoin)
 
 		iter, err := operator.Open(ctx, cfg, st)
 		req.NoError(err)
@@ -179,7 +181,7 @@ func testJoinMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.Exec
 	t.Run("right_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.RightJoin)
+		operator := setupJoinOperator(criteria, RightJoin)
 
 		iter, err := operator.Open(ctx, cfg, st)
 		req.NoError(err)
@@ -194,7 +196,7 @@ func testJoinMemoryLimits(t *testing.T, ctx context.Context, cfg *evaluator.Exec
 	t.Run("cross_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(nil, evaluator.RightJoin)
+		operator := setupJoinOperator(nil, RightJoin)
 
 		iter, err := operator.Open(ctx, cfg, st)
 		req.NoError(err)
@@ -219,44 +221,44 @@ func TestMemoryMonitor(t *testing.T) {
 }
 
 func testJoinMemoryMonitor(t *testing.T) {
-	criteria := evaluator.NewSQLEqualsExpr(
-		evaluator.NewSQLColumnExpr(
+	criteria := NewSQLEqualsExpr(
+		NewSQLColumnExpr(
 			1,
-			evaluator.BSONSourceDB,
+			BSONSourceDB,
 			tableOneName,
 			"orderid",
-			evaluator.EvalInt64,
+			EvalInt64,
 			schema.MongoInt,
 		),
-		evaluator.NewSQLColumnExpr(
+		NewSQLColumnExpr(
 			1,
-			evaluator.BSONSourceDB,
+			BSONSourceDB,
 			tableTwoName,
 			"orderid",
-			evaluator.EvalInt64,
+			EvalInt64,
 			schema.MongoInt,
 		),
 	)
 
-	leftSize := valueSize(evaluator.BSONSourceDB,
+	leftSize := valueSize(BSONSourceDB,
 		tableOneName,
 		"name",
-		evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "personA"),
-	) + valueSize(evaluator.BSONSourceDB, tableOneName, "orderid",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(evaluator.BSONSourceDB, tableOneName,
-			"_id", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))
+		NewSQLVarchar(MySQLValueKind, "personA"),
+	) + valueSize(BSONSourceDB, tableOneName, "orderid",
+		NewSQLInt64(MySQLValueKind, 0)) +
+		valueSize(BSONSourceDB, tableOneName,
+			"_id", NewSQLInt64(MySQLValueKind, 0))
 
-	rightSize := valueSize(evaluator.BSONSourceDB, tableTwoName, "orderid",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "amount",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
-		valueSize(evaluator.BSONSourceDB, tableTwoName, "_id",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))
+	rightSize := valueSize(BSONSourceDB, tableTwoName, "orderid",
+		NewSQLInt64(MySQLValueKind, 0)) +
+		valueSize(BSONSourceDB, tableTwoName, "amount",
+			NewSQLInt64(MySQLValueKind, 0)) +
+		valueSize(BSONSourceDB, tableTwoName, "_id",
+			NewSQLInt64(MySQLValueKind, 0))
 
 	t.Run("inner_join", func(t *testing.T) {
 		req := require.New(t)
-		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
+		operator := setupJoinOperator(criteria, InnerJoin)
 
 		actual := getAllocatedMemorySizeAfterIteration(operator)
 		expected := (leftSize + rightSize) * 4
@@ -266,7 +268,7 @@ func testJoinMemoryMonitor(t *testing.T) {
 
 	t.Run("left_join", func(t *testing.T) {
 		req := require.New(t)
-		operator := setupJoinOperator(criteria, evaluator.LeftJoin)
+		operator := setupJoinOperator(criteria, LeftJoin)
 
 		actual := getAllocatedMemorySizeAfterIteration(operator)
 		expected := (leftSize+rightSize)*4 +
@@ -277,7 +279,7 @@ func testJoinMemoryMonitor(t *testing.T) {
 
 	t.Run("right_join", func(t *testing.T) {
 		req := require.New(t)
-		operator := setupJoinOperator(criteria, evaluator.RightJoin)
+		operator := setupJoinOperator(criteria, RightJoin)
 
 		actual := getAllocatedMemorySizeAfterIteration(operator)
 		expected := (leftSize+rightSize)*4 +
@@ -288,7 +290,7 @@ func testJoinMemoryMonitor(t *testing.T) {
 
 	t.Run("cross_join", func(t *testing.T) {
 		req := require.New(t)
-		operator := setupJoinOperator(nil, evaluator.CrossJoin)
+		operator := setupJoinOperator(nil, CrossJoin)
 
 		actual := getAllocatedMemorySizeAfterIteration(operator)
 		expected := uint64(len(customers)) * uint64(len(orders)) * (leftSize + rightSize)
@@ -303,12 +305,12 @@ func testRowGeneratorMemoryMonitor(t *testing.T) {
 		bsonutil.NewD(bsonutil.NewDocElem("a", 3)),
 	)
 
-	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+	bss := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
-	newColumn := evaluator.NewColumn(0, "", "", "", "a", "", "a",
-		evaluator.EvalUint64, schema.MongoInt64, false)
+	newColumn := NewColumn(0, "", "", "", "a", "", "a",
+		EvalUint64, schema.MongoInt64, false)
 
-	rg := evaluator.NewRowGeneratorStage(bss, newColumn)
+	rg := NewRowGeneratorStage(bss, newColumn)
 
 	outputMemory := getAllocatedMemorySizeAfterIteration(rg)
 
@@ -317,30 +319,30 @@ func testRowGeneratorMemoryMonitor(t *testing.T) {
 }
 
 func testFilterMemoryMonitor(t *testing.T) {
-	schema := evaluator.MustLoadSchema(testSchema3)
+	schema := MustLoadSchema(testSchema3)
 	rows := bsonutil.NewDArray(
 		bsonutil.NewD(bsonutil.NewDocElem("a", 6), bsonutil.NewDocElem("b", 9)),
 		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
 	)
 
-	matcher, err := evaluator.GetSQLExpr(schema,
-		evaluator.BSONSourceDB,
+	matcher, err := GetSQLExpr(schema,
+		BSONSourceDB,
 		tableTwoName,
 		"a = 6")
 	require.NoError(t, err)
 
-	bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
-	filter := evaluator.NewFilterStage(bss, matcher)
+	bss := NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
+	filter := NewFilterStage(bss, matcher)
 
 	actual := getAllocatedMemorySizeAfterIteration(filter)
 
 	sizeA := valueSize(
-		evaluator.BSONSourceDB, tableTwoName, "a",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		BSONSourceDB, tableTwoName, "a",
+		NewSQLInt64(MySQLValueKind, 0),
 	)
 	sizeB := valueSize(
-		evaluator.BSONSourceDB, tableTwoName, "b",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		BSONSourceDB, tableTwoName, "b",
+		NewSQLInt64(MySQLValueKind, 0),
 	)
 	expected := sizeA + sizeB
 
@@ -356,54 +358,54 @@ func testGroupByMemoryMonitor(t *testing.T) {
 		bsonutil.NewD(bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 11)),
 	)
 
-	projectedColumns := evaluator.ProjectedColumns{
-		evaluator.ProjectedColumn{
-			Column: &evaluator.Column{SelectID: 1, Table: tableOneName,
-				OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a",
+	projectedColumns := ProjectedColumns{
+		ProjectedColumn{
+			Column: &Column{SelectID: 1, Table: tableOneName,
+				OriginalTable: tableOneName, Database: BSONSourceDB, Name: "a",
 				OriginalName: "a", MappingRegistryName: "",
-				ColumnType: evaluator.ColumnType{
-					EvalType:  evaluator.EvalString,
+				ColumnType: ColumnType{
+					EvalType:  EvalString,
 					MongoType: schema.MongoString,
 				},
 				PrimaryKey: false},
-			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-				evaluator.EvalString, schema.MongoString),
+			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+				EvalString, schema.MongoString),
 		},
-		evaluator.ProjectedColumn{
-			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
-				Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
+		ProjectedColumn{
+			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
+				Database: BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
 				MappingRegistryName: "",
-				ColumnType: evaluator.ColumnType{
-					EvalType:  evaluator.EvalInt64,
+				ColumnType: ColumnType{
+					EvalType:  EvalInt64,
 					MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},
-			Expr: evaluator.NewSQLAggregationFunctionExpr(
+			Expr: NewSQLAggregationFunctionExpr(
 				"sum",
 				false,
-				[]evaluator.SQLExpr{
-					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
-						evaluator.EvalInt64, schema.MongoInt),
+				[]SQLExpr{
+					NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
+						EvalInt64, schema.MongoInt),
 				},
 			),
 		},
 	}
 
-	keys := []evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-		tableOneName, "a", evaluator.EvalString, schema.MongoString)}
+	keys := []SQLExpr{NewSQLColumnExpr(1, BSONSourceDB,
+		tableOneName, "a", EvalString, schema.MongoString)}
 
-	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
-	groupBy := evaluator.NewGroupByStage(bss, keys, projectedColumns)
+	bss := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+	groupBy := NewGroupByStage(bss, keys, projectedColumns)
 
 	actual := getAllocatedMemorySizeAfterIteration(groupBy)
 
 	sizeA := valueSize(
-		evaluator.BSONSourceDB, tableOneName, "a",
-		evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "a"),
+		BSONSourceDB, tableOneName, "a",
+		NewSQLVarchar(MySQLValueKind, "a"),
 	)
 	sizeB := valueSize(
-		evaluator.BSONSourceDB, "", "sum(b)",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		BSONSourceDB, "", "sum(b)",
+		NewSQLInt64(MySQLValueKind, 0),
 	)
 	expected := 2 * (sizeA + sizeB)
 
@@ -421,46 +423,46 @@ func testLimitMemoryMonitor(t *testing.T) {
 	)
 
 	t.Run("non-blocking source", func(t *testing.T) {
-		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
-		ls := evaluator.NewLimitStage(bss, 2, 2)
+		bss := NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
+		ls := NewLimitStage(bss, 2, 2)
 
 		actual := getAllocatedMemorySizeAfterIteration(ls)
 
 		sizeA := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "a",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+			BSONSourceDB, tableTwoName, "a",
+			NewSQLInt64(MySQLValueKind, 0),
 		)
 		sizeB := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "b",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+			BSONSourceDB, tableTwoName, "b",
+			NewSQLInt64(MySQLValueKind, 0),
 		)
 		expected := 2 * (sizeA + sizeB)
 
 		require.Equal(t, expected, actual)
 	})
 	t.Run("blocking source", func(t *testing.T) {
-		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
-		os := evaluator.NewOrderByStage(bss,
-			evaluator.NewOrderByTerm(
-				evaluator.NewSQLColumnExpr(
+		bss := NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
+		os := NewOrderByStage(bss,
+			NewOrderByTerm(
+				NewSQLColumnExpr(
 					1,
-					evaluator.BSONSourceDB,
+					BSONSourceDB,
 					tableTwoName,
 					"a",
-					evaluator.EvalInt64,
+					EvalInt64,
 					schema.MongoInt),
 				true))
-		ls := evaluator.NewLimitStage(os, 2, 2)
+		ls := NewLimitStage(os, 2, 2)
 
 		actual := getAllocatedMemorySizeAfterIteration(ls)
 
 		sizeA := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "a",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+			BSONSourceDB, tableTwoName, "a",
+			NewSQLInt64(MySQLValueKind, 0),
 		)
 		sizeB := valueSize(
-			evaluator.BSONSourceDB, tableTwoName, "b",
-			evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+			BSONSourceDB, tableTwoName, "b",
+			NewSQLInt64(MySQLValueKind, 0),
 		)
 		expected := 4 * (sizeA + sizeB)
 
@@ -486,13 +488,13 @@ func testDynamicSourceMemoryMonitor(t *testing.T) {
 	db, err := catalog.New("def", nil).AddDatabase("db")
 	require.NoError(t, err)
 
-	source := evaluator.NewDynamicSourceStage(db, table, 1, tableName)
+	source := NewDynamicSourceStage(db, table, 1, tableName)
 
 	actual := getAllocatedMemorySizeAfterIteration(source)
 	expected := (valueSize(string(db.Name()), tableName, "one",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) +
+		NewSQLInt64(MySQLValueKind, 0)) +
 		valueSize(string(db.Name()), tableName,
-			"two", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0))) * 3
+			"two", NewSQLInt64(MySQLValueKind, 0))) * 3
 
 	require.Equal(t, expected, actual)
 }
@@ -503,25 +505,25 @@ func testProjectMemoryMonitor(t *testing.T) {
 		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
 	)
 
-	bss := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, rows)
-	project := evaluator.NewProjectStage(bss, evaluator.ProjectedColumn{
-		Column: &evaluator.Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName,
-			Database: evaluator.BSONSourceDB, Name: "a", OriginalName: "a",
+	bss := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
+	project := NewProjectStage(bss, ProjectedColumn{
+		Column: &Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName,
+			Database: BSONSourceDB, Name: "a", OriginalName: "a",
 			MappingRegistryName: "",
-			ColumnType: evaluator.ColumnType{
-				EvalType: evaluator.EvalInt64, MongoType: schema.MongoInt,
+			ColumnType: ColumnType{
+				EvalType: EvalInt64, MongoType: schema.MongoInt,
 			},
 			PrimaryKey: false},
-		Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-			evaluator.EvalInt64, schema.MongoInt),
+		Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+			EvalInt64, schema.MongoInt),
 	})
 
 	actual := getAllocatedMemorySizeAfterIteration(project)
 	expected := valueSize(
-		evaluator.BSONSourceDB,
+		BSONSourceDB,
 		tableOneName,
 		"a",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0)) * uint64(len(rows))
+		NewSQLInt64(MySQLValueKind, 0)) * uint64(len(rows))
 
 	require.Equal(t, expected, actual)
 }
@@ -532,20 +534,20 @@ func testUnionMemoryMonitor(t *testing.T) {
 		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", 4)),
 	)
 
-	u := evaluator.NewUnionStage(evaluator.UnionDistinct,
-		evaluator.NewBSONSourceStage(1, "foo", collation.Default, rows),
-		evaluator.NewBSONSourceStage(2, "bar", collation.Default, rows),
+	u := NewUnionStage(UnionDistinct,
+		NewBSONSourceStage(1, "foo", collation.Default, rows),
+		NewBSONSourceStage(2, "bar", collation.Default, rows),
 	)
 
 	actual := getAllocatedMemorySizeAfterIteration(u)
 
 	sizeA := valueSize(
-		evaluator.BSONSourceDB, tableOneName, "a",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		BSONSourceDB, tableOneName, "a",
+		NewSQLInt64(MySQLValueKind, 0),
 	)
 	sizeB := valueSize(
-		evaluator.BSONSourceDB, tableOneName, "b",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		BSONSourceDB, tableOneName, "b",
+		NewSQLInt64(MySQLValueKind, 0),
 	)
 	expected := uint64(len(rows)*2) * (sizeA + sizeB)
 

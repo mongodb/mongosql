@@ -1,4 +1,4 @@
-package evaluator
+package values
 
 // MongoSQLBool represents a boolean with MongoDB type conversion semantics.
 // MongoSQLBool shares all of its conversion implementations with BaseSQLBool.
@@ -52,4 +52,10 @@ type MongoSQLUint64 struct {
 // MongoSQLVarchar shares all of its conversion implementations with BaseSQLVarchar.
 type MongoSQLVarchar struct {
 	BaseSQLVarchar
+}
+
+// MongoSQLNull represents a varchar with MongoDB type conversion semantics.
+// MongoSQLNull shares all of its conversion implementations with BaseSQLNull.
+type MongoSQLNull struct {
+	BaseSQLNull
 }

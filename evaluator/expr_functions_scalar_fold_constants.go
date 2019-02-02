@@ -1,5 +1,7 @@
 package evaluator
 
+import "github.com/10gen/sqlproxy/evaluator/values"
+
 // This file contains custom constant folding implementations for functions with
 // non-standard constant folding needs.
 //
@@ -11,11 +13,11 @@ package evaluator
 // file, the generated code will fail to compile.
 
 func (f *baseScalarFunctionExpr) charFoldConstants(cfg *OptimizerConfig) (SQLExpr, bool) {
-	valArgs := make([]SQLValue, len(f.args))
+	valArgs := make([]values.SQLValue, len(f.args))
 	allValues := true
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allValues = false
 		}
@@ -27,23 +29,23 @@ func (f *baseScalarFunctionExpr) charFoldConstants(cfg *OptimizerConfig) (SQLExp
 	if err != nil {
 		return nil, false
 	}
-	return val, true
+	return NewSQLValueExpr(val), true
 }
 
 func (f *baseScalarFunctionExpr) concatWsFoldConstants(cfg *OptimizerConfig) (SQLExpr, bool) {
-	valArgs := make([]SQLValue, len(f.args))
+	valArgs := make([]values.SQLValue, len(f.args))
 	allValues := true
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allValues = false
 		}
 	}
 	if len(f.args) >= 2 {
-		firstVal, ok := f.args[0].(SQLValue)
-		if ok && firstVal.IsNull() {
-			return NewSQLNull(cfg.sqlValueKind, f.EvalType()), true
+		firstVal, ok := f.args[0].(SQLValueExpr)
+		if ok && firstVal.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), true
 		}
 	}
 	if !allValues {
@@ -54,18 +56,18 @@ func (f *baseScalarFunctionExpr) concatWsFoldConstants(cfg *OptimizerConfig) (SQ
 	if err != nil {
 		return nil, false
 	}
-	return val, true
+	return NewSQLValueExpr(val), true
 }
 
 func (f *baseScalarFunctionExpr) locateFoldConstants(cfg *OptimizerConfig) (SQLExpr, bool) {
 	if hasNullExpr(f.args[:2]...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), true
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), true
 	}
-	valArgs := make([]SQLValue, len(f.args))
+	valArgs := make([]values.SQLValue, len(f.args))
 	allValues := true
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allValues = false
 		}
@@ -77,7 +79,7 @@ func (f *baseScalarFunctionExpr) locateFoldConstants(cfg *OptimizerConfig) (SQLE
 	if err != nil {
 		return nil, false
 	}
-	return val, true
+	return NewSQLValueExpr(val), true
 }
 
 func (f *baseScalarFunctionExpr) nopushdownFoldConstants(cfg *OptimizerConfig) (SQLExpr, bool) {
@@ -90,12 +92,12 @@ func (f *baseScalarFunctionExpr) randFoldConstants(cfg *OptimizerConfig) (SQLExp
 
 func (f *baseScalarFunctionExpr) substringIndexFoldConstants(cfg *OptimizerConfig) (SQLExpr, bool) {
 	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), true
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), true
 	}
 
-	if v, ok := f.args[2].(SQLValue); ok {
-		if Int64(v) == 0 {
-			return NewSQLVarchar(cfg.sqlValueKind, ""), true
+	if v, ok := f.args[2].(SQLValueExpr); ok {
+		if values.Int64(v.Value) == 0 {
+			return NewSQLValueExpr(values.NewSQLVarchar(cfg.sqlValueKind, "")), true
 		}
 	}
 

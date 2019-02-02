@@ -10,6 +10,8 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -356,7 +358,7 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) mathutil.Uint12
 				// a NULL, decrement numMissingValues (because we found one), but do NOT
 				// touch i because we want the same position in the values next
 				// iteration.
-				hash.AddByteToHash(byte(EvalNull))
+				hash.AddByteToHash(byte(types.EvalNull))
 				numMissingValues--
 			}
 		} else if i < len(values) {
@@ -371,7 +373,7 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) mathutil.Uint12
 	}
 	// We ran out of values, all values after this point must be missing.
 	for ; numMissingValues != 0; numMissingValues-- {
-		hash.AddByteToHash(byte(EvalNull))
+		hash.AddByteToHash(byte(types.EvalNull))
 	}
 	return hash
 }
@@ -383,7 +385,7 @@ func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) mathutil.Uint
 	lenColumnInfo := len(columnInfo)
 	// We will use one nullField value to represent all NULLs that will result
 	// from missing fields.
-	nullField := bson.Raw{Kind: byte(EvalNull), Data: []byte{}}
+	nullField := bson.Raw{Kind: byte(types.EvalNull), Data: []byte{}}
 	fieldMap := make(map[string]bson.Raw, lenColumnInfo)
 	// Set the value for all columns to null so we can avoid
 	// a branch in the loop below.
@@ -564,7 +566,7 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 			// Need to match row info with parent
 			for i, col := range iter.columns {
 				r.Data[i].Name = col.Name
-				r.Data[i].Data = ConvertTo(r.Data[i].Data, col.EvalType)
+				r.Data[i].Data = values.ConvertTo(r.Data[i].Data, col.EvalType)
 			}
 
 			err = iter.stageMonitor.Release(inSize)
@@ -622,10 +624,10 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, err
 func mergeColumnsByType(lcols, rcols []*Column) []*Column {
 	outCols := make([]*Column, len(lcols))
 
-	sorter := &EvalTypeSorter{}
+	sorter := &types.EvalTypeSorter{}
 	for i, lcol := range lcols {
 		rcol := rcols[i]
-		sorter.Types = []EvalType{lcol.EvalType, rcol.EvalType}
+		sorter.Types = []types.EvalType{lcol.EvalType, rcol.EvalType}
 		sort.Sort(sorter)
 
 		outCol := lcol.clone()

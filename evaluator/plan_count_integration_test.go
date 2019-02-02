@@ -9,6 +9,8 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -45,11 +47,11 @@ func TestCountPlanStage(t *testing.T) {
 	req := require.New(t)
 
 	var expected []evaluator.Values
-	values, err := bsonDToValues(1, "", "", bsonutil.NewD(bsonutil.NewDocElem("count(*)",
+	vs, err := bsonDToValues(1, "", "", bsonutil.NewD(bsonutil.NewDocElem("count(*)",
 		263),
 	))
 	req.NoError(err, "failed to translate bsonD to values")
-	expected = append(expected, values)
+	expected = append(expected, vs)
 
 	dbutils.DropCollection(session, dbOne, tableOneName)
 	dbutils.InsertDocuments(session, dbOne, tableOneName, rows)
@@ -69,7 +71,7 @@ func TestCountPlanStage(t *testing.T) {
 		panic("table doesn't exist")
 	}
 
-	column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", evaluator.EvalInt64,
+	column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", types.EvalInt64,
 		schema.MongoNone, false)
 	projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
 
@@ -104,7 +106,7 @@ func TestCountPlanStage(t *testing.T) {
 	actualAllocated := monitor.Allocated()
 	expectedAllocated := valueSize(
 		"", "", "count(*)",
-		evaluator.NewSQLInt64(evaluator.MySQLValueKind, 0),
+		values.NewSQLInt64(values.MySQLValueKind, 0),
 	)
 
 	req.Equal(expectedAllocated, actualAllocated)

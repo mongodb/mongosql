@@ -2,7 +2,10 @@ package mathutil
 
 import (
 	"fmt"
+	"math"
 	"reflect"
+
+	"github.com/shopspring/decimal"
 )
 
 // Numeric Conversion Tools
@@ -12,6 +15,35 @@ type converterFunc func(interface{}) (interface{}, error)
 var intConverter = newNumberConverter(reflect.TypeOf(int(0)))
 
 var float64Converter = newNumberConverter(reflect.TypeOf(float64(0)))
+
+// CompareDecimal128 compares two decimals returning < 0 for lt, 0 for eq, and
+// > 0 for gt.
+func CompareDecimal128(left, right decimal.Decimal) (int, error) {
+	return left.Cmp(right), nil
+}
+
+// CompareFloats compares two decimals returning < 0 for lt, 0 for eq, and
+// > 0 for gt.
+func CompareFloats(left, right float64) (int, error) {
+	cmp := left - right
+	if cmp < 0 {
+		return -1, nil
+	} else if cmp > 0 {
+		return 1, nil
+	}
+	return 0, nil
+}
+
+// CompareInts compares two decimals returning < 0 for lt, 0 for eq, and
+// > 0 for gt.
+func CompareInts(left, right int) int {
+	if left < right {
+		return -1
+	} else if left > right {
+		return 1
+	}
+	return 0
+}
 
 // MaxInt returns the maximum of two integers.
 func MaxInt(a, b int) int {
@@ -61,6 +93,38 @@ func newNumberConverter(targetType reflect.Type) converterFunc {
 		converted := v.Convert(targetType)
 		return converted.Interface(), nil
 	}
+}
+
+// Round founds a float64 to an int64 using MySQL Rounding conventions (Round
+// ties away from 0). This is the simplest implementation of Round I have found.
+// https://github.com/golang/go/issues/4594#issuecomment-66073312.
+func Round(x float64) int64 {
+	if x < 0 {
+		return int64(math.Ceil(x - 0.5))
+	}
+	return int64(math.Floor(x + 0.5))
+}
+
+// RoundToDecimalPlaces rounds base to d number of decimal places.
+func RoundToDecimalPlaces(d int64, base float64) float64 {
+	var rounded float64
+	pow := math.Pow(10, float64(d))
+	digit := pow * base
+	_, div := math.Modf(digit)
+	if base > 0 {
+		if div >= 0.5 {
+			rounded = math.Ceil(digit) / pow
+		} else {
+			rounded = math.Floor(digit) / pow
+		}
+	} else {
+		if math.Abs(div) >= 0.5 {
+			rounded = math.Floor(digit) / pow
+		} else {
+			rounded = math.Ceil(digit) / pow
+		}
+	}
+	return rounded
 }
 
 // ToFloat64 is a function for converting any numeric type

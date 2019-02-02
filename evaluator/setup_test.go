@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/kr/pretty"
 )
@@ -505,8 +506,8 @@ type testEnv struct {
 }
 
 func setupEnv() *testEnv {
-	cfgOne := evaluator.MustLoadSchema(testSchema1)
-	cfgThree := evaluator.MustLoadSchema(testSchema3)
+	cfgOne := MustLoadSchema(testSchema1)
+	cfgThree := MustLoadSchema(testSchema3)
 	return &testEnv{cfgOne, cfgThree}
 }
 
@@ -524,11 +525,11 @@ func ShouldResembleDiffed(actual interface{}, expected ...interface{}) string {
 	return delim + strings.Join(diffs, delim)
 }
 
-func valueSize(dbName, tableName, columnName string, data evaluator.SQLValue) uint64 {
-	value := evaluator.NewValue(0, dbName, tableName, columnName, data)
+func valueSize(dbName, tableName, columnName string, data SQLValue) uint64 {
+	value := NewValue(0, dbName, tableName, columnName, data)
 	return value.Size()
 }
 
-func getAllocatedMemorySizeAfterIteration(stage evaluator.PlanStage) uint64 {
-	return evaluator.GetAllocatedMemorySizeAfterIteration(stage)
+func getAllocatedMemorySizeAfterIteration(stage PlanStage) uint64 {
+	return GetAllocatedMemorySizeAfterIteration(stage)
 }

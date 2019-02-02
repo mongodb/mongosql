@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -123,7 +124,7 @@ type ExecutionConfig struct {
 	remoteHost       string
 	fullPushdownOnly bool
 	maxStageSize     uint64
-	sqlValueKind     SQLValueKind
+	sqlValueKind     values.SQLValueKind
 
 	commandHandler CommandHandler
 	memoryMonitor  memory.Monitor

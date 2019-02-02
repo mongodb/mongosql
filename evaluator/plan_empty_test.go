@@ -5,7 +5,8 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -15,20 +16,20 @@ func TestEmptyOperator(t *testing.T) {
 
 	bgCtx := context.Background()
 	execCfg := createTestExecutionCfg()
-	execState := evaluator.NewExecutionState()
+	execState := NewExecutionState()
 
-	columns := []*evaluator.Column{
+	columns := []*Column{
 		{
 			Table: "foo",
 			Name:  "a",
-			ColumnType: evaluator.ColumnType{
-				EvalType:  evaluator.EvalInt64,
+			ColumnType: ColumnType{
+				EvalType:  EvalInt64,
 				MongoType: schema.MongoInt,
 			},
 		},
 	}
 
-	e := evaluator.NewEmptyStage(columns, collation.Default)
+	e := NewEmptyStage(columns, collation.Default)
 
 	iter, err := e.Open(bgCtx, execCfg, execState)
 	req.NoError(err)
@@ -41,7 +42,7 @@ func TestEmptyOperator(t *testing.T) {
 	col := res[0]
 	req.Equal(col.Table, "foo")
 	req.Equal(col.Name, "a")
-	req.Equal(col.EvalType, evaluator.EvalInt64)
+	req.Equal(col.EvalType, EvalInt64)
 	req.Equal(col.MongoType, schema.MongoInt)
 
 	req.NoError(iter.Close())

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -307,7 +308,7 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
 	dbName := getDatabaseName(expr)
 	pc := &ProjectedColumn{
-		Column: NewColumn(b.selectID, "", "", dbName, "", "", "", EvalPolymorphic, schema.MongoNone, false),
+		Column: NewColumn(b.selectID, "", "", dbName, "", "", "", types.EvalPolymorphic, schema.MongoNone, false),
 		Expr:   expr,
 	}
 

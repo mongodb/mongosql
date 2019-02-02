@@ -10,6 +10,8 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -88,13 +90,13 @@ func createPushdownCfg(version []uint8) *evaluator.PushdownConfig {
 // nolint: unparam
 func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) (
 	[]evaluator.Value, error) {
-	values := []evaluator.Value{}
+	vs := []evaluator.Value{}
 	for _, v := range document {
-		value := evaluator.GoValueToSQLValue(evaluator.MySQLValueKind, v.Value)
-		values = append(values, evaluator.NewValue(selectID, databaseName, tableName, v.Name,
+		value := values.GoValueToSQLValue(values.MySQLValueKind, v.Value)
+		vs = append(vs, evaluator.NewValue(selectID, databaseName, tableName, v.Name,
 			value))
 	}
-	return values, nil
+	return vs, nil
 }
 
 // nolint: unparam
@@ -125,7 +127,7 @@ func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, 
 			ColumnType: evaluator.ColumnType{
 				EvalType:    column.EvalType,
 				MongoType:   column.MongoType,
-				UUIDSubType: evaluator.EvalBinary,
+				UUIDSubType: types.EvalBinary,
 			},
 			PrimaryKey: column.PrimaryKey,
 		},

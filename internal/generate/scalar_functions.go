@@ -93,6 +93,9 @@ package evaluator
 import (
 	"context"
 	"fmt"
+
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 const (
@@ -114,12 +117,12 @@ var _ SQLScalarFunctionExpr = (*{{$func.ID}}{{.ID}}Func)(nil)
 
 // The following constants represent some properties of the {{$func.ID}}{{.ID}}Func scalar function.
 var (
-	{{$func.ID}}{{.ID}}ExpectedTypes []EvalType = []EvalType{ {{- range $i, $typ := .ArgEvalTypes}}{{if $i}}, {{end}}{{$typ}}{{end -}} }
+	{{$func.ID}}{{.ID}}ExpectedTypes []types.EvalType = []types.EvalType{ {{- range $i, $typ := .ArgEvalTypes}}{{if $i}}, {{end}}types.{{$typ}}{{end -}} }
 	{{$func.ID}}{{.ID}}IsVariadic bool = {{.IsVariadic}}
-	{{$func.ID}}{{.ID}}ReturnTypeFunc func([]SQLExpr) EvalType = {{$func.ID}}{{.ID}}EvalType
+	{{$func.ID}}{{.ID}}ReturnTypeFunc func([]SQLExpr) types.EvalType = {{$func.ID}}{{.ID}}EvalType
 )
 
-func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	{{- if $func.ValidateArgTypes}}
 	// Validate this function's argument count and types.
 	err := f.validateArgs()
@@ -135,7 +138,7 @@ func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionCo
 	{{- end}}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -148,12 +151,12 @@ func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionCo
 		// Call the full state evlauation function that contains the appropriate evaluation logic.
 		return f.{{$func.ID}}EvaluateWithFullEvaluationState(ctx, cfg, st, args)
 		{{- if $func.SeparateInvocationEvaluation}}
-			// Call the full state separate SQLValue accepting function that contains the appropriate evaluation logic.
+			// Call the full state separate values.SQLValue accepting function that contains the appropriate evaluation logic.
 			return f.{{$func.ID}}{{.ID}}EvaluateWithFullEvaluationState(ctx, cfg, st, args)
  		{{- end}}
 	{{- else}}
 		{{- if $func.SeparateInvocationEvaluation}}
-  			// Call the separate SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+  			// Call the separate values.SQLValue accepting evaluation function that contains the appropriate evaluation logic.
 			return f.{{$func.ID}}{{.ID}}Evaluate(cfg.sqlValueKind, st.collation, args)
 			{{- else}}
 				// Call the value based evaluation function that contains the appropriate evaluation logic.
@@ -185,19 +188,19 @@ func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		{{- else}}
 		allVals := true
 		{{- end}}
-		valArgs := make([]SQLValue, len(f.args))
+ 		if hasNullExpr(f.args...) {
+   			 return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind, f.EvalType()))
+		}
+		valArgs := make([]values.SQLValue, len(f.args))
 		for i, arg := range f.args {
-			if val, ok := arg.(SQLValue); ok {
-				valArgs[i] = val
+			if val, ok := arg.(SQLValueExpr); ok {
+				valArgs[i] = val.Value
 			} else {
 			{{- if $func.UseFullEvaluationState}}
 			{{- else}}
 				allVals = false
 			{{- end}}
 			}
-		}
- 		if hasNullExpr(f.args...) {
-   			 return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 		}
 		{{- if $func.UseFullEvaluationState}}
 			return f
@@ -214,7 +217,7 @@ func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 			if err != nil {
 				return f
 			}
-			return val
+			return NewSQLValueExpr(val)
 		{{- end}}
 	{{- end}}
 }
@@ -230,8 +233,8 @@ func (f *{{$func.ID}}{{.ID}}Func) reconcile() (SQLExpr, error) {
 }
 
 {{if .ReturnEvalType -}}
-func {{$func.ID}}{{.ID}}EvalType(_ []SQLExpr) EvalType {
-	return {{.ReturnEvalType}}
+func {{$func.ID}}{{.ID}}EvalType(_ []SQLExpr) types.EvalType {
+	return types.{{.ReturnEvalType}}
 }
 {{- end}}
 

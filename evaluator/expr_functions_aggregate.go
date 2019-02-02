@@ -7,6 +7,8 @@ import (
 	"math"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/shopspring/decimal"
@@ -85,11 +87,11 @@ func basicSQLAggFunctionToString(name string, distinct bool, exprs SQLExprs) str
 // of any floating point returning aggregation function, which will
 // be double unless the argument is decimal, and decimal if it
 // is decimal.
-func floatingPointAggregationFunctionEvalType(e EvalType) EvalType {
-	if e == EvalDecimal128 {
-		return EvalDecimal128
+func floatingPointAggregationFunctionEvalType(e types.EvalType) types.EvalType {
+	if e == types.EvalDecimal128 {
+		return types.EvalDecimal128
 	}
-	return EvalDouble
+	return types.EvalDouble
 }
 
 // nullCheckAndWrapInAggOp returns a document for the provided aggregation function
@@ -138,7 +140,7 @@ func NewSQLAvgFunctionExpr(distinct bool, exprs []SQLExpr) *SQLAvgFunctionExpr {
 }
 
 // EvalType for SQLAvgFunctionExpr is the standard floatingPointAggregationFunction.
-func (f *SQLAvgFunctionExpr) EvalType() EvalType {
+func (f *SQLAvgFunctionExpr) EvalType() types.EvalType {
 	return floatingPointAggregationFunctionEvalType(f.exprs[0].EvalType())
 }
 
@@ -149,7 +151,7 @@ func (f *SQLAvgFunctionExpr) ExprName() string {
 
 // Evaluate does in memory evaluation for SQLAvgFunctionExpr.
 func (f *SQLAvgFunctionExpr) Evaluate(ctx context.Context,
-	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -181,13 +183,13 @@ func (f *SQLAvgFunctionExpr) Evaluate(ctx context.Context,
 
 			count++
 
-			if isDecimal || eval.EvalType() == EvalDecimal128 {
+			if isDecimal || eval.EvalType() == types.EvalDecimal128 {
 				isDecimal = true
-				sum = sum.Add(Decimal(eval))
+				sum = sum.Add(values.Decimal(eval))
 				continue
 			}
 
-			floatEval := Float64(eval)
+			floatEval := values.Float64(eval)
 
 			// handle Avg(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
@@ -203,7 +205,7 @@ func (f *SQLAvgFunctionExpr) Evaluate(ctx context.Context,
 	}
 
 	if count == 0 {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	floatSum += correction
@@ -211,10 +213,10 @@ func (f *SQLAvgFunctionExpr) Evaluate(ctx context.Context,
 	if isDecimal {
 		sum = sum.Add(decimal.NewFromFloat(floatSum))
 		avg := sum.Div(decimal.NewFromFloat(count))
-		return NewSQLDecimal128(cfg.sqlValueKind, avg), nil
+		return values.NewSQLDecimal128(cfg.sqlValueKind, avg), nil
 	}
 
-	return NewSQLFloat(cfg.sqlValueKind, floatSum/count), nil
+	return values.NewSQLFloat(cfg.sqlValueKind, floatSum/count), nil
 }
 
 // Name returns name.
@@ -235,7 +237,7 @@ func (f *SQLAvgFunctionExpr) String() string {
 // FoldConstants simplifies *SQLAvgFunctionExpr based on statically known constants.
 func (f *SQLAvgFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 	}
 	return f
 }
@@ -250,7 +252,7 @@ func (f *SQLAvgFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (inte
 func (f *SQLAvgFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	// We cannot average date types.
 	dataType := f.exprs[0].EvalType()
-	if dataType == EvalDatetime || dataType == EvalDate {
+	if dataType == types.EvalDatetime || dataType == types.EvalDate {
 		return nil, newPushdownFailure(f.Name(), fmt.Sprintf("cannot pushdown avg for date types"))
 	}
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])
@@ -273,9 +275,9 @@ func NewSQLCountFunctionExpr(distinct bool, exprs []SQLExpr) *SQLCountFunctionEx
 	}}
 }
 
-// EvalType for SQLCountFunctionExpr is always EvalInt64.
-func (*SQLCountFunctionExpr) EvalType() EvalType {
-	return EvalInt64
+// EvalType for SQLCountFunctionExpr is always types.EvalInt64.
+func (*SQLCountFunctionExpr) EvalType() types.EvalType {
+	return types.EvalInt64
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -284,7 +286,7 @@ func (f *SQLCountFunctionExpr) ExprName() string {
 }
 
 // Evaluate does in memory evaluation for SQLCountFunctionExpr
-func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -324,12 +326,12 @@ func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	}
 
 	if inDecimalRange {
-		return NewSQLDecimal128(cfg.sqlValueKind, dCount), nil
+		return values.NewSQLDecimal128(cfg.sqlValueKind, dCount), nil
 	} else if count > math.MaxInt64 {
-		return NewSQLFloat(cfg.sqlValueKind, fCount), nil
+		return values.NewSQLFloat(cfg.sqlValueKind, fCount), nil
 	}
 
-	return NewSQLInt64(cfg.sqlValueKind, int64(count)), nil
+	return values.NewSQLInt64(cfg.sqlValueKind, int64(count)), nil
 }
 
 // Name returns name.
@@ -352,7 +354,7 @@ func (f *SQLCountFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	// Unlike the other aggregation functions, we do not want to return null
 	// if the argument is null, count(NULL) returns 0 bizarrely.
 	if hasNullExpr(f.exprs[0]) {
-		return newSQLInt64(cfg.sqlValueKind, 0, false)
+		return NewSQLValueExpr(values.NewSQLInt64(cfg.sqlValueKind, 0))
 	}
 	return f
 }
@@ -369,7 +371,7 @@ func (f *SQLCountFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (int
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	if f.exprs[0] == NewSQLVarchar(t.valueKind(), "") {
+	if f.exprs[0] == NewSQLValueExpr(values.NewSQLVarchar(t.valueKind(), "")) {
 		return bsonutil.NewD(bsonutil.NewDocElem("$size", transExpr)), nil
 	}
 
@@ -410,7 +412,7 @@ func NewSQLGroupConcatFunctionExpr(distinct bool, exprs []SQLExpr) *SQLGroupConc
 // FoldConstants simplifies *SQLGroupConcatFunctionExpr based on statically known constants.
 func (f *SQLGroupConcatFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 	}
 	return f
 }
@@ -472,8 +474,8 @@ func (f *SQLGroupConcatFunctionExpr) ToAggregationLanguage(t *PushdownTranslator
 }
 
 // EvalType for SQLGroupConcatFunctionExpr always returns EvalString.
-func (f *SQLGroupConcatFunctionExpr) EvalType() EvalType {
-	return EvalString
+func (f *SQLGroupConcatFunctionExpr) EvalType() types.EvalType {
+	return types.EvalString
 }
 
 func addBufferEntry(buf *bytes.Buffer, value string, sep string, firstWrite *bool) {
@@ -491,7 +493,7 @@ func (f *SQLGroupConcatFunctionExpr) ExprName() string {
 }
 
 // Evaluate does in memory computation for SQLGroupConcatFunctionExpr.
-func (f *SQLGroupConcatFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *SQLGroupConcatFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -551,10 +553,10 @@ func (f *SQLGroupConcatFunctionExpr) Evaluate(ctx context.Context, cfg *Executio
 
 	// return NULL if result string empty
 	if b.String() == "" && !resultHasEmpty {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	return NewSQLVarchar(cfg.sqlValueKind, b.String()), nil
+	return values.NewSQLVarchar(cfg.sqlValueKind, b.String()), nil
 }
 
 // Name returns name.
@@ -593,7 +595,7 @@ func NewSQLMaxFunctionExpr(distinct bool, exprs []SQLExpr) *SQLMaxFunctionExpr {
 }
 
 // EvalType for SQLMaxFunctionExpr returns the type of e.
-func (f *SQLMaxFunctionExpr) EvalType() EvalType {
+func (f *SQLMaxFunctionExpr) EvalType() types.EvalType {
 	return f.exprs[0].EvalType()
 }
 
@@ -603,8 +605,8 @@ func (f *SQLMaxFunctionExpr) ExprName() string {
 }
 
 // Evaluate for SQLMaxFunctionExpr does in memory computation for max.
-func (f *SQLMaxFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	max := NewSQLNull(cfg.sqlValueKind, f.EvalType())
+func (f *SQLMaxFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	max := values.SQLValue(values.NewSQLNull(cfg.sqlValueKind))
 	for _, row := range st.rows {
 		subSt := st.WithRows(row)
 		for _, expr := range f.exprs {
@@ -621,7 +623,7 @@ func (f *SQLMaxFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 				continue
 			}
 
-			compared, err := CompareTo(max, eval, subSt.collation)
+			compared, err := values.CompareTo(max, eval, subSt.collation)
 			if err != nil {
 				return nil, err
 			}
@@ -651,7 +653,7 @@ func (f *SQLMaxFunctionExpr) String() string {
 // FoldConstants simplifies *SQLMaxFunctionExpr based on statically known constants.
 func (f *SQLMaxFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 	}
 	return f
 }
@@ -686,7 +688,7 @@ func NewSQLMinFunctionExpr(distinct bool, exprs []SQLExpr) *SQLMinFunctionExpr {
 }
 
 // EvalType for SQLMinFunctionExpr returns the type of e.
-func (f *SQLMinFunctionExpr) EvalType() EvalType {
+func (f *SQLMinFunctionExpr) EvalType() types.EvalType {
 	return f.exprs[0].EvalType()
 }
 
@@ -696,8 +698,8 @@ func (f *SQLMinFunctionExpr) ExprName() string {
 }
 
 // Evaluate for SQLMinFunctionExpr computes the minimal element in memory.
-func (f *SQLMinFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	min := NewSQLNull(cfg.sqlValueKind, f.EvalType())
+func (f *SQLMinFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	min := values.SQLValue(values.NewSQLNull(cfg.sqlValueKind))
 	for _, row := range st.rows {
 		subSt := st.WithRows(row)
 		for _, expr := range f.exprs {
@@ -715,7 +717,7 @@ func (f *SQLMinFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 				continue
 			}
 
-			compared, err := CompareTo(min, eval, subSt.collation)
+			compared, err := values.CompareTo(min, eval, subSt.collation)
 			if err != nil {
 				return nil, err
 			}
@@ -746,7 +748,7 @@ func (f *SQLMinFunctionExpr) String() string {
 // FoldConstants simplifies *SQLMinFunctionExpr based on statically known constants.
 func (f *SQLMinFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 	}
 	return f
 }
@@ -781,7 +783,7 @@ func NewSQLSumFunctionExpr(distinct bool, exprs []SQLExpr) *SQLSumFunctionExpr {
 }
 
 // EvalType for SQLSumFunctionExpr is a standard floating point aggregation.
-func (f *SQLSumFunctionExpr) EvalType() EvalType {
+func (f *SQLSumFunctionExpr) EvalType() types.EvalType {
 	return floatingPointAggregationFunctionEvalType(f.exprs[0].EvalType())
 }
 
@@ -791,7 +793,7 @@ func (f *SQLSumFunctionExpr) ExprName() string {
 }
 
 // Evaluate for SQLSumFunctionExpr computes summations in memory.
-func (f *SQLSumFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *SQLSumFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -823,13 +825,13 @@ func (f *SQLSumFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			}
 
 			evalType := eval.EvalType()
-			if isDecimal || evalType == EvalDecimal128 {
+			if isDecimal || evalType == types.EvalDecimal128 {
 				isDecimal = true
-				sum = sum.Add(Decimal(eval))
+				sum = sum.Add(values.Decimal(eval))
 				continue
 			}
 
-			floatEval := Float64(eval)
+			floatEval := values.Float64(eval)
 
 			// handle SUM(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
@@ -845,17 +847,17 @@ func (f *SQLSumFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	if allNull {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	floatSum += correction
 
 	if isDecimal {
 		sum = sum.Add(decimal.NewFromFloat(floatSum))
-		return NewSQLDecimal128(cfg.sqlValueKind, sum), nil
+		return values.NewSQLDecimal128(cfg.sqlValueKind, sum), nil
 	}
 
-	return NewSQLFloat(cfg.sqlValueKind, floatSum), nil
+	return values.NewSQLFloat(cfg.sqlValueKind, floatSum), nil
 }
 
 // Name returns name.
@@ -876,7 +878,7 @@ func (f *SQLSumFunctionExpr) String() string {
 // FoldConstants simplifies *SQLSumFunctionExpr based on statically known constants.
 func (f *SQLSumFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 	}
 	return f
 }
@@ -891,7 +893,7 @@ func (f *SQLSumFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (inte
 func (f *SQLSumFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	// We cannot sum date types.
 	dataType := f.exprs[0].EvalType()
-	if dataType == EvalDatetime || dataType == EvalDate {
+	if dataType == types.EvalDatetime || dataType == types.EvalDate {
 		return nil, newPushdownFailure(f.Name(), fmt.Sprintf("cannot pushdown sum for date types"))
 	}
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])
@@ -920,7 +922,7 @@ func NewSQLStdDevFunctionExpr(name string, distinct bool, exprs []SQLExpr) *SQLS
 }
 
 // EvalType returns the type of the value this aggregate expression evaluates to.
-func (f *SQLStdDevFunctionExpr) EvalType() EvalType {
+func (f *SQLStdDevFunctionExpr) EvalType() types.EvalType {
 	return floatingPointAggregationFunctionEvalType(f.exprs[0].EvalType())
 }
 
@@ -931,12 +933,12 @@ func (f *SQLStdDevFunctionExpr) ExprName() string {
 
 // Evaluate for SQLStdDevFunctionExpr computes the standard deviation of a population
 // in memory.
-func (f *SQLStdDevFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *SQLStdDevFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
 	}
-	var data []SQLValue
+	var data []values.SQLValue
 	sum := decimal.Zero
 	floatSum, correction, count := 0.0, 0.0, 0.0
 	isDecimal := false
@@ -965,13 +967,13 @@ func (f *SQLStdDevFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 
 			data = append(data, eval)
 
-			if isDecimal || eval.EvalType() == EvalDecimal128 {
+			if isDecimal || eval.EvalType() == types.EvalDecimal128 {
 				isDecimal = true
-				sum = sum.Add(Decimal(eval))
+				sum = sum.Add(values.Decimal(eval))
 				continue
 			}
 
-			floatEval := Float64(eval)
+			floatEval := values.Float64(eval)
 
 			// handle STDDEV(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
@@ -987,7 +989,7 @@ func (f *SQLStdDevFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 	}
 
 	if count == 0 {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	floatSum += correction
@@ -998,23 +1000,23 @@ func (f *SQLStdDevFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConf
 		avg := sum.Div(decimal.NewFromFloat(count))
 
 		for _, v := range data {
-			val := Decimal(v).Sub(avg)
+			val := values.Decimal(v).Sub(avg)
 			diff = diff.Add(val.Mul(val))
 		}
 
 		diff = diff.Div(decimal.NewFromFloat(count))
 		f, _ := diff.Float64()
-		return NewSQLDecimal128(cfg.sqlValueKind, decimal.NewFromFloat(math.Sqrt(f))), nil
+		return values.NewSQLDecimal128(cfg.sqlValueKind, decimal.NewFromFloat(math.Sqrt(f))), nil
 	}
 
 	avg := floatSum / count
 	diff := 0.0
 
 	for _, val := range data {
-		diff += math.Pow(Float64(val)-avg, 2)
+		diff += math.Pow(values.Float64(val)-avg, 2)
 	}
 
-	return NewSQLFloat(cfg.sqlValueKind, math.Sqrt(diff/count)), nil
+	return values.NewSQLFloat(cfg.sqlValueKind, math.Sqrt(diff/count)), nil
 }
 
 // Name returns name.
@@ -1035,7 +1037,7 @@ func (f *SQLStdDevFunctionExpr) String() string {
 // FoldConstants simplifies *SQLStdDevFunctionExpr based on statically known constants.
 func (f *SQLStdDevFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 	}
 	return f
 }
@@ -1050,7 +1052,7 @@ func (f *SQLStdDevFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (i
 func (f *SQLStdDevFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	// We cannot stddev date types.
 	dataType := f.exprs[0].EvalType()
-	if dataType == EvalDatetime || dataType == EvalDate {
+	if dataType == types.EvalDatetime || dataType == types.EvalDate {
 		return nil, newPushdownFailure(f.Name(), fmt.Sprintf("cannot pushdown std for date types"))
 	}
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])
@@ -1074,7 +1076,7 @@ func NewSQLStdDevSampleFunctionExpr(distinct bool, exprs []SQLExpr) *SQLStdDevSa
 }
 
 // EvalType returns the type of the value this aggregate expression evaluates to.
-func (f *SQLStdDevSampleFunctionExpr) EvalType() EvalType {
+func (f *SQLStdDevSampleFunctionExpr) EvalType() types.EvalType {
 	return floatingPointAggregationFunctionEvalType(f.exprs[0].EvalType())
 }
 
@@ -1085,8 +1087,8 @@ func (f *SQLStdDevSampleFunctionExpr) ExprName() string {
 
 // Evaluate for SQLStdDevSampleFunctionExpr computes standard deviation for
 // a sample in memory.
-func (f *SQLStdDevSampleFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var data []SQLValue
+func (f *SQLStdDevSampleFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	var data []values.SQLValue
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -1119,13 +1121,13 @@ func (f *SQLStdDevSampleFunctionExpr) Evaluate(ctx context.Context, cfg *Executi
 
 			data = append(data, eval)
 
-			if isDecimal || eval.EvalType() == EvalDecimal128 {
+			if isDecimal || eval.EvalType() == types.EvalDecimal128 {
 				isDecimal = true
-				sum = sum.Add(Decimal(eval))
+				sum = sum.Add(values.Decimal(eval))
 				continue
 			}
 
-			floatEval := Float64(eval)
+			floatEval := values.Float64(eval)
 
 			// handle STDDEV(X) overflowing float64 range
 			if runningSum := floatSum + correction; runningSum > math.MaxFloat64-floatEval {
@@ -1141,7 +1143,7 @@ func (f *SQLStdDevSampleFunctionExpr) Evaluate(ctx context.Context, cfg *Executi
 	}
 
 	if count == 0 {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	floatSum += correction
@@ -1152,29 +1154,29 @@ func (f *SQLStdDevSampleFunctionExpr) Evaluate(ctx context.Context, cfg *Executi
 		avg := sum.Div(decimal.NewFromFloat(count))
 
 		for _, v := range data {
-			val := Decimal(v).Sub(avg)
+			val := values.Decimal(v).Sub(avg)
 			diff = diff.Add(val.Mul(val))
 		}
 
 		if count == 1 {
-			return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+			return values.NewSQLNull(cfg.sqlValueKind), nil
 		}
 		diff = diff.Div(decimal.NewFromFloat(count - 1))
 		f, _ := diff.Float64()
-		return NewSQLDecimal128(cfg.sqlValueKind, decimal.NewFromFloat(math.Sqrt(f))), nil
+		return values.NewSQLDecimal128(cfg.sqlValueKind, decimal.NewFromFloat(math.Sqrt(f))), nil
 	}
 
 	avg := floatSum / count
 	diff := 0.0
 
 	for _, val := range data {
-		diff += math.Pow(Float64(val)-avg, 2)
+		diff += math.Pow(values.Float64(val)-avg, 2)
 	}
 
 	if count == 1 {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
-	return NewSQLFloat(cfg.sqlValueKind, math.Sqrt(diff/(count-1))), nil
+	return values.NewSQLFloat(cfg.sqlValueKind, math.Sqrt(diff/(count-1))), nil
 }
 
 // Name returns name.
@@ -1195,7 +1197,7 @@ func (f *SQLStdDevSampleFunctionExpr) String() string {
 // FoldConstants simplifies *SQLStdDevSampleFunctionExpr based on statically known constants.
 func (f *SQLStdDevSampleFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 	}
 	return f
 }
@@ -1210,7 +1212,7 @@ func (f *SQLStdDevSampleFunctionExpr) ToAggregationPredicate(t *PushdownTranslat
 func (f *SQLStdDevSampleFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 	// We cannot stddev date types.
 	dataType := f.exprs[0].EvalType()
-	if dataType == EvalDatetime || dataType == EvalDate {
+	if dataType == types.EvalDatetime || dataType == types.EvalDate {
 		return nil, newPushdownFailure(f.Name(), fmt.Sprintf("cannot pushdown stddev_samp for date types"))
 	}
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])

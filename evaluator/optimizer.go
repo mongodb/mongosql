@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -23,7 +24,7 @@ var (
 type OptimizerConfig struct {
 	lg           log.Logger
 	collation    *collation.Collation
-	sqlValueKind SQLValueKind
+	sqlValueKind values.SQLValueKind
 
 	// flags for enabling/disabling individual optimizers
 	optimizeCrossJoins  bool

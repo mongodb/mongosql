@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/log"
@@ -32,7 +33,7 @@ func CreateTestExecutionCfg(dbName string, maxStageSize uint64, mongoDBVersion [
 		fullPushdownOnly: false,
 		memoryMonitor:    memory.NewMonitor("evaluator_unit_tests", maxStageSize),
 		maxStageSize:     maxStageSize,
-		sqlValueKind:     MySQLValueKind,
+		sqlValueKind:     values.MySQLValueKind,
 	}
 }
 
@@ -42,7 +43,7 @@ func CreateTestOptimizerCfg(c *collation.Collation, eCfg *ExecutionConfig) *Opti
 	return &OptimizerConfig{
 		lg:           log.GlobalLogger(),
 		collation:    c,
-		sqlValueKind: MySQLValueKind,
+		sqlValueKind: values.MySQLValueKind,
 
 		optimizeCrossJoins:  true,
 		optimizeEvaluations: true,
@@ -58,7 +59,7 @@ func CreateTestPushdownCfg(mongoDBVersion []uint8) *PushdownConfig {
 		lg:                log.GlobalLogger(),
 		shouldPushDown:    true,
 		pushDownSelfJoins: true,
-		sqlValueKind:      MySQLValueKind,
+		sqlValueKind:      values.MySQLValueKind,
 		mongoDBVersion:    mongoDBVersion,
 	}
 }

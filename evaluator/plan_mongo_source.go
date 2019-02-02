@@ -11,6 +11,8 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -22,7 +24,7 @@ import (
 // nullField represents a null bson.Raw, we use this in the MongoSourceIter
 // Next method in order to represent missing values. If a value is missing
 // we will lookup nullField in the map.
-var nullField = bson.Raw{Kind: byte(EvalNull), Data: []byte{}}
+var nullField = bson.Raw{Kind: byte(types.EvalNull), Data: []byte{}}
 
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
@@ -93,7 +95,7 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 			string(mc.Name()),
 			string(mc.Name()),
 			"",
-			SQLTypeToEvalType(schema.SQLType(mc.Type())),
+			types.SQLTypeToEvalType(schema.SQLType(mc.Type())),
 			mc.MongoType,
 			primaryKeys.Contains(mc.Name()),
 		)
@@ -200,10 +202,10 @@ type ColumnInfo struct {
 	// Timestamp for formatting purposes because BSON datetime objects
 	// store both the date and the time. This is represented using
 	// the type alias EvalType.
-	Type EvalType
+	Type types.EvalType
 	// UUIDSubtype is needed to handle UUIDs written by the Java and CSharp
 	// drivers, which store UUIDs using different byte orders.
-	UUIDSubtype EvalType
+	UUIDSubtype types.EvalType
 }
 
 // FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON
@@ -249,11 +251,11 @@ func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, 
 			continue
 		}
 		uniqueFields[mappedFieldName] = struct{}{}
-		uuidSubType := EvalBinary
+		uuidSubType := types.EvalBinary
 		if c.MongoType == schema.MongoUUIDJava {
-			uuidSubType = EvalJavaUUID
+			uuidSubType = types.EvalJavaUUID
 		} else if c.MongoType == schema.MongoUUIDCSharp {
-			uuidSubType = EvalCSharpUUID
+			uuidSubType = types.EvalCSharpUUID
 		}
 		columnInfo[i] = ColumnInfo{
 			Field:       mappedFieldName,
@@ -489,9 +491,9 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
 		row.Data = make([]Value, lenCols)
 	}
 
-	values := *document
-	for i := range values {
-		ms.fieldValueMap[values[i].Name] = &(values[i].Value)
+	vs := *document
+	for i := range vs {
+		ms.fieldValueMap[vs[i].Name] = &(vs[i].Value)
 	}
 
 	for i, col := range ms.mappingRegistry.columns {
@@ -499,9 +501,9 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
 		field := ms.fieldValueMap[fieldName]
 		// Set ms.fieldValueMap to have the nullField for the next call to Next.
 		ms.fieldValueMap[fieldName] = &nullField
-		sqlValue, err := BSONValueToSQLValue(
+		sqlValue, err := values.BSONValueToSQLValue(
 			ms.cfg.sqlValueKind,
-			EvalType(field.Kind),
+			types.EvalType(field.Kind),
 			col.UUIDSubType,
 			field.Data,
 		)
@@ -509,7 +511,7 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
 			ms.err = err
 			return false
 		}
-		converted := ConvertTo(sqlValue, col.EvalType)
+		converted := values.ConvertTo(sqlValue, col.EvalType)
 		row.Data[i] = NewValue(col.SelectID, col.Database, col.Table, col.Name, converted)
 	}
 	if ms.err != nil {
@@ -796,7 +798,7 @@ func NewCorrelatedSubqueryColumnFuture(expr *SQLColumnExpr) *CorrelatedSubqueryC
 func (cc *CorrelatedSubqueryColumnFuture) Evaluate(cfg *ExecutionConfig, st *ExecutionState) error {
 	for _, row := range st.correlatedRows {
 		if result, ok := row.GetField(cc.selectID, cc.database, cc.table, cc.column); ok {
-			cc.value = ConvertTo(result, cc.columnType.EvalType)
+			cc.value = values.ConvertTo(result, cc.columnType.EvalType)
 			return nil
 		}
 	}

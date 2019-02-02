@@ -5,6 +5,8 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -52,7 +54,7 @@ func (s *DynamicSourceStage) Columns() []*Column {
 			string(c.Name()),
 			string(c.Name()),
 			"",
-			SQLTypeToEvalType(schema.SQLType(c.Type())),
+			types.SQLTypeToEvalType(schema.SQLType(c.Type())),
 			schema.MongoNone,
 			false,
 		)
@@ -113,8 +115,8 @@ func (i *dynamicDataSourceIter) Next(ctx context.Context, row *Row) bool {
 
 	row.Data = Values{}
 	for x := 0; x < len(i.dataRow.Values); x++ {
-		sqlValue := GoValueToSQLValue(i.cfg.sqlValueKind, i.dataRow.Values[x])
-		converted := ConvertTo(sqlValue, SQLTypeToEvalType(schema.SQLType(i.columns[x].Type())))
+		sqlValue := values.GoValueToSQLValue(i.cfg.sqlValueKind, i.dataRow.Values[x])
+		converted := values.ConvertTo(sqlValue, types.SQLTypeToEvalType(schema.SQLType(i.columns[x].Type())))
 		row.Data = append(row.Data, NewValue(
 			i.selectID,
 			i.dbName,

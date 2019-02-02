@@ -6,7 +6,9 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/types"
+	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
@@ -16,31 +18,31 @@ func TestGroupByPlanStage(t *testing.T) {
 
 	bgCtx := context.Background()
 	execCfg := createTestExecutionCfg()
-	execState := evaluator.NewExecutionState()
+	execState := NewExecutionState()
 
 	runTest := func(t *testing.T,
-		projectedColumns evaluator.ProjectedColumns,
-		keys []evaluator.SQLExpr,
-		rows []bson.D, expectedRows []evaluator.Values) {
+		projectedColumns ProjectedColumns,
+		keys []SQLExpr,
+		rows []bson.D, expectedRows []Values) {
 
 		req := require.New(t)
 
-		bss := evaluator.NewBSONSourceStage(1, tableOneName,
+		bss := NewBSONSourceStage(1, tableOneName,
 			collation.Must(collation.Get("utf8_general_ci")), rows)
 
-		groupBy := evaluator.NewGroupByStage(bss, keys, projectedColumns)
+		groupBy := NewGroupByStage(bss, keys, projectedColumns)
 
 		iter, err := groupBy.Open(bgCtx, execCfg, execState)
 		req.NoError(err)
 
-		row := &evaluator.Row{}
+		row := &Row{}
 
 		i := 0
 
 		for iter.Next(bgCtx, row) {
 			req.Equal(len(row.Data), len(expectedRows[i]))
 			req.Equal(row.Data, expectedRows[i])
-			row = &evaluator.Row{}
+			row = &Row{}
 			i++
 		}
 
@@ -54,51 +56,51 @@ func TestGroupByPlanStage(t *testing.T) {
 		bsonutil.NewD(bsonutil.NewDocElem("_id", 3), bsonutil.NewDocElem("a", "b"), bsonutil.NewDocElem("b", 9)),
 	)
 
-	projectedColumns := evaluator.ProjectedColumns{
-		evaluator.ProjectedColumn{
-			Column: &evaluator.Column{SelectID: 1, Table: tableOneName,
-				OriginalTable: tableOneName, Database: evaluator.BSONSourceDB, Name: "a",
+	projectedColumns := ProjectedColumns{
+		ProjectedColumn{
+			Column: &Column{SelectID: 1, Table: tableOneName,
+				OriginalTable: tableOneName, Database: BSONSourceDB, Name: "a",
 				OriginalName: "a", MappingRegistryName: "",
-				ColumnType: evaluator.ColumnType{
-					EvalType:  evaluator.EvalString,
+				ColumnType: ColumnType{
+					EvalType:  EvalString,
 					MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},
-			Expr: evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "a",
-				evaluator.EvalString, schema.MongoString),
+			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+				EvalString, schema.MongoString),
 		},
-		evaluator.ProjectedColumn{
-			Column: &evaluator.Column{SelectID: 1, Table: "", OriginalTable: "",
-				Database: evaluator.BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
+		ProjectedColumn{
+			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
+				Database: BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
 				MappingRegistryName: "",
-				ColumnType: evaluator.ColumnType{
-					EvalType:  evaluator.EvalDouble,
+				ColumnType: ColumnType{
+					EvalType:  EvalDouble,
 					MongoType: schema.MongoNone,
 				},
 				PrimaryKey: false},
-			Expr: evaluator.NewSQLAggregationFunctionExpr(
+			Expr: NewSQLAggregationFunctionExpr(
 				"sum",
 				false,
-				[]evaluator.SQLExpr{
-					evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB, tableOneName, "b",
-						evaluator.EvalInt64, schema.MongoInt),
+				[]SQLExpr{
+					NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
+						EvalInt64, schema.MongoInt),
 				},
 			),
 		},
 	}
 
-	keys := []evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, evaluator.BSONSourceDB,
-		tableOneName, "a", evaluator.EvalString, schema.MongoString)}
+	keys := []SQLExpr{NewSQLColumnExpr(1, BSONSourceDB,
+		tableOneName, "a", EvalString, schema.MongoString)}
 
-	expected := []evaluator.Values{
-		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-			Data: evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "a")}, {SelectID: 1,
-			Database: evaluator.BSONSourceDB, Table: "", Name: "sum(b)",
-			Data: evaluator.NewSQLFloat(evaluator.MySQLValueKind, 15)}},
-		{{SelectID: 1, Database: evaluator.BSONSourceDB, Table: tableOneName, Name: "a",
-			Data: evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "b")}, {SelectID: 1,
-			Database: evaluator.BSONSourceDB, Table: "", Name: "sum(b)",
-			Data: evaluator.NewSQLFloat(evaluator.MySQLValueKind, 9)}},
+	expected := []Values{
+		{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
+			Data: NewSQLVarchar(MySQLValueKind, "a")}, {SelectID: 1,
+			Database: BSONSourceDB, Table: "", Name: "sum(b)",
+			Data: NewSQLFloat(MySQLValueKind, 15)}},
+		{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
+			Data: NewSQLVarchar(MySQLValueKind, "b")}, {SelectID: 1,
+			Database: BSONSourceDB, Table: "", Name: "sum(b)",
+			Data: NewSQLFloat(MySQLValueKind, 9)}},
 	}
 
 	runTest(t, projectedColumns, keys, data, expected)

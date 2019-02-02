@@ -5,7 +5,9 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/types"
+	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/smartystreets/goconvey/convey"
@@ -65,44 +67,44 @@ var (
 	)
 )
 
-func setupJoinOperator(on evaluator.SQLExpr, kind evaluator.JoinKind) evaluator.PlanStage {
-	ms1 := evaluator.NewBSONSourceStage(1, tableOneName, collation.Default, customers)
-	ms2 := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, orders)
+func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
+	ms1 := NewBSONSourceStage(1, tableOneName, collation.Default, customers)
+	ms2 := NewBSONSourceStage(1, tableTwoName, collation.Default, orders)
 
-	return evaluator.NewJoinStage(kind, ms1, ms2, on)
+	return NewJoinStage(kind, ms1, ms2, on)
 }
 
 func TestJoinPlanStage(t *testing.T) {
 
-	criteria := evaluator.NewSQLEqualsExpr(
-		evaluator.NewSQLColumnExpr(
+	criteria := NewSQLEqualsExpr(
+		NewSQLColumnExpr(
 			1,
-			evaluator.BSONSourceDB,
+			BSONSourceDB,
 			tableOneName,
 			"orderid",
-			evaluator.EvalInt64,
+			EvalInt64,
 			schema.MongoInt,
 		),
-		evaluator.NewSQLColumnExpr(
+		NewSQLColumnExpr(
 			1,
-			evaluator.BSONSourceDB,
+			BSONSourceDB,
 			tableTwoName,
 			"orderid",
-			evaluator.EvalInt64,
+			EvalInt64,
 			schema.MongoInt,
 		),
 	)
 
 	bgCtx := context.Background()
 	execCfg := createTestExecutionCfg()
-	execState := evaluator.NewExecutionState()
+	execState := NewExecutionState()
 
-	row := &evaluator.Row{}
+	row := &Row{}
 
 	t.Run("inner_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.InnerJoin)
+		operator := setupJoinOperator(criteria, InnerJoin)
 
 		iter, err := operator.Open(bgCtx, execCfg, execState)
 		req.NoError(err)
@@ -136,7 +138,7 @@ func TestJoinPlanStage(t *testing.T) {
 	t.Run("left_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.LeftJoin)
+		operator := setupJoinOperator(criteria, LeftJoin)
 
 		iter, err := operator.Open(bgCtx, execCfg, execState)
 		req.NoError(err)
@@ -161,7 +163,7 @@ func TestJoinPlanStage(t *testing.T) {
 			if expectedResults[i].Amount == nil {
 				req.Zero(convey.ShouldHaveSameTypeAs(
 					row.Data[4].Data,
-					evaluator.NewPolymorphicSQLNull(evaluator.MySQLValueKind),
+					NewSQLNull(MySQLValueKind),
 				))
 			} else {
 				req.Equal(row.Data[4].Data.Value(), expectedResults[i].Amount)
@@ -178,7 +180,7 @@ func TestJoinPlanStage(t *testing.T) {
 	t.Run("right_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.RightJoin)
+		operator := setupJoinOperator(criteria, RightJoin)
 
 		iter, err := operator.Open(bgCtx, execCfg, execState)
 		req.NoError(err)
@@ -202,7 +204,7 @@ func TestJoinPlanStage(t *testing.T) {
 			if expectedResults[i].Name == nil {
 				req.Zero(convey.ShouldHaveSameTypeAs(
 					row.Data[0].Data,
-					evaluator.NewPolymorphicSQLNull(evaluator.MySQLValueKind),
+					NewSQLNull(MySQLValueKind),
 				))
 			} else {
 				req.Equal(row.Data[0].Data.Value(), expectedResults[i].Name)
@@ -220,7 +222,7 @@ func TestJoinPlanStage(t *testing.T) {
 	t.Run("cross_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.CrossJoin)
+		operator := setupJoinOperator(criteria, CrossJoin)
 
 		iter, err := operator.Open(bgCtx, execCfg, execState)
 		req.NoError(err)
@@ -247,7 +249,7 @@ func TestJoinPlanStage(t *testing.T) {
 	t.Run("straight_join", func(t *testing.T) {
 		req := require.New(t)
 
-		operator := setupJoinOperator(criteria, evaluator.StraightJoin)
+		operator := setupJoinOperator(criteria, StraightJoin)
 
 		iter, err := operator.Open(bgCtx, execCfg, execState)
 		req.NoError(err)

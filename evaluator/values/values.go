@@ -1,4 +1,4 @@
-package evaluator
+package values
 
 import (
 	"encoding/hex"
@@ -9,6 +9,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -50,12 +51,14 @@ type SQLProtocolEncoder interface {
 
 // SQLValue is a SQLExpr with a value.
 type SQLValue interface {
-	// Every SQLValue is also a SQLExpr.
-	SQLExpr
 	// Every SQLValue is also a SQLProtocolEncoder.
 	SQLProtocolEncoder
 	// Every SQLValue is also a SQLValueConverter.
 	SQLValueConverter
+	// SQLValues have EvalType() and thus implement EvalTyper
+	types.EvalTyper
+	// SQLValues can all be converted to strings.
+	fmt.Stringer
 	// IsNull returns true if the SQLValue is null, and false otherwise.
 	IsNull() bool
 	// Value returns an interface{} that represents the literal value of this SQLValue.
@@ -83,47 +86,8 @@ func (k SQLValueKind) AssertValid() {
 	case MySQLValueKind, MongoSQLValueKind:
 		// valid
 	default:
-		panic(fmt.Errorf("invalid SQLValueKind %x", k))
+		panic(fmt.Errorf("AssertValid invalid SQLValueKind %x", k))
 	}
-}
-
-// NewSQLNull returns a null SQLValue of the provided SQLValueKind and EvalType.
-func NewSQLNull(kind SQLValueKind, typ EvalType) SQLValue {
-	switch typ {
-	case EvalInt64:
-		return nullSQLInt64(kind)
-	case EvalUint64:
-		return nullSQLUint64(kind)
-	case EvalDouble, EvalArrNumeric:
-		return nullSQLFloat(kind)
-	case EvalString:
-		return nullSQLVarchar(kind)
-	case EvalDate:
-		return nullSQLDate(kind)
-	case EvalObjectID:
-		return nullSQLObjectID(kind)
-	case EvalTimestamp, EvalDatetime:
-		return nullSQLTimestamp(kind)
-	case EvalBoolean:
-		return nullSQLBool(kind)
-	case EvalDecimal128:
-		return nullSQLDecimal128(kind)
-	case EvalBinary:
-		return nullSQLVarchar(kind)
-	case EvalPolymorphic:
-		return NewPolymorphicSQLNull(kind)
-	default:
-		panic(fmt.Sprintf("invalid EvalType %x in call to NewSQLNull", typ))
-	}
-}
-
-// NewPolymorphicSQLNull returns a new SQLValue of the provided SQLValueKind and with
-// the default EvalType (currently EvalVarchar).
-func NewPolymorphicSQLNull(kind SQLValueKind) SQLValue {
-	// We will just use a NULL varchar for untyped NULLs.
-	// This saves us from create a new untyped SQLValue that
-	// is only ever NULL.
-	return newSQLVarchar(kind, "", true)
 }
 
 // SQLBool represents a boolean.
@@ -132,29 +96,29 @@ type SQLBool interface {
 	iSQLBool()
 }
 
+// NewSQLNull returns a null SQLValue of the provided SQLValueKind.
+func NewSQLNull(kind SQLValueKind) SQLNull {
+	base := newBaseSQLNull(kind)
+	switch kind {
+	case MySQLValueKind:
+		return MySQLNull{base}
+	case MongoSQLValueKind:
+		return MongoSQLNull{base}
+	default:
+		panic(fmt.Errorf("newSQLBool unknown SQLValueKind %x", kind))
+	}
+}
+
 // NewSQLBool returns a new SQLBool with the provided kind and value.
 func NewSQLBool(kind SQLValueKind, val bool) SQLBool {
-	return newSQLBool(kind, val, false)
-}
-
-func nullSQLBool(kind SQLValueKind) SQLBool {
-	return newSQLBool(kind, false, true)
-}
-
-func newSQLBool(kind SQLValueKind, val bool, null bool) SQLBool {
-	var base BaseSQLBool
-	if null {
-		base = nullBaseSQLBool(kind)
-	} else {
-		base = newBaseSQLBool(kind, val)
-	}
+	base := newBaseSQLBool(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLBool{base}
 	case MongoSQLValueKind:
 		return MongoSQLBool{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLBool unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -166,27 +130,14 @@ type SQLDate interface {
 
 // NewSQLDate returns a new SQLDate with the provided kind and value.
 func NewSQLDate(kind SQLValueKind, val time.Time) SQLDate {
-	return newSQLDate(kind, val, false)
-}
-
-func nullSQLDate(kind SQLValueKind) SQLDate {
-	return newSQLDate(kind, NullDate, true)
-}
-
-func newSQLDate(kind SQLValueKind, val time.Time, null bool) SQLDate {
-	var base BaseSQLDate
-	if null {
-		base = nullBaseSQLDate(kind)
-	} else {
-		base = newBaseSQLDate(kind, val)
-	}
+	base := newBaseSQLDate(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLDate{base}
 	case MongoSQLValueKind:
 		return MongoSQLDate{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLDate unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -198,27 +149,14 @@ type SQLDecimal128 interface {
 
 // NewSQLDecimal128 returns a new SQLDecimal128 with the provided kind and value.
 func NewSQLDecimal128(kind SQLValueKind, val decimal.Decimal) SQLDecimal128 {
-	return newSQLDecimal128(kind, val, false)
-}
-
-func nullSQLDecimal128(kind SQLValueKind) SQLDecimal128 {
-	return newSQLDecimal128(kind, decimal.Zero, true)
-}
-
-func newSQLDecimal128(kind SQLValueKind, val decimal.Decimal, null bool) SQLDecimal128 {
-	var base BaseSQLDecimal128
-	if null {
-		base = nullBaseSQLDecimal128(kind)
-	} else {
-		base = newBaseSQLDecimal128(kind, val)
-	}
+	base := newBaseSQLDecimal128(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLDecimal128{base}
 	case MongoSQLValueKind:
 		return MongoSQLDecimal128{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLDecimal128 unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -230,27 +168,14 @@ type SQLFloat interface {
 
 // NewSQLFloat returns a new SQLFloat with the provided kind and value.
 func NewSQLFloat(kind SQLValueKind, val float64) SQLFloat {
-	return newSQLFloat(kind, val, false)
-}
-
-func nullSQLFloat(kind SQLValueKind) SQLFloat {
-	return newSQLFloat(kind, 0, true)
-}
-
-func newSQLFloat(kind SQLValueKind, val float64, null bool) SQLFloat {
-	var base BaseSQLFloat
-	if null {
-		base = nullBaseSQLFloat(kind)
-	} else {
-		base = newBaseSQLFloat(kind, val)
-	}
+	base := newBaseSQLFloat(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLFloat{base}
 	case MongoSQLValueKind:
 		return MongoSQLFloat{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLFloat unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -273,27 +198,14 @@ type SQLInt64 interface {
 
 // NewSQLInt64 returns a new SQLInt64 with the provided kind and value.
 func NewSQLInt64(kind SQLValueKind, val int64) SQLInt64 {
-	return newSQLInt64(kind, val, false)
-}
-
-func nullSQLInt64(kind SQLValueKind) SQLInt64 {
-	return newSQLInt64(kind, 0, true)
-}
-
-func newSQLInt64(kind SQLValueKind, val int64, null bool) SQLInt64 {
-	var base BaseSQLInt64
-	if null {
-		base = nullBaseSQLInt64(kind)
-	} else {
-		base = newBaseSQLInt64(kind, val)
-	}
+	base := newBaseSQLInt64(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLInt64{base}
 	case MongoSQLValueKind:
 		return MongoSQLInt64{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLInt64 unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -305,27 +217,14 @@ type SQLObjectID interface {
 
 // NewSQLObjectID returns a new SQLObjectID with the provided kind and value.
 func NewSQLObjectID(kind SQLValueKind, val string) SQLObjectID {
-	return newSQLObjectID(kind, val, false)
-}
-
-func nullSQLObjectID(kind SQLValueKind) SQLObjectID {
-	return newSQLObjectID(kind, "", true)
-}
-
-func newSQLObjectID(kind SQLValueKind, val string, null bool) SQLObjectID {
-	var base BaseSQLObjectID
-	if null {
-		base = nullBaseSQLObjectID(kind)
-	} else {
-		base = newBaseSQLObjectID(kind, val)
-	}
+	base := newBaseSQLObjectID(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLObjectID{base}
 	case MongoSQLValueKind:
 		return MongoSQLObjectID{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLObjectID unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -348,27 +247,14 @@ type SQLUint64 interface {
 
 // NewSQLUint64 returns a new SQLUint64 with the provided kind and value.
 func NewSQLUint64(kind SQLValueKind, val uint64) SQLUint64 {
-	return newSQLUint64(kind, val, false)
-}
-
-func nullSQLUint64(kind SQLValueKind) SQLUint64 {
-	return newSQLUint64(kind, 0, true)
-}
-
-func newSQLUint64(kind SQLValueKind, val uint64, null bool) SQLUint64 {
-	var base BaseSQLUint64
-	if null {
-		base = nullBaseSQLUint64(kind)
-	} else {
-		base = newBaseSQLUint64(kind, val)
-	}
+	base := newBaseSQLUint64(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLUint64{base}
 	case MongoSQLValueKind:
 		return MongoSQLUint64{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLUint64 unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -380,27 +266,14 @@ type SQLTimestamp interface {
 
 // NewSQLTimestamp returns a new SQLTimestamp with the provided kind and value.
 func NewSQLTimestamp(kind SQLValueKind, val time.Time) SQLTimestamp {
-	return newSQLTimestamp(kind, val, false)
-}
-
-func nullSQLTimestamp(kind SQLValueKind) SQLTimestamp {
-	return newSQLTimestamp(kind, NullDate, true)
-}
-
-func newSQLTimestamp(kind SQLValueKind, val time.Time, null bool) SQLTimestamp {
-	var base BaseSQLTimestamp
-	if null {
-		base = nullBaseSQLTimestamp(kind)
-	} else {
-		base = newBaseSQLTimestamp(kind, val)
-	}
+	base := newBaseSQLTimestamp(kind, val)
 	switch kind {
 	case MySQLValueKind:
 		return MySQLTimestamp{base}
 	case MongoSQLValueKind:
 		return MongoSQLTimestamp{base}
 	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
+		panic(fmt.Errorf("newSQLTimestamp unknown SQLValueKind %x", kind))
 	}
 }
 
@@ -412,7 +285,15 @@ type SQLVarchar interface {
 
 // NewSQLVarchar returns a new SQLVarchar with the provided kind and value.
 func NewSQLVarchar(kind SQLValueKind, val string) SQLVarchar {
-	return newSQLVarchar(kind, val, false)
+	base := newBaseSQLVarchar(kind, val)
+	switch kind {
+	case MySQLValueKind:
+		return MySQLVarchar{base}
+	case MongoSQLValueKind:
+		return MongoSQLVarchar{base}
+	default:
+		panic(fmt.Errorf("newSQLVarchar unknown SQLValueKind %x", kind))
+	}
 }
 
 // NewSQLVarcharFromOpt returns a new SQLVarchar with the provided kind.
@@ -420,36 +301,16 @@ func NewSQLVarchar(kind SQLValueKind, val string) SQLVarchar {
 // If it is a Some, the SQLVarchar will have the contained string value.
 func NewSQLVarcharFromOpt(kind SQLValueKind, opt option.String) SQLVarchar {
 	if opt.IsNone() {
-		return nullSQLVarchar(kind)
+		return NewSQLNull(kind)
 	}
 	return NewSQLVarchar(kind, opt.Unwrap())
-}
-
-func nullSQLVarchar(kind SQLValueKind) SQLVarchar {
-	return newSQLVarchar(kind, "", true)
-}
-
-func newSQLVarchar(kind SQLValueKind, val string, null bool) SQLVarchar {
-	var base BaseSQLVarchar
-	if null {
-		base = nullBaseSQLVarchar(kind)
-	} else {
-		base = newBaseSQLVarchar(kind, val)
-	}
-	switch kind {
-	case MySQLValueKind:
-		return MySQLVarchar{base}
-	case MongoSQLValueKind:
-		return MongoSQLVarchar{base}
-	default:
-		panic(fmt.Errorf("unknown SQLValueKind %x", kind))
-	}
 }
 
 // SQLNumber represents an SQLValue that is
 // also a number, that is Float, Int, Uint, and Decimal128.
 type SQLNumber interface {
 	SQLValue
+	// nolint: megacheck
 	iNumber()
 }
 
@@ -458,18 +319,70 @@ func (MySQLFloat) iNumber()      {}
 func (MySQLInt64) iNumber()      {}
 func (MySQLUint64) iNumber()     {}
 
-// isOne returns true if this value can be converted to the Float64 1.
-func isOne(v SQLValue) bool {
+// IsOne returns true if this value can be converted to the Float64 1.
+func IsOne(v SQLValue) bool {
 	return v.SQLFloat().Value().(float64) == 1.0
 }
 
-// isZero returns true if this value can be converted to the Float64 0.
-func isZero(v SQLValue) bool {
+// IsZero returns true if this value can be converted to the Float64 0.
+func IsZero(v SQLValue) bool {
 	return v.SQLFloat().Value().(float64) == 0.0
 }
 
-// Size returns the combined size of these SQLValues in bytes.
-func sqlValuesSize(svs ...[]SQLValue) uint64 {
+// ConvertTo takes a SQLValue v and an evalType, that determines what
+// type to convert the passed SQLValue.
+func ConvertTo(v SQLValue, evalType types.EvalType) SQLValue {
+	if v.IsNull() {
+		return v
+	}
+	switch evalType {
+	case types.EvalArrNumeric:
+		return v.SQLFloat()
+	case types.EvalBoolean:
+		return v.SQLBool()
+	case types.EvalDecimal128:
+		return v.SQLDecimal128()
+	case types.EvalDouble:
+		return v.SQLFloat()
+	case types.EvalInt32:
+		return v.SQLInt()
+	case types.EvalInt64:
+		return v.SQLInt()
+	case types.EvalPolymorphic:
+		return v
+	case types.EvalNull:
+		return NewSQLNull(v.Kind())
+	case types.EvalObjectID:
+		return v.SQLObjectID()
+	case types.EvalString:
+		return v.SQLVarchar()
+	case types.EvalDatetime:
+		return v.SQLTimestamp()
+	case types.EvalBinary:
+		return v.SQLVarchar()
+	// Types not corresponding to MongoDB types.
+	case types.EvalDate:
+		return v.SQLDate()
+	case types.EvalUint64:
+		return v.SQLUint()
+	default:
+		panic(fmt.Sprintf("EvalType %x should never be seen as a conversion target", evalType))
+	}
+}
+
+// HasNullValue returns true if any of the value in values
+// is of type SQLNoValue or SQLNullValue.
+func HasNullValue(vs ...SQLValue) bool {
+	for _, v := range vs {
+		if v.IsNull() {
+			return true
+		}
+	}
+	return false
+}
+
+// SQLValuesSize returns the combined size of these SQLValues in bytes.
+func SQLValuesSize(svs ...[]SQLValue) uint64 {
 	s := uint64(0)
 	for _, sv := range svs {
 		for _, v := range sv {
@@ -478,159 +391,6 @@ func sqlValuesSize(svs ...[]SQLValue) uint64 {
 	}
 
 	return s
-}
-
-// CompareTo compares a SQLValue to another SQLValue. It returns -1 if left
-// compares less than right; 1, if left compares greater than right; and 0
-// if left compares equal to right.
-func CompareTo(left, right SQLValue, collation *collation.Collation) (int, error) {
-	if left.Kind() != right.Kind() {
-		err := fmt.Errorf(
-			"left SQLValue and right SQLValue are not of same kind (%x and %x, respectively)",
-			left.Kind(), right.Kind(),
-		)
-		panic(err)
-	}
-	valueKind := left.Kind()
-
-	if right.IsNull() {
-		if left.IsNull() {
-			return 0, nil
-		}
-		i, err := CompareTo(right, left, collation)
-		return -i, err
-	}
-
-	if left.IsNull() {
-		return -1, nil
-	}
-
-	if left.EvalType() == right.EvalType() {
-		switch left.(type) {
-		case SQLDate, SQLDecimal128, SQLFloat, SQLInt64, SQLUint64, SQLTimestamp:
-			return compareDecimal128(Decimal(left), Decimal(right))
-		case SQLVarchar, SQLObjectID:
-			return collation.CompareString(String(left), String(right)), nil
-		}
-	}
-
-	switch lVal := left.(type) {
-	case SQLVarchar:
-		switch right.(type) {
-		case SQLDate, SQLTimestamp:
-			// MySQL throws an error if you try to compare varchar =,<,> date/timestamp.
-			// It works the other way around, however (i.e. date/timestamp =,<,> varchar).
-			return -1, fmt.Errorf("Illegal mix of collations %T and %T", left, right)
-		default:
-			return compareDecimal128(Decimal(left), Decimal(right))
-		}
-	case SQLDate:
-		switch rVal := right.(type) {
-		case SQLVarchar:
-			t, _, ok := parseDateTime(right.String())
-			if !ok {
-				t, _, _ = parseDateTime("0001-01-01")
-			}
-			return compareFloats(Float64(left), Float64(NewSQLDate(valueKind, t)))
-		case SQLTimestamp:
-			if Timestamp(rVal).Before(Timestamp(lVal)) {
-				return 1, nil
-			} else if Timestamp(rVal).After(Timestamp(lVal)) {
-				return -1, nil
-			}
-			return 0, nil
-		default:
-			return compareDecimal128(Decimal(left), Decimal(right))
-		}
-	case SQLTimestamp:
-		switch rVal := right.(type) {
-		case SQLVarchar:
-			t, _, ok := parseDateTime(right.String())
-			if !ok {
-				t, _, _ = parseDateTime("0001-01-01 00:00:00")
-			}
-			return compareFloats(Float64(left), Float64(NewSQLTimestamp(valueKind, t)))
-		case SQLDate:
-			if Timestamp(rVal).Before(Timestamp(lVal)) {
-				return 1, nil
-			} else if Timestamp(rVal).After(Timestamp(lVal)) {
-				return -1, nil
-			}
-			return 0, nil
-		default:
-			return compareDecimal128(Decimal(left), Decimal(right))
-		}
-	default:
-		switch right.(type) {
-		default:
-			return compareDecimal128(Decimal(left), Decimal(right))
-		}
-	}
-}
-
-// CompareToPairwise compares two slices of SQLValue in a pairwise manner. It
-// returns -1 if the left compares less than the right; 1, if left compares
-// greater than right; and 0 if left compares equal to right.
-// The pairwise comparison means that left[0] is compared to right[0], left[1]
-// is compared to right[1], and so on, using CompareTo(left[i], right[i]). If
-// a pairwise comparison returns 0, the next pair is compared. If it returns
-// non-0, this function returns that result. If all pairs are compared and
-// found to be equal, this function returns 0.
-func CompareToPairwise(left, right []SQLValue, collation *collation.Collation) (int, error) {
-	if len(left) != len(right) {
-		return -1, fmt.Errorf("different number of values on each side (left: %v, right: %v)", len(left), len(right))
-	}
-
-	for i, lv := range left {
-		c, err := CompareTo(lv, right[i], collation)
-		if err != nil {
-			return -1, err
-		}
-
-		if c != 0 {
-			return c, nil
-		}
-	}
-
-	return 0, nil
-}
-
-// ConvertTo takes a SQLValue v and an evalType, that determines what
-// type to convert the passed SQLValue.
-func ConvertTo(v SQLValue, evalType EvalType) SQLValue {
-	switch evalType {
-	case EvalArrNumeric:
-		return v.SQLFloat()
-	case EvalBoolean:
-		return v.SQLBool()
-	case EvalDecimal128:
-		return v.SQLDecimal128()
-	case EvalDouble:
-		return v.SQLFloat()
-	case EvalInt32:
-		return v.SQLInt()
-	case EvalInt64:
-		return v.SQLInt()
-	case EvalPolymorphic:
-		return v
-	case EvalNull:
-		return NewSQLNull(v.Kind(), evalType)
-	case EvalObjectID:
-		return v.SQLObjectID()
-	case EvalString:
-		return v.SQLVarchar()
-	case EvalDatetime:
-		return v.SQLTimestamp()
-	case EvalBinary:
-		return v.SQLVarchar()
-	// Types not corresponding to MongoDB types.
-	case EvalDate:
-		return v.SQLDate()
-	case EvalUint64:
-		return v.SQLUint()
-	default:
-		panic(fmt.Sprintf("EvalType %x should never be seen as a conversion target", evalType))
-	}
 }
 
 // Bool converts a SQLValue to a bool.
@@ -668,16 +428,52 @@ func String(v SQLValue) string {
 	return v.SQLVarchar().Value().(string)
 }
 
-// BSONValueToSQLValue deserializes raw BSON into a SQLValue directly.
-func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
+// IsFalsy returns whether a SQLValue is falsy.
+func IsFalsy(value SQLValue) bool {
+	return !HasNullValue(value) && !Bool(value)
+}
+
+var uuidTypes = map[schema.MongoType]struct{}{
+	schema.MongoUUID:       {},
+	schema.MongoUUIDCSharp: {},
+	schema.MongoUUIDJava:   {},
+	schema.MongoUUIDOld:    {},
+}
+
+// IsUUID returns true if mongoType is of the UUID subtype.
+func IsUUID(mongoType schema.MongoType) bool {
+	_, ok := uuidTypes[mongoType]
+	return ok
+}
+
+// reverseByteArray reverses elements in data, beginning
+// at start and ending at start + length.
+func reverseByteArray(data []byte, start, length int) {
+	for left, right := start, start+length-1; left < right; left, right = left+1, right-1 {
+		temp := data[left]
+		data[left] = data[right]
+		data[right] = temp
+	}
+}
+
+func uuidEncode(data []byte) string {
+	return hex.EncodeToString(data[0:4]) + "-" +
+		hex.EncodeToString(data[4:6]) + "-" +
+		hex.EncodeToString(data[6:8]) + "-" +
+		hex.EncodeToString(data[8:10]) + "-" +
+		hex.EncodeToString(data[10:16])
+}
+
+// BSONValueToSQLValue deserializes raw BSON into SQLValues directly.
+func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype types.EvalType,
 	data []byte) (SQLValue, error) {
 	switch evalType {
-	case EvalBoolean:
+	case types.EvalBoolean:
 		if data[0] == 0x0 {
 			return NewSQLBool(kind, false), nil
 		}
 		return NewSQLBool(kind, true), nil
-	case EvalDecimal128:
+	case types.EvalDecimal128:
 		h := (uint64(data[0]) << 0) |
 			(uint64(data[1]) << 8) |
 			(uint64(data[2]) << 16) |
@@ -700,7 +496,7 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			return nil, err
 		}
 		return NewSQLDecimal128(kind, gd), nil
-	case EvalDouble:
+	case types.EvalDouble:
 		ret := math.Float64frombits((uint64(data[0]) << 0) |
 			(uint64(data[1]) << 8) |
 			(uint64(data[2]) << 16) |
@@ -710,13 +506,13 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			(uint64(data[6]) << 48) |
 			(uint64(data[7]) << 56))
 		return NewSQLFloat(kind, ret), nil
-	case EvalInt32: //32 bit int
+	case types.EvalInt32: //32 bit int
 		ret := int32((uint32(data[0]) << 0) |
 			(uint32(data[1]) << 8) |
 			(uint32(data[2]) << 16) |
 			(uint32(data[3]) << 24))
 		return NewSQLInt64(kind, int64(ret)), nil
-	case EvalInt64: // 64 bit int
+	case types.EvalInt64: // 64 bit int
 		ret := int64((uint64(data[0]) << 0) |
 			(uint64(data[1]) << 8) |
 			(uint64(data[2]) << 16) |
@@ -726,9 +522,9 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			(uint64(data[6]) << 48) |
 			(uint64(data[7]) << 56))
 		return NewSQLInt64(kind, ret), nil
-	case EvalObjectID:
+	case types.EvalObjectID:
 		return NewSQLObjectID(kind, hex.EncodeToString(data)), nil
-	case EvalString:
+	case types.EvalString:
 		l := ((uint32(data[0]) << 0) |
 			(uint32(data[1]) << 8) |
 			(uint32(data[2]) << 16) |
@@ -744,7 +540,7 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			return nil, fmt.Errorf("corrupted string field: not valid unicode")
 		}
 		return NewSQLVarchar(kind, string(data)), nil
-	case EvalDatetime: // Date
+	case types.EvalDatetime: // Date
 		i := int64((uint64(data[0]) << 0) |
 			(uint64(data[1]) << 8) |
 			(uint64(data[2]) << 16) |
@@ -760,7 +556,7 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			t = time.Unix(i/1e3, i%1e3*1e6).In(schema.DefaultLocale)
 		}
 		return NewSQLTimestamp(kind, t), nil
-	case EvalBinary:
+	case types.EvalBinary:
 		l := ((uint32(data[0]) << 0) |
 			(uint32(data[1]) << 8) |
 			(uint32(data[2]) << 16) |
@@ -773,11 +569,11 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 		if subType == 0x04 {
 			return NewSQLVarchar(kind, uuidEncode(data)), nil
 		} else if subType == 0x03 {
-			if uuidSubtype == EvalJavaUUID {
+			if uuidSubtype == types.EvalJavaUUID {
 				reverseByteArray(data, 0, 8)
 				reverseByteArray(data, 8, 8)
 
-			} else if uuidSubtype == EvalCSharpUUID {
+			} else if uuidSubtype == types.EvalCSharpUUID {
 				reverseByteArray(data, 0, 4)
 				reverseByteArray(data, 4, 2)
 				reverseByteArray(data, 6, 2)
@@ -785,14 +581,14 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype EvalType,
 			return NewSQLVarchar(kind, uuidEncode(data)), nil
 		}
 		// For another other type of BinData we return a SQLNull
-		return NewSQLNull(kind, EvalString), nil
-	case EvalNull:
-		return NewPolymorphicSQLNull(kind), nil
+		return NewSQLNull(kind), nil
+	case types.EvalNull:
+		return NewSQLNull(kind), nil
 	default:
 		// Rather than return an error, we will just return NULL for
 		// other types of BSON. This function now only returns error
 		// on malformed Decimal128 values.
-		return NewPolymorphicSQLNull(kind), nil
+		return NewSQLNull(kind), nil
 	}
 }
 
@@ -912,4 +708,21 @@ func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
 	dq := d / div64
 	dr := d % div64
 	return (aq<<32 | bq), (cq<<32 | dq), uint32(dr)
+}
+
+// SQLNull represents a NULL value.
+type SQLNull interface {
+	SQLValue
+	iSQLBool()
+	iSQLDate()
+	iSQLDecimal128()
+	iSQLFloat()
+	iSQLInt32()
+	iSQLInt64()
+	iSQLObjectID()
+	iSQLUint32()
+	iSQLUint64()
+	iSQLTimestamp()
+	iSQLVarchar()
+	iSQLNull()
 }

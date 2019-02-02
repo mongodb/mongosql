@@ -5,6 +5,8 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -82,11 +84,11 @@ func (bs *BSONSourceIter) Next(_ context.Context, row *Row) bool {
 		return false
 	}
 
-	var values Values
+	var vs Values
 
 	for _, docElem := range bs.data[bs.index] {
-		value := GoValueToSQLValue(valueKind, docElem.Value)
-		values = append(values, NewValue(
+		value := values.GoValueToSQLValue(valueKind, docElem.Value)
+		vs = append(vs, NewValue(
 			bs.selectID,
 			bs.databaseName,
 			bs.tableName,
@@ -94,7 +96,7 @@ func (bs *BSONSourceIter) Next(_ context.Context, row *Row) bool {
 			value))
 	}
 
-	row.Data = values
+	row.Data = vs
 	bs.index++
 
 	bs.err = bs.cfg.memoryMonitor.Acquire(row.Data.Size())
@@ -114,7 +116,7 @@ func (bs *BSONSourceStage) Columns() []*Column {
 			v.Name,
 			v.Name,
 			"",
-			EvalPolymorphic,
+			types.EvalPolymorphic,
 			schema.MongoNone,
 			false,
 		)

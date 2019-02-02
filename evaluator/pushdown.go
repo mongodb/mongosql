@@ -7,6 +7,8 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -33,7 +35,7 @@ type PushdownConfig struct {
 	shouldPushDown    bool
 	mongoDBVersion    []uint8
 	pushDownSelfJoins bool
-	sqlValueKind      SQLValueKind
+	sqlValueKind      values.SQLValueKind
 }
 
 // NewPushdownConfig returns a new PushdownConfig constructed from the
@@ -536,12 +538,13 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 	var localMatcher SQLExpr
 	prePieces := []*NonCorrelatedSubqueryFuture{}
 
-	if value, ok := filter.matcher.(SQLValue); ok {
+	if valueExpr, ok := filter.matcher.(SQLValueExpr); ok {
+		value := valueExpr.Value
 		// Our pushed down expression has left us with just a value,
 		// we can see if it matches right now. If so, we eliminate
 		// the filter from the tree. Otherwise, we return an
 		// operator that yields no rows.
-		if !Bool(value) {
+		if !values.Bool(value) {
 			return &EmptyStage{filter.Columns(), filter.Collation()}, nil
 		}
 
@@ -1019,7 +1022,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 							expr.String())
 					}
 
-					if expr.EvalType() == EvalString {
+					if expr.EvalType() == types.EvalString {
 						translatedExprs = append(translatedExprs, trans)
 					} else {
 						// $convert was introduced in Mongo 4.0, so we cannot push down the query if
@@ -1029,7 +1032,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 								" for versions < 4.0")
 						}
 						translatedExprs = append(translatedExprs,
-							translateConvert(trans, expr.EvalType(), EvalString))
+							translateConvert(trans, expr.EvalType(), types.EvalString))
 					}
 				}
 
@@ -1133,10 +1136,10 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					countFieldName)
 
 				newExpr = NewSQLCaseExpr(
-					NewSQLNull(t.valueKind(), EvalInt64),
+					NewSQLValueExpr(values.NewSQLNull(t.valueKind())),
 					newCaseCondition(
 						NewSQLColumnExpr(0, dbName, groupTempTable, countFieldName,
-							EvalInt64, schema.MongoNone),
+							types.EvalInt64, schema.MongoNone),
 						NewSQLColumnExpr(0, dbName, groupTempTable, fieldName, typedN.EvalType(),
 							schema.MongoNone),
 					),
@@ -1532,8 +1535,8 @@ func (v *pushdownVisitor) simplifyFalseJoinCriterion(join *JoinStage) PlanStage 
 
 	// It is sufficient to check if there is a single false or null criterion since
 	// partial evaluation is complete.
-	crit, ok := join.matcher.(SQLValue)
-	if !(ok && (IsFalsy(crit) || hasNullValue(crit))) {
+	crit, ok := join.matcher.(SQLValueExpr)
+	if !(ok && (values.IsFalsy(crit.Value) || values.HasNullValue(crit.Value))) {
 		return nil
 	}
 
@@ -1764,7 +1767,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		var uuidType schema.MongoType
 		for _, col := range append(localCols, foreignCols...) {
 			mongoType := col.columnType.MongoType
-			if IsUUID(col.columnType.MongoType) {
+			if values.IsUUID(col.columnType.MongoType) {
 				if uuidType != "" && uuidType != mongoType {
 					v.logger.Warnf(log.Dev, "unable to translate join "+
 						"stage to expressive lookup: join criteria uses"+
@@ -1822,7 +1825,8 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 
 		// When the join matcher is the bool `true`, like in a cross join,
 		// we do not need to add an additional match pipeline.
-		if join.matcher != NewSQLBool(t.valueKind(), true) {
+		matcherValExpr, ok := join.matcher.(SQLValueExpr)
+		if !ok || matcherValExpr.Value.Value() != true {
 			// Build the foreign pipeline.
 			var translated interface{}
 			var pf PushdownFailure
@@ -2491,7 +2495,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 
 			newMappingRegistry := newMappingRegistry()
 			newColumn := NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
-				EvalUint64, schema.MongoInt64, false)
+				types.EvalUint64, schema.MongoInt64, false)
 			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table,
 				newColumn.Name, newColumn.MappingRegistryName) {
 				newMappingRegistry.addColumn(newColumn)
@@ -3163,7 +3167,7 @@ func (v *pushdownVisitor) doesJoinHaveIncompatibleUUIDs(lookupInfo *lookupInfo) 
 	localMongoType := lookupInfo.localColumn.columnType.MongoType
 	foreignMongoType := lookupInfo.foreignColumn.columnType.MongoType
 
-	if IsUUID(localMongoType) && IsUUID(foreignMongoType) {
+	if values.IsUUID(localMongoType) && values.IsUUID(foreignMongoType) {
 		if localMongoType != foreignMongoType {
 			v.logger.Warnf(log.Dev,
 				"unable to translate join stage to lookup: found different criteria UUID - %v and %v",

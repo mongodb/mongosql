@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
@@ -346,7 +347,7 @@ func (nlp *NestedLoopJoiner) Join(ctx context.Context,
 	getNullValues := func(columns []*Column) Values {
 		var nilValues Values
 		for _, c := range columns {
-			nilValue := NewSQLNull(nlp.cfg.sqlValueKind, c.EvalType)
+			nilValue := values.NewSQLNull(nlp.cfg.sqlValueKind)
 			nilValues = append(nilValues, NewValue(
 				c.SelectID,
 				c.Database,
@@ -421,7 +422,7 @@ outerLoop:
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
-			} else if Bool(result) {
+			} else if values.Bool(result) {
 				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
 				if err != nil {
 					nlp.errChan <- err
@@ -467,13 +468,13 @@ outerLoop:
 			}
 
 			st := nlp.st.WithRows(l, r)
-			var result SQLValue
+			var result values.SQLValue
 			result, err = nlp.matcher.Evaluate(ctx, nlp.cfg, st)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
 			}
-			if Bool(result) {
+			if values.Bool(result) {
 				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
 				if err != nil {
 					nlp.errChan <- err
@@ -537,12 +538,12 @@ outerLoop:
 			}
 
 			st := nlp.st.WithRows(l, r)
-			var result SQLValue
+			var result values.SQLValue
 			result, err = nlp.matcher.Evaluate(ctx, nlp.cfg, st)
 			if err != nil {
 				nlp.errChan <- err
 				break outerLoop
-			} else if Bool(result) {
+			} else if values.Bool(result) {
 				err = nlp.stageMonitor.Acquire(l.Data.Size() + r.Data.Size())
 				if err != nil {
 					nlp.errChan <- err

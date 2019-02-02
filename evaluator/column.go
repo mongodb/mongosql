@@ -3,14 +3,15 @@ package evaluator
 import (
 	"strings"
 
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/schema"
 )
 
 // ColumnType is the type of a column.
 type ColumnType struct {
-	EvalType    EvalType
+	EvalType    types.EvalType
 	MongoType   schema.MongoType
-	UUIDSubType EvalType
+	UUIDSubType types.EvalType
 }
 
 // Column contains information used to select data
@@ -27,23 +28,23 @@ type Column struct {
 	PrimaryKey          bool
 }
 
-// NewColumnType returns a ColumnType with the specified EvalType and MongoType.
-func NewColumnType(evalType EvalType, mongoType schema.MongoType) ColumnType {
+// NewColumnType returns a ColumnType with the specified types.EvalType and MongoType.
+func NewColumnType(evalType types.EvalType, mongoType schema.MongoType) ColumnType {
 	return ColumnType{
 		EvalType:  evalType,
 		MongoType: mongoType,
 		// Because the need to set the UUIDSubType is so rare, we just use
 		// the default EvalBinary encoding unless otherwise specified with the
 		// other constructor.
-		UUIDSubType: EvalBinary,
+		UUIDSubType: types.EvalBinary,
 	}
 }
 
-// NewColumnTypeWithUUIDSubtype returns a ColumnType with the specified EvalType, MongoType, and
+// NewColumnTypeWithUUIDSubtype returns a ColumnType with the specified types.EvalType, MongoType, and
 // UUIDSubType.
-func NewColumnTypeWithUUIDSubtype(evalType EvalType,
+func NewColumnTypeWithUUIDSubtype(evalType types.EvalType,
 	mongoType schema.MongoType,
-	uuidSubType EvalType) ColumnType {
+	uuidSubType types.EvalType) ColumnType {
 	return ColumnType{
 		EvalType:    evalType,
 		MongoType:   mongoType,
@@ -53,13 +54,13 @@ func NewColumnTypeWithUUIDSubtype(evalType EvalType,
 
 // NewColumn is a constructor for the Column struct.
 func NewColumn(selectID int, table, originalTable, database, name,
-	originalName, mappingRegistryName string, evalType EvalType,
+	originalName, mappingRegistryName string, evalType types.EvalType,
 	mongoType schema.MongoType, primaryKey bool) *Column {
-	uuidSubType := EvalBinary
+	uuidSubType := types.EvalBinary
 	if mongoType == schema.MongoUUIDJava {
-		uuidSubType = EvalJavaUUID
+		uuidSubType = types.EvalJavaUUID
 	} else if mongoType == schema.MongoUUIDCSharp {
-		uuidSubType = EvalCSharpUUID
+		uuidSubType = types.EvalCSharpUUID
 	}
 	return &Column{
 		ColumnType: ColumnType{

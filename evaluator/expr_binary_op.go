@@ -6,6 +6,8 @@ import (
 	"math"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/shopspring/decimal"
 )
@@ -16,31 +18,31 @@ type sqlBinaryNode struct {
 
 func (bn sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
 	var err error
-	kind := MongoSQLValueKind
+	kind := values.MongoSQLValueKind
 
 	left := bn.left
 	right := bn.right
 
-	if left.EvalType() == EvalDatetime || right.EvalType() == EvalDatetime {
+	if left.EvalType() == types.EvalDatetime || right.EvalType() == types.EvalDatetime {
 		// Arithmetic with Timestamps should treat them as floating points due to fractional seconds.
 
-		left, _, err = ReconcileSQLExprs(left, NewSQLDecimal128(kind, decimal.NewFromFloat(0.0)))
+		left, _, err = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))))
 		if err != nil {
 			return bn, err
 		}
-		_, right, err = ReconcileSQLExprs(NewSQLDecimal128(kind, decimal.NewFromFloat(0.0)), right)
+		_, right, err = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))), right)
 		if err != nil {
 			return bn, err
 		}
 
-	} else if left.EvalType() == EvalDate || right.EvalType() == EvalDate {
+	} else if left.EvalType() == types.EvalDate || right.EvalType() == types.EvalDate {
 		// Arithmetic with Dates should treat them as integers.
 
-		left, _, err = ReconcileSQLExprs(left, NewSQLInt64(kind, 0))
+		left, _, err = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLInt64(kind, 0)))
 		if err != nil {
 			return bn, err
 		}
-		_, right, err = ReconcileSQLExprs(NewSQLInt64(kind, 0), right)
+		_, right, err = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLInt64(kind, 0)), right)
 		if err != nil {
 			return bn, err
 		}
@@ -54,7 +56,7 @@ func (bn sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
 	}
 
 	// now convert them all to doubles
-	reconciled := convertAllExprs([]SQLExpr{left, right}, EvalDouble)
+	reconciled := convertAllExprs([]SQLExpr{left, right}, types.EvalDouble)
 
 	return sqlBinaryNode{reconciled[0], reconciled[1]}, nil
 }
@@ -85,24 +87,24 @@ const (
 	bothValueArgs     valueArgsEnum = iota
 )
 
-// sqlValueArgEnum returns the left and right SQLValue arguments, if any, and a enum that tells us
-// which arguments are SQLValues.
-func (bn *sqlBinaryNode) sqlValueArgEnum() (SQLValue, SQLValue, valueArgsEnum) {
-	leftVal, leftIsVal := bn.left.(SQLValue)
-	rightVal, rightIsVal := bn.right.(SQLValue)
+// sqlValueArgEnum returns the left and right values.SQLValue arguments, if any, and a enum that tells us
+// which arguments are values.SQLValues.
+func (bn *sqlBinaryNode) sqlValueArgEnum() (values.SQLValue, values.SQLValue, valueArgsEnum) {
+	leftVal, leftIsVal := bn.left.(SQLValueExpr)
+	rightVal, rightIsVal := bn.right.(SQLValueExpr)
 	if leftIsVal && rightIsVal {
-		return leftVal, rightVal, bothValueArgs
+		return leftVal.Value, rightVal.Value, bothValueArgs
 	}
 	if leftIsVal {
-		return leftVal, nil, leftOnlyValueArg
+		return leftVal.Value, nil, leftOnlyValueArg
 	}
 	if rightIsVal {
-		return nil, rightVal, rightOnlyValueArg
+		return nil, rightVal.Value, rightOnlyValueArg
 	}
 	return nil, nil, noValueArgs
 }
 
-func (bn *sqlBinaryNode) evaluateArgs(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, SQLValue, error) {
+func (bn *sqlBinaryNode) evaluateArgs(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, values.SQLValue, error) {
 	leftVal, err := bn.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, nil, err
@@ -174,15 +176,15 @@ func (*SQLAddExpr) ExprName() string {
 	return "SQLAddExpr"
 }
 
-// Evaluate evaluates a SQLAddExpr into a SQLValue.
-func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLAddExpr into a values.SQLValue.
+func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := add.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, add.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, ADD)
@@ -195,24 +197,24 @@ func (add *SQLAddExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
-		if isZero(leftVal) {
+		if values.IsZero(leftVal) {
 			return add.right
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
-		if isZero(rightVal) {
+		if values.IsZero(rightVal) {
 			return add.left
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
 		if out, err := doArithmetic(leftVal, rightVal, ADD); err == nil {
-			return out
+			return NewSQLValueExpr(out)
 		}
 	}
 	return add
@@ -255,8 +257,8 @@ func (add *SQLAddExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{
 }
 
 // EvalType returns the EvalType associated with SQLAddExpr.
-func (add *SQLAddExpr) EvalType() EvalType {
-	return EvalDouble
+func (add *SQLAddExpr) EvalType() types.EvalType {
+	return types.EvalDouble
 }
 
 // SQLAndExpr evaluates to true if and only if all its children evaluate to true.
@@ -278,22 +280,22 @@ func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLAndExpr into a SQLValue.
-func (and *SQLAndExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLAndExpr into a values.SQLValue.
+func (and *SQLAndExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := and.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if IsFalsy(leftVal) || IsFalsy(rightVal) {
-		return NewSQLBool(cfg.sqlValueKind, false), nil
+	if values.IsFalsy(leftVal) || values.IsFalsy(rightVal) {
+		return values.NewSQLBool(cfg.sqlValueKind, false), nil
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, and.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, true), nil
+	return values.NewSQLBool(cfg.sqlValueKind, true), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLAndExpr.
@@ -303,27 +305,27 @@ func (and *SQLAndExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
-		if IsFalsy(leftVal) {
-			return NewSQLBool(cfg.sqlValueKind, false)
+		if values.IsFalsy(leftVal) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
-		if Bool(leftVal) {
-			and.left = NewSQLBool(cfg.sqlValueKind, true)
+		if values.Bool(leftVal) {
+			and.left = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
 	case rightOnlyValueArg:
-		if IsFalsy(rightVal) {
-			return NewSQLBool(cfg.sqlValueKind, false)
+		if values.IsFalsy(rightVal) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
-		if Bool(rightVal) {
-			and.right = NewSQLBool(cfg.sqlValueKind, true)
+		if values.Bool(rightVal) {
+			and.right = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
 	case bothValueArgs:
-		if IsFalsy(leftVal) || IsFalsy(rightVal) {
-			return NewSQLBool(cfg.sqlValueKind, false)
+		if values.IsFalsy(leftVal) || values.IsFalsy(rightVal) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		return NewSQLBool(cfg.sqlValueKind, true)
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 	}
 	return and
 }
@@ -338,10 +340,10 @@ func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
 	right := and.right
 
 	if !isBooleanComparable(left.EvalType()) {
-		left = NewSQLConvertExpr(left, EvalBoolean)
+		left = NewSQLConvertExpr(left, types.EvalBoolean)
 	}
 	if !isBooleanComparable(right.EvalType()) {
-		right = NewSQLConvertExpr(right, EvalBoolean)
+		right = NewSQLConvertExpr(right, types.EvalBoolean)
 	}
 	return NewSQLAndExpr(left, right), nil
 }
@@ -461,8 +463,8 @@ func (and *SQLAndExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 }
 
 // EvalType returns the EvalType associated with SQLAndExpr.
-func (*SQLAndExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLAndExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
@@ -493,15 +495,15 @@ func (*SQLDivideExpr) ExprName() string {
 	return "SQLDivideExpr"
 }
 
-// Evaluate evaluates a SQLDivideExpr into a SQLValue.
-func (div *SQLDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLDivideExpr into a values.SQLValue.
+func (div *SQLDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := div.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if Float64(rightVal) == 0 || hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, div.EvalType()), nil
+	if values.Float64(rightVal) == 0 || values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, DIV)
@@ -514,25 +516,25 @@ func (div *SQLDivideExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
-		frightVal := Float64(rightVal)
+		frightVal := values.Float64(rightVal)
 		if frightVal == 0.0 {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
 		if frightVal == 1.0 {
 			return div.left
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
 		if out, err := doArithmetic(leftVal, rightVal, DIV); err == nil {
-			return out
+			return NewSQLValueExpr(out)
 		}
 	}
 	return div
@@ -586,8 +588,8 @@ func (div *SQLDivideExpr) ToAggregationPredicate(t *PushdownTranslator) (interfa
 }
 
 // EvalType returns the EvalType associated with SQLDivideExpr.
-func (div *SQLDivideExpr) EvalType() EvalType {
-	return EvalDouble
+func (div *SQLDivideExpr) EvalType() types.EvalType {
+	return types.EvalDouble
 }
 
 func getStringColumnReference(expr SQLExpr, translation interface{}) (string, bool) {
@@ -633,23 +635,23 @@ func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLEqualsExpr into a SQLValue.
-func (eq *SQLEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLEqualsExpr into a values.SQLValue.
+func (eq *SQLEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := eq.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, eq.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, st.collation)
+	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(cfg.sqlValueKind, c == 0), nil
+		return values.NewSQLBool(cfg.sqlValueKind, c == 0), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, false), err
+	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLEqualsExpr.
@@ -659,19 +661,19 @@ func (eq *SQLEqualsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		c, err := CompareTo(leftVal, rightVal, cfg.collation)
+		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLBool(cfg.sqlValueKind, c == 0)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c == 0))
 		}
 	}
 	if shouldFlip(eq.sqlBinaryNode) {
@@ -722,8 +724,8 @@ func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr
 }
 
 // EvalType returns the EvalType associated with SQLEqualsExpr.
-func (*SQLEqualsExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLEqualsExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
@@ -734,20 +736,20 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 
 	if isBooleanColumnAndNumber(left, right) || isBooleanColumnAndNumber(right, left) {
 		var col SQLColumnExpr
-		var lit SQLNumber
+		var lit values.SQLNumber
 
 		switch left.EvalType() {
-		case EvalBoolean:
+		case types.EvalBoolean:
 			col = left.(SQLColumnExpr)
-			lit = right.(SQLNumber)
+			lit = right.(SQLValueExpr).Value.(values.SQLNumber)
 		default:
 			col = right.(SQLColumnExpr)
-			lit = left.(SQLNumber)
+			lit = left.(SQLValueExpr).Value.(values.SQLNumber)
 		}
 
-		if ilit := Int64(lit); ilit == 1 || ilit == 0 {
+		if ilit := values.Int64(lit); ilit == 1 || ilit == 0 {
 			left = col
-			right = NewSQLConvertExpr(lit.(SQLExpr), EvalBoolean)
+			right = NewSQLConvertExpr(NewSQLValueExpr(lit), types.EvalBoolean)
 			reconciled = true
 		}
 	}
@@ -782,22 +784,22 @@ func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLGreaterThanExpr into a SQLValue.
-func (gt *SQLGreaterThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLGreaterThanExpr into a values.SQLValue.
+func (gt *SQLGreaterThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := gt.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, gt.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, st.collation)
+	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(cfg.sqlValueKind, c > 0), nil
+		return values.NewSQLBool(cfg.sqlValueKind, c > 0), nil
 	}
-	return NewSQLBool(cfg.sqlValueKind, false), err
+	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLGreaterThanExpr.
@@ -807,19 +809,19 @@ func (gt *SQLGreaterThanExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		c, err := CompareTo(leftVal, rightVal, cfg.collation)
+		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLBool(cfg.sqlValueKind, c > 0)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c > 0))
 		}
 	}
 	if shouldFlip(gt.sqlBinaryNode) {
@@ -867,8 +869,8 @@ func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQ
 }
 
 // EvalType returns the EvalType associated with SQLGreaterThanExpr.
-func (*SQLGreaterThanExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLGreaterThanExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
@@ -888,23 +890,23 @@ func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExp
 		}}
 }
 
-// Evaluate evaluates a SQLGreaterThanOrEqualExpr into a SQLValue.
-func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLGreaterThanOrEqualExpr into a values.SQLValue.
+func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := gte.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, gte.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, st.collation)
+	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(cfg.sqlValueKind, c >= 0), nil
+		return values.NewSQLBool(cfg.sqlValueKind, c >= 0), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, false), err
+	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLGreaterThanOrEqualExpr.
@@ -914,19 +916,19 @@ func (gte *SQLGreaterThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) SQLExp
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		c, err := CompareTo(leftVal, rightVal, cfg.collation)
+		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLBool(cfg.sqlValueKind, c >= 0)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c >= 0))
 		}
 	}
 	if shouldFlip(gte.sqlBinaryNode) {
@@ -974,8 +976,8 @@ func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (bs
 }
 
 // EvalType returns the EvalType associated with SQLGreaterThanOrEqualExpr.
-func (*SQLGreaterThanOrEqualExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLGreaterThanOrEqualExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
@@ -991,20 +993,20 @@ func (*SQLIDivideExpr) ExprName() string {
 	return "SQLIDivideExpr"
 }
 
-// Evaluate evaluates a SQLIDivideExpr into a SQLValue.
-func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLIDivideExpr into a values.SQLValue.
+func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := div.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	frightVal := Float64(rightVal)
-	if frightVal == 0.0 || hasNullValue(leftVal, rightVal) {
+	frightVal := values.Float64(rightVal)
+	if frightVal == 0.0 || values.HasNullValue(leftVal, rightVal) {
 		// NOTE: this is per the mysql manual.
-		return NewSQLNull(cfg.sqlValueKind, div.EvalType()), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	return NewSQLInt64(cfg.sqlValueKind, int64(Float64(leftVal)/frightVal)), nil
+	return values.NewSQLInt64(cfg.sqlValueKind, int64(values.Float64(leftVal)/frightVal)), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLIDivideExpr.
@@ -1014,25 +1016,25 @@ func (div *SQLIDivideExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
-		irightVal := Int64(rightVal)
+		irightVal := values.Int64(rightVal)
 		if irightVal == 0 {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
 		if irightVal == 1 {
 			return div.left
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		frightVal := Float64(rightVal)
-		return NewSQLInt64(cfg.sqlValueKind, int64(Float64(leftVal)/frightVal))
+		frightVal := values.Float64(rightVal)
+		return NewSQLValueExpr(values.NewSQLInt64(cfg.sqlValueKind, int64(values.Float64(leftVal)/frightVal)))
 	}
 	return div
 }
@@ -1091,7 +1093,7 @@ func (div *SQLIDivideExpr) ToAggregationPredicate(t *PushdownTranslator) (interf
 }
 
 // EvalType returns the EvalType associated with SQLIDivideExpr.
-func (div *SQLIDivideExpr) EvalType() EvalType {
+func (div *SQLIDivideExpr) EvalType() types.EvalType {
 	return preferentialType(div.left, div.right)
 }
 
@@ -1110,25 +1112,25 @@ func (*SQLIsExpr) ExprName() string {
 
 var _ translatableToMatch = (*SQLIsExpr)(nil)
 
-// Evaluate evaluates a SQLIsExpr into a SQLValue.
-func (is *SQLIsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLIsExpr into a values.SQLValue.
+func (is *SQLIsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := is.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	if leftVal.IsNull() {
-		if _, ok := rightVal.(SQLBool); ok {
-			return NewSQLBool(cfg.sqlValueKind, false), nil
+		if rightVal.IsNull() {
+			return values.NewSQLBool(cfg.sqlValueKind, true), nil
 		}
-		return NewSQLBool(cfg.sqlValueKind, true), nil
+		return values.NewSQLBool(cfg.sqlValueKind, false), nil
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLBool(cfg.sqlValueKind, false), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLBool(cfg.sqlValueKind, false), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, Bool(leftVal) == Bool(rightVal)), nil
+	return values.NewSQLBool(cfg.sqlValueKind, values.Bool(leftVal) == values.Bool(rightVal)), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLIsExpr.
@@ -1136,20 +1138,20 @@ func (is *SQLIsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	leftVal, rightVal, valMask := is.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs, leftOnlyValueArg:
-		panic("the right argument to SQLIsExpr should always be a SQLValue")
+		panic("the right argument to SQLIsExpr should always be a values.SQLValue")
 	case rightOnlyValueArg:
 	case bothValueArgs:
 		if leftVal.IsNull() {
-			if _, ok := rightVal.(SQLBool); ok {
-				return NewSQLBool(cfg.sqlValueKind, false)
+			if rightVal.IsNull() {
+				return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 			}
-			return NewSQLBool(cfg.sqlValueKind, true)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
 		if rightVal.IsNull() {
-			return NewSQLBool(cfg.sqlValueKind, false)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
 
-		return NewSQLBool(cfg.sqlValueKind, Bool(leftVal) == Bool(rightVal))
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, values.Bool(leftVal) == values.Bool(rightVal)))
 	}
 	if shouldFlip(is.sqlBinaryNode) {
 		left, right := is.right, is.left
@@ -1160,10 +1162,10 @@ func (is *SQLIsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 
 // nolint: unparam
 func (is *SQLIsExpr) reconcile() (SQLExpr, error) {
-	if is.right.EvalType() == EvalBoolean {
+	if is.right.EvalType() == types.EvalBoolean {
 		leftType := is.left.EvalType()
-		if !(leftType.IsNumeric() || leftType == EvalBoolean) {
-			reconciled := convertAllExprs([]SQLExpr{is.left, is.right}, EvalBoolean)
+		if !(leftType.IsNumeric() || leftType == types.EvalBoolean) {
+			reconciled := convertAllExprs([]SQLExpr{is.left, is.right}, types.EvalBoolean)
 			return NewSQLIsExpr(reconciled[0], reconciled[1]), nil
 		}
 	}
@@ -1184,8 +1186,8 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	}
 
 	// if right side is {null,unknown}, it's a simple case
-	sqlVal, ok := is.right.(SQLValue)
-	if ok && sqlVal.IsNull() {
+	sqlVal, ok := is.right.(SQLValueExpr)
+	if ok && sqlVal.Value.IsNull() {
 		return bsonutil.WrapInOp(bsonutil.OpLte,
 			left,
 			bsonutil.WrapInLiteral(nil),
@@ -1193,7 +1195,7 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	}
 
 	// if left side is a boolean, this is still simple
-	if is.left.EvalType() == EvalBoolean {
+	if is.left.EvalType() == types.EvalBoolean {
 		return bsonutil.WrapInOp(bsonutil.OpEq,
 			left,
 			right,
@@ -1201,12 +1203,12 @@ func (is *SQLIsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 	}
 
 	// otherwise, left side is a number type
-	if is.right == NewSQLBool(t.valueKind(), true) {
+	if is.right.(SQLValueExpr).Value == values.NewSQLBool(t.valueKind(), true) {
 		return bsonutil.WrapInOp(bsonutil.OpNeq,
 			bsonutil.WrapInIfNull(left, 0),
 			0,
 		), nil
-	} else if is.right == NewSQLBool(t.valueKind(), false) {
+	} else if is.right.(SQLValueExpr).Value == values.NewSQLBool(t.valueKind(), false) {
 		return bsonutil.WrapInOp(bsonutil.OpEq,
 			left,
 			0,
@@ -1236,22 +1238,22 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		return nil, is
 	}
 
-	rightVal, ok := is.right.(SQLValue)
+	rightVal, ok := is.right.(SQLValueExpr)
 	if !ok {
 		return nil, is
 	}
 
-	if rightVal.IsNull() {
+	if rightVal.Value.IsNull() {
 		return bsonutil.NewM(bsonutil.NewDocElem(name, nil)), nil
 	}
 
-	rightBool, ok := rightVal.(SQLBool)
+	rightBool, ok := rightVal.Value.(values.SQLBool)
 	if !ok {
 		return nil, is
 	}
 
 	if rightBool.Value().(bool) {
-		if is.left.EvalType() == EvalBoolean {
+		if is.left.EvalType() == types.EvalBoolean {
 			return bsonutil.NewM(bsonutil.NewDocElem(name, true)), nil
 		}
 		return bsonutil.NewM(
@@ -1262,15 +1264,15 @@ func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		), nil
 	}
 
-	if is.left.EvalType() == EvalBoolean {
+	if is.left.EvalType() == types.EvalBoolean {
 		return bsonutil.NewM(bsonutil.NewDocElem(name, false)), nil
 	}
 	return bsonutil.NewM(bsonutil.NewDocElem(name, 0)), nil
 }
 
 // EvalType returns the EvalType associated with SQLIsExpr.
-func (*SQLIsExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLIsExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLLessThanExpr evaluates to true when the left is less than the right.
@@ -1292,22 +1294,22 @@ func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLLessThanExpr into a SQLValue.
-func (lt *SQLLessThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLLessThanExpr into a values.SQLValue.
+func (lt *SQLLessThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := lt.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, lt.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, st.collation)
+	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(cfg.sqlValueKind, c < 0), nil
+		return values.NewSQLBool(cfg.sqlValueKind, c < 0), nil
 	}
-	return NewSQLBool(cfg.sqlValueKind, false), err
+	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLLessThanExpr.
@@ -1317,19 +1319,19 @@ func (lt *SQLLessThanExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		c, err := CompareTo(leftVal, rightVal, cfg.collation)
+		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLBool(cfg.sqlValueKind, c < 0)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c < 0))
 		}
 	}
 	if shouldFlip(lt.sqlBinaryNode) {
@@ -1377,8 +1379,8 @@ func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLEx
 }
 
 // EvalType returns the EvalType associated with SQLLessThanExpr.
-func (*SQLLessThanExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLLessThanExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
@@ -1400,22 +1402,22 @@ func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLLessThanOrEqualExpr into a SQLValue.
-func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLLessThanOrEqualExpr into a values.SQLValue.
+func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := lte.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, lte.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, st.collation)
+	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(cfg.sqlValueKind, c <= 0), nil
+		return values.NewSQLBool(cfg.sqlValueKind, c <= 0), nil
 	}
-	return NewSQLBool(cfg.sqlValueKind, false), err
+	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLLessThanOrEqualExpr.
@@ -1425,19 +1427,19 @@ func (lte *SQLLessThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		c, err := CompareTo(leftVal, rightVal, cfg.collation)
+		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLBool(cfg.sqlValueKind, c <= 0)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c <= 0))
 		}
 	}
 	if shouldFlip(lte.sqlBinaryNode) {
@@ -1485,8 +1487,8 @@ func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (bson.
 }
 
 // EvalType returns the EvalType associated with SQLLessThanOrEqualExpr.
-func (*SQLLessThanOrEqualExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLLessThanOrEqualExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLModExpr evaluates the modulus of two expressions
@@ -1497,24 +1499,24 @@ func (*SQLModExpr) ExprName() string {
 	return "SQLModExpr"
 }
 
-// Evaluate evaluates a SQLModExpr into a SQLValue.
-func (mod *SQLModExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLModExpr into a values.SQLValue.
+func (mod *SQLModExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := mod.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	frightVal := Float64(rightVal)
-	if math.Abs(frightVal) == 0.0 || hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, mod.EvalType()), nil
+	frightVal := values.Float64(rightVal)
+	if math.Abs(frightVal) == 0.0 || values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	modVal := math.Mod(Float64(leftVal), frightVal)
+	modVal := math.Mod(values.Float64(leftVal), frightVal)
 	if modVal == -0 {
 		modVal *= -1
 	}
 
-	return NewSQLFloat(cfg.sqlValueKind, modVal), nil
+	return values.NewSQLFloat(cfg.sqlValueKind, modVal), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLModExpr.
@@ -1524,32 +1526,32 @@ func (mod *SQLModExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
-		frightVal := Float64(rightVal)
+		frightVal := values.Float64(rightVal)
 		if frightVal == 0.0 {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
 		if frightVal == 1.0 {
 			return mod.left
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		frightVal := Float64(rightVal)
-		if math.Abs(frightVal) == 0.0 || hasNullValue(leftVal, rightVal) {
-			return NewSQLNull(cfg.sqlValueKind, mod.EvalType())
+		frightVal := values.Float64(rightVal)
+		if math.Abs(frightVal) == 0.0 || values.HasNullValue(leftVal, rightVal) {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		modVal := math.Mod(Float64(leftVal), frightVal)
+		modVal := math.Mod(values.Float64(leftVal), frightVal)
 		if modVal == -0 {
 			modVal *= -1
 		}
-		return NewSQLFloat(cfg.sqlValueKind, modVal)
+		return NewSQLValueExpr(values.NewSQLFloat(cfg.sqlValueKind, modVal))
 	}
 	return mod
 }
@@ -1590,7 +1592,7 @@ func (mod *SQLModExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{
 }
 
 // EvalType returns the EvalType associated with SQLModExpr.
-func (mod *SQLModExpr) EvalType() EvalType {
+func (mod *SQLModExpr) EvalType() types.EvalType {
 	return preferentialType(mod.left, mod.right)
 }
 
@@ -1602,15 +1604,15 @@ func (*SQLMultiplyExpr) ExprName() string {
 	return "SQLMultiplyExpr"
 }
 
-// Evaluate evaluates a SQLMultiplyExpr into a SQLValue.
-func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLMultiplyExpr into a values.SQLValue.
+func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := mult.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, mult.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, MULT)
@@ -1623,24 +1625,24 @@ func (mult *SQLMultiplyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
-		if isOne(leftVal) {
+		if values.IsOne(leftVal) {
 			return mult.right
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
-		if isOne(rightVal) {
+		if values.IsOne(rightVal) {
 			return mult.left
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
 		if out, err := doArithmetic(leftVal, rightVal, MULT); err == nil {
-			return out
+			return NewSQLValueExpr(out)
 		}
 	}
 	return mult
@@ -1684,8 +1686,8 @@ func (mult *SQLMultiplyExpr) ToAggregationPredicate(t *PushdownTranslator) (inte
 }
 
 // EvalType returns the EvalType associated with SQLMultiplyExpr.
-func (mult *SQLMultiplyExpr) EvalType() EvalType {
-	return EvalDouble
+func (mult *SQLMultiplyExpr) EvalType() types.EvalType {
+	return types.EvalDouble
 }
 
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
@@ -1707,23 +1709,23 @@ func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLNotEqualsExpr into a SQLValue.
-func (neq *SQLNotEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLNotEqualsExpr into a values.SQLValue.
+func (neq *SQLNotEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := neq.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, neq.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	c, err := CompareTo(leftVal, rightVal, st.collation)
+	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(cfg.sqlValueKind, c != 0), nil
+		return values.NewSQLBool(cfg.sqlValueKind, c != 0), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, false), err
+	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLNotEqualsExpr.
@@ -1733,19 +1735,19 @@ func (neq *SQLNotEqualsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		c, err := CompareTo(leftVal, rightVal, cfg.collation)
+		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLBool(cfg.sqlValueKind, c != 0)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c != 0))
 		}
 	}
 	if shouldFlip(neq.sqlBinaryNode) {
@@ -1813,8 +1815,8 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQL
 }
 
 // EvalType returns the EvalType associated with SQLNotEqualsExpr.
-func (*SQLNotEqualsExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLNotEqualsExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLNullSafeEqualsExpr behaves like the = operator,
@@ -1836,19 +1838,19 @@ func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLNullSafeEqualsExpr into a SQLValue.
-func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLNullSafeEqualsExpr into a values.SQLValue.
+func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := nse.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := CompareTo(leftVal, rightVal, st.collation)
+	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return NewSQLBool(cfg.sqlValueKind, c == 0), nil
+		return values.NewSQLBool(cfg.sqlValueKind, c == 0), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, false), err
+	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLNullSafeEqualsExpr.
@@ -1859,9 +1861,9 @@ func (nse *SQLNullSafeEqualsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	// no room for ConstantFolding unless BOTH sides are constants.
 	case noValueArgs, leftOnlyValueArg, rightOnlyValueArg:
 	case bothValueArgs:
-		c, err := CompareTo(leftVal, rightVal, cfg.collation)
+		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLBool(cfg.sqlValueKind, c == 0)
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c == 0))
 		}
 	}
 	if shouldFlip(nse.sqlBinaryNode) {
@@ -1905,8 +1907,8 @@ func (nse *SQLNullSafeEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) 
 }
 
 // EvalType returns the EvalType associated with SQLNullSafeEqualsExpr.
-func (*SQLNullSafeEqualsExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLNullSafeEqualsExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLOrExpr evaluates to true if any of its children evaluate to true.
@@ -1928,22 +1930,22 @@ func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
 		}}
 }
 
-// Evaluate evaluates a SQLOrExpr into a SQLValue.
-func (or *SQLOrExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLOrExpr into a values.SQLValue.
+func (or *SQLOrExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := or.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if Bool(leftVal) || Bool(rightVal) {
-		return NewSQLBool(cfg.sqlValueKind, true), nil
+	if values.Bool(leftVal) || values.Bool(rightVal) {
+		return values.NewSQLBool(cfg.sqlValueKind, true), nil
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, or.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, false), nil
+	return values.NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLOrExpr.
@@ -1953,27 +1955,27 @@ func (or *SQLOrExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
-		if Bool(leftVal) {
-			return NewSQLBool(cfg.sqlValueKind, true)
+		if values.Bool(leftVal) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
-		if IsFalsy(leftVal) {
-			or.left = NewSQLBool(cfg.sqlValueKind, false)
+		if values.IsFalsy(leftVal) {
+			or.left = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
 	case rightOnlyValueArg:
-		if Bool(rightVal) {
-			return NewSQLBool(cfg.sqlValueKind, true)
+		if values.Bool(rightVal) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
-		if IsFalsy(rightVal) {
-			or.right = NewSQLBool(cfg.sqlValueKind, false)
+		if values.IsFalsy(rightVal) {
+			or.right = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
 	case bothValueArgs:
-		if Bool(leftVal) || Bool(rightVal) {
-			return NewSQLBool(cfg.sqlValueKind, true)
+		if values.Bool(leftVal) || values.Bool(rightVal) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		return NewSQLBool(cfg.sqlValueKind, false)
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 	}
 	return or
 }
@@ -1988,10 +1990,10 @@ func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
 	right := or.right
 
 	if !isBooleanComparable(left.EvalType()) {
-		left = NewSQLConvertExpr(left, EvalBoolean)
+		left = NewSQLConvertExpr(left, types.EvalBoolean)
 	}
 	if !isBooleanComparable(right.EvalType()) {
-		right = NewSQLConvertExpr(right, EvalBoolean)
+		right = NewSQLConvertExpr(right, types.EvalBoolean)
 	}
 	return NewSQLOrExpr(left, right), nil
 }
@@ -2126,8 +2128,8 @@ func (or *SQLOrExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 }
 
 // EvalType returns the EvalType associated with SQLOrExpr.
-func (*SQLOrExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLOrExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
@@ -2138,8 +2140,8 @@ func (*SQLSubtractExpr) ExprName() string {
 	return "SQLSubtractExpr"
 }
 
-// Evaluate evaluates a SQLSubtractExpr into a SQLValue.
-func (sub *SQLSubtractExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLSubtractExpr into a values.SQLValue.
+func (sub *SQLSubtractExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := sub.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -2148,16 +2150,16 @@ func (sub *SQLSubtractExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, sub.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	return doArithmetic(leftVal, rightVal, SUB)
 }
 
 // EvalType returns the EvalType associated with SQLSubtractExpr.
-func (sub *SQLSubtractExpr) EvalType() EvalType {
-	return EvalDouble
+func (sub *SQLSubtractExpr) EvalType() types.EvalType {
+	return types.EvalDouble
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubtractExpr.
@@ -2167,24 +2169,24 @@ func (sub *SQLSubtractExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return leftVal
+			return NewSQLValueExpr(leftVal)
 		}
-		if isZero(leftVal) {
+		if values.IsZero(leftVal) {
 			return sub.right
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return rightVal
+			return NewSQLValueExpr(rightVal)
 		}
-		if isZero(rightVal) {
+		if values.IsZero(rightVal) {
 			return sub.left
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
 		if out, err := doArithmetic(leftVal, rightVal, SUB); err == nil {
-			return out
+			return NewSQLValueExpr(out)
 		}
 	}
 	return sub
@@ -2237,22 +2239,22 @@ func (*SQLXorExpr) ExprName() string {
 	return "SQLXorExpr"
 }
 
-// Evaluate evaluates a SQLXorExpr into a SQLValue.
-func (xor *SQLXorExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLXorExpr into a values.SQLValue.
+func (xor *SQLXorExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	leftVal, rightVal, err := xor.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(leftVal, rightVal) {
-		return NewSQLNull(cfg.sqlValueKind, xor.EvalType()), nil
+	if values.HasNullValue(leftVal, rightVal) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	if IsFalsy(leftVal) {
+	if values.IsFalsy(leftVal) {
 		return rightVal.SQLBool(), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, !Bool(rightVal)), nil
+	return values.NewSQLBool(cfg.sqlValueKind, !values.Bool(rightVal)), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLXorExpr.
@@ -2263,9 +2265,9 @@ func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLNull(leftVal.Kind(), leftVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		if IsFalsy(leftVal) {
+		if values.IsFalsy(leftVal) {
 			// Type reconciliation will ensure that xor.right is converted to boolean already, if
 			// necessary.  So this is safe, unlike in the SQLOrExpr and SQLAndExpr cases.
 			return xor.right
@@ -2273,20 +2275,20 @@ func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		return NewSQLNotExpr(xor.right)
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		if IsFalsy(rightVal) {
+		if values.IsFalsy(rightVal) {
 			return xor.left
 		}
 		return NewSQLNotExpr(xor.left)
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLNull(rightVal.Kind(), rightVal.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
 		}
-		if IsFalsy(leftVal) != IsFalsy(rightVal) {
-			return NewSQLBool(cfg.sqlValueKind, true)
+		if values.IsFalsy(leftVal) != values.IsFalsy(rightVal) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
-		return NewSQLBool(cfg.sqlValueKind, false)
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 	}
 	return xor
 }
@@ -2301,10 +2303,10 @@ func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
 	right := xor.right
 
 	if !isBooleanComparable(left.EvalType()) {
-		left = NewSQLConvertExpr(left, EvalBoolean)
+		left = NewSQLConvertExpr(left, types.EvalBoolean)
 	}
 	if !isBooleanComparable(right.EvalType()) {
-		right = NewSQLConvertExpr(right, EvalBoolean)
+		right = NewSQLConvertExpr(right, types.EvalBoolean)
 	}
 	return NewSQLXorExpr(left, right), nil
 }
@@ -2380,6 +2382,6 @@ func (xor *SQLXorExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{
 }
 
 // EvalType returns the EvalType associated with SQLXorExpr.
-func (*SQLXorExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLXorExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 )
 
@@ -42,53 +44,35 @@ func (*SQLNotExpr) ExprName() string {
 	return "SQLNotExpr"
 }
 
-// Evaluate evaluates a SQLNotExpr into a SQLValue.
-func (not *SQLNotExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLNotExpr into a values.SQLValue.
+func (not *SQLNotExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	operand, err := not.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(operand) {
-		return NewSQLNull(cfg.sqlValueKind, not.EvalType()), nil
+	if values.HasNullValue(operand) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
-	if !Bool(operand) {
-		return NewSQLBool(cfg.sqlValueKind, true), nil
+	if !values.Bool(operand) {
+		return values.NewSQLBool(cfg.sqlValueKind, true), nil
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, false), nil
+	return values.NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLNotExpr.
 func (not *SQLNotExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if sqlVal, ok := not.expr.(SQLValue); ok {
-		if sqlVal.IsNull() {
-			return sqlVal
+	if sqlVal, ok := not.expr.(SQLValueExpr); ok {
+		if sqlVal.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		if !Bool(sqlVal) {
-			return NewSQLBool(cfg.sqlValueKind, true)
+		if !values.Bool(sqlVal.Value) {
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
-		return NewSQLBool(cfg.sqlValueKind, false)
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 	}
-	return not
-}
-
-// Normalize will attempt to change SQLNotExpr into a more recognizeable form that
-// may be more amenable to MongoDB's query language.
-func (not *SQLNotExpr) Normalize(kind SQLValueKind) Node {
-	if operand, ok := not.expr.(SQLValue); ok {
-		if hasNullValue(operand) {
-			return NewSQLNull(kind, not.EvalType())
-		}
-
-		if Bool(operand) {
-			return NewSQLBool(kind, false)
-		} else if IsFalsy(operand) {
-			return NewSQLBool(kind, true)
-		}
-	}
-
 	return not
 }
 
@@ -96,7 +80,7 @@ func (not *SQLNotExpr) Normalize(kind SQLValueKind) Node {
 func (not *SQLNotExpr) reconcile() (SQLExpr, error) {
 	expr := not.expr
 	if !isBooleanComparable(expr.EvalType()) {
-		expr = NewSQLConvertExpr(expr, EvalBoolean)
+		expr = NewSQLConvertExpr(expr, types.EvalBoolean)
 	}
 	return NewSQLNotExpr(expr), nil
 }
@@ -161,8 +145,8 @@ func (not *SQLNotExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 }
 
 // EvalType returns the EvalType associated with SQLNotExpr.
-func (*SQLNotExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLNotExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLUnaryMinusExpr evaluates to the negation of the expression.
@@ -180,14 +164,14 @@ func (*SQLUnaryMinusExpr) ExprName() string {
 	return "SQLUnaryMinusExpr"
 }
 
-// Evaluate evaluates a SQLUnaryMinusExpr into a SQLValue.
-func (um *SQLUnaryMinusExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLUnaryMinusExpr into a values.SQLValue.
+func (um *SQLUnaryMinusExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	if val, err := um.expr.Evaluate(ctx, cfg, st); err == nil {
 		if val.IsNull() {
-			return NewSQLNull(cfg.sqlValueKind, um.EvalType()), nil
+			return values.NewSQLNull(cfg.sqlValueKind), nil
 		}
-		difference := NewSQLFloat(cfg.sqlValueKind, -Float64(val))
-		converted := ConvertTo(difference, um.EvalType())
+		difference := values.NewSQLFloat(cfg.sqlValueKind, -values.Float64(val))
+		converted := values.ConvertTo(difference, um.EvalType())
 		return converted, nil
 	}
 	return nil, fmt.Errorf("UnaryMinus expression does not apply to a %T", um.expr)
@@ -195,34 +179,12 @@ func (um *SQLUnaryMinusExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLUnaryMinusExpr.
 func (um *SQLUnaryMinusExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if val, ok := um.expr.(SQLValue); ok {
-		if val.IsNull() {
-			return NewSQLNull(cfg.sqlValueKind, um.EvalType())
+	if val, ok := um.expr.(SQLValueExpr); ok {
+		if val.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		return ConvertTo(NewSQLFloat(cfg.sqlValueKind, -Float64(val)), um.EvalType())
+		return NewSQLValueExpr(values.ConvertTo(values.NewSQLFloat(cfg.sqlValueKind, -values.Float64(val.Value)), um.EvalType()))
 	}
-	return um
-}
-
-// Normalize will attempt to change SQLUnaryMinusExpr into a more recognizeable form that
-// may be more amenable to MongoDB's query language.
-func (um *SQLUnaryMinusExpr) Normalize(kind SQLValueKind) Node {
-	sqlVal, ok := um.expr.(SQLValue)
-	if !ok {
-		return um
-	}
-
-	if sqlVal.IsNull() {
-		return NewSQLNull(kind, um.EvalType())
-	}
-
-	if sqlVal.EvalType() == EvalBoolean {
-		if sqlVal.Value().(bool) {
-			return NewSQLInt64(kind, -1)
-		}
-		return NewSQLInt64(kind, 0)
-	}
-
 	return um
 }
 
@@ -230,13 +192,13 @@ func (um *SQLUnaryMinusExpr) Normalize(kind SQLValueKind) Node {
 func (um *SQLUnaryMinusExpr) reconcile() (SQLExpr, error) {
 	child := um.expr
 	typ := child.EvalType()
-	if typ.IsNumeric() || typ == EvalNull {
+	if typ.IsNumeric() || typ == types.EvalNull {
 		return um, nil
 	}
-	if typ == EvalString {
-		return NewSQLUnaryMinusExpr(NewSQLConvertExpr(child, EvalDouble)), nil
+	if typ == types.EvalString {
+		return NewSQLUnaryMinusExpr(NewSQLConvertExpr(child, types.EvalDouble)), nil
 	}
-	return NewSQLUnaryMinusExpr(NewSQLConvertExpr(child, EvalInt64)), nil
+	return NewSQLUnaryMinusExpr(NewSQLConvertExpr(child, types.EvalInt64)), nil
 }
 
 func (um *SQLUnaryMinusExpr) String() string {
@@ -270,7 +232,7 @@ func (um *SQLUnaryMinusExpr) ToAggregationPredicate(t *PushdownTranslator) (inte
 }
 
 // EvalType returns the EvalType associated with SQLUnaryMinusExpr.
-func (um *SQLUnaryMinusExpr) EvalType() EvalType {
+func (um *SQLUnaryMinusExpr) EvalType() types.EvalType {
 	return um.expr.EvalType()
 }
 
@@ -286,25 +248,21 @@ func NewSQLTildeExpr(operand SQLExpr) *SQLTildeExpr {
 }
 
 // EvalType returns the EvalType associated with SQLTildeExpr.
-func (td *SQLTildeExpr) EvalType() EvalType {
+func (td *SQLTildeExpr) EvalType() types.EvalType {
 	return td.expr.EvalType()
 }
 
-// Evaluate evaluates a SQLTildeExpr into a SQLValue.
-func (td *SQLTildeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	expr, err := td.expr.Evaluate(ctx, cfg, st)
+// Evaluate evaluates a SQLTildeExpr into a values.SQLValue.
+func (td *SQLTildeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	val, err := td.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
-		return NewSQLBool(cfg.sqlValueKind, false), err
+		return values.NewSQLBool(cfg.sqlValueKind, false), err
 	}
 
-	if val, ok := expr.(SQLValue); ok {
-		if val.IsNull() {
-			return NewSQLNull(cfg.sqlValueKind, td.EvalType()), nil
-		}
-		return NewSQLUint64(cfg.sqlValueKind, ^uint64(Int64(val))), nil
+	if val.IsNull() {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
-
-	return NewSQLUint64(cfg.sqlValueKind, ^uint64(0)), nil
+	return values.NewSQLUint64(cfg.sqlValueKind, ^uint64(values.Int64(val))), nil
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -314,11 +272,11 @@ func (*SQLTildeExpr) ExprName() string {
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLTildeExpr.
 func (td *SQLTildeExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if val, ok := td.expr.(SQLValue); ok {
-		if val.IsNull() {
-			return NewSQLNull(cfg.sqlValueKind, td.EvalType())
+	if val, ok := td.expr.(SQLValueExpr); ok {
+		if val.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		return NewSQLUint64(cfg.sqlValueKind, ^uint64(Int64(val)))
+		return NewSQLValueExpr(values.NewSQLUint64(cfg.sqlValueKind, ^uint64(values.Int64(val.Value))))
 	}
 	return td
 }
@@ -327,13 +285,13 @@ func (td *SQLTildeExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 func (td *SQLTildeExpr) reconcile() (SQLExpr, error) {
 	child := td.expr
 	typ := child.EvalType()
-	if typ.IsNumeric() || typ == EvalNull {
+	if typ.IsNumeric() || typ == types.EvalNull {
 		return td, nil
 	}
-	if typ == EvalString {
-		return NewSQLTildeExpr(NewSQLConvertExpr(child, EvalInt64)), nil
+	if typ == types.EvalString {
+		return NewSQLTildeExpr(NewSQLConvertExpr(child, types.EvalInt64)), nil
 	}
-	return NewSQLTildeExpr(NewSQLConvertExpr(child, EvalInt64)), nil
+	return NewSQLTildeExpr(NewSQLConvertExpr(child, types.EvalInt64)), nil
 }
 
 func (td *SQLTildeExpr) String() string {

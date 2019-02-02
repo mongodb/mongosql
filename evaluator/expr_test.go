@@ -9,6 +9,8 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/types"
+	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
@@ -28,7 +30,7 @@ func TestEvaluates(t *testing.T) {
 	type test struct {
 		name   string
 		sql    string
-		result SQLExpr
+		result SQLValue
 	}
 
 	runTests := func(t *testing.T, cfg *ExecutionConfig, st *ExecutionState, tests []test) {
@@ -41,15 +43,14 @@ func TestEvaluates(t *testing.T) {
 				result, err := subject.Evaluate(context.Background(), cfg, st)
 				req.Nil(err, "unable to evaluate SQLExpr")
 
-				expectedVal, ok := test.result.(SQLValue)
-				if ok && expectedVal.IsNull() {
+				if test.result.IsNull() {
 					actualVal, ok := result.(SQLValue)
 					req.True(ok, "expected result to be a SQLValue")
-					req.True(actualVal.IsNull(), "expected result to be null")
+					req.True(actualVal.IsNull(), fmt.Sprintf("expected result to be null, but got %#v", actualVal))
 				} else {
 					req.Equal(
 						test.result, result,
-						"expected SQLExpr does not match evaluated SQLExpr",
+						"expected SQLValue does not match evaluated SQLValue",
 					)
 				}
 			})
@@ -103,7 +104,7 @@ func TestEvaluates(t *testing.T) {
 					Database: "test",
 					Table:    "bar",
 					Name:     "c",
-					Data:     NewPolymorphicSQLNull(knd),
+					Data:     NewSQLNull(knd),
 				},
 			},
 		}
@@ -134,8 +135,8 @@ func TestEvaluates(t *testing.T) {
 			{"sql_and_expr_8", "1 && 'bar'", NewSQLBool(knd, false)},
 			{"sql_and_expr_9", "true && 'bar'", NewSQLBool(knd, false)},
 			{"sql_and_expr_with_null_0", "NULL && 0", NewSQLBool(knd, false)},
-			{"sql_and_expr_with_null_1", "NULL && 1", NewPolymorphicSQLNull(knd)},
-			{"sql_and_expr_with_null_2", "NULL && NULL", NewPolymorphicSQLNull(knd)},
+			{"sql_and_expr_with_null_1", "NULL && 1", NewSQLNull(knd)},
+			{"sql_and_expr_with_null_2", "NULL && NULL", NewSQLNull(knd)},
 			{"sql_and_expr_with_bool_0", "true AND true", NewSQLBool(knd, true)},
 			{"sql_and_expr_with_bool_1", "true AND false", NewSQLBool(knd, false)},
 			{"sql_and_expr_with_bool_2", "false AND true", NewSQLBool(knd, false)},
@@ -196,7 +197,7 @@ func TestEvaluates(t *testing.T) {
 			// 	"TIME '11:04:13' * '2'",
 			// 	NewSQLDecimal128(knd, decimal.NewFromFloat(220826)),
 			// },
-			// {"sql_time_division_0", "TIME '11:04:13' / 0", NewPolymorphicSQLNull(knd)},
+			// {"sql_time_division_0", "TIME '11:04:13' / 0", NewSQLNull(knd)},
 			// {
 			// 	"sql_time_division_1",
 			// 	"TIME '11:04:13' / 2",
@@ -254,12 +255,12 @@ func TestEvaluates(t *testing.T) {
 				"1.2 / 0.23",
 				NewSQLDecimal128(knd, decimal.New(521739, -5)),
 			},
-			{"sql_date_division_0", "DATE '2014-04-13' / 0", NewPolymorphicSQLNull(knd)},
+			{"sql_date_division_0", "DATE '2014-04-13' / 0", NewSQLNull(knd)},
 			{"sql_date_division_1", "DATE '2014-04-13' / 2", NewSQLFloat(knd, 10070206.5)},
 			{
 				"sql_timestamp_division_0",
 				"TIMESTAMP '2014-04-13 11:04:13' / 0",
-				NewPolymorphicSQLNull(knd),
+				NewSQLNull(knd),
 			},
 			{
 				"sql_timestamp_division_1",
@@ -278,7 +279,7 @@ func TestEvaluates(t *testing.T) {
 				"DATE '2014-04-13' > DATE '2014-04-14'",
 				NewSQLBool(knd, false),
 			},
-			{"sql_date_equality_0", "DATE '2014-04-13' = '0'", NewPolymorphicSQLNull(knd)},
+			{"sql_date_equality_0", "DATE '2014-04-13' = '0'", NewSQLNull(knd)},
 			{"sql_date_equality_1", "DATE '2014-04-13' = DATE '2014-04-13'", NewSQLBool(knd, true)},
 			{"sql_date_equality_2", "DATE '2014-04-13' = 0", NewSQLBool(knd, false)},
 			{
@@ -301,11 +302,11 @@ func TestEvaluates(t *testing.T) {
 			{"sql_conv_2", "conv('123.-/', 10, 6)", NewSQLVarchar(knd, "323")},
 			{"sql_conv_3", "conv('4A', 10, 2)", NewSQLVarchar(knd, "0")},
 			{"sql_conv_4", "conv('23-', 5, 3)", NewSQLVarchar(knd, "0")},
-			{"sql_conv_5", "conv('74', 48, 3)", NewPolymorphicSQLNull(knd)},
-			{"sql_conv_6", "conv('13', 1, 7)", NewPolymorphicSQLNull(knd)},
+			{"sql_conv_5", "conv('74', 48, 3)", NewSQLNull(knd)},
+			{"sql_conv_6", "conv('13', 1, 7)", NewSQLNull(knd)},
 			{"sql_conv_7", "conv('-34', 5, 11)", NewSQLVarchar(knd, "-18")},
 			{"sql_conv_8", "conv('-0', 5, 7)", NewSQLVarchar(knd, "0")},
-			{"sql_case_expr_3", "CASE WHEN a = 245 THEN 'yes' END", NewPolymorphicSQLNull(knd)},
+			{"sql_case_expr_3", "CASE WHEN a = 245 THEN 'yes' END", NewSQLNull(knd)},
 			{"sql_int_division_expr_0", "-1 / 1", NewSQLFloat(knd, -1)},
 			{"sql_int_division_expr_1", "100 / 10", NewSQLFloat(knd, 10)},
 			{"sql_int_division_expr_2", "-10 / 10", NewSQLFloat(knd, -1)},
@@ -359,18 +360,18 @@ func TestEvaluates(t *testing.T) {
 			},
 			{"sql_is_not_expr_13", "1 is not null", NewSQLBool(knd, true)},
 			{"sql_is_not_expr_14", "null is not null", NewSQLBool(knd, false)},
-			{"sql_divide_expr_0", "0 DIV 0", NewPolymorphicSQLNull(knd)},
+			{"sql_divide_expr_0", "0 DIV 0", NewSQLNull(knd)},
 			{"sql_divide_expr_1", "0 DIV 5", NewSQLInt64(knd, 0)},
 			{"sql_divide_expr_2", "5.5 DIV 2", NewSQLInt64(knd, 2)},
 			{"sql_divide_expr_3", "-5 DIV 2", NewSQLInt64(knd, -2)},
-			{"sql_divide_expr_4", "NULL DIV 1", NewPolymorphicSQLNull(knd)},
-			{"sql_divide_expr_5", "1 DIV NULL", NewPolymorphicSQLNull(knd)},
+			{"sql_divide_expr_4", "NULL DIV 1", NewSQLNull(knd)},
+			{"sql_divide_expr_5", "1 DIV NULL", NewSQLNull(knd)},
 			{"sql_in_expr_0", "0 IN(0)", NewSQLBool(knd, true)},
 			{"sql_in_expr_1", "-1 IN(1)", NewSQLBool(knd, false)},
 			{"sql_in_expr_2", "0 IN(10, 0)", NewSQLBool(knd, true)},
 			{"sql_in_expr_3", "-1 IN(1, 10)", NewSQLBool(knd, false)},
-			{"sql_in_expr_4", "NULL IN(0, 1)", NewPolymorphicSQLNull(knd)},
-			{"sql_in_expr_5", "NULL IN(0, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_in_expr_4", "NULL IN(0, 1)", NewSQLNull(knd)},
+			{"sql_in_expr_5", "NULL IN(0, NULL)", NewSQLNull(knd)},
 			{"sql_less_than_expr_0", "0 < 0", NewSQLBool(knd, false)},
 			{"sql_less_than_expr_1", "-1 < 1", NewSQLBool(knd, true)},
 			{"sql_less_than_expr_2", "1 < -1", NewSQLBool(knd, false)},
@@ -409,9 +410,9 @@ func TestEvaluates(t *testing.T) {
 			},
 			{"sql_like_expr_23", "10 LIKE '1%'", NewSQLBool(knd, true)},
 			{"sql_like_expr_24", "1.20 LIKE '1.2%'", NewSQLBool(knd, true)},
-			{"sql_like_expr_25", "NULL LIKE '1%'", NewPolymorphicSQLNull(knd)},
-			{"sql_like_expr_26", "10 LIKE NULL", NewPolymorphicSQLNull(knd)},
-			{"sql_like_expr_27", "NULL LIKE NULL", NewPolymorphicSQLNull(knd)},
+			{"sql_like_expr_25", "NULL LIKE '1%'", NewSQLNull(knd)},
+			{"sql_like_expr_26", "10 LIKE NULL", NewSQLNull(knd)},
+			{"sql_like_expr_27", "NULL LIKE NULL", NewSQLNull(knd)},
 			{"sql_like_expr_28", "'David_' LIKE 'David\\_'", NewSQLBool(knd, true)},
 			{"sql_like_expr_29", "'David%' LIKE 'David\\%'", NewSQLBool(knd, true)},
 			{"sql_like_expr_30", "'David_' LIKE 'David|_' ESCAPE '|'", NewSQLBool(knd, true)},
@@ -449,9 +450,9 @@ func TestEvaluates(t *testing.T) {
 				"%' ", NewSQLBool(knd, true)},
 			{"sql_like_binary_expr_23", "10 LIKE BINARY '1%'", NewSQLBool(knd, true)},
 			{"sql_like_binary_expr_24", "1.20 LIKE BINARY '1.2%'", NewSQLBool(knd, true)},
-			{"sql_like_binary_expr_25", "NULL LIKE BINARY '1%'", NewPolymorphicSQLNull(knd)},
-			{"sql_like_binary_expr_26", "10 LIKE BINARY NULL", NewPolymorphicSQLNull(knd)},
-			{"sql_like_binary_expr_27", "NULL LIKE BINARY NULL", NewPolymorphicSQLNull(knd)},
+			{"sql_like_binary_expr_25", "NULL LIKE BINARY '1%'", NewSQLNull(knd)},
+			{"sql_like_binary_expr_26", "10 LIKE BINARY NULL", NewSQLNull(knd)},
+			{"sql_like_binary_expr_27", "NULL LIKE BINARY NULL", NewSQLNull(knd)},
 			{"sql_like_binary_expr_28", "'David_' LIKE BINARY 'David\\_'", NewSQLBool(knd, true)},
 			{"sql_like_binary_expr_29", "'David%' LIKE BINARY 'David\\%'", NewSQLBool(knd, true)},
 			{"sql_like_binary_expr_30", "'David_' LIKE BINARY 'David|_' ESCAPE '|'",
@@ -469,8 +470,8 @@ func TestEvaluates(t *testing.T) {
 			{"sql_mixed_arithmetic_and_bool_4", "(5<6)<7", NewSQLBool(knd, true)},
 			{"sql_mixed_arithmetic_and_bool_5", "1+(5<6)", NewSQLInt64(knd, 2)},
 			{"sql_mixed_arithmetic_and_bool_6", "1+(5>6)", NewSQLInt64(knd, 1)},
-			{"sql_mixed_arithmetic_and_bool_7", "1+(NULL>6)", NewPolymorphicSQLNull(knd)},
-			{"sql_mixed_arithmetic_and_bool_8", "NULL+(5>6)", NewPolymorphicSQLNull(knd)},
+			{"sql_mixed_arithmetic_and_bool_7", "1+(NULL>6)", NewSQLNull(knd)},
+			{"sql_mixed_arithmetic_and_bool_8", "NULL+(5>6)", NewSQLNull(knd)},
 			{"sql_mixed_arithmetic_and_bool_9", "20/(5<6)", NewSQLFloat(knd, 20)},
 			{"sql_mixed_arithmetic_and_bool_10", "20*(5<6)", NewSQLInt64(knd, 20)},
 			{"sql_mixed_arithmetic_and_bool_11", "20/5<6", NewSQLBool(knd, true)},
@@ -479,7 +480,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_mixed_arithmetic_and_bool_14", "20-5<6", NewSQLBool(knd, false)},
 			{"sql_mixed_arithmetic_and_bool_15", "20+true", NewSQLInt64(knd, 21)},
 			{"sql_mixed_arithmetic_and_bool_16", "20+false", NewSQLInt64(knd, 20)},
-			{"sql_mod_expr_0", "0 % 0", NewPolymorphicSQLNull(knd)},
+			{"sql_mod_expr_0", "0 % 0", NewSQLNull(knd)},
 			{"sql_mod_expr_1", "5 % 2", NewSQLFloat(knd, 1)},
 			{"sql_mod_expr_2", "5.5 % 2", NewSQLFloat(knd, 1.5)},
 			{"sql_mod_expr_3", "-5 % -3", NewSQLFloat(knd, -2)},
@@ -499,7 +500,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_not_expr_1", "NOT 0", NewSQLBool(knd, true)},
 			{"sql_not_expr_2", "NOT true", NewSQLBool(knd, false)},
 			{"sql_not_expr_3", "NOT false", NewSQLBool(knd, true)},
-			{"sql_not_expr_4", "NOT NULL", NewPolymorphicSQLNull(knd)},
+			{"sql_not_expr_4", "NOT NULL", NewSQLNull(knd)},
 			{"sql_not_expr_5", "! 1", NewSQLBool(knd, false)},
 			{"sql_not_expr_6", "! 0", NewSQLBool(knd, true)},
 			{"sql_null_safe_equal_0", "0 <=> 0", NewSQLBool(knd, true)},
@@ -514,8 +515,8 @@ func TestEvaluates(t *testing.T) {
 			{"sql_or_expr_1", "1 OR 0", NewSQLBool(knd, true)},
 			{"sql_or_expr_2", "0 OR 1", NewSQLBool(knd, true)},
 			{"sql_or_expr_3", "NULL OR 1", NewSQLBool(knd, true)},
-			{"sql_or_expr_4", "NULL OR 0", NewPolymorphicSQLNull(knd)},
-			{"sql_or_expr_5", "NULL OR NULL", NewPolymorphicSQLNull(knd)},
+			{"sql_or_expr_4", "NULL OR 0", NewSQLNull(knd)},
+			{"sql_or_expr_5", "NULL OR NULL", NewSQLNull(knd)},
 			{"sql_or_expr_6", "0 OR 0", NewSQLBool(knd, false)},
 			{"sql_or_expr_7", "true OR true", NewSQLBool(knd, true)},
 			{"sql_or_expr_8", "true OR false", NewSQLBool(knd, true)},
@@ -545,8 +546,8 @@ func TestEvaluates(t *testing.T) {
 			{"sql_not_regex_expr_5", "'pi' NOT REGEXP 'pi|apa'", NewSQLBool(knd, false)},
 			{"sql_not_regex_expr_6", "'abcde' NOT REGEXP 'a[bcd]{2}e'", NewSQLBool(knd, true)},
 			{"sql_not_regex_expr_7", "'abcde' NOT REGEXP 'a[bcd]{1,10}e'", NewSQLBool(knd, false)},
-			{"sql_not_regex_expr_8", "null REGEXP 'abc'", NewPolymorphicSQLNull(knd)},
-			{"sql_not_regex_expr_9", "'a' REGEXP null", NewPolymorphicSQLNull(knd)},
+			{"sql_not_regex_expr_8", "null REGEXP 'abc'", NewSQLNull(knd)},
+			{"sql_not_regex_expr_9", "'a' REGEXP null", NewSQLNull(knd)},
 			{"sql_not_regex_expr_10", "2-1 NOT REGEXP '1'", NewSQLBool(knd, false)},
 			{"sql_regex_expr_0", "'ABC123' REGEXP 'AB'", NewSQLBool(knd, true)},
 			{"sql_regex_expr_1", "'ABC123' REGEXP 'ABD'", NewSQLBool(knd, false)},
@@ -556,35 +557,35 @@ func TestEvaluates(t *testing.T) {
 			{"sql_regex_expr_5", "'pi' REGEXP 'pi|apa'", NewSQLBool(knd, true)},
 			{"sql_regex_expr_6", "'abcde' REGEXP 'a[bcd]{2}e'", NewSQLBool(knd, false)},
 			{"sql_regex_expr_7", "'abcde' REGEXP 'a[bcd]{1,10}e'", NewSQLBool(knd, true)},
-			{"sql_regex_expr_8", "null REGEXP 'abc'", NewPolymorphicSQLNull(knd)},
-			{"sql_regex_expr_9", "'a' REGEXP null", NewPolymorphicSQLNull(knd)},
+			{"sql_regex_expr_8", "null REGEXP 'abc'", NewSQLNull(knd)},
+			{"sql_regex_expr_9", "'a' REGEXP null", NewSQLNull(knd)},
 			{"sql_regex_expr_10", "2-1 REGEXP '1'", NewSQLBool(knd, true)},
-			{"sql_scalar_abs_expr_0", "ABS(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_scalar_abs_expr_0", "ABS(NULL)", NewSQLNull(knd)},
 			{"sql_scalar_abs_expr_1", "ABS('C')", NewSQLFloat(knd, 0)},
 			{"sql_scalar_abs_expr_2", "ABS(-20)", NewSQLFloat(knd, 20)},
 			{"sql_scalar_abs_expr_3", "ABS(20)", NewSQLFloat(knd, 20)},
-			{"sql_scalar_acos_expr_0", "ACOS(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_scalar_acos_expr_1", "ACOS(20)", NewPolymorphicSQLNull(knd)},
-			{"sql_scalar_acos_expr_2", "ACOS(-20)", NewPolymorphicSQLNull(knd)},
+			{"sql_scalar_acos_expr_0", "ACOS(NULL)", NewSQLNull(knd)},
+			{"sql_scalar_acos_expr_1", "ACOS(20)", NewSQLNull(knd)},
+			{"sql_scalar_acos_expr_2", "ACOS(-20)", NewSQLNull(knd)},
 			{"sql_scalar_acos_expr_3", "ACOS('C')", NewSQLFloat(knd, 1.5707963267948966)},
 			{"sql_scalar_acos_expr_4", "ACOS(0)", NewSQLFloat(knd, 1.5707963267948966)},
-			{"sql_scalar_asin_expr_0", "ASIN(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_scalar_asin_expr_1", "ASIN(20)", NewPolymorphicSQLNull(knd)},
-			{"sql_scalar_asin_expr_2", "ASIN(-20)", NewPolymorphicSQLNull(knd)},
+			{"sql_scalar_asin_expr_0", "ASIN(NULL)", NewSQLNull(knd)},
+			{"sql_scalar_asin_expr_1", "ASIN(20)", NewSQLNull(knd)},
+			{"sql_scalar_asin_expr_2", "ASIN(-20)", NewSQLNull(knd)},
 			{"sql_scalar_asin_expr_3", "ASIN('C')", NewSQLFloat(knd, 0)},
 			{"sql_scalar_asin_expr_4", "ASIN(0)", NewSQLFloat(knd, 0)},
-			{"sql_scalar_atan_expr_0", "ATAN(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_scalar_atan_expr_0", "ATAN(NULL)", NewSQLNull(knd)},
 			{"sql_scalar_atan_expr_1", "ATAN(20)", NewSQLFloat(knd, 1.5208379310729538)},
 			{"sql_scalar_atan_expr_2", "ATAN(-20)", NewSQLFloat(knd, -1.5208379310729538)},
 			{"sql_scalar_atan_expr_3", "ATAN('C')", NewSQLFloat(knd, 0)},
 			{"sql_scalar_atan_expr_4", "ATAN(0)", NewSQLFloat(knd, 0)},
-			{"sql_scalar_atan_expr_5", "ATAN(NULL, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_scalar_atan_expr_5", "ATAN(NULL, NULL)", NewSQLNull(knd)},
 			{"sql_scalar_atan_expr_6", "ATAN('C', 2)", NewSQLFloat(knd, 0)},
 			{"sql_scalar_atan_expr_7", "ATAN(0, 2)", NewSQLFloat(knd, 0)},
-			{"sql_scalar_atan2_expr_0", "ATAN2(NULL, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_scalar_atan2_expr_0", "ATAN2(NULL, NULL)", NewSQLNull(knd)},
 			{"sql_scalar_atan2_expr_1", "ATAN2('C', 2)", NewSQLFloat(knd, 0)},
 			{"sql_scalar_atan2_expr_2", "ATAN2(0, 2)", NewSQLFloat(knd, 0)},
-			{"sql_ascii_0", "ASCII(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_ascii_0", "ASCII(NULL)", NewSQLNull(knd)},
 			{"sql_ascii_1", "ASCII('')", NewSQLInt64(knd, 0)},
 			{"sql_ascii_2", "ASCII('A')", NewSQLInt64(knd, 65)},
 			{"sql_ascii_3", "ASCII('AWESOME')", NewSQLInt64(knd, 65)},
@@ -594,13 +595,13 @@ func TestEvaluates(t *testing.T) {
 				"ASCII('Č')",
 				NewSQLInt64(knd, 196), // This is actually 268, but the first byte is 196
 			},
-			{"sql_ceil_0", "CEIL(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_ceil_0", "CEIL(NULL)", NewSQLNull(knd)},
 			{"sql_ceil_1", "CEIL(20)", NewSQLFloat(knd, 20)},
 			{"sql_ceil_2", "CEIL(-20)", NewSQLFloat(knd, -20)},
 			{"sql_ceil_3", "CEIL('C')", NewSQLFloat(knd, 0)},
 			{"sql_ceil_4", "CEIL(0.56)", NewSQLFloat(knd, 1)},
 			{"sql_ceil_5", "CEIL(-0.56)", NewSQLFloat(knd, 0)},
-			{"sql_ceiling_expr_0", "CEIL(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_ceiling_expr_0", "CEIL(NULL)", NewSQLNull(knd)},
 			{"sql_ceiling_expr_1", "CEIL(20)", NewSQLFloat(knd, 20)},
 			{"sql_ceiling_expr_2", "CEIL(-20)", NewSQLFloat(knd, -20)},
 			{"sql_ceiling_expr_3", "CEIL('C')", NewSQLFloat(knd, 0)},
@@ -618,26 +619,26 @@ func TestEvaluates(t *testing.T) {
 			{"sql_char_expr_5", "CHAR(513)", NewSQLVarchar(knd, string([]byte{2, 1}))},
 			{"sql_char_expr_6", "CHAR(256, 512)", NewSQLVarchar(knd, string([]byte{1, 0, 2, 0}))},
 			{"sql_char_expr_7", "CHAR(65537)", NewSQLVarchar(knd, string([]byte{1, 0, 1}))},
-			{"sql_char_length_0", "CHAR_LENGTH(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_char_length_0", "CHAR_LENGTH(NULL)", NewSQLNull(knd)},
 			{"sql_char_length_1", "CHAR_LENGTH('sDg')", NewSQLInt64(knd, 3)},
 			{"sql_char_length_2", "CHAR_LENGTH('世界')", NewSQLInt64(knd, 2)},
 			{"sql_char_length_3", "CHAR_LENGTH('')", NewSQLInt64(knd, 0)},
-			{"sql_char_length_4", "CHARACTER_LENGTH(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_char_length_4", "CHARACTER_LENGTH(NULL)", NewSQLNull(knd)},
 			{"sql_char_length_5", "CHARACTER_LENGTH('sDg')", NewSQLInt64(knd, 3)},
 			{"sql_char_length_6", "CHARACTER_LENGTH('世界')", NewSQLInt64(knd, 2)},
 			{"sql_char_length_7", "CHARACTER_LENGTH('')", NewSQLInt64(knd, 0)},
-			{"sql_coalesce_expr_0", "COALESCE(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_coalesce_expr_0", "COALESCE(NULL)", NewSQLNull(knd)},
 			{"sql_coalesce_expr_1", "COALESCE('A')", NewSQLVarchar(knd, "A")},
 			{"sql_coalesce_expr_2", "COALESCE('A', NULL)", NewSQLVarchar(knd, "A")},
 			{"sql_coalesce_expr_3", "COALESCE('A', 'B')", NewSQLVarchar(knd, "A")},
 			{"sql_coalesce_expr_4", "COALESCE(NULL, 'A', NULL, 'B')", NewSQLVarchar(knd, "A")},
-			{"sql_coalesce_expr_5", "COALESCE(NULL, NULL, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_concat_expr_0", "CONCAT(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_coalesce_expr_5", "COALESCE(NULL, NULL, NULL)", NewSQLNull(knd)},
+			{"sql_concat_expr_0", "CONCAT(NULL)", NewSQLNull(knd)},
 			{"sql_concat_expr_1", "CONCAT('A')", NewSQLVarchar(knd, "A")},
 			{"sql_concat_expr_2", "CONCAT('A', 'B')", NewSQLVarchar(knd, "AB")},
-			{"sql_concat_expr_3", "CONCAT('A', NULL, 'B')", NewPolymorphicSQLNull(knd)},
+			{"sql_concat_expr_3", "CONCAT('A', NULL, 'B')", NewSQLNull(knd)},
 			{"sql_concat_expr_4", "CONCAT('A', 123, 'B')", NewSQLVarchar(knd, "A123B")},
-			{"sql_concat_ws_expr_0", "CONCAT_WS(NULL, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_concat_ws_expr_0", "CONCAT_WS(NULL, NULL)", NewSQLNull(knd)},
 			{"sql_concat_ws_expr_1", "CONCAT_WS(',','A')", NewSQLVarchar(knd, "A")},
 			{"sql_concat_ws_expr_2", "CONCAT_WS(',','A', 'B')", NewSQLVarchar(knd, "A,B")},
 			{"sql_concat_ws_expr_3", "CONCAT_WS(',','A', NULL, 'B')", NewSQLVarchar(knd, "A,B")},
@@ -647,12 +648,12 @@ func TestEvaluates(t *testing.T) {
 				NewSQLVarchar(knd, "A,123,B"),
 			},
 			{"sql_connection_id_expr", "CONNECTION_ID()", NewSQLUint64(knd, 42)},
-			{"sql_cos_expr_0", "COS(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_cos_expr_0", "COS(NULL)", NewSQLNull(knd)},
 			{"sql_cos_expr_1", "COS(20)", NewSQLFloat(knd, 0.40808206181339196)},
 			{"sql_cos_expr_2", "COS(-20)", NewSQLFloat(knd, 0.40808206181339196)},
 			{"sql_cos_expr_3", "COS('C')", NewSQLFloat(knd, 1)},
 			{"sql_cos_expr_4", "COS(0)", NewSQLFloat(knd, 1)},
-			{"sql_cot_expr_0", "COT(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_cot_expr_0", "COT(NULL)", NewSQLNull(knd)},
 			{"sql_cot_expr_1", "COT(19)", NewSQLFloat(knd, 6.596764247280111)},
 			{"sql_cot_expr_2", "COT(-19)", NewSQLFloat(knd, -6.596764247280111)},
 			// current time tests do not work
@@ -715,7 +716,7 @@ func TestEvaluates(t *testing.T) {
 				"DATEDIFF('2017-08-23 10:40:43', '2017-09-30 12:19:50')",
 				NewSQLInt64(knd, -38),
 			},
-			{"sql_date_diff_3", "DATEDIFF(NULL, '2017-09-30 12:19:50')", NewPolymorphicSQLNull(knd)},
+			{"sql_date_diff_3", "DATEDIFF(NULL, '2017-09-30 12:19:50')", NewSQLNull(knd)},
 			{"sql_date_diff_4", "DATEDIFF('2002-09-07', '1700-08-02')", NewSQLInt64(knd, 106751)},
 			{"sql_date_diff_5", "DATEDIFF('1657-08-02', '2002-09-07')",
 				NewSQLInt64(knd, -106751)},
@@ -732,14 +733,14 @@ func TestEvaluates(t *testing.T) {
 			{
 				"sql_date_diff_8",
 				"DATEDIFF('biconnectorisfun', '2017-09-30 12:19:50')",
-				NewPolymorphicSQLNull(knd),
+				NewSQLNull(knd),
 			},
 			{"sql_date_diff_9", "DATEDIFF('2000-9-1', '2012-6-7')",
 				NewSQLInt64(knd, -4297)},
 			{"sql_date_diff_10", "DATEDIFF('00-09-1', '12-06-07')",
 				NewSQLInt64(knd, -4297)},
-			{"sql_date_format_0", "DATE_FORMAT('2009-10-04', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_date_format_1", "DATE_FORMAT(NULL, '2009-10-04')", NewPolymorphicSQLNull(knd)},
+			{"sql_date_format_0", "DATE_FORMAT('2009-10-04', NULL)", NewSQLNull(knd)},
+			{"sql_date_format_1", "DATE_FORMAT(NULL, '2009-10-04')", NewSQLNull(knd)},
 			{
 				"sql_date_format_2",
 				"DATE_FORMAT('2009-10-04 22:23:00', '%W %M 01 %Y')",
@@ -802,36 +803,36 @@ func TestEvaluates(t *testing.T) {
 				NewSQLVarchar(knd, "Tue|Jul|7|5th|05|5|000000|23|11|11|22|186|23|11|July|07|PM"+
 					"|11:22:00 PM|00|00|23:22:00|27|27|27|27|Tuesday|2|1983|1983|1983|83|%|1983"),
 			},
-			{"sql_date_name_0", "DAYNAME(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_date_name_1", "DAYNAME(14)", NewPolymorphicSQLNull(knd)},
+			{"sql_date_name_0", "DAYNAME(NULL)", NewSQLNull(knd)},
+			{"sql_date_name_1", "DAYNAME(14)", NewSQLNull(knd)},
 			{"sql_date_name_2", "DAYNAME('2016-01-01 00:00:00')", NewSQLVarchar(knd, "Friday")},
 			{"sql_date_name_3", "DAYNAME('2016-1-1')", NewSQLVarchar(knd, "Friday")},
-			{"sql_date_of_month_0", "DAYOFMONTH(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_date_of_month_1", "DAYOFMONTH(14)", NewPolymorphicSQLNull(knd)},
+			{"sql_date_of_month_0", "DAYOFMONTH(NULL)", NewSQLNull(knd)},
+			{"sql_date_of_month_1", "DAYOFMONTH(14)", NewSQLNull(knd)},
 			{"sql_date_of_month_2", "DAYOFMONTH('2016-01-01')", NewSQLInt64(knd, 1)},
 			{"sql_date_of_month_3", "DAYOFMONTH('2016-1-1')", NewSQLInt64(knd, 1)},
-			{"sql_date_of_week_0", "DAYOFWEEK(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_date_of_week_1", "DAYOFWEEK(14)", NewPolymorphicSQLNull(knd)},
+			{"sql_date_of_week_0", "DAYOFWEEK(NULL)", NewSQLNull(knd)},
+			{"sql_date_of_week_1", "DAYOFWEEK(14)", NewSQLNull(knd)},
 			{"sql_date_of_week_2", "DAYOFWEEK('2016-01-01')", NewSQLInt64(knd, 6)},
 			{"sql_date_of_week_3", "DAYOFWEEK('2016-1-1')", NewSQLInt64(knd, 6)},
-			{"sql_date_of_year_0", "DAYOFYEAR(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_date_of_year_1", "DAYOFYEAR(14)", NewPolymorphicSQLNull(knd)},
+			{"sql_date_of_year_0", "DAYOFYEAR(NULL)", NewSQLNull(knd)},
+			{"sql_date_of_year_1", "DAYOFYEAR(14)", NewSQLNull(knd)},
 			{"sql_date_of_year_2", "DAYOFYEAR('2016-1-1')", NewSQLInt64(knd, 1)},
 			{"sql_date_of_year_3", "DAYOFYEAR('2016-01-01')", NewSQLInt64(knd, 1)},
-			{"sql_degrees_0", "DEGREES(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_degrees_0", "DEGREES(NULL)", NewSQLNull(knd)},
 			{"sql_degrees_1", "DEGREES(20)", NewSQLFloat(knd, 1145.9155902616465)},
 			{"sql_degrees_2", "DEGREES(-20)", NewSQLFloat(knd, -1145.9155902616465)},
-			{"sql_elt_expr_0", "ELT(NULL, 'a', 'b')", NewPolymorphicSQLNull(knd)},
-			{"sql_elt_expr_1", "ELT(0, 'a', 'b')", NewPolymorphicSQLNull(knd)},
+			{"sql_elt_expr_0", "ELT(NULL, 'a', 'b')", NewSQLNull(knd)},
+			{"sql_elt_expr_1", "ELT(0, 'a', 'b')", NewSQLNull(knd)},
 			{"sql_elt_expr_2", "ELT(1, 'a', 'b')", NewSQLVarchar(knd, "a")},
 			{"sql_elt_expr_3", "ELT(2, 'a', 'b')", NewSQLVarchar(knd, "b")},
-			{"sql_elt_expr_4", "ELT(3, 'a', 'b', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_elt_expr_5", "ELT(4, 'a', 'b', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_exp_expr_0", "EXP(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_elt_expr_4", "ELT(3, 'a', 'b', NULL)", NewSQLNull(knd)},
+			{"sql_elt_expr_5", "ELT(4, 'a', 'b', NULL)", NewSQLNull(knd)},
+			{"sql_exp_expr_0", "EXP(NULL)", NewSQLNull(knd)},
 			{"sql_exp_expr_1", "EXP('sdg')", NewSQLFloat(knd, 1)},
 			{"sql_exp_expr_2", "EXP(0)", NewSQLFloat(knd, 1)},
 			{"sql_exp_expr_3", "EXP(2)", NewSQLFloat(knd, 7.38905609893065)},
-			{"sql_extract_expr_0", "EXTRACT(YEAR FROM NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_extract_expr_0", "EXTRACT(YEAR FROM NULL)", NewSQLNull(knd)},
 			{
 				"sql_extract_expr_1",
 				"EXTRACT(YEAR FROM TIMESTAMP '2006-04-07 07:14:23')",
@@ -932,12 +933,12 @@ func TestEvaluates(t *testing.T) {
 				"EXTRACT(SQL_TSI_MINUTE FROM TIMESTAMP '2006-04-07 07:14:23')",
 				NewSQLInt64(knd, 14),
 			},
-			{"sql_floor_expr_0", "FLOOR(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_floor_expr_0", "FLOOR(NULL)", NewSQLNull(knd)},
 			{"sql_floor_expr_1", "FLOOR('sdg')", NewSQLFloat(knd, 0)},
 			{"sql_floor_expr_2", "FLOOR(1.23)", NewSQLFloat(knd, 1)},
 			{"sql_floor_expr_3", "FLOOR(-1.23)", NewSQLFloat(knd, -2)},
-			{"sql_from_unixtime_0", "FROM_UNIXTIME(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_from_unixtime_1", "FROM_UNIXTIME(-1)", NewPolymorphicSQLNull(knd)},
+			{"sql_from_unixtime_0", "FROM_UNIXTIME(NULL)", NewSQLNull(knd)},
+			{"sql_from_unixtime_1", "FROM_UNIXTIME(-1)", NewSQLNull(knd)},
 			{
 				"sql_from_unixtime_2",
 				"FROM_UNIXTIME(1447430881) + 0",
@@ -958,10 +959,10 @@ func TestEvaluates(t *testing.T) {
 				"CONCAT(FROM_UNIXTIME(1447430881.5), '')",
 				NewSQLVarchar(knd, "2015-11-13 16:08:02.000000"),
 			},
-			{"sql_hour_0", "HOUR(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_hour_0", "HOUR(NULL)", NewSQLNull(knd)},
 			{"sql_hour_1", "HOUR('sdg')", NewSQLInt64(knd, 0)},
 			{"sql_hour_2", "HOUR('10:23:52')", NewSQLInt64(knd, 10)},
-			{"sql_hour_3", "HOUR('10:61:52')", NewPolymorphicSQLNull(knd)},
+			{"sql_hour_3", "HOUR('10:61:52')", NewSQLNull(knd)},
 			{"sql_hour_4", "HOUR('10:23:52.23.25.26')", NewSQLInt64(knd, 10)},
 			{"sql_if_expr_0", "IF(1<2, 4, 5)", NewSQLInt64(knd, 4)},
 			{"sql_if_expr_1", "IF(1>2, 4, 5)", NewSQLInt64(knd, 5)},
@@ -986,7 +987,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_if_expr_16", "IF(current_timestamp, 4, 5)", NewSQLInt64(knd, 4)},
 			{"sql_if_null_0", "IFNULL(1,0)", NewSQLInt64(knd, 1)},
 			{"sql_if_null_1", "IFNULL(NULL,3)", NewSQLInt64(knd, 3)},
-			{"sql_if_null_2", "IFNULL(NULL,NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_if_null_2", "IFNULL(NULL,NULL)", NewSQLNull(knd)},
 			{"sql_if_null_3", "IFNULL('cat', null)", NewSQLVarchar(knd, "cat")},
 			{"sql_if_null_4", "IFNULL(null, 'dog')", NewSQLVarchar(knd, "dog")},
 			{"sql_if_null_5", "IFNULL(1/0, 4)", NewSQLInt64(knd, 4)},
@@ -1001,7 +1002,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_is_null_1", "ISNULL(c)", NewSQLBool(knd, true)},
 			{"sql_is_null_2", `ISNULL("")`, NewSQLBool(knd, false)},
 			{"sql_is_null_3", `ISNULL(NULL)`, NewSQLBool(knd, true)},
-			{"sql_insert_expr_0", "INSERT('Quadratic', NULL, 4, 'What')", NewPolymorphicSQLNull(knd)},
+			{"sql_insert_expr_0", "INSERT('Quadratic', NULL, 4, 'What')", NewSQLNull(knd)},
 			{
 				"sql_insert_expr_1",
 				"INSERT('Quadratic', 3, 4, 'What')",
@@ -1032,22 +1033,22 @@ func TestEvaluates(t *testing.T) {
 				"INSERT('Quadratic', 8.4, 3.4, 'What')",
 				NewSQLVarchar(knd, "QuadratWhat"),
 			},
-			{"sql_instr_expr_0", "INSTR(NULL, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_instr_expr_0", "INSTR(NULL, NULL)", NewSQLNull(knd)},
 			{"sql_instr_expr_1", "INSTR('sDg', 'D')", NewSQLInt64(knd, 2)},
 			{"sql_instr_expr_2", "INSTR(124, 124)", NewSQLInt64(knd, 1)},
 			{"sql_instr_expr_3", "INSTR('awesome','so')", NewSQLInt64(knd, 4)},
-			{"sql_lcase_0", "LCASE(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_lcase_0", "LCASE(NULL)", NewSQLNull(knd)},
 			{"sql_lcase_1", "LCASE('sDg')", NewSQLVarchar(knd, "sdg")},
 			{"sql_lcase_2", "LCASE(124)", NewSQLVarchar(knd, "124")},
-			{"sql_lowercase_0", "LOWER(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_lowercase_0", "LOWER(NULL)", NewSQLNull(knd)},
 			{"sql_lowercase_1", "LOWER('')", NewSQLVarchar(knd, "")},
 			{"sql_lowercase_2", "LOWER('A')", NewSQLVarchar(knd, "a")},
 			{"sql_lowercase_3", "LOWER('awesome')", NewSQLVarchar(knd, "awesome")},
 			{"sql_lowercase_4", "LOWER('AwEsOmE')", NewSQLVarchar(knd, "awesome")},
 			// if any argument null, should return null
-			{"sql_left_null_arg_0", "LEFT(NULL, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_left_null_arg_1", "LEFT('hi', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_left_null_arg_2", "LEFT(NULL, 5)", NewPolymorphicSQLNull(knd)},
+			{"sql_left_null_arg_0", "LEFT(NULL, NULL)", NewSQLNull(knd)},
+			{"sql_left_null_arg_1", "LEFT('hi', NULL)", NewSQLNull(knd)},
+			{"sql_left_null_arg_2", "LEFT(NULL, 5)", NewSQLNull(knd)},
 			// basic cases w/ string, int inputs and positive int length
 			{"sql_left_base_0", "LEFT('sDgcdcdc', 4)", NewSQLVarchar(knd, "sDgc")},
 			{"sql_left_base_1", "LEFT(124, 2)", NewSQLVarchar(knd, "12")},
@@ -1080,21 +1081,21 @@ func TestEvaluates(t *testing.T) {
 			// unlike with floats, string #s always round down
 			{"sql_left_string_float_0", "LEFT('hello', '2.4')", NewSQLVarchar(knd, "he")},
 			{"sql_left_string_float_1", "LEFT('hello', '2.6')", NewSQLVarchar(knd, "he")},
-			{"sql_length_0", "LENGTH(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_length_0", "LENGTH(NULL)", NewSQLNull(knd)},
 			{"sql_length_1", "LENGTH('sDg')", NewSQLInt64(knd, 3)},
 			{"sql_length_2", "LENGTH('世界')", NewSQLInt64(knd, 6)},
-			{"sql_ln_expr_0", "LN(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_ln_expr_0", "LN(NULL)", NewSQLNull(knd)},
 			{"sql_ln_expr_1", "LN(1)", NewSQLFloat(knd, 0)},
 			{"sql_ln_expr_2", "LN(16.5)", NewSQLFloat(knd, 2.803360380906535)},
-			{"sql_ln_expr_3", "LN(-16.5)", NewPolymorphicSQLNull(knd)},
-			{"sql_log_expr_0", "LOG(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_ln_expr_3", "LN(-16.5)", NewSQLNull(knd)},
+			{"sql_log_expr_0", "LOG(NULL)", NewSQLNull(knd)},
 			{"sql_log_expr_1", "LOG(1)", NewSQLFloat(knd, 0)},
 			{"sql_log_expr_2", "LOG(16.5)", NewSQLFloat(knd, 2.803360380906535)},
-			{"sql_log_expr_3", "LOG(-16.5)", NewPolymorphicSQLNull(knd)},
+			{"sql_log_expr_3", "LOG(-16.5)", NewSQLNull(knd)},
 			{"sql_log_expr_4", "LOG10(100)", NewSQLFloat(knd, 2)},
 			{"sql_log_expr_5", "LOG(10,100)", NewSQLFloat(knd, 2)},
-			{"sql_locate_0", "LOCATE(NULL, 'foobarbar')", NewPolymorphicSQLNull(knd)},
-			{"sql_locate_1", "LOCATE('bar', NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_locate_0", "LOCATE(NULL, 'foobarbar')", NewSQLNull(knd)},
+			{"sql_locate_1", "LOCATE('bar', NULL)", NewSQLNull(knd)},
 			{"sql_locate_2", "LOCATE('bar', 'foobarbar')", NewSQLInt64(knd, 4)},
 			{"sql_locate_3", "LOCATE('xbar', 'foobarbar')", NewSQLInt64(knd, 0)},
 			{"sql_locate_4", "LOCATE('bar', 'foobarbar', 5)", NewSQLInt64(knd, 7)},
@@ -1102,19 +1103,19 @@ func TestEvaluates(t *testing.T) {
 			{"sql_locate_6", "LOCATE('e', 'dvd', 6)", NewSQLInt64(knd, 0)},
 			{"sql_locate_7", "LOCATE('f', 'asdf', 4)", NewSQLInt64(knd, 4)},
 			{"sql_locate_8", "LOCATE('語', '日本語')", NewSQLInt64(knd, 3)},
-			{"sql_log2_0", "LOG2(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_log2_0", "LOG2(NULL)", NewSQLNull(knd)},
 			{"sql_log2_1", "LOG2(4)", NewSQLFloat(knd, 2)},
-			{"sql_log2_2", "LOG2(-100)", NewPolymorphicSQLNull(knd)},
-			{"sql_log10_0", "LOG10(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_log10_1", "LOG10('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_log2_2", "LOG2(-100)", NewSQLNull(knd)},
+			{"sql_log10_0", "LOG10(NULL)", NewSQLNull(knd)},
+			{"sql_log10_1", "LOG10('sdg')", NewSQLNull(knd)},
 			{"sql_log10_2", "LOG10(2)", NewSQLFloat(knd, 0.3010299956639812)},
 			{"sql_log10_3", "LOG10(100)", NewSQLFloat(knd, 2)},
-			{"sql_log10_4", "LOG10(0)", NewPolymorphicSQLNull(knd)},
-			{"sql_log10_5", "LOG10(-100)", NewPolymorphicSQLNull(knd)},
-			{"sql_ltrim_0", "LTRIM(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_log10_4", "LOG10(0)", NewSQLNull(knd)},
+			{"sql_log10_5", "LOG10(-100)", NewSQLNull(knd)},
+			{"sql_ltrim_0", "LTRIM(NULL)", NewSQLNull(knd)},
 			{"sql_ltrim_1", "LTRIM('   barbar')", NewSQLVarchar(knd, "barbar")},
-			{"sql_md5_0", "MD5(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_md5_1", "MD5(NULL + NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_md5_0", "MD5(NULL)", NewSQLNull(knd)},
+			{"sql_md5_1", "MD5(NULL + NULL)", NewSQLNull(knd)},
 			{
 				"sql_md5_2",
 				"MD5('testing')",
@@ -1133,8 +1134,8 @@ func TestEvaluates(t *testing.T) {
 				"MD5(REPEAT('a', 30))",
 				NewSQLVarchar(knd, "59e794d45697b360e18ba972bada0123"),
 			},
-			{"sql_microsecond_0", "MICROSECOND(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_microsecond_1", "MICROSECOND('')", NewPolymorphicSQLNull(knd)},
+			{"sql_microsecond_0", "MICROSECOND(NULL)", NewSQLNull(knd)},
+			{"sql_microsecond_1", "MICROSECOND('')", NewSQLNull(knd)},
 			{"sql_microsecond_2", "MICROSECOND('NULL')", NewSQLInt64(knd, 0)},
 			{"sql_microsecond_3", "MICROSECOND('hello')", NewSQLInt64(knd, 0)},
 			{"sql_microsecond_4", "MICROSECOND(TRUE)", NewSQLInt64(knd, 0)},
@@ -1155,51 +1156,51 @@ func TestEvaluates(t *testing.T) {
 				NewSQLInt64(knd, 10),
 			},
 			{"sql_microsecond_16", "MICROSECOND('12:STUFF.002234')", NewSQLInt64(knd, 0)},
-			{"sql_mid_0", "MID('foobarbar', 4, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_mid_0", "MID('foobarbar', 4, NULL)", NewSQLNull(knd)},
 			{"sql_mid_1", "MID('Quadratically', 5, 6)", NewSQLVarchar(knd, "ratica")},
 			{"sql_mid_2", "MID('Quadratically', 12, 2)", NewSQLVarchar(knd, "ly")},
 			{"sql_mid_3", "MID('Sakila', -5, 3)", NewSQLVarchar(knd, "aki")},
 			{"sql_mid_4", "MID('日本語', 2, 1)", NewSQLVarchar(knd, "本")},
-			{"sql_minute_0", "MINUTE(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_minute_0", "MINUTE(NULL)", NewSQLNull(knd)},
 			{"sql_minute_1", "MINUTE('sdg')", NewSQLInt64(knd, 0)},
 			{"sql_minute_2", "MINUTE('10:23:52')", NewSQLInt64(knd, 23)},
-			{"sql_minute_3", "MINUTE('10:61:52')", NewPolymorphicSQLNull(knd)},
+			{"sql_minute_3", "MINUTE('10:61:52')", NewSQLNull(knd)},
 			{"sql_minute_4", "MINUTE('10:23:52.25.26.27.28')", NewSQLInt64(knd, 23)},
-			{"sql_mod_0", "MOD(NULL, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_mod_1", "MOD(234, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_mod_2", "MOD(NULL, 10)", NewPolymorphicSQLNull(knd)},
-			{"sql_mod_3", "MOD(234, 0)", NewPolymorphicSQLNull(knd)},
+			{"sql_mod_0", "MOD(NULL, NULL)", NewSQLNull(knd)},
+			{"sql_mod_1", "MOD(234, NULL)", NewSQLNull(knd)},
+			{"sql_mod_2", "MOD(NULL, 10)", NewSQLNull(knd)},
+			{"sql_mod_3", "MOD(234, 0)", NewSQLNull(knd)},
 			{"sql_mod_4", "MOD(234, 10)", NewSQLFloat(knd, 4)},
 			{"sql_mod_5", "MOD(253, 7)", NewSQLFloat(knd, 1)},
 			{"sql_mod_6", "MOD(34.5, 3)", NewSQLFloat(knd, 1.5)},
-			{"sql_month_0", "MONTH(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_month_1", "MONTH('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_month_0", "MONTH(NULL)", NewSQLNull(knd)},
+			{"sql_month_1", "MONTH('sdg')", NewSQLNull(knd)},
 			{"sql_month_2", "MONTH('2016-1-01 10:23:52')", NewSQLInt64(knd, 1)},
-			{"sql_month_name_expr_0", "MONTHNAME(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_month_name_expr_1", "MONTHNAME('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_month_name_expr_0", "MONTHNAME(NULL)", NewSQLNull(knd)},
+			{"sql_month_name_expr_1", "MONTHNAME('sdg')", NewSQLNull(knd)},
 			{
 				"sql_month_name_expr_2",
 				"MONTHNAME('2016-1-01 10:23:52')",
 				NewSQLVarchar(knd, "January"),
 			},
-			{"sql_null_if_0", "NULLIF(1,1)", NewPolymorphicSQLNull(knd)},
+			{"sql_null_if_0", "NULLIF(1,1)", NewSQLNull(knd)},
 			{"sql_null_if_1", "NULLIF(1,3)", NewSQLInt64(knd, 1)},
-			{"sql_null_if_2", "NULLIF(null, null)", NewPolymorphicSQLNull(knd)},
-			{"sql_null_if_3", "NULLIF(null, 4)", NewPolymorphicSQLNull(knd)},
+			{"sql_null_if_2", "NULLIF(null, null)", NewSQLNull(knd)},
+			{"sql_null_if_3", "NULLIF(null, 4)", NewSQLNull(knd)},
 			{"sql_null_if_4", "NULLIF(3, null)", NewSQLInt64(knd, 3)},
-			//test{"sql_null_if_5", "NULLIF(3, '3')", NewPolymorphicSQLNull(knd)},
-			{"sql_null_if_6", "NULLIF('abc', 'abc')", NewPolymorphicSQLNull(knd)},
+			//test{"sql_null_if_5", "NULLIF(3, '3')", NewSQLNull(knd)},
+			{"sql_null_if_6", "NULLIF('abc', 'abc')", NewSQLNull(knd)},
 			//test{"sql_null_if_7", "NULLIF('abc', 3)", NewSQLVarchar(knd, "abc")},
-			//test{"sql_null_if_8", "NULLIF('1', true)", NewPolymorphicSQLNull(knd)},
+			//test{"sql_null_if_8", "NULLIF('1', true)", NewSQLNull(knd)},
 			//test{"sql_null_if_9", "NULLIF('1', false)", NewSQLVarchar(knd, "1")},
 			{"sql_pi_expr", "PI()", NewSQLFloat(knd, 3.141592653589793116)},
-			{"sql_quarter_0", "QUARTER(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_quarter_1", "QUARTER('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_quarter_0", "QUARTER(NULL)", NewSQLNull(knd)},
+			{"sql_quarter_1", "QUARTER('sdg')", NewSQLNull(knd)},
 			{"sql_quarter_2", "QUARTER('2016-1-01 10:23:52')", NewSQLInt64(knd, 1)},
 			{"sql_quarter_3", "QUARTER('2016-4-01 10:23:52')", NewSQLInt64(knd, 2)},
 			{"sql_quarter_4", "QUARTER('2016-8-01 10:23:52')", NewSQLInt64(knd, 3)},
 			{"sql_quarter_5", "QUARTER('2016-11-01 10:23:52')", NewSQLInt64(knd, 4)},
-			{"sql_radians_0", "RADIANS(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_radians_0", "RADIANS(NULL)", NewSQLNull(knd)},
 			{"sql_radians_1", "RADIANS(1145.9155902616465)", NewSQLFloat(knd, 20)},
 			{"sql_radians_2", "RADIANS(-1145.9155902616465)", NewSQLFloat(knd, -20)},
 			{"sql_rand_0", "RAND(NULL)", NewSQLFloat(knd, 0.9451961492941164)},
@@ -1207,9 +1208,9 @@ func TestEvaluates(t *testing.T) {
 			{"sql_rand_2", "RAND(0)", NewSQLFloat(knd, 0.9451961492941164)},
 			{"sql_rand_3", "RAND(1145.9155902616465)", NewSQLFloat(knd, 0.16758646518059656)},
 			{"sql_rand_4", "RAND(-1145.9155902616465)", NewSQLFloat(knd, 0.8321372077808122)},
-			{"sql_repeat_0", "REPEAT(NULL, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_repeat_1", "REPEAT(NULL, 3)", NewPolymorphicSQLNull(knd)},
-			{"sql_repeat_2", "REPEAT('apples', NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_repeat_0", "REPEAT(NULL, NULL)", NewSQLNull(knd)},
+			{"sql_repeat_1", "REPEAT(NULL, 3)", NewSQLNull(knd)},
+			{"sql_repeat_2", "REPEAT('apples', NULL)", NewSQLNull(knd)},
 			{"sql_repeat_3", "REPEAT('apples', -1)", NewSQLVarchar(knd, "")},
 			{"sql_repeat_4", "REPEAT('apples', 0)", NewSQLVarchar(knd, "")},
 			{"sql_repeat_5", "REPEAT('apples', 1)", NewSQLVarchar(knd, "apples")},
@@ -1219,26 +1220,26 @@ func TestEvaluates(t *testing.T) {
 			{"sql_repeat_9", "REPEAT(FALSE, TRUE)", NewSQLVarchar(knd, "0")},
 			{"sql_repeat_10", "REPEAT('', 10)", NewSQLVarchar(knd, "")},
 			{"sql_repeat_11", "REPEAT(0, '4')", NewSQLVarchar(knd, "0000")},
-			{"sql_repeat_12", "REPEAT(NULL, 4)", NewPolymorphicSQLNull(knd)},
+			{"sql_repeat_12", "REPEAT(NULL, 4)", NewSQLNull(knd)},
 			{"sql_repeat_13", "REPEAT(1.4, 3)", NewSQLVarchar(knd, "1.41.41.4")},
 			{"sql_repeat_14", "REPEAT('a', .3)", NewSQLVarchar(knd, "")},
 			{"sql_repeat_15", "REPEAT('a', 3.2)", NewSQLVarchar(knd, "aaa")},
 			{"sql_repeat_16", "REPEAT('a', 3.6)", NewSQLVarchar(knd, "aaaa")},
-			{"sql_replace_0", "REPLACE(NULL, NULL, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_replace_0", "REPLACE(NULL, NULL, NULL)", NewSQLNull(knd)},
 			{"sql_replace_1", "REPLACE('sDgcdcdc', 'D', 'd')", NewSQLVarchar(knd, "sdgcdcdc")},
 			{
 				"sql_replace_2",
 				"REPLACE('www.mysql.com', 'w', 'Ww')",
 				NewSQLVarchar(knd, "WwWwWw.mysql.com"),
 			},
-			{"sql_reverse_0", "REVERSE(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_reverse_0", "REVERSE(NULL)", NewSQLNull(knd)},
 			{"sql_reverse_1", "REVERSE(3.14159265)", NewSQLVarchar(knd, "56295141.3")},
 			{"sql_reverse_2", "REVERSE(655)", NewSQLVarchar(knd, "556")},
 			{"sql_reverse_3", "REVERSE('www.mysql.com')", NewSQLVarchar(knd, "moc.lqsym.www")},
 			// if any argument null, should return null
-			{"sql_right_null_0", "RIGHT(NULL, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_right_null_1", "RIGHT('hi', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_right_null_2", "RIGHT(NULL, 5)", NewPolymorphicSQLNull(knd)},
+			{"sql_right_null_0", "RIGHT(NULL, NULL)", NewSQLNull(knd)},
+			{"sql_right_null_1", "RIGHT('hi', NULL)", NewSQLNull(knd)},
+			{"sql_right_null_2", "RIGHT(NULL, 5)", NewSQLNull(knd)},
 			// basic cases w/ string, int inputs and positive int length
 			{"sql_right_base_case_0", "RIGHT('sDgcdcdc', 4)", NewSQLVarchar(knd, "dcdc")},
 			{"sql_right_base_case_1", "RIGHT(124, 2)", NewSQLVarchar(knd, "24")},
@@ -1271,22 +1272,22 @@ func TestEvaluates(t *testing.T) {
 			// unlike with floats, string #s always round down
 			{"sql_right_float_as_length_0", "RIGHT('hello', '2.4')", NewSQLVarchar(knd, "lo")},
 			{"sql_right_float_as_length_1", "RIGHT('hello', '2.6')", NewSQLVarchar(knd, "lo")},
-			{"sql_round_0", "ROUND(NULL, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_round_1", "ROUND(NULL, 4)", NewPolymorphicSQLNull(knd)},
+			{"sql_round_0", "ROUND(NULL, NULL)", NewSQLNull(knd)},
+			{"sql_round_1", "ROUND(NULL, 4)", NewSQLNull(knd)},
 			{"sql_round_2", "ROUND(-16.55555, 4)", NewSQLFloat(knd, -16.5556)},
 			{"sql_round_3", "ROUND(4.56, 1)", NewSQLFloat(knd, 4.6)},
 			{"sql_round_4", "ROUND(-16.5, -1)", NewSQLFloat(knd, 0)},
 			{"sql_round_5", "ROUND(-16.5)", NewSQLFloat(knd, -17)},
-			{"sql_rtrim_0", "RTRIM(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_rtrim_0", "RTRIM(NULL)", NewSQLNull(knd)},
 			{"sql_rtrim_1", "RTRIM('barbar   ')", NewSQLVarchar(knd, "barbar")},
 			// LPAD(str, len, padStr)
 			// basic case
 			{"sql_lpad_0", "LPAD('hello', 7, 'x')", NewSQLVarchar(knd, "xxhello")},
 			// nulls in various positions
-			{"sql_lpad_null_0", "LPAD(NULL, 5, 'a')", NewPolymorphicSQLNull(knd)},
-			{"sql_lpad_null_1", "LPAD('hi', NULL, 'a')", NewPolymorphicSQLNull(knd)},
-			{"sql_lpad_null_2", "LPAD('hi', 5, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_lpad_null_3", "LPAD(NULL, NULL, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_lpad_null_0", "LPAD(NULL, 5, 'a')", NewSQLNull(knd)},
+			{"sql_lpad_null_1", "LPAD('hi', NULL, 'a')", NewSQLNull(knd)},
+			{"sql_lpad_null_2", "LPAD('hi', 5, NULL)", NewSQLNull(knd)},
+			{"sql_lpad_null_3", "LPAD(NULL, NULL, NULL)", NewSQLNull(knd)},
 			// str: empty
 			{"sql_lpad_empty_0", "LPAD('', 0, 'a')", NewSQLVarchar(knd, "")},
 			{"sql_lpad_empty_1", "LPAD('', 1, 'a')", NewSQLVarchar(knd, "a")},
@@ -1313,7 +1314,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_lpad_bool_0", "LPAD(true, 4, 'a')", NewSQLVarchar(knd, "aaa1")},
 			{"sql_lpad_bool_1", "LPAD(false, 4, 'a')", NewSQLVarchar(knd, "aaa0")},
 			// len < 0
-			{"sql_lpad_neg_length", "LPAD('hi', -1, 'a')", NewPolymorphicSQLNull(knd)},
+			{"sql_lpad_neg_length", "LPAD('hi', -1, 'a')", NewSQLNull(knd)},
 			// len = 0
 			{"sql_lpad_zero", "LPAD('hi', 0, 'a')", NewSQLVarchar(knd, "")},
 			// len <= len(str)
@@ -1333,7 +1334,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_lpad_edge_8", "LPAD('hello', 0.4, 'x')", NewSQLVarchar(knd, "")},
 			{"sql_lpad_edge_9", "LPAD('hello', 0.5, 'x')", NewSQLVarchar(knd, "h")},
 			{"sql_lpad_edge_10", "LPAD('hello', -0.4, 'x')", NewSQLVarchar(knd, "")},
-			{"sql_lpad_edge_11", "LPAD('hello', -0.5, 'x')", NewPolymorphicSQLNull(knd)},
+			{"sql_lpad_edge_11", "LPAD('hello', -0.5, 'x')", NewSQLNull(knd)},
 			// len string values close to 0 - always round toward 0
 			{"sql_lpad_edge_12", "LPAD('hello', '0.4', 'x')", NewSQLVarchar(knd, "")},
 			{"sql_lpad_edge_13", "LPAD('hello', '0.5', 'x')", NewSQLVarchar(knd, "")},
@@ -1357,10 +1358,10 @@ func TestEvaluates(t *testing.T) {
 			// basic case
 			{"sql_rpad_0", "RPAD('hello', 7, 'x')", NewSQLVarchar(knd, "helloxx")},
 			// nulls in various positions
-			{"sql_rpad_null_0", "RPAD(NULL, 5, 'a')", NewPolymorphicSQLNull(knd)},
-			{"sql_rpad_null_1", "RPAD('hi', NULL, 'a')", NewPolymorphicSQLNull(knd)},
-			{"sql_rpad_null_2", "RPAD('hi', 5, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_rpad_null_3", "RPAD(NULL, NULL, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_rpad_null_0", "RPAD(NULL, 5, 'a')", NewSQLNull(knd)},
+			{"sql_rpad_null_1", "RPAD('hi', NULL, 'a')", NewSQLNull(knd)},
+			{"sql_rpad_null_2", "RPAD('hi', 5, NULL)", NewSQLNull(knd)},
+			{"sql_rpad_null_3", "RPAD(NULL, NULL, NULL)", NewSQLNull(knd)},
 			// str: empty
 			{"sql_rpad_str_empty_0", "RPAD('', 0, 'a')", NewSQLVarchar(knd, "")},
 			{"sql_rpad_str_empty_1", "RPAD('', 1, 'a')", NewSQLVarchar(knd, "a")},
@@ -1387,7 +1388,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_rpad_bool_0", "RPAD(true, 4, 'a')", NewSQLVarchar(knd, "1aaa")},
 			{"sql_rpad_bool_1", "RPAD(false, 4, 'a')", NewSQLVarchar(knd, "0aaa")},
 			// len < 0
-			{"sql_rpad_len", "RPAD('hi', -1, 'a')", NewPolymorphicSQLNull(knd)},
+			{"sql_rpad_len", "RPAD('hi', -1, 'a')", NewSQLNull(knd)},
 			// len = 0
 			{"sql_rpad_len_1", "RPAD('hi', 0, 'a')", NewSQLVarchar(knd, "")},
 			// len <= len(str)
@@ -1407,7 +1408,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_rpad_len_11", "RPAD('hello', 0.4, 'x')", NewSQLVarchar(knd, "")},
 			{"sql_rpad_len_12", "RPAD('hello', 0.5, 'x')", NewSQLVarchar(knd, "h")},
 			{"sql_rpad_len_13", "RPAD('hello', -0.4, 'x')", NewSQLVarchar(knd, "")},
-			{"sql_rpad_len_14", "RPAD('hello', -0.5, 'x')", NewPolymorphicSQLNull(knd)},
+			{"sql_rpad_len_14", "RPAD('hello', -0.5, 'x')", NewSQLNull(knd)},
 			// len string values close to 0 - always round toward 0
 			{"sql_rpad_len_15", "RPAD('hello', '0.4', 'x')", NewSQLVarchar(knd, "")},
 			{"sql_rpad_len_16", "RPAD('hello', '0.5', 'x')", NewSQLVarchar(knd, "")},
@@ -1426,43 +1427,43 @@ func TestEvaluates(t *testing.T) {
 			// padStr type: boolean
 			{"sql_rpad_len_26", "RPAD('hello', 7, true)", NewSQLVarchar(knd, "hello11")},
 			{"sql_rpad_len_27", "RPAD('hello', 10, false)", NewSQLVarchar(knd, "hello00000")},
-			{"sql_second_0", "SECOND(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_second_0", "SECOND(NULL)", NewSQLNull(knd)},
 			{"sql_second_1", "SECOND('sdg')", NewSQLInt64(knd, 0)},
 			{"sql_second_2", "SECOND('10:23:52')", NewSQLInt64(knd, 52)},
-			{"sql_second_3", "SECOND('10:61:52.24')", NewPolymorphicSQLNull(knd)},
+			{"sql_second_3", "SECOND('10:61:52.24')", NewSQLNull(knd)},
 			{"sql_second_4", "SECOND('10:23:52.24.25.26.27')", NewSQLInt64(knd, 52)},
-			{"sql_sign_0", "SIGN(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_sign_0", "SIGN(NULL)", NewSQLNull(knd)},
 			{"sql_sign_1", "SIGN(-42)", NewSQLInt64(knd, -1)},
 			{"sql_sign_2", "SIGN(0)", NewSQLInt64(knd, 0)},
 			{"sql_sign_3", "SIGN(42)", NewSQLInt64(knd, 1)},
 			{"sql_sign_4", "SIGN(42.0)", NewSQLInt64(knd, 1)},
 			{"sql_sign_5", "SIGN(-42.0)", NewSQLInt64(knd, -1)},
 			{"sql_sign_6", "SIGN('hello world')", NewSQLInt64(knd, 0)},
-			{"sql_sin_0", "SIN(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_sin_0", "SIN(NULL)", NewSQLNull(knd)},
 			{"sql_sin_1", "SIN(19)", NewSQLFloat(knd, 0.14987720966295234)},
 			{"sql_sin_2", "SIN(-19)", NewSQLFloat(knd, -0.14987720966295234)},
 			{"sql_sin_3", "SIN('C')", NewSQLFloat(knd, 0)},
 			{"sql_sin_4", "SIN(0)", NewSQLFloat(knd, 0)},
-			{"sql_space_0", "SPACE(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_space_0", "SPACE(NULL)", NewSQLNull(knd)},
 			{"sql_space_1", "SPACE(5)", NewSQLVarchar(knd, "     ")},
 			{"sql_space_2", "SPACE(-3)", NewSQLVarchar(knd, "")},
-			{"sql_sort_0", "SQRT(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_sort_0", "SQRT(NULL)", NewSQLNull(knd)},
 			{"sql_sort_1", "SQRT('sdg')", NewSQLFloat(knd, 0)},
-			{"sql_sort_2", "SQRT(-16)", NewPolymorphicSQLNull(knd)},
+			{"sql_sort_2", "SQRT(-16)", NewSQLNull(knd)},
 			{"sql_sort_3", "SQRT(4)", NewSQLFloat(knd, 2)},
 			{"sql_sort_4", "SQRT(20)", NewSQLFloat(knd, 4.47213595499958)},
-			{"sql_substring_0", "SUBSTRING(NULL, 4)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_1", "SUBSTRING('foobarbar', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_2", "SUBSTRING('foobarbar', 4, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_substring_0", "SUBSTRING(NULL, 4)", NewSQLNull(knd)},
+			{"sql_substring_1", "SUBSTRING('foobarbar', NULL)", NewSQLNull(knd)},
+			{"sql_substring_2", "SUBSTRING('foobarbar', 4, NULL)", NewSQLNull(knd)},
 			{"sql_substring_3", "SUBSTRING('Quadratically', 5)", NewSQLVarchar(knd, "ratically")},
 			{"sql_substring_4", "SUBSTRING('Quadratically', 5, 6)", NewSQLVarchar(knd, "ratica")},
 			{"sql_substring_5", "SUBSTRING('Quadratically', 12, 2)", NewSQLVarchar(knd, "ly")},
 			{"sql_substring_6", "SUBSTRING('Sakila', -3)", NewSQLVarchar(knd, "ila")},
 			{"sql_substring_7", "SUBSTRING('Sakila', -5, 3)", NewSQLVarchar(knd, "aki")},
 			{"sql_substring_8", "SUBSTRING('日本語', 2)", NewSQLVarchar(knd, "本語")},
-			{"sql_substring_9", "SUBSTR(NULL, 4)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_10", "SUBSTR('foobarbar', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_11", "SUBSTR('foobarbar', 4, NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_substring_9", "SUBSTR(NULL, 4)", NewSQLNull(knd)},
+			{"sql_substring_10", "SUBSTR('foobarbar', NULL)", NewSQLNull(knd)},
+			{"sql_substring_11", "SUBSTR('foobarbar', 4, NULL)", NewSQLNull(knd)},
 			{"sql_substring_12", "SUBSTR('Quadratically', 5)", NewSQLVarchar(knd, "ratically")},
 			{"sql_substring_13", "SUBSTR('Quadratically', 5, 6)", NewSQLVarchar(knd, "ratica")},
 			{"sql_substring_14", "SUBSTR('Sakila', -3)", NewSQLVarchar(knd, "ila")},
@@ -1479,9 +1480,9 @@ func TestEvaluates(t *testing.T) {
 			{"sql_substring_25", "SUBSTR('ZBA', -1, 0)", NewSQLVarchar(knd, "")},
 			{"sql_substring_26", "SUBSTR('ZBA', 1, 0)", NewSQLVarchar(knd, "")},
 			{"sql_substring_27", "SUBSTR('ZBA', 0, 0)", NewSQLVarchar(knd, "")},
-			{"sql_substring_28", "SUBSTRING(NULL from 4)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_29", "SUBSTRING('foobarbar' from NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_30", "SUBSTRING('foobarbar' from 4 for NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_substring_28", "SUBSTRING(NULL from 4)", NewSQLNull(knd)},
+			{"sql_substring_29", "SUBSTRING('foobarbar' from NULL)", NewSQLNull(knd)},
+			{"sql_substring_30", "SUBSTRING('foobarbar' from 4 for NULL)", NewSQLNull(knd)},
 			{
 				"sql_substring_31",
 				"SUBSTRING('Quadratically' FROM 5)",
@@ -1500,9 +1501,9 @@ func TestEvaluates(t *testing.T) {
 			{"sql_substring_34", "SUBSTRING('Sakila' FROM -3)", NewSQLVarchar(knd, "ila")},
 			{"sql_substring_35", "SUBSTRING('Sakila' from -5 for 3)", NewSQLVarchar(knd, "aki")},
 			{"sql_substring_36", "SUBSTRING('日本語' FROM  2)", NewSQLVarchar(knd, "本語")},
-			{"sql_substring_37", "SUBSTR(NULL FROM 4)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_38", "SUBSTR('foobarbar' FROM NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_39", "SUBSTR('foobarbar' FROM 4 FOR NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_substring_37", "SUBSTR(NULL FROM 4)", NewSQLNull(knd)},
+			{"sql_substring_38", "SUBSTR('foobarbar' FROM NULL)", NewSQLNull(knd)},
+			{"sql_substring_39", "SUBSTR('foobarbar' FROM 4 FOR NULL)", NewSQLNull(knd)},
 			{
 				"sql_substring_40",
 				"SUBSTR('Quadratically' FROM  5)",
@@ -1539,15 +1540,15 @@ func TestEvaluates(t *testing.T) {
 			{"sql_substring_65", "SUBSTR('this', 1.6, '2.6')", NewSQLVarchar(knd, "hi")},
 			{"sql_substring_66", "SUBSTR('this', 1.6, '2.1')", NewSQLVarchar(knd, "hi")},
 			{"sql_substring_67", "SUBSTR('this', -11.6)", NewSQLVarchar(knd, "")},
-			{"sql_substring_68", "SUBSTR(NULL, -4)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_69", "SUBSTR(NULL, -4, 2)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_70", "SUBSTR('this' FROM NULL FOR 2)", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_71", "SUBSTR('this', 2, NULL )", NewPolymorphicSQLNull(knd)},
-			{"sql_substring_72", "SUBSTR('this' FROM 3 FOR NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_substring_68", "SUBSTR(NULL, -4)", NewSQLNull(knd)},
+			{"sql_substring_69", "SUBSTR(NULL, -4, 2)", NewSQLNull(knd)},
+			{"sql_substring_70", "SUBSTR('this' FROM NULL FOR 2)", NewSQLNull(knd)},
+			{"sql_substring_71", "SUBSTR('this', 2, NULL )", NewSQLNull(knd)},
+			{"sql_substring_72", "SUBSTR('this' FROM 3 FOR NULL)", NewSQLNull(knd)},
 			{
 				"sql_substring_index_0",
 				"SUBSTRING_INDEX('www.cmysql.com', '.', NULL)",
-				NewPolymorphicSQLNull(knd),
+				NewSQLNull(knd),
 			},
 			{
 				"sql_substring_index_1",
@@ -1589,12 +1590,12 @@ func TestEvaluates(t *testing.T) {
 				"SUBSTRING_INDEX('www.cmysql.com', '.', -1)",
 				NewSQLVarchar(knd, "com"),
 			},
-			{"sql_tan_0", "TAN(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_tan_0", "TAN(NULL)", NewSQLNull(knd)},
 			{"sql_tan_1", "TAN(19)", NewSQLFloat(knd, 0.15158947061240008)},
 			{"sql_tan_2", "TAN(-19)", NewSQLFloat(knd, -0.15158947061240008)},
 			{"sql_tan_3", "TAN('C')", NewSQLFloat(knd, 0)},
 			{"sql_tan_4", "TAN(0)", NewSQLFloat(knd, 0)},
-			{"sql_time_to_sec_0", "TIME_TO_SEC(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_time_to_sec_0", "TIME_TO_SEC(NULL)", NewSQLNull(knd)},
 			{"sql_time_to_sec_1", "TIME_TO_SEC('22:23:00')", NewSQLFloat(knd, 80580)},
 			{"sql_time_to_sec_2", "TIME_TO_SEC('12:34')", NewSQLFloat(knd, 45240)},
 			{"sql_time_to_sec_3", "TIME_TO_SEC('00:39:38')", NewSQLFloat(knd, 2378)},
@@ -1612,9 +1613,9 @@ func TestEvaluates(t *testing.T) {
 				NewSQLFloat(knd, 174299),
 			},
 			{"sql_time_to_sec_13", "TIME_TO_SEC(535959.9)", NewSQLFloat(knd, 194399)},
-			{"sql_time_to_sec_14", "TIME_TO_SEC(534422333)", NewPolymorphicSQLNull(knd)},
-			{"sql_time_to_sec_15", "TIME_TO_SEC(539911)", NewPolymorphicSQLNull(knd)},
-			{"sql_time_to_sec_16", "TIME_TO_SEC(8991111)", NewPolymorphicSQLNull(knd)},
+			{"sql_time_to_sec_14", "TIME_TO_SEC(534422333)", NewSQLNull(knd)},
+			{"sql_time_to_sec_15", "TIME_TO_SEC(539911)", NewSQLNull(knd)},
+			{"sql_time_to_sec_16", "TIME_TO_SEC(8991111)", NewSQLNull(knd)},
 			{"sql_time_to_sec_17", "TIME_TO_SEC('-5359:11')", NewSQLFloat(knd, -3020399)},
 			{"sql_time_to_sec_18", "TIME_TO_SEC('2004-07-09 10:17:35')", NewSQLFloat(knd, 37055)},
 			{
@@ -1622,12 +1623,12 @@ func TestEvaluates(t *testing.T) {
 				"TIME_TO_SEC('2004-07-09 10:17:35.238238')",
 				NewSQLFloat(knd, 37055),
 			},
-			{"sql_timediff_0", "TIMEDIFF('2000:11:11 00:00:00', NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_timediff_1", "TIMEDIFF(NULL, '2000:11:11 00:00:00')", NewPolymorphicSQLNull(knd)},
+			{"sql_timediff_0", "TIMEDIFF('2000:11:11 00:00:00', NULL)", NewSQLNull(knd)},
+			{"sql_timediff_1", "TIMEDIFF(NULL, '2000:11:11 00:00:00')", NewSQLNull(knd)},
 			{
 				"sql_timediff_2",
 				"TIMEDIFF('2000:09:11 00:00:00', '2000:09:31 00:00:01:323211')",
-				NewPolymorphicSQLNull(knd),
+				NewSQLNull(knd),
 			},
 			{
 				"sql_timediff_3",
@@ -1895,9 +1896,9 @@ func TestEvaluates(t *testing.T) {
 					"TIMESTAMP '2002-01-02 14:40:33')",
 				NewSQLInt64(knd, 94224),
 			},
-			{"sql_to_days_0", "TO_DAYS(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_to_days_1", "TO_DAYS('')", NewPolymorphicSQLNull(knd)},
-			{"sql_to_days_2", "TO_DAYS('0000-00-00')", NewPolymorphicSQLNull(knd)},
+			{"sql_to_days_0", "TO_DAYS(NULL)", NewSQLNull(knd)},
+			{"sql_to_days_1", "TO_DAYS('')", NewSQLNull(knd)},
+			{"sql_to_days_2", "TO_DAYS('0000-00-00')", NewSQLNull(knd)},
 			{"sql_to_days_3", "TO_DAYS('0000-01-01')", NewSQLInt64(knd, 1)},
 			{"sql_to_days_4", "TO_DAYS('0000-11-11')", NewSQLInt64(knd, 315)},
 			{"sql_to_days_5", "TO_DAYS('00-11-11')", NewSQLInt64(knd, 730800)},
@@ -1912,9 +1913,9 @@ func TestEvaluates(t *testing.T) {
 			{"sql_to_days_14", "TO_DAYS('2000-09-23 13:45:00')", NewSQLInt64(knd, 730751)},
 			{"sql_to_days_15", "TO_DAYS('2000-09-24 13:45:00')", NewSQLInt64(knd, 730752)},
 			{"sql_to_days_16", "TO_DAYS('2000-10-24 13:45:00')", NewSQLInt64(knd, 730782)},
-			{"sql_to_seconds_0", "TO_SECONDS(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_to_seconds_1", "TO_SECONDS('')", NewPolymorphicSQLNull(knd)},
-			{"sql_to_seconds_2", "TO_SECONDS('0000-00-00')", NewPolymorphicSQLNull(knd)},
+			{"sql_to_seconds_0", "TO_SECONDS(NULL)", NewSQLNull(knd)},
+			{"sql_to_seconds_1", "TO_SECONDS('')", NewSQLNull(knd)},
+			{"sql_to_seconds_2", "TO_SECONDS('0000-00-00')", NewSQLNull(knd)},
 			{"sql_to_seconds_3", "TO_SECONDS('0000-01-01')", NewSQLInt64(knd, 86400)},
 			{"sql_to_seconds_4", "TO_SECONDS('0000-11-11')", NewSQLInt64(knd, 27216000)},
 			{"sql_to_seconds_5", "TO_SECONDS('00-11-11')", NewSQLInt64(knd, 63141120000)},
@@ -1956,7 +1957,7 @@ func TestEvaluates(t *testing.T) {
 				"TO_SECONDS('2000-10-24 13:45:59')",
 				NewSQLInt64(knd, 63139614359),
 			},
-			{"sql_trim_0", "TRIM(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_trim_0", "TRIM(NULL)", NewSQLNull(knd)},
 			{"sql_trim_1", "TRIM('   bar   ')", NewSQLVarchar(knd, "bar")},
 			{"sql_trim_2", "TRIM(BOTH 'xyz' FROM 'xyzbarxyzxyz')", NewSQLVarchar(knd, "bar")},
 			{
@@ -1970,10 +1971,10 @@ func TestEvaluates(t *testing.T) {
 				NewSQLVarchar(knd, "xyzbar"),
 			},
 			{"sql_trim_5", "TRIM('xyz' FROM 'xyzbarxyzxyz')", NewSQLVarchar(knd, "bar")},
-			{"sql_truncate_0", "TRUNCATE(NULL, 2)", NewPolymorphicSQLNull(knd)},
-			{"sql_truncate_1", "TRUNCATE(1234.1234, NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_truncate_2", "TRUNCATE(1 / 0, 2)", NewPolymorphicSQLNull(knd)},
-			{"sql_truncate_3", "TRUNCATE(1234.1234, 1 / 0)", NewPolymorphicSQLNull(knd)},
+			{"sql_truncate_0", "TRUNCATE(NULL, 2)", NewSQLNull(knd)},
+			{"sql_truncate_1", "TRUNCATE(1234.1234, NULL)", NewSQLNull(knd)},
+			{"sql_truncate_2", "TRUNCATE(1 / 0, 2)", NewSQLNull(knd)},
+			{"sql_truncate_3", "TRUNCATE(1234.1234, 1 / 0)", NewSQLNull(knd)},
 			{"sql_truncate_4", "TRUNCATE(1234.1234, 3)", NewSQLFloat(knd, 1234.123)},
 			{"sql_truncate_5", "TRUNCATE(1234.1234, 5)", NewSQLFloat(knd, 1234.1234)},
 			{"sql_truncate_6", "TRUNCATE(1234.1234, 0)", NewSQLFloat(knd, 1234)},
@@ -1981,15 +1982,15 @@ func TestEvaluates(t *testing.T) {
 			{"sql_truncate_8", "TRUNCATE(1234.1234, -5)", NewSQLFloat(knd, 0)},
 			{"sql_truncate_9", "TRUNCATE(-1234.1234, 3)", NewSQLFloat(knd, -1234.123)},
 			{"sql_truncate_10", "TRUNCATE(-1234.1234, -3)", NewSQLFloat(knd, -1000)},
-			{"sql_ucase_0", "UCASE(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_ucase_0", "UCASE(NULL)", NewSQLNull(knd)},
 			{"sql_ucase_1", "UCASE('sdg')", NewSQLVarchar(knd, "SDG")},
 			{"sql_ucase_2", "UCASE(124)", NewSQLVarchar(knd, "124")},
-			{"sql_ucase_3", "UPPER(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_ucase_3", "UPPER(NULL)", NewSQLNull(knd)},
 			{"sql_ucase_4", "UPPER('')", NewSQLVarchar(knd, "")},
 			{"sql_ucase_5", "UPPER('a')", NewSQLVarchar(knd, "A")},
 			{"sql_ucase_6", "UPPER('AWESOME')", NewSQLVarchar(knd, "AWESOME")},
 			{"sql_ucase_7", "UPPER('AwEsOmE')", NewSQLVarchar(knd, "AWESOME")},
-			{"sql_unix_timestamp_0", "UNIX_TIMESTAMP(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_unix_timestamp_0", "UNIX_TIMESTAMP(NULL)", NewSQLNull(knd)},
 			{"sql_unix_timestamp_1", "UNIX_TIMESTAMP('1923-12-12')", NewSQLFloat(knd, 0)},
 			/*
 				These tests will fail if run on a server in a timezone
@@ -2017,8 +2018,8 @@ func TestEvaluates(t *testing.T) {
 				test{"sql_unix_timestamp_10", "UNIX_TIMESTAMP('1985-12-1')", SQLUint(502261200)},
 				test{"sql_unix_timestamp_11", "UNIX_TIMESTAMP('1985-12-01')", SQLUint(502261200)},
 			*/
-			{"sql_week_0", "WEEK(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_week_1", "WEEK('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_week_0", "WEEK(NULL)", NewSQLNull(knd)},
+			{"sql_week_1", "WEEK('sdg')", NewSQLNull(knd)},
 			{"sql_week_2", "WEEK('2016-1-01 10:23:52')", NewSQLInt64(knd, 0)},
 			{"sql_week_3", "WEEK(DATE '2009-1-01')", NewSQLInt64(knd, 0)},
 			{"sql_week_4", "WEEK(DATE '2009-1-01',0)", NewSQLInt64(knd, 0)},
@@ -2054,15 +2055,15 @@ func TestEvaluates(t *testing.T) {
 			{"sql_week_34", "WEEK(DATE '2007-12-31',5)", NewSQLInt64(knd, 53)},
 			{"sql_week_35", "WEEK(DATE '2007-12-31',6)", NewSQLInt64(knd, 1)},
 			{"sql_week_36", "WEEK(DATE '2007-12-31',7)", NewSQLInt64(knd, 53)},
-			{"sql_weekday_0", "WEEKDAY(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_weekday_1", "WEEKDAY('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_weekday_0", "WEEKDAY(NULL)", NewSQLNull(knd)},
+			{"sql_weekday_1", "WEEKDAY('sdg')", NewSQLNull(knd)},
 			{"sql_weekday_2", "WEEKDAY('2016-1-01 10:23:52')", NewSQLInt64(knd, 4)},
 			{"sql_weekday_3", "WEEKDAY('2005-05-11')", NewSQLInt64(knd, 2)},
 			{"sql_weekday_4", "WEEKDAY(DATE '2016-7-10')", NewSQLInt64(knd, 6)},
 			{"sql_weekday_5", "WEEKDAY(DATE '2016-7-11')", NewSQLInt64(knd, 0)},
 			{"sql_weekday_6", "WEEKDAY(TIMESTAMP '2016-7-13 21:22:23')", NewSQLInt64(knd, 2)},
-			{"sql_weekofyear_0", "WEEKOFYEAR(NULL)", NewPolymorphicSQLNull(knd)},
-			{"sql_weekofyear_1", "WEEKOFYEAR('sdg')", NewPolymorphicSQLNull(knd)},
+			{"sql_weekofyear_0", "WEEKOFYEAR(NULL)", NewSQLNull(knd)},
+			{"sql_weekofyear_1", "WEEKOFYEAR('sdg')", NewSQLNull(knd)},
 			{"sql_weekofyear_2", "WEEKOFYEAR('2008-02-20')", NewSQLInt64(knd, 8)},
 			{"sql_weekofyear_3", "WEEKOFYEAR('2009-01-01')", NewSQLInt64(knd, 1)},
 			{"sql_weekofyear_4", "WEEKOFYEAR(DATE '2009-01-05')", NewSQLInt64(knd, 2)},
@@ -2073,7 +2074,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_unary_minus_0", "- 10", NewSQLInt64(knd, -10)},
 			{"sql_unary_minus_1", "- a", NewSQLInt64(knd, -123)},
 			{"sql_unary_minus_2", "- b", NewSQLInt64(knd, -456)},
-			{"sql_unary_minus_3", "- null", NewPolymorphicSQLNull(knd)},
+			{"sql_unary_minus_3", "- null", NewSQLNull(knd)},
 			{"sql_unary_minus_4", "- true", NewSQLInt64(knd, -1)},
 			{"sql_unary_minus_5", "- false", NewSQLInt64(knd, 0)},
 			{"sql_unary_minus_6", "- date '2005-05-11'", NewSQLInt64(knd, -20050511)},
@@ -2104,11 +2105,11 @@ func TestEvaluates(t *testing.T) {
 		aggRows := []*Row{
 			{Data: Values{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
-					Data: NewPolymorphicSQLNull(knd)},
+					Data: NewSQLNull(knd)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
 					Data: NewSQLInt64(knd, 3)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "c",
-					Data: NewPolymorphicSQLNull(knd)},
+					Data: NewSQLNull(knd)},
 				{
 					SelectID: 1,
 					Database: "test",
@@ -2121,9 +2122,9 @@ func TestEvaluates(t *testing.T) {
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
 					Data: NewSQLInt64(knd, 3)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
-					Data: NewPolymorphicSQLNull(knd)},
+					Data: NewSQLNull(knd)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "c",
-					Data: NewPolymorphicSQLNull(knd)},
+					Data: NewSQLNull(knd)},
 				{
 					SelectID: 1,
 					Database: "test",
@@ -2138,18 +2139,18 @@ func TestEvaluates(t *testing.T) {
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
 					Data: NewSQLInt64(knd, 6)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "c",
-					Data: NewPolymorphicSQLNull(knd)},
+					Data: NewSQLNull(knd)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "g",
-					Data: NewPolymorphicSQLNull(knd)},
+					Data: NewSQLNull(knd)},
 			}},
 		}
 		aggState := NewExecutionState().WithRows(aggRows...)
 
 		aggTests := []test{
-			{"sql_agg_expr_avg_0", "AVG(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_agg_expr_avg_0", "AVG(NULL)", NewSQLNull(knd)},
 			{"sql_agg_expr_avg_1", "AVG(a)", NewSQLFloat(knd, 4)},
 			{"sql_agg_expr_avg_2", "AVG(b)", NewSQLFloat(knd, 4.5)},
-			{"sql_agg_expr_avg_3", "AVG(c)", NewPolymorphicSQLNull(knd)},
+			{"sql_agg_expr_avg_3", "AVG(c)", NewSQLNull(knd)},
 			{"sql_agg_expr_avg_4", "AVG('a')", NewSQLFloat(knd, 0)},
 			{"sql_agg_expr_avg_5", "AVG(-20)", NewSQLFloat(knd, -20)},
 			{"sql_agg_expr_avg_6", "AVG(20)", NewSQLFloat(knd, 20)},
@@ -2166,40 +2167,40 @@ func TestEvaluates(t *testing.T) {
 			{"sql_group_concat_expr_3", "GROUP_CONCAT(DISTINCT a)", NewSQLVarchar(knd, "3,5")},
 			{"sql_group_concat_expr_4", "GROUP_CONCAT(a SEPARATOR \"hi\")",
 				NewSQLVarchar(knd, "3hi5")},
-			{"sql_group_concat_expr_5", "GROUP_CONCAT(a,c)", NewPolymorphicSQLNull(knd)},
-			{"sql_group_concat_expr_6", "GROUP_CONCAT(null)", NewPolymorphicSQLNull(knd)},
-			{"sql_min_expr_0", "MIN(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_group_concat_expr_5", "GROUP_CONCAT(a,c)", NewSQLNull(knd)},
+			{"sql_group_concat_expr_6", "GROUP_CONCAT(null)", NewSQLNull(knd)},
+			{"sql_min_expr_0", "MIN(NULL)", NewSQLNull(knd)},
 			{"sql_min_expr_1", "MIN(a)", NewSQLInt64(knd, 3)},
 			{"sql_min_expr_2", "MIN(b)", NewSQLInt64(knd, 3)},
-			{"sql_min_expr_3", "MIN(c)", NewPolymorphicSQLNull(knd)},
+			{"sql_min_expr_3", "MIN(c)", NewSQLNull(knd)},
 			{"sql_min_expr_4", "MIN('a')", NewSQLVarchar(knd, "a")},
 			{"sql_min_expr_5", "MIN(-20)", NewSQLInt64(knd, -20)},
 			{"sql_min_expr_6", "MIN(20)", NewSQLInt64(knd, 20)},
-			{"sql_max_expr_0", "MAX(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_max_expr_0", "MAX(NULL)", NewSQLNull(knd)},
 			{"sql_max_expr_1", "MAX(a)", NewSQLInt64(knd, 5)},
 			{"sql_max_expr_2", "MAX(b)", NewSQLInt64(knd, 6)},
-			{"sql_max_expr_3", "MAX(c)", NewPolymorphicSQLNull(knd)},
+			{"sql_max_expr_3", "MAX(c)", NewSQLNull(knd)},
 			{"sql_max_expr_4", "MAX('a')", NewSQLVarchar(knd, "a")},
 			{"sql_max_expr_5", "MAX(-20)", NewSQLInt64(knd, -20)},
 			{"sql_max_expr_6", "MAX(20)", NewSQLInt64(knd, 20)},
 			{"sql_sleep_expr_0", "SLEEP(1)", NewSQLInt64(knd, 0)},
 			{"sql_sleep_expr_1", "SLEEP(1.5)", NewSQLInt64(knd, 0)},
 			{"sql_sleep_expr_2", "SLEEP(0)", NewSQLInt64(knd, 0)},
-			{"sql_sum_expr_0", "SUM(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_sum_expr_0", "SUM(NULL)", NewSQLNull(knd)},
 			{"sql_sum_expr_1", "SUM(a)", NewSQLFloat(knd, 8)},
 			{"sql_sum_expr_2", "SUM(b)", NewSQLFloat(knd, 9)},
-			{"sql_sum_expr_3", "SUM(c)", NewPolymorphicSQLNull(knd)},
+			{"sql_sum_expr_3", "SUM(c)", NewSQLNull(knd)},
 			{"sql_sum_expr_4", "SUM('a')", NewSQLFloat(knd, 0)},
 			{"sql_sum_expr_5", "SUM(-20)", NewSQLFloat(knd, -60)},
 			{"sql_sum_expr_6", "SUM(20)", NewSQLFloat(knd, 60)},
-			{"sql_std_expr_0", "STD(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_std_expr_0", "STD(NULL)", NewSQLNull(knd)},
 			{"sql_std_dev_expr", "STDDEV(a)", NewSQLFloat(knd, 1)},
 			{"sql_std_dev_pop_expr", "STDDEV_POP(b)", NewSQLFloat(knd, 1.5)},
-			{"sql_std_expr_1", "STD(c)", NewPolymorphicSQLNull(knd)},
-			{"sql_std_dev_samp_expr_0", "STDDEV_SAMP(NULL)", NewPolymorphicSQLNull(knd)},
+			{"sql_std_expr_1", "STD(c)", NewSQLNull(knd)},
+			{"sql_std_dev_samp_expr_0", "STDDEV_SAMP(NULL)", NewSQLNull(knd)},
 			{"sql_std_dev_samp_expr_1", "STDDEV_SAMP(a)", NewSQLFloat(knd, 1.4142135623730951)},
 			{"sql_std_dev_samp_expr_2", "STDDEV_SAMP(b)", NewSQLFloat(knd, 2.1213203435596424)},
-			{"sql_std_dev_samp_expr_3", "STDDEV_SAMP(c)", NewPolymorphicSQLNull(knd)},
+			{"sql_std_dev_samp_expr_3", "STDDEV_SAMP(c)", NewSQLNull(knd)},
 		}
 		runTests(t, execCfg, aggState, aggTests)
 
@@ -2286,7 +2287,7 @@ func TestEvaluates(t *testing.T) {
 		t.Run("sql_sleep_with_neg_value", func(t *testing.T) {
 			req := require.New(t)
 			subject, err := NewSQLScalarFunctionExpr(
-				"sleep", []SQLExpr{NewSQLInt64(knd, -1)})
+				"sleep", []SQLExpr{NewSQLValueExpr(NewSQLInt64(knd, -1))})
 			req.Nil(err, "unable to create scalar sleep expression")
 			_, err = subject.Evaluate(bgCtx, execCfg, execState)
 			req.NotNil(err, "did not return error on negative sleep value")
@@ -2296,7 +2297,7 @@ func TestEvaluates(t *testing.T) {
 			req := require.New(t)
 			subject, err := NewSQLScalarFunctionExpr(
 				"sleep",
-				[]SQLExpr{NewPolymorphicSQLNull(knd)},
+				[]SQLExpr{NewSQLValueExpr(NewSQLNull(knd))},
 			)
 			req.Nil(err, "unable to create scalar sleep expression")
 			_, err = subject.Evaluate(bgCtx, execCfg, execState)
@@ -2314,8 +2315,8 @@ func TestEvaluates(t *testing.T) {
 					nil,
 				),
 				NewSQLAddExpr(
-					NewSQLInt64(knd, 1),
-					NewSQLInt64(knd, 3),
+					NewSQLValueExpr(NewSQLInt64(knd, 1)),
+					NewSQLValueExpr(NewSQLInt64(knd, 3)),
 				),
 			)
 
@@ -2331,8 +2332,8 @@ func TestEvaluates(t *testing.T) {
 		t.Run("sql_divide_by_zero", func(t *testing.T) {
 			req := require.New(t)
 			subject := NewSQLDivideExpr(
-				NewSQLInt64(knd, 10),
-				NewSQLInt64(knd, 0),
+				NewSQLValueExpr(NewSQLInt64(knd, 10)),
+				NewSQLValueExpr(NewSQLInt64(knd, 0)),
 			)
 			result, err := subject.Evaluate(bgCtx, execCfg, execState)
 			req.Nil(err, "unable to evaluate sql expression")
@@ -2447,7 +2448,7 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
-				{"sql_add_date_0", "ADDDATE(NULL, INTERVAL 1 YEAR)", NewPolymorphicSQLNull(knd)},
+				{"sql_add_date_0", "ADDDATE(NULL, INTERVAL 1 YEAR)", NewSQLNull(knd)},
 				{
 					"sql_add_date_1",
 					"ADDDATE('2002-01-02', INTERVAL 1 YEAR)",
@@ -2565,7 +2566,7 @@ func TestEvaluates(t *testing.T) {
 
 			tests := []test{
 				{"sql_convert_expr_66", "CONVERT('2006-05-11', DATE)", NewSQLDate(knd, d)},
-				{"sql_convert_expr_67", "CONVERT(true, DATE)", NewPolymorphicSQLNull(knd)},
+				{"sql_convert_expr_67", "CONVERT(true, DATE)", NewSQLNull(knd)},
 				{
 					"sql_convert_expr_68",
 					"CONVERT(DATE '2006-05-11', DATE)",
@@ -2576,17 +2577,17 @@ func TestEvaluates(t *testing.T) {
 					"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATE)",
 					NewSQLDate(knd, d),
 				},
-				{"sql_convert_expr_70", "CONVERT(NULL, DATETIME)", NewPolymorphicSQLNull(knd)},
-				{"sql_convert_expr_71", "CONVERT(-3.4, DATETIME)", NewPolymorphicSQLNull(knd)},
+				{"sql_convert_expr_70", "CONVERT(NULL, DATETIME)", NewSQLNull(knd)},
+				{"sql_convert_expr_71", "CONVERT(-3.4, DATETIME)", NewSQLNull(knd)},
 				{"sql_convert_expr_72", "CONVERT('janna', DATETIME)",
-					NewPolymorphicSQLNull(knd)},
+					NewSQLNull(knd)},
 				{
 					"sql_convert_expr_73",
 					"CONVERT('2006-05-11', DATETIME)",
 					NewSQLTimestamp(knd, dt),
 				},
-				{"sql_convert_expr_74", "CONVERT(true, DATETIME)", NewPolymorphicSQLNull(knd)},
-				{"sql_convert_expr_75", "CONVERT(3, SQL_TIMESTAMP)", NewPolymorphicSQLNull(knd)},
+				{"sql_convert_expr_74", "CONVERT(true, DATETIME)", NewSQLNull(knd)},
+				{"sql_convert_expr_75", "CONVERT(3, SQL_TIMESTAMP)", NewSQLNull(knd)},
 				{
 					"sql_convert_expr_76",
 					"CONVERT(TIMESTAMP '2006-05-11 12:32:12', DATETIME)",
@@ -2608,7 +2609,7 @@ func TestEvaluates(t *testing.T) {
 				//	SQLTimestamp{Time: time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC)},
 				//},
 				{"sql_convert_expr_80", "CONVERT('0', DATE)",
-					NewPolymorphicSQLNull(knd)},
+					NewSQLNull(knd)},
 				{"sql_convert_expr_81", "CONVERT(0, DATE)",
 					NewSQLDate(knd, NullDate)},
 			}
@@ -2619,7 +2620,7 @@ func TestEvaluates(t *testing.T) {
 			req := require.New(t)
 			subject, err := NewSQLScalarFunctionExpr(
 				"cot",
-				[]SQLExpr{NewSQLFloat(knd, 0)},
+				[]SQLExpr{NewSQLValueExpr(NewSQLFloat(knd, 0))},
 			)
 			req.Nil(err, "unable to create sql scalar expression")
 			_, err = subject.Evaluate(bgCtx, execCfg, execState)
@@ -2668,13 +2669,13 @@ func TestEvaluates(t *testing.T) {
 
 			tests := []test{
 				// invalid inputs
-				{"sql_date_invalid_0", "DATE(NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_date_invalid_1", "DATE(23)", NewPolymorphicSQLNull(knd)},
-				{"sql_date_invalid_2", "DATE('cat')", NewPolymorphicSQLNull(knd)},
-				{"sql_date_invalid_3", "DATE(6911)", NewPolymorphicSQLNull(knd)},
-				{"sql_date_invalid_4", "DATE(2017110722040)", NewPolymorphicSQLNull(knd)},
-				{"sql_date_invalid_5", "DATE(-50)", NewPolymorphicSQLNull(knd)},
-				{"sql_date_invalid_6", "DATE('')", NewPolymorphicSQLNull(knd)},
+				{"sql_date_invalid_0", "DATE(NULL)", NewSQLNull(knd)},
+				{"sql_date_invalid_1", "DATE(23)", NewSQLNull(knd)},
+				{"sql_date_invalid_2", "DATE('cat')", NewSQLNull(knd)},
+				{"sql_date_invalid_3", "DATE(6911)", NewSQLNull(knd)},
+				{"sql_date_invalid_4", "DATE(2017110722040)", NewSQLNull(knd)},
+				{"sql_date_invalid_5", "DATE(-50)", NewSQLNull(knd)},
+				{"sql_date_invalid_6", "DATE('')", NewSQLNull(knd)},
 
 				// explicitly labeling input as date/timestamp
 				{"sql_date_explicit_label_0", "DATE(TIMESTAMP '2016-03-01 12:32:23')", dExpected},
@@ -2692,8 +2693,8 @@ func TestEvaluates(t *testing.T) {
 				{"sql_date_number_inputs_3", "DATE(160301)", dExpected},
 
 				// numbers that are too short to pad
-				{"sql_date_non_paddable_0", "DATE(1)", NewPolymorphicSQLNull(knd)},
-				{"sql_date_non_paddable_1", "DATE(11)", NewPolymorphicSQLNull(knd)},
+				{"sql_date_non_paddable_0", "DATE(1)", NewSQLNull(knd)},
+				{"sql_date_non_paddable_1", "DATE(11)", NewSQLNull(knd)},
 
 				// number inputs requiring padding
 				{"sql_date_padded_nums_0", "DATE(111)", NewSQLDate(knd, jan112000)},
@@ -2864,12 +2865,12 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_date_add_21",
 					"DATE_ADD('2002-01-02', INTERVAL NULL YEAR)",
-					NewPolymorphicSQLNull(knd),
+					NewSQLNull(knd),
 				},
 				{
 					"sql_date_add_22",
 					"DATE_ADD(NULL, INTERVAL 1 YEAR)",
-					NewPolymorphicSQLNull(knd),
+					NewSQLNull(knd),
 				},
 				{
 					"sql_date_add_23",
@@ -2930,9 +2931,9 @@ func TestEvaluates(t *testing.T) {
 				{
 					"sql_date_sub_0",
 					"DATE_SUB('2004-01-02', INTERVAL NULL YEAR)",
-					NewPolymorphicSQLNull(knd),
+					NewSQLNull(knd),
 				},
-				{"sql_date_sub_1", "DATE_SUB(NULL, INTERVAL 1 YEAR)", NewPolymorphicSQLNull(knd)},
+				{"sql_date_sub_1", "DATE_SUB(NULL, INTERVAL 1 YEAR)", NewSQLNull(knd)},
 				{
 					"sql_date_sub_2",
 					"DATE_SUB('2004-01-02', INTERVAL 1 YEAR)",
@@ -3051,15 +3052,15 @@ func TestEvaluates(t *testing.T) {
 			t5 := time.Date(2112, 1, 8, 0, 0, 0, 0, schema.DefaultLocale)
 
 			tests := []test{
-				{"sql_from_days_0", "FROM_DAYS(NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_from_days_1", "FROM_DAYS('sdg')", NewSQLNull(knd, EvalDate)},
-				{"sql_from_days_2", "FROM_DAYS(1.23)", NewSQLNull(knd, EvalDate)},
-				{"sql_from_days_3", "FROM_DAYS(-1.23)", NewSQLNull(knd, EvalDate)},
-				{"sql_from_days_4", "FROM_DAYS(-223.33)", NewSQLNull(knd, EvalDate)},
-				{"sql_from_days_5", "FROM_DAYS(223.33)", NewSQLNull(knd, EvalDate)},
-				{"sql_from_days_6", "FROM_DAYS(365.33)", NewSQLNull(knd, EvalDate)},
-				{"sql_from_days_7", "FROM_DAYS(3652499.5)", NewSQLNull(knd, EvalDate)},
-				{"sql_from_days_8", "FROM_DAYS(-771399.216)", NewSQLNull(knd, EvalDate)},
+				{"sql_from_days_0", "FROM_DAYS(NULL)", NewSQLNull(knd)},
+				{"sql_from_days_1", "FROM_DAYS('sdg')", NewSQLNull(knd)},
+				{"sql_from_days_2", "FROM_DAYS(1.23)", NewSQLNull(knd)},
+				{"sql_from_days_3", "FROM_DAYS(-1.23)", NewSQLNull(knd)},
+				{"sql_from_days_4", "FROM_DAYS(-223.33)", NewSQLNull(knd)},
+				{"sql_from_days_5", "FROM_DAYS(223.33)", NewSQLNull(knd)},
+				{"sql_from_days_6", "FROM_DAYS(365.33)", NewSQLNull(knd)},
+				{"sql_from_days_7", "FROM_DAYS(3652499.5)", NewSQLNull(knd)},
+				{"sql_from_days_8", "FROM_DAYS(-771399.216)", NewSQLNull(knd)},
 				{"sql_from_days_9", "FROM_DAYS(365.93)", NewSQLDate(knd, t1)},
 				{"sql_from_days_10", "FROM_DAYS(343+23)", NewSQLDate(knd, t1)},
 				{"sql_from_days_11", "FROM_DAYS(730669)", NewSQLDate(knd, t2)},
@@ -3079,7 +3080,7 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
-				{"sql_greatest_expr_0", "GREATEST(NULL, 1, 2)", NewPolymorphicSQLNull(knd)},
+				{"sql_greatest_expr_0", "GREATEST(NULL, 1, 2)", NewSQLNull(knd)},
 				{"sql_greatest_expr_1", "GREATEST(1,3,2)", NewSQLInt64(knd, 3)},
 				{
 					"sql_greatest_expr_2",
@@ -3195,9 +3196,9 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
-				{"sql_last_day_0", "LAST_DAY('')", NewPolymorphicSQLNull(knd)},
-				{"sql_last_day_1", "LAST_DAY(NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_last_day_2", "LAST_DAY('2003-03-32')", NewPolymorphicSQLNull(knd)},
+				{"sql_last_day_0", "LAST_DAY('')", NewSQLNull(knd)},
+				{"sql_last_day_1", "LAST_DAY(NULL)", NewSQLNull(knd)},
+				{"sql_last_day_2", "LAST_DAY('2003-03-32')", NewSQLNull(knd)},
 				{"sql_last_day_3", "LAST_DAY('2003-02-05')", NewSQLDate(knd, d1)},
 				{"sql_last_day_4", "LAST_DAY('2004-02-05')", NewSQLDate(knd, d2)},
 				{"sql_last_day_5", "LAST_DAY('2004-01-01 01:01:01')", NewSQLDate(knd, d3)},
@@ -3215,7 +3216,7 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
-				{"sql_least_expr_0", "LEAST(NULL, 1, 2)", NewPolymorphicSQLNull(knd)},
+				{"sql_least_expr_0", "LEAST(NULL, 1, 2)", NewSQLNull(knd)},
 				{"sql_least_expr_1", "LEAST(1,3,2)", NewSQLInt64(knd, 1)},
 				{"sql_least_expr_2", "LEAST(2,2.3)", NewSQLDecimal128(knd, decimal.New(2, 0))},
 				{"sql_least_expr_3", "LEAST('cats', '4', '2')", NewSQLVarchar(knd, "2")},
@@ -3302,9 +3303,9 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
-				{"sql_makedate_0", "MAKEDATE(NULL, 4)", NewPolymorphicSQLNull(knd)},
-				{"sql_makedate_1", "MAKEDATE(2004, 0)", NewPolymorphicSQLNull(knd)},
-				{"sql_makedate_2", "MAKEDATE(9999, 370)", NewPolymorphicSQLNull(knd)},
+				{"sql_makedate_0", "MAKEDATE(NULL, 4)", NewSQLNull(knd)},
+				{"sql_makedate_1", "MAKEDATE(2004, 0)", NewSQLNull(knd)},
+				{"sql_makedate_2", "MAKEDATE(9999, 370)", NewSQLNull(knd)},
 				{"sql_makedate_3", "MAKEDATE('sdg', 32)", NewSQLDate(knd, d)},
 				{"sql_makedate_4", "MAKEDATE('2000.9', 32)", NewSQLDate(knd, d)},
 				{"sql_makedate_5", "MAKEDATE(1999.5, 32)", NewSQLDate(knd, d)},
@@ -3331,8 +3332,8 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from string")
 
 			tests := []test{
-				{"sql_str_to_date_0", "STR_TO_DATE(NULL, 4)", NewPolymorphicSQLNull(knd)},
-				{"sql_str_to_date_1", "STR_TO_DATE('foobarbar', NULL)", NewPolymorphicSQLNull(knd)},
+				{"sql_str_to_date_0", "STR_TO_DATE(NULL, 4)", NewSQLNull(knd)},
+				{"sql_str_to_date_1", "STR_TO_DATE('foobarbar', NULL)", NewSQLNull(knd)},
 				{
 					"sql_str_to_date_2",
 					"STR_TO_DATE('2016-04-03','%Y-%m-%d')",
@@ -3395,14 +3396,14 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to parse time from stringstamp")
 
 			tests := []test{
-				{"sql_timestamp_0", "TIMESTAMP(NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_timestamp_1", "TIMESTAMP(NULL, NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_timestamp_2", "TIMESTAMP(NULL, '12:22:22')", NewPolymorphicSQLNull(knd)},
-				{"sql_timestamp_3", "TIMESTAMP('2002-01-02', NULL)", NewPolymorphicSQLNull(knd)},
+				{"sql_timestamp_0", "TIMESTAMP(NULL)", NewSQLNull(knd)},
+				{"sql_timestamp_1", "TIMESTAMP(NULL, NULL)", NewSQLNull(knd)},
+				{"sql_timestamp_2", "TIMESTAMP(NULL, '12:22:22')", NewSQLNull(knd)},
+				{"sql_timestamp_3", "TIMESTAMP('2002-01-02', NULL)", NewSQLNull(knd)},
 				{
 					"sql_timestamp_4",
 					"TIMESTAMP('2010-01-01 11:11:11', '11:71:11')",
-					NewPolymorphicSQLNull(knd),
+					NewSQLNull(knd),
 				},
 				{
 					"sql_timestamp_5",
@@ -3594,8 +3595,8 @@ func TestEvaluates(t *testing.T) {
 		t.Run("year", func(t *testing.T) {
 			t.Skip()
 			tests := []test{
-				{"sql_year_0", "YEAR(NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_year_1", "YEAR('sdg')", NewPolymorphicSQLNull(knd)},
+				{"sql_year_0", "YEAR(NULL)", NewSQLNull(knd)},
+				{"sql_year_1", "YEAR('sdg')", NewSQLNull(knd)},
 				{"sql_year_2", "YEAR('2016-1-01 10:23:52')", NewSQLInt64(knd, 53)},
 			}
 			runTests(t, execCfg, execState, tests)
@@ -3604,8 +3605,8 @@ func TestEvaluates(t *testing.T) {
 		t.Run("yearweek", func(t *testing.T) {
 			t.Skip()
 			tests := []test{
-				{"sql_yearweek_0", "YEARWEEK(NULL)", NewPolymorphicSQLNull(knd)},
-				{"sql_yearweek_1", "YEARWEEK('sdg')", NewPolymorphicSQLNull(knd)},
+				{"sql_yearweek_0", "YEARWEEK(NULL)", NewSQLNull(knd)},
+				{"sql_yearweek_1", "YEARWEEK('sdg')", NewSQLNull(knd)},
 				{"sql_yearweek_2", "YEARWEEK('2000-01-01')", NewSQLInt64(knd, 199252)},
 				{"sql_yearweek_3", "YEARWEEK('2001-01-01')", NewSQLInt64(knd, 200053)},
 				{"sql_yearweek_4", "YEARWEEK('2002-01-01')", NewSQLInt64(knd, 200152)},
@@ -3691,9 +3692,9 @@ func TestReconcileSQLExpr(t *testing.T) {
 		}
 	}
 
-	exprConv := NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
+	exprConv := NewSQLConvertExpr(NewSQLValueExpr(NewSQLVarchar(knd, "2010-01-01")),
 		EvalDatetime)
-	exprConvBool := NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
+	exprConvBool := NewSQLConvertExpr(NewSQLValueExpr(NewSQLVarchar(knd, "2010-01-01")),
 		EvalBoolean)
 	exprA := NewSQLColumnExpr(1, "test", "bar", "a", EvalInt64,
 		schema.MongoInt)
@@ -3704,9 +3705,9 @@ func TestReconcileSQLExpr(t *testing.T) {
 	exprGConvBool := NewSQLConvertExpr(exprG, EvalBoolean)
 
 	tests := []test{
-		{"a = 3", exprA, NewSQLInt64(knd, 3)},
+		{"a = 3", exprA, NewSQLValueExpr(NewSQLInt64(knd, 3))},
 		{"g - '2010-01-01'", NewSQLConvertExpr(exprG, EvalDecimal128),
-			NewSQLConvertExpr(NewSQLVarchar(knd, "2010-01-01"),
+			NewSQLConvertExpr(NewSQLValueExpr(NewSQLVarchar(knd, "2010-01-01")),
 				EvalDecimal128)},
 		{"g > '2010-01-01'", exprG, exprConv},
 		{"a and b", exprA, exprB},
@@ -3753,7 +3754,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLInt64(knd, 1), NewSQLFloat(knd, 1), 0},
 			{NewSQLInt64(knd, 1), NewSQLBool(knd, false), 1},
 			{NewSQLInt64(knd, 1), NewSQLBool(knd, true), 0},
-			{NewSQLInt64(knd, 1), NewPolymorphicSQLNull(knd), 1},
+			{NewSQLInt64(knd, 1), NewSQLNull(knd), 1},
 			{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLInt64(knd, 1), NewSQLVarchar(knd, "bac"), 1},
 			{NewSQLInt64(knd, 1), NewSQLDate(knd, now), -1},
@@ -3771,7 +3772,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLFloat(knd, 1.1), NewSQLFloat(knd, 1), 1},
 			{NewSQLFloat(knd, 0.1), NewSQLBool(knd, false), 1},
 			{NewSQLFloat(knd, 0.1), NewSQLBool(knd, true), -1},
-			{NewSQLFloat(knd, 0.1), NewPolymorphicSQLNull(knd), 1},
+			{NewSQLFloat(knd, 0.1), NewSQLNull(knd), 1},
 			{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLFloat(knd, 0.1), NewSQLVarchar(knd, "bac"), 1},
 			{NewSQLFloat(knd, 0.0), NewSQLInt64(knd, 1), -1},
@@ -3790,7 +3791,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLBool(knd, true), NewSQLFloat(knd, 1), 0},
 			{NewSQLBool(knd, true), NewSQLBool(knd, false), 1},
 			{NewSQLBool(knd, true), NewSQLBool(knd, true), 0},
-			{NewSQLBool(knd, true), NewPolymorphicSQLNull(knd), 1},
+			{NewSQLBool(knd, true), NewSQLNull(knd), 1},
 			{NewSQLBool(knd, true), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLBool(knd, true), NewSQLVarchar(knd, "bac"), 1},
 			{NewSQLBool(knd, true), NewSQLDate(knd, now), -1},
@@ -3802,7 +3803,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLBool(knd, false), NewSQLFloat(knd, 1), -1},
 			{NewSQLBool(knd, false), NewSQLBool(knd, false), 0},
 			{NewSQLBool(knd, false), NewSQLBool(knd, true), -1},
-			{NewSQLBool(knd, false), NewPolymorphicSQLNull(knd), 1},
+			{NewSQLBool(knd, false), NewSQLNull(knd), 1},
 			{NewSQLBool(knd, false), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
 			{NewSQLBool(knd, false), NewSQLVarchar(knd, "bac"), 0},
 			{NewSQLBool(knd, false), NewSQLDate(knd, now), -1},
@@ -3820,7 +3821,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLDate(knd, now), NewSQLFloat(knd, 1), 1},
 			{NewSQLDate(knd, now), NewSQLBool(knd, false), 1},
 			{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(diff)), -1},
-			{NewSQLDate(knd, now), NewPolymorphicSQLNull(knd), 1},
+			{NewSQLDate(knd, now), NewSQLNull(knd), 1},
 			{NewSQLDate(knd, now), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
 			{NewSQLDate(knd, now), NewSQLVarchar(knd, "bac"), 1},
 			{NewSQLDate(knd, now), NewSQLDate(knd, now.Add(-diff)), 1},
@@ -3839,7 +3840,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLTimestamp(knd, now), NewSQLUint64(knd, 1), 1},
 			{NewSQLTimestamp(knd, now), NewSQLFloat(knd, 1), 1},
 			{NewSQLTimestamp(knd, now), NewSQLBool(knd, false), 1},
-			{NewSQLTimestamp(knd, now), NewPolymorphicSQLNull(knd), 1},
+			{NewSQLTimestamp(knd, now), NewSQLNull(knd), 1},
 			{NewSQLTimestamp(knd, now), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), 1},
 			{NewSQLTimestamp(knd, now), NewSQLVarchar(knd, "bac"), 1},
 			{NewSQLTimestamp(knd, now), NewSQLTimestamp(knd, now.Add(diff)), -1},
@@ -3855,17 +3856,17 @@ func TestCompareTo(t *testing.T) {
 
 	t.Run("SQLNullValue", func(t *testing.T) {
 		tests := []test{
-			{NewPolymorphicSQLNull(knd), NewSQLInt64(knd, 0), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLInt64(knd, 1), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLInt64(knd, 2), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLUint64(knd, 1), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLFloat(knd, 1), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLBool(knd, false), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLVarchar(knd, "bac"), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLDate(knd, now), -1},
-			{NewPolymorphicSQLNull(knd), NewSQLTimestamp(knd, now), -1},
-			{NewPolymorphicSQLNull(knd), NewPolymorphicSQLNull(knd), 0},
+			{NewSQLNull(knd), NewSQLInt64(knd, 0), -1},
+			{NewSQLNull(knd), NewSQLInt64(knd, 1), -1},
+			{NewSQLNull(knd), NewSQLInt64(knd, 2), -1},
+			{NewSQLNull(knd), NewSQLUint64(knd, 1), -1},
+			{NewSQLNull(knd), NewSQLFloat(knd, 1), -1},
+			{NewSQLNull(knd), NewSQLBool(knd, false), -1},
+			{NewSQLNull(knd), NewSQLVarchar(knd, "56e0750e1d857aea925a4ba1"), -1},
+			{NewSQLNull(knd), NewSQLVarchar(knd, "bac"), -1},
+			{NewSQLNull(knd), NewSQLDate(knd, now), -1},
+			{NewSQLNull(knd), NewSQLTimestamp(knd, now), -1},
+			{NewSQLNull(knd), NewSQLNull(knd), 0},
 		}
 		runTests(t, tests)
 	})
@@ -3882,7 +3883,7 @@ func TestCompareTo(t *testing.T) {
 			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "cba"), -1},
 			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "bac"), 0},
 			{NewSQLVarchar(knd, "bac"), NewSQLVarchar(knd, "abc"), 1},
-			{NewSQLVarchar(knd, "bac"), NewPolymorphicSQLNull(knd), 1},
+			{NewSQLVarchar(knd, "bac"), NewSQLNull(knd), 1},
 		}
 		runTests(t, tests)
 	})
@@ -4055,20 +4056,20 @@ func TestGetBinaryFromExpr(t *testing.T) {
 
 	t.Run("invalid sqlexpr", func(t *testing.T) {
 		req := require.New(t)
-		_, ok := GetBinaryFromExpr(schema.MongoUUID, NewSQLVarchar(knd, "3"))
+		_, ok := GetBinaryFromExpr(schema.MongoUUID, NewSQLValueExpr(NewSQLVarchar(knd, "3")))
 		req.False(ok)
 	})
 
 	t.Run("with dashes", func(t *testing.T) {
 		req := require.New(t)
 		b, ok := GetBinaryFromExpr(schema.MongoUUID,
-			NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10"))
+			NewSQLValueExpr(NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10")))
 		req.True(ok)
 		req.Equal(byte(0x04), b.Kind)
 		req.Zero(convey.ShouldResemble(b.Data, expected))
 
 		b, ok = GetBinaryFromExpr(schema.MongoUUIDOld,
-			NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10"))
+			NewSQLValueExpr(NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10")))
 		req.True(ok)
 		req.Equal(byte(0x03), b.Kind)
 		req.Zero(convey.ShouldResemble(b.Data, expected))
@@ -4077,13 +4078,13 @@ func TestGetBinaryFromExpr(t *testing.T) {
 	t.Run("without dashes", func(t *testing.T) {
 		req := require.New(t)
 		b, ok := GetBinaryFromExpr(schema.MongoUUIDJava,
-			NewSQLVarchar(knd, "0807060504030201100f0e0d0c0b0a09"))
+			NewSQLValueExpr(NewSQLVarchar(knd, "0807060504030201100f0e0d0c0b0a09")))
 		req.True(ok)
 		req.Equal(byte(0x03), b.Kind)
 		req.Zero(convey.ShouldResemble(b.Data, expected))
 
 		b, ok = GetBinaryFromExpr(schema.MongoUUIDCSharp,
-			NewSQLVarchar(knd, "0403020106050807090a0b0c0d0e0f10"))
+			NewSQLValueExpr(NewSQLVarchar(knd, "0403020106050807090a0b0c0d0e0f10")))
 		req.True(ok)
 		req.Equal(byte(0x03), b.Kind)
 		req.Zero(convey.ShouldResemble(b.Data, expected))

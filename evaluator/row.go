@@ -2,6 +2,8 @@ package evaluator
 
 import (
 	"strings"
+
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 // Row holds data from one or more tables.
@@ -17,7 +19,7 @@ type Row struct {
 func (row *Row) GetField(selectID int,
 	databaseName,
 	tableName,
-	columnName string) (SQLValue,
+	columnName string) (values.SQLValue,
 	bool) {
 	for _, r := range row.Data {
 		if r.SelectID == selectID && strings.EqualFold(r.Database, databaseName) &&
@@ -37,17 +39,17 @@ type Value struct {
 	Database string
 	Table    string
 	Name     string
-	Data     SQLValue
+	Data     values.SQLValue
 }
 
 // NewValue returns a Value with the provided selectID, database, table,
 // name, and data.
-func NewValue(selectID int, database, table, name string, data SQLValue) Value {
+func NewValue(selectID int, database, table, name string, data values.SQLValue) Value {
 	return Value{selectID, database, table, name, data}
 }
 
-// NewValueFromColumn generates a value from a provided Column and SQLValue.
-func NewValueFromColumn(column Column, sqlValue SQLValue) Value {
+// NewValueFromColumn generates a value from a provided Column and values.SQLValue.
+func NewValueFromColumn(column Column, sqlValue values.SQLValue) Value {
 	return NewValue(column.SelectID, column.Database, column.Table, column.Name, sqlValue)
 }
 
@@ -65,9 +67,9 @@ func (v *Value) Size() uint64 {
 // Values holds a slice of `Value`s.
 type Values []Value
 
-// Map returns a map of the Values' names to their SQLValues.
-func (v Values) Map() map[string]SQLValue {
-	m := make(map[string]SQLValue)
+// Map returns a map of the Values' names to their values.SQLValues.
+func (v Values) Map() map[string]values.SQLValue {
+	m := make(map[string]values.SQLValue)
 	for _, value := range v {
 		m[value.Name] = value.Data
 	}

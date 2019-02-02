@@ -3,9 +3,12 @@ package evaluator
 import (
 	"context"
 	"fmt"
+	"math"
 	"regexp"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
@@ -39,16 +42,13 @@ const (
 // SQLExpr is the base type for a SQL expression.
 type SQLExpr interface {
 	Node
+	types.EvalTyper
+	fmt.Stringer
 	// Evaluate evaluates the receiver expression in memory.
-	Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error)
+	Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (values.SQLValue, error)
 	// FoldConstants performs constant-folding on this SQLExpr, returning a
 	// SQLExpr that is simplified as much as possible.
 	FoldConstants(cfg *OptimizerConfig) SQLExpr
-	// String renders a string representation of the receiver expression.
-	String() string
-	// EvalType returns the EvalType resulting from evaluating the expression
-	// (for instance, SQLEqualsExpr.EvalType() returns EvalBoolean).
-	EvalType() EvalType
 	// ExprName returns a string representing this SQLExpr's name.
 	ExprName() string
 	// ToAggregationPredicate translates this expression to the aggregation language
@@ -101,8 +101,8 @@ func (*MongoFilterExpr) ExprName() string {
 
 var _ translatableToMatch = (*MongoFilterExpr)(nil)
 
-// Evaluate evaluates a MongoFilterExpr into a SQLValue.
-func (e *MongoFilterExpr) Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a MongoFilterExpr into a values.SQLValue.
+func (e *MongoFilterExpr) Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (values.SQLValue, error) {
 	return nil, fmt.Errorf("could not evaluate predicate with mongo filter expression")
 }
 
@@ -142,8 +142,8 @@ func (e *MongoFilterExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 }
 
 // EvalType returns the EvalType associated with MongoFilterExpr.
-func (*MongoFilterExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*MongoFilterExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // SQLAssignmentExpr handles assigning a value to a variable.
@@ -186,8 +186,8 @@ func NewSQLAssignmentExpr(variable *SQLVariableExpr, expr SQLExpr) *SQLAssignmen
 	}
 }
 
-// Evaluate evaluates a SQLAssignmentExpr into a SQLValue.
-func (e *SQLAssignmentExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLAssignmentExpr into a values.SQLValue.
+func (e *SQLAssignmentExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	value, err := e.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func (e *SQLAssignmentExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLAssignmentExpr.
-func (e *SQLAssignmentExpr) EvalType() EvalType {
+func (e *SQLAssignmentExpr) EvalType() types.EvalType {
 	return e.expr.EvalType()
 }
 
@@ -265,22 +265,22 @@ func NewSQLBenchmarkExpr(count, expr SQLExpr) *SQLBenchmarkExpr {
 	}
 }
 
-// Evaluate evaluates a SQLBenchmarkExpr into a SQLValue.
-func (e *SQLBenchmarkExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLBenchmarkExpr into a values.SQLValue.
+func (e *SQLBenchmarkExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 
 	count, err := e.count.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	for i := int64(0); i < Int64(count); i++ {
+	for i := int64(0); i < values.Int64(count); i++ {
 		_, err := e.expr.Evaluate(ctx, cfg, st)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return NewSQLInt64(cfg.sqlValueKind, 0), nil
+	return values.NewSQLInt64(cfg.sqlValueKind, 0), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for SQLBenchmarkExpr.
@@ -298,8 +298,8 @@ func (e *SQLBenchmarkExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLBenchmarkExpr.
-func (e *SQLBenchmarkExpr) EvalType() EvalType {
-	return EvalInt64
+func (e *SQLBenchmarkExpr) EvalType() types.EvalType {
+	return types.EvalInt64
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -363,15 +363,15 @@ func (SQLCaseExpr) ExprName() string {
 	return "SQLCaseExpr"
 }
 
-// Evaluate evaluates a SQLCaseExpr into a SQLValue.
-func (e *SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLCaseExpr into a values.SQLValue.
+func (e *SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	for _, condition := range e.caseConditions {
 		result, err := condition.matcher.Evaluate(ctx, cfg, st)
 		if err != nil {
 			return nil, err
 		}
 
-		if Bool(result) {
+		if values.Bool(result) {
 			return condition.then.Evaluate(ctx, cfg, st)
 		}
 	}
@@ -383,10 +383,10 @@ func (e *SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 func (e *SQLCaseExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	newCases := make([]caseCondition, 0)
 	for _, caseCond := range e.caseConditions {
-		if matchVal, ok := caseCond.matcher.(SQLValue); ok {
+		if matchVal, ok := caseCond.matcher.(SQLValueExpr); ok {
 			// If the matchVal is Falsy, we want to remove
 			// it from the caseConditions.
-			if Bool(matchVal) {
+			if values.Bool(matchVal.Value) {
 				newCases = append(newCases, newCaseCondition(matchVal, caseCond.then))
 			}
 		} else {
@@ -396,12 +396,12 @@ func (e *SQLCaseExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if len(newCases) == 0 {
 		return e.elseValue
 	}
-	// If caseConditions[0].match is a SQLValue, it must be true,
-	// as we have removed all false SQLValues, in such a case,
-	// return the value of the case. If it is not a SQLValue,
+	// If caseConditions[0].match is a values.SQLValue, it must be true,
+	// as we have removed all false values.SQLValues, in such a case,
+	// return the value of the case. If it is not a values.SQLValue,
 	// we cannot simplify any further because it must contain
 	// a column value.
-	if _, ok := newCases[0].matcher.(SQLValue); ok {
+	if _, ok := newCases[0].matcher.(SQLValueExpr); ok {
 		return newCases[0].then
 	}
 	e.caseConditions = newCases
@@ -441,7 +441,7 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 		if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
 			newMatcher := NewSQLOrExpr(
 				matcher,
-				NewSQLEqualsExpr(matcher.left, NewSQLBool(t.valueKind(), true)))
+				NewSQLEqualsExpr(matcher.left, NewSQLValueExpr(values.NewSQLBool(t.valueKind(), true))))
 			c, err = t.ToAggregationLanguage(newMatcher)
 			if err != nil {
 				return nil, err
@@ -487,14 +487,14 @@ func (e *SQLCaseExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 }
 
 // EvalType returns the EvalType associated with SQLCaseExpr.
-func (e *SQLCaseExpr) EvalType() EvalType {
-	conds := []SQLExpr{e.elseValue}
+func (e *SQLCaseExpr) EvalType() types.EvalType {
+	conds := []types.EvalTyper{e.elseValue}
 	for _, cond := range e.caseConditions {
 		conds = append(conds, cond.then)
 	}
 	// Verified that Case expressions in MySQL use
 	// VarcharHighPriority.
-	s := &EvalTypeSorter{VarcharHighPriority: true}
+	s := &types.EvalTypeSorter{VarcharHighPriority: true}
 	return preferentialTypeWithSorter(s, conds...)
 }
 
@@ -510,7 +510,7 @@ type SQLColumnExpr struct {
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
 // NewSQLColumnExpr is a constructor for SQLColumnExpr.
-func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, evalType EvalType, mongoType schema.MongoType) SQLColumnExpr {
+func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, evalType types.EvalType, mongoType schema.MongoType) SQLColumnExpr {
 	return SQLColumnExpr{
 		selectID:     selectID,
 		databaseName: databaseName,
@@ -535,18 +535,18 @@ func (SQLColumnExpr) Children() []Node {
 	return []Node{}
 }
 
-// Evaluate evaluates a SQLColumnExpr into a SQLValue.
-func (e SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLColumnExpr into a values.SQLValue.
+func (e SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 
 	for _, row := range st.rows {
 		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
-			return ConvertTo(value, e.EvalType()), nil
+			return values.ConvertTo(value, e.EvalType()), nil
 		}
 	}
 
 	for _, row := range st.correlatedRows {
 		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
-			return ConvertTo(value, e.EvalType()), nil
+			return values.ConvertTo(value, e.EvalType()), nil
 		}
 	}
 
@@ -622,7 +622,7 @@ func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 		return nil, e
 	}
 
-	if e.EvalType() != EvalBoolean {
+	if e.EvalType() != types.EvalBoolean {
 		return bsonutil.NewM(
 			bsonutil.NewDocElem(name, bsonutil.NewM(
 				bsonutil.NewDocElem(bsonutil.OpNeq, nil),
@@ -652,7 +652,7 @@ func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 }
 
 // EvalType returns the EvalType associated with SQLColumnExpr.
-func (e SQLColumnExpr) EvalType() EvalType {
+func (e SQLColumnExpr) EvalType() types.EvalType {
 	return e.columnType.EvalType
 }
 
@@ -665,7 +665,7 @@ func (e SQLColumnExpr) isAggregateReplacementColumn() bool {
 // EvalType.
 type SQLConvertExpr struct {
 	expr       SQLExpr
-	targetType EvalType
+	targetType types.EvalType
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -679,27 +679,27 @@ func (*SQLConvertExpr) ExprName() string {
 }
 
 // NewSQLConvertExpr is a constructor for SQLConvertExpr.
-func NewSQLConvertExpr(expr SQLExpr, targetType EvalType) *SQLConvertExpr {
+func NewSQLConvertExpr(expr SQLExpr, targetType types.EvalType) *SQLConvertExpr {
 	return &SQLConvertExpr{
 		expr:       expr,
 		targetType: targetType,
 	}
 }
 
-// Evaluate evaluates a SQLConvertExpr into a SQLValue.
-func (e *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLConvertExpr into a values.SQLValue.
+func (e *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	v, err := e.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	return ConvertTo(v, e.targetType), nil
+	return values.ConvertTo(v, e.targetType), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLConvertExpr.
 func (e *SQLConvertExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if exprVal, ok := e.expr.(SQLValue); ok {
-		out := ConvertTo(exprVal, e.targetType)
+	if exprVal, ok := e.expr.(SQLValueExpr); ok {
+		out := NewSQLValueExpr(values.ConvertTo(exprVal.Value, e.targetType))
 		return out
 	}
 	return e
@@ -721,12 +721,12 @@ func (e *SQLConvertExpr) ReplaceChild(i int, n Node) {
 }
 
 func (e *SQLConvertExpr) String() string {
-	prettyTypeName := string(EvalTypeToSQLType(e.targetType))
+	prettyTypeName := string(types.EvalTypeToSQLType(e.targetType))
 	return "Convert(" + e.expr.String() + ", " + prettyTypeName + ")"
 }
 
 // EvalType returns the EvalType associated with SQLConvertExpr.
-func (e *SQLConvertExpr) EvalType() EvalType {
+func (e *SQLConvertExpr) EvalType() types.EvalType {
 	return e.targetType
 }
 
@@ -779,27 +779,27 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 	}
 
 	switch fromType {
-	case EvalInt32, EvalInt64,
-		EvalUint32, EvalUint64,
-		EvalDecimal128, EvalBoolean:
+	case types.EvalInt32, types.EvalInt64,
+		types.EvalUint32, types.EvalUint64,
+		types.EvalDecimal128, types.EvalBoolean:
 
 		switch toType {
-		case EvalInt32, EvalInt64,
-			EvalUint32, EvalUint64,
-			EvalDecimal128, EvalDouble,
-			EvalString, EvalBoolean:
+		case types.EvalInt32, types.EvalInt64,
+			types.EvalUint32, types.EvalUint64,
+			types.EvalDecimal128, types.EvalDouble,
+			types.EvalString, types.EvalBoolean:
 			return e.translateMongoSQL(t)
 		}
 
-	case EvalDouble:
+	case types.EvalDouble:
 		switch toType {
-		case EvalInt32, EvalInt64,
-			EvalUint32, EvalUint64,
-			EvalDecimal128, EvalBoolean:
+		case types.EvalInt32, types.EvalInt64,
+			types.EvalUint32, types.EvalUint64,
+			types.EvalDecimal128, types.EvalBoolean:
 			return e.translateMongoSQL(t)
 		}
 
-	case EvalDatetime:
+	case types.EvalDatetime:
 		year := bsonutil.NewM(bsonutil.NewDocElem("$year", expr))
 		month := bsonutil.NewM(bsonutil.NewDocElem("$month", expr))
 		day := bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", expr))
@@ -809,7 +809,7 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 		millisecond := bsonutil.NewM(bsonutil.NewDocElem("$millisecond", expr))
 
 		switch toType {
-		case EvalDate:
+		case types.EvalDate:
 			asDate := bsonutil.NewM(bsonutil.NewDocElem("$dateFromParts", bsonutil.NewM(
 				bsonutil.NewDocElem("year", year),
 				bsonutil.NewDocElem("month", month),
@@ -819,7 +819,7 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 
 			return asDate, nil
 
-		case EvalInt32, EvalInt64, EvalUint32, EvalUint64:
+		case types.EvalInt32, types.EvalInt64, types.EvalUint32, types.EvalUint64:
 			asNum := bsonutil.NewM(
 				bsonutil.NewDocElem("$add", bsonutil.NewArray(
 					second,
@@ -848,7 +848,7 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 
 			return asNum, nil
 
-		case EvalDecimal128, EvalDouble:
+		case types.EvalDecimal128, types.EvalDouble:
 			asNum := bsonutil.NewM(bsonutil.NewDocElem("$add", bsonutil.NewArray(
 				bsonutil.NewM(bsonutil.NewDocElem("$divide", bsonutil.NewArray(
 					millisecond,
@@ -880,7 +880,7 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 
 			return asNum, nil
 
-		case EvalString:
+		case types.EvalString:
 			asString := bsonutil.NewM(bsonutil.NewDocElem("$dateToString", bsonutil.NewM(
 				bsonutil.NewDocElem("date", expr),
 				bsonutil.NewDocElem("format", "%Y-%m-%d %H:%M:%S.%L000"),
@@ -891,13 +891,13 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 
 		}
 
-	case EvalDate:
+	case types.EvalDate:
 		year := bsonutil.NewM(bsonutil.NewDocElem("$year", expr))
 		month := bsonutil.NewM(bsonutil.NewDocElem("$month", expr))
 		day := bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", expr))
 
 		switch toType {
-		case EvalDatetime:
+		case types.EvalDatetime:
 			asDate := bsonutil.NewM(bsonutil.NewDocElem("$dateFromParts", bsonutil.NewM(
 				bsonutil.NewDocElem("year", year),
 				bsonutil.NewDocElem("month", month),
@@ -907,9 +907,9 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 
 			return asDate, nil
 
-		case EvalInt32, EvalInt64,
-			EvalUint32, EvalUint64,
-			EvalDecimal128, EvalDouble:
+		case types.EvalInt32, types.EvalInt64,
+			types.EvalUint32, types.EvalUint64,
+			types.EvalDecimal128, types.EvalDouble:
 
 			asNum := bsonutil.NewM(
 				bsonutil.NewDocElem("$add", bsonutil.NewArray(
@@ -927,7 +927,7 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 
 			return asNum, nil
 
-		case EvalString:
+		case types.EvalString:
 			asString := bsonutil.NewM(bsonutil.NewDocElem("$dateToString", bsonutil.NewM(
 				bsonutil.NewDocElem("date", expr),
 				bsonutil.NewDocElem("format", "%Y-%m-%d"),
@@ -938,9 +938,9 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 
 		}
 
-	case EvalObjectID:
+	case types.EvalObjectID:
 		switch toType {
-		case EvalString:
+		case types.EvalString:
 			return e.translateMongoSQL(t)
 		}
 
@@ -952,7 +952,7 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 		e.ExprName(),
 		fmt.Sprintf(
 			"cannot push down mysql-mode conversion from type '%s'",
-			EvalTypeToMongoType(fromType),
+			types.EvalTypeToMongoType(fromType),
 		),
 	)
 }
@@ -961,22 +961,29 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
 // translated, so this function will always return nil and error.
 func (e *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	if e.targetType == EvalObjectID {
-		sv, ok := e.expr.(SQLVarchar)
+	if e.targetType == types.EvalObjectID {
+		svexpr, ok := e.expr.(SQLValueExpr)
 		if !ok {
 			return nil, newPushdownFailure(
 				e.ExprName(),
 				"can only push down SQLVarchar as ObjectId",
 			)
 		}
-		return sv.SQLObjectID().ToAggregationLanguage(t)
+		sv, ok := svexpr.Value.(values.SQLVarchar)
+		if !ok {
+			return nil, newPushdownFailure(
+				e.ExprName(),
+				"can only push down SQLVarchar as ObjectId",
+			)
+		}
+		return NewSQLValueExpr(sv.SQLObjectID()).ToAggregationLanguage(t)
 	}
 
 	mode := t.Cfg.sqlValueKind
 	switch mode {
-	case MySQLValueKind:
+	case values.MySQLValueKind:
 		return e.translateMySQL(t)
-	case MongoSQLValueKind:
+	case values.MongoSQLValueKind:
 		return e.translateMongoSQL(t)
 	default:
 		panic(fmt.Errorf("impossible value %v for cfg.sqlValueKind", mode))
@@ -998,7 +1005,7 @@ type SQLExistsExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// This is a fine place to be more clever in the future.
 	// SQLExistsExpr is cached as a boolean.
-	cache SQLBool
+	cache values.SQLBool
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -1029,7 +1036,8 @@ func NewSQLExistsExpr(correlated bool, plan PlanStage) *SQLExistsExpr {
 	}
 }
 
-func (*SQLExistsExpr) evaluateFromPlan(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (SQLBool, error) {
+func (*SQLExistsExpr) evaluateFromPlan(ctx context.Context,
+	cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (values.SQLBool, error) {
 	iter, err := plan.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1045,15 +1053,15 @@ func (*SQLExistsExpr) evaluateFromPlan(ctx context.Context, cfg *ExecutionConfig
 		return nil, err
 	}
 	if hasNext {
-		return NewSQLBool(cfg.sqlValueKind, true), iter.Close()
+		return values.NewSQLBool(cfg.sqlValueKind, true), iter.Close()
 	}
-	return NewSQLBool(cfg.sqlValueKind, false), iter.Close()
+	return values.NewSQLBool(cfg.sqlValueKind, false), iter.Close()
 }
 
-// Evaluate evaluates a SQLExistsExpr into a SQLValue.
+// Evaluate evaluates a SQLExistsExpr into a values.SQLValue.
 // EXISTS returns true if its subquery returns at least one row.
 // False is returned if there are no rows. EXISTS never returns NULL.
-func (e *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	if e.correlated {
 		return e.evaluateFromPlan(ctx, cfg, st.SubqueryState(), e.plan)
 	}
@@ -1084,8 +1092,8 @@ func (e *SQLExistsExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLExistsExpr.
-func (*SQLExistsExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLExistsExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1131,17 +1139,17 @@ func (e *SQLLikeExpr) Children() []Node {
 	return []Node{e.left, e.right, e.escape}
 }
 
-// Evaluate evaluates a SQLLikeExpr into a SQLValue.
+// Evaluate evaluates a SQLLikeExpr into a values.SQLValue.
 func (e *SQLLikeExpr) Evaluate(ctx context.Context,
-	cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+	cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 
 	value, err := e.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if hasNullValue(value) {
-		return NewSQLNull(cfg.sqlValueKind, e.EvalType()), nil
+	if values.HasNullValue(value) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	data := value.String()
@@ -1151,8 +1159,8 @@ func (e *SQLLikeExpr) Evaluate(ctx context.Context,
 		return nil, err
 	}
 
-	if hasNullValue(value) {
-		return NewSQLNull(cfg.sqlValueKind, e.EvalType()), nil
+	if values.HasNullValue(value) {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	escape, err := e.escape.Evaluate(ctx, cfg, st)
@@ -1181,7 +1189,7 @@ func (e *SQLLikeExpr) Evaluate(ctx context.Context,
 		return nil, err
 	}
 
-	return NewSQLBool(cfg.sqlValueKind, matches), nil
+	return values.NewSQLBool(cfg.sqlValueKind, matches), nil
 }
 
 // nolint: unparam
@@ -1227,16 +1235,16 @@ func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		return nil, e
 	}
 
-	value, ok := e.right.(SQLValue)
+	value, ok := e.right.(SQLValueExpr)
 	if !ok {
 		return nil, e
 	}
 
-	if hasNullValue(value) {
+	if values.HasNullValue(value.Value) {
 		return nil, e
 	}
 
-	escape, ok := e.escape.(SQLValue)
+	escape, ok := e.escape.(SQLValueExpr)
 	if !ok {
 		return nil, e
 	}
@@ -1251,7 +1259,7 @@ func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		escapeChar = escapeSeq[0]
 	}
 
-	pattern := ConvertSQLValueToPattern(value, escapeChar)
+	pattern := ConvertSQLValueToPattern(value.Value, escapeChar)
 	opts := "i"
 	if e.caseSensitive {
 		opts = ""
@@ -1260,19 +1268,19 @@ func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 	return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpRegex, bson.RegEx{Pattern: pattern, Options: opts})))), nil
 }
 
-// evaluate performs evaluation given all SQLValues.
-func (e *SQLLikeExpr) evaluate(sqlValueKind SQLValueKind, left, right, escape SQLValue) (SQLValue, error) {
-	if hasNullValue(left) {
+// evaluate performs evaluation given all values.SQLValues.
+func (e *SQLLikeExpr) evaluate(sqlValueKind values.SQLValueKind, left, right, escape values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(left) {
 		return left, nil
 	}
 
-	if hasNullValue(right) {
+	if values.HasNullValue(right) {
 		return right, nil
 	}
 
-	data := String(left)
+	data := values.String(left)
 
-	escapeSeq := []rune(String(escape))
+	escapeSeq := []rune(values.String(escape))
 	if len(escapeSeq) > 1 {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, "ESCAPE")
 	}
@@ -1293,40 +1301,40 @@ func (e *SQLLikeExpr) evaluate(sqlValueKind SQLValueKind, left, right, escape SQ
 		return nil, err
 	}
 
-	return NewSQLBool(sqlValueKind, matches), nil
+	return values.NewSQLBool(sqlValueKind, matches), nil
 }
 
 // EvalType returns the EvalType associated with SQLLikeExpr.
-func (*SQLLikeExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLLikeExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLLikeExpr.
 func (e *SQLLikeExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	valCount := 0
-	var left, right, escape SQLValue
+	var left, right, escape SQLValueExpr
 	var ok bool
-	if left, ok = e.left.(SQLValue); ok {
-		if left.IsNull() {
-			return NewSQLNull(cfg.sqlValueKind, left.EvalType())
+	if left, ok = e.left.(SQLValueExpr); ok {
+		if left.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
 		valCount++
 	}
-	if right, ok = e.right.(SQLValue); ok {
-		if right.IsNull() {
-			return NewSQLNull(cfg.sqlValueKind, right.EvalType())
+	if right, ok = e.right.(SQLValueExpr); ok {
+		if right.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
 		valCount++
 	}
-	if escape, ok = e.escape.(SQLValue); ok {
+	if escape, ok = e.escape.(SQLValueExpr); ok {
 		valCount++
 	}
 	if valCount == 3 {
-		val, err := e.evaluate(cfg.sqlValueKind, left, right, escape)
+		val, err := e.evaluate(cfg.sqlValueKind, left.Value, right.Value, escape.Value)
 		if err != nil {
-			return NewSQLNull(cfg.sqlValueKind, left.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		return val
+		return NewSQLValueExpr(val)
 	}
 	return e
 }
@@ -1373,8 +1381,8 @@ func (*SQLRegexExpr) ExprName() string {
 
 var _ translatableToMatch = (*SQLRegexExpr)(nil)
 
-// Evaluate evaluates a SQLRegexExpr into a SQLValue.
-func (e *SQLRegexExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLRegexExpr into a values.SQLValue.
+func (e *SQLRegexExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	operand, err := e.operand.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1385,43 +1393,49 @@ func (e *SQLRegexExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 		return nil, err
 	}
 
-	return e.evaluate(cfg.sqlValueKind, operand.SQLVarchar(), pattern.SQLVarchar())
+	return e.evaluate(cfg.sqlValueKind, operand, pattern)
 }
 
-// evaluate performs evaluation given all SQLValues.
-func (e *SQLRegexExpr) evaluate(sqlValueKind SQLValueKind, operand, pattern SQLValue) (SQLValue, error) {
-	if hasNullValue(operand, pattern) {
-		return NewSQLNull(sqlValueKind, e.EvalType()), nil
+// evaluate performs evaluation given all values.SQLValues.
+func (e *SQLRegexExpr) evaluate(sqlValueKind values.SQLValueKind, operand, pattern values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(operand, pattern) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	matcher, err := regexp.CompilePOSIX(pattern.String())
+	matcher, err := regexp.CompilePOSIX(values.String(pattern))
 	if err != nil {
 		return nil, err
 	}
-	match := matcher.Find([]byte(operand.String()))
+	match := matcher.Find([]byte(values.String(operand)))
 	if match != nil {
-		return NewSQLBool(sqlValueKind, true), nil
+		return values.NewSQLBool(sqlValueKind, true), nil
 	}
-	return NewSQLBool(sqlValueKind, false), nil
+	return values.NewSQLBool(sqlValueKind, false), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLRegexExpr.
 func (e *SQLRegexExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	var operand, pattern SQLValue
+	var operand, pattern SQLValueExpr
 	var ok bool
 	valCount := 0
-	if operand, ok = e.operand.(SQLValue); ok {
+	if operand, ok = e.operand.(SQLValueExpr); ok {
+		if operand.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		}
 		valCount++
 	}
-	if pattern, ok = e.pattern.(SQLValue); ok {
+	if pattern, ok = e.pattern.(SQLValueExpr); ok {
+		if pattern.Value.IsNull() {
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		}
 		valCount++
 	}
 	if valCount == 2 {
-		val, err := e.evaluate(cfg.sqlValueKind, operand.SQLVarchar(), pattern.SQLVarchar())
+		val, err := e.evaluate(cfg.sqlValueKind, operand.Value.SQLVarchar(), pattern.Value.SQLVarchar())
 		if err != nil {
-			return NewSQLNull(cfg.sqlValueKind, e.EvalType())
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
 		}
-		return val
+		return NewSQLValueExpr(val)
 	}
 	return e
 }
@@ -1445,7 +1459,11 @@ func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 		return nil, e
 	}
 
-	pattern, ok := e.pattern.(SQLVarchar)
+	patternExpr, ok := e.pattern.(SQLValueExpr)
+	if !ok {
+		return nil, e
+	}
+	pattern, ok := patternExpr.Value.(values.SQLVarchar)
 	if !ok {
 		return nil, e
 	}
@@ -1467,8 +1485,8 @@ func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 }
 
 // EvalType returns the EvalType associated with SQLRegexExpr.
-func (*SQLRegexExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLRegexExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1489,7 +1507,7 @@ func (e *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 // subquery expression and can be cached. Optimization opportunity:
 // this function copies all of its input data, value-by-value.
 func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
-	st *ExecutionState, plan PlanStage) ([][]SQLValue, error) {
+	st *ExecutionState, plan PlanStage) ([][]values.SQLValue, error) {
 
 	iter, err := plan.Open(ctx, cfg, st)
 	if err != nil {
@@ -1497,10 +1515,10 @@ func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	row := &Row{}
-	var valueTable [][]SQLValue
+	var valueTable [][]values.SQLValue
 
 	for iter.Next(ctx, row) {
-		valueRow := make([]SQLValue, len(row.Data))
+		valueRow := make([]values.SQLValue, len(row.Data))
 		// release this memory here... it will be re-allocated by a consuming
 		// stage
 		if err = cfg.memoryMonitor.Release(row.Data.Size()); err != nil {
@@ -1526,7 +1544,7 @@ func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
 // This function implements the MySQL behavior of evaluating an empty input
 // into a row of NULLs with the same dimension as the input.
 func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
-	st *ExecutionState, plan PlanStage) ([]SQLValue, error) {
+	st *ExecutionState, plan PlanStage) ([]values.SQLValue, error) {
 
 	iter, err := plan.Open(ctx, cfg, st)
 	if err != nil {
@@ -1535,7 +1553,7 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 
 	row := &Row{}
 
-	var valueRow []SQLValue
+	var valueRow []values.SQLValue
 	if iter.Next(ctx, row) {
 		// release this memory here... it will be re-allocated by a consuming
 		// stage
@@ -1546,15 +1564,15 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 
 		// The full data copy here is unwanted.
 		// This is a good place to attempt to improve performance.
-		valueRow = make([]SQLValue, len(row.Data))
+		valueRow = make([]values.SQLValue, len(row.Data))
 		for i, value := range row.Data {
 			valueRow[i] = value.Data
 		}
 	} else {
 		// MySQL specific behavior here.
-		valueRow = make([]SQLValue, len(plan.Columns()))
+		valueRow = make([]values.SQLValue, len(plan.Columns()))
 		for i := range valueRow {
-			valueRow[i] = NewPolymorphicSQLNull(cfg.sqlValueKind)
+			valueRow[i] = values.NewSQLNull(cfg.sqlValueKind)
 		}
 	}
 
@@ -1579,13 +1597,13 @@ type SQLSubqueryCmpExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// This cache is for the left-hand side.
 	// SQLSubqueryCmpExpr's left cache is scalar but it can be multicolumn.
-	leftCache []SQLValue
+	leftCache []values.SQLValue
 	// This cache is for the right-hand side.
 	// SQLSubqueryCmpExpr's right cache is scalar but it can be multicolumn.
-	rightCache []SQLValue
+	rightCache []values.SQLValue
 	// This cache is for the result. It is used if both sides are non-correlated.
 	// This cache consists of a boolean.
-	fullCache SQLBool
+	fullCache values.SQLBool
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -1636,13 +1654,13 @@ func (e *SQLSubqueryCmpExpr) reconcile() (SQLExpr, error) {
 }
 
 // Evaluate evaluates a SQLSubqueryCmpExpr into a SQLValue.
-func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	if !e.leftCorrelated && !e.rightCorrelated && e.fullCache != nil {
 		return e.fullCache, nil
 	}
 
-	var leftRow []SQLValue
-	var rightRow []SQLValue
+	var leftRow []values.SQLValue
+	var rightRow []values.SQLValue
 	var err error
 	if e.leftCorrelated && !e.rightCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
@@ -1696,7 +1714,7 @@ func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 
 	// Populate full cache.
 	if !e.leftCorrelated && !e.rightCorrelated {
-		e.fullCache = result.(SQLBool)
+		e.fullCache = result.(values.SQLBool)
 	}
 
 	return result, nil
@@ -1713,8 +1731,8 @@ func (e *SQLSubqueryCmpExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryCmpExpr.
-func (*SQLSubqueryCmpExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLSubqueryCmpExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1742,10 +1760,10 @@ type SQLSubqueryAllExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// SQLSubqueryAllExpr can cache a row, which is being compared
 	// to the value result of the right expression.
-	leftCache []SQLValue
+	leftCache []values.SQLValue
 	// SQLSubqueryAllExpr can cache a whole table, with each row being compared
 	// to the value result of the left expression.
-	rightCache [][]SQLValue
+	rightCache [][]values.SQLValue
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -1787,8 +1805,8 @@ func NewSQLSubqueryAllExpr(
 }
 
 // Evaluate evaluates a SQLSubqueryAllExpr into a SQLValue.
-func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var leftRow []SQLValue
+func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	var leftRow []values.SQLValue
 	var err error
 	if e.leftCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
@@ -1802,7 +1820,7 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.leftCache))
+			err = cfg.memoryMonitor.AcquireGlobal(values.SQLValuesSize(e.leftCache))
 			if err != nil {
 				return nil, err
 			}
@@ -1812,7 +1830,7 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		leftRow = e.leftCache
 	}
 
-	var rightTable [][]SQLValue
+	var rightTable [][]values.SQLValue
 	if e.rightCorrelated {
 		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
@@ -1825,7 +1843,7 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.rightCache...))
+			err = cfg.memoryMonitor.AcquireGlobal(values.SQLValuesSize(e.rightCache...))
 			if err != nil {
 				return nil, err
 			}
@@ -1853,8 +1871,8 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		if err != nil {
 			return nil, err
 		}
-		if !Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, false), nil
+		if !values.Bool(result) {
+			return values.NewSQLBool(cfg.sqlValueKind, false), nil
 		}
 		if result.IsNull() {
 			sawNull = true
@@ -1863,9 +1881,9 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 
 	// left expression compared successfully to all rows in the right table
 	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
-	return NewSQLBool(cfg.sqlValueKind, true), nil
+	return values.NewSQLBool(cfg.sqlValueKind, true), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryAllExpr.
@@ -1888,8 +1906,8 @@ func (e *SQLSubqueryAllExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryAllExpr.
-func (*SQLSubqueryAllExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLSubqueryAllExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1917,10 +1935,10 @@ type SQLSubqueryAnyExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// SQLSubqueryAnyExpr can cache a row, which is being compared
 	// to the value result of the right expression.
-	leftCache []SQLValue
+	leftCache []values.SQLValue
 	// SQLSubqueryAnyExpr can cache a whole table, with each row being compared
 	// to the value result of the left expression.
-	rightCache [][]SQLValue
+	rightCache [][]values.SQLValue
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -1961,7 +1979,7 @@ func NewSQLSubqueryAnyExpr(
 	}
 }
 
-// Evaluate evaluates a SQLSubqueryAnyExpr into a SQLValue.
+// Evaluate evaluates a SQLSubqueryAnyExpr into a values.SQLValue.
 // ANY performs a series of comparisons. ANY uses the provided comparison operator.
 // The resulting comparisons within columns of a row are ANDed together.
 // Comparisons from separate rows are ORed together.
@@ -1970,8 +1988,8 @@ func NewSQLSubqueryAnyExpr(
 // If not, if any of the series returns NULL (the series contains NULL and no falses),
 // the result is NULL.
 // Else, the result is false.
-func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
-	var leftRow []SQLValue
+func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	var leftRow []values.SQLValue
 	var err error
 	if e.leftCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
@@ -1985,7 +2003,7 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.leftCache))
+			err = cfg.memoryMonitor.AcquireGlobal(values.SQLValuesSize(e.leftCache))
 			if err != nil {
 				return nil, err
 			}
@@ -1995,7 +2013,7 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		leftRow = e.leftCache
 	}
 
-	var rightTable [][]SQLValue
+	var rightTable [][]values.SQLValue
 	if e.rightCorrelated {
 		rightTable, err = evaluatePlan(ctx, cfg, st.SubqueryState(), e.rightPlan)
 		if err != nil {
@@ -2008,7 +2026,7 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 			if err != nil {
 				return nil, err
 			}
-			err = cfg.memoryMonitor.AcquireGlobal(sqlValuesSize(e.rightCache...))
+			err = cfg.memoryMonitor.AcquireGlobal(values.SQLValuesSize(e.rightCache...))
 			if err != nil {
 				return nil, err
 			}
@@ -2036,8 +2054,8 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		if err != nil {
 			return nil, err
 		}
-		if Bool(result) {
-			return NewSQLBool(cfg.sqlValueKind, true), nil
+		if values.Bool(result) {
+			return values.NewSQLBool(cfg.sqlValueKind, true), nil
 		}
 		if result.IsNull() {
 			sawNull = true
@@ -2046,9 +2064,9 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 
 	// The left expression did not compare successfully to any row in the right table.
 	if sawNull {
-		return NewPolymorphicSQLNull(cfg.sqlValueKind), nil
+		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
-	return NewSQLBool(cfg.sqlValueKind, false), nil
+	return values.NewSQLBool(cfg.sqlValueKind, false), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryAnyExpr.
@@ -2071,8 +2089,8 @@ func (e *SQLSubqueryAnyExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryAnyExpr.
-func (*SQLSubqueryAnyExpr) EvalType() EvalType {
-	return EvalBoolean
+func (*SQLSubqueryAnyExpr) EvalType() types.EvalType {
+	return types.EvalBoolean
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2098,7 +2116,7 @@ type SQLSubqueryExpr struct {
 	// We always cache non-correlated subquery results in their entirety.
 	// This is a fine place to be more clever in the future.
 	// SQLSubqueryExpr caches a single-column scalar.
-	cache SQLValue
+	cache values.SQLValue
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -2157,7 +2175,7 @@ func (e *SQLSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interfa
 }
 
 func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
-	cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (SQLValue, error) {
+	cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (values.SQLValue, error) {
 	var err error
 	var iter Iter
 	defer func() {
@@ -2199,7 +2217,7 @@ func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 
 	switch len(row.Data) {
 	case 0:
-		return NewSQLNull(cfg.sqlValueKind, e.EvalType()), iter.Close()
+		return values.NewSQLNull(cfg.sqlValueKind), iter.Close()
 	case 1:
 		return row.Data[0].Data, iter.Close()
 	default:
@@ -2207,8 +2225,8 @@ func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 	}
 }
 
-// Evaluate evaluates a SQLSubqueryExpr into a SQLValue.
-func (e *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+// Evaluate evaluates a SQLSubqueryExpr into a values.SQLValue.
+func (e *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	if e.correlated {
 		return e.evaluateFromPlan(ctx, cfg, st.SubqueryState(), e.plan)
 	}
@@ -2246,13 +2264,123 @@ func (e *SQLSubqueryExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLSubqueryExpr.
-func (e *SQLSubqueryExpr) EvalType() EvalType {
+func (e *SQLSubqueryExpr) EvalType() types.EvalType {
 	columns := e.plan.Columns()
 	if len(columns) == 1 {
 		return columns[0].EvalType
 	}
 
 	panic(fmt.Sprintf("SQLSubqueryExpr must evaluate to a single column scalar, instead got %d columns", len(columns)))
+}
+
+// SQLValueExpr represents a literal SQLValue in a SQLExpr tree.
+type SQLValueExpr struct {
+	Value values.SQLValue
+}
+
+// NewSQLValueExpr is a constructor for SQLValueExpr.
+func NewSQLValueExpr(value values.SQLValue) SQLValueExpr {
+	return SQLValueExpr{
+		Value: value,
+	}
+}
+
+// Children returns a slice of all the Node children of the Node.
+func (SQLValueExpr) Children() []Node {
+	return []Node{}
+}
+
+// ExprName returns a string representing this SQLExpr's name.
+func (e SQLValueExpr) ExprName() string {
+	return fmt.Sprintf("SQLValueExpr(%s)", e.Value.String())
+}
+
+// Evaluate evaluates a SQLValueExpr into a values.SQLValue.
+func (e SQLValueExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (values.SQLValue, error) {
+	return e.Value, nil
+}
+
+// nolint: unparam
+func (e SQLValueExpr) reconcile() (SQLExpr, error) {
+	return e, nil
+}
+
+// FoldConstants simplifies expressions containing constants when it is able to for *SQLValueExpr..
+// Because variable assignments (even to globals) are not allowed to change during a query,
+// it can be constant folded as its value.
+func (e SQLValueExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+	return e
+}
+
+func (e SQLValueExpr) String() string {
+	return e.Value.String()
+}
+
+// EvalType returns the EvalType associated with SQLValueExpr.
+func (e SQLValueExpr) EvalType() types.EvalType {
+	return e.Value.EvalType()
+}
+
+// ReplaceChild replaces the i'th child of the receiver Node with the Node n.
+func (e SQLValueExpr) ReplaceChild(i int, n Node) {
+	panicWithInvalidIndex(e.ExprName(), i, -1)
+}
+
+func (e SQLValueExpr) to34PlusAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	if e.Value.IsNull() {
+		return nil, nil
+	}
+	var ui uint64
+	switch e.EvalType() {
+	// These types do not require $literal wrapping. We avoid it for the slight performance
+	// and readability benefit.
+	case types.EvalDate, types.EvalDatetime, types.EvalString:
+		return e.Value.Value(), nil
+	case types.EvalUint64:
+		ui = e.Value.Value().(uint64)
+		if ui > math.MaxInt64 {
+			return nil, newPushdownFailure("BaseSQLUint64", "greater than MaxInt64")
+		}
+		return bsonutil.WrapInLiteral(ui), nil
+	// ObjectID needs special handling, but also do not need to be wrapped in $literal.
+	case types.EvalObjectID:
+		return bson.ObjectIdHex(e.Value.String()), nil
+	// Decimal also needs special handling.
+	case types.EvalDecimal128:
+		d, err := t.translateDecimal(e.Value, e.ExprName())
+		if err != nil {
+			return nil, err
+		}
+		return bsonutil.WrapInLiteral(d), nil
+	}
+	return bsonutil.WrapInLiteral(e.Value.Value()), nil
+}
+
+func (e SQLValueExpr) to32AggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	ret, err := e.to34PlusAggregationLanguage(t)
+	if err != nil {
+		return nil, err
+	}
+	// On server 3.2.0, everything needs to be wrapped in literal, even null, when
+	// used as the top level in a project specification. This call will wrap `ret`
+	// in {$literal: ret} if it is not already wrapped in $literal.
+	return bsonutil.WrapInLiteralIfNeeded(ret), nil
+}
+
+// ToAggregationLanguage translates SQLValueExpr into something that can
+// be used in an aggregation pipeline. If SQLValueExpr cannot be translated,
+// it will return nil and error.
+func (e SQLValueExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	if t.versionAtLeast(3, 4, 0) {
+		return e.to34PlusAggregationLanguage(t)
+	}
+	return e.to32AggregationLanguage(t)
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (e SQLValueExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return e.ToAggregationLanguage(t)
 }
 
 // SQLVariableExpr represents a variable lookup.
@@ -2285,10 +2413,10 @@ func (*SQLVariableExpr) ExprName() string {
 	return "SQLVariableExpr"
 }
 
-// Evaluate evaluates a SQLVariableExpr into a SQLValue.
-func (e *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (SQLValue, error) {
-	val := GoValueToSQLValue(cfg.sqlValueKind, e.Value)
-	converted := ConvertTo(val, SQLTypeToEvalType(e.SQLType))
+// Evaluate evaluates a SQLVariableExpr into a values.SQLValue.
+func (e *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (values.SQLValue, error) {
+	val := values.GoValueToSQLValue(cfg.sqlValueKind, e.Value)
+	converted := values.ConvertTo(val, types.SQLTypeToEvalType(e.SQLType))
 	return converted, nil
 }
 
@@ -2301,9 +2429,9 @@ func (e *SQLVariableExpr) reconcile() (SQLExpr, error) {
 // Because variable assignments (even to globals) are not allowed to change during a query,
 // it can be constant folded as its value.
 func (e *SQLVariableExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	val := GoValueToSQLValue(cfg.sqlValueKind, e.Value)
-	converted := ConvertTo(val, SQLTypeToEvalType(e.SQLType))
-	return converted
+	val := values.GoValueToSQLValue(cfg.sqlValueKind, e.Value)
+	converted := values.ConvertTo(val, types.SQLTypeToEvalType(e.SQLType))
+	return NewSQLValueExpr(converted)
 }
 
 func (e *SQLVariableExpr) String() string {
@@ -2324,8 +2452,8 @@ func (e *SQLVariableExpr) String() string {
 }
 
 // EvalType returns the EvalType associated with SQLVariableExpr.
-func (e *SQLVariableExpr) EvalType() EvalType {
-	return SQLTypeToEvalType(e.SQLType)
+func (e *SQLVariableExpr) EvalType() types.EvalType {
+	return types.SQLTypeToEvalType(e.SQLType)
 }
 
 // ReplaceChild replaces the i'th child of the receiver Node with the Node n.
@@ -2338,8 +2466,8 @@ func (e *SQLVariableExpr) ReplaceChild(i int, n Node) {
 // it will return nil and error.
 func (e *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
 
-	eb := SQLTypeToEvalType(e.SQLType)
-	if eb != EvalBoolean {
+	eb := types.SQLTypeToEvalType(e.SQLType)
+	if eb != types.EvalBoolean {
 		return nil, newPushdownFailure(e.ExprName(), "can only push down boolean variables")
 	}
 

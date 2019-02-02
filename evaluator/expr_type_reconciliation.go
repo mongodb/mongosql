@@ -2,6 +2,9 @@ package evaluator
 
 import (
 	"sort"
+
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 const (
@@ -13,14 +16,14 @@ const (
 // IsSimilar returns true if the logical or comparison
 // operations can be carried on leftType against rightType
 // with no need for type conversion.
-func isSimilar(leftType, rightType EvalType) bool {
+func isSimilar(leftType, rightType types.EvalType) bool {
 	if leftType == rightType {
 		return true
 	}
-	if leftType == EvalNull || rightType == EvalNull {
+	if leftType == types.EvalNull || rightType == types.EvalNull {
 		return true
 	}
-	if leftType == EvalPolymorphic || rightType == EvalPolymorphic {
+	if leftType == types.EvalPolymorphic || rightType == types.EvalPolymorphic {
 		return true
 	}
 	if leftType.IsNumeric() && rightType.IsNumeric() {
@@ -29,7 +32,7 @@ func isSimilar(leftType, rightType EvalType) bool {
 	return false
 }
 
-func convertExprs(exprs []SQLExpr, targetTypes []EvalType) []SQLExpr {
+func convertExprs(exprs []SQLExpr, targetTypes []types.EvalType) []SQLExpr {
 	if len(targetTypes) < len(exprs) {
 		// There is an error in how this function is being used
 		panic("targetTypes shorter than exprs")
@@ -40,14 +43,14 @@ func convertExprs(exprs []SQLExpr, targetTypes []EvalType) []SQLExpr {
 		targetType := targetTypes[i]
 		exprType := expr.EvalType()
 
-		if targetType == EvalPolymorphic {
-			// EvalPolymorphic indicates that there is no need to convert this argument,
+		if targetType == types.EvalPolymorphic {
+			// types.EvalPolymorphic indicates that there is no need to convert this argument,
 			// as it accepts any argument.
 			newExprs[i] = expr
-		} else if cexpr, ok := expr.(SQLColumnExpr); ok && IsUUID(cexpr.columnType.MongoType) {
+		} else if cexpr, ok := expr.(SQLColumnExpr); ok && values.IsUUID(cexpr.columnType.MongoType) {
 			// SQLColumnExpr may have a MongoType of UUID, which should be
 			// converted to SQLVarchar before converting to targetType.
-			newExprs[i] = NewSQLConvertExpr(NewSQLConvertExpr(expr, EvalString), targetType)
+			newExprs[i] = NewSQLConvertExpr(NewSQLConvertExpr(expr, types.EvalString), targetType)
 		} else if isSimilar(exprType, targetType) {
 			// don't convert if target type is similar to current type
 			newExprs[i] = expr
@@ -59,8 +62,8 @@ func convertExprs(exprs []SQLExpr, targetTypes []EvalType) []SQLExpr {
 	return newExprs
 }
 
-func convertAllExprs(exprs []SQLExpr, targetType EvalType) []SQLExpr {
-	targetTypes := make([]EvalType, len(exprs))
+func convertAllExprs(exprs []SQLExpr, targetType types.EvalType) []SQLExpr {
+	targetTypes := make([]types.EvalType, len(exprs))
 	for i := range exprs {
 		targetTypes[i] = targetType
 	}
@@ -70,22 +73,22 @@ func convertAllExprs(exprs []SQLExpr, targetType EvalType) []SQLExpr {
 // preferentialType accepts a variable number of
 // SQLExprs and returns the type of the SQLExpr
 // with the highest preference.
-func preferentialType(exprs ...SQLExpr) EvalType {
-	s := &EvalTypeSorter{}
-	return preferentialTypeWithSorter(s, exprs...)
+func preferentialType(typers ...types.EvalTyper) types.EvalType {
+	s := &types.EvalTypeSorter{}
+	return preferentialTypeWithSorter(s, typers...)
 }
 
-func preferentialTypeWithSorter(s *EvalTypeSorter, exprs ...SQLExpr) EvalType {
-	for _, expr := range exprs {
-		val, ok := expr.(SQLValue)
-		if ok && val.IsNull() {
+func preferentialTypeWithSorter(s *types.EvalTypeSorter, typers ...types.EvalTyper) types.EvalType {
+	for _, expr := range typers {
+		valExpr, ok := expr.(SQLValueExpr)
+		if ok && valExpr.Value.IsNull() {
 			continue
 		}
 		s.Types = append(s.Types, expr.EvalType())
 	}
 
 	if len(s.Types) == 0 {
-		return EvalPolymorphic
+		return types.EvalPolymorphic
 	}
 
 	sort.Sort(s)
@@ -107,21 +110,23 @@ func ReconcileSQLExprs(left, right SQLExpr, preferVarchar ...bool) (SQLExpr, SQL
 		return left, right, nil
 	}
 
-	_, leftIsStr := left.(SQLVarchar)
-	_, rightIsStr := right.(SQLVarchar)
-	leftIsID := left.EvalType() == EvalObjectID
-	rightIsID := right.EvalType() == EvalObjectID
+	_, leftIsLiteral := left.(SQLValueExpr)
+	_, rightIsLiteral := right.(SQLValueExpr)
+	leftIsLiteralStr := leftIsLiteral && left.EvalType() == types.EvalString
+	rightIsLiteralStr := rightIsLiteral && right.EvalType() == types.EvalString
+	leftIsID := left.EvalType() == types.EvalObjectID
+	rightIsID := right.EvalType() == types.EvalObjectID
 
-	if leftIsStr && rightIsID {
-		newLeft := NewSQLConvertExpr(left, EvalObjectID)
+	if leftIsLiteralStr && rightIsID {
+		newLeft := NewSQLConvertExpr(left, types.EvalObjectID)
 		return newLeft, right, nil
-	} else if rightIsStr && leftIsID {
-		newRight := NewSQLConvertExpr(right, EvalObjectID)
+	} else if rightIsLiteralStr && leftIsID {
+		newRight := NewSQLConvertExpr(right, types.EvalObjectID)
 		return left, newRight, nil
 	}
 
-	sorter := &EvalTypeSorter{
-		Types: []EvalType{leftType, rightType},
+	sorter := &types.EvalTypeSorter{
+		Types: []types.EvalType{leftType, rightType},
 	}
 
 	if len(preferVarchar) > 0 {

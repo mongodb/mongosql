@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -725,7 +726,7 @@ func (s sortablePaths) Less(i, j int) bool {
 			return false
 		}
 
-		i := compareInts(left.nPipelineStages, right.nPipelineStages)
+		i := mathutil.CompareInts(left.nPipelineStages, right.nPipelineStages)
 
 		switch idx {
 		// determine cost associated with the first path edge

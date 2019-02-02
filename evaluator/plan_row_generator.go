@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 // RowGeneratorStage generates empty rows based on a counter field from its source PlanStage.
@@ -92,7 +93,7 @@ func (rgIter *rowGeneratorIter) Next(ctx context.Context, row *Row) bool {
 		if rgIter.err != nil {
 			return false
 		}
-		rgIter.totalRows = Uint64(rowCountField)
+		rgIter.totalRows = values.Uint64(rowCountField)
 		rgIter.currentRow = 0
 	}
 

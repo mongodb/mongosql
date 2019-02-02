@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/option"
@@ -28,7 +30,7 @@ type AlgebrizerConfig struct {
 	groupConcatMaxLen             int64
 	isMongos                      bool
 	lg                            log.Logger
-	sqlValueKind                  SQLValueKind
+	sqlValueKind                  values.SQLValueKind
 	sqlSelectLimit                uint64
 	maxVarcharLength              uint16
 	polymorphicTypeConversionMode variable.PolymorphicTypeConversionModeType
@@ -236,7 +238,7 @@ type algebrizer struct {
 	ctes ctePlanStages
 }
 
-func (a *algebrizer) valueKind() SQLValueKind {
+func (a *algebrizer) valueKind() values.SQLValueKind {
 	return a.cfg.sqlValueKind
 }
 
@@ -691,17 +693,21 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (uint64, uint64, error)
 			return 0, 0, err
 		}
 
-		switch typedE := eval.(type) {
-		case SQLUint64:
-			offset = Uint64(typedE)
-		case SQLInt64:
-			if Int64(typedE) < 0 {
+		val, ok := eval.(SQLValueExpr)
+		if !ok {
+			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ErWrongSpvarTypeInLimit)
+		}
+		switch typedE := val.Value.(type) {
+		case values.SQLUint64:
+			offset = values.Uint64(typedE)
+		case values.SQLInt64:
+			if values.Int64(typedE) < 0 {
 				return 0,
 					0,
 					mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
 						"Offset cannot be negative")
 			}
-			offset = Uint64(typedE)
+			offset = values.Uint64(typedE)
 		default:
 			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ErWrongSpvarTypeInLimit)
 		}
@@ -713,17 +719,21 @@ func (a *algebrizer) translateLimit(limit *parser.Limit) (uint64, uint64, error)
 			return 0, 0, err
 		}
 
-		switch typedE := eval.(type) {
-		case SQLUint64:
-			rowcount = Uint64(typedE)
-		case SQLInt64:
-			if Int64(typedE) < 0 {
+		val, ok := eval.(SQLValueExpr)
+		if !ok {
+			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ErWrongSpvarTypeInLimit)
+		}
+		switch typedE := val.Value.(type) {
+		case values.SQLUint64:
+			rowcount = values.Uint64(typedE)
+		case values.SQLInt64:
+			if values.Int64(typedE) < 0 {
 				return 0,
 					0,
 					mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
 						"Rowcount cannot be negative")
 			}
-			rowcount = Uint64(typedE)
+			rowcount = values.Uint64(typedE)
 		default:
 			return 0, 0, mysqlerrors.Defaultf(mysqlerrors.ErWrongSpvarTypeInLimit)
 		}
@@ -953,7 +963,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 		err := builder.includeWhere(sel.Where)
 
 		if builder.where != nil && !isBooleanComparable(builder.where.EvalType()) {
-			builder.where = NewSQLConvertExpr(builder.where, EvalBoolean)
+			builder.where = NewSQLConvertExpr(builder.where, types.EvalBoolean)
 		}
 		if err != nil {
 			return nil, err
@@ -1207,7 +1217,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 			} else {
 				joinKind = CrossJoin
 			}
-			plan = NewJoinStage(joinKind, plan, temp, NewSQLBool(a.valueKind(), true))
+			plan = NewJoinStage(joinKind, plan, temp, NewSQLValueExpr(values.NewSQLBool(a.valueKind(), true)))
 		}
 	}
 
@@ -1440,7 +1450,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 		}
 		cols := append(leftCols, rightCols...)
 
-		var predicate SQLExpr = NewSQLBool(a.valueKind(), true)
+		var predicate SQLExpr = NewSQLValueExpr(values.NewSQLBool(a.valueKind(), true))
 		var filterCols parser.ColumnExprs
 		if typedT.On != nil {
 			predicate, err = a.translateExpr(typedT.On)
@@ -1487,7 +1497,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 			}
 
 			if comparison == nil {
-				predicate = NewSQLBool(a.valueKind(), true)
+				predicate = NewSQLValueExpr(values.NewSQLBool(a.valueKind(), true))
 			} else {
 				predicate, err = a.translateExpr(comparison)
 				if err != nil {
@@ -1849,14 +1859,14 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		switch typedE.Name {
 		case parser.AST_DATE:
-			date, _, ok := parseDateTime(arg)
+			date, _, ok := values.ParseDateTime(arg)
 			if !ok || date.Hour() > 0 ||
 				date.Minute() > 0 ||
 				date.Second() > 0 ||
 				date.Nanosecond() > 0 {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongValue, "DATE", arg)
 			}
-			return NewSQLDate(a.valueKind(), date), nil
+			return NewSQLValueExpr(values.NewSQLDate(a.valueKind(), date)), nil
 		case parser.AST_TIME:
 			dur, _, ok := strToTime(arg)
 			if !ok {
@@ -1865,13 +1875,13 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 			date := time.Date(0, 1, 1, 0, 0, 0, 0, time.UTC).Add(dur)
 
-			return NewSQLTimestamp(a.valueKind(), date), nil
+			return NewSQLValueExpr(values.NewSQLTimestamp(a.valueKind(), date)), nil
 		case parser.AST_TIMESTAMP, parser.AST_DATETIME:
-			date, _, ok := strToDateTime(arg, true)
+			date, _, ok := values.StrToDateTime(arg, true)
 			if !ok {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongValue, "DATETIME", arg)
 			}
-			return NewSQLTimestamp(a.valueKind(), date), nil
+			return NewSQLValueExpr(values.NewSQLTimestamp(a.valueKind(), date)), nil
 		default:
 			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 				"No support for constructor '%v'", typedE.Name)
@@ -1879,11 +1889,11 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 	case *parser.ExistsExpr:
 		return a.translateExistsExpr(typedE)
 	case *parser.FalseVal:
-		return NewSQLBool(a.valueKind(), false), nil
+		return NewSQLValueExpr(values.NewSQLBool(a.valueKind(), false)), nil
 	case *parser.FuncExpr:
 		return a.translateFuncExpr(typedE)
 	case parser.KeywordVal:
-		return NewSQLVarchar(a.valueKind(), string(typedE)), nil
+		return NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), string(typedE))), nil
 	case *parser.LikeExpr:
 		left, err := a.translateExpr(typedE.Left)
 		if err != nil {
@@ -1902,7 +1912,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 				return nil, err
 			}
 		} else {
-			escape = NewSQLVarchar(a.valueKind(), "\\")
+			escape = NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), "\\"))
 		}
 
 		caseSensitive := typedE.Operator == parser.AST_NOT_LIKE_BINARY ||
@@ -1924,7 +1934,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 
 		return NewSQLNotExpr(child), nil
 	case *parser.NullVal:
-		return NewPolymorphicSQLNull(a.valueKind()), nil
+		return NewSQLValueExpr(values.NewSQLNull(a.valueKind())), nil
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
@@ -1944,7 +1954,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 						"double",
 						exprString)
 			}
-			return NewSQLFloat(a.valueKind(), f), nil
+			return NewSQLValueExpr(values.NewSQLFloat(a.valueKind(), f)), nil
 		}
 		if strings.Contains(exprString, ".") {
 			d, err := decimal.NewFromString(exprString)
@@ -1955,17 +1965,17 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 						exprString)
 
 			}
-			return NewSQLDecimal128(a.valueKind(), d), nil
+			return NewSQLValueExpr(values.NewSQLDecimal128(a.valueKind(), d)), nil
 		}
 
 		// try to parse as int64 first
 		if i, err := strconv.ParseInt(exprString, 10, 64); err == nil {
-			return NewSQLInt64(a.valueKind(), i), nil
+			return NewSQLValueExpr(values.NewSQLInt64(a.valueKind(), i)), nil
 		}
 
 		// next try to parse as uint64
 		if i, err := strconv.ParseUint(exprString, 10, 64); err == nil {
-			return NewSQLUint64(a.valueKind(), i), nil
+			return NewSQLValueExpr(values.NewSQLUint64(a.valueKind(), i)), nil
 		}
 
 		if useFloats {
@@ -1976,7 +1986,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 						"integer",
 						exprString)
 			}
-			return NewSQLFloat(a.valueKind(), f), nil
+			return NewSQLValueExpr(values.NewSQLFloat(a.valueKind(), f)), nil
 		}
 
 		i, err := decimal.NewFromString(exprString)
@@ -1986,7 +1996,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 					"integer",
 					exprString)
 		}
-		return NewSQLDecimal128(a.valueKind(), i), nil
+		return NewSQLValueExpr(values.NewSQLDecimal128(a.valueKind(), i)), nil
 	case *parser.OrExpr:
 
 		left, err := a.translateExpr(typedE.Left)
@@ -2036,11 +2046,11 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		}
 		return &SQLRegexExpr{operand, pattern}, nil
 	case parser.StrVal:
-		return NewSQLVarchar(a.valueKind(), string(typedE)), nil
+		return NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), string(typedE))), nil
 	case *parser.Subquery:
 		return a.translateSubqueryExpr(typedE)
 	case *parser.TrueVal:
-		return NewSQLBool(a.valueKind(), true), nil
+		return NewSQLValueExpr(values.NewSQLBool(a.valueKind(), true)), nil
 	case *parser.UnaryExpr:
 
 		child, err := a.translateExpr(typedE.Expr)
@@ -2060,7 +2070,7 @@ func (a *algebrizer) translateExprHelper(expr parser.Expr) (SQLExpr, error) {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"No support for operator '%v'", typedE.Operator)
 	case *parser.UnknownVal:
-		return NewPolymorphicSQLNull(a.valueKind()), nil
+		return NewSQLValueExpr(values.NewSQLNull(a.valueKind())), nil
 	default:
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"No support for '%v'", parser.String(typedE))
@@ -2159,7 +2169,7 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 
 	var elseValue SQLExpr
 	if expr.Else == nil {
-		elseValue = NewPolymorphicSQLNull(a.valueKind())
+		elseValue = NewSQLValueExpr(values.NewSQLNull(a.valueKind()))
 	} else if elseValue, err = a.translateExpr(expr.Else); err != nil {
 		return nil, err
 	}
@@ -2220,7 +2230,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 					return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, name)
 				}
 
-				exprs = append(exprs, NewSQLVarchar(a.valueKind(), "*"))
+				exprs = append(exprs, NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), "*")))
 
 			case *parser.NonStarExpr:
 
@@ -2306,7 +2316,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 				as := typedE.As.Unwrap()
 				switch strings.ToLower(as) {
 				case "cast":
-					exprs = append(exprs, NewSQLVarchar(a.valueKind(), as))
+					exprs = append(exprs, NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), as)))
 				default:
 					return nil,
 						mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
@@ -2327,27 +2337,26 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		}
 		return &SQLBenchmarkExpr{exprs[0], exprs[1]}, nil
 	case "date":
-		return NewSQLConvertExpr(exprs[0], EvalDate), nil
+		return NewSQLConvertExpr(exprs[0], types.EvalDate), nil
 	case "timestamp":
 		if len(exprs) == 1 {
-			return NewSQLConvertExpr(exprs[0], EvalDatetime), nil
-		} else {
-			return NewSQLScalarFunctionExpr(name, exprs)
+			return NewSQLConvertExpr(exprs[0], types.EvalDatetime), nil
 		}
+		return NewSQLScalarFunctionExpr(name, exprs)
 	case "rand":
 		// We need something unique that we can map.
 		id := a.getUniqueID()
 		return NewSQLScalarFunctionExpr(
 			"rand",
-			append([]SQLExpr{NewSQLUint64(a.valueKind(), id)}, exprs...),
+			append([]SQLExpr{NewSQLValueExpr(values.NewSQLUint64(a.valueKind(), id))}, exprs...),
 		)
 	case "isnull":
-		return NewSQLIsExpr(exprs[0], NewPolymorphicSQLNull(a.valueKind())), nil
+		return NewSQLIsExpr(exprs[0], NewSQLValueExpr(values.NewSQLNull(a.valueKind()))), nil
 	case "date_add", "adddate", "date_sub", "subdate":
 		if len(exprs) == 2 {
 			return NewSQLScalarFunctionExpr(
 				name,
-				[]SQLExpr{exprs[0], exprs[1], NewSQLVarchar(a.valueKind(), Day)},
+				[]SQLExpr{exprs[0], exprs[1], NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), Day))},
 			)
 		}
 		return NewSQLScalarFunctionExpr(name, []SQLExpr{exprs[0], exprs[1], exprs[2]})
@@ -2358,17 +2367,17 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		if name == "week" {
 			return NewSQLScalarFunctionExpr(
 				"week",
-				[]SQLExpr{exprs[0], NewSQLInt64(a.valueKind(), 0)},
+				[]SQLExpr{exprs[0], NewSQLValueExpr(values.NewSQLInt64(a.valueKind(), 0))},
 			)
 		}
-		return NewSQLScalarFunctionExpr("week", []SQLExpr{exprs[0], NewSQLInt64(a.valueKind(), 3)})
+		return NewSQLScalarFunctionExpr("week", []SQLExpr{exprs[0], NewSQLValueExpr(values.NewSQLInt64(a.valueKind(), 3))})
 	case "yearweek":
 		if len(exprs) == 2 {
 			return NewSQLScalarFunctionExpr("yearweek", []SQLExpr{exprs[0], exprs[1]})
 		}
 		return NewSQLScalarFunctionExpr(
 			"yearweek",
-			[]SQLExpr{exprs[0], NewSQLInt64(a.valueKind(), 0)},
+			[]SQLExpr{exprs[0], NewSQLValueExpr(values.NewSQLInt64(a.valueKind(), 0))},
 		)
 	default:
 		return NewSQLScalarFunctionExpr(name, exprs)

@@ -13,36 +13,38 @@ import (
 	"unicode"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 )
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) asciiEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, EvalInt64), nil
+func (f baseScalarFunctionExpr) asciiEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	str := values[0].String()
+	str := vs[0].String()
 	if str == "" {
-		return NewSQLInt64(sqlValueKind, 0), nil
+		return values.NewSQLInt64(sqlValueKind, 0), nil
 	}
 
 	c := str[0]
 
-	return NewSQLInt64(sqlValueKind, int64(c)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(c)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) charEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) charEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 
 	var b []byte
-	for _, i := range values {
+	for _, i := range vs {
 		if i.IsNull() {
 			continue
 		}
-		v := Int64(i)
+		v := values.Int64(i)
 		if v >= 256 {
 			var temp []byte
 			num := v / 255
@@ -57,24 +59,24 @@ func (f baseScalarFunctionExpr) charEvaluate(sqlValueKind SQLValueKind, _ *colla
 		b = append(b, uint8(v))
 	}
 
-	return NewSQLVarchar(sqlValueKind, string(b)), nil
+	return values.NewSQLVarchar(sqlValueKind, string(b)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) characterLengthEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, EvalInt64), nil
+func (f baseScalarFunctionExpr) characterLengthEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := []rune(values[0].String())
+	value := []rune(vs[0].String())
 
-	return NewSQLInt64(sqlValueKind, int64(len(value))), nil
+	return values.NewSQLInt64(sqlValueKind, int64(len(value))), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) concatEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (v SQLValue, err error) {
-	if hasNullValue(values...) {
-		v = NewSQLNull(sqlValueKind, EvalString)
+func (f baseScalarFunctionExpr) concatEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (v values.SQLValue, err error) {
+	if values.HasNullValue(vs...) {
+		v = values.NewSQLNull(sqlValueKind)
 		err = nil
 		return
 	}
@@ -87,19 +89,19 @@ func (f baseScalarFunctionExpr) concatEvaluate(sqlValueKind SQLValueKind, _ *col
 	}()
 
 	var b bytes.Buffer
-	for _, value := range values {
+	for _, value := range vs {
 		b.WriteString(value.String())
 	}
 
-	v = NewSQLVarchar(sqlValueKind, b.String())
+	v = values.NewSQLVarchar(sqlValueKind, b.String())
 	err = nil
 	return
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) concatWsEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (v SQLValue, err error) {
-	if values[0].IsNull() {
-		v = NewSQLNull(sqlValueKind, f.EvalType())
+func (f baseScalarFunctionExpr) concatWsEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (v values.SQLValue, err error) {
+	if vs[0].IsNull() {
+		v = values.NewSQLNull(sqlValueKind)
 		return
 	}
 
@@ -111,8 +113,8 @@ func (f baseScalarFunctionExpr) concatWsEvaluate(sqlValueKind SQLValueKind, _ *c
 	}()
 
 	var b bytes.Buffer
-	separator := values[0].String()
-	trimValues := values[1:]
+	separator := vs[0].String()
+	trimValues := vs[1:]
 	for i, value := range trimValues {
 		if value.IsNull() {
 			continue
@@ -123,24 +125,24 @@ func (f baseScalarFunctionExpr) concatWsEvaluate(sqlValueKind SQLValueKind, _ *c
 		}
 	}
 
-	v = NewSQLVarchar(sqlValueKind, b.String())
+	v = values.NewSQLVarchar(sqlValueKind, b.String())
 	return
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) connectionIDEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
-	return NewSQLUint64(cfg.sqlValueKind, cfg.connID), nil
+func (f baseScalarFunctionExpr) connectionIDEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
+	return values.NewSQLUint64(cfg.sqlValueKind, cfg.connID), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) piEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.constantEvaluate(sqlValueKind, values, math.Pi, EvalDouble)
+func (f baseScalarFunctionExpr) piEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.constantEvaluate(sqlValueKind, vs, math.Pi, types.EvalDouble)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) constantEvaluate(sqlValueKind SQLValueKind,
-	values []SQLValue, constVal interface{}, constEvalType EvalType) (SQLValue, error) {
-	sqlVal := GoValueToSQLValue(sqlValueKind, constVal)
+func (f baseScalarFunctionExpr) constantEvaluate(sqlValueKind values.SQLValueKind,
+	vs []values.SQLValue, constVal interface{}, constEvalType types.EvalType) (values.SQLValue, error) {
+	sqlVal := values.GoValueToSQLValue(sqlValueKind, constVal)
 	if sqlVal.EvalType() != constEvalType {
 		err := fmt.Errorf(
 			"actual EvalType %x did not match declared EvalType %x",
@@ -158,18 +160,18 @@ func (f baseScalarFunctionExpr) constantEvaluate(sqlValueKind SQLValueKind,
 // complement version if the number is negative unless the to_base is also negative, in which
 // case it returns the number with a negative sign at the front
 // nolint: unparam
-func (f baseScalarFunctionExpr) convEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) convEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	num := values[0].String()
-	originalBase := absInt64(Int64(values[1]))
-	newBase := absInt64(Int64(values[2]))
+	num := vs[0].String()
+	originalBase := absInt64(values.Int64(vs[1]))
+	newBase := absInt64(values.Int64(vs[2]))
 	negative := false
 
 	if baseIsInvalid(originalBase) || baseIsInvalid(newBase) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	if string(num[0]) == "-" {
@@ -183,7 +185,7 @@ func (f baseScalarFunctionExpr) convEvaluate(sqlValueKind SQLValueKind, _ *colla
 
 	base10Version, err := strconv.ParseInt(num, int(originalBase), 64)
 	if err != nil {
-		return NewSQLVarchar(sqlValueKind, "0"), nil
+		return values.NewSQLVarchar(sqlValueKind, "0"), nil
 	}
 	strVersion := strconv.FormatInt(base10Version, int(newBase))
 
@@ -191,101 +193,101 @@ func (f baseScalarFunctionExpr) convEvaluate(sqlValueKind SQLValueKind, _ *colla
 		strVersion = "-" + strVersion
 	}
 
-	return NewSQLVarchar(sqlValueKind, strings.ToUpper(strVersion)), nil
+	return values.NewSQLVarchar(sqlValueKind, strings.ToUpper(strVersion)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) convertEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if values[0].IsNull() {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) convertEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if vs[0].IsNull() {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	typ, ok := evalTypeFromSQLExpr(values[1])
+	typ, ok := evalTypeFromSQLTypeValue(vs[1])
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return ConvertTo(values[0], typ), nil
+	return values.ConvertTo(vs[0], typ), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) cotEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) cotEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	tan := math.Tan(Float64(values[0]))
+	tan := math.Tan(values.Float64(vs[0]))
 	if tan == 0 {
-		return NewSQLNull(sqlValueKind, f.EvalType()),
+		return values.NewSQLNull(sqlValueKind),
 			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
 				"DOUBLE",
 				fmt.Sprintf("'cot(%v)'",
-					Float64(values[0])))
+					values.Float64(vs[0])))
 	}
 
-	return NewSQLFloat(sqlValueKind, 1/tan), nil
+	return values.NewSQLFloat(sqlValueKind, 1/tan), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) currentDateEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) currentDateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 	now := time.Now().In(schema.DefaultLocale)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	return NewSQLDate(sqlValueKind, t), nil
+	return values.NewSQLDate(sqlValueKind, t), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) currentTimestampEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) currentTimestampEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 	value := time.Now().In(schema.DefaultLocale)
-	return NewSQLTimestamp(sqlValueKind, value), nil
+	return values.NewSQLTimestamp(sqlValueKind, value), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) curtimeEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return NewSQLTimestamp(sqlValueKind, time.Now().In(schema.DefaultLocale)), nil
+func (f baseScalarFunctionExpr) curtimeEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return values.NewSQLTimestamp(sqlValueKind, time.Now().In(schema.DefaultLocale)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dateAddEvaluate(sqlValueKind SQLValueKind, collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) dateAddEvaluate(sqlValueKind values.SQLValueKind, collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	_, _, ok := parseDateTime(values[0].String())
+	_, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	// Seconds can be fractional values, so our calculateInterval function will not work right
+	// Seconds can be fractional vs, so our calculateInterval function will not work right
 	// (it is fine for all other units, as they must be integral).
-	if values[2].String() == Second {
-		interval := values[1].SQLFloat()
-		vals := []SQLValue{NewSQLVarchar(sqlValueKind, Second), interval, values[0]}
+	if vs[2].String() == Second {
+		interval := vs[1].SQLFloat()
+		vals := []values.SQLValue{values.NewSQLVarchar(sqlValueKind, Second), interval, vs[0]}
 		return f.timestampAddEvaluate(sqlValueKind, collation, vals)
 	}
 
-	args, neg := dateArithmeticArgs(values[2].String(), values[1])
-	unit, interval, err := calculateInterval(values[2].String(), args, neg)
+	args, neg := dateArithmeticArgs(vs[2].String(), vs[1])
+	unit, interval, err := calculateInterval(vs[2].String(), args, neg)
 	if err != nil {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	vals := []SQLValue{
-		NewSQLVarchar(sqlValueKind, unit),
-		NewSQLInt64(sqlValueKind, int64(interval)), values[0],
+	vals := []values.SQLValue{
+		values.NewSQLVarchar(sqlValueKind, unit),
+		values.NewSQLInt64(sqlValueKind, int64(interval)), vs[0],
 	}
 	return f.timestampAddEvaluate(sqlValueKind, collation, vals)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dateDiffEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) dateDiffEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 
 	var left, right time.Time
 	var ok bool
 
-	parseArgs := func(val SQLValue) (time.Time, bool) {
+	parseArgs := func(val values.SQLValue) (time.Time, bool) {
 		var date time.Time
 
-		date, _, ok = strToDateTime(val.String(), false)
+		date, _, ok = values.StrToDateTime(val.String(), false)
 		if !ok {
 			return date, false
 		}
@@ -294,140 +296,140 @@ func (f baseScalarFunctionExpr) dateDiffEvaluate(sqlValueKind SQLValueKind, _ *c
 		return date, true
 	}
 
-	if left, ok = parseArgs(values[0]); !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+	if left, ok = parseArgs(vs[0]); !ok {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	if right, ok = parseArgs(values[1]); !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+	if right, ok = parseArgs(vs[1]); !ok {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	durationDiff := left.Sub(right)
 	hoursDiff := durationDiff.Hours()
 	daysDiff := hoursDiff / 24
 
-	diff := NewSQLInt64(sqlValueKind, int64(daysDiff))
+	diff := values.NewSQLInt64(sqlValueKind, int64(daysDiff))
 	return diff, nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dateFormatEvaluate(sqlValueKind SQLValueKind,
-	collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) dateFormatEvaluate(sqlValueKind values.SQLValueKind,
+	collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	date, _, ok := parseDateTime(values[0].String())
+	date, _, ok := values.ParseDateTime(vs[0].String())
 	date = date.In(schema.DefaultLocale)
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	v1, ok := values[1].(SQLVarchar)
+	v1, ok := vs[1].(values.SQLVarchar)
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	ret, err := f.formatDate(sqlValueKind, collation, date, v1.String())
 	if err != nil {
 		return nil, err
 	}
-	return NewSQLVarchar(sqlValueKind, ret), nil
+	return values.NewSQLVarchar(sqlValueKind, ret), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dateSubEvaluate(sqlValueKind SQLValueKind, collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) dateSubEvaluate(sqlValueKind values.SQLValueKind, collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	v := values[1].String()
+	v := vs[1].String()
 	if string(v[0]) != "-" {
 		v = "-" + v
 	} else {
 		v = v[1:]
 	}
 
-	vals := []SQLValue{values[0], NewSQLVarchar(sqlValueKind, v), values[2]}
+	vals := []values.SQLValue{vs[0], values.NewSQLVarchar(sqlValueKind, v), vs[2]}
 	return f.dateAddEvaluate(sqlValueKind, collation, vals)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dayNameEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+func (f baseScalarFunctionExpr) dayNameEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLVarchar(sqlValueKind, t.Weekday().String()), nil
+	return values.NewSQLVarchar(sqlValueKind, t.Weekday().String()), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dayOfMonthEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(String(values[0]))
+func (f baseScalarFunctionExpr) dayOfMonthEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(values.String(vs[0]))
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.Day())), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.Day())), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dayOfWeekEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(String(values[0]))
+func (f baseScalarFunctionExpr) dayOfWeekEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(values.String(vs[0]))
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.Weekday())+1), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.Weekday())+1), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dayOfYearEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+func (f baseScalarFunctionExpr) dayOfYearEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.YearDay())), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.YearDay())), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) databaseEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
-	return NewSQLVarchar(cfg.sqlValueKind, cfg.dbName), nil
+func (f baseScalarFunctionExpr) databaseEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
+	return values.NewSQLVarchar(cfg.sqlValueKind, cfg.dbName), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) dualArgFloatMathFuncEvaluate(sqlValueKind SQLValueKind,
-	values []SQLValue, fn func(float64, float64) float64) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) dualArgFloatMathFuncEvaluate(sqlValueKind values.SQLValueKind,
+	vs []values.SQLValue, fn func(float64, float64) float64) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	result := fn(Float64(values[0]), Float64(values[1]))
+	result := fn(values.Float64(vs[0]), values.Float64(vs[1]))
 	if math.IsNaN(result) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if math.IsInf(result, 0) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if result == -0 {
 		result = 0
 	}
-	return NewSQLFloat(sqlValueKind, result), nil
+	return values.NewSQLFloat(sqlValueKind, result), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) extractEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[1].String())
+func (f baseScalarFunctionExpr) extractEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[1].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	units := [6]int{t.Year(), int(t.Month()), t.Day(), t.Hour(), t.Minute(), t.Second()}
 
 	var unitStrs [6]string
-	// For certain units, we need to concatenate the unit values as strings
+	// For certain units, we need to concatenate the unit vs as strings
 	// before returning the int value as to not lose any number's place
 	// value. i.e. SELECT EXTRACT(DayMinute FROM "2006-04-03 06:03:23")
 	// should return 30603, not 363.
@@ -439,69 +441,69 @@ func (f baseScalarFunctionExpr) extractEvaluate(sqlValueKind SQLValueKind, _ *co
 		unitStrs[idx] = u
 	}
 
-	switch values[0].String() {
+	switch vs[0].String() {
 	case Year:
-		return NewSQLInt64(sqlValueKind, int64(units[0])), nil
+		return values.NewSQLInt64(sqlValueKind, int64(units[0])), nil
 	case Quarter:
-		return NewSQLInt64(sqlValueKind, int64(math.Ceil(float64(units[1])/3.0))), nil
+		return values.NewSQLInt64(sqlValueKind, int64(math.Ceil(float64(units[1])/3.0))), nil
 	case Month:
-		return NewSQLInt64(sqlValueKind, int64(units[1])), nil
+		return values.NewSQLInt64(sqlValueKind, int64(units[1])), nil
 	case Week:
 		_, w := t.ISOWeek()
-		return NewSQLInt64(sqlValueKind, int64(w)), nil
+		return values.NewSQLInt64(sqlValueKind, int64(w)), nil
 	case Day:
-		return NewSQLInt64(sqlValueKind, int64(units[2])), nil
+		return values.NewSQLInt64(sqlValueKind, int64(units[2])), nil
 	case Hour:
-		return NewSQLInt64(sqlValueKind, int64(units[3])), nil
+		return values.NewSQLInt64(sqlValueKind, int64(units[3])), nil
 	case Minute:
-		return NewSQLInt64(sqlValueKind, int64(units[4])), nil
+		return values.NewSQLInt64(sqlValueKind, int64(units[4])), nil
 	case Second:
-		return NewSQLInt64(sqlValueKind, int64(units[5])), nil
+		return values.NewSQLInt64(sqlValueKind, int64(units[5])), nil
 	case Microsecond:
-		return NewSQLInt64(sqlValueKind, 0), nil
+		return values.NewSQLInt64(sqlValueKind, 0), nil
 	case YearMonth:
 		ym, _ := strconv.ParseInt(unitStrs[0]+unitStrs[1], 10, 64)
-		return NewSQLInt64(sqlValueKind, ym), nil
+		return values.NewSQLInt64(sqlValueKind, ym), nil
 	case DayHour:
 		dh, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3], 10, 64)
-		return NewSQLInt64(sqlValueKind, dh), nil
+		return values.NewSQLInt64(sqlValueKind, dh), nil
 	case DayMinute:
 		dm, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3]+unitStrs[4], 10, 64)
-		return NewSQLInt64(sqlValueKind, dm), nil
+		return values.NewSQLInt64(sqlValueKind, dm), nil
 	case DaySecond:
 		ds, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3]+unitStrs[4]+unitStrs[5], 10, 64)
-		return NewSQLInt64(sqlValueKind, ds), nil
+		return values.NewSQLInt64(sqlValueKind, ds), nil
 	case DayMicrosecond:
 		dms, _ := strconv.ParseInt(unitStrs[2]+unitStrs[3]+unitStrs[4]+unitStrs[5]+"000000", 10, 64)
-		return NewSQLInt64(sqlValueKind, dms), nil
+		return values.NewSQLInt64(sqlValueKind, dms), nil
 	case HourMinute:
 		hm, _ := strconv.ParseInt(unitStrs[3]+unitStrs[4], 10, 64)
-		return NewSQLInt64(sqlValueKind, hm), nil
+		return values.NewSQLInt64(sqlValueKind, hm), nil
 	case HourSecond:
 		hs, _ := strconv.ParseInt(unitStrs[3]+unitStrs[4]+unitStrs[5], 10, 64)
-		return NewSQLInt64(sqlValueKind, hs), nil
+		return values.NewSQLInt64(sqlValueKind, hs), nil
 	case HourMicrosecond:
 		hms, _ := strconv.ParseInt(unitStrs[3]+unitStrs[4]+unitStrs[5]+"000000", 10, 64)
-		return NewSQLInt64(sqlValueKind, hms), nil
+		return values.NewSQLInt64(sqlValueKind, hms), nil
 	case MinuteSecond:
 		ms, _ := strconv.ParseInt(unitStrs[4]+unitStrs[5], 10, 64)
-		return NewSQLInt64(sqlValueKind, ms), nil
+		return values.NewSQLInt64(sqlValueKind, ms), nil
 	case MinuteMicrosecond:
 		mms, _ := strconv.ParseInt(unitStrs[4]+unitStrs[5]+"000000", 10, 64)
-		return NewSQLInt64(sqlValueKind, mms), nil
+		return values.NewSQLInt64(sqlValueKind, mms), nil
 	case SecondMicrosecond:
 		sms, _ := strconv.ParseInt(unitStrs[5]+"000000", 10, 64)
-		return NewSQLInt64(sqlValueKind, sms), nil
+		return values.NewSQLInt64(sqlValueKind, sms), nil
 	default:
-		err := fmt.Errorf("unit type '%v' is not supported", values[0].String())
-		return NewSQLNull(sqlValueKind, f.EvalType()), err
+		err := fmt.Errorf("unit type '%v' is not supported", vs[0].String())
+		return values.NewSQLNull(sqlValueKind), err
 	}
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) fromDaysEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) fromDaysEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	parseNumeric := func(s string) string {
@@ -516,21 +518,21 @@ func (f baseScalarFunctionExpr) fromDaysEvaluate(sqlValueKind SQLValueKind, _ *c
 		return ""
 	}
 
-	v := values[0].String()
+	v := vs[0].String()
 	neg := len(v) > 0 && v[0] == '-'
 	if neg {
 		v = v[1:]
 	}
 	value, err := strconv.ParseFloat(parseNumeric(v), 64)
 	if err != nil {
-		return NewSQLNull(sqlValueKind, EvalDate), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if neg {
 		value = -value
 	}
 
 	if value <= 365.5 || value >= 3652499.5 {
-		return NewSQLNull(sqlValueKind, EvalDate), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	abs, maxGoDurationHours := math.Abs(value-366), int64(106751)
@@ -554,93 +556,93 @@ func (f baseScalarFunctionExpr) fromDaysEvaluate(sqlValueKind SQLValueKind, _ *c
 
 	date = date.Add(time.Duration(target*24) * time.Hour).Round(time.Second)
 
-	return NewSQLDate(sqlValueKind, date.In(schema.DefaultLocale)), nil
+	return values.NewSQLDate(sqlValueKind, date.In(schema.DefaultLocale)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) fromUnixtimeEvaluate(sqlValueKind SQLValueKind,
-	collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) fromUnixtimeEvaluate(sqlValueKind values.SQLValueKind,
+	collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := round(Float64(values[0]))
+	value := mathutil.Round(values.Float64(vs[0]))
 	if value < 0 {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	date := time.Unix(value, 0).In(schema.DefaultLocale)
-	if len(values) == 1 {
-		return NewSQLTimestamp(sqlValueKind, date), nil
+	if len(vs) == 1 {
+		return values.NewSQLTimestamp(sqlValueKind, date), nil
 	}
-	ret, err := f.formatDate(sqlValueKind, collation, date, values[1].String())
+	ret, err := f.formatDate(sqlValueKind, collation, date, vs[1].String())
 	if err != nil {
 		return nil, err
 	}
-	return NewSQLVarchar(sqlValueKind, ret), nil
+	return values.NewSQLVarchar(sqlValueKind, ret), nil
 }
 
 // greatest cannot be constant folded because we do not have the collation at optimization time.
 // nolint: unparam
-func (f baseScalarFunctionExpr) greatestEvaluate(sqlValueKind SQLValueKind,
-	collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) greatestEvaluate(sqlValueKind values.SQLValueKind,
+	collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	valExprs := []SQLExpr{}
-	for _, val := range values {
+	valExprs := []types.EvalTyper{}
+	for _, val := range vs {
 		valExprs = append(valExprs, val)
 	}
 	convertTo := preferentialType(valExprs...)
 
-	convertedVals := []SQLValue{}
-	for _, val := range values {
-		newVal := ConvertTo(val, convertTo)
+	convertedVals := []values.SQLValue{}
+	for _, val := range vs {
+		newVal := values.ConvertTo(val, convertTo)
 		convertedVals = append(convertedVals, newVal)
 	}
 
-	var greatest SQLValue
+	var greatest values.SQLValue
 	var greatestIdx int
 
-	c, err := CompareTo(convertedVals[0], convertedVals[1], collation)
+	c, err := values.CompareTo(convertedVals[0], convertedVals[1], collation)
 	if err != nil {
-		return NewSQLNull(sqlValueKind, f.EvalType()), err
+		return values.NewSQLNull(sqlValueKind), err
 	}
 
 	if c == -1 {
-		greatest, greatestIdx = values[1], 1
+		greatest, greatestIdx = vs[1], 1
 	} else {
-		greatest, greatestIdx = values[0], 0
+		greatest, greatestIdx = vs[0], 0
 	}
 
-	for i := 2; i < len(values); i++ {
-		c, err = CompareTo(greatest, convertedVals[i], collation)
+	for i := 2; i < len(vs); i++ {
+		c, err = values.CompareTo(greatest, convertedVals[i], collation)
 		if err != nil {
-			return NewSQLNull(sqlValueKind, f.EvalType()), err
+			return values.NewSQLNull(sqlValueKind), err
 		}
 		if c == -1 {
-			greatest, greatestIdx = values[i], i
+			greatest, greatestIdx = vs[i], i
 		}
 	}
 
-	allTimeVals, timestamp := areAllTimeTypes(values)
+	allTimeVals, timestamp := areAllTimeTypes(vs)
 	if allTimeVals && timestamp {
-		t, _, _ := parseDateTime(values[greatestIdx].String())
-		return NewSQLTimestamp(sqlValueKind, t), nil
-	} else if convertTo == EvalDate || convertTo == EvalDatetime {
-		return values[greatestIdx], nil
+		t, _, _ := values.ParseDateTime(vs[greatestIdx].String())
+		return values.NewSQLTimestamp(sqlValueKind, t), nil
+	} else if convertTo == types.EvalDate || convertTo == types.EvalDatetime {
+		return vs[greatestIdx], nil
 	}
 
 	return convertedVals[greatestIdx], nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) hourEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if values[0].IsNull() {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) hourEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if vs[0].IsNull() {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
-	_, hour, ok := parseTime(values[0].String())
+	_, hour, ok := parseTime(vs[0].String())
 	if !ok {
 		// If we managed to parse, but minutes or seconds are >= 60
 		// MySQL returns NULL for the hour/minute/second function.
@@ -649,100 +651,100 @@ func (f baseScalarFunctionExpr) hourEvaluate(sqlValueKind SQLValueKind, _ *colla
 		// rather than the 0 expected if the string could not be parsed
 		// at all.
 		if hour == -1 {
-			return NewSQLNull(sqlValueKind, f.EvalType()), nil
+			return values.NewSQLNull(sqlValueKind), nil
 		}
-		return NewSQLInt64(sqlValueKind, 0), nil
+		return values.NewSQLInt64(sqlValueKind, 0), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(hour)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(hour)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) insertEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) insertEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	s := values[0].String()
-	pos := int(round(Float64(values[1]))) - 1
-	length := int(round(Float64(values[2])))
-	newstr := values[3].String()
+	s := vs[0].String()
+	pos := int(mathutil.Round(values.Float64(vs[1]))) - 1
+	length := int(mathutil.Round(values.Float64(vs[2])))
+	newstr := vs[3].String()
 
 	if pos < 0 || pos >= len(s) {
-		return values[0], nil
+		return vs[0], nil
 	}
 
 	if pos+length < 0 || pos+length > len(s) {
-		return NewSQLVarchar(sqlValueKind, s[:pos]+newstr), nil
+		return values.NewSQLVarchar(sqlValueKind, s[:pos]+newstr), nil
 	}
 
-	return NewSQLVarchar(sqlValueKind, s[:pos]+newstr+s[pos+length:]), nil
+	return values.NewSQLVarchar(sqlValueKind, s[:pos]+newstr+s[pos+length:]), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) instrEvaluate(sqlValueKind SQLValueKind,
-	collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.locateEvaluate(sqlValueKind, collation, []SQLValue{values[1], values[0]})
+func (f baseScalarFunctionExpr) instrEvaluate(sqlValueKind values.SQLValueKind,
+	collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.locateEvaluate(sqlValueKind, collation, []values.SQLValue{vs[1], vs[0]})
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) lastDayEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) lastDayEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	// Must be a SQLTimestamp at this point.
-	tmp, ok := values[0].(SQLDate)
+	tmp, ok := vs[0].(values.SQLDate)
 	if !ok {
 		return nil,
 			fmt.Errorf("unable to evaluate type %v"+
 				" in to_days, this points to an error in the algebrizer",
-				values[0])
+				vs[0])
 	}
-	t := Timestamp(tmp)
+	t := values.Timestamp(tmp)
 	year, month, _ := t.Date()
 	first := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
-	return NewSQLDate(sqlValueKind, first.AddDate(0, 1, -1)), nil
+	return values.NewSQLDate(sqlValueKind, first.AddDate(0, 1, -1)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) lcaseEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) lcaseEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := strings.ToLower(values[0].String())
+	value := strings.ToLower(vs[0].String())
 
-	return NewSQLVarchar(sqlValueKind, value), nil
+	return values.NewSQLVarchar(sqlValueKind, value), nil
 }
 
 // least cannot be constant folded because of the need to have the collation from the mongo collection.
 // nolint: unparam
-func (f baseScalarFunctionExpr) leastEvaluate(sqlValueKind SQLValueKind,
-	collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) leastEvaluate(sqlValueKind values.SQLValueKind,
+	collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	valExprs := []SQLExpr{}
-	for _, val := range values {
+	valExprs := []types.EvalTyper{}
+	for _, val := range vs {
 		valExprs = append(valExprs, val)
 	}
 	convertTo := preferentialType(valExprs...)
 
-	convertedVals := []SQLValue{}
-	for _, val := range values {
-		newVal := ConvertTo(val, convertTo)
+	convertedVals := []values.SQLValue{}
+	for _, val := range vs {
+		newVal := values.ConvertTo(val, convertTo)
 		convertedVals = append(convertedVals, newVal)
 	}
 
-	var least SQLValue
+	var least values.SQLValue
 	var leastIdx int
 
-	c, err := CompareTo(convertedVals[0], convertedVals[1], collation)
+	c, err := values.CompareTo(convertedVals[0], convertedVals[1], collation)
 	if err != nil {
-		return NewSQLNull(sqlValueKind, f.EvalType()), err
+		return values.NewSQLNull(sqlValueKind), err
 	}
 
 	if c == -1 {
@@ -751,62 +753,62 @@ func (f baseScalarFunctionExpr) leastEvaluate(sqlValueKind SQLValueKind,
 		least, leastIdx = convertedVals[1], 1
 	}
 
-	for i := 2; i < len(values); i++ {
-		c, err = CompareTo(least, convertedVals[i], collation)
+	for i := 2; i < len(vs); i++ {
+		c, err = values.CompareTo(least, convertedVals[i], collation)
 		if err != nil {
-			return NewSQLNull(sqlValueKind, f.EvalType()), err
+			return values.NewSQLNull(sqlValueKind), err
 		}
 		if c == 1 {
-			least, leastIdx = values[i], i
+			least, leastIdx = vs[i], i
 		}
 	}
 
-	allTimeVals, timestamp := areAllTimeTypes(values)
+	allTimeVals, timestamp := areAllTimeTypes(vs)
 	if allTimeVals && timestamp {
-		t, _, _ := parseDateTime(values[leastIdx].String())
-		return NewSQLTimestamp(sqlValueKind, t), nil
-	} else if convertTo == EvalDate || convertTo == EvalDatetime {
-		return values[leastIdx], nil
+		t, _, _ := values.ParseDateTime(vs[leastIdx].String())
+		return values.NewSQLTimestamp(sqlValueKind, t), nil
+	} else if convertTo == types.EvalDate || convertTo == types.EvalDatetime {
+		return vs[leastIdx], nil
 	}
 
 	return convertedVals[leastIdx], nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) leftEvaluate(sqlValueKind SQLValueKind,
-	collation *collation.Collation, values []SQLValue) (SQLValue, error) {
-	vals := []SQLValue{values[0],
-		NewSQLInt64(sqlValueKind, 1),
-		values[1]}
+func (f baseScalarFunctionExpr) leftEvaluate(sqlValueKind values.SQLValueKind,
+	collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	vals := []values.SQLValue{vs[0],
+		values.NewSQLInt64(sqlValueKind, 1),
+		vs[1]}
 	return f.substringEvaluate(sqlValueKind, collation, vals)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) lengthEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) lengthEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := values[0].String()
+	value := vs[0].String()
 
-	return NewSQLInt64(sqlValueKind, int64(len(value))), nil
+	return values.NewSQLInt64(sqlValueKind, int64(len(value))), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) locateEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values[:2]...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) locateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs[:2]...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	substr := []rune(values[0].String())
-	str := []rune(values[1].String())
+	substr := []rune(vs[0].String())
+	str := []rune(vs[1].String())
 	var result int
-	if len(values) == 3 {
+	if len(vs) == 3 {
 
-		pos := int(Float64(values[2])+0.5) - 1 // MySQL uses 1 as a basis
+		pos := int(values.Float64(vs[2])+0.5) - 1 // MySQL uses 1 as a basis
 
 		if pos < 0 || len(str) <= pos {
-			return NewSQLInt64(sqlValueKind, 0), nil
+			return values.NewSQLInt64(sqlValueKind, 0), nil
 		}
 		str = str[pos:]
 		result = runesIndex(str, substr)
@@ -817,88 +819,88 @@ func (f baseScalarFunctionExpr) locateEvaluate(sqlValueKind SQLValueKind, _ *col
 		result = runesIndex(str, substr)
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(result+1)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(result+1)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) logEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.logarithmEvaluate(sqlValueKind, values, 0)
+func (f baseScalarFunctionExpr) logEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.logarithmEvaluate(sqlValueKind, vs, 0)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) lnEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.logarithmEvaluate(sqlValueKind, values, 0)
+func (f baseScalarFunctionExpr) lnEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.logarithmEvaluate(sqlValueKind, vs, 0)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) log2Evaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.logarithmEvaluate(sqlValueKind, values, 2)
+func (f baseScalarFunctionExpr) log2Evaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.logarithmEvaluate(sqlValueKind, vs, 2)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) log10Evaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.logarithmEvaluate(sqlValueKind, values, 10)
+func (f baseScalarFunctionExpr) log10Evaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.logarithmEvaluate(sqlValueKind, vs, 10)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) logarithmEvaluate(sqlValueKind SQLValueKind, values []SQLValue, base uint32) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) logarithmEvaluate(sqlValueKind values.SQLValueKind, vs []values.SQLValue, base uint32) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	var result float64
 	switch base {
 	case 0:
-		if len(values) == 2 {
+		if len(vs) == 2 {
 			// arbitrary base
-			result = math.Log(Float64(values[1])) / math.Log(Float64(values[0]))
+			result = math.Log(values.Float64(vs[1])) / math.Log(values.Float64(vs[0]))
 		} else {
 			// natural base
-			result = math.Log(Float64(values[0]))
+			result = math.Log(values.Float64(vs[0]))
 		}
 	case 2:
-		result = math.Log2(Float64(values[0]))
+		result = math.Log2(values.Float64(vs[0]))
 	case 10:
-		result = math.Log10(Float64(values[0]))
+		result = math.Log10(values.Float64(vs[0]))
 	}
 	if math.IsNaN(result) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if math.IsInf(result, 0) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if result == -0 {
 		result = 0
 	}
-	return NewSQLFloat(sqlValueKind, result), nil
+	return values.NewSQLFloat(sqlValueKind, result), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) lpadEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return handlePadding(sqlValueKind, values, true)
+func (f baseScalarFunctionExpr) lpadEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return handlePadding(sqlValueKind, vs, true)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) ltrimEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) ltrimEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := strings.TrimLeft(values[0].String(), " ")
+	value := strings.TrimLeft(vs[0].String(), " ")
 
-	return NewSQLVarchar(sqlValueKind, value), nil
+	return values.NewSQLVarchar(sqlValueKind, value), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) makeDateEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) makeDateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	// Floating arguments should be rounded.
-	y := round(Float64(values[0]))
+	// Floating arguments should be mathutil.Rounded.
+	y := mathutil.Round(values.Float64(vs[0]))
 	if y < 0 || y > 9999 {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if y >= 0 && y <= 69 {
 		y += 2000
@@ -906,10 +908,10 @@ func (f baseScalarFunctionExpr) makeDateEvaluate(sqlValueKind SQLValueKind, _ *c
 		y += 1900
 	}
 
-	d := round(Float64(values[1]))
+	d := mathutil.Round(values.Float64(vs[1]))
 
 	if d <= 0 {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	t := time.Date(int(y), 1, 0, 0, 0, 0, 0, schema.DefaultLocale)
@@ -917,55 +919,55 @@ func (f baseScalarFunctionExpr) makeDateEvaluate(sqlValueKind SQLValueKind, _ *c
 
 	output := t.Add(duration)
 	if output.Year() > 9999 {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLDate(sqlValueKind, output), nil
+	return values.NewSQLDate(sqlValueKind, output), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) md5Evaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) md5Evaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	h := md5.New()
-	_, err := io.WriteString(h, values[0].String())
+	_, err := io.WriteString(h, vs[0].String())
 	if err != nil {
 		return nil, err
 	}
-	return NewSQLVarchar(sqlValueKind, fmt.Sprintf("%x", h.Sum(nil))), nil
+	return values.NewSQLVarchar(sqlValueKind, fmt.Sprintf("%x", h.Sum(nil))), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) microsecondEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) microsecondEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 
-	arg := values[0]
+	arg := vs[0]
 
 	if arg.IsNull() {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	str := arg.String()
 	if str == "" {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	t, _, ok := parseTime(str)
 	if !ok {
-		return NewSQLInt64(sqlValueKind, 0), nil
+		return values.NewSQLInt64(sqlValueKind, 0), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.Nanosecond()/1000)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.Nanosecond()/1000)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) minuteEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if values[0].IsNull() {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) minuteEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if vs[0].IsNull() {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	t, hour, ok := parseTime(values[0].String())
+	t, hour, ok := parseTime(vs[0].String())
 	if !ok {
 		// If we managed to parse, but minutes or seconds are >= 60
 		// MySQL returns NULL for the hour/minute/second function.
@@ -974,72 +976,72 @@ func (f baseScalarFunctionExpr) minuteEvaluate(sqlValueKind SQLValueKind, _ *col
 		// rather than the 0 expected if the string could not be parsed
 		// at all.
 		if hour == -1 {
-			return NewSQLNull(sqlValueKind, f.EvalType()), nil
+			return values.NewSQLNull(sqlValueKind), nil
 		}
-		return NewSQLInt64(sqlValueKind, 0), nil
+		return values.NewSQLInt64(sqlValueKind, 0), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.Minute())), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.Minute())), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) modEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, values, math.Mod)
+func (f baseScalarFunctionExpr) modEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Mod)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) monthEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+func (f baseScalarFunctionExpr) monthEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.Month())), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.Month())), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) monthNameEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+func (f baseScalarFunctionExpr) monthNameEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLVarchar(sqlValueKind, t.Month().String()), nil
+	return values.NewSQLVarchar(sqlValueKind, t.Month().String()), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) nopushdownEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return values[0], nil
+func (f baseScalarFunctionExpr) nopushdownEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return vs[0], nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) powEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) powEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	v0 := Float64(values[0])
-	v1 := Float64(values[1])
+	v0 := values.Float64(vs[0])
+	v1 := values.Float64(vs[1])
 
 	n := math.Pow(v0, v1)
 	zeroBaseExpNeg := v0 == 0 && v1 < 0
 	if math.IsNaN(n) || zeroBaseExpNeg {
-		return NewSQLNull(sqlValueKind, f.EvalType()),
+		return values.NewSQLNull(sqlValueKind),
 			mysqlerrors.Defaultf(mysqlerrors.ErDataOutOfRange,
 				"DOUBLE",
 				fmt.Sprintf("pow(%v,%v)",
-					Float64(values[0]),
-					Float64(values[1])))
+					values.Float64(vs[0]),
+					values.Float64(vs[1])))
 	}
 
-	return NewSQLFloat(sqlValueKind, math.Pow(v0, v1)), nil
+	return values.NewSQLFloat(sqlValueKind, math.Pow(v0, v1)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) quarterEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+func (f baseScalarFunctionExpr) quarterEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	q := 0
@@ -1054,41 +1056,41 @@ func (f baseScalarFunctionExpr) quarterEvaluate(sqlValueKind SQLValueKind, _ *co
 		q = 4
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(q)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(q)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) randEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
-	uniqueID := Uint64(values[0])
+func (f baseScalarFunctionExpr) randEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
+	uniqueID := values.Uint64(vs[0])
 
-	if len(values) == 2 {
-		seed := round(Float64(values[1]))
+	if len(vs) == 2 {
+		seed := mathutil.Round(values.Float64(vs[1]))
 		r := st.RandomWithSeed(uniqueID, seed)
-		return NewSQLFloat(cfg.sqlValueKind, r.Float64()), nil
+		return values.NewSQLFloat(cfg.sqlValueKind, r.Float64()), nil
 	}
 
 	r := st.Random(uniqueID)
-	return NewSQLFloat(cfg.sqlValueKind, r.Float64()), nil
+	return values.NewSQLFloat(cfg.sqlValueKind, r.Float64()), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) repeatEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (v SQLValue, err error) {
-	if hasNullValue(values...) {
-		v = NewSQLNull(sqlValueKind, f.EvalType())
+func (f baseScalarFunctionExpr) repeatEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (v values.SQLValue, err error) {
+	if values.HasNullValue(vs...) {
+		v = values.NewSQLNull(sqlValueKind)
 		err = nil
 		return
 	}
 
-	str := values[0].String()
+	str := vs[0].String()
 	if len(str) < 1 {
-		v = NewSQLVarchar(sqlValueKind, "")
+		v = values.NewSQLVarchar(sqlValueKind, "")
 		err = nil
 		return
 	}
 
-	rep := int(roundToDecimalPlaces(0, Float64(values[1])))
+	rep := int(mathutil.RoundToDecimalPlaces(0, values.Float64(vs[1])))
 	if rep < 1 {
-		v = NewSQLVarchar(sqlValueKind, "")
+		v = values.NewSQLVarchar(sqlValueKind, "")
 		err = nil
 		return
 	}
@@ -1098,104 +1100,104 @@ func (f baseScalarFunctionExpr) repeatEvaluate(sqlValueKind SQLValueKind, _ *col
 		b.WriteString(str)
 	}
 
-	v = NewSQLVarchar(sqlValueKind, b.String())
+	v = values.NewSQLVarchar(sqlValueKind, b.String())
 	err = nil
 	return
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) replaceEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) replaceEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	s := values[0].String()
-	old := values[1].String()
-	new := values[2].String()
+	s := vs[0].String()
+	old := vs[1].String()
+	new := vs[2].String()
 
-	return NewSQLVarchar(sqlValueKind, strings.Replace(s, old, new, -1)), nil
+	return values.NewSQLVarchar(sqlValueKind, strings.Replace(s, old, new, -1)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) reverseEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) reverseEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
-	s := values[0].String()
+	s := vs[0].String()
 	runes := []rune(s)
 	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
 		runes[i], runes[j] = runes[j], runes[i]
 	}
-	return NewSQLVarchar(sqlValueKind, string(runes)), nil
+	return values.NewSQLVarchar(sqlValueKind, string(runes)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) rightEvaluate(sqlValueKind SQLValueKind, collation *collation.Collation,
-	values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) rightEvaluate(sqlValueKind values.SQLValueKind, collation *collation.Collation,
+	vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	str := values[0].String()
-	posFloat := Float64(values[1])
+	str := vs[0].String()
+	posFloat := values.Float64(vs[1])
 
 	if posFloat > float64(len(str)) {
-		return NewSQLVarchar(sqlValueKind, str), nil
+		return values.NewSQLVarchar(sqlValueKind, str), nil
 	}
 
 	startPos := math.Min(0, -1.0*posFloat)
 
 	return f.substringEvaluate(sqlValueKind, collation,
-		[]SQLValue{values[0], NewSQLFloat(sqlValueKind, startPos)})
+		[]values.SQLValue{vs[0], values.NewSQLFloat(sqlValueKind, startPos)})
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) roundEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) roundEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	base := Float64(values[0])
+	base := values.Float64(vs[0])
 
 	var decimal int64
-	if len(values) == 2 {
-		decimal = Int64(values[1])
+	if len(vs) == 2 {
+		decimal = values.Int64(vs[1])
 
 		if decimal < 0 {
-			return NewSQLFloat(sqlValueKind, 0), nil
+			return values.NewSQLFloat(sqlValueKind, 0), nil
 		}
 	} else {
 		decimal = 0
 	}
 
-	rounded := roundToDecimalPlaces(decimal, base)
+	rounded := mathutil.RoundToDecimalPlaces(decimal, base)
 
-	return NewSQLFloat(sqlValueKind, rounded), nil
+	return values.NewSQLFloat(sqlValueKind, rounded), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) rpadEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return handlePadding(sqlValueKind, values, false)
+func (f baseScalarFunctionExpr) rpadEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return handlePadding(sqlValueKind, vs, false)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) rtrimEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) rtrimEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := strings.TrimRight(values[0].String(), " ")
+	value := strings.TrimRight(vs[0].String(), " ")
 
-	return NewSQLVarchar(sqlValueKind, value), nil
+	return values.NewSQLVarchar(sqlValueKind, value), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) secondEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if values[0].IsNull() {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) secondEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if vs[0].IsNull() {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	t, hour, ok := parseTime(values[0].String())
+	t, hour, ok := parseTime(vs[0].String())
 	if !ok {
 		// If we managed to parse, but minutes or seconds are >= 60
 		// MySQL returns NULL for the hour/minute/second function.
@@ -1204,61 +1206,61 @@ func (f baseScalarFunctionExpr) secondEvaluate(sqlValueKind SQLValueKind, _ *col
 		// rather than the 0 expected if the string could not be parsed
 		// at all.
 		if hour == -1 {
-			return NewSQLNull(sqlValueKind, f.EvalType()), nil
+			return values.NewSQLNull(sqlValueKind), nil
 		}
-		return NewSQLInt64(sqlValueKind, 0), nil
+		return values.NewSQLInt64(sqlValueKind, 0), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.Second())), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.Second())), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) signEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) signEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	v := Float64(values[0])
+	v := values.Float64(vs[0])
 	// Positive numbers are more common than negative in most data sets.
 	if v > 0 {
-		return NewSQLInt64(sqlValueKind, 1), nil
+		return values.NewSQLInt64(sqlValueKind, 1), nil
 	}
 	if v < 0 {
-		return NewSQLInt64(sqlValueKind, -1), nil
+		return values.NewSQLInt64(sqlValueKind, -1), nil
 	}
-	return NewSQLInt64(sqlValueKind, 0), nil
+	return values.NewSQLInt64(sqlValueKind, 0), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) singleArgFloatMathFuncEvaluate(sqlValueKind SQLValueKind,
-	values []SQLValue, fn func(float64) float64) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) singleArgFloatMathFuncEvaluate(sqlValueKind values.SQLValueKind,
+	vs []values.SQLValue, fn func(float64) float64) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	result := fn(Float64(values[0]))
+	result := fn(values.Float64(vs[0]))
 	if math.IsNaN(result) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if math.IsInf(result, 0) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 	if result == -0 {
 		result = 0
 	}
-	return NewSQLFloat(sqlValueKind, result), nil
+	return values.NewSQLFloat(sqlValueKind, result), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) sleepEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) sleepEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
 
 	err := mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, "sleep")
 
-	if hasNullValue(values...) {
+	if values.HasNullValue(vs...) {
 		return nil, err
 	}
 
-	n := Float64(values[0])
+	n := values.Float64(vs[0])
 
 	if n < 0 {
 		return nil, err
@@ -1273,34 +1275,34 @@ func (f baseScalarFunctionExpr) sleepEvaluateWithFullEvaluationState(ctx context
 		return nil, ctx.Err()
 	}
 
-	return NewSQLInt64(cfg.sqlValueKind, 0), nil
+	return values.NewSQLInt64(cfg.sqlValueKind, 0), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) spaceEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) spaceEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	flt := Float64(values[0])
-	n := round(flt)
+	flt := values.Float64(vs[0])
+	n := mathutil.Round(flt)
 	if n < 1 {
-		return NewSQLVarchar(sqlValueKind, ""), nil
+		return values.NewSQLVarchar(sqlValueKind, ""), nil
 	}
 
-	return NewSQLVarchar(sqlValueKind, strings.Repeat(" ", int(n))), nil
+	return values.NewSQLVarchar(sqlValueKind, strings.Repeat(" ", int(n))), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) strToDateEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	str, ok := values[0].(SQLVarchar)
+func (f baseScalarFunctionExpr) strToDateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	str, ok := vs[0].(values.SQLVarchar)
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	ft, ok := values[1].(SQLVarchar)
+	ft, ok := vs[1].(values.SQLVarchar)
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	s := str.String()
@@ -1337,7 +1339,7 @@ func (f baseScalarFunctionExpr) strToDateEvaluate(sqlValueKind SQLValueKind, _ *
 				if goToken != "" {
 					format += goToken
 				} else {
-					return NewSQLNull(sqlValueKind, f.EvalType()), nil
+					return values.NewSQLNull(sqlValueKind), nil
 				}
 				if token == "%H" || token == "%i" || token == "%k" || token == "%p" ||
 					token == "%S" || token == "%s" || token == "%T" {
@@ -1353,34 +1355,34 @@ func (f baseScalarFunctionExpr) strToDateEvaluate(sqlValueKind SQLValueKind, _ *
 
 	d, err := time.Parse(format, s)
 	if err != nil {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	if ts {
-		return NewSQLTimestamp(sqlValueKind, d), nil
+		return values.NewSQLTimestamp(sqlValueKind, d), nil
 	}
 
-	return NewSQLDate(sqlValueKind, d), nil
+	return values.NewSQLDate(sqlValueKind, d), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) midEvaluate(sqlValueKind SQLValueKind, collation *collation.Collation,
-	values []SQLValue) (SQLValue, error) {
-	return f.substringEvaluate(sqlValueKind, collation, values)
+func (f baseScalarFunctionExpr) midEvaluate(sqlValueKind values.SQLValueKind, collation *collation.Collation,
+	vs []values.SQLValue) (values.SQLValue, error) {
+	return f.substringEvaluate(sqlValueKind, collation, vs)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) substringEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) substringEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	str := []rune(values[0].String())
-	if values[0].String() == "" {
-		return NewSQLVarchar(sqlValueKind, ""), nil
+	str := []rune(vs[0].String())
+	if vs[0].String() == "" {
+		return values.NewSQLVarchar(sqlValueKind, ""), nil
 	}
 
-	posFloat := Float64(values[1])
+	posFloat := values.Float64(vs[1])
 	var pos int
 	if posFloat >= 0 {
 		pos = int(posFloat + 0.5)
@@ -1389,21 +1391,21 @@ func (f baseScalarFunctionExpr) substringEvaluate(sqlValueKind SQLValueKind, _ *
 	}
 
 	if pos > len(str) || pos == 0 {
-		return NewSQLVarchar(sqlValueKind, ""), nil
+		return values.NewSQLVarchar(sqlValueKind, ""), nil
 	} else if pos < 0 {
 		pos = len(str) + pos
 
 		if pos < 0 {
-			return NewSQLVarchar(sqlValueKind, ""), nil
+			return values.NewSQLVarchar(sqlValueKind, ""), nil
 		}
 	} else {
 		pos-- // MySQL uses 1 as a basis
 	}
 
-	if len(values) == 3 {
-		length := int(Float64(values[2]) + 0.5)
+	if len(vs) == 3 {
+		length := int(values.Float64(vs[2]) + 0.5)
 		if length < 1 {
-			return NewSQLVarchar(sqlValueKind, ""), nil
+			return values.NewSQLVarchar(sqlValueKind, ""), nil
 		}
 		if pos <= len(str) {
 			str = str[pos:]
@@ -1416,11 +1418,11 @@ func (f baseScalarFunctionExpr) substringEvaluate(sqlValueKind SQLValueKind, _ *
 			str = str[pos:]
 		}
 	}
-	return NewSQLVarchar(sqlValueKind, string(str)), nil
+	return values.NewSQLVarchar(sqlValueKind, string(str)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) substringIndexEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) substringIndexEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 
 	matches := func(r []rune, pos int, delim []rune) bool {
 		for i, j := pos, 0; i < len(r) && j < len(delim); i, j = i+1, j+1 {
@@ -1437,17 +1439,17 @@ func (f baseScalarFunctionExpr) substringIndexEvaluate(sqlValueKind SQLValueKind
 		}
 	}
 
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	r := []rune(values[0].String())
-	delim := []rune(values[1].String())
+	r := []rune(vs[0].String())
+	delim := []rune(vs[1].String())
 
-	count := int(round(Float64(values[2])))
+	count := int(mathutil.Round(values.Float64(vs[2])))
 
 	if count == 0 {
-		return NewSQLVarchar(sqlValueKind, ""), nil
+		return values.NewSQLVarchar(sqlValueKind, ""), nil
 	}
 
 	reversed := count < 0
@@ -1481,23 +1483,23 @@ func (f baseScalarFunctionExpr) substringIndexEvaluate(sqlValueKind SQLValueKind
 		reverse(r)
 	}
 
-	return NewSQLVarchar(sqlValueKind, string(r)), nil
+	return values.NewSQLVarchar(sqlValueKind, string(r)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) timeDiffEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) timeDiffEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	expr1, _, ok := parseTime(values[0].String())
+	expr1, _, ok := parseTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	expr2, _, ok := parseTime(values[1].String())
+	expr2, _, ok := parseTime(vs[1].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	d := expr1.Sub(expr2)
@@ -1568,7 +1570,7 @@ func (f baseScalarFunctionExpr) timeDiffEvaluate(sqlValueKind SQLValueKind, _ *c
 	u := uint64(d)
 
 	if u == 0 {
-		return NewSQLVarchar(sqlValueKind, "00:00:00.000000"), nil
+		return values.NewSQLVarchar(sqlValueKind, "00:00:00.000000"), nil
 	}
 
 	buf := [30]byte{}
@@ -1623,18 +1625,18 @@ func (f baseScalarFunctionExpr) timeDiffEvaluate(sqlValueKind SQLValueKind, _ *c
 		buf[w] = '-'
 	}
 
-	return NewSQLVarchar(sqlValueKind, string(buf[w:])), nil
+	return values.NewSQLVarchar(sqlValueKind, string(buf[w:])), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) timeToSecEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) timeToSecEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	dateParts := strings.Split(values[0].String(), " ")
+	dateParts := strings.Split(vs[0].String(), " ")
 	hasDatePart := len(dateParts) == 2
-	components := strings.Split(values[0].String(), ":")
+	components := strings.Split(vs[0].String(), ":")
 	if hasDatePart {
 		components = strings.Split(dateParts[1], ":")
 	}
@@ -1644,7 +1646,7 @@ func (f baseScalarFunctionExpr) timeToSecEvaluate(sqlValueKind SQLValueKind, _ *
 	if len(components) == 1 {
 		cmp, err := strconv.ParseFloat(components[0], 64)
 		if err != nil {
-			return NewSQLNull(sqlValueKind, f.EvalType()), err
+			return values.NewSQLNull(sqlValueKind), err
 		}
 
 		component := strconv.FormatFloat(math.Trunc(cmp), 'f', -1, 64)
@@ -1652,7 +1654,7 @@ func (f baseScalarFunctionExpr) timeToSecEvaluate(sqlValueKind SQLValueKind, _ *
 		l := len(component)
 		components, componentized = []string{"0", "0", "0"}, false
 
-		// MySQL interprets abbreviated values without colons using the
+		// MySQL interprets abbreviated vs without colons using the
 		// assumption that the two rightmost digits represent seconds.
 		switch l {
 		case 1, 2:
@@ -1681,7 +1683,7 @@ func (f baseScalarFunctionExpr) timeToSecEvaluate(sqlValueKind SQLValueKind, _ *
 	for i := 0; i < 3 && i < len(components); i++ {
 		component, err := strconv.ParseFloat(components[i], 64)
 		if err != nil {
-			return NewSQLNull(sqlValueKind, f.EvalType()), err
+			return values.NewSQLNull(sqlValueKind), err
 		}
 
 		cmp := math.Trunc(component)
@@ -1691,14 +1693,14 @@ func (f baseScalarFunctionExpr) timeToSecEvaluate(sqlValueKind SQLValueKind, _ *
 		case 0:
 			if cmp > 838 || cmp < -838 {
 				if !componentized {
-					return NewSQLNull(sqlValueKind, f.EvalType()), nil
+					return values.NewSQLNull(sqlValueKind), nil
 				}
 				cmp = math.Copysign(838.0, cmp)
 				components = []string{"", "59", "59"}
 			}
 		default:
 			if cmp > 59 {
-				return NewSQLNull(sqlValueKind, f.EvalType()), nil
+				return values.NewSQLNull(sqlValueKind), nil
 			}
 		}
 
@@ -1707,38 +1709,43 @@ func (f baseScalarFunctionExpr) timeToSecEvaluate(sqlValueKind SQLValueKind, _ *
 	}
 
 	if signBit {
-		return NewSQLFloat(sqlValueKind, math.Copysign(result, -1)), nil
+		return values.NewSQLFloat(sqlValueKind, math.Copysign(result, -1)), nil
 	}
 
-	return NewSQLFloat(sqlValueKind, result), nil
+	return values.NewSQLFloat(sqlValueKind, result), nil
+}
+
+// isLeapYear returns true if the passed int year is a leap year.
+func isLeapYear(y int) bool {
+	return (y%4 == 0) && (y%100 != 0) || (y%400 == 0)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	v := int(round(Float64(values[1])))
-	// values[2] must be a SQLTimestamp or the algebrizer has been broken.
+	v := int(mathutil.Round(values.Float64(vs[1])))
+	// vs[2] must be a SQLTimestamp or the algebrizer has been broken.
 	// Check the handling of scalar functions in the algebrizer.
-	tmp, ok := values[2].(SQLTimestamp)
+	tmp, ok := vs[2].(values.SQLTimestamp)
 	if !ok {
 		return nil,
 			fmt.Errorf("unable to evaluate type %v in timestampadd,"+
 				" this points to an error in the algebrizer",
-				values[2])
+				vs[2])
 	}
-	t := Timestamp(tmp)
+	t := values.Timestamp(tmp)
 
 	ts := false
-	if len(values[2].String()) > 10 {
+	if len(vs[2].String()) > 10 {
 		ts = true
 	}
 
-	switch values[0].String() {
+	switch vs[0].String() {
 	case Year:
-		return NewSQLTimestamp(sqlValueKind, t.AddDate(v, 0, 0)), nil
+		return values.NewSQLTimestamp(sqlValueKind, t.AddDate(v, 0, 0)), nil
 	case Quarter:
 		y, mp, d := t.Date()
 		m := int(mp)
@@ -1757,7 +1764,7 @@ func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind SQLValueKind, 
 			d = mathutil.MinInt(d, 30)
 		}
 		if ts {
-			return NewSQLTimestamp(sqlValueKind, time.Date(y,
+			return values.NewSQLTimestamp(sqlValueKind, time.Date(y,
 					time.Month(m),
 					d,
 					t.Hour(),
@@ -1767,7 +1774,7 @@ func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind SQLValueKind, 
 					schema.DefaultLocale)),
 				nil
 		}
-		return NewSQLTimestamp(sqlValueKind, time.Date(y,
+		return values.NewSQLTimestamp(sqlValueKind, time.Date(y,
 				time.Month(m),
 				d,
 				0,
@@ -1794,7 +1801,7 @@ func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind SQLValueKind, 
 			d = mathutil.MinInt(d, 30)
 		}
 		if ts {
-			return NewSQLTimestamp(sqlValueKind, time.Date(y,
+			return values.NewSQLTimestamp(sqlValueKind, time.Date(y,
 					time.Month(m),
 					d,
 					t.Hour(),
@@ -1804,7 +1811,7 @@ func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind SQLValueKind, 
 					schema.DefaultLocale)),
 				nil
 		}
-		return NewSQLTimestamp(sqlValueKind, time.Date(y,
+		return values.NewSQLTimestamp(sqlValueKind, time.Date(y,
 				time.Month(m),
 				d,
 				0,
@@ -1814,127 +1821,127 @@ func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind SQLValueKind, 
 				schema.DefaultLocale)),
 			nil
 	case Week:
-		return NewSQLTimestamp(sqlValueKind, t.AddDate(0, 0, v*7)), nil
+		return values.NewSQLTimestamp(sqlValueKind, t.AddDate(0, 0, v*7)), nil
 	case Day:
-		return NewSQLTimestamp(sqlValueKind, t.AddDate(0, 0, v)), nil
+		return values.NewSQLTimestamp(sqlValueKind, t.AddDate(0, 0, v)), nil
 	case Hour:
 		duration := time.Duration(v) * time.Hour
-		return NewSQLTimestamp(sqlValueKind, t.Add(duration)), nil
+		return values.NewSQLTimestamp(sqlValueKind, t.Add(duration)), nil
 	case Minute:
 		duration := time.Duration(v) * time.Minute
-		return NewSQLTimestamp(sqlValueKind, t.Add(duration)), nil
+		return values.NewSQLTimestamp(sqlValueKind, t.Add(duration)), nil
 	case Second:
 		// Seconds can actually be fractional rather than integer.
-		duration := time.Duration(int64(Float64(values[1]) * 1e9))
-		return NewSQLTimestamp(sqlValueKind, t.Add(duration)), nil
+		duration := time.Duration(int64(values.Float64(vs[1]) * 1e9))
+		return values.NewSQLTimestamp(sqlValueKind, t.Add(duration)), nil
 	case Microsecond:
-		duration := time.Duration(int64(Float64(values[1]))) * time.Microsecond
-		return NewSQLTimestamp(sqlValueKind, t.Add(duration).Round(time.Millisecond)), nil
+		duration := time.Duration(int64(values.Float64(vs[1]))) * time.Microsecond
+		return values.NewSQLTimestamp(sqlValueKind, t.Add(duration).Round(time.Millisecond)), nil
 	default:
-		err := fmt.Errorf("cannot add '%v' to timestamp", values[0])
-		return NewSQLNull(sqlValueKind, f.EvalType()), err
+		err := fmt.Errorf("cannot add '%v' to timestamp", vs[0])
+		return values.NewSQLNull(sqlValueKind), err
 	}
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) timestampDiffEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) timestampDiffEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	// These must be SQLTimestamps at this point. If they are not, something has
 	// broken in the algebrizer. Check the handling of scalar functions in the
 	// algebrizer.
-	tmp1, ok := values[1].(SQLTimestamp)
+	tmp1, ok := vs[1].(values.SQLTimestamp)
 	if !ok {
 		return nil,
 			fmt.Errorf("unable to evaluate type %v in timestampdiff,"+
 				" this points to an error in the algebrizer",
-				values[1])
+				vs[1])
 	}
-	t1 := Timestamp(tmp1)
+	t1 := values.Timestamp(tmp1)
 
-	tmp2, ok := values[2].(SQLTimestamp)
+	tmp2, ok := vs[2].(values.SQLTimestamp)
 	if !ok {
 		return nil, fmt.Errorf("unable to evaluate type %v in timestampdiff,"+
 			" this points to an error in the algebrizer",
-			values[2])
+			vs[2])
 	}
-	t2 := Timestamp(tmp2)
+	t2 := values.Timestamp(tmp2)
 
 	duration := t2.Sub(t1)
 
-	switch values[0].String() {
+	switch vs[0].String() {
 	case Year:
-		return NewSQLInt64(sqlValueKind, int64(numMonths(t1, t2)/12)), nil
+		return values.NewSQLInt64(sqlValueKind, int64(numMonths(t1, t2)/12)), nil
 	case Quarter:
-		return NewSQLInt64(sqlValueKind, int64(numMonths(t1, t2)/3)), nil
+		return values.NewSQLInt64(sqlValueKind, int64(numMonths(t1, t2)/3)), nil
 	case Month:
-		return NewSQLInt64(sqlValueKind, int64(numMonths(t1, t2))), nil
+		return values.NewSQLInt64(sqlValueKind, int64(numMonths(t1, t2))), nil
 	case Week:
 		if t1.After(t2) {
-			return NewSQLInt64(sqlValueKind, int64(math.Ceil((duration.Hours())/24/7))), nil
+			return values.NewSQLInt64(sqlValueKind, int64(math.Ceil((duration.Hours())/24/7))), nil
 		}
-		return NewSQLInt64(sqlValueKind, int64(math.Floor((duration.Hours())/24/7))), nil
+		return values.NewSQLInt64(sqlValueKind, int64(math.Floor((duration.Hours())/24/7))), nil
 	case Day:
 		if t1.After(t2) {
-			return NewSQLInt64(sqlValueKind, int64(math.Ceil(duration.Hours()/24))), nil
+			return values.NewSQLInt64(sqlValueKind, int64(math.Ceil(duration.Hours()/24))), nil
 		}
-		return NewSQLInt64(sqlValueKind, int64(math.Floor(duration.Hours()/24))), nil
+		return values.NewSQLInt64(sqlValueKind, int64(math.Floor(duration.Hours()/24))), nil
 	case Hour:
-		return NewSQLInt64(sqlValueKind, int64(duration.Hours())), nil
+		return values.NewSQLInt64(sqlValueKind, int64(duration.Hours())), nil
 	case Minute:
-		return NewSQLInt64(sqlValueKind, int64(duration.Minutes())), nil
+		return values.NewSQLInt64(sqlValueKind, int64(duration.Minutes())), nil
 	case Second:
-		return NewSQLInt64(sqlValueKind, int64(duration.Seconds())), nil
+		return values.NewSQLInt64(sqlValueKind, int64(duration.Seconds())), nil
 	case Microsecond:
-		return NewSQLInt64(sqlValueKind, duration.Nanoseconds()/1000), nil
+		return values.NewSQLInt64(sqlValueKind, duration.Nanoseconds()/1000), nil
 	default:
-		err := fmt.Errorf("cannot add '%v' to timestamp", values[0])
-		return NewSQLNull(sqlValueKind, f.EvalType()), err
+		err := fmt.Errorf("cannot add '%v' to timestamp", vs[0])
+		return values.NewSQLNull(sqlValueKind), err
 	}
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) timestampEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) timestampEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	t, _, ok := parseDateTime(values[0].String())
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	t = t.In(schema.DefaultLocale)
 
-	if len(values) == 1 {
-		return NewSQLTimestamp(sqlValueKind, t), nil
+	if len(vs) == 1 {
+		return values.NewSQLTimestamp(sqlValueKind, t), nil
 	}
 
-	d, ok := parseDuration(values[1])
+	d, ok := parseDuration(vs[1])
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	t = t.Add(d).Round(time.Microsecond)
 
-	return NewSQLTimestamp(sqlValueKind, t), nil
+	return values.NewSQLTimestamp(sqlValueKind, t), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) toDaysEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) toDaysEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	// This must be a SQLDate at this point. If it is not, the algebrizer has been broken.
 	// Check the handling of scalar functions in the algebrizer.
-	tmp, ok := values[0].(SQLDate)
+	tmp, ok := vs[0].(values.SQLDate)
 	if !ok {
-		return nil, fmt.Errorf("unable to evaluate input value %v in to_days", values[0])
+		return nil, fmt.Errorf("unable to evaluate input value %v in to_days", vs[0])
 	}
-	date := Timestamp(tmp)
+	date := values.Timestamp(tmp)
 
 	// First compute the days from YearOne.
 	target, err := daysFromYearZeroCalculation(date)
@@ -1942,22 +1949,22 @@ func (f baseScalarFunctionExpr) toDaysEvaluate(sqlValueKind SQLValueKind, _ *col
 		return nil, err
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(target)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(target)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) toSecondsEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) toSecondsEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	// This must be a SQLTimestamp at this point. If it is not, the algebrizer has been broken.
 	// Check the handling of scalar functions in the algebrizer.
-	tmp, ok := values[0].(SQLTimestamp)
+	tmp, ok := vs[0].(values.SQLTimestamp)
 	if !ok {
-		return nil, fmt.Errorf("unable to evaluate input value %v in to_seconds", values[0])
+		return nil, fmt.Errorf("unable to evaluate input value %v in to_seconds", vs[0])
 	}
-	date := Timestamp(tmp)
+	date := values.Timestamp(tmp)
 
 	// First compute the days from YearOne and convert to seconds.
 	target, err := daysFromYearZeroCalculation(date)
@@ -1971,21 +1978,21 @@ func (f baseScalarFunctionExpr) toSecondsEvaluate(sqlValueKind SQLValueKind, _ *
 		float64(date.Minute())*secondsPerMinute + float64(date.Second())
 
 	// target is now seconds since dayOne.
-	return NewSQLInt64(sqlValueKind, int64(target)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(target)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) trimEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) trimEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := values[0].String()
+	value := vs[0].String()
 	end := "both"
 	toTrim := " "
-	if len(values) == 3 {
-		end = values[1].String()
-		toTrim = values[2].String()
+	if len(vs) == 3 {
+		end = vs[1].String()
+		toTrim = vs[2].String()
 	}
 
 	save := ""
@@ -2002,18 +2009,18 @@ func (f baseScalarFunctionExpr) trimEvaluate(sqlValueKind SQLValueKind, _ *colla
 		}
 	}
 
-	return NewSQLVarchar(sqlValueKind, value), nil
+	return values.NewSQLVarchar(sqlValueKind, value), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) truncateEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) truncateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	var truncated float64
-	x := Float64(values[0])
-	d := Float64(values[1])
+	x := values.Float64(vs[0])
+	d := values.Float64(vs[1])
 
 	if d >= 0 {
 		pow := math.Pow(10, d)
@@ -2025,37 +2032,37 @@ func (f baseScalarFunctionExpr) truncateEvaluate(sqlValueKind SQLValueKind, _ *c
 		truncated = i * pow
 	}
 
-	return NewSQLFloat(sqlValueKind, truncated), nil
+	return values.NewSQLFloat(sqlValueKind, truncated), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) ucaseEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) ucaseEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := strings.ToUpper(values[0].String())
+	value := strings.ToUpper(vs[0].String())
 
-	return NewSQLVarchar(sqlValueKind, value), nil
+	return values.NewSQLVarchar(sqlValueKind, value), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) unixTimestampEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) unixTimestampEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	now := time.Now()
 
-	if len(values) == 0 {
-		return NewSQLUint64(sqlValueKind, uint64(now.Unix())), nil
+	if len(vs) == 0 {
+		return values.NewSQLUint64(sqlValueKind, uint64(now.Unix())), nil
 	}
 
 	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	t, _, ok := parseDateTime(values[0].String())
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok || t.Before(epoch) {
-		return NewSQLFloat(sqlValueKind, 0.0), nil
+		return values.NewSQLFloat(sqlValueKind, 0.0), nil
 	}
 
 	// Our times are parsed as if in UTC. However, we need to
@@ -2063,91 +2070,91 @@ func (f baseScalarFunctionExpr) unixTimestampEvaluate(sqlValueKind SQLValueKind,
 	// in - to account for any timezone difference.
 	y, m, d := t.Date()
 	ts := time.Date(y, m, d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), now.Location())
-	return NewSQLUint64(sqlValueKind, uint64(ts.Unix())), nil
+	return values.NewSQLUint64(sqlValueKind, uint64(ts.Unix())), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) userEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) userEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
 	str := fmt.Sprintf("%s@%s", cfg.user, cfg.remoteHost)
-	return NewSQLVarchar(cfg.sqlValueKind, str), nil
+	return values.NewSQLVarchar(cfg.sqlValueKind, str), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) utcDateEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
+func (f baseScalarFunctionExpr) utcDateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 	now := time.Now().In(time.UTC)
 	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	return NewSQLDate(sqlValueKind, t), nil
+	return values.NewSQLDate(sqlValueKind, t), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) utcTimestampEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return NewSQLTimestamp(sqlValueKind, time.Now().In(time.UTC)), nil
+func (f baseScalarFunctionExpr) utcTimestampEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return values.NewSQLTimestamp(sqlValueKind, time.Now().In(time.UTC)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) versionEvaluateWithFullEvaluationState(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState, _ []SQLValue) (SQLValue, error) {
-	return NewSQLVarchar(cfg.sqlValueKind, cfg.mySQLVersion), nil
+func (f baseScalarFunctionExpr) versionEvaluateWithFullEvaluationState(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState, _ []values.SQLValue) (values.SQLValue, error) {
+	return values.NewSQLVarchar(cfg.sqlValueKind, cfg.mySQLVersion), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) weekEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) weekEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
-	check, ok := values[0].(SQLDate)
+	check, ok := vs[0].(values.SQLDate)
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	dateArg := Timestamp(check)
+	dateArg := values.Timestamp(check)
 	// Mode should always be less than MAX_INT.
-	mode := int(Int64(values[1]))
+	mode := int(values.Int64(vs[1]))
 
 	ret := weekCalculation(dateArg, mode)
 	if ret == -1 {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
-	return NewSQLInt64(sqlValueKind, int64(ret)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(ret)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) weekdayEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+func (f baseScalarFunctionExpr) weekdayEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	w := int(t.Weekday())
 	if w == 0 {
 		w = 7
 	}
-	return NewSQLInt64(sqlValueKind, int64(w-1)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(w-1)), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) yearEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	t, _, ok := parseDateTime(values[0].String())
+func (f baseScalarFunctionExpr) yearEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	t, _, ok := values.ParseDateTime(vs[0].String())
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	return NewSQLInt64(sqlValueKind, int64(t.Year())), nil
+	return values.NewSQLInt64(sqlValueKind, int64(t.Year())), nil
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) yearWeekEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+func (f baseScalarFunctionExpr) yearWeekEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(sqlValueKind), nil
 	}
-	check, ok := values[0].(SQLDate)
+	check, ok := vs[0].(values.SQLDate)
 	if !ok {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	date := Timestamp(check)
+	date := values.Timestamp(check)
 	year := date.Year()
 	// Mode should always be less than MAX_INT.
-	mode := int(Int64(values[1]))
+	mode := int(values.Int64(vs[1]))
 
 	var week int
 
@@ -2170,7 +2177,7 @@ func (f baseScalarFunctionExpr) yearWeekEvaluate(sqlValueKind SQLValueKind, _ *c
 	}
 
 	if week == -1 {
-		return NewSQLNull(sqlValueKind, f.EvalType()), nil
+		return values.NewSQLNull(sqlValueKind), nil
 	}
 
 	switch week {
@@ -2184,82 +2191,82 @@ func (f baseScalarFunctionExpr) yearWeekEvaluate(sqlValueKind SQLValueKind, _ *c
 		}
 
 	}
-	return NewSQLInt64(sqlValueKind, int64(year*100+week)), nil
+	return values.NewSQLInt64(sqlValueKind, int64(year*100+week)), nil
 }
 
 // atan, atan2
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) absEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Abs)
+func (f baseScalarFunctionExpr) absEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Abs)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) acosEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Acos)
+func (f baseScalarFunctionExpr) acosEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Acos)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) asinEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Asin)
+func (f baseScalarFunctionExpr) asinEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Asin)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) ceilEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Ceil)
+func (f baseScalarFunctionExpr) ceilEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Ceil)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) cosEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Cos)
+func (f baseScalarFunctionExpr) cosEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Cos)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) expEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Exp)
+func (f baseScalarFunctionExpr) expEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Exp)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) floorEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Floor)
+func (f baseScalarFunctionExpr) floorEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Floor)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) radiansEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, toRadians)
+func (f baseScalarFunctionExpr) radiansEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, toRadians)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) degreesEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, toDegrees)
+func (f baseScalarFunctionExpr) degreesEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, toDegrees)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) sinEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Sin)
+func (f baseScalarFunctionExpr) sinEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Sin)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) sqrtEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Sqrt)
+func (f baseScalarFunctionExpr) sqrtEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Sqrt)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) tanEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Tan)
+func (f baseScalarFunctionExpr) tanEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Tan)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) atanSingleArgEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Atan)
+func (f baseScalarFunctionExpr) atanSingleArgEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Atan)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) atanDualArgEvaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, values, math.Atan2)
+func (f baseScalarFunctionExpr) atanDualArgEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Atan2)
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) atan2Evaluate(sqlValueKind SQLValueKind, _ *collation.Collation, values []SQLValue) (SQLValue, error) {
-	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, values, math.Atan2)
+func (f baseScalarFunctionExpr) atan2Evaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Atan2)
 }

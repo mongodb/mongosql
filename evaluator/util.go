@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
@@ -103,35 +104,36 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 
 // evaluateComparison performs a pairwise comparison of left and right using
 // the provided comparison op.
-func evaluateComparison(left, right []SQLValue, op string, knd SQLValueKind, collation *collation.Collation) (SQLValue, error) {
+func evaluateComparison(left, right []values.SQLValue, op string, knd values.SQLValueKind,
+	collation *collation.Collation) (values.SQLValue, error) {
 	// any comparison operator other than null-safe equal will return null
 	// if the left or right side has a null value.
 	if op != sqlOpNSE {
-		if hasNullValue(left...) || hasNullValue(right...) {
-			return NewSQLNull(knd, EvalBoolean), nil
+		if values.HasNullValue(left...) || values.HasNullValue(right...) {
+			return values.NewSQLNull(knd), nil
 		}
 	}
 
-	c, err := CompareToPairwise(left, right, collation)
+	c, err := values.CompareToPairwise(left, right, collation)
 	if err != nil {
 		return nil, err
 	}
 
 	switch op {
 	case sqlOpEQ:
-		return NewSQLBool(knd, c == 0), nil
+		return values.NewSQLBool(knd, c == 0), nil
 	case sqlOpLT:
-		return NewSQLBool(knd, c == -1), nil
+		return values.NewSQLBool(knd, c == -1), nil
 	case sqlOpGT:
-		return NewSQLBool(knd, c == 1), nil
+		return values.NewSQLBool(knd, c == 1), nil
 	case sqlOpLTE:
-		return NewSQLBool(knd, c <= 0), nil
+		return values.NewSQLBool(knd, c <= 0), nil
 	case sqlOpGTE:
-		return NewSQLBool(knd, c >= 0), nil
+		return values.NewSQLBool(knd, c >= 0), nil
 	case sqlOpNEQ:
-		return NewSQLBool(knd, c != 0), nil
+		return values.NewSQLBool(knd, c != 0), nil
 	case sqlOpNSE:
-		return NewSQLBool(knd, c == 0), nil
+		return values.NewSQLBool(knd, c == 0), nil
 	case sqlOpIn:
 		panic("IN must be eliminated in the desugarer")
 	case sqlOpNotIn:
@@ -311,7 +313,11 @@ func keysStringSet(set map[string]struct{}) []string {
 }
 
 func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
-	if _, ok := right.(SQLVarchar); !ok {
+	if valExpr, ok := right.(SQLValueExpr); ok {
+		if _, isVarchar := valExpr.Value.(values.SQLVarchar); !isVarchar {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantUseOptionHere, left.String())
+		}
+	} else {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantUseOptionHere, left.String())
 	}
 
@@ -425,17 +431,17 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 	return aux(doc, 0)
 }
 
-// GetSQLValueKind is a utility function that gets the SQLValueKind to use for new
+// GetSQLValueKind is a utility function that gets the values.SQLValueKind to use for new
 // SQLValues based on the type_conversion_mode variable in the provided container.
-func GetSQLValueKind(vars catalog.VariableContainer) SQLValueKind {
+func GetSQLValueKind(vars catalog.VariableContainer) values.SQLValueKind {
 	mode := vars.GetString(variable.TypeConversionMode)
 	switch variable.TypeConversionModeType(mode) {
 	case variable.MongoSQLTypeConversionMode:
-		return MongoSQLValueKind
+		return values.MongoSQLValueKind
 	case variable.MySQLTypeConversionMode:
-		return MySQLValueKind
+		return values.MySQLValueKind
 	default:
-		panic(fmt.Errorf("cannot get SQLValueKind for type_conversion_mode %q", mode))
+		panic(fmt.Errorf("cannot get values.SQLValueKind for type_conversion_mode %q", mode))
 	}
 }
 

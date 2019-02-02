@@ -7,7 +7,9 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/types"
+	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -566,42 +568,42 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				t.Run(version, func(t *testing.T) {
 					req := require.New(t)
 
-					testSchema := evaluator.MustLoadSchema(optimizerTestSchema)
+					testSchema := MustLoadSchema(optimizerTestSchema)
 
-					testInfo := evaluator.GetMongoDBInfo(versionByStr[version], testSchema, mongodb.AllPrivileges)
-					testVariables := evaluator.CreateTestVariables(testInfo)
-					testSchemaCatalog := evaluator.GetCatalog(testSchema, testVariables, testInfo)
+					testInfo := GetMongoDBInfo(versionByStr[version], testSchema, mongodb.AllPrivileges)
+					testVariables := CreateTestVariables(testInfo)
+					testSchemaCatalog := GetCatalog(testSchema, testVariables, testInfo)
 					defaultDbName := "test"
 
 					statement, err := parser.Parse(test.sql)
 					req.Nil(err, "failed to parse statement")
 
-					rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+					rCfg := NewRewriterConfig(log.GlobalLogger(), false)
 
-					rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+					rewritten, err := RewriteQuery(rCfg, statement)
 					req.Nil(err, "failed to rewrite query")
 
 					aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)
-					plan, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
+					plan, err := AlgebrizeQuery(aCfg, rewritten)
 
 					req.Nil(err, "failed to algebrize query")
 
 					eCfg := createExecutionCfg("test_db_name", 0, versionByStr[version])
 					oCfg := createOptimizerCfg(collation.Default, eCfg)
-					optimizedPlan, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
+					optimizedPlan, err := OptimizePlan(context.Background(), oCfg, plan)
 					req.Nil(err, "failed to optimize plan")
 
 					pCfg := createPushdownCfg(versionByStr[version])
-					pushedDown, err := evaluator.PushdownPlan(pCfg, optimizedPlan)
+					pushedDown, err := PushdownPlan(pCfg, optimizedPlan)
 
-					var actualPlan evaluator.PlanStage
-					if err != nil && !evaluator.IsNonFatalPushdownError(err) {
+					var actualPlan PlanStage
+					if err != nil && !IsNonFatalPushdownError(err) {
 						actualPlan = optimizedPlan
 					} else {
 						actualPlan = pushedDown
 					}
 
-					actual := evaluator.GetNodePipeline(actualPlan)
+					actual := GetNodePipeline(actualPlan)
 					actual = bsonutil.NormalizeBSON(actual).([][]bson.D)
 					expected := bsonutil.NormalizeBSON(test.expected).([][]bson.D)
 
@@ -609,7 +611,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"expected %d pipelines in query plan, found %d\nexpected pipelines: "+
 							"%#v\nactual pipelines: %#v\nactual plan:\n%s",
 						len(expected), len(actual), test.expected, actual,
-						evaluator.PrettyPrintPlan(actualPlan))
+						PrettyPrintPlan(actualPlan))
 
 					diff := ShouldResembleDiffed(actual, expected)
 					req.Emptyf(diff, "expected pipeline diff to be empty\nexpected: %#v\nactual:"+
@@ -804,10 +806,10 @@ schema:
 `)
 
 func TestPushdownSharding(t *testing.T) {
-	testSchema := evaluator.MustLoadSchema(testSchema4)
+	testSchema := MustLoadSchema(testSchema4)
 	testInfo := getMongoDBInfoWithShardedCollection(nil, testSchema, mongodb.AllPrivileges, "foo")
-	testVariables := evaluator.CreateTestVariables(testInfo)
-	testSchemaCatalog := evaluator.GetCatalog(testSchema, testVariables, testInfo)
+	testVariables := CreateTestVariables(testInfo)
+	testSchemaCatalog := GetCatalog(testSchema, testVariables, testInfo)
 	defaultDbName := "test"
 	test := func(sql string, expected ...[]bson.D) {
 		t.Run(sql, func(t *testing.T) {
@@ -816,13 +818,13 @@ func TestPushdownSharding(t *testing.T) {
 			statement, err := parser.Parse(sql)
 			req.NoError(err)
 
-			rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+			rCfg := NewRewriterConfig(log.GlobalLogger(), false)
 
-			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+			rewritten, err := RewriteQuery(rCfg, statement)
 			req.NoError(err, "failed to rewrite query")
 
 			aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)
-			plan, err := evaluator.AlgebrizeQuery(aCfg, rewritten)
+			plan, err := AlgebrizeQuery(aCfg, rewritten)
 
 			req.NoError(err)
 
@@ -830,20 +832,20 @@ func TestPushdownSharding(t *testing.T) {
 
 			eCfg := createExecutionCfg("test_db", 0, version)
 			oCfg := createOptimizerCfg(collation.Default, eCfg)
-			optimized, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
+			optimized, err := OptimizePlan(context.Background(), oCfg, plan)
 			req.NoError(err)
 
 			pCfg := createPushdownCfg(version)
-			pushedDown, err := evaluator.PushdownPlan(pCfg, optimized)
+			pushedDown, err := PushdownPlan(pCfg, optimized)
 
-			var actualPlan evaluator.PlanStage
-			if err != nil && !evaluator.IsNonFatalPushdownError(err) {
+			var actualPlan PlanStage
+			if err != nil && !IsNonFatalPushdownError(err) {
 				actualPlan = optimized
 			} else {
 				actualPlan = pushedDown
 			}
 
-			actual := evaluator.GetNodePipeline(actualPlan)
+			actual := GetNodePipeline(actualPlan)
 			actual, expected = bsonutil.NormalizeBSON(actual).([][]bson.D),
 				bsonutil.NormalizeBSON(expected).([][]bson.D)
 
@@ -1095,27 +1097,27 @@ func TestOptimizeEvaluations(t *testing.T) {
 	type test struct {
 		sql      string
 		expected string
-		result   evaluator.SQLExpr
+		result   SQLExpr
 	}
 
 	runTests := func(tests []test) {
-		schema := evaluator.MustLoadSchema(testSchema3)
+		schema := MustLoadSchema(testSchema3)
 		for _, tst := range tests {
 			tName := fmt.Sprintf("%q should be optimized to %q", tst.sql, tst.expected)
 			t.Run(tName, func(t *testing.T) {
 				req := require.New(t)
 
-				e, err := evaluator.GetSQLExpr(schema, dbOne, tableTwoName, tst.sql)
+				e, err := GetSQLExpr(schema, dbOne, tableTwoName, tst.sql)
 				req.NoError(err)
 
 				eCfg := createTestExecutionCfg()
 				oCfg := createOptimizerCfg(collation.Default, eCfg)
-				result, err := evaluator.OptimizeEvaluations(oCfg, e)
+				result, err := OptimizeEvaluations(oCfg, e)
 				req.NoError(err)
 
-				expectedVal, ok := tst.result.(evaluator.SQLValue)
+				expectedVal, ok := tst.result.(SQLValue)
 				if ok && expectedVal.IsNull() {
-					actualVal, ok := result.(evaluator.SQLValue)
+					actualVal, ok := result.(SQLValue)
 					req.True(ok)
 					req.True(actualVal.IsNull())
 				} else {
@@ -1126,191 +1128,191 @@ func TestOptimizeEvaluations(t *testing.T) {
 	}
 
 	tests := []test{
-		{"3 / '3'", "1", evaluator.NewSQLFloat(valKind, 1)},
-		{"3 * '3'", "9", evaluator.NewSQLInt64(valKind, 9)},
-		{"3 + '3'", "6", evaluator.NewSQLInt64(valKind, 6)},
-		{"a + 0", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-			evaluator.EvalInt64, schema.MongoInt)},
-		{"a - 0", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-			evaluator.EvalInt64, schema.MongoInt)},
-		{"a * 1", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-			evaluator.EvalInt64, schema.MongoInt)},
-		{"a / 1", "a", evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-			evaluator.EvalInt64, schema.MongoInt)},
-		{"a / 0", "NULL", evaluator.NewSQLNull(valKind, evaluator.EvalInt64)},
-		{"3 - '3'", "0", evaluator.NewSQLInt64(valKind, 0)},
-		{"3 div '3'", "1", evaluator.NewSQLInt64(valKind, 1)},
-		{"3 = '3'", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 <= '3'", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 >= '3'", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 < '3'", "false", evaluator.NewSQLBool(valKind, false)},
-		{"3 > '3'", "false", evaluator.NewSQLBool(valKind, false)},
-		{"3 <=> '3'", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 = a", "a = 3", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLInt64(valKind, 3),
+		{"3 / '3'", "1", NewSQLValueExpr(NewSQLFloat(valKind, 1))},
+		{"3 * '3'", "9", NewSQLValueExpr(NewSQLInt64(valKind, 9))},
+		{"3 + '3'", "6", NewSQLValueExpr(NewSQLInt64(valKind, 6))},
+		{"a + 0", "a", NewSQLColumnExpr(1, "test", "bar", "a",
+			EvalInt64, schema.MongoInt)},
+		{"a - 0", "a", NewSQLColumnExpr(1, "test", "bar", "a",
+			EvalInt64, schema.MongoInt)},
+		{"a * 1", "a", NewSQLColumnExpr(1, "test", "bar", "a",
+			EvalInt64, schema.MongoInt)},
+		{"a / 1", "a", NewSQLColumnExpr(1, "test", "bar", "a",
+			EvalInt64, schema.MongoInt)},
+		{"a / 0", "NULL", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"3 - '3'", "0", NewSQLValueExpr(NewSQLInt64(valKind, 0))},
+		{"3 div '3'", "1", NewSQLValueExpr(NewSQLInt64(valKind, 1))},
+		{"3 = '3'", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"3 <= '3'", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"3 >= '3'", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"3 < '3'", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"3 > '3'", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"3 <=> '3'", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"3 = a", "a = 3", NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
 		)},
-		{"3 < a", "a > 3", evaluator.NewSQLGreaterThanExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLInt64(valKind, 3),
+		{"3 < a", "a > 3", NewSQLGreaterThanExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
 		)},
-		{"3 <= a", "a >= 3", evaluator.NewSQLGreaterThanOrEqualExpr(evaluator.NewSQLColumnExpr(
-			1, "test", "bar", "a", evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLInt64(valKind, 3))},
-		{"3 > a", "a < 3", evaluator.NewSQLLessThanExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLInt64(valKind, 3),
+		{"3 <= a", "a >= 3", NewSQLGreaterThanOrEqualExpr(NewSQLColumnExpr(
+			1, "test", "bar", "a", EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLInt64(valKind, 3)))},
+		{"3 > a", "a < 3", NewSQLLessThanExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
 		)},
-		{"3 >= a", "a <= 3", evaluator.NewSQLLessThanOrEqualExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLInt64(valKind, 3),
+		{"3 >= a", "a <= 3", NewSQLLessThanOrEqualExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
 		)},
-		{"3 <> a", "a <> 3", evaluator.NewSQLNotEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLInt64(valKind, 3),
+		{"3 <> a", "a <> 3", NewSQLNotEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
 		)},
-		{"3 + 3 = 6", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 <=> 3", "true", evaluator.NewSQLBool(valKind, true)},
-		{"NULL <=> 3", "false", evaluator.NewSQLBool(valKind, false)},
-		{"3 <=> NULL", "false", evaluator.NewSQLBool(valKind, false)},
-		{"NULL <=> NULL", "true", evaluator.NewSQLBool(valKind, true)},
-		{"3 / (3 - 2) = a", "a = 3", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLFloat(valKind, 3),
+		{"3 + 3 = 6", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"3 <=> 3", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"NULL <=> 3", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"3 <=> NULL", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"NULL <=> NULL", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"3 / (3 - 2) = a", "a = 3", NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLFloat(valKind, 3)),
 		)},
 		{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "1 AND a = 3",
-			evaluator.NewSQLAndExpr(evaluator.NewSQLBool(valKind, true),
-				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
-					1, "test", "bar", "a", evaluator.EvalInt64,
-					schema.MongoInt), evaluator.NewSQLInt64(valKind, 3)))},
+			NewSQLAndExpr(NewSQLValueExpr(NewSQLBool(valKind, true)),
+				NewSQLEqualsExpr(NewSQLColumnExpr(
+					1, "test", "bar", "a", EvalInt64,
+					schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 3))))},
 		{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
-			evaluator.NewSQLAndExpr(
-				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-					evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLFloat(valKind, 3)),
-				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "b",
-					evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLInt64(valKind, 2)))},
-		{"3 + 3 = 6 OR a = 3", "true", evaluator.NewSQLBool(valKind, true)},
+			NewSQLAndExpr(
+				NewSQLEqualsExpr(NewSQLColumnExpr(1, "test", "bar", "a",
+					EvalInt64, schema.MongoInt), NewSQLValueExpr(NewSQLFloat(valKind, 3))),
+				NewSQLEqualsExpr(NewSQLColumnExpr(1, "test", "bar", "b",
+					EvalInt64, schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 2))))},
+		{"3 + 3 = 6 OR a = 3", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
 		{"3 + 3 = 5 OR a = 3", "0 OR a = 3",
-			evaluator.NewSQLOrExpr(evaluator.NewSQLBool(valKind, false),
-				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
-					1, "test", "bar", "a", evaluator.EvalInt64,
-					schema.MongoInt), evaluator.NewSQLInt64(valKind, 3)))},
-		{"0 OR NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"1 OR NULL", "true", evaluator.NewSQLBool(valKind, true)},
-		{"NULL OR NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"0 AND 6+1 = 6", "false", evaluator.NewSQLBool(valKind, false)},
-		{"3 + 3 = 5 AND a = 3", "false", evaluator.NewSQLBool(valKind, false)},
-		{"0 AND NULL", "false", evaluator.NewSQLBool(valKind, false)},
-		{"1 AND NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"1 AND 6+0 = 6", "true", evaluator.NewSQLBool(valKind, true)},
+			NewSQLOrExpr(NewSQLValueExpr(NewSQLBool(valKind, false)),
+				NewSQLEqualsExpr(NewSQLColumnExpr(
+					1, "test", "bar", "a", EvalInt64,
+					schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 3))))},
+		{"0 OR NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"1 OR NULL", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"NULL OR NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"0 AND 6+1 = 6", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"3 + 3 = 5 AND a = 3", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"0 AND NULL", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"1 AND NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"1 AND 6+0 = 6", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
 		{"3 + 3 = 6 AND a = 3", "1 and a = 3",
-			evaluator.NewSQLAndExpr(evaluator.NewSQLBool(valKind, true),
-				evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(
-					1, "test", "bar", "a", evaluator.EvalInt64,
-					schema.MongoInt), evaluator.NewSQLInt64(valKind, 3)))},
-		{"(3 + 3 = 5) XOR a = 3", "a = 3", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLInt64(valKind, 3))},
-		{"(3 + 3 = 6) XOR a = 3", "a <> 3", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLInt64(valKind, 3)))},
-		{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", evaluator.NewSQLNotExpr(
-			evaluator.NewSQLEqualsExpr(evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt), evaluator.NewSQLInt64(valKind, 4)))},
-		{"(8 / 5 = 9) XOR (a = 5)", "a = 5", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a", evaluator.EvalInt64,
-				schema.MongoInt), evaluator.NewSQLInt64(valKind, 5))},
-		{"false XOR 23", "true", evaluator.NewSQLBool(valKind, true)},
-		{"true XOR 23", "false", evaluator.NewSQLBool(valKind, false)},
-		{"a = 23 XOR true", "a <> 23", evaluator.NewSQLNotExpr(evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a", evaluator.EvalInt64,
-				schema.MongoInt), evaluator.NewSQLInt64(valKind, 23)))},
-		{"!3", "0", evaluator.NewSQLBool(valKind, false)},
-		{"!NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"a = ~1", "a = 18446744073709551614", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLUint64(valKind, uint64(18446744073709551614)))},
-		{"a = ~2398238912332232323", "a = 16048505161377319292", evaluator.NewSQLEqualsExpr(
-			evaluator.NewSQLColumnExpr(1, "test", "bar", "a",
-				evaluator.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLUint64(valKind, uint64(16048505161377319292)))},
-		{"DAYNAME('2016-1-1')", "Friday", evaluator.NewSQLVarchar(valKind, "Friday")},
-		{"(8-7)", "1", evaluator.NewSQLInt64(valKind, 1)},
-		{"a LIKE NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"4 LIKE NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"a = NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"a > NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"a >= NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"a < NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"a <= NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"a != NULL", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"(1, 3) > (3, 4)", "SQLFalse", evaluator.NewSQLBool(valKind, false)},
-		{"(4, 3) > (3, 4)", "SQLTrue", evaluator.NewSQLBool(valKind, true)},
-		{"(4, 31) > (4, 4)", "SQLTrue", evaluator.NewSQLBool(valKind, true)},
+			NewSQLAndExpr(NewSQLValueExpr(NewSQLBool(valKind, true)),
+				NewSQLEqualsExpr(NewSQLColumnExpr(
+					1, "test", "bar", "a", EvalInt64,
+					schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 3))))},
+		{"(3 + 3 = 5) XOR a = 3", "a = 3", NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 3)))},
+		{"(3 + 3 = 6) XOR a = 3", "a <> 3", NewSQLNotExpr(NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 3))))},
+		{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", NewSQLNotExpr(
+			NewSQLEqualsExpr(NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 4))))},
+		{"(8 / 5 = 9) XOR (a = 5)", "a = 5", NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a", EvalInt64,
+				schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 5)))},
+		{"false XOR 23", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"true XOR 23", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"a = 23 XOR true", "a <> 23", NewSQLNotExpr(NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a", EvalInt64,
+				schema.MongoInt), NewSQLValueExpr(NewSQLInt64(valKind, 23))))},
+		{"!3", "0", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"!NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"a = ~1", "a = 18446744073709551614", NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLUint64(valKind, uint64(18446744073709551614))))},
+		{"a = ~2398238912332232323", "a = 16048505161377319292", NewSQLEqualsExpr(
+			NewSQLColumnExpr(1, "test", "bar", "a",
+				EvalInt64, schema.MongoInt),
+			NewSQLValueExpr(NewSQLUint64(valKind, uint64(16048505161377319292))))},
+		{"DAYNAME('2016-1-1')", "Friday", NewSQLValueExpr(NewSQLVarchar(valKind, "Friday"))},
+		{"(8-7)", "1", NewSQLValueExpr(NewSQLInt64(valKind, 1))},
+		{"a LIKE NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"4 LIKE NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"a = NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"a > NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"a >= NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"a < NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"a <= NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"a != NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"(1, 3) > (3, 4)", "SQLFalse", NewSQLValueExpr(NewSQLBool(valKind, false))},
+		{"(4, 3) > (3, 4)", "SQLTrue", NewSQLValueExpr(NewSQLBool(valKind, true))},
+		{"(4, 31) > (4, 4)", "SQLTrue", NewSQLValueExpr(NewSQLBool(valKind, true))},
 
-		{"abs(NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"abs(-10)", "10", evaluator.NewSQLFloat(valKind, 10)},
-		{"ascii(NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"ascii('a')", "97", evaluator.NewSQLInt64(valKind, 97)},
-		{"char_length(NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"character_length(NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"concat(NULL, a)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"concat(a, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"concat('go', 'lang')", "golang", evaluator.NewSQLVarchar(valKind, "golang")},
-		{"concat_ws(NULL, a)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"convert(NULL, SIGNED)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"elt(NULL, 'a', 'b')", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"elt(4, 'a', 'b')", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"exp(NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"exp(2)", "7.38905609893065", evaluator.NewSQLFloat(valKind, 7.38905609893065)},
-		{"greatest(a, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"greatest(2, 3)", "3", evaluator.NewSQLInt64(valKind, 3)},
-		{"ifnull(NULL, 10)", "10", evaluator.NewSQLInt64(valKind, 10)},
-		{"ifnull(10, 1)", "10", evaluator.NewSQLInt64(valKind, 10)},
-		{"interval(NULL, a)", "-1", evaluator.NewSQLInt64(valKind, -1)},
-		{"interval(0, 1)", "0", evaluator.NewSQLInt64(valKind, 0)},
-		{"interval(1, 2, 3, 4)", "1", evaluator.NewSQLInt64(valKind, 0)},
-		{"interval(1, 1, 2, 3)", "1", evaluator.NewSQLInt64(valKind, 1)},
-		{"interval(-1, NULL, NULL, -0.5, 3, 4)", "1", evaluator.NewSQLInt64(valKind, 2)},
-		{"interval(-3.4, -4, -3.6, -3.4, -3, 1, 2)", "3", evaluator.NewSQLInt64(valKind, 3)},
-		{"interval(8, -4, 0, 7, 8)", "4", evaluator.NewSQLInt64(valKind, 4)},
-		{"interval(8, -3, 1, 7, 7)", "1", evaluator.NewSQLInt64(valKind, 4)},
-		{"interval(7.7, -3, 1, 7, 7)", "1", evaluator.NewSQLInt64(valKind, 4)},
-		{"least(a, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"least(2, 3)", "2", evaluator.NewSQLInt64(valKind, 2)},
-		{"locate('bar', 'foobar', NULL)", "0", evaluator.NewSQLInt64(valKind, 0)},
-		{"locate('bar', 'foobar')", "4", evaluator.NewSQLInt64(valKind, 4)},
-		{"makedate(2000, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"makedate(NULL, 10)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"mid('foobar', NULL, 2)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"mod(10, 2)", "0", evaluator.NewSQLFloat(valKind, 0)},
-		{"mod(NULL, 2)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"mod(10, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"nullif(1, 1)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"nullif(1, null)", "1", evaluator.NewSQLInt64(valKind, 1)},
-		{"pow(a, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"pow(NULL, a)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"pow(2,2)", "4", evaluator.NewSQLFloat(valKind, 4)},
-		{"round(NULL, 2)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"round(2, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"round(2, 2)", "2", evaluator.NewSQLFloat(valKind, 2)},
-		{"repeat('a', NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"repeat(NULL, 3)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"substring(NULL, 2)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"substring(NULL, 2, 3)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"substring('foobar', NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"substring('foobar', NULL, 2)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"substring('foobar', 2, NULL)", "null", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"substring('foobar', 2, 3)", "oob", evaluator.NewSQLVarchar(valKind, "oob")},
-		{"substring_index(NULL, 'o', 0)", "", evaluator.NewPolymorphicSQLNull(valKind)},
-		{"substring_index('foobar', 'o', 0)", "", evaluator.NewSQLVarchar(valKind, "")},
+		{"abs(NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"abs(-10)", "10", NewSQLValueExpr(NewSQLFloat(valKind, 10))},
+		{"ascii(NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"ascii('a')", "97", NewSQLValueExpr(NewSQLInt64(valKind, 97))},
+		{"char_length(NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"character_length(NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"concat(NULL, a)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"concat(a, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"concat('go', 'lang')", "golang", NewSQLValueExpr(NewSQLVarchar(valKind, "golang"))},
+		{"concat_ws(NULL, a)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"convert(NULL, SIGNED)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"elt(NULL, 'a', 'b')", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"elt(4, 'a', 'b')", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"exp(NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"exp(2)", "7.38905609893065", NewSQLValueExpr(NewSQLFloat(valKind, 7.38905609893065))},
+		{"greatest(a, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"greatest(2, 3)", "3", NewSQLValueExpr(NewSQLInt64(valKind, 3))},
+		{"ifnull(NULL, 10)", "10", NewSQLValueExpr(NewSQLInt64(valKind, 10))},
+		{"ifnull(10, 1)", "10", NewSQLValueExpr(NewSQLInt64(valKind, 10))},
+		{"interval(NULL, a)", "-1", NewSQLValueExpr(NewSQLInt64(valKind, -1))},
+		{"interval(0, 1)", "0", NewSQLValueExpr(NewSQLInt64(valKind, 0))},
+		{"interval(1, 2, 3, 4)", "1", NewSQLValueExpr(NewSQLInt64(valKind, 0))},
+		{"interval(1, 1, 2, 3)", "1", NewSQLValueExpr(NewSQLInt64(valKind, 1))},
+		{"interval(-1, NULL, NULL, -0.5, 3, 4)", "1", NewSQLValueExpr(NewSQLInt64(valKind, 2))},
+		{"interval(-3.4, -4, -3.6, -3.4, -3, 1, 2)", "3", NewSQLValueExpr(NewSQLInt64(valKind, 3))},
+		{"interval(8, -4, 0, 7, 8)", "4", NewSQLValueExpr(NewSQLInt64(valKind, 4))},
+		{"interval(8, -3, 1, 7, 7)", "1", NewSQLValueExpr(NewSQLInt64(valKind, 4))},
+		{"interval(7.7, -3, 1, 7, 7)", "1", NewSQLValueExpr(NewSQLInt64(valKind, 4))},
+		{"least(a, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"least(2, 3)", "2", NewSQLValueExpr(NewSQLInt64(valKind, 2))},
+		{"locate('bar', 'foobar', NULL)", "0", NewSQLValueExpr(NewSQLInt64(valKind, 0))},
+		{"locate('bar', 'foobar')", "4", NewSQLValueExpr(NewSQLInt64(valKind, 4))},
+		{"makedate(2000, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"makedate(NULL, 10)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"mid('foobar', NULL, 2)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"mod(10, 2)", "0", NewSQLValueExpr(NewSQLFloat(valKind, 0))},
+		{"mod(NULL, 2)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"mod(10, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"nullif(1, 1)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"nullif(1, null)", "1", NewSQLValueExpr(NewSQLInt64(valKind, 1))},
+		{"pow(a, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"pow(NULL, a)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"pow(2,2)", "4", NewSQLValueExpr(NewSQLFloat(valKind, 4))},
+		{"round(NULL, 2)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"round(2, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"round(2, 2)", "2", NewSQLValueExpr(NewSQLFloat(valKind, 2))},
+		{"repeat('a', NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"repeat(NULL, 3)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"substring(NULL, 2)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"substring(NULL, 2, 3)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"substring('foobar', NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"substring('foobar', NULL, 2)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"substring('foobar', 2, NULL)", "null", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"substring('foobar', 2, 3)", "oob", NewSQLValueExpr(NewSQLVarchar(valKind, "oob"))},
+		{"substring_index(NULL, 'o', 0)", "", NewSQLValueExpr(NewSQLNull(valKind))},
+		{"substring_index('foobar', 'o', 0)", "", NewSQLValueExpr(NewSQLVarchar(valKind, ""))},
 	}
 
 	runTests(tests)

@@ -1,21 +1,31 @@
 package evaluator
 
-func convertEvalType(exprs []SQLExpr) EvalType {
-	typ, ok := evalTypeFromSQLExpr(exprs[1])
+import "github.com/10gen/sqlproxy/evaluator/types"
+
+func convertEvalType(exprs []SQLExpr) types.EvalType {
+	typ, ok := evalTypeFromSQLTypeExpr(exprs[1])
 	if !ok {
-		return EvalString
+		return types.EvalString
 	}
 	return typ
 }
 
-func greatestEvalType(exprs []SQLExpr) EvalType {
-	return preferentialType(exprs...)
+func exprsToEvalTypers(exprs []SQLExpr) []types.EvalTyper {
+	ret := make([]types.EvalTyper, len(exprs))
+	for i := range exprs {
+		ret[i] = exprs[i]
+	}
+	return ret
 }
 
-func leastEvalType(exprs []SQLExpr) EvalType {
-	return preferentialType(exprs...)
+func greatestEvalType(exprs []SQLExpr) types.EvalType {
+	return preferentialType(exprsToEvalTypers(exprs)...)
 }
 
-func nopushdownEvalType(exprs []SQLExpr) EvalType {
+func leastEvalType(exprs []SQLExpr) types.EvalType {
+	return preferentialType(exprsToEvalTypers(exprs)...)
+}
+
+func nopushdownEvalType(exprs []SQLExpr) types.EvalType {
 	return exprs[0].EvalType()
 }

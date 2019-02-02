@@ -5,6 +5,8 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
 )
@@ -400,7 +402,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 
 	type test struct {
 		inputFields         []string
-		inputEvalType       EvalType
+		inputEvalType       types.EvalType
 		inputIs34           bool
 		expectedFields      []string
 		expectedBody        bson.D
@@ -450,14 +452,14 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 	tests := []test{
 		// tests for 3.4+ which should generate addFields bodies
 		{inputFields: nonEmbeddedFields,
-			inputEvalType:       EvalInt64,
+			inputEvalType:       types.EvalInt64,
 			inputIs34:           true,
 			expectedFields:      nonEmbeddedFields,
 			expectedBody:        bsonutil.NewD(),
 			expectedHasEmbedded: false},
 
 		{inputFields: noConflictEmbeddedFields,
-			inputEvalType:  EvalInt64,
+			inputEvalType:  types.EvalInt64,
 			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFields,
 			expectedBody: bsonutil.NewD(
@@ -467,7 +469,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFields,
-			inputEvalType:  EvalInt64,
+			inputEvalType:  types.EvalInt64,
 			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFields,
 			expectedBody: bsonutil.NewD(
@@ -478,14 +480,14 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 
 		//tests for pre-3.4+ which should generate project bodies
 		{inputFields: nonEmbeddedFields,
-			inputEvalType:       EvalInt64,
+			inputEvalType:       types.EvalInt64,
 			inputIs34:           false,
 			expectedFields:      nonEmbeddedFields,
 			expectedBody:        bsonutil.NewD(),
 			expectedHasEmbedded: false},
 
 		{inputFields: noConflictEmbeddedFields32,
-			inputEvalType:  EvalInt64,
+			inputEvalType:  types.EvalInt64,
 			inputIs34:      false,
 			expectedFields: expectedNoConflictEmbeddedFields,
 			expectedBody: bsonutil.NewD(
@@ -497,7 +499,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFields32,
-			inputEvalType:  EvalInt64,
+			inputEvalType:  types.EvalInt64,
 			inputIs34:      false,
 			expectedFields: expectedConflictedEmbeddedFields,
 			expectedBody: bsonutil.NewD(
@@ -513,7 +515,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 		// tests for 3.4+ which should generate addFields bodies,
 		// with EvalArrNumeric type for some of the fields.
 		{inputFields: noConflictEmbeddedFieldsArr,
-			inputEvalType:  EvalArrNumeric,
+			inputEvalType:  types.EvalArrNumeric,
 			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFieldsArr,
 			expectedBody: bsonutil.NewD(
@@ -526,7 +528,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFieldsArr,
-			inputEvalType:  EvalArrNumeric,
+			inputEvalType:  types.EvalArrNumeric,
 			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFieldsArr,
 			expectedBody: bsonutil.NewD(
@@ -545,67 +547,67 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 
 func TestEvaluateComparison(t *testing.T) {
 	//evaluateComparison(left, right, op, sqlvaluekind, collation)
-	knd := MySQLValueKind
+	knd := values.MySQLValueKind
 
 	// different lengths => error
 	t.Run("different length slices returns an error", func(t *testing.T) {
-		_, err := evaluateComparison([]SQLValue{}, []SQLValue{NewSQLInt64(knd, 1)}, sqlOpEQ, knd, nil)
+		_, err := evaluateComparison([]values.SQLValue{}, []values.SQLValue{values.NewSQLInt64(knd, 1)}, sqlOpEQ, knd, nil)
 		require.NotNil(t, err, "expected error")
 	})
 
-	oneTwoThree := []SQLValue{newSQLInt64(knd, 1, false), newSQLInt64(knd, 2, false), newSQLInt64(knd, 3, false)}
-	twoTwoThree := []SQLValue{newSQLInt64(knd, 2, false), newSQLInt64(knd, 2, false), newSQLInt64(knd, 3, false)}
-	oneNullThree := []SQLValue{newSQLInt64(knd, 1, false), newSQLInt64(knd, 2, true), newSQLInt64(knd, 3, false)}
+	oneTwoThree := []values.SQLValue{values.NewSQLInt64(knd, 1), values.NewSQLInt64(knd, 2), values.NewSQLInt64(knd, 3)}
+	twoTwoThree := []values.SQLValue{values.NewSQLInt64(knd, 2), values.NewSQLInt64(knd, 2), values.NewSQLInt64(knd, 3)}
+	oneNullThree := []values.SQLValue{values.NewSQLInt64(knd, 1), values.NewSQLNull(knd), values.NewSQLInt64(knd, 3)}
 
 	type test struct {
 		name, op    string
-		left, right []SQLValue
-		expected    SQLValue
+		left, right []values.SQLValue
+		expected    values.SQLValue
 	}
 
 	tests := []test{
-		{"equals true case (eq)", sqlOpEQ, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
-		{"equals false case (lt)", sqlOpEQ, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
-		{"equals false case (gt)", sqlOpEQ, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"equals null on right case", sqlOpEQ, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
-		{"equals null on left case", sqlOpEQ, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+		{"equals true case (eq)", sqlOpEQ, oneTwoThree, oneTwoThree, values.NewSQLBool(knd, true)},
+		{"equals false case (lt)", sqlOpEQ, oneTwoThree, twoTwoThree, values.NewSQLBool(knd, false)},
+		{"equals false case (gt)", sqlOpEQ, twoTwoThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"equals null on right case", sqlOpEQ, oneTwoThree, oneNullThree, values.NewSQLNull(knd)},
+		{"equals null on left case", sqlOpEQ, oneNullThree, oneTwoThree, values.NewSQLNull(knd)},
 
-		{"greater than false case (eq)", sqlOpGT, oneTwoThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"greater than false case (lt)", sqlOpGT, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
-		{"greater than true case (gt)", sqlOpGT, twoTwoThree, oneTwoThree, NewSQLBool(knd, true)},
-		{"greater than null on right case", sqlOpGT, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
-		{"greater than null on left case", sqlOpGT, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+		{"greater than false case (eq)", sqlOpGT, oneTwoThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"greater than false case (lt)", sqlOpGT, oneTwoThree, twoTwoThree, values.NewSQLBool(knd, false)},
+		{"greater than true case (gt)", sqlOpGT, twoTwoThree, oneTwoThree, values.NewSQLBool(knd, true)},
+		{"greater than null on right case", sqlOpGT, oneTwoThree, oneNullThree, values.NewSQLNull(knd)},
+		{"greater than null on left case", sqlOpGT, oneNullThree, oneTwoThree, values.NewSQLNull(knd)},
 
-		{"greater than or equals true case (eq)", sqlOpGTE, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
-		{"greater than or equals false case (lt)", sqlOpGTE, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
-		{"greater than or equals true case (gt)", sqlOpGTE, twoTwoThree, oneTwoThree, NewSQLBool(knd, true)},
-		{"greater than or equals null on right case", sqlOpGTE, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
-		{"greater than or equals null on left case", sqlOpGTE, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+		{"greater than or equals true case (eq)", sqlOpGTE, oneTwoThree, oneTwoThree, values.NewSQLBool(knd, true)},
+		{"greater than or equals false case (lt)", sqlOpGTE, oneTwoThree, twoTwoThree, values.NewSQLBool(knd, false)},
+		{"greater than or equals true case (gt)", sqlOpGTE, twoTwoThree, oneTwoThree, values.NewSQLBool(knd, true)},
+		{"greater than or equals null on right case", sqlOpGTE, oneTwoThree, oneNullThree, values.NewSQLNull(knd)},
+		{"greater than or equals null on left case", sqlOpGTE, oneNullThree, oneTwoThree, values.NewSQLNull(knd)},
 
-		{"less than false case (eq)", sqlOpLT, oneTwoThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"less than true case (lt)", sqlOpLT, oneTwoThree, twoTwoThree, NewSQLBool(knd, true)},
-		{"less than false case (gt)", sqlOpLT, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"less than null on right case", sqlOpLT, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
-		{"less than null on left case", sqlOpLT, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+		{"less than false case (eq)", sqlOpLT, oneTwoThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"less than true case (lt)", sqlOpLT, oneTwoThree, twoTwoThree, values.NewSQLBool(knd, true)},
+		{"less than false case (gt)", sqlOpLT, twoTwoThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"less than null on right case", sqlOpLT, oneTwoThree, oneNullThree, values.NewSQLNull(knd)},
+		{"less than null on left case", sqlOpLT, oneNullThree, oneTwoThree, values.NewSQLNull(knd)},
 
-		{"less than or equals true case (eq)", sqlOpLTE, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
-		{"less than or equals true case (lt)", sqlOpLTE, oneTwoThree, twoTwoThree, NewSQLBool(knd, true)},
-		{"less than or equals false case (gt)", sqlOpLTE, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"less than or equals null on right case", sqlOpLTE, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
-		{"less than or equals null on left case", sqlOpLTE, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+		{"less than or equals true case (eq)", sqlOpLTE, oneTwoThree, oneTwoThree, values.NewSQLBool(knd, true)},
+		{"less than or equals true case (lt)", sqlOpLTE, oneTwoThree, twoTwoThree, values.NewSQLBool(knd, true)},
+		{"less than or equals false case (gt)", sqlOpLTE, twoTwoThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"less than or equals null on right case", sqlOpLTE, oneTwoThree, oneNullThree, values.NewSQLNull(knd)},
+		{"less than or equals null on left case", sqlOpLTE, oneNullThree, oneTwoThree, values.NewSQLNull(knd)},
 
-		{"not equals false case (eq)", sqlOpNEQ, oneTwoThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"not equals true case (lt)", sqlOpNEQ, oneTwoThree, twoTwoThree, NewSQLBool(knd, true)},
-		{"not equals true case (gt)", sqlOpNEQ, twoTwoThree, oneTwoThree, NewSQLBool(knd, true)},
-		{"not equals null on right case", sqlOpNEQ, oneTwoThree, oneNullThree, NewSQLNull(knd, EvalBoolean)},
-		{"not equals null on left case", sqlOpNEQ, oneNullThree, oneTwoThree, NewSQLNull(knd, EvalBoolean)},
+		{"not equals false case (eq)", sqlOpNEQ, oneTwoThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"not equals true case (lt)", sqlOpNEQ, oneTwoThree, twoTwoThree, values.NewSQLBool(knd, true)},
+		{"not equals true case (gt)", sqlOpNEQ, twoTwoThree, oneTwoThree, values.NewSQLBool(knd, true)},
+		{"not equals null on right case", sqlOpNEQ, oneTwoThree, oneNullThree, values.NewSQLNull(knd)},
+		{"not equals null on left case", sqlOpNEQ, oneNullThree, oneTwoThree, values.NewSQLNull(knd)},
 
-		{"null-safe equals true case (eq)", sqlOpNSE, oneTwoThree, oneTwoThree, NewSQLBool(knd, true)},
-		{"null-safe equals false case (lt)", sqlOpNSE, oneTwoThree, twoTwoThree, NewSQLBool(knd, false)},
-		{"null-safe equals false case (gt)", sqlOpNSE, twoTwoThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"null-safe equals null on right false case", sqlOpNSE, oneTwoThree, oneNullThree, NewSQLBool(knd, false)},
-		{"null-safe equals null on left false case", sqlOpNSE, oneNullThree, oneTwoThree, NewSQLBool(knd, false)},
-		{"null-safe equals null true case", sqlOpNSE, oneNullThree, oneNullThree, NewSQLBool(knd, true)},
+		{"null-safe equals true case (eq)", sqlOpNSE, oneTwoThree, oneTwoThree, values.NewSQLBool(knd, true)},
+		{"null-safe equals false case (lt)", sqlOpNSE, oneTwoThree, twoTwoThree, values.NewSQLBool(knd, false)},
+		{"null-safe equals false case (gt)", sqlOpNSE, twoTwoThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"null-safe equals null on right false case", sqlOpNSE, oneTwoThree, oneNullThree, values.NewSQLBool(knd, false)},
+		{"null-safe equals null on left false case", sqlOpNSE, oneNullThree, oneTwoThree, values.NewSQLBool(knd, false)},
+		{"null-safe equals null true case", sqlOpNSE, oneNullThree, oneNullThree, values.NewSQLBool(knd, true)},
 	}
 
 	for _, tc := range tests {

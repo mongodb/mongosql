@@ -5,6 +5,9 @@ package evaluator
 import (
 	"context"
 	"fmt"
+
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 const (
@@ -21,12 +24,12 @@ var _ SQLScalarFunctionExpr = (*absFunc)(nil)
 
 // The following constants represent some properties of the absFunc scalar function.
 var (
-	absExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	absIsVariadic     bool                     = false
-	absReturnTypeFunc func([]SQLExpr) EvalType = absEvalType
+	absExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	absIsVariadic     bool                           = false
+	absReturnTypeFunc func([]SQLExpr) types.EvalType = absEvalType
 )
 
-func (f *absFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *absFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -34,7 +37,7 @@ func (f *absFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -56,16 +59,16 @@ func (f *absFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *absFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -75,7 +78,7 @@ func (f *absFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *absFunc) reconcile() (SQLExpr, error) {
@@ -83,8 +86,8 @@ func (f *absFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func absEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func absEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type acosFunc struct {
@@ -96,12 +99,12 @@ var _ SQLScalarFunctionExpr = (*acosFunc)(nil)
 
 // The following constants represent some properties of the acosFunc scalar function.
 var (
-	acosExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	acosIsVariadic     bool                     = false
-	acosReturnTypeFunc func([]SQLExpr) EvalType = acosEvalType
+	acosExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	acosIsVariadic     bool                           = false
+	acosReturnTypeFunc func([]SQLExpr) types.EvalType = acosEvalType
 )
 
-func (f *acosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *acosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -109,7 +112,7 @@ func (f *acosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -131,16 +134,16 @@ func (f *acosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -150,7 +153,7 @@ func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *acosFunc) reconcile() (SQLExpr, error) {
@@ -158,8 +161,8 @@ func (f *acosFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func acosEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func acosEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type asciiFunc struct {
@@ -171,12 +174,12 @@ var _ SQLScalarFunctionExpr = (*asciiFunc)(nil)
 
 // The following constants represent some properties of the asciiFunc scalar function.
 var (
-	asciiExpectedTypes  []EvalType               = []EvalType{EvalString}
-	asciiIsVariadic     bool                     = false
-	asciiReturnTypeFunc func([]SQLExpr) EvalType = asciiEvalType
+	asciiExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	asciiIsVariadic     bool                           = false
+	asciiReturnTypeFunc func([]SQLExpr) types.EvalType = asciiEvalType
 )
 
-func (f *asciiFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *asciiFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -184,7 +187,7 @@ func (f *asciiFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -206,16 +209,16 @@ func (f *asciiFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -225,7 +228,7 @@ func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *asciiFunc) reconcile() (SQLExpr, error) {
@@ -233,8 +236,8 @@ func (f *asciiFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func asciiEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func asciiEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type asinFunc struct {
@@ -246,12 +249,12 @@ var _ SQLScalarFunctionExpr = (*asinFunc)(nil)
 
 // The following constants represent some properties of the asinFunc scalar function.
 var (
-	asinExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	asinIsVariadic     bool                     = false
-	asinReturnTypeFunc func([]SQLExpr) EvalType = asinEvalType
+	asinExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	asinIsVariadic     bool                           = false
+	asinReturnTypeFunc func([]SQLExpr) types.EvalType = asinEvalType
 )
 
-func (f *asinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *asinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -259,7 +262,7 @@ func (f *asinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -281,16 +284,16 @@ func (f *asinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -300,7 +303,7 @@ func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *asinFunc) reconcile() (SQLExpr, error) {
@@ -308,8 +311,8 @@ func (f *asinFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func asinEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func asinEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type atanSingleArgFunc struct {
@@ -321,12 +324,12 @@ var _ SQLScalarFunctionExpr = (*atanSingleArgFunc)(nil)
 
 // The following constants represent some properties of the atanSingleArgFunc scalar function.
 var (
-	atanSingleArgExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	atanSingleArgIsVariadic     bool                     = false
-	atanSingleArgReturnTypeFunc func([]SQLExpr) EvalType = atanSingleArgEvalType
+	atanSingleArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	atanSingleArgIsVariadic     bool                           = false
+	atanSingleArgReturnTypeFunc func([]SQLExpr) types.EvalType = atanSingleArgEvalType
 )
 
-func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -334,7 +337,7 @@ func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -342,7 +345,7 @@ func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 		}
 		args = append(args, val)
 	}
-	// Call the separate SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+	// Call the separate values.SQLValue accepting evaluation function that contains the appropriate evaluation logic.
 	return f.atanSingleArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
@@ -356,16 +359,16 @@ func (f *atanSingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 
 func (f *atanSingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -375,7 +378,7 @@ func (f *atanSingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *atanSingleArgFunc) reconcile() (SQLExpr, error) {
@@ -383,8 +386,8 @@ func (f *atanSingleArgFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func atanSingleArgEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func atanSingleArgEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type atanDualArgFunc struct {
@@ -396,12 +399,12 @@ var _ SQLScalarFunctionExpr = (*atanDualArgFunc)(nil)
 
 // The following constants represent some properties of the atanDualArgFunc scalar function.
 var (
-	atanDualArgExpectedTypes  []EvalType               = []EvalType{EvalDouble, EvalDouble}
-	atanDualArgIsVariadic     bool                     = false
-	atanDualArgReturnTypeFunc func([]SQLExpr) EvalType = atanDualArgEvalType
+	atanDualArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	atanDualArgIsVariadic     bool                           = false
+	atanDualArgReturnTypeFunc func([]SQLExpr) types.EvalType = atanDualArgEvalType
 )
 
-func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -409,7 +412,7 @@ func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -417,7 +420,7 @@ func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 		}
 		args = append(args, val)
 	}
-	// Call the separate SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+	// Call the separate values.SQLValue accepting evaluation function that contains the appropriate evaluation logic.
 	return f.atanDualArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
@@ -431,16 +434,16 @@ func (f *atanDualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 
 func (f *atanDualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -450,7 +453,7 @@ func (f *atanDualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *atanDualArgFunc) reconcile() (SQLExpr, error) {
@@ -458,8 +461,8 @@ func (f *atanDualArgFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func atanDualArgEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func atanDualArgEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type atan2SingleArgFunc struct {
@@ -471,12 +474,12 @@ var _ SQLScalarFunctionExpr = (*atan2SingleArgFunc)(nil)
 
 // The following constants represent some properties of the atan2SingleArgFunc scalar function.
 var (
-	atan2SingleArgExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	atan2SingleArgIsVariadic     bool                     = false
-	atan2SingleArgReturnTypeFunc func([]SQLExpr) EvalType = atan2SingleArgEvalType
+	atan2SingleArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	atan2SingleArgIsVariadic     bool                           = false
+	atan2SingleArgReturnTypeFunc func([]SQLExpr) types.EvalType = atan2SingleArgEvalType
 )
 
-func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -484,7 +487,7 @@ func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -506,16 +509,16 @@ func (f *atan2SingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (inte
 
 func (f *atan2SingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -525,7 +528,7 @@ func (f *atan2SingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *atan2SingleArgFunc) reconcile() (SQLExpr, error) {
@@ -533,8 +536,8 @@ func (f *atan2SingleArgFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func atan2SingleArgEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func atan2SingleArgEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type atan2DualArgFunc struct {
@@ -546,12 +549,12 @@ var _ SQLScalarFunctionExpr = (*atan2DualArgFunc)(nil)
 
 // The following constants represent some properties of the atan2DualArgFunc scalar function.
 var (
-	atan2DualArgExpectedTypes  []EvalType               = []EvalType{EvalDouble, EvalDouble}
-	atan2DualArgIsVariadic     bool                     = false
-	atan2DualArgReturnTypeFunc func([]SQLExpr) EvalType = atan2DualArgEvalType
+	atan2DualArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	atan2DualArgIsVariadic     bool                           = false
+	atan2DualArgReturnTypeFunc func([]SQLExpr) types.EvalType = atan2DualArgEvalType
 )
 
-func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -559,7 +562,7 @@ func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -581,16 +584,16 @@ func (f *atan2DualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 
 func (f *atan2DualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -600,7 +603,7 @@ func (f *atan2DualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *atan2DualArgFunc) reconcile() (SQLExpr, error) {
@@ -608,8 +611,8 @@ func (f *atan2DualArgFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func atan2DualArgEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func atan2DualArgEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type ceilFunc struct {
@@ -621,12 +624,12 @@ var _ SQLScalarFunctionExpr = (*ceilFunc)(nil)
 
 // The following constants represent some properties of the ceilFunc scalar function.
 var (
-	ceilExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	ceilIsVariadic     bool                     = false
-	ceilReturnTypeFunc func([]SQLExpr) EvalType = ceilEvalType
+	ceilExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	ceilIsVariadic     bool                           = false
+	ceilReturnTypeFunc func([]SQLExpr) types.EvalType = ceilEvalType
 )
 
-func (f *ceilFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *ceilFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -634,7 +637,7 @@ func (f *ceilFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -656,16 +659,16 @@ func (f *ceilFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *ceilFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -675,7 +678,7 @@ func (f *ceilFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *ceilFunc) reconcile() (SQLExpr, error) {
@@ -683,8 +686,8 @@ func (f *ceilFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func ceilEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func ceilEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type charFunc struct {
@@ -696,12 +699,12 @@ var _ SQLScalarFunctionExpr = (*charFunc)(nil)
 
 // The following constants represent some properties of the charFunc scalar function.
 var (
-	charExpectedTypes  []EvalType               = []EvalType{EvalInt64}
-	charIsVariadic     bool                     = true
-	charReturnTypeFunc func([]SQLExpr) EvalType = charEvalType
+	charExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64}
+	charIsVariadic     bool                           = true
+	charReturnTypeFunc func([]SQLExpr) types.EvalType = charEvalType
 )
 
-func (f *charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -709,7 +712,7 @@ func (f *charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -741,8 +744,8 @@ func (f *charFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func charEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func charEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type characterLengthFunc struct {
@@ -754,12 +757,12 @@ var _ SQLScalarFunctionExpr = (*characterLengthFunc)(nil)
 
 // The following constants represent some properties of the characterLengthFunc scalar function.
 var (
-	characterLengthExpectedTypes  []EvalType               = []EvalType{EvalString}
-	characterLengthIsVariadic     bool                     = false
-	characterLengthReturnTypeFunc func([]SQLExpr) EvalType = characterLengthEvalType
+	characterLengthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	characterLengthIsVariadic     bool                           = false
+	characterLengthReturnTypeFunc func([]SQLExpr) types.EvalType = characterLengthEvalType
 )
 
-func (f *characterLengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *characterLengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -767,7 +770,7 @@ func (f *characterLengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -789,16 +792,16 @@ func (f *characterLengthFunc) ToAggregationPredicate(t *PushdownTranslator) (int
 
 func (f *characterLengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -808,7 +811,7 @@ func (f *characterLengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *characterLengthFunc) reconcile() (SQLExpr, error) {
@@ -816,8 +819,8 @@ func (f *characterLengthFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func characterLengthEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func characterLengthEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type concatFunc struct {
@@ -829,12 +832,12 @@ var _ SQLScalarFunctionExpr = (*concatFunc)(nil)
 
 // The following constants represent some properties of the concatFunc scalar function.
 var (
-	concatExpectedTypes  []EvalType               = []EvalType{EvalString}
-	concatIsVariadic     bool                     = true
-	concatReturnTypeFunc func([]SQLExpr) EvalType = concatEvalType
+	concatExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	concatIsVariadic     bool                           = true
+	concatReturnTypeFunc func([]SQLExpr) types.EvalType = concatEvalType
 )
 
-func (f *concatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *concatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -842,7 +845,7 @@ func (f *concatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -864,16 +867,16 @@ func (f *concatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 
 func (f *concatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -883,7 +886,7 @@ func (f *concatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *concatFunc) reconcile() (SQLExpr, error) {
@@ -891,8 +894,8 @@ func (f *concatFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func concatEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func concatEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type concatWsFunc struct {
@@ -904,12 +907,12 @@ var _ SQLScalarFunctionExpr = (*concatWsFunc)(nil)
 
 // The following constants represent some properties of the concatWsFunc scalar function.
 var (
-	concatWsExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString}
-	concatWsIsVariadic     bool                     = true
-	concatWsReturnTypeFunc func([]SQLExpr) EvalType = concatWsEvalType
+	concatWsExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString}
+	concatWsIsVariadic     bool                           = true
+	concatWsReturnTypeFunc func([]SQLExpr) types.EvalType = concatWsEvalType
 )
 
-func (f *concatWsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *concatWsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -917,7 +920,7 @@ func (f *concatWsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -949,8 +952,8 @@ func (f *concatWsFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func concatWsEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func concatWsEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type connectionIDFunc struct {
@@ -962,12 +965,12 @@ var _ SQLScalarFunctionExpr = (*connectionIDFunc)(nil)
 
 // The following constants represent some properties of the connectionIDFunc scalar function.
 var (
-	connectionIDExpectedTypes  []EvalType               = []EvalType{}
-	connectionIDIsVariadic     bool                     = false
-	connectionIDReturnTypeFunc func([]SQLExpr) EvalType = connectionIDEvalType
+	connectionIDExpectedTypes  []types.EvalType               = []types.EvalType{}
+	connectionIDIsVariadic     bool                           = false
+	connectionIDReturnTypeFunc func([]SQLExpr) types.EvalType = connectionIDEvalType
 )
 
-func (f *connectionIDFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *connectionIDFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -975,7 +978,7 @@ func (f *connectionIDFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -996,15 +999,15 @@ func (f *connectionIDFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 }
 
 func (f *connectionIDFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -1014,8 +1017,8 @@ func (f *connectionIDFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func connectionIDEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func connectionIDEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type convFunc struct {
@@ -1027,12 +1030,12 @@ var _ SQLScalarFunctionExpr = (*convFunc)(nil)
 
 // The following constants represent some properties of the convFunc scalar function.
 var (
-	convExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64, EvalInt64}
-	convIsVariadic     bool                     = false
-	convReturnTypeFunc func([]SQLExpr) EvalType = convEvalType
+	convExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalInt64}
+	convIsVariadic     bool                           = false
+	convReturnTypeFunc func([]SQLExpr) types.EvalType = convEvalType
 )
 
-func (f *convFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *convFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1040,7 +1043,7 @@ func (f *convFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1062,16 +1065,16 @@ func (f *convFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *convFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1081,7 +1084,7 @@ func (f *convFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *convFunc) reconcile() (SQLExpr, error) {
@@ -1089,8 +1092,8 @@ func (f *convFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func convEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func convEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type convertFunc struct {
@@ -1102,12 +1105,12 @@ var _ SQLScalarFunctionExpr = (*convertFunc)(nil)
 
 // The following constants represent some properties of the convertFunc scalar function.
 var (
-	convertExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic, EvalString}
-	convertIsVariadic     bool                     = false
-	convertReturnTypeFunc func([]SQLExpr) EvalType = convertEvalType
+	convertExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalPolymorphic, types.EvalString}
+	convertIsVariadic     bool                           = false
+	convertReturnTypeFunc func([]SQLExpr) types.EvalType = convertEvalType
 )
 
-func (f *convertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *convertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1115,7 +1118,7 @@ func (f *convertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1137,16 +1140,16 @@ func (f *convertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *convertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1156,7 +1159,7 @@ func (f *convertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *convertFunc) reconcile() (SQLExpr, error) {
@@ -1173,12 +1176,12 @@ var _ SQLScalarFunctionExpr = (*cosFunc)(nil)
 
 // The following constants represent some properties of the cosFunc scalar function.
 var (
-	cosExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	cosIsVariadic     bool                     = false
-	cosReturnTypeFunc func([]SQLExpr) EvalType = cosEvalType
+	cosExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	cosIsVariadic     bool                           = false
+	cosReturnTypeFunc func([]SQLExpr) types.EvalType = cosEvalType
 )
 
-func (f *cosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *cosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1186,7 +1189,7 @@ func (f *cosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1208,16 +1211,16 @@ func (f *cosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *cosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1227,7 +1230,7 @@ func (f *cosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *cosFunc) reconcile() (SQLExpr, error) {
@@ -1235,8 +1238,8 @@ func (f *cosFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func cosEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func cosEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type cotFunc struct {
@@ -1248,12 +1251,12 @@ var _ SQLScalarFunctionExpr = (*cotFunc)(nil)
 
 // The following constants represent some properties of the cotFunc scalar function.
 var (
-	cotExpectedTypes  []EvalType               = []EvalType{EvalDecimal128}
-	cotIsVariadic     bool                     = false
-	cotReturnTypeFunc func([]SQLExpr) EvalType = cotEvalType
+	cotExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128}
+	cotIsVariadic     bool                           = false
+	cotReturnTypeFunc func([]SQLExpr) types.EvalType = cotEvalType
 )
 
-func (f *cotFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *cotFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1261,7 +1264,7 @@ func (f *cotFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1283,16 +1286,16 @@ func (f *cotFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *cotFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1302,7 +1305,7 @@ func (f *cotFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *cotFunc) reconcile() (SQLExpr, error) {
@@ -1310,8 +1313,8 @@ func (f *cotFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func cotEvalType(_ []SQLExpr) EvalType {
-	return EvalDecimal128
+func cotEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDecimal128
 }
 
 type currentDateFunc struct {
@@ -1323,12 +1326,12 @@ var _ SQLScalarFunctionExpr = (*currentDateFunc)(nil)
 
 // The following constants represent some properties of the currentDateFunc scalar function.
 var (
-	currentDateExpectedTypes  []EvalType               = []EvalType{}
-	currentDateIsVariadic     bool                     = false
-	currentDateReturnTypeFunc func([]SQLExpr) EvalType = currentDateEvalType
+	currentDateExpectedTypes  []types.EvalType               = []types.EvalType{}
+	currentDateIsVariadic     bool                           = false
+	currentDateReturnTypeFunc func([]SQLExpr) types.EvalType = currentDateEvalType
 )
 
-func (f *currentDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *currentDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1336,7 +1339,7 @@ func (f *currentDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1358,16 +1361,16 @@ func (f *currentDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 
 func (f *currentDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1377,7 +1380,7 @@ func (f *currentDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *currentDateFunc) reconcile() (SQLExpr, error) {
@@ -1385,8 +1388,8 @@ func (f *currentDateFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func currentDateEvalType(_ []SQLExpr) EvalType {
-	return EvalDate
+func currentDateEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDate
 }
 
 type currentTimestampFunc struct {
@@ -1398,12 +1401,12 @@ var _ SQLScalarFunctionExpr = (*currentTimestampFunc)(nil)
 
 // The following constants represent some properties of the currentTimestampFunc scalar function.
 var (
-	currentTimestampExpectedTypes  []EvalType               = []EvalType{}
-	currentTimestampIsVariadic     bool                     = false
-	currentTimestampReturnTypeFunc func([]SQLExpr) EvalType = currentTimestampEvalType
+	currentTimestampExpectedTypes  []types.EvalType               = []types.EvalType{}
+	currentTimestampIsVariadic     bool                           = false
+	currentTimestampReturnTypeFunc func([]SQLExpr) types.EvalType = currentTimestampEvalType
 )
 
-func (f *currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1411,7 +1414,7 @@ func (f *currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1433,16 +1436,16 @@ func (f *currentTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 
 func (f *currentTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1452,7 +1455,7 @@ func (f *currentTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *currentTimestampFunc) reconcile() (SQLExpr, error) {
@@ -1460,8 +1463,8 @@ func (f *currentTimestampFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func currentTimestampEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func currentTimestampEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type curtimeFunc struct {
@@ -1473,12 +1476,12 @@ var _ SQLScalarFunctionExpr = (*curtimeFunc)(nil)
 
 // The following constants represent some properties of the curtimeFunc scalar function.
 var (
-	curtimeExpectedTypes  []EvalType               = []EvalType{}
-	curtimeIsVariadic     bool                     = false
-	curtimeReturnTypeFunc func([]SQLExpr) EvalType = curtimeEvalType
+	curtimeExpectedTypes  []types.EvalType               = []types.EvalType{}
+	curtimeIsVariadic     bool                           = false
+	curtimeReturnTypeFunc func([]SQLExpr) types.EvalType = curtimeEvalType
 )
 
-func (f *curtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *curtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1486,7 +1489,7 @@ func (f *curtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1508,16 +1511,16 @@ func (f *curtimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *curtimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1527,7 +1530,7 @@ func (f *curtimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *curtimeFunc) reconcile() (SQLExpr, error) {
@@ -1535,8 +1538,8 @@ func (f *curtimeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func curtimeEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func curtimeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type databaseFunc struct {
@@ -1548,12 +1551,12 @@ var _ SQLScalarFunctionExpr = (*databaseFunc)(nil)
 
 // The following constants represent some properties of the databaseFunc scalar function.
 var (
-	databaseExpectedTypes  []EvalType               = []EvalType{}
-	databaseIsVariadic     bool                     = false
-	databaseReturnTypeFunc func([]SQLExpr) EvalType = databaseEvalType
+	databaseExpectedTypes  []types.EvalType               = []types.EvalType{}
+	databaseIsVariadic     bool                           = false
+	databaseReturnTypeFunc func([]SQLExpr) types.EvalType = databaseEvalType
 )
 
-func (f *databaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *databaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1561,7 +1564,7 @@ func (f *databaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1582,15 +1585,15 @@ func (f *databaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 }
 
 func (f *databaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -1600,8 +1603,8 @@ func (f *databaseFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func databaseEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func databaseEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type dateAddFunc struct {
@@ -1613,12 +1616,12 @@ var _ SQLScalarFunctionExpr = (*dateAddFunc)(nil)
 
 // The following constants represent some properties of the dateAddFunc scalar function.
 var (
-	dateAddExpectedTypes  []EvalType               = []EvalType{EvalDatetime, EvalString, EvalString}
-	dateAddIsVariadic     bool                     = false
-	dateAddReturnTypeFunc func([]SQLExpr) EvalType = dateAddEvalType
+	dateAddExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalString, types.EvalString}
+	dateAddIsVariadic     bool                           = false
+	dateAddReturnTypeFunc func([]SQLExpr) types.EvalType = dateAddEvalType
 )
 
-func (f *dateAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dateAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1626,7 +1629,7 @@ func (f *dateAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1648,16 +1651,16 @@ func (f *dateAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1667,7 +1670,7 @@ func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dateAddFunc) reconcile() (SQLExpr, error) {
@@ -1675,8 +1678,8 @@ func (f *dateAddFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dateAddEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func dateAddEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type dateDiffFunc struct {
@@ -1688,12 +1691,12 @@ var _ SQLScalarFunctionExpr = (*dateDiffFunc)(nil)
 
 // The following constants represent some properties of the dateDiffFunc scalar function.
 var (
-	dateDiffExpectedTypes  []EvalType               = []EvalType{EvalDate, EvalDate}
-	dateDiffIsVariadic     bool                     = false
-	dateDiffReturnTypeFunc func([]SQLExpr) EvalType = dateDiffEvalType
+	dateDiffExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate, types.EvalDate}
+	dateDiffIsVariadic     bool                           = false
+	dateDiffReturnTypeFunc func([]SQLExpr) types.EvalType = dateDiffEvalType
 )
 
-func (f *dateDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dateDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1701,7 +1704,7 @@ func (f *dateDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1723,16 +1726,16 @@ func (f *dateDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 
 func (f *dateDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1742,7 +1745,7 @@ func (f *dateDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dateDiffFunc) reconcile() (SQLExpr, error) {
@@ -1750,8 +1753,8 @@ func (f *dateDiffFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dateDiffEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func dateDiffEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type dateFormatFunc struct {
@@ -1763,12 +1766,12 @@ var _ SQLScalarFunctionExpr = (*dateFormatFunc)(nil)
 
 // The following constants represent some properties of the dateFormatFunc scalar function.
 var (
-	dateFormatExpectedTypes  []EvalType               = []EvalType{EvalDatetime, EvalString}
-	dateFormatIsVariadic     bool                     = false
-	dateFormatReturnTypeFunc func([]SQLExpr) EvalType = dateFormatEvalType
+	dateFormatExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalString}
+	dateFormatIsVariadic     bool                           = false
+	dateFormatReturnTypeFunc func([]SQLExpr) types.EvalType = dateFormatEvalType
 )
 
-func (f *dateFormatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dateFormatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1776,7 +1779,7 @@ func (f *dateFormatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1798,16 +1801,16 @@ func (f *dateFormatFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 
 func (f *dateFormatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1817,7 +1820,7 @@ func (f *dateFormatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dateFormatFunc) reconcile() (SQLExpr, error) {
@@ -1825,8 +1828,8 @@ func (f *dateFormatFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dateFormatEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func dateFormatEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type dateSubFunc struct {
@@ -1838,12 +1841,12 @@ var _ SQLScalarFunctionExpr = (*dateSubFunc)(nil)
 
 // The following constants represent some properties of the dateSubFunc scalar function.
 var (
-	dateSubExpectedTypes  []EvalType               = []EvalType{EvalDatetime, EvalString, EvalString}
-	dateSubIsVariadic     bool                     = false
-	dateSubReturnTypeFunc func([]SQLExpr) EvalType = dateSubEvalType
+	dateSubExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalString, types.EvalString}
+	dateSubIsVariadic     bool                           = false
+	dateSubReturnTypeFunc func([]SQLExpr) types.EvalType = dateSubEvalType
 )
 
-func (f *dateSubFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dateSubFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1851,7 +1854,7 @@ func (f *dateSubFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1873,16 +1876,16 @@ func (f *dateSubFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1892,7 +1895,7 @@ func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dateSubFunc) reconcile() (SQLExpr, error) {
@@ -1900,8 +1903,8 @@ func (f *dateSubFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dateSubEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func dateSubEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type dayNameFunc struct {
@@ -1913,12 +1916,12 @@ var _ SQLScalarFunctionExpr = (*dayNameFunc)(nil)
 
 // The following constants represent some properties of the dayNameFunc scalar function.
 var (
-	dayNameExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	dayNameIsVariadic     bool                     = false
-	dayNameReturnTypeFunc func([]SQLExpr) EvalType = dayNameEvalType
+	dayNameExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayNameIsVariadic     bool                           = false
+	dayNameReturnTypeFunc func([]SQLExpr) types.EvalType = dayNameEvalType
 )
 
-func (f *dayNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dayNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -1926,7 +1929,7 @@ func (f *dayNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -1948,16 +1951,16 @@ func (f *dayNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *dayNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -1967,7 +1970,7 @@ func (f *dayNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dayNameFunc) reconcile() (SQLExpr, error) {
@@ -1975,8 +1978,8 @@ func (f *dayNameFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dayNameEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func dayNameEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type dayOfMonthFunc struct {
@@ -1988,12 +1991,12 @@ var _ SQLScalarFunctionExpr = (*dayOfMonthFunc)(nil)
 
 // The following constants represent some properties of the dayOfMonthFunc scalar function.
 var (
-	dayOfMonthExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	dayOfMonthIsVariadic     bool                     = false
-	dayOfMonthReturnTypeFunc func([]SQLExpr) EvalType = dayOfMonthEvalType
+	dayOfMonthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayOfMonthIsVariadic     bool                           = false
+	dayOfMonthReturnTypeFunc func([]SQLExpr) types.EvalType = dayOfMonthEvalType
 )
 
-func (f *dayOfMonthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dayOfMonthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2001,7 +2004,7 @@ func (f *dayOfMonthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2023,16 +2026,16 @@ func (f *dayOfMonthFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 
 func (f *dayOfMonthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2042,7 +2045,7 @@ func (f *dayOfMonthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dayOfMonthFunc) reconcile() (SQLExpr, error) {
@@ -2050,8 +2053,8 @@ func (f *dayOfMonthFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dayOfMonthEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func dayOfMonthEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type dayOfWeekFunc struct {
@@ -2063,12 +2066,12 @@ var _ SQLScalarFunctionExpr = (*dayOfWeekFunc)(nil)
 
 // The following constants represent some properties of the dayOfWeekFunc scalar function.
 var (
-	dayOfWeekExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	dayOfWeekIsVariadic     bool                     = false
-	dayOfWeekReturnTypeFunc func([]SQLExpr) EvalType = dayOfWeekEvalType
+	dayOfWeekExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayOfWeekIsVariadic     bool                           = false
+	dayOfWeekReturnTypeFunc func([]SQLExpr) types.EvalType = dayOfWeekEvalType
 )
 
-func (f *dayOfWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dayOfWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2076,7 +2079,7 @@ func (f *dayOfWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2098,16 +2101,16 @@ func (f *dayOfWeekFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 
 func (f *dayOfWeekFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2117,7 +2120,7 @@ func (f *dayOfWeekFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dayOfWeekFunc) reconcile() (SQLExpr, error) {
@@ -2125,8 +2128,8 @@ func (f *dayOfWeekFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dayOfWeekEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func dayOfWeekEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type dayOfYearFunc struct {
@@ -2138,12 +2141,12 @@ var _ SQLScalarFunctionExpr = (*dayOfYearFunc)(nil)
 
 // The following constants represent some properties of the dayOfYearFunc scalar function.
 var (
-	dayOfYearExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	dayOfYearIsVariadic     bool                     = false
-	dayOfYearReturnTypeFunc func([]SQLExpr) EvalType = dayOfYearEvalType
+	dayOfYearExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayOfYearIsVariadic     bool                           = false
+	dayOfYearReturnTypeFunc func([]SQLExpr) types.EvalType = dayOfYearEvalType
 )
 
-func (f *dayOfYearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *dayOfYearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2151,7 +2154,7 @@ func (f *dayOfYearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2173,16 +2176,16 @@ func (f *dayOfYearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 
 func (f *dayOfYearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2192,7 +2195,7 @@ func (f *dayOfYearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *dayOfYearFunc) reconcile() (SQLExpr, error) {
@@ -2200,8 +2203,8 @@ func (f *dayOfYearFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func dayOfYearEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func dayOfYearEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type degreesFunc struct {
@@ -2213,12 +2216,12 @@ var _ SQLScalarFunctionExpr = (*degreesFunc)(nil)
 
 // The following constants represent some properties of the degreesFunc scalar function.
 var (
-	degreesExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	degreesIsVariadic     bool                     = false
-	degreesReturnTypeFunc func([]SQLExpr) EvalType = degreesEvalType
+	degreesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	degreesIsVariadic     bool                           = false
+	degreesReturnTypeFunc func([]SQLExpr) types.EvalType = degreesEvalType
 )
 
-func (f *degreesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *degreesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2226,7 +2229,7 @@ func (f *degreesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2248,16 +2251,16 @@ func (f *degreesFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *degreesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2267,7 +2270,7 @@ func (f *degreesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *degreesFunc) reconcile() (SQLExpr, error) {
@@ -2275,8 +2278,8 @@ func (f *degreesFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func degreesEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func degreesEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type expFunc struct {
@@ -2288,12 +2291,12 @@ var _ SQLScalarFunctionExpr = (*expFunc)(nil)
 
 // The following constants represent some properties of the expFunc scalar function.
 var (
-	expExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	expIsVariadic     bool                     = false
-	expReturnTypeFunc func([]SQLExpr) EvalType = expEvalType
+	expExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	expIsVariadic     bool                           = false
+	expReturnTypeFunc func([]SQLExpr) types.EvalType = expEvalType
 )
 
-func (f *expFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *expFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2301,7 +2304,7 @@ func (f *expFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2323,16 +2326,16 @@ func (f *expFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *expFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2342,7 +2345,7 @@ func (f *expFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *expFunc) reconcile() (SQLExpr, error) {
@@ -2350,8 +2353,8 @@ func (f *expFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func expEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func expEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type extractFunc struct {
@@ -2363,12 +2366,12 @@ var _ SQLScalarFunctionExpr = (*extractFunc)(nil)
 
 // The following constants represent some properties of the extractFunc scalar function.
 var (
-	extractExpectedTypes  []EvalType               = []EvalType{EvalString, EvalDatetime}
-	extractIsVariadic     bool                     = false
-	extractReturnTypeFunc func([]SQLExpr) EvalType = extractEvalType
+	extractExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalDatetime}
+	extractIsVariadic     bool                           = false
+	extractReturnTypeFunc func([]SQLExpr) types.EvalType = extractEvalType
 )
 
-func (f *extractFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *extractFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2376,7 +2379,7 @@ func (f *extractFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2398,16 +2401,16 @@ func (f *extractFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *extractFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2417,7 +2420,7 @@ func (f *extractFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *extractFunc) reconcile() (SQLExpr, error) {
@@ -2425,8 +2428,8 @@ func (f *extractFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func extractEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func extractEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type floorFunc struct {
@@ -2438,12 +2441,12 @@ var _ SQLScalarFunctionExpr = (*floorFunc)(nil)
 
 // The following constants represent some properties of the floorFunc scalar function.
 var (
-	floorExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	floorIsVariadic     bool                     = false
-	floorReturnTypeFunc func([]SQLExpr) EvalType = floorEvalType
+	floorExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	floorIsVariadic     bool                           = false
+	floorReturnTypeFunc func([]SQLExpr) types.EvalType = floorEvalType
 )
 
-func (f *floorFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *floorFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2451,7 +2454,7 @@ func (f *floorFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2473,16 +2476,16 @@ func (f *floorFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *floorFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2492,7 +2495,7 @@ func (f *floorFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *floorFunc) reconcile() (SQLExpr, error) {
@@ -2500,8 +2503,8 @@ func (f *floorFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func floorEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func floorEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type fromDaysFunc struct {
@@ -2513,12 +2516,12 @@ var _ SQLScalarFunctionExpr = (*fromDaysFunc)(nil)
 
 // The following constants represent some properties of the fromDaysFunc scalar function.
 var (
-	fromDaysExpectedTypes  []EvalType               = []EvalType{EvalInt64}
-	fromDaysIsVariadic     bool                     = false
-	fromDaysReturnTypeFunc func([]SQLExpr) EvalType = fromDaysEvalType
+	fromDaysExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64}
+	fromDaysIsVariadic     bool                           = false
+	fromDaysReturnTypeFunc func([]SQLExpr) types.EvalType = fromDaysEvalType
 )
 
-func (f *fromDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *fromDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2526,7 +2529,7 @@ func (f *fromDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2548,16 +2551,16 @@ func (f *fromDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 
 func (f *fromDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2567,7 +2570,7 @@ func (f *fromDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *fromDaysFunc) reconcile() (SQLExpr, error) {
@@ -2575,8 +2578,8 @@ func (f *fromDaysFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func fromDaysEvalType(_ []SQLExpr) EvalType {
-	return EvalDate
+func fromDaysEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDate
 }
 
 type fromUnixtimeToDatetimeFunc struct {
@@ -2588,12 +2591,12 @@ var _ SQLScalarFunctionExpr = (*fromUnixtimeToDatetimeFunc)(nil)
 
 // The following constants represent some properties of the fromUnixtimeToDatetimeFunc scalar function.
 var (
-	fromUnixtimeToDatetimeExpectedTypes  []EvalType               = []EvalType{EvalInt64}
-	fromUnixtimeToDatetimeIsVariadic     bool                     = false
-	fromUnixtimeToDatetimeReturnTypeFunc func([]SQLExpr) EvalType = fromUnixtimeToDatetimeEvalType
+	fromUnixtimeToDatetimeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64}
+	fromUnixtimeToDatetimeIsVariadic     bool                           = false
+	fromUnixtimeToDatetimeReturnTypeFunc func([]SQLExpr) types.EvalType = fromUnixtimeToDatetimeEvalType
 )
 
-func (f *fromUnixtimeToDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *fromUnixtimeToDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2601,7 +2604,7 @@ func (f *fromUnixtimeToDatetimeFunc) Evaluate(ctx context.Context, cfg *Executio
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2623,16 +2626,16 @@ func (f *fromUnixtimeToDatetimeFunc) ToAggregationPredicate(t *PushdownTranslato
 
 func (f *fromUnixtimeToDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2642,7 +2645,7 @@ func (f *fromUnixtimeToDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *fromUnixtimeToDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -2650,8 +2653,8 @@ func (f *fromUnixtimeToDatetimeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func fromUnixtimeToDatetimeEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func fromUnixtimeToDatetimeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type fromUnixtimeToFormattedDatetimeFunc struct {
@@ -2663,12 +2666,12 @@ var _ SQLScalarFunctionExpr = (*fromUnixtimeToFormattedDatetimeFunc)(nil)
 
 // The following constants represent some properties of the fromUnixtimeToFormattedDatetimeFunc scalar function.
 var (
-	fromUnixtimeToFormattedDatetimeExpectedTypes  []EvalType               = []EvalType{EvalInt64, EvalString}
-	fromUnixtimeToFormattedDatetimeIsVariadic     bool                     = false
-	fromUnixtimeToFormattedDatetimeReturnTypeFunc func([]SQLExpr) EvalType = fromUnixtimeToFormattedDatetimeEvalType
+	fromUnixtimeToFormattedDatetimeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64, types.EvalString}
+	fromUnixtimeToFormattedDatetimeIsVariadic     bool                           = false
+	fromUnixtimeToFormattedDatetimeReturnTypeFunc func([]SQLExpr) types.EvalType = fromUnixtimeToFormattedDatetimeEvalType
 )
 
-func (f *fromUnixtimeToFormattedDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *fromUnixtimeToFormattedDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2676,7 +2679,7 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) Evaluate(ctx context.Context, cfg 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2698,16 +2701,16 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationPredicate(t *Pushdown
 
 func (f *fromUnixtimeToFormattedDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2717,7 +2720,7 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) FoldConstants(cfg *OptimizerConfig
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *fromUnixtimeToFormattedDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -2725,8 +2728,8 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func fromUnixtimeToFormattedDatetimeEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func fromUnixtimeToFormattedDatetimeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type greatestFunc struct {
@@ -2738,12 +2741,12 @@ var _ SQLScalarFunctionExpr = (*greatestFunc)(nil)
 
 // The following constants represent some properties of the greatestFunc scalar function.
 var (
-	greatestExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic, EvalPolymorphic}
-	greatestIsVariadic     bool                     = true
-	greatestReturnTypeFunc func([]SQLExpr) EvalType = greatestEvalType
+	greatestExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalPolymorphic, types.EvalPolymorphic}
+	greatestIsVariadic     bool                           = true
+	greatestReturnTypeFunc func([]SQLExpr) types.EvalType = greatestEvalType
 )
 
-func (f *greatestFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *greatestFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2751,7 +2754,7 @@ func (f *greatestFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2773,16 +2776,16 @@ func (f *greatestFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 
 func (f *greatestFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2792,7 +2795,7 @@ func (f *greatestFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *greatestFunc) reconcile() (SQLExpr, error) {
@@ -2809,12 +2812,12 @@ var _ SQLScalarFunctionExpr = (*hourFunc)(nil)
 
 // The following constants represent some properties of the hourFunc scalar function.
 var (
-	hourExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	hourIsVariadic     bool                     = false
-	hourReturnTypeFunc func([]SQLExpr) EvalType = hourEvalType
+	hourExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
+	hourIsVariadic     bool                           = false
+	hourReturnTypeFunc func([]SQLExpr) types.EvalType = hourEvalType
 )
 
-func (f *hourFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *hourFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2822,7 +2825,7 @@ func (f *hourFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2844,16 +2847,16 @@ func (f *hourFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *hourFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2863,7 +2866,7 @@ func (f *hourFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 // nolint: unparam
@@ -2871,8 +2874,8 @@ func (f *hourFunc) reconcile() (SQLExpr, error) {
 	return f, nil
 }
 
-func hourEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func hourEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type insertFunc struct {
@@ -2884,12 +2887,12 @@ var _ SQLScalarFunctionExpr = (*insertFunc)(nil)
 
 // The following constants represent some properties of the insertFunc scalar function.
 var (
-	insertExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64, EvalInt64, EvalString}
-	insertIsVariadic     bool                     = false
-	insertReturnTypeFunc func([]SQLExpr) EvalType = insertEvalType
+	insertExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalInt64, types.EvalString}
+	insertIsVariadic     bool                           = false
+	insertReturnTypeFunc func([]SQLExpr) types.EvalType = insertEvalType
 )
 
-func (f *insertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *insertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2897,7 +2900,7 @@ func (f *insertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2919,16 +2922,16 @@ func (f *insertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 
 func (f *insertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -2938,7 +2941,7 @@ func (f *insertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *insertFunc) reconcile() (SQLExpr, error) {
@@ -2946,8 +2949,8 @@ func (f *insertFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func insertEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func insertEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type instrFunc struct {
@@ -2959,12 +2962,12 @@ var _ SQLScalarFunctionExpr = (*instrFunc)(nil)
 
 // The following constants represent some properties of the instrFunc scalar function.
 var (
-	instrExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString}
-	instrIsVariadic     bool                     = false
-	instrReturnTypeFunc func([]SQLExpr) EvalType = instrEvalType
+	instrExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString}
+	instrIsVariadic     bool                           = false
+	instrReturnTypeFunc func([]SQLExpr) types.EvalType = instrEvalType
 )
 
-func (f *instrFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *instrFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -2972,7 +2975,7 @@ func (f *instrFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -2994,16 +2997,16 @@ func (f *instrFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *instrFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3013,7 +3016,7 @@ func (f *instrFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *instrFunc) reconcile() (SQLExpr, error) {
@@ -3021,8 +3024,8 @@ func (f *instrFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func instrEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func instrEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type lastDayFunc struct {
@@ -3034,12 +3037,12 @@ var _ SQLScalarFunctionExpr = (*lastDayFunc)(nil)
 
 // The following constants represent some properties of the lastDayFunc scalar function.
 var (
-	lastDayExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	lastDayIsVariadic     bool                     = false
-	lastDayReturnTypeFunc func([]SQLExpr) EvalType = lastDayEvalType
+	lastDayExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	lastDayIsVariadic     bool                           = false
+	lastDayReturnTypeFunc func([]SQLExpr) types.EvalType = lastDayEvalType
 )
 
-func (f *lastDayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *lastDayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3047,7 +3050,7 @@ func (f *lastDayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3069,16 +3072,16 @@ func (f *lastDayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3088,7 +3091,7 @@ func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *lastDayFunc) reconcile() (SQLExpr, error) {
@@ -3096,8 +3099,8 @@ func (f *lastDayFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func lastDayEvalType(_ []SQLExpr) EvalType {
-	return EvalDate
+func lastDayEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDate
 }
 
 type lcaseFunc struct {
@@ -3109,12 +3112,12 @@ var _ SQLScalarFunctionExpr = (*lcaseFunc)(nil)
 
 // The following constants represent some properties of the lcaseFunc scalar function.
 var (
-	lcaseExpectedTypes  []EvalType               = []EvalType{EvalString}
-	lcaseIsVariadic     bool                     = false
-	lcaseReturnTypeFunc func([]SQLExpr) EvalType = lcaseEvalType
+	lcaseExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	lcaseIsVariadic     bool                           = false
+	lcaseReturnTypeFunc func([]SQLExpr) types.EvalType = lcaseEvalType
 )
 
-func (f *lcaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *lcaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3122,7 +3125,7 @@ func (f *lcaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3144,16 +3147,16 @@ func (f *lcaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *lcaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3163,7 +3166,7 @@ func (f *lcaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *lcaseFunc) reconcile() (SQLExpr, error) {
@@ -3171,8 +3174,8 @@ func (f *lcaseFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func lcaseEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func lcaseEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type leastFunc struct {
@@ -3184,12 +3187,12 @@ var _ SQLScalarFunctionExpr = (*leastFunc)(nil)
 
 // The following constants represent some properties of the leastFunc scalar function.
 var (
-	leastExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic, EvalPolymorphic}
-	leastIsVariadic     bool                     = true
-	leastReturnTypeFunc func([]SQLExpr) EvalType = leastEvalType
+	leastExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalPolymorphic, types.EvalPolymorphic}
+	leastIsVariadic     bool                           = true
+	leastReturnTypeFunc func([]SQLExpr) types.EvalType = leastEvalType
 )
 
-func (f *leastFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *leastFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3197,7 +3200,7 @@ func (f *leastFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3219,16 +3222,16 @@ func (f *leastFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *leastFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3238,7 +3241,7 @@ func (f *leastFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *leastFunc) reconcile() (SQLExpr, error) {
@@ -3255,12 +3258,12 @@ var _ SQLScalarFunctionExpr = (*leftFunc)(nil)
 
 // The following constants represent some properties of the leftFunc scalar function.
 var (
-	leftExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64}
-	leftIsVariadic     bool                     = false
-	leftReturnTypeFunc func([]SQLExpr) EvalType = leftEvalType
+	leftExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64}
+	leftIsVariadic     bool                           = false
+	leftReturnTypeFunc func([]SQLExpr) types.EvalType = leftEvalType
 )
 
-func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3268,7 +3271,7 @@ func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3290,16 +3293,16 @@ func (f *leftFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *leftFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3309,7 +3312,7 @@ func (f *leftFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *leftFunc) reconcile() (SQLExpr, error) {
@@ -3317,8 +3320,8 @@ func (f *leftFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func leftEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func leftEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type lengthFunc struct {
@@ -3330,12 +3333,12 @@ var _ SQLScalarFunctionExpr = (*lengthFunc)(nil)
 
 // The following constants represent some properties of the lengthFunc scalar function.
 var (
-	lengthExpectedTypes  []EvalType               = []EvalType{EvalString}
-	lengthIsVariadic     bool                     = false
-	lengthReturnTypeFunc func([]SQLExpr) EvalType = lengthEvalType
+	lengthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	lengthIsVariadic     bool                           = false
+	lengthReturnTypeFunc func([]SQLExpr) types.EvalType = lengthEvalType
 )
 
-func (f *lengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *lengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3343,7 +3346,7 @@ func (f *lengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3365,16 +3368,16 @@ func (f *lengthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 
 func (f *lengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3384,7 +3387,7 @@ func (f *lengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *lengthFunc) reconcile() (SQLExpr, error) {
@@ -3392,8 +3395,8 @@ func (f *lengthFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func lengthEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func lengthEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type lnFunc struct {
@@ -3405,12 +3408,12 @@ var _ SQLScalarFunctionExpr = (*lnFunc)(nil)
 
 // The following constants represent some properties of the lnFunc scalar function.
 var (
-	lnExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	lnIsVariadic     bool                     = false
-	lnReturnTypeFunc func([]SQLExpr) EvalType = lnEvalType
+	lnExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	lnIsVariadic     bool                           = false
+	lnReturnTypeFunc func([]SQLExpr) types.EvalType = lnEvalType
 )
 
-func (f *lnFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *lnFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3418,7 +3421,7 @@ func (f *lnFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3440,16 +3443,16 @@ func (f *lnFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pus
 
 func (f *lnFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3459,7 +3462,7 @@ func (f *lnFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *lnFunc) reconcile() (SQLExpr, error) {
@@ -3467,8 +3470,8 @@ func (f *lnFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func lnEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func lnEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type locateFromBeginningFunc struct {
@@ -3480,12 +3483,12 @@ var _ SQLScalarFunctionExpr = (*locateFromBeginningFunc)(nil)
 
 // The following constants represent some properties of the locateFromBeginningFunc scalar function.
 var (
-	locateFromBeginningExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString}
-	locateFromBeginningIsVariadic     bool                     = false
-	locateFromBeginningReturnTypeFunc func([]SQLExpr) EvalType = locateFromBeginningEvalType
+	locateFromBeginningExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString}
+	locateFromBeginningIsVariadic     bool                           = false
+	locateFromBeginningReturnTypeFunc func([]SQLExpr) types.EvalType = locateFromBeginningEvalType
 )
 
-func (f *locateFromBeginningFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *locateFromBeginningFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3493,7 +3496,7 @@ func (f *locateFromBeginningFunc) Evaluate(ctx context.Context, cfg *ExecutionCo
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3525,8 +3528,8 @@ func (f *locateFromBeginningFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func locateFromBeginningEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func locateFromBeginningEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type locateFromIndexFunc struct {
@@ -3538,12 +3541,12 @@ var _ SQLScalarFunctionExpr = (*locateFromIndexFunc)(nil)
 
 // The following constants represent some properties of the locateFromIndexFunc scalar function.
 var (
-	locateFromIndexExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString, EvalInt64}
-	locateFromIndexIsVariadic     bool                     = false
-	locateFromIndexReturnTypeFunc func([]SQLExpr) EvalType = locateFromIndexEvalType
+	locateFromIndexExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString, types.EvalInt64}
+	locateFromIndexIsVariadic     bool                           = false
+	locateFromIndexReturnTypeFunc func([]SQLExpr) types.EvalType = locateFromIndexEvalType
 )
 
-func (f *locateFromIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *locateFromIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3551,7 +3554,7 @@ func (f *locateFromIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3583,8 +3586,8 @@ func (f *locateFromIndexFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func locateFromIndexEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func locateFromIndexEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type logNaturalFunc struct {
@@ -3596,12 +3599,12 @@ var _ SQLScalarFunctionExpr = (*logNaturalFunc)(nil)
 
 // The following constants represent some properties of the logNaturalFunc scalar function.
 var (
-	logNaturalExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	logNaturalIsVariadic     bool                     = false
-	logNaturalReturnTypeFunc func([]SQLExpr) EvalType = logNaturalEvalType
+	logNaturalExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	logNaturalIsVariadic     bool                           = false
+	logNaturalReturnTypeFunc func([]SQLExpr) types.EvalType = logNaturalEvalType
 )
 
-func (f *logNaturalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *logNaturalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3609,7 +3612,7 @@ func (f *logNaturalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3631,16 +3634,16 @@ func (f *logNaturalFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 
 func (f *logNaturalFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3650,7 +3653,7 @@ func (f *logNaturalFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *logNaturalFunc) reconcile() (SQLExpr, error) {
@@ -3658,8 +3661,8 @@ func (f *logNaturalFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func logNaturalEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func logNaturalEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type logWithBaseFunc struct {
@@ -3671,12 +3674,12 @@ var _ SQLScalarFunctionExpr = (*logWithBaseFunc)(nil)
 
 // The following constants represent some properties of the logWithBaseFunc scalar function.
 var (
-	logWithBaseExpectedTypes  []EvalType               = []EvalType{EvalInt64, EvalDouble}
-	logWithBaseIsVariadic     bool                     = false
-	logWithBaseReturnTypeFunc func([]SQLExpr) EvalType = logWithBaseEvalType
+	logWithBaseExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64, types.EvalDouble}
+	logWithBaseIsVariadic     bool                           = false
+	logWithBaseReturnTypeFunc func([]SQLExpr) types.EvalType = logWithBaseEvalType
 )
 
-func (f *logWithBaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *logWithBaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3684,7 +3687,7 @@ func (f *logWithBaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3706,16 +3709,16 @@ func (f *logWithBaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 
 func (f *logWithBaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3725,7 +3728,7 @@ func (f *logWithBaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *logWithBaseFunc) reconcile() (SQLExpr, error) {
@@ -3733,8 +3736,8 @@ func (f *logWithBaseFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func logWithBaseEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func logWithBaseEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type log10Func struct {
@@ -3746,12 +3749,12 @@ var _ SQLScalarFunctionExpr = (*log10Func)(nil)
 
 // The following constants represent some properties of the log10Func scalar function.
 var (
-	log10ExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	log10IsVariadic     bool                     = false
-	log10ReturnTypeFunc func([]SQLExpr) EvalType = log10EvalType
+	log10ExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	log10IsVariadic     bool                           = false
+	log10ReturnTypeFunc func([]SQLExpr) types.EvalType = log10EvalType
 )
 
-func (f *log10Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *log10Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3759,7 +3762,7 @@ func (f *log10Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3781,16 +3784,16 @@ func (f *log10Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *log10Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3800,7 +3803,7 @@ func (f *log10Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *log10Func) reconcile() (SQLExpr, error) {
@@ -3808,8 +3811,8 @@ func (f *log10Func) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func log10EvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func log10EvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type log2Func struct {
@@ -3821,12 +3824,12 @@ var _ SQLScalarFunctionExpr = (*log2Func)(nil)
 
 // The following constants represent some properties of the log2Func scalar function.
 var (
-	log2ExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	log2IsVariadic     bool                     = false
-	log2ReturnTypeFunc func([]SQLExpr) EvalType = log2EvalType
+	log2ExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	log2IsVariadic     bool                           = false
+	log2ReturnTypeFunc func([]SQLExpr) types.EvalType = log2EvalType
 )
 
-func (f *log2Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *log2Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3834,7 +3837,7 @@ func (f *log2Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3856,16 +3859,16 @@ func (f *log2Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *log2Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3875,7 +3878,7 @@ func (f *log2Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *log2Func) reconcile() (SQLExpr, error) {
@@ -3883,8 +3886,8 @@ func (f *log2Func) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func log2EvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func log2EvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type lpadFunc struct {
@@ -3896,12 +3899,12 @@ var _ SQLScalarFunctionExpr = (*lpadFunc)(nil)
 
 // The following constants represent some properties of the lpadFunc scalar function.
 var (
-	lpadExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64, EvalString}
-	lpadIsVariadic     bool                     = false
-	lpadReturnTypeFunc func([]SQLExpr) EvalType = lpadEvalType
+	lpadExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalString}
+	lpadIsVariadic     bool                           = false
+	lpadReturnTypeFunc func([]SQLExpr) types.EvalType = lpadEvalType
 )
 
-func (f *lpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *lpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3909,7 +3912,7 @@ func (f *lpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -3931,16 +3934,16 @@ func (f *lpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *lpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -3950,7 +3953,7 @@ func (f *lpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *lpadFunc) reconcile() (SQLExpr, error) {
@@ -3958,8 +3961,8 @@ func (f *lpadFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func lpadEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func lpadEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type ltrimFunc struct {
@@ -3971,12 +3974,12 @@ var _ SQLScalarFunctionExpr = (*ltrimFunc)(nil)
 
 // The following constants represent some properties of the ltrimFunc scalar function.
 var (
-	ltrimExpectedTypes  []EvalType               = []EvalType{EvalString}
-	ltrimIsVariadic     bool                     = false
-	ltrimReturnTypeFunc func([]SQLExpr) EvalType = ltrimEvalType
+	ltrimExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	ltrimIsVariadic     bool                           = false
+	ltrimReturnTypeFunc func([]SQLExpr) types.EvalType = ltrimEvalType
 )
 
-func (f *ltrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *ltrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -3984,7 +3987,7 @@ func (f *ltrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4006,16 +4009,16 @@ func (f *ltrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *ltrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4025,7 +4028,7 @@ func (f *ltrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *ltrimFunc) reconcile() (SQLExpr, error) {
@@ -4033,8 +4036,8 @@ func (f *ltrimFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func ltrimEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func ltrimEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type makeDateFunc struct {
@@ -4046,12 +4049,12 @@ var _ SQLScalarFunctionExpr = (*makeDateFunc)(nil)
 
 // The following constants represent some properties of the makeDateFunc scalar function.
 var (
-	makeDateExpectedTypes  []EvalType               = []EvalType{EvalInt64, EvalInt64}
-	makeDateIsVariadic     bool                     = false
-	makeDateReturnTypeFunc func([]SQLExpr) EvalType = makeDateEvalType
+	makeDateExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64, types.EvalInt64}
+	makeDateIsVariadic     bool                           = false
+	makeDateReturnTypeFunc func([]SQLExpr) types.EvalType = makeDateEvalType
 )
 
-func (f *makeDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *makeDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4059,7 +4062,7 @@ func (f *makeDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4081,16 +4084,16 @@ func (f *makeDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 
 func (f *makeDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4100,7 +4103,7 @@ func (f *makeDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *makeDateFunc) reconcile() (SQLExpr, error) {
@@ -4108,8 +4111,8 @@ func (f *makeDateFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func makeDateEvalType(_ []SQLExpr) EvalType {
-	return EvalDate
+func makeDateEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDate
 }
 
 type md5Func struct {
@@ -4121,12 +4124,12 @@ var _ SQLScalarFunctionExpr = (*md5Func)(nil)
 
 // The following constants represent some properties of the md5Func scalar function.
 var (
-	md5ExpectedTypes  []EvalType               = []EvalType{EvalString}
-	md5IsVariadic     bool                     = false
-	md5ReturnTypeFunc func([]SQLExpr) EvalType = md5EvalType
+	md5ExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	md5IsVariadic     bool                           = false
+	md5ReturnTypeFunc func([]SQLExpr) types.EvalType = md5EvalType
 )
 
-func (f *md5Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *md5Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4134,7 +4137,7 @@ func (f *md5Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4156,16 +4159,16 @@ func (f *md5Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *md5Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4175,7 +4178,7 @@ func (f *md5Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *md5Func) reconcile() (SQLExpr, error) {
@@ -4183,8 +4186,8 @@ func (f *md5Func) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func md5EvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func md5EvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type microsecondFunc struct {
@@ -4196,12 +4199,12 @@ var _ SQLScalarFunctionExpr = (*microsecondFunc)(nil)
 
 // The following constants represent some properties of the microsecondFunc scalar function.
 var (
-	microsecondExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	microsecondIsVariadic     bool                     = false
-	microsecondReturnTypeFunc func([]SQLExpr) EvalType = microsecondEvalType
+	microsecondExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
+	microsecondIsVariadic     bool                           = false
+	microsecondReturnTypeFunc func([]SQLExpr) types.EvalType = microsecondEvalType
 )
 
-func (f *microsecondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *microsecondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4209,7 +4212,7 @@ func (f *microsecondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4231,16 +4234,16 @@ func (f *microsecondFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 
 func (f *microsecondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4250,7 +4253,7 @@ func (f *microsecondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 // nolint: unparam
@@ -4258,8 +4261,8 @@ func (f *microsecondFunc) reconcile() (SQLExpr, error) {
 	return f, nil
 }
 
-func microsecondEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func microsecondEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type midFunc struct {
@@ -4271,12 +4274,12 @@ var _ SQLScalarFunctionExpr = (*midFunc)(nil)
 
 // The following constants represent some properties of the midFunc scalar function.
 var (
-	midExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64, EvalInt64}
-	midIsVariadic     bool                     = false
-	midReturnTypeFunc func([]SQLExpr) EvalType = midEvalType
+	midExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalInt64}
+	midIsVariadic     bool                           = false
+	midReturnTypeFunc func([]SQLExpr) types.EvalType = midEvalType
 )
 
-func (f *midFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *midFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4284,7 +4287,7 @@ func (f *midFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4306,16 +4309,16 @@ func (f *midFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *midFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4325,7 +4328,7 @@ func (f *midFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *midFunc) reconcile() (SQLExpr, error) {
@@ -4333,8 +4336,8 @@ func (f *midFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func midEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func midEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type minuteFunc struct {
@@ -4346,12 +4349,12 @@ var _ SQLScalarFunctionExpr = (*minuteFunc)(nil)
 
 // The following constants represent some properties of the minuteFunc scalar function.
 var (
-	minuteExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	minuteIsVariadic     bool                     = false
-	minuteReturnTypeFunc func([]SQLExpr) EvalType = minuteEvalType
+	minuteExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
+	minuteIsVariadic     bool                           = false
+	minuteReturnTypeFunc func([]SQLExpr) types.EvalType = minuteEvalType
 )
 
-func (f *minuteFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *minuteFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4359,7 +4362,7 @@ func (f *minuteFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4381,16 +4384,16 @@ func (f *minuteFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 
 func (f *minuteFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4400,7 +4403,7 @@ func (f *minuteFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 // nolint: unparam
@@ -4408,8 +4411,8 @@ func (f *minuteFunc) reconcile() (SQLExpr, error) {
 	return f, nil
 }
 
-func minuteEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func minuteEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type modFunc struct {
@@ -4421,12 +4424,12 @@ var _ SQLScalarFunctionExpr = (*modFunc)(nil)
 
 // The following constants represent some properties of the modFunc scalar function.
 var (
-	modExpectedTypes  []EvalType               = []EvalType{EvalDouble, EvalDouble}
-	modIsVariadic     bool                     = false
-	modReturnTypeFunc func([]SQLExpr) EvalType = modEvalType
+	modExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	modIsVariadic     bool                           = false
+	modReturnTypeFunc func([]SQLExpr) types.EvalType = modEvalType
 )
 
-func (f *modFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *modFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4434,7 +4437,7 @@ func (f *modFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4456,16 +4459,16 @@ func (f *modFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *modFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4475,7 +4478,7 @@ func (f *modFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *modFunc) reconcile() (SQLExpr, error) {
@@ -4483,8 +4486,8 @@ func (f *modFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func modEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func modEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type monthFunc struct {
@@ -4496,12 +4499,12 @@ var _ SQLScalarFunctionExpr = (*monthFunc)(nil)
 
 // The following constants represent some properties of the monthFunc scalar function.
 var (
-	monthExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	monthIsVariadic     bool                     = false
-	monthReturnTypeFunc func([]SQLExpr) EvalType = monthEvalType
+	monthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	monthIsVariadic     bool                           = false
+	monthReturnTypeFunc func([]SQLExpr) types.EvalType = monthEvalType
 )
 
-func (f *monthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *monthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4509,7 +4512,7 @@ func (f *monthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4531,16 +4534,16 @@ func (f *monthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *monthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4550,7 +4553,7 @@ func (f *monthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *monthFunc) reconcile() (SQLExpr, error) {
@@ -4558,8 +4561,8 @@ func (f *monthFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func monthEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func monthEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type monthNameFunc struct {
@@ -4571,12 +4574,12 @@ var _ SQLScalarFunctionExpr = (*monthNameFunc)(nil)
 
 // The following constants represent some properties of the monthNameFunc scalar function.
 var (
-	monthNameExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	monthNameIsVariadic     bool                     = false
-	monthNameReturnTypeFunc func([]SQLExpr) EvalType = monthNameEvalType
+	monthNameExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	monthNameIsVariadic     bool                           = false
+	monthNameReturnTypeFunc func([]SQLExpr) types.EvalType = monthNameEvalType
 )
 
-func (f *monthNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *monthNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4584,7 +4587,7 @@ func (f *monthNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4606,16 +4609,16 @@ func (f *monthNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 
 func (f *monthNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4625,7 +4628,7 @@ func (f *monthNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *monthNameFunc) reconcile() (SQLExpr, error) {
@@ -4633,8 +4636,8 @@ func (f *monthNameFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func monthNameEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func monthNameEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type nopushdownFunc struct {
@@ -4646,12 +4649,12 @@ var _ SQLScalarFunctionExpr = (*nopushdownFunc)(nil)
 
 // The following constants represent some properties of the nopushdownFunc scalar function.
 var (
-	nopushdownExpectedTypes  []EvalType               = []EvalType{EvalPolymorphic}
-	nopushdownIsVariadic     bool                     = false
-	nopushdownReturnTypeFunc func([]SQLExpr) EvalType = nopushdownEvalType
+	nopushdownExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalPolymorphic}
+	nopushdownIsVariadic     bool                           = false
+	nopushdownReturnTypeFunc func([]SQLExpr) types.EvalType = nopushdownEvalType
 )
 
-func (f *nopushdownFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *nopushdownFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4659,7 +4662,7 @@ func (f *nopushdownFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4700,12 +4703,12 @@ var _ SQLScalarFunctionExpr = (*piFunc)(nil)
 
 // The following constants represent some properties of the piFunc scalar function.
 var (
-	piExpectedTypes  []EvalType               = []EvalType{}
-	piIsVariadic     bool                     = false
-	piReturnTypeFunc func([]SQLExpr) EvalType = piEvalType
+	piExpectedTypes  []types.EvalType               = []types.EvalType{}
+	piIsVariadic     bool                           = false
+	piReturnTypeFunc func([]SQLExpr) types.EvalType = piEvalType
 )
 
-func (f *piFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *piFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4713,7 +4716,7 @@ func (f *piFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4735,16 +4738,16 @@ func (f *piFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pus
 
 func (f *piFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4754,7 +4757,7 @@ func (f *piFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *piFunc) reconcile() (SQLExpr, error) {
@@ -4762,8 +4765,8 @@ func (f *piFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func piEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func piEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type powFunc struct {
@@ -4775,12 +4778,12 @@ var _ SQLScalarFunctionExpr = (*powFunc)(nil)
 
 // The following constants represent some properties of the powFunc scalar function.
 var (
-	powExpectedTypes  []EvalType               = []EvalType{EvalDouble, EvalDouble}
-	powIsVariadic     bool                     = false
-	powReturnTypeFunc func([]SQLExpr) EvalType = powEvalType
+	powExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	powIsVariadic     bool                           = false
+	powReturnTypeFunc func([]SQLExpr) types.EvalType = powEvalType
 )
 
-func (f *powFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *powFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4788,7 +4791,7 @@ func (f *powFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4810,16 +4813,16 @@ func (f *powFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *powFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4829,7 +4832,7 @@ func (f *powFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *powFunc) reconcile() (SQLExpr, error) {
@@ -4837,8 +4840,8 @@ func (f *powFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func powEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func powEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type quarterFunc struct {
@@ -4850,12 +4853,12 @@ var _ SQLScalarFunctionExpr = (*quarterFunc)(nil)
 
 // The following constants represent some properties of the quarterFunc scalar function.
 var (
-	quarterExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	quarterIsVariadic     bool                     = false
-	quarterReturnTypeFunc func([]SQLExpr) EvalType = quarterEvalType
+	quarterExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	quarterIsVariadic     bool                           = false
+	quarterReturnTypeFunc func([]SQLExpr) types.EvalType = quarterEvalType
 )
 
-func (f *quarterFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *quarterFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4863,7 +4866,7 @@ func (f *quarterFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4885,16 +4888,16 @@ func (f *quarterFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *quarterFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4904,7 +4907,7 @@ func (f *quarterFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *quarterFunc) reconcile() (SQLExpr, error) {
@@ -4912,8 +4915,8 @@ func (f *quarterFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func quarterEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func quarterEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type radiansFunc struct {
@@ -4925,12 +4928,12 @@ var _ SQLScalarFunctionExpr = (*radiansFunc)(nil)
 
 // The following constants represent some properties of the radiansFunc scalar function.
 var (
-	radiansExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	radiansIsVariadic     bool                     = false
-	radiansReturnTypeFunc func([]SQLExpr) EvalType = radiansEvalType
+	radiansExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	radiansIsVariadic     bool                           = false
+	radiansReturnTypeFunc func([]SQLExpr) types.EvalType = radiansEvalType
 )
 
-func (f *radiansFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *radiansFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -4938,7 +4941,7 @@ func (f *radiansFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -4960,16 +4963,16 @@ func (f *radiansFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *radiansFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -4979,7 +4982,7 @@ func (f *radiansFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *radiansFunc) reconcile() (SQLExpr, error) {
@@ -4987,8 +4990,8 @@ func (f *radiansFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func radiansEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func radiansEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type randNoSeedFunc struct {
@@ -5000,12 +5003,12 @@ var _ SQLScalarFunctionExpr = (*randNoSeedFunc)(nil)
 
 // The following constants represent some properties of the randNoSeedFunc scalar function.
 var (
-	randNoSeedExpectedTypes  []EvalType               = []EvalType{EvalInt64}
-	randNoSeedIsVariadic     bool                     = false
-	randNoSeedReturnTypeFunc func([]SQLExpr) EvalType = randNoSeedEvalType
+	randNoSeedExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64}
+	randNoSeedIsVariadic     bool                           = false
+	randNoSeedReturnTypeFunc func([]SQLExpr) types.EvalType = randNoSeedEvalType
 )
 
-func (f *randNoSeedFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *randNoSeedFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5013,7 +5016,7 @@ func (f *randNoSeedFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5045,8 +5048,8 @@ func (f *randNoSeedFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func randNoSeedEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func randNoSeedEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type randSeededFunc struct {
@@ -5058,12 +5061,12 @@ var _ SQLScalarFunctionExpr = (*randSeededFunc)(nil)
 
 // The following constants represent some properties of the randSeededFunc scalar function.
 var (
-	randSeededExpectedTypes  []EvalType               = []EvalType{EvalInt64, EvalInt64}
-	randSeededIsVariadic     bool                     = false
-	randSeededReturnTypeFunc func([]SQLExpr) EvalType = randSeededEvalType
+	randSeededExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64, types.EvalInt64}
+	randSeededIsVariadic     bool                           = false
+	randSeededReturnTypeFunc func([]SQLExpr) types.EvalType = randSeededEvalType
 )
 
-func (f *randSeededFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *randSeededFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5071,7 +5074,7 @@ func (f *randSeededFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5103,8 +5106,8 @@ func (f *randSeededFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func randSeededEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func randSeededEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type repeatFunc struct {
@@ -5116,12 +5119,12 @@ var _ SQLScalarFunctionExpr = (*repeatFunc)(nil)
 
 // The following constants represent some properties of the repeatFunc scalar function.
 var (
-	repeatExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64}
-	repeatIsVariadic     bool                     = false
-	repeatReturnTypeFunc func([]SQLExpr) EvalType = repeatEvalType
+	repeatExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64}
+	repeatIsVariadic     bool                           = false
+	repeatReturnTypeFunc func([]SQLExpr) types.EvalType = repeatEvalType
 )
 
-func (f *repeatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *repeatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5129,7 +5132,7 @@ func (f *repeatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5151,16 +5154,16 @@ func (f *repeatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 
 func (f *repeatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5170,7 +5173,7 @@ func (f *repeatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *repeatFunc) reconcile() (SQLExpr, error) {
@@ -5178,8 +5181,8 @@ func (f *repeatFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func repeatEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func repeatEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type replaceFunc struct {
@@ -5191,12 +5194,12 @@ var _ SQLScalarFunctionExpr = (*replaceFunc)(nil)
 
 // The following constants represent some properties of the replaceFunc scalar function.
 var (
-	replaceExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString, EvalString}
-	replaceIsVariadic     bool                     = false
-	replaceReturnTypeFunc func([]SQLExpr) EvalType = replaceEvalType
+	replaceExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString, types.EvalString}
+	replaceIsVariadic     bool                           = false
+	replaceReturnTypeFunc func([]SQLExpr) types.EvalType = replaceEvalType
 )
 
-func (f *replaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *replaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5204,7 +5207,7 @@ func (f *replaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5226,16 +5229,16 @@ func (f *replaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *replaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5245,7 +5248,7 @@ func (f *replaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *replaceFunc) reconcile() (SQLExpr, error) {
@@ -5253,8 +5256,8 @@ func (f *replaceFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func replaceEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func replaceEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type reverseFunc struct {
@@ -5266,12 +5269,12 @@ var _ SQLScalarFunctionExpr = (*reverseFunc)(nil)
 
 // The following constants represent some properties of the reverseFunc scalar function.
 var (
-	reverseExpectedTypes  []EvalType               = []EvalType{EvalString}
-	reverseIsVariadic     bool                     = false
-	reverseReturnTypeFunc func([]SQLExpr) EvalType = reverseEvalType
+	reverseExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	reverseIsVariadic     bool                           = false
+	reverseReturnTypeFunc func([]SQLExpr) types.EvalType = reverseEvalType
 )
 
-func (f *reverseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *reverseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5279,7 +5282,7 @@ func (f *reverseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5301,16 +5304,16 @@ func (f *reverseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *reverseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5320,7 +5323,7 @@ func (f *reverseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *reverseFunc) reconcile() (SQLExpr, error) {
@@ -5328,8 +5331,8 @@ func (f *reverseFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func reverseEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func reverseEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type rightFunc struct {
@@ -5341,12 +5344,12 @@ var _ SQLScalarFunctionExpr = (*rightFunc)(nil)
 
 // The following constants represent some properties of the rightFunc scalar function.
 var (
-	rightExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64}
-	rightIsVariadic     bool                     = false
-	rightReturnTypeFunc func([]SQLExpr) EvalType = rightEvalType
+	rightExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64}
+	rightIsVariadic     bool                           = false
+	rightReturnTypeFunc func([]SQLExpr) types.EvalType = rightEvalType
 )
 
-func (f *rightFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *rightFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5354,7 +5357,7 @@ func (f *rightFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5376,16 +5379,16 @@ func (f *rightFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *rightFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5395,7 +5398,7 @@ func (f *rightFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *rightFunc) reconcile() (SQLExpr, error) {
@@ -5403,8 +5406,8 @@ func (f *rightFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func rightEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func rightEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type roundWithDecimalPlacesFunc struct {
@@ -5416,12 +5419,12 @@ var _ SQLScalarFunctionExpr = (*roundWithDecimalPlacesFunc)(nil)
 
 // The following constants represent some properties of the roundWithDecimalPlacesFunc scalar function.
 var (
-	roundWithDecimalPlacesExpectedTypes  []EvalType               = []EvalType{EvalDecimal128, EvalInt64}
-	roundWithDecimalPlacesIsVariadic     bool                     = false
-	roundWithDecimalPlacesReturnTypeFunc func([]SQLExpr) EvalType = roundWithDecimalPlacesEvalType
+	roundWithDecimalPlacesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128, types.EvalInt64}
+	roundWithDecimalPlacesIsVariadic     bool                           = false
+	roundWithDecimalPlacesReturnTypeFunc func([]SQLExpr) types.EvalType = roundWithDecimalPlacesEvalType
 )
 
-func (f *roundWithDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *roundWithDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5429,7 +5432,7 @@ func (f *roundWithDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *Executio
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5451,16 +5454,16 @@ func (f *roundWithDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTranslato
 
 func (f *roundWithDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5470,7 +5473,7 @@ func (f *roundWithDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *roundWithDecimalPlacesFunc) reconcile() (SQLExpr, error) {
@@ -5478,8 +5481,8 @@ func (f *roundWithDecimalPlacesFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func roundWithDecimalPlacesEvalType(_ []SQLExpr) EvalType {
-	return EvalDecimal128
+func roundWithDecimalPlacesEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDecimal128
 }
 
 type roundToZeroDecimalPlacesFunc struct {
@@ -5491,12 +5494,12 @@ var _ SQLScalarFunctionExpr = (*roundToZeroDecimalPlacesFunc)(nil)
 
 // The following constants represent some properties of the roundToZeroDecimalPlacesFunc scalar function.
 var (
-	roundToZeroDecimalPlacesExpectedTypes  []EvalType               = []EvalType{EvalDecimal128}
-	roundToZeroDecimalPlacesIsVariadic     bool                     = false
-	roundToZeroDecimalPlacesReturnTypeFunc func([]SQLExpr) EvalType = roundToZeroDecimalPlacesEvalType
+	roundToZeroDecimalPlacesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128}
+	roundToZeroDecimalPlacesIsVariadic     bool                           = false
+	roundToZeroDecimalPlacesReturnTypeFunc func([]SQLExpr) types.EvalType = roundToZeroDecimalPlacesEvalType
 )
 
-func (f *roundToZeroDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *roundToZeroDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5504,7 +5507,7 @@ func (f *roundToZeroDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5526,16 +5529,16 @@ func (f *roundToZeroDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTransla
 
 func (f *roundToZeroDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5545,7 +5548,7 @@ func (f *roundToZeroDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLEx
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *roundToZeroDecimalPlacesFunc) reconcile() (SQLExpr, error) {
@@ -5553,8 +5556,8 @@ func (f *roundToZeroDecimalPlacesFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func roundToZeroDecimalPlacesEvalType(_ []SQLExpr) EvalType {
-	return EvalDecimal128
+func roundToZeroDecimalPlacesEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDecimal128
 }
 
 type rpadFunc struct {
@@ -5566,12 +5569,12 @@ var _ SQLScalarFunctionExpr = (*rpadFunc)(nil)
 
 // The following constants represent some properties of the rpadFunc scalar function.
 var (
-	rpadExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64, EvalString}
-	rpadIsVariadic     bool                     = false
-	rpadReturnTypeFunc func([]SQLExpr) EvalType = rpadEvalType
+	rpadExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalString}
+	rpadIsVariadic     bool                           = false
+	rpadReturnTypeFunc func([]SQLExpr) types.EvalType = rpadEvalType
 )
 
-func (f *rpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *rpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5579,7 +5582,7 @@ func (f *rpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5601,16 +5604,16 @@ func (f *rpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *rpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5620,7 +5623,7 @@ func (f *rpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *rpadFunc) reconcile() (SQLExpr, error) {
@@ -5628,8 +5631,8 @@ func (f *rpadFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func rpadEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func rpadEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type rtrimFunc struct {
@@ -5641,12 +5644,12 @@ var _ SQLScalarFunctionExpr = (*rtrimFunc)(nil)
 
 // The following constants represent some properties of the rtrimFunc scalar function.
 var (
-	rtrimExpectedTypes  []EvalType               = []EvalType{EvalString}
-	rtrimIsVariadic     bool                     = false
-	rtrimReturnTypeFunc func([]SQLExpr) EvalType = rtrimEvalType
+	rtrimExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	rtrimIsVariadic     bool                           = false
+	rtrimReturnTypeFunc func([]SQLExpr) types.EvalType = rtrimEvalType
 )
 
-func (f *rtrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *rtrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5654,7 +5657,7 @@ func (f *rtrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5676,16 +5679,16 @@ func (f *rtrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *rtrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5695,7 +5698,7 @@ func (f *rtrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *rtrimFunc) reconcile() (SQLExpr, error) {
@@ -5703,8 +5706,8 @@ func (f *rtrimFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func rtrimEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func rtrimEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type secondFunc struct {
@@ -5716,12 +5719,12 @@ var _ SQLScalarFunctionExpr = (*secondFunc)(nil)
 
 // The following constants represent some properties of the secondFunc scalar function.
 var (
-	secondExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	secondIsVariadic     bool                     = false
-	secondReturnTypeFunc func([]SQLExpr) EvalType = secondEvalType
+	secondExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
+	secondIsVariadic     bool                           = false
+	secondReturnTypeFunc func([]SQLExpr) types.EvalType = secondEvalType
 )
 
-func (f *secondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *secondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5729,7 +5732,7 @@ func (f *secondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5751,16 +5754,16 @@ func (f *secondFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 
 func (f *secondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5770,7 +5773,7 @@ func (f *secondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 // nolint: unparam
@@ -5778,8 +5781,8 @@ func (f *secondFunc) reconcile() (SQLExpr, error) {
 	return f, nil
 }
 
-func secondEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func secondEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type signFunc struct {
@@ -5791,12 +5794,12 @@ var _ SQLScalarFunctionExpr = (*signFunc)(nil)
 
 // The following constants represent some properties of the signFunc scalar function.
 var (
-	signExpectedTypes  []EvalType               = []EvalType{EvalDecimal128}
-	signIsVariadic     bool                     = false
-	signReturnTypeFunc func([]SQLExpr) EvalType = signEvalType
+	signExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128}
+	signIsVariadic     bool                           = false
+	signReturnTypeFunc func([]SQLExpr) types.EvalType = signEvalType
 )
 
-func (f *signFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *signFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5804,7 +5807,7 @@ func (f *signFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5826,16 +5829,16 @@ func (f *signFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *signFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5845,7 +5848,7 @@ func (f *signFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *signFunc) reconcile() (SQLExpr, error) {
@@ -5853,8 +5856,8 @@ func (f *signFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func signEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func signEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type sinFunc struct {
@@ -5866,12 +5869,12 @@ var _ SQLScalarFunctionExpr = (*sinFunc)(nil)
 
 // The following constants represent some properties of the sinFunc scalar function.
 var (
-	sinExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	sinIsVariadic     bool                     = false
-	sinReturnTypeFunc func([]SQLExpr) EvalType = sinEvalType
+	sinExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	sinIsVariadic     bool                           = false
+	sinReturnTypeFunc func([]SQLExpr) types.EvalType = sinEvalType
 )
 
-func (f *sinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *sinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5879,7 +5882,7 @@ func (f *sinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5901,16 +5904,16 @@ func (f *sinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *sinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -5920,7 +5923,7 @@ func (f *sinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *sinFunc) reconcile() (SQLExpr, error) {
@@ -5928,8 +5931,8 @@ func (f *sinFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func sinEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func sinEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type sleepFunc struct {
@@ -5941,12 +5944,12 @@ var _ SQLScalarFunctionExpr = (*sleepFunc)(nil)
 
 // The following constants represent some properties of the sleepFunc scalar function.
 var (
-	sleepExpectedTypes  []EvalType               = []EvalType{EvalDecimal128}
-	sleepIsVariadic     bool                     = false
-	sleepReturnTypeFunc func([]SQLExpr) EvalType = sleepEvalType
+	sleepExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128}
+	sleepIsVariadic     bool                           = false
+	sleepReturnTypeFunc func([]SQLExpr) types.EvalType = sleepEvalType
 )
 
-func (f *sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -5954,7 +5957,7 @@ func (f *sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -5975,15 +5978,15 @@ func (f *sleepFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 }
 
 func (f *sleepFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -5993,8 +5996,8 @@ func (f *sleepFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func sleepEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func sleepEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type spaceFunc struct {
@@ -6006,12 +6009,12 @@ var _ SQLScalarFunctionExpr = (*spaceFunc)(nil)
 
 // The following constants represent some properties of the spaceFunc scalar function.
 var (
-	spaceExpectedTypes  []EvalType               = []EvalType{EvalInt64}
-	spaceIsVariadic     bool                     = false
-	spaceReturnTypeFunc func([]SQLExpr) EvalType = spaceEvalType
+	spaceExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64}
+	spaceIsVariadic     bool                           = false
+	spaceReturnTypeFunc func([]SQLExpr) types.EvalType = spaceEvalType
 )
 
-func (f *spaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *spaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6019,7 +6022,7 @@ func (f *spaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6041,16 +6044,16 @@ func (f *spaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *spaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6060,7 +6063,7 @@ func (f *spaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *spaceFunc) reconcile() (SQLExpr, error) {
@@ -6068,8 +6071,8 @@ func (f *spaceFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func spaceEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func spaceEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type sqrtFunc struct {
@@ -6081,12 +6084,12 @@ var _ SQLScalarFunctionExpr = (*sqrtFunc)(nil)
 
 // The following constants represent some properties of the sqrtFunc scalar function.
 var (
-	sqrtExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	sqrtIsVariadic     bool                     = false
-	sqrtReturnTypeFunc func([]SQLExpr) EvalType = sqrtEvalType
+	sqrtExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	sqrtIsVariadic     bool                           = false
+	sqrtReturnTypeFunc func([]SQLExpr) types.EvalType = sqrtEvalType
 )
 
-func (f *sqrtFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *sqrtFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6094,7 +6097,7 @@ func (f *sqrtFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6116,16 +6119,16 @@ func (f *sqrtFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *sqrtFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6135,7 +6138,7 @@ func (f *sqrtFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *sqrtFunc) reconcile() (SQLExpr, error) {
@@ -6143,8 +6146,8 @@ func (f *sqrtFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func sqrtEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func sqrtEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type strToDateFunc struct {
@@ -6156,12 +6159,12 @@ var _ SQLScalarFunctionExpr = (*strToDateFunc)(nil)
 
 // The following constants represent some properties of the strToDateFunc scalar function.
 var (
-	strToDateExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString}
-	strToDateIsVariadic     bool                     = false
-	strToDateReturnTypeFunc func([]SQLExpr) EvalType = strToDateEvalType
+	strToDateExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString}
+	strToDateIsVariadic     bool                           = false
+	strToDateReturnTypeFunc func([]SQLExpr) types.EvalType = strToDateEvalType
 )
 
-func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6169,7 +6172,7 @@ func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6191,16 +6194,16 @@ func (f *strToDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 
 func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6210,7 +6213,7 @@ func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *strToDateFunc) reconcile() (SQLExpr, error) {
@@ -6218,8 +6221,8 @@ func (f *strToDateFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func strToDateEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func strToDateEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type substringFromFunc struct {
@@ -6231,12 +6234,12 @@ var _ SQLScalarFunctionExpr = (*substringFromFunc)(nil)
 
 // The following constants represent some properties of the substringFromFunc scalar function.
 var (
-	substringFromExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64}
-	substringFromIsVariadic     bool                     = false
-	substringFromReturnTypeFunc func([]SQLExpr) EvalType = substringFromEvalType
+	substringFromExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64}
+	substringFromIsVariadic     bool                           = false
+	substringFromReturnTypeFunc func([]SQLExpr) types.EvalType = substringFromEvalType
 )
 
-func (f *substringFromFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *substringFromFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6244,7 +6247,7 @@ func (f *substringFromFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6266,16 +6269,16 @@ func (f *substringFromFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 
 func (f *substringFromFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6285,7 +6288,7 @@ func (f *substringFromFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *substringFromFunc) reconcile() (SQLExpr, error) {
@@ -6293,8 +6296,8 @@ func (f *substringFromFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func substringFromEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func substringFromEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type substringFromForFunc struct {
@@ -6306,12 +6309,12 @@ var _ SQLScalarFunctionExpr = (*substringFromForFunc)(nil)
 
 // The following constants represent some properties of the substringFromForFunc scalar function.
 var (
-	substringFromForExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64, EvalInt64}
-	substringFromForIsVariadic     bool                     = false
-	substringFromForReturnTypeFunc func([]SQLExpr) EvalType = substringFromForEvalType
+	substringFromForExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalInt64}
+	substringFromForIsVariadic     bool                           = false
+	substringFromForReturnTypeFunc func([]SQLExpr) types.EvalType = substringFromForEvalType
 )
 
-func (f *substringFromForFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *substringFromForFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6319,7 +6322,7 @@ func (f *substringFromForFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6341,16 +6344,16 @@ func (f *substringFromForFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 
 func (f *substringFromForFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6360,7 +6363,7 @@ func (f *substringFromForFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *substringFromForFunc) reconcile() (SQLExpr, error) {
@@ -6368,8 +6371,8 @@ func (f *substringFromForFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func substringFromForEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func substringFromForEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type substringIndexFunc struct {
@@ -6381,12 +6384,12 @@ var _ SQLScalarFunctionExpr = (*substringIndexFunc)(nil)
 
 // The following constants represent some properties of the substringIndexFunc scalar function.
 var (
-	substringIndexExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString, EvalInt64}
-	substringIndexIsVariadic     bool                     = false
-	substringIndexReturnTypeFunc func([]SQLExpr) EvalType = substringIndexEvalType
+	substringIndexExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString, types.EvalInt64}
+	substringIndexIsVariadic     bool                           = false
+	substringIndexReturnTypeFunc func([]SQLExpr) types.EvalType = substringIndexEvalType
 )
 
-func (f *substringIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *substringIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6394,7 +6397,7 @@ func (f *substringIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6426,8 +6429,8 @@ func (f *substringIndexFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func substringIndexEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func substringIndexEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type tanFunc struct {
@@ -6439,12 +6442,12 @@ var _ SQLScalarFunctionExpr = (*tanFunc)(nil)
 
 // The following constants represent some properties of the tanFunc scalar function.
 var (
-	tanExpectedTypes  []EvalType               = []EvalType{EvalDouble}
-	tanIsVariadic     bool                     = false
-	tanReturnTypeFunc func([]SQLExpr) EvalType = tanEvalType
+	tanExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	tanIsVariadic     bool                           = false
+	tanReturnTypeFunc func([]SQLExpr) types.EvalType = tanEvalType
 )
 
-func (f *tanFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *tanFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6452,7 +6455,7 @@ func (f *tanFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6474,16 +6477,16 @@ func (f *tanFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 
 func (f *tanFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6493,7 +6496,7 @@ func (f *tanFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *tanFunc) reconcile() (SQLExpr, error) {
@@ -6501,8 +6504,8 @@ func (f *tanFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func tanEvalType(_ []SQLExpr) EvalType {
-	return EvalDouble
+func tanEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDouble
 }
 
 type timeDiffFunc struct {
@@ -6514,12 +6517,12 @@ var _ SQLScalarFunctionExpr = (*timeDiffFunc)(nil)
 
 // The following constants represent some properties of the timeDiffFunc scalar function.
 var (
-	timeDiffExpectedTypes  []EvalType               = []EvalType{EvalDatetime, EvalDatetime}
-	timeDiffIsVariadic     bool                     = false
-	timeDiffReturnTypeFunc func([]SQLExpr) EvalType = timeDiffEvalType
+	timeDiffExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalDatetime}
+	timeDiffIsVariadic     bool                           = false
+	timeDiffReturnTypeFunc func([]SQLExpr) types.EvalType = timeDiffEvalType
 )
 
-func (f *timeDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *timeDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6527,7 +6530,7 @@ func (f *timeDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6549,16 +6552,16 @@ func (f *timeDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 
 func (f *timeDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6568,7 +6571,7 @@ func (f *timeDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *timeDiffFunc) reconcile() (SQLExpr, error) {
@@ -6576,8 +6579,8 @@ func (f *timeDiffFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func timeDiffEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func timeDiffEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type timeToSecFunc struct {
@@ -6589,12 +6592,12 @@ var _ SQLScalarFunctionExpr = (*timeToSecFunc)(nil)
 
 // The following constants represent some properties of the timeToSecFunc scalar function.
 var (
-	timeToSecExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	timeToSecIsVariadic     bool                     = false
-	timeToSecReturnTypeFunc func([]SQLExpr) EvalType = timeToSecEvalType
+	timeToSecExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
+	timeToSecIsVariadic     bool                           = false
+	timeToSecReturnTypeFunc func([]SQLExpr) types.EvalType = timeToSecEvalType
 )
 
-func (f *timeToSecFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *timeToSecFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6602,7 +6605,7 @@ func (f *timeToSecFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6624,16 +6627,16 @@ func (f *timeToSecFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 
 func (f *timeToSecFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6643,7 +6646,7 @@ func (f *timeToSecFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 // nolint: unparam
@@ -6651,8 +6654,8 @@ func (f *timeToSecFunc) reconcile() (SQLExpr, error) {
 	return f, nil
 }
 
-func timeToSecEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func timeToSecEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type timestampAddTimeFunc struct {
@@ -6664,12 +6667,12 @@ var _ SQLScalarFunctionExpr = (*timestampAddTimeFunc)(nil)
 
 // The following constants represent some properties of the timestampAddTimeFunc scalar function.
 var (
-	timestampAddTimeExpectedTypes  []EvalType               = []EvalType{EvalDatetime, EvalDatetime}
-	timestampAddTimeIsVariadic     bool                     = false
-	timestampAddTimeReturnTypeFunc func([]SQLExpr) EvalType = timestampAddTimeEvalType
+	timestampAddTimeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalDatetime}
+	timestampAddTimeIsVariadic     bool                           = false
+	timestampAddTimeReturnTypeFunc func([]SQLExpr) types.EvalType = timestampAddTimeEvalType
 )
 
-func (f *timestampAddTimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *timestampAddTimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6677,7 +6680,7 @@ func (f *timestampAddTimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6699,16 +6702,16 @@ func (f *timestampAddTimeFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 
 func (f *timestampAddTimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6718,7 +6721,7 @@ func (f *timestampAddTimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 // nolint: unparam
@@ -6726,8 +6729,8 @@ func (f *timestampAddTimeFunc) reconcile() (SQLExpr, error) {
 	return f, nil
 }
 
-func timestampAddTimeEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func timestampAddTimeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type timestampAddFunc struct {
@@ -6739,12 +6742,12 @@ var _ SQLScalarFunctionExpr = (*timestampAddFunc)(nil)
 
 // The following constants represent some properties of the timestampAddFunc scalar function.
 var (
-	timestampAddExpectedTypes  []EvalType               = []EvalType{EvalString, EvalInt64, EvalDatetime}
-	timestampAddIsVariadic     bool                     = false
-	timestampAddReturnTypeFunc func([]SQLExpr) EvalType = timestampAddEvalType
+	timestampAddExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalDatetime}
+	timestampAddIsVariadic     bool                           = false
+	timestampAddReturnTypeFunc func([]SQLExpr) types.EvalType = timestampAddEvalType
 )
 
-func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6752,7 +6755,7 @@ func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6774,16 +6777,16 @@ func (f *timestampAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 
 func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6793,7 +6796,7 @@ func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *timestampAddFunc) reconcile() (SQLExpr, error) {
@@ -6801,8 +6804,8 @@ func (f *timestampAddFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func timestampAddEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func timestampAddEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type timestampDiffFunc struct {
@@ -6814,12 +6817,12 @@ var _ SQLScalarFunctionExpr = (*timestampDiffFunc)(nil)
 
 // The following constants represent some properties of the timestampDiffFunc scalar function.
 var (
-	timestampDiffExpectedTypes  []EvalType               = []EvalType{EvalString, EvalDatetime, EvalDatetime}
-	timestampDiffIsVariadic     bool                     = false
-	timestampDiffReturnTypeFunc func([]SQLExpr) EvalType = timestampDiffEvalType
+	timestampDiffExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalDatetime, types.EvalDatetime}
+	timestampDiffIsVariadic     bool                           = false
+	timestampDiffReturnTypeFunc func([]SQLExpr) types.EvalType = timestampDiffEvalType
 )
 
-func (f *timestampDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *timestampDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6827,7 +6830,7 @@ func (f *timestampDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6849,16 +6852,16 @@ func (f *timestampDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 
 func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6868,7 +6871,7 @@ func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *timestampDiffFunc) reconcile() (SQLExpr, error) {
@@ -6876,8 +6879,8 @@ func (f *timestampDiffFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func timestampDiffEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func timestampDiffEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type toDaysFunc struct {
@@ -6889,12 +6892,12 @@ var _ SQLScalarFunctionExpr = (*toDaysFunc)(nil)
 
 // The following constants represent some properties of the toDaysFunc scalar function.
 var (
-	toDaysExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	toDaysIsVariadic     bool                     = false
-	toDaysReturnTypeFunc func([]SQLExpr) EvalType = toDaysEvalType
+	toDaysExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	toDaysIsVariadic     bool                           = false
+	toDaysReturnTypeFunc func([]SQLExpr) types.EvalType = toDaysEvalType
 )
 
-func (f *toDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *toDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6902,7 +6905,7 @@ func (f *toDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6924,16 +6927,16 @@ func (f *toDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 
 func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -6943,7 +6946,7 @@ func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *toDaysFunc) reconcile() (SQLExpr, error) {
@@ -6951,8 +6954,8 @@ func (f *toDaysFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func toDaysEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func toDaysEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type toSecondsFunc struct {
@@ -6964,12 +6967,12 @@ var _ SQLScalarFunctionExpr = (*toSecondsFunc)(nil)
 
 // The following constants represent some properties of the toSecondsFunc scalar function.
 var (
-	toSecondsExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	toSecondsIsVariadic     bool                     = false
-	toSecondsReturnTypeFunc func([]SQLExpr) EvalType = toSecondsEvalType
+	toSecondsExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
+	toSecondsIsVariadic     bool                           = false
+	toSecondsReturnTypeFunc func([]SQLExpr) types.EvalType = toSecondsEvalType
 )
 
-func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -6977,7 +6980,7 @@ func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -6999,16 +7002,16 @@ func (f *toSecondsFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 
 func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7018,7 +7021,7 @@ func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *toSecondsFunc) reconcile() (SQLExpr, error) {
@@ -7026,8 +7029,8 @@ func (f *toSecondsFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func toSecondsEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func toSecondsEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type trimSpacesFunc struct {
@@ -7039,12 +7042,12 @@ var _ SQLScalarFunctionExpr = (*trimSpacesFunc)(nil)
 
 // The following constants represent some properties of the trimSpacesFunc scalar function.
 var (
-	trimSpacesExpectedTypes  []EvalType               = []EvalType{EvalString}
-	trimSpacesIsVariadic     bool                     = false
-	trimSpacesReturnTypeFunc func([]SQLExpr) EvalType = trimSpacesEvalType
+	trimSpacesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	trimSpacesIsVariadic     bool                           = false
+	trimSpacesReturnTypeFunc func([]SQLExpr) types.EvalType = trimSpacesEvalType
 )
 
-func (f *trimSpacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *trimSpacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7052,7 +7055,7 @@ func (f *trimSpacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7074,16 +7077,16 @@ func (f *trimSpacesFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 
 func (f *trimSpacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7093,7 +7096,7 @@ func (f *trimSpacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *trimSpacesFunc) reconcile() (SQLExpr, error) {
@@ -7101,8 +7104,8 @@ func (f *trimSpacesFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func trimSpacesEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func trimSpacesEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type trimStringFunc struct {
@@ -7114,12 +7117,12 @@ var _ SQLScalarFunctionExpr = (*trimStringFunc)(nil)
 
 // The following constants represent some properties of the trimStringFunc scalar function.
 var (
-	trimStringExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString, EvalString}
-	trimStringIsVariadic     bool                     = false
-	trimStringReturnTypeFunc func([]SQLExpr) EvalType = trimStringEvalType
+	trimStringExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString, types.EvalString}
+	trimStringIsVariadic     bool                           = false
+	trimStringReturnTypeFunc func([]SQLExpr) types.EvalType = trimStringEvalType
 )
 
-func (f *trimStringFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *trimStringFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7127,7 +7130,7 @@ func (f *trimStringFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7149,16 +7152,16 @@ func (f *trimStringFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 
 func (f *trimStringFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7168,7 +7171,7 @@ func (f *trimStringFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *trimStringFunc) reconcile() (SQLExpr, error) {
@@ -7176,8 +7179,8 @@ func (f *trimStringFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func trimStringEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func trimStringEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type trimStringFromSideFunc struct {
@@ -7189,12 +7192,12 @@ var _ SQLScalarFunctionExpr = (*trimStringFromSideFunc)(nil)
 
 // The following constants represent some properties of the trimStringFromSideFunc scalar function.
 var (
-	trimStringFromSideExpectedTypes  []EvalType               = []EvalType{EvalString, EvalString, EvalString, EvalString}
-	trimStringFromSideIsVariadic     bool                     = false
-	trimStringFromSideReturnTypeFunc func([]SQLExpr) EvalType = trimStringFromSideEvalType
+	trimStringFromSideExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalString, types.EvalString, types.EvalString}
+	trimStringFromSideIsVariadic     bool                           = false
+	trimStringFromSideReturnTypeFunc func([]SQLExpr) types.EvalType = trimStringFromSideEvalType
 )
 
-func (f *trimStringFromSideFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *trimStringFromSideFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7202,7 +7205,7 @@ func (f *trimStringFromSideFunc) Evaluate(ctx context.Context, cfg *ExecutionCon
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7224,16 +7227,16 @@ func (f *trimStringFromSideFunc) ToAggregationPredicate(t *PushdownTranslator) (
 
 func (f *trimStringFromSideFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7243,7 +7246,7 @@ func (f *trimStringFromSideFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *trimStringFromSideFunc) reconcile() (SQLExpr, error) {
@@ -7251,8 +7254,8 @@ func (f *trimStringFromSideFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func trimStringFromSideEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func trimStringFromSideEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type truncateFunc struct {
@@ -7264,12 +7267,12 @@ var _ SQLScalarFunctionExpr = (*truncateFunc)(nil)
 
 // The following constants represent some properties of the truncateFunc scalar function.
 var (
-	truncateExpectedTypes  []EvalType               = []EvalType{EvalDecimal128, EvalInt64}
-	truncateIsVariadic     bool                     = false
-	truncateReturnTypeFunc func([]SQLExpr) EvalType = truncateEvalType
+	truncateExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128, types.EvalInt64}
+	truncateIsVariadic     bool                           = false
+	truncateReturnTypeFunc func([]SQLExpr) types.EvalType = truncateEvalType
 )
 
-func (f *truncateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *truncateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7277,7 +7280,7 @@ func (f *truncateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7299,16 +7302,16 @@ func (f *truncateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 
 func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7318,7 +7321,7 @@ func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *truncateFunc) reconcile() (SQLExpr, error) {
@@ -7326,8 +7329,8 @@ func (f *truncateFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func truncateEvalType(_ []SQLExpr) EvalType {
-	return EvalDecimal128
+func truncateEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDecimal128
 }
 
 type ucaseFunc struct {
@@ -7339,12 +7342,12 @@ var _ SQLScalarFunctionExpr = (*ucaseFunc)(nil)
 
 // The following constants represent some properties of the ucaseFunc scalar function.
 var (
-	ucaseExpectedTypes  []EvalType               = []EvalType{EvalString}
-	ucaseIsVariadic     bool                     = false
-	ucaseReturnTypeFunc func([]SQLExpr) EvalType = ucaseEvalType
+	ucaseExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString}
+	ucaseIsVariadic     bool                           = false
+	ucaseReturnTypeFunc func([]SQLExpr) types.EvalType = ucaseEvalType
 )
 
-func (f *ucaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *ucaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7352,7 +7355,7 @@ func (f *ucaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7374,16 +7377,16 @@ func (f *ucaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 
 func (f *ucaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7393,7 +7396,7 @@ func (f *ucaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *ucaseFunc) reconcile() (SQLExpr, error) {
@@ -7401,8 +7404,8 @@ func (f *ucaseFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func ucaseEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func ucaseEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type unixTimestampZeroFunc struct {
@@ -7414,12 +7417,12 @@ var _ SQLScalarFunctionExpr = (*unixTimestampZeroFunc)(nil)
 
 // The following constants represent some properties of the unixTimestampZeroFunc scalar function.
 var (
-	unixTimestampZeroExpectedTypes  []EvalType               = []EvalType{}
-	unixTimestampZeroIsVariadic     bool                     = false
-	unixTimestampZeroReturnTypeFunc func([]SQLExpr) EvalType = unixTimestampZeroEvalType
+	unixTimestampZeroExpectedTypes  []types.EvalType               = []types.EvalType{}
+	unixTimestampZeroIsVariadic     bool                           = false
+	unixTimestampZeroReturnTypeFunc func([]SQLExpr) types.EvalType = unixTimestampZeroEvalType
 )
 
-func (f *unixTimestampZeroFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *unixTimestampZeroFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7427,7 +7430,7 @@ func (f *unixTimestampZeroFunc) Evaluate(ctx context.Context, cfg *ExecutionConf
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7449,16 +7452,16 @@ func (f *unixTimestampZeroFunc) ToAggregationPredicate(t *PushdownTranslator) (i
 
 func (f *unixTimestampZeroFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7468,7 +7471,7 @@ func (f *unixTimestampZeroFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *unixTimestampZeroFunc) reconcile() (SQLExpr, error) {
@@ -7476,8 +7479,8 @@ func (f *unixTimestampZeroFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func unixTimestampZeroEvalType(_ []SQLExpr) EvalType {
-	return EvalUint64
+func unixTimestampZeroEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalUint64
 }
 
 type unixTimestampFromDatetimeFunc struct {
@@ -7489,12 +7492,12 @@ var _ SQLScalarFunctionExpr = (*unixTimestampFromDatetimeFunc)(nil)
 
 // The following constants represent some properties of the unixTimestampFromDatetimeFunc scalar function.
 var (
-	unixTimestampFromDatetimeExpectedTypes  []EvalType               = []EvalType{EvalDatetime}
-	unixTimestampFromDatetimeIsVariadic     bool                     = false
-	unixTimestampFromDatetimeReturnTypeFunc func([]SQLExpr) EvalType = unixTimestampFromDatetimeEvalType
+	unixTimestampFromDatetimeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
+	unixTimestampFromDatetimeIsVariadic     bool                           = false
+	unixTimestampFromDatetimeReturnTypeFunc func([]SQLExpr) types.EvalType = unixTimestampFromDatetimeEvalType
 )
 
-func (f *unixTimestampFromDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *unixTimestampFromDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7502,7 +7505,7 @@ func (f *unixTimestampFromDatetimeFunc) Evaluate(ctx context.Context, cfg *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7524,16 +7527,16 @@ func (f *unixTimestampFromDatetimeFunc) ToAggregationPredicate(t *PushdownTransl
 
 func (f *unixTimestampFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7543,7 +7546,7 @@ func (f *unixTimestampFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLE
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *unixTimestampFromDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -7551,8 +7554,8 @@ func (f *unixTimestampFromDatetimeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func unixTimestampFromDatetimeEvalType(_ []SQLExpr) EvalType {
-	return EvalUint64
+func unixTimestampFromDatetimeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalUint64
 }
 
 type userFunc struct {
@@ -7564,12 +7567,12 @@ var _ SQLScalarFunctionExpr = (*userFunc)(nil)
 
 // The following constants represent some properties of the userFunc scalar function.
 var (
-	userExpectedTypes  []EvalType               = []EvalType{}
-	userIsVariadic     bool                     = false
-	userReturnTypeFunc func([]SQLExpr) EvalType = userEvalType
+	userExpectedTypes  []types.EvalType               = []types.EvalType{}
+	userIsVariadic     bool                           = false
+	userReturnTypeFunc func([]SQLExpr) types.EvalType = userEvalType
 )
 
-func (f *userFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *userFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7577,7 +7580,7 @@ func (f *userFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7598,15 +7601,15 @@ func (f *userFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 }
 
 func (f *userFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -7616,8 +7619,8 @@ func (f *userFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func userEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func userEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type utcDateFunc struct {
@@ -7629,12 +7632,12 @@ var _ SQLScalarFunctionExpr = (*utcDateFunc)(nil)
 
 // The following constants represent some properties of the utcDateFunc scalar function.
 var (
-	utcDateExpectedTypes  []EvalType               = []EvalType{}
-	utcDateIsVariadic     bool                     = false
-	utcDateReturnTypeFunc func([]SQLExpr) EvalType = utcDateEvalType
+	utcDateExpectedTypes  []types.EvalType               = []types.EvalType{}
+	utcDateIsVariadic     bool                           = false
+	utcDateReturnTypeFunc func([]SQLExpr) types.EvalType = utcDateEvalType
 )
 
-func (f *utcDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *utcDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7642,7 +7645,7 @@ func (f *utcDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7664,16 +7667,16 @@ func (f *utcDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *utcDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7683,7 +7686,7 @@ func (f *utcDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *utcDateFunc) reconcile() (SQLExpr, error) {
@@ -7691,8 +7694,8 @@ func (f *utcDateFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func utcDateEvalType(_ []SQLExpr) EvalType {
-	return EvalDate
+func utcDateEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDate
 }
 
 type utcTimestampFunc struct {
@@ -7704,12 +7707,12 @@ var _ SQLScalarFunctionExpr = (*utcTimestampFunc)(nil)
 
 // The following constants represent some properties of the utcTimestampFunc scalar function.
 var (
-	utcTimestampExpectedTypes  []EvalType               = []EvalType{}
-	utcTimestampIsVariadic     bool                     = false
-	utcTimestampReturnTypeFunc func([]SQLExpr) EvalType = utcTimestampEvalType
+	utcTimestampExpectedTypes  []types.EvalType               = []types.EvalType{}
+	utcTimestampIsVariadic     bool                           = false
+	utcTimestampReturnTypeFunc func([]SQLExpr) types.EvalType = utcTimestampEvalType
 )
 
-func (f *utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7717,7 +7720,7 @@ func (f *utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7739,16 +7742,16 @@ func (f *utcTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 
 func (f *utcTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7758,7 +7761,7 @@ func (f *utcTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *utcTimestampFunc) reconcile() (SQLExpr, error) {
@@ -7766,8 +7769,8 @@ func (f *utcTimestampFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func utcTimestampEvalType(_ []SQLExpr) EvalType {
-	return EvalDatetime
+func utcTimestampEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
 }
 
 type versionFunc struct {
@@ -7779,12 +7782,12 @@ var _ SQLScalarFunctionExpr = (*versionFunc)(nil)
 
 // The following constants represent some properties of the versionFunc scalar function.
 var (
-	versionExpectedTypes  []EvalType               = []EvalType{}
-	versionIsVariadic     bool                     = false
-	versionReturnTypeFunc func([]SQLExpr) EvalType = versionEvalType
+	versionExpectedTypes  []types.EvalType               = []types.EvalType{}
+	versionIsVariadic     bool                           = false
+	versionReturnTypeFunc func([]SQLExpr) types.EvalType = versionEvalType
 )
 
-func (f *versionFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *versionFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7792,7 +7795,7 @@ func (f *versionFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7813,15 +7816,15 @@ func (f *versionFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 }
 
 func (f *versionFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	return f
 }
@@ -7831,8 +7834,8 @@ func (f *versionFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func versionEvalType(_ []SQLExpr) EvalType {
-	return EvalString
+func versionEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalString
 }
 
 type weekWithDefaultModeFunc struct {
@@ -7844,12 +7847,12 @@ var _ SQLScalarFunctionExpr = (*weekWithDefaultModeFunc)(nil)
 
 // The following constants represent some properties of the weekWithDefaultModeFunc scalar function.
 var (
-	weekWithDefaultModeExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	weekWithDefaultModeIsVariadic     bool                     = false
-	weekWithDefaultModeReturnTypeFunc func([]SQLExpr) EvalType = weekWithDefaultModeEvalType
+	weekWithDefaultModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	weekWithDefaultModeIsVariadic     bool                           = false
+	weekWithDefaultModeReturnTypeFunc func([]SQLExpr) types.EvalType = weekWithDefaultModeEvalType
 )
 
-func (f *weekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *weekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7857,7 +7860,7 @@ func (f *weekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionCo
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7879,16 +7882,16 @@ func (f *weekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslator) 
 
 func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7898,7 +7901,7 @@ func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *weekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
@@ -7906,8 +7909,8 @@ func (f *weekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func weekWithDefaultModeEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func weekWithDefaultModeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type weekWithModeFunc struct {
@@ -7919,12 +7922,12 @@ var _ SQLScalarFunctionExpr = (*weekWithModeFunc)(nil)
 
 // The following constants represent some properties of the weekWithModeFunc scalar function.
 var (
-	weekWithModeExpectedTypes  []EvalType               = []EvalType{EvalDate, EvalInt64}
-	weekWithModeIsVariadic     bool                     = false
-	weekWithModeReturnTypeFunc func([]SQLExpr) EvalType = weekWithModeEvalType
+	weekWithModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate, types.EvalInt64}
+	weekWithModeIsVariadic     bool                           = false
+	weekWithModeReturnTypeFunc func([]SQLExpr) types.EvalType = weekWithModeEvalType
 )
 
-func (f *weekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *weekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -7932,7 +7935,7 @@ func (f *weekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -7954,16 +7957,16 @@ func (f *weekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 
 func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -7973,7 +7976,7 @@ func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *weekWithModeFunc) reconcile() (SQLExpr, error) {
@@ -7981,8 +7984,8 @@ func (f *weekWithModeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func weekWithModeEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func weekWithModeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type weekdayFunc struct {
@@ -7994,12 +7997,12 @@ var _ SQLScalarFunctionExpr = (*weekdayFunc)(nil)
 
 // The following constants represent some properties of the weekdayFunc scalar function.
 var (
-	weekdayExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	weekdayIsVariadic     bool                     = false
-	weekdayReturnTypeFunc func([]SQLExpr) EvalType = weekdayEvalType
+	weekdayExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	weekdayIsVariadic     bool                           = false
+	weekdayReturnTypeFunc func([]SQLExpr) types.EvalType = weekdayEvalType
 )
 
-func (f *weekdayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *weekdayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -8007,7 +8010,7 @@ func (f *weekdayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -8029,16 +8032,16 @@ func (f *weekdayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 func (f *weekdayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -8048,7 +8051,7 @@ func (f *weekdayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *weekdayFunc) reconcile() (SQLExpr, error) {
@@ -8056,8 +8059,8 @@ func (f *weekdayFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func weekdayEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func weekdayEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type yearFunc struct {
@@ -8069,12 +8072,12 @@ var _ SQLScalarFunctionExpr = (*yearFunc)(nil)
 
 // The following constants represent some properties of the yearFunc scalar function.
 var (
-	yearExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	yearIsVariadic     bool                     = false
-	yearReturnTypeFunc func([]SQLExpr) EvalType = yearEvalType
+	yearExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	yearIsVariadic     bool                           = false
+	yearReturnTypeFunc func([]SQLExpr) types.EvalType = yearEvalType
 )
 
-func (f *yearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *yearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -8082,7 +8085,7 @@ func (f *yearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -8104,16 +8107,16 @@ func (f *yearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 
 func (f *yearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -8123,7 +8126,7 @@ func (f *yearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *yearFunc) reconcile() (SQLExpr, error) {
@@ -8131,8 +8134,8 @@ func (f *yearFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func yearEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func yearEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type yearWeekWithDefaultModeFunc struct {
@@ -8144,12 +8147,12 @@ var _ SQLScalarFunctionExpr = (*yearWeekWithDefaultModeFunc)(nil)
 
 // The following constants represent some properties of the yearWeekWithDefaultModeFunc scalar function.
 var (
-	yearWeekWithDefaultModeExpectedTypes  []EvalType               = []EvalType{EvalDate}
-	yearWeekWithDefaultModeIsVariadic     bool                     = false
-	yearWeekWithDefaultModeReturnTypeFunc func([]SQLExpr) EvalType = yearWeekWithDefaultModeEvalType
+	yearWeekWithDefaultModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	yearWeekWithDefaultModeIsVariadic     bool                           = false
+	yearWeekWithDefaultModeReturnTypeFunc func([]SQLExpr) types.EvalType = yearWeekWithDefaultModeEvalType
 )
 
-func (f *yearWeekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *yearWeekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -8157,7 +8160,7 @@ func (f *yearWeekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *Executi
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -8179,16 +8182,16 @@ func (f *yearWeekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslat
 
 func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -8198,7 +8201,7 @@ func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExp
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *yearWeekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
@@ -8206,8 +8209,8 @@ func (f *yearWeekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func yearWeekWithDefaultModeEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func yearWeekWithDefaultModeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 type yearWeekWithModeFunc struct {
@@ -8219,12 +8222,12 @@ var _ SQLScalarFunctionExpr = (*yearWeekWithModeFunc)(nil)
 
 // The following constants represent some properties of the yearWeekWithModeFunc scalar function.
 var (
-	yearWeekWithModeExpectedTypes  []EvalType               = []EvalType{EvalDate, EvalInt64}
-	yearWeekWithModeIsVariadic     bool                     = false
-	yearWeekWithModeReturnTypeFunc func([]SQLExpr) EvalType = yearWeekWithModeEvalType
+	yearWeekWithModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate, types.EvalInt64}
+	yearWeekWithModeIsVariadic     bool                           = false
+	yearWeekWithModeReturnTypeFunc func([]SQLExpr) types.EvalType = yearWeekWithModeEvalType
 )
 
-func (f *yearWeekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (SQLValue, error) {
+func (f *yearWeekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
@@ -8232,7 +8235,7 @@ func (f *yearWeekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	}
 
 	// evaluate arguments
-	args := []SQLValue{}
+	args := []values.SQLValue{}
 	for i, arg := range f.args {
 		val, err := arg.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -8254,16 +8257,16 @@ func (f *yearWeekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 
 func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	allVals := true
-	valArgs := make([]SQLValue, len(f.args))
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
-		if val, ok := arg.(SQLValue); ok {
-			valArgs[i] = val
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
 		} else {
 			allVals = false
 		}
-	}
-	if hasNullExpr(f.args...) {
-		return NewSQLNull(cfg.sqlValueKind, f.EvalType())
 	}
 	if !allVals {
 		return f
@@ -8273,7 +8276,7 @@ func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if err != nil {
 		return f
 	}
-	return val
+	return NewSQLValueExpr(val)
 }
 
 func (f *yearWeekWithModeFunc) reconcile() (SQLExpr, error) {
@@ -8281,8 +8284,8 @@ func (f *yearWeekWithModeFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func yearWeekWithModeEvalType(_ []SQLExpr) EvalType {
-	return EvalInt64
+func yearWeekWithModeEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalInt64
 }
 
 func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionExpr, error) {

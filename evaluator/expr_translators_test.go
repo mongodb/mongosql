@@ -12,6 +12,8 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
@@ -688,7 +690,7 @@ func TestTranslateCurrentDateExpr(t *testing.T) {
 		yearStr, monthStr, dayStr := pad(strconv.Itoa(now.Year())),
 			pad(strconv.Itoa(int(now.Month()))), pad(strconv.Itoa(now.Day()))
 		if asString {
-			return fmt.Sprintf(`{"$literal":"%s-%s-%s"}`, yearStr, monthStr, dayStr)
+			return fmt.Sprintf(`"%s-%s-%s"`, yearStr, monthStr, dayStr)
 		}
 		return fmt.Sprintf(`{"$literal":%s%s%s}`, yearStr, monthStr, dayStr)
 	}
@@ -762,27 +764,27 @@ func TestTranslatePartialPredicate(t *testing.T) {
 	tests := []test{
 		// non-boolean types always exclude null
 		{"0", "a", `{"a":{"$ne":null}}`, `a`, evaluator.NewSQLColumnExpr(1, "translate_test_db",
-			tableTwoName, "a", evaluator.EvalInt64, schema.MongoInt)},
+			tableTwoName, "a", types.EvalInt64, schema.MongoInt)},
 		{"1", "a = 3 AND a < b", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(
 			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a",
-				evaluator.EvalInt64, schema.MongoInt),
+				types.EvalInt64, schema.MongoInt),
 			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-				evaluator.EvalInt64, schema.MongoInt))},
+				types.EvalInt64, schema.MongoInt))},
 		{"2", "a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b",
 			evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "translate_test_db",
-				tableTwoName, "a", evaluator.EvalInt64, schema.MongoInt),
+				tableTwoName, "a", types.EvalInt64, schema.MongoInt),
 				evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-					evaluator.EvalInt64, schema.MongoInt))},
+					types.EvalInt64, schema.MongoInt))},
 		{"3", "a < b AND a = 3", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(
 			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a",
-				evaluator.EvalInt64, schema.MongoInt),
+				types.EvalInt64, schema.MongoInt),
 			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-				evaluator.EvalInt64, schema.MongoInt))},
+				types.EvalInt64, schema.MongoInt))},
 		{"4", "NOT (a = 3 AND a < b)", `{"$and":[{"a":{"$ne":3}},{"a":{"$ne":null}}]}`, "NOT a < b",
 			evaluator.NewSQLNotExpr(evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1,
-				"translate_test_db", tableTwoName, "a", evaluator.EvalInt64, schema.MongoInt),
+				"translate_test_db", tableTwoName, "a", types.EvalInt64, schema.MongoInt),
 				evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-					evaluator.EvalInt64, schema.MongoInt)))},
+					types.EvalInt64, schema.MongoInt)))},
 	}
 
 	runPartialTests(tests)
@@ -798,25 +800,25 @@ func TestTranslateSQLValue(t *testing.T) {
 
 	type test struct {
 		name     string
-		sqlValue evaluator.SQLValue
+		sqlValue values.SQLValue
 		expected string
 	}
 
 	datetime, _ := time.Parse("2006 Jan 02 15:04:05", "2012 Dec 07 12:15:30.918273645")
 	tests := []test{
-		{"SQLTrue", evaluator.NewSQLBool(evaluator.MySQLValueKind, true), `{"$literal":true}`},
-		{"SQLFalse", evaluator.NewSQLBool(evaluator.MySQLValueKind, false), `{"$literal":false}`},
-		{"SQLFloat", evaluator.NewSQLFloat(evaluator.MySQLValueKind, 1.1), `{"$literal":1.1}`},
-		{"SQLInt", evaluator.NewSQLInt64(evaluator.MySQLValueKind, 11), `{"$literal":11}`},
-		{"SQLUint", evaluator.NewSQLUint64(evaluator.MySQLValueKind, 32), `{"$literal":32}`},
-		{"SQLVarchar", evaluator.NewSQLVarchar(evaluator.MySQLValueKind, "vc"),
-			`{"$literal":"vc"}`},
-		{"SQLNull", evaluator.NewPolymorphicSQLNull(evaluator.MySQLValueKind),
-			`{"$literal":null}`},
-		{"SQLDate", evaluator.NewSQLDate(evaluator.MySQLValueKind, datetime),
-			`{"$literal":"2012-12-07T00:00:00Z"}`},
-		{"SQLTimestamp", evaluator.NewSQLTimestamp(evaluator.MySQLValueKind, datetime),
-			`{"$literal":"2012-12-07T12:15:30.918273645Z"}`},
+		{"SQLTrue", values.NewSQLBool(values.MySQLValueKind, true), `{"$literal":true}`},
+		{"SQLFalse", values.NewSQLBool(values.MySQLValueKind, false), `{"$literal":false}`},
+		{"SQLFloat", values.NewSQLFloat(values.MySQLValueKind, 1.1), `{"$literal":1.1}`},
+		{"SQLInt", values.NewSQLInt64(values.MySQLValueKind, 11), `{"$literal":11}`},
+		{"SQLUint", values.NewSQLUint64(values.MySQLValueKind, 32), `{"$literal":32}`},
+		{"SQLVarchar", values.NewSQLVarchar(values.MySQLValueKind, "vc"),
+			`"vc"`},
+		{"SQLNull", values.NewSQLNull(values.MySQLValueKind),
+			`null`},
+		{"SQLDate", values.NewSQLDate(values.MySQLValueKind, datetime),
+			`"2012-12-07T00:00:00Z"`},
+		{"SQLTimestamp", values.NewSQLTimestamp(values.MySQLValueKind, datetime),
+			`"2012-12-07T12:15:30.918273645Z"`},
 	}
 
 	// Should always translate on any server version.
@@ -831,7 +833,7 @@ func TestTranslateSQLValue(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			req := require.New(t)
 
-			match, pf := translator.TranslateExpr(test.sqlValue)
+			match, pf := translator.TranslateExpr(evaluator.NewSQLValueExpr(test.sqlValue))
 			req.Nil(pf)
 
 			jsonResult, err := json.Marshal(match)

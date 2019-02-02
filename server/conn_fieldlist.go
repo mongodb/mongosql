@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
@@ -56,7 +57,7 @@ func (c *conn) handleFieldList(data []byte) error {
 			Charset:       uint16(col.ID),
 		}
 
-		zeroValue := evaluator.SQLTypeToEvalType(schema.SQLType(column.Type())).ZeroValue(valueKind)
+		zeroValue := evaluator.ZeroValue(types.SQLTypeToEvalType(schema.SQLType(column.Type())), valueKind)
 		if err = formatHeaderField(c.variables, field, zeroValue); err != nil {
 			return err
 		}

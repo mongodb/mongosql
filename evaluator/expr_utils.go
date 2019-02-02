@@ -2,7 +2,6 @@ package evaluator
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"math"
@@ -12,8 +11,11 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/procutil"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -22,8 +24,11 @@ import (
 
 const (
 	regexCharsToEscape = ".^$*+?()[{\\|"
+	timeSeparator      = ':'
 	maxPrecisionInt    = int64(1 << 53)
-	punctuation        = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
+	maxHour            = 838
+	maxMinute          = 59
+	maxSecond          = 59
 )
 
 var (
@@ -32,94 +37,10 @@ var (
 	ErrNotFullyPushedDown = errors.New("query not fully pushed down")
 )
 
-// MySQLCleanNumericString cleans up a numeric string using MySQL's rules (trim, then
-// take everything before the first character that isn't . or a number). Must
-// handle -, and should return "0" if no viable number can be found.
-func MySQLCleanNumericString(s string) string {
-	var out bytes.Buffer
-	firstDecimal := true
-	s = strings.TrimLeft(s, " \t\v\n\r")
-	if len(s) == 0 {
-		return "0"
-	}
-	firstChar := s[0]
-	if firstChar == '-' || firstChar == '+' {
-		out.WriteRune(rune(firstChar))
-		s = s[1:]
-	}
-	for _, c := range s {
-		if c == '.' {
-			if firstDecimal {
-				out.WriteRune(c)
-				firstDecimal = false
-				continue
-			}
-			break
-		}
-		if c >= '0' && c <= '9' {
-			out.WriteRune(c)
-			continue
-		}
-		break
-	}
-	ret := out.String()
-	if len(ret) == 0 || ret == "-" {
-		return "0"
-	}
-	return ret
-}
-
-// MySQLCleanScientificNotationString cleans up a numeric string that may
-// contain scientific notation.
-func MySQLCleanScientificNotationString(s string) string {
-	s = strings.TrimLeft(s, " \t\v\n\r")
-	splitted := strings.Split(s, "e")
-	base, exponent := s, ""
-	if len(splitted) > 1 {
-		// Any extra parts can be safely dropped, mysql only
-		// considers the first e.
-		base, exponent = splitted[0], splitted[1]
-	}
-
-	cleanBase := MySQLCleanNumericString(base)
-	// If the base part is _changed_ by MySQLCleanNumericString
-	// that means it had trailing charaters, and the exponent should be
-	// ignored. Unfortunately, we will TrimLeft twice to make this
-	// check work.
-	if cleanBase != base {
-		return cleanBase
-	}
-	exponent = MySQLCleanNumericString(exponent)
-	return base + "e" + exponent
-}
-
-func compareDecimal128(left, right decimal.Decimal) (int, error) {
-	return left.Cmp(right), nil
-}
-
-func compareFloats(left, right float64) (int, error) {
-	cmp := left - right
-	if cmp < 0 {
-		return -1, nil
-	} else if cmp > 0 {
-		return 1, nil
-	}
-	return 0, nil
-}
-
-func compareInts(left, right int) int {
-	if left < right {
-		return -1
-	} else if left > right {
-		return 1
-	}
-	return 0
-}
-
 // ConvertSQLValueToPattern returns a regular expression that will match the
-// string representation of the provided SQLValue.
-func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
-	pattern := String(value)
+// string representation of the provided values.SQLValue.
+func ConvertSQLValueToPattern(value values.SQLValue, escapeChar rune) string {
+	pattern := values.String(value)
 	regex := "^"
 	escaped := false
 	for _, c := range pattern {
@@ -155,6 +76,21 @@ func ConvertSQLValueToPattern(value SQLValue, escapeChar rune) string {
 	return regex
 }
 
+// databaseFromPlanStage returns the database name from columns returned from the planStage.
+// It returns the empty string if the columns come from more than one database or the dual database.
+func databaseFromPlanStage(plan PlanStage) string {
+	dbName := ""
+	for _, column := range plan.Columns() {
+		if dbName == "" {
+			dbName = column.Database
+		} else if column.Database != dbName {
+			dbName = ""
+			break
+		}
+	}
+	return dbName
+}
+
 // fast2Sum returns the exact unevaluated sum of a and b
 // where the first member is the float64 nearest the sum
 // (ties to even) and the second member is the remainder
@@ -186,35 +122,19 @@ func getPlanStats(plan PlanStage, pCfg *PushdownConfig) (*PlanStats, error) {
 	return stats, nil
 }
 
-// hasNullValue returns true if any of the value in values
-// is of type SQLNoValue or SQLNullValue.
-func hasNullValue(values ...SQLValue) bool {
-	for _, v := range values {
-		if v.IsNull() {
-			return true
-		}
-	}
-	return false
-}
-
 // hasNullExpr returns true if any of the expr in exprs
 // is of type SQLNoValue or SQLNullValue.
 func hasNullExpr(exprs ...SQLExpr) bool {
 	for _, e := range exprs {
 		switch typedE := e.(type) {
-		case SQLValue:
-			if typedE.IsNull() {
+		case SQLValueExpr:
+			if typedE.Value.IsNull() {
 				return true
 			}
 		}
 	}
 
 	return false
-}
-
-// IsFalsy returns whether a SQLValue is falsy.
-func IsFalsy(value SQLValue) bool {
-	return !hasNullValue(value) && !Bool(value)
 }
 
 // IsFullyPushedDown returns an error if this PlanStage is not fully optimized and pushed down.
@@ -255,49 +175,6 @@ func IsFullyPushedDown(plan PlanStage) error {
 	return nil
 }
 
-// NormalizeUUID takes a UUID's kind and bytes and converts
-// the bytes to the standard UUID representation.
-func NormalizeUUID(kind schema.MongoType, bytes []byte) error {
-	if len(bytes) != 16 {
-		return fmt.Errorf("expected UUID bytes to be 16, not %d", len(bytes))
-	}
-
-	switch kind {
-	case schema.MongoUUID, schema.MongoUUIDOld:
-		return nil
-	case schema.MongoUUIDCSharp:
-		reverseByteArray(bytes, 0, 4)
-		reverseByteArray(bytes, 4, 2)
-		reverseByteArray(bytes, 6, 2)
-	case schema.MongoUUIDJava:
-		reverseByteArray(bytes, 0, 8)
-		reverseByteArray(bytes, 8, 8)
-	default:
-		return fmt.Errorf("unrecognized UUID type: %v", kind)
-	}
-	return nil
-}
-
-// reverseByteArray reverses elements in data, beginning
-// at start and ending at start + length.
-func reverseByteArray(data []byte, start, length int) {
-	for left, right := start, start+length-1; left < right; left, right = left+1, right-1 {
-		temp := data[left]
-		data[left] = data[right]
-		data[right] = temp
-	}
-}
-
-// round founds a float64 to an int64 using MySQL rounding conventions (round
-// ties away from 0). This is the simplest implementation of round I have found.
-// https://github.com/golang/go/issues/4594#issuecomment-66073312.
-func round(x float64) int64 {
-	if x < 0 {
-		return int64(math.Ceil(x - 0.5))
-	}
-	return int64(math.Floor(x + 0.5))
-}
-
 // twoSum returns the exact unevaluated sum of a and b,
 // where the first member is the double nearest the sum
 // (ties to even) and the second member is the remainder.
@@ -318,186 +195,6 @@ func twoSum(a, b float64) (float64, float64) {
 	return s, t
 }
 
-const maxDateParts = 8
-const maxHour = 838
-const maxMinute = 59
-const maxSecond = 59
-const twoDigitPartYear = 70
-const timeSeparator = ':'
-
-// strToDateTime is a port of mysql's str_to_datetime function.
-func strToDateTime(s string, full bool) (time.Time, int, bool) {
-
-	// skip space at start
-	var str int
-	for str = 0; str < len(s); str++ {
-		if !isSpace(s[str]) {
-			break
-		}
-	}
-
-	if str >= len(s) || !isDigit(s[str]) {
-		return time.Time{}, 0, false
-	}
-
-	const (
-		yearIdx        = 0
-		monthIdx       = 1
-		dayIdx         = 2
-		hourIdx        = 3
-		minuteIdx      = 4
-		secondIdx      = 5
-		microsecondIdx = 6
-	)
-
-	date := make([]int, maxDateParts)
-	dateLengths := make([]int, maxDateParts)
-	yearLength := 2
-	fieldLength := 2
-	internalFormat := false
-
-	// calc number of digits in first part.
-	var pos int
-	for pos = str; pos < len(s); pos++ {
-		if !isDigit(s[pos]) && s[pos] != 'T' {
-			break
-		}
-	}
-
-	dateLengths[yearIdx] = 0
-	numDigits := pos - str
-	if numDigits == len(s) || s[pos] == '.' {
-		// found date in internal format (only numbers like YYYYMMDD)
-		if numDigits == 4 || numDigits == 8 || numDigits >= 14 {
-			yearLength = 4
-			fieldLength = 4
-		}
-		internalFormat = true
-	} else {
-		fieldLength = 4
-	}
-
-	var state int
-	notZeroDate := false
-	for state = 0; state < maxDateParts-1 && str < len(s) && isDigit(s[str]); state++ {
-		start := str
-		tempValue := int(s[str]) - int('0')
-		str++
-
-		// gather up all the digits for the current part
-		scanUntilDelim := !internalFormat && state != microsecondIdx
-		fieldLength--
-		for str < len(s) && isDigit(s[str]) && (scanUntilDelim || fieldLength > 0) {
-			tempValue = tempValue*10 + (int(s[str]) - int('0'))
-			str++
-			fieldLength--
-		}
-
-		dateLengths[state] = str - start
-		if tempValue > 999999 {
-			return time.Time{}, 0, false
-		}
-
-		date[state] = tempValue
-		if tempValue > 0 {
-			notZeroDate = true
-		}
-
-		// all fields except for year and fractional seconds are of length 2.
-		fieldLength = 2
-
-		if str == len(s) {
-			state++
-			break
-		}
-
-		// Allow a 'T' after day to allow CCYYMMDDT type of fields
-		if state == dayIdx && s[str] == 'T' {
-			str++
-			continue
-		}
-
-		if state == secondIdx {
-			if s[str] == '.' { //followed by a period
-				str++
-				fieldLength = 6
-			}
-			continue
-		}
-
-		for str < len(s) && (isPunct(s[str]) || isSpace(s[str])) {
-			if isSpace(s[str]) {
-				if state != dayIdx { // only allow space between date and time
-					return time.Time{}, 0, false
-				}
-			}
-			str++
-		}
-
-		if state == microsecondIdx {
-			state++
-		}
-	}
-
-	numFields := state
-	for state < maxDateParts {
-		dateLengths[state] = 0
-		date[state] = 0
-		state++
-	}
-
-	if !internalFormat {
-		yearLength = dateLengths[yearIdx]
-
-		if yearLength == 0 {
-			return time.Time{}, 0, false
-		}
-	}
-
-	fractionalLength := dateLengths[microsecondIdx]
-	if fractionalLength < 6 {
-		date[microsecondIdx] *= int(math.Pow10(6 - fractionalLength))
-	}
-
-	if yearLength == 2 && notZeroDate {
-		if date[yearIdx] < twoDigitPartYear {
-			date[yearIdx] += 2000
-		} else {
-			date[yearIdx] += 1900
-		}
-	}
-
-	// If we managed to parse, but minutes or seconds are >= 60
-	// MySQL returns NULL for the hour/minute/second function.
-	// Rather than return yet another value, we coopt the hour
-	// value and return -1, since it will not be needed.
-	if numFields < 3 ||
-		(numFields <= 3 && full) ||
-		(date[yearIdx] == 0 && date[monthIdx] == 0 && date[dayIdx] == 0) ||
-		date[yearIdx] > 9999 ||
-		date[monthIdx] > 12 ||
-		date[dayIdx] > daysInMonth(time.Month(date[monthIdx]), date[yearIdx]) ||
-		date[hourIdx] > 23 || date[monthIdx] > 59 || date[secondIdx] > 59 {
-		return time.Time{}, -1, false
-	}
-
-	return time.Date(date[yearIdx],
-			time.Month(date[monthIdx]),
-			date[dayIdx],
-			date[hourIdx],
-			date[minuteIdx],
-			date[secondIdx],
-			date[microsecondIdx]*1000,
-			schema.DefaultLocale),
-		date[hourIdx],
-		true
-}
-
-func daysInMonth(m time.Month, year int) int {
-	// This is equivalent to time.daysIn(m, year).
-	return time.Date(year, m+1, 0, 0, 0, 0, 0, time.UTC).Day()
-}
-
 // strToTime is a port of mysql's str_to_time function.
 // We also return the hour as an int because MySQL return hour values
 // up to 838, and the time.Duration stores hours modulo 24.
@@ -515,7 +212,7 @@ func strToTime(s string) (time.Duration, int, bool) {
 	var state int
 	str := 0
 	for ; str < len(s); str++ {
-		if !isSpace(s[str]) {
+		if !strutil.IsSpace(s[str]) {
 			break
 		}
 	}
@@ -529,25 +226,25 @@ func strToTime(s string) (time.Duration, int, bool) {
 	}
 
 	value := 0
-	for ; str < len(s) && isDigit(s[str]); str++ {
+	for ; str < len(s) && strutil.IsDigit(s[str]); str++ {
 		value = value*10 + int((s[str] - '0'))
 	}
 
 	endOfDays := str
 
 	for ; str < len(s); str++ {
-		if !isSpace(s[str]) {
+		if !strutil.IsSpace(s[str]) {
 			break
 		}
 	}
 
 	foundDays := false
 	foundHours := false
-	if str+1 < len(s) && str != endOfDays && isDigit(s[str]) {
+	if str+1 < len(s) && str != endOfDays && strutil.IsDigit(s[str]) {
 		parts[dayIdx] = value
 		state = hourIdx
 		foundDays = true
-	} else if str+1 < len(s) && s[str] == timeSeparator && isDigit(s[str+1]) {
+	} else if str+1 < len(s) && s[str] == timeSeparator && strutil.IsDigit(s[str+1]) {
 		parts[hourIdx] = value
 		state = minuteIdx
 		foundHours = true
@@ -561,7 +258,7 @@ func strToTime(s string) (time.Duration, int, bool) {
 
 	if state != secondIdx {
 		for {
-			for value = 0; str < len(s) && isDigit(s[str]); str++ {
+			for value = 0; str < len(s) && strutil.IsDigit(s[str]); str++ {
 				value = value*10 + int(s[str]-'0')
 			}
 
@@ -570,7 +267,7 @@ func strToTime(s string) (time.Duration, int, bool) {
 			if state == microsecondIdx ||
 				(len(s)-str) < 2 ||
 				s[str] != timeSeparator ||
-				!isDigit(s[str+1]) {
+				!strutil.IsDigit(s[str+1]) {
 				break
 			}
 			str++
@@ -585,11 +282,11 @@ func strToTime(s string) (time.Duration, int, bool) {
 		}
 	}
 
-	if str+1 < len(s) && s[str] == '.' && isDigit(s[str+1]) {
+	if str+1 < len(s) && s[str] == '.' && strutil.IsDigit(s[str+1]) {
 		str++
 		value = 0
 		fieldLength := 0
-		for ; str < len(s) && isDigit(s[str]) && fieldLength < 6; str++ {
+		for ; str < len(s) && strutil.IsDigit(s[str]) && fieldLength < 6; str++ {
 			value = value*10 + int(s[str]-'0')
 			fieldLength++
 		}
@@ -635,68 +332,6 @@ func strToTime(s string) (time.Duration, int, bool) {
 		time.Duration(maxSecond)*time.Second, returnHour, true
 }
 
-func isDigit(c byte) bool {
-	switch c {
-	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
-		return true
-	default:
-		return false
-	}
-}
-
-var uuidTypes = map[schema.MongoType]struct{}{
-	schema.MongoUUID:       {},
-	schema.MongoUUIDCSharp: {},
-	schema.MongoUUIDJava:   {},
-	schema.MongoUUIDOld:    {},
-}
-
-// IsUUID returns true if mongoType is of the UUID subtype.
-func IsUUID(mongoType schema.MongoType) bool {
-	_, ok := uuidTypes[mongoType]
-	return ok
-}
-
-func isLeapYear(y int) bool {
-	return (y%4 == 0) && (y%100 != 0) || (y%400 == 0)
-}
-
-func isPunct(c byte) bool {
-	return strings.IndexByte(punctuation, c) != -1
-}
-
-func isSpace(c byte) bool {
-	switch c {
-	case ' ':
-		return true
-	default:
-		return false
-	}
-}
-
-// databaseFromPlanStage returns the database name from columns returned from the planStage.
-// It returns the empty string if the columns come from more than one database or the dual database.
-func databaseFromPlanStage(plan PlanStage) string {
-	dbName := ""
-	for _, column := range plan.Columns() {
-		if dbName == "" {
-			dbName = column.Database
-		} else if column.Database != dbName {
-			dbName = ""
-			break
-		}
-	}
-	return dbName
-}
-
-func uuidEncode(data []byte) string {
-	return hex.EncodeToString(data[0:4]) + "-" +
-		hex.EncodeToString(data[4:6]) + "-" +
-		hex.EncodeToString(data[6:8]) + "-" +
-		hex.EncodeToString(data[8:10]) + "-" +
-		hex.EncodeToString(data[10:16])
-}
-
 // getMongoDBVersion is a utility function that gets the MongoDB version to use for new
 // configurations based on the mongodb_version_compatibility or mongodb_version variable
 // in the provided container.
@@ -714,65 +349,6 @@ func getMongoDBVersion(vars catalog.VariableContainer) []uint8 {
 
 func getMySQLVersion(vars catalog.VariableContainer) string {
 	return vars.GetString(variable.Version)
-}
-
-// GoValueToSQLValue is only needed for dynamic sources and reading variables
-// and a few places in testing. As the name suggests, it converts a go value
-// to a SQLValue.
-func GoValueToSQLValue(kind SQLValueKind, v interface{}) SQLValue {
-	switch vTyped := v.(type) {
-	case nil:
-		return NewPolymorphicSQLNull(kind)
-	case bool:
-		return NewSQLBool(kind, vTyped)
-	case int:
-		return NewSQLInt64(kind, int64(vTyped))
-	case int64:
-		return NewSQLInt64(kind, vTyped)
-	case float64:
-		return NewSQLFloat(kind, vTyped)
-	case uint16:
-		return NewSQLUint64(kind, uint64(vTyped))
-	case uint32:
-		return NewSQLUint64(kind, uint64(vTyped))
-	case uint64:
-		return NewSQLUint64(kind, vTyped)
-	case string:
-		return NewSQLVarchar(kind, vTyped)
-	case variable.Name:
-		return NewSQLVarchar(kind, string(vTyped))
-	default:
-		panic(fmt.Sprintf(
-			"unexpected go type %T from dynamic source or system variable in GoValueToSQLValue",
-			vTyped))
-	}
-}
-
-func paddedDateString(val SQLValue) (string, bool) {
-	switch val.(type) {
-	case SQLFloat, SQLDecimal128, SQLInt64:
-		noDecimal := strings.Split(val.String(), ".")[0]
-
-		intLength := len(noDecimal)
-		if intLength > 14 {
-			return "", false
-		}
-
-		padLen := 0
-		switch intLength {
-		case 5, 7, 11, 13:
-			padLen = 1
-		case 3, 4:
-			padLen = 6 - intLength
-		case 9, 10:
-			padLen = 12 - intLength
-		}
-
-		str := strings.Repeat("0", padLen) + noDecimal
-		return str, true
-	}
-
-	panic(fmt.Errorf("paddedDateString cannot be called with argument of type %T", val))
 }
 
 // panicIfNotPlanStage returns a PlanStage from a Node n, or panics if the Node is not a PlanStage.
@@ -810,11 +386,6 @@ func panicWithInvalidIndex(s string, index, max int) {
 	panic(fmt.Sprintf("%v requested ReplaceChild of index %d (has max index of %d)", s, index, max))
 }
 
-// nolint: unparam
-func parseDateTime(s string) (time.Time, int, bool) {
-	return strToDateTime(s, false)
-}
-
 func parseTime(s string) (time.Time, int, bool) {
 
 	timeParts := strings.Split(s, ".")
@@ -827,7 +398,7 @@ func parseTime(s string) (time.Time, int, bool) {
 	if len(noFractions) >= 12 {
 
 		// Probably a datetime.
-		dt, hour, ok := strToDateTime(s, true)
+		dt, hour, ok := values.StrToDateTime(s, true)
 		if ok {
 			return dt, hour, true
 		}
@@ -839,7 +410,7 @@ func parseTime(s string) (time.Time, int, bool) {
 	return time.Date(0, 1, 1, 0, 0, 0, 0, schema.DefaultLocale).Add(dur), hour, ok
 }
 
-func parseDuration(v SQLValue) (time.Duration, bool) {
+func parseDuration(v values.SQLValue) (time.Duration, bool) {
 	buf := []byte(v.String())
 
 	var h, m, s, f int
@@ -973,28 +544,6 @@ func parseDuration(v SQLValue) (time.Duration, bool) {
 	return dur, true
 }
 
-// roundToDecimalPlaces rounds base to d number of decimal places.
-func roundToDecimalPlaces(d int64, base float64) float64 {
-	var rounded float64
-	pow := math.Pow(10, float64(d))
-	digit := pow * base
-	_, div := math.Modf(digit)
-	if base > 0 {
-		if div >= 0.5 {
-			rounded = math.Ceil(digit) / pow
-		} else {
-			rounded = math.Floor(digit) / pow
-		}
-	} else {
-		if math.Abs(div) >= 0.5 {
-			rounded = math.Floor(digit) / pow
-		} else {
-			rounded = math.Ceil(digit) / pow
-		}
-	}
-	return rounded
-}
-
 func runesIndex(r, sep []rune) int {
 	for i := 0; i <= len(r)-len(sep); i++ {
 		found := true
@@ -1021,38 +570,33 @@ func baseIsInvalid(base int64) bool {
 	return false
 }
 
-func evalTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
-	val, ok := expr.(SQLValue)
-	if !ok {
-		panic("argument to evalTypeFromSQLExpr must be a SQLValue representing a viable convert target type")
-	}
-
-	var typ EvalType
+func evalTypeFromSQLTypeValue(val values.SQLValue) (types.EvalType, bool) {
+	var typ types.EvalType
 	switch val.String() {
 	case string(parser.SIGNED_BYTES):
-		typ = EvalInt64
+		typ = types.EvalInt64
 	case string(parser.UNSIGNED_BYTES):
-		typ = EvalUint64
+		typ = types.EvalUint64
 	case string(parser.FLOAT_BYTES):
-		typ = EvalDouble
+		typ = types.EvalDouble
 	case string(parser.CHAR_BYTES):
-		typ = EvalString
+		typ = types.EvalString
 	case string(parser.OBJECT_ID_BYTES):
-		typ = EvalObjectID
+		typ = types.EvalObjectID
 	case string(parser.DATE_BYTES):
-		typ = EvalDate
+		typ = types.EvalDate
 	case string(parser.DATETIME_BYTES):
-		typ = EvalDatetime
+		typ = types.EvalDatetime
 	case string(parser.DECIMAL_BYTES):
-		typ = EvalDecimal128
+		typ = types.EvalDecimal128
 	case string(parser.BINARY_BYTES):
 		// Although we represent binary as a string, conversions
 		// to it are always going to be invalid.
-		return EvalString, false
+		return types.EvalString, false
 	case string(parser.TIME_BYTES):
-		// We do not support the TIME type yet. Just use EvalDatetime
+		// We do not support the TIME type yet. Just use types.EvalDatetime
 		// for now.
-		return EvalDatetime, false
+		return types.EvalDatetime, false
 	default:
 		panic(fmt.Errorf("invalid value %q", val.String()))
 	}
@@ -1060,9 +604,20 @@ func evalTypeFromSQLExpr(expr SQLExpr) (EvalType, bool) {
 	return typ, true
 }
 
+func evalTypeFromSQLTypeExpr(expr SQLExpr) (types.EvalType, bool) {
+	valExpr, ok := expr.(SQLValueExpr)
+	if !ok {
+		panic(
+			fmt.Sprintf(
+				"argument to evalTypeFromSQLExpr must be a SQLValueExpr representing a viable convert target type, got type %T",
+				expr))
+	}
+	return evalTypeFromSQLTypeValue(valExpr.Value)
+}
+
 // formatDate takes a time.Time object and outputs a string formatted using
 // MySQL's format string specification.
-func (f *baseScalarFunctionExpr) formatDate(sqlValueKind SQLValueKind,
+func (f *baseScalarFunctionExpr) formatDate(sqlValueKind values.SQLValueKind,
 	collation *collation.Collation, date time.Time, format string) (string, error) {
 	formatRunes := []rune(format)
 
@@ -1091,7 +646,7 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind SQLValueKind,
 	}
 
 	weekFmt := func(i int64) (string, error) {
-		args := []SQLValue{NewSQLDate(sqlValueKind, date), NewSQLInt64(sqlValueKind, i)}
+		args := []values.SQLValue{values.NewSQLDate(sqlValueKind, date), values.NewSQLInt64(sqlValueKind, i)}
 		eval, err := f.weekEvaluate(sqlValueKind, collation, args)
 		if err != nil {
 			return "", err
@@ -1100,7 +655,7 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind SQLValueKind,
 	}
 
 	yearFmt := func(i int64) (string, error) {
-		args := []SQLValue{NewSQLDate(sqlValueKind, date), NewSQLInt64(sqlValueKind, i)}
+		args := []values.SQLValue{values.NewSQLDate(sqlValueKind, date), values.NewSQLInt64(sqlValueKind, i)}
 		eval, err := f.yearWeekEvaluate(sqlValueKind, collation, args)
 		if err != nil {
 			return "", err
@@ -1178,18 +733,18 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind SQLValueKind,
 	return result, nil
 }
 
-// areAllTimeTypes checks if all SQLValues are either type SQLTimestamp or
+// areAllTimeTypes checks if all values.SQLValues are either type SQLTimestamp or
 // SQLDate and there is at least one SQLTimestamp type. This is necessary
 // because if the former is true, MySQL will always return a SQLTimestamp type
 // in the greatest and least functions. i.e. SELECT GREATEST(DATE
 // "2006-05-11", TIMESTAMP "2005-04-12", DATE "2004-06-04") returns TIMESTAMP
 // "2006-05-11 00:00:00"
-func areAllTimeTypes(values []SQLValue) (bool, bool) {
+func areAllTimeTypes(vs []values.SQLValue) (bool, bool) {
 	allTimeTypes := true
 	timestamp := false
-	for _, v := range values {
-		if _, ok := v.(SQLTimestamp); !ok {
-			if _, ok := v.(SQLDate); !ok {
+	for _, v := range vs {
+		if _, ok := v.(values.SQLTimestamp); !ok {
+			if _, ok := v.(values.SQLDate); !ok {
 				allTimeTypes = false
 			}
 		} else {
@@ -1202,33 +757,33 @@ func areAllTimeTypes(values []SQLValue) (bool, bool) {
 // handlePadding is used by the lpad and rpad functions. creates the
 // specified padding string and pads the original string. padding
 // goes on the left side if isLeftPad = true, on the right side otherwise.
-func handlePadding(kind SQLValueKind, values []SQLValue, isLeftPad bool) (SQLValue, error) {
-	if hasNullValue(values...) {
-		return NewSQLNull(kind, EvalString), nil
+func handlePadding(kind values.SQLValueKind, vs []values.SQLValue, isLeftPad bool) (values.SQLValue, error) {
+	if values.HasNullValue(vs...) {
+		return values.NewSQLNull(kind), nil
 	}
 
 	var length int
 	// length should be converted to float before we get to here
-	if floatLength := Float64(values[1]); floatLength < float64(0) {
+	if floatLength := values.Float64(vs[1]); floatLength < float64(0) {
 		length = int(floatLength - 0.5)
 	} else {
 		length = int(floatLength + 0.5)
 	}
 
-	str := []rune(values[0].String())
-	padStr := []rune(values[2].String())
+	str := []rune(vs[0].String())
+	padStr := []rune(vs[2].String())
 	padLen := length - len(str)
 
 	// either:
 	// 1) padding string is empty and the input string is not long enough to not need padding
 	// 2) output length is negative and therefore impossible
 	if (len(padStr) == 0 && len(str) < length) || length < 0 {
-		return NewSQLNull(kind, EvalString), nil
+		return values.NewSQLNull(kind), nil
 	}
 
 	// the string is already long enough
 	if len(str) >= length {
-		return NewSQLVarchar(kind, string(str[:length])), nil
+		return values.NewSQLVarchar(kind, string(str[:length])), nil
 	}
 
 	// repeat padding as many times as needed to fill room
@@ -1243,10 +798,10 @@ func handlePadding(kind SQLValueKind, values []SQLValue, isLeftPad bool) (SQLVal
 	finalStr := string(str)
 
 	if isLeftPad {
-		return NewSQLVarchar(kind, finalPad+finalStr), nil
+		return values.NewSQLVarchar(kind, finalPad+finalStr), nil
 	}
 
-	return NewSQLVarchar(kind, finalStr+finalPad), nil
+	return values.NewSQLVarchar(kind, finalStr+finalPad), nil
 }
 
 func numMonths(startDate time.Time, endDate time.Time) int {
@@ -1297,11 +852,16 @@ func daysFromYearZeroCalculation(date time.Time) (float64, error) {
 	date = time.Date(year, date.Month(), date.Day(), 0, 0, 0, 0, schema.DefaultLocale)
 	dateYearStart := time.Date(year, time.January, 1, 0, 0, 0, 0, schema.DefaultLocale)
 
+	// TODO: REMOVE ME
+	if year < 0 {
+		fmt.Println(date)
+		return 0, nil
+	}
 	dayDifference := yearZeroDayDifferenceSlice[year]
 	// Now add the remaining days not accounted for by the year difference.
 	// The difference between "0000-01-01" and "0000-00-00" is 1 day.
 	if year == 0 && date.Equal(dateYearStart) {
-		dayDifference += 1
+		dayDifference++
 	} else {
 		dayDifference += math.Trunc(date.Sub(dateYearStart).Hours() / 24.0)
 	}
@@ -1473,7 +1033,7 @@ func toDegrees(f float64) float64 {
 // dateArithmeticArgs parses val and returns an integer slice stripped of any
 // spaces, colons, etc. It also returns whether the first character in val is
 // "-", indicating whether the arguments should be negative.
-func dateArithmeticArgs(unit string, val SQLValue) ([]int, int) {
+func dateArithmeticArgs(unit string, val values.SQLValue) ([]int, int) {
 	var args []int
 	neg := 1
 	prev := -1
@@ -1584,12 +1144,11 @@ func calculateInterval(unit string, args []int, neg int) (string, int, error) {
 }
 
 func shouldFlip(n sqlBinaryNode) bool {
-	if _, ok := n.left.(SQLValue); ok {
-		if _, ok := n.right.(SQLValue); !ok {
+	if _, ok := n.left.(SQLValueExpr); ok {
+		if _, ok := n.right.(SQLValueExpr); !ok {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -1627,17 +1186,60 @@ func isBooleanColumnAndNumber(left, right SQLExpr) bool {
 		return false
 	}
 
-	if left.EvalType() != EvalBoolean {
+	if left.EvalType() != types.EvalBoolean {
 		return false
 	}
 
-	if _, ok := right.(SQLNumber); !ok {
+	rightVal, ok := right.(SQLValueExpr)
+	if !ok {
 		return false
 	}
 
-	if _, ok := right.(SQLBool); ok {
+	if _, ok := rightVal.Value.(values.SQLNumber); !ok {
+		return false
+	}
+
+	if _, ok := rightVal.Value.(values.SQLBool); ok {
 		return false
 	}
 
 	return true
+}
+
+// isBooleanComparable returns true if this EvalType can
+// be used directly as a boolean without conversion.
+func isBooleanComparable(evalType types.EvalType) bool {
+	return evalType == types.EvalInt64 || evalType == types.EvalBoolean ||
+		evalType == types.EvalInt32 || evalType == types.EvalUint64 ||
+		evalType == types.EvalUint32
+}
+
+// ZeroValue returns the zero value for the given EvalType with the proper values.SQLValueKind.
+func ZeroValue(e types.EvalType, kind values.SQLValueKind) values.SQLValue {
+	switch e {
+	case types.EvalInt32, types.EvalInt64:
+		return values.NewSQLInt64(kind, 0)
+	case types.EvalUint32, types.EvalUint64:
+		return values.NewSQLUint64(kind, 0)
+	case types.EvalDouble, types.EvalArrNumeric:
+		return values.NewSQLFloat(kind, 0)
+	case types.EvalObjectID:
+		return values.NewSQLObjectID(kind, "")
+	case types.EvalString:
+		return values.NewSQLVarchar(kind, "")
+	case types.EvalDate:
+		return values.NewSQLDate(kind, time.Time{})
+	case types.EvalTimestamp, types.EvalDatetime:
+		return values.NewSQLTimestamp(kind, time.Time{})
+	case types.EvalBoolean:
+		return values.NewSQLBool(kind, false)
+	case types.EvalBinary:
+		return values.NewSQLVarchar(kind, "")
+	case types.EvalDecimal128:
+		return values.NewSQLDecimal128(kind, decimal.Decimal{})
+	case types.EvalPolymorphic, types.EvalNull:
+		return values.NewSQLNull(kind)
+	default:
+		panic(fmt.Sprintf("invalid EvalType '%x' in call to ZeroValue", e))
+	}
 }

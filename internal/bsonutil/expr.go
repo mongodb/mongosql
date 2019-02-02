@@ -418,6 +418,17 @@ func WrapInLiteral(v interface{}) bson.M {
 	return NewM(NewDocElem(OpLiteral, v))
 }
 
+// WrapInLiteralIfNeeded returns a document with v passed to $literal if it is not already wrapped
+// in $literal.
+func WrapInLiteralIfNeeded(v interface{}) bson.M {
+	if val, ok := v.(bson.M); ok {
+		if _, ok := val[OpLiteral]; ok && len(val) == 1 {
+			return val
+		}
+	}
+	return WrapInLiteral(v)
+}
+
 // WrapInLRTrim returns a trimmed version of args.
 func WrapInLRTrim(isLTrimType bool, args interface{}) interface{} {
 	var (

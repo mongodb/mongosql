@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -107,7 +108,7 @@ func (ci *CountIter) Next(ctx context.Context, row *Row) bool {
 	if !ci.called {
 		ci.called = true
 		row.Data = Values{
-			NewValueFromColumn(*ci.countColumn, NewSQLInt64(ci.cfg.sqlValueKind, int64(ci.count))),
+			NewValueFromColumn(*ci.countColumn, values.NewSQLInt64(ci.cfg.sqlValueKind, int64(ci.count))),
 		}
 		ci.err = ci.cfg.memoryMonitor.Acquire(row.Data.Size())
 		return ci.err == nil

@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math"
 	"strings"
+
+	"github.com/10gen/sqlproxy/evaluator/types"
 )
 
 // SQLScalarFunctionExpr is the interface describing scalar function expressions.
@@ -26,12 +28,12 @@ type baseScalarFunctionExpr struct {
 	// type for each argument to this scalar function. If the function is
 	// variadic, the final EvalType in the slice represents the expected type
 	// for all the variadic args.
-	expectedTypes []EvalType
+	expectedTypes []types.EvalType
 	// variadic indicates whether this function's final argument accepts 1 or
 	// more parameters of the same type instead of just one.
 	variadic bool
 	// returnTypeFunc is a function that indicates the EvalType that this scalar function returns.
-	returnTypeFunc func([]SQLExpr) EvalType
+	returnTypeFunc func([]SQLExpr) types.EvalType
 }
 
 func (baseScalarFunctionExpr) iSQLScalarFunctionExpr() {}
@@ -66,11 +68,11 @@ func (sf *baseScalarFunctionExpr) ReplaceChild(i int, n Node) {
 // EvalType for each argument. This function assumes that the sf.args and
 // sf.expectedTypes slices are correct, and does not perform any validation on
 // those fields.
-func (sf baseScalarFunctionExpr) argTypes() []EvalType {
+func (sf baseScalarFunctionExpr) argTypes() []types.EvalType {
 	if len(sf.expectedTypes) == 0 {
 		return nil
 	}
-	types := []EvalType{}
+	types := []types.EvalType{}
 	lastIdx := len(sf.expectedTypes) - 1
 	for i := range sf.args {
 		idx := int(math.Min(float64(lastIdx), float64(i)))
@@ -106,7 +108,7 @@ func (sf baseScalarFunctionExpr) validateArgs() error {
 	for i, typ := range argTypes {
 		// If the type is declared as polymorphic, there is nothing to check,
 		// as all types are conforming.
-		if typ == EvalPolymorphic {
+		if typ == types.EvalPolymorphic {
 			continue
 		}
 		if sf.args[i].EvalType() != typ {
@@ -132,6 +134,6 @@ func (sf baseScalarFunctionExpr) ExprName() string {
 	return fmt.Sprintf("SQLScalarFunctionExpr(%s)", sf.invokedAs)
 }
 
-func (sf baseScalarFunctionExpr) EvalType() EvalType {
+func (sf baseScalarFunctionExpr) EvalType() types.EvalType {
 	return sf.returnTypeFunc(sf.args)
 }

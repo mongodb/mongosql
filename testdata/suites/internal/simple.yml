@@ -285,3 +285,43 @@ testcases:
     expected_types: [int]
     id: _id_in_longer_str_tuple_predicate
     sql: select count(*) as count from test2 where (_id in ('570e919f65d33734a8605cb9', '570e919f65d33734a8605cb9'))
+
+  - db: test
+    expected_names: null
+    expected_results:
+      - [~]
+    expected_types: [varchar]
+    id: select_null
+    sql: select null
+
+  - db: test
+    expected_names: ['3.14']
+    expected_results:
+      - [3.14]
+    expected_types: [float]
+    id: select_3_14
+    sql: select 3.14
+
+  - db: test
+    expected_names: ['314']
+    expected_results:
+      - [314]
+    expected_types: [int]
+    id: select_314
+    sql: select 314
+
+  - db: test
+    expected_names: [true]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: select_true
+    sql: select true
+
+  - db: test
+    expected_names: ["'hello'"]
+    expected_results:
+      - [hello]
+    expected_types: [varchar]
+    id: select_hello
+    sql: select 'hello'

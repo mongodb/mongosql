@@ -6,7 +6,10 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -396,13 +399,13 @@ func (f *baseScalarFunctionExpr) convToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) convertToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (interface{}, PushdownFailure) {
-	typ, ok := evalTypeFromSQLExpr(exprs[1])
+	typ, ok := evalTypeFromSQLTypeExpr(exprs[1])
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(convert)",
 			fmt.Sprintf(
 				"cannot push down conversions to %s",
-				exprs[1].(SQLValue).String(),
+				exprs[1].(SQLValueExpr).Value.String(),
 			),
 		)
 	}
@@ -552,11 +555,11 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 
 	if date == nil {
 		switch exprs[0].EvalType() {
-		case EvalDate, EvalDatetime:
+		case types.EvalDate, types.EvalDatetime:
 		default:
 			return nil, newPushdownFailure(
 				"SQLScalarFunctionExpr(dateArithmetic)",
-				"cannot push down when first arg is EvalDate or EvalDatetime",
+				"cannot push down when first arg is types.EvalDate or types.EvalDatetime",
 			)
 		}
 
@@ -565,31 +568,33 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 		}
 	}
 
-	intervalValue, ok := exprs[1].(SQLValue)
+	intervalValueExpr, ok := exprs[1].(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(dateArithmetic)",
 			"cannot push down without literal interval value",
 		)
 	}
+	intervalValue := intervalValueExpr.Value
 
-	if Float64(intervalValue) == 0 {
+	if values.Float64(intervalValue) == 0 {
 		return date, nil
 	}
 
-	unitValue, ok := exprs[2].(SQLValue)
+	unitValueExpr, ok := exprs[2].(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(dateArithmetic)",
 			"cannot push down without literal unit value",
 		)
 	}
+	unitValue := unitValueExpr.Value
 
 	var ms int64
 	// Second can be a float rather than an int, so handle Second specially.
 	// calculateInterval works for all other units, as they must be integral.
 	if unitValue.String() == Second {
-		ms = round(Float64(intervalValue) * 1000.0)
+		ms = mathutil.Round(values.Float64(intervalValue) * 1000.0)
 	} else {
 		unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
 		unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
@@ -637,14 +642,14 @@ func (f *baseScalarFunctionExpr) dateDiffToAggregationLanguage(t *PushdownTransl
 	}
 
 	var date1, date2 *typedArgument
-	var ok bool
 	var err PushdownFailure
 
 	parseArgs := func(expr SQLExpr) (*typedArgument, PushdownFailure) {
-		var value SQLValue
-		if value, ok = expr.(SQLValue); ok {
+		var value values.SQLValue
+		if valueExpr, ok := expr.(SQLValueExpr); ok {
+			value = valueExpr.Value
 			var date time.Time
-			date, _, ok = strToDateTime(value.String(), false)
+			date, _, ok = values.StrToDateTime(value.String(), false)
 			if !ok {
 				return nil, newPushdownFailure(
 					"SQLScalarFunctionExpr(dateDiff)",
@@ -663,7 +668,7 @@ func (f *baseScalarFunctionExpr) dateDiffToAggregationLanguage(t *PushdownTransl
 			return &typedArgument{t: argLiteralType, v: date}, nil
 		}
 		exprType := expr.EvalType()
-		if exprType == EvalDatetime || exprType == EvalDate {
+		if exprType == types.EvalDatetime || exprType == types.EvalDate {
 			var date interface{}
 			date, err = t.ToAggregationLanguage(expr)
 			if err != nil {
@@ -723,13 +728,14 @@ func (f *baseScalarFunctionExpr) dateFormatToAggregationLanguage(t *PushdownTran
 		return nil, err
 	}
 
-	formatValue, ok := exprs[1].(SQLValue)
+	formatValueExpr, ok := exprs[1].(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(dateFormat)",
 			"format string was not a literal",
 		)
 	}
+	formatValue := formatValueExpr.Value
 
 	typedDate := toTypedArgument(exprs[0], date)
 	conds, containsNullLiteral := minimizeNullChecks(t.ColumnsToNullCheck(), typedDate)
@@ -864,29 +870,26 @@ func (f *baseScalarFunctionExpr) extractToAggregationLanguage(t *PushdownTransla
 		return nil, err
 	}
 
-	bsonMap, ok := unitArg.(bson.M)
-	if !ok {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(extract)",
-			"translateArgs returned something other than bson.M",
-		)
-	}
-
-	bsonVal, ok := bsonMap["$literal"]
-	if !ok {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(extract)",
-			"first argument was not translated to a $literal",
-		)
-	}
-
-	unit, ok := bsonVal.(string)
-	if !ok {
-		// The unit must absolutely be a string.
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(extract)",
-			"first argument was not a string",
-		)
+	var unit string
+	if s, ok := unitArg.(string); ok {
+		unit = s
+	} else {
+		var bsonVal interface{}
+		bsonVal, ok = bsonutil.GetLiteral(unitArg)
+		if !ok {
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(extract)",
+				"translateArgs returned something other than a literal",
+			)
+		}
+		unit, ok = bsonVal.(string)
+		if !ok {
+			// The unit must absolutely be a string.
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(extract)",
+				"first argument was not a string",
+			)
+		}
 	}
 
 	switch unit {
@@ -988,7 +991,8 @@ func (f *baseScalarFunctionExpr) fromUnixtimeToAggregationLanguage(t *PushdownTr
 	if len(exprs) == 1 {
 		return ret, nil
 	}
-	if format, ok := exprs[1].(SQLValue); ok {
+	if formatExpr, ok := exprs[1].(SQLValueExpr); ok {
+		format := formatExpr.Value
 		wrapped, ok := bsonutil.WrapInDateFormat(ret, format.String())
 		if !ok {
 			return nil, newPushdownFailure(
@@ -1991,8 +1995,9 @@ func (f *baseScalarFunctionExpr) roundToAggregationLanguage(t *PushdownTranslato
 	case 1:
 		return bsonutil.WrapInRound(args[0]), nil
 	case 2:
-		if arg1, ok := exprs[1].(SQLValue); ok {
-			return bsonutil.WrapInRoundWithPrecision(args[0], Float64(arg1)), nil
+		if arg1Expr, ok := exprs[1].(SQLValueExpr); ok {
+			arg1 := arg1Expr.Value
+			return bsonutil.WrapInRoundWithPrecision(args[0], values.Float64(arg1)), nil
 		}
 		fallthrough
 	default:
@@ -3133,12 +3138,13 @@ func (f *baseScalarFunctionExpr) truncateToAggregationLanguage(t *PushdownTransl
 			incorrectArgCountMsg,
 		)
 	}
-	dValue, ok := exprs[1].(SQLValue)
+	dValueExpr, ok := exprs[1].(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure("SQLScalarFunctionExpr(truncate)", "second arg is not a literal")
 	}
+	dValue := dValueExpr.Value
 
-	d := Float64(dValue)
+	d := values.Float64(dValue)
 
 	args, err := t.translateArgs(exprs)
 	if err != nil {
@@ -3266,11 +3272,11 @@ func (f *baseScalarFunctionExpr) weekToAggregationLanguage(t *PushdownTranslator
 	}
 	mode := int64(0)
 	if len(exprs) == 2 {
-		modeValue, ok := exprs[1].(SQLValue)
+		modeValueExpr, ok := exprs[1].(SQLValueExpr)
 		if !ok {
 			return nil, newPushdownFailure("SQLScalarFunctionExpr(week)", "mode is not a literal")
 		}
-		mode = Int64(modeValue)
+		mode = values.Int64(modeValueExpr.Value)
 	}
 
 	args, err := t.translateArgs(exprs)
@@ -3338,11 +3344,11 @@ func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTransl
 	}
 	mode := int64(0)
 	if len(exprs) == 2 {
-		modeValue, ok := exprs[1].(SQLValue)
+		modeValueExpr, ok := exprs[1].(SQLValueExpr)
 		if !ok {
 			return nil, newPushdownFailure("SQLScalarFunctionExpr(yearWeek)", "mode is not a literal")
 		}
-		mode = Int64(modeValue)
+		mode = values.Int64(modeValueExpr.Value)
 	}
 
 	args, err := t.translateArgs(exprs)
@@ -3464,9 +3470,13 @@ func toTypedArgument(expr SQLExpr, arg interface{}) *typedArgument {
 	t := argOtherType
 	v := arg
 
-	if value, ok := bsonutil.GetLiteral(arg); ok {
+	if _, ok := expr.(SQLValueExpr); ok {
 		t = argLiteralType
-		v = value
+		if value, isWrappedInLiteral := bsonutil.GetLiteral(arg); isWrappedInLiteral {
+			v = value
+		} else {
+			v = arg
+		}
 	} else if columnName, isColumn := getStringColumnReference(expr, arg); isColumn {
 		t = argColumnType
 		v = columnName

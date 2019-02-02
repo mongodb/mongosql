@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -196,11 +198,11 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				"Database",
 				"",
 				"",
-				EvalString,
+				types.EvalString,
 				schema.MongoNone,
 				false,
 			),
-			Expr: NewSQLVarchar(a.valueKind(), databaseName),
+			Expr: NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), databaseName)),
 		},
 		ProjectedColumn{
 			Column: NewColumn(a.selectID,
@@ -210,12 +212,12 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 				"Create Database",
 				"",
 				"",
-				EvalString,
+				types.EvalString,
 				schema.MongoNone,
 				false,
 			),
-			Expr: NewSQLVarchar(a.valueKind(), catalog.GenerateCreateDatabase(databaseName,
-				show.Modifier)),
+			Expr: NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), catalog.GenerateCreateDatabase(databaseName,
+				show.Modifier))),
 		},
 	), nil
 }
@@ -261,11 +263,11 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				"Table",
 				"",
 				"",
-				EvalString,
+				types.EvalString,
 				schema.MongoNone,
 				false,
 			),
-			Expr: NewSQLVarchar(a.valueKind(), string(table.Name())),
+			Expr: NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), string(table.Name()))),
 		},
 		ProjectedColumn{
 			Column: NewColumn(a.selectID,
@@ -275,11 +277,11 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				"Create Table",
 				"",
 				"",
-				EvalString,
+				types.EvalString,
 				schema.MongoNone,
 				false,
 			),
-			Expr: NewSQLVarchar(a.valueKind(), createTableSQL),
+			Expr: NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), createTableSQL)),
 		},
 	), nil
 }
@@ -474,8 +476,8 @@ func (a *algebrizer) translateShowProcessList(show *parser.Show) (PlanStage, err
 					"substring",
 					append(
 						[]SQLExpr{}, expr,
-						NewSQLInt64(a.valueKind(), 1),
-						NewSQLInt64(a.valueKind(), 100),
+						NewSQLValueExpr(values.NewSQLInt64(a.valueKind(), 1)),
+						NewSQLValueExpr(values.NewSQLInt64(a.valueKind(), 100)),
 					),
 				)
 			},

@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
@@ -25,51 +27,51 @@ const (
 	MaxDepth = 180
 )
 
-func translateConvert(expr interface{}, from, to EvalType) interface{} {
+func translateConvert(expr interface{}, from, to types.EvalType) interface{} {
 	var targetType string
 	switch to {
-	case EvalBoolean:
+	case types.EvalBoolean:
 		targetType = "bool"
 		// If the from type is a string, convert to int before boolean, because
 		// mongo type conversion assumes "false" is the only false
 		// string, whereas we actually want '0' to be false and any non-zero
 		// integer to be true. As it is now, MongoDB will convert the string '0'
 		// to true.
-		if from == EvalString {
+		if from == types.EvalString {
 			expr = bsonutil.WrapInConvert(expr, "int", 0, nil)
 
 			// If the from type is a floating point type, we need to round because
 			// -0.4 through 0.4 should be treated as false.
-		} else if from == EvalDouble || from == EvalDecimal128 {
+		} else if from == types.EvalDouble || from == types.EvalDecimal128 {
 			expr = bsonutil.WrapInRound(expr)
 		}
-	case EvalDecimal128:
+	case types.EvalDecimal128:
 		targetType = "decimal"
-		if from == EvalObjectID {
-			expr = translateConvert(expr, from, EvalDatetime)
+		if from == types.EvalObjectID {
+			expr = translateConvert(expr, from, types.EvalDatetime)
 		}
-	case EvalDouble:
+	case types.EvalDouble:
 		targetType = "double"
-		if from == EvalObjectID {
-			expr = translateConvert(expr, from, EvalDatetime)
+		if from == types.EvalObjectID {
+			expr = translateConvert(expr, from, types.EvalDatetime)
 		}
-	case EvalInt32, EvalUint32:
+	case types.EvalInt32, types.EvalUint32:
 		targetType = "int"
-		if from == EvalDecimal128 || from == EvalDouble {
+		if from == types.EvalDecimal128 || from == types.EvalDouble {
 			expr = bsonutil.WrapInRound(expr)
-		} else if from == EvalObjectID {
-			expr = translateConvert(expr, from, EvalDatetime)
+		} else if from == types.EvalObjectID {
+			expr = translateConvert(expr, from, types.EvalDatetime)
 		}
-	case EvalInt64, EvalUint64:
+	case types.EvalInt64, types.EvalUint64:
 		targetType = "long"
-		if from == EvalDecimal128 || from == EvalDouble {
+		if from == types.EvalDecimal128 || from == types.EvalDouble {
 			expr = bsonutil.WrapInRound(expr)
-		} else if from == EvalObjectID {
-			expr = translateConvert(expr, from, EvalDatetime)
+		} else if from == types.EvalObjectID {
+			expr = translateConvert(expr, from, types.EvalDatetime)
 		}
-	case EvalObjectID:
+	case types.EvalObjectID:
 		targetType = "objectId"
-	case EvalString:
+	case types.EvalString:
 		targetType = "string"
 		// Bools need to be converted to String as "1" or "0", rather than
 		// as "true" and "false".
@@ -79,14 +81,14 @@ func translateConvert(expr interface{}, from, to EvalType) interface{} {
 		)
 
 		expr = bsonutil.WrapInCond(bsonutil.WrapInCond("1", "0", expr), expr, cond)
-	case EvalDatetime, EvalDate:
+	case types.EvalDatetime, types.EvalDate:
 		targetType = "date"
 	default:
 		panic(fmt.Errorf("target type %s is not a valid target type for $convert",
-			string(EvalTypeToSQLType(to))))
+			string(types.EvalTypeToSQLType(to))))
 	}
 
-	if from == EvalDate {
+	if from == types.EvalDate {
 		// Need to special-case date-to-string.
 		if targetType == "string" {
 			converted := bsonutil.WrapInDateToString(expr, "%Y-%m-%d")
@@ -150,7 +152,7 @@ func (t *PushdownTranslator) addCorrelatedSubqueryColumnFuture(c *SQLColumnExpr)
 	return cc
 }
 
-func (t *PushdownTranslator) valueKind() SQLValueKind {
+func (t *PushdownTranslator) valueKind() values.SQLValueKind {
 	return t.Cfg.sqlValueKind
 }
 
@@ -328,24 +330,24 @@ func (t *PushdownTranslator) getFieldName(e SQLExpr) (string, bool) {
 
 func (t *PushdownTranslator) getValue(e SQLExpr) (interface{}, PushdownFailure) {
 
-	cons, ok := e.(SQLValue)
+	cons, ok := e.(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure(
 			e.ExprName(),
-			"SQLExpr is not a SQLValue",
+			"SQLExpr is not a SQLValueExpr",
 			"expr", fmt.Sprintf("%#v", e),
 		)
 	}
 
-	if cons.EvalType() == EvalDecimal128 {
-		return t.translateDecimal(cons)
+	if cons.EvalType() == types.EvalDecimal128 {
+		return t.translateDecimal(cons.Value, cons.ExprName())
 	}
 
-	return cons.Value(), nil
+	return cons.Value.Value(), nil
 }
 
 func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (interface{}, PushdownFailure) {
-	formatValue, ok := f.args[1].(SQLValue)
+	formatValue, ok := f.args[1].(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure(f.ExprName(), "format string argument was not literal")
 	}
@@ -466,10 +468,10 @@ func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (inter
 	), nil
 }
 
-func (t *PushdownTranslator) translateDecimal(cons SQLValue) (interface{}, PushdownFailure) {
+func (t *PushdownTranslator) translateDecimal(cons values.SQLValue, exprName string) (interface{}, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
 		return nil, newPushdownFailure(
-			cons.ExprName(),
+			exprName,
 			"cannot translate SQLValue to decimal on MongoDB < 3.4",
 		)
 	}
@@ -477,7 +479,7 @@ func (t *PushdownTranslator) translateDecimal(cons SQLValue) (interface{}, Pushd
 	parsed, err := bson.ParseDecimal128(cons.String())
 	if err != nil {
 		return nil, newPushdownFailure(
-			cons.ExprName(),
+			exprName,
 			"failed to parse decimal from SQLValue string",
 			"string", cons.String(),
 			"error", err.Error(),
@@ -501,16 +503,18 @@ func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 	colExpr, ok := nameExpr.(SQLColumnExpr)
 	mType := colExpr.columnType.MongoType
 	if ok {
-		if IsUUID(mType) {
+		if values.IsUUID(mType) {
 			fieldValue, ok = GetBinaryFromExpr(mType, valExpr)
 			if !ok {
 				return nil, false
 			}
 		} else if mType == schema.MongoObjectID {
-			switch typed := valExpr.(type) {
-			case SQLVarchar:
-				fieldValue = bson.ObjectIdHex(String(typed))
-			case SQLObjectID:
+			// We know this type assert is safe because of the call to
+			// t.getValue(valExpr) above.
+			switch typed := valExpr.(SQLValueExpr).Value.(type) {
+			case values.SQLVarchar:
+				fieldValue = bson.ObjectIdHex(values.String(typed))
+			case values.SQLObjectID:
 				fieldValue = typed.Value()
 			default:
 				return nil, false
@@ -597,7 +601,7 @@ func GetBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
 		return bson.Binary{}, false
 	}
 
-	err = NormalizeUUID(mType, bytes)
+	err = values.NormalizeUUID(mType, bytes)
 	if err != nil {
 		return bson.Binary{}, false
 	}
@@ -622,7 +626,7 @@ func getSingleMapEntry(m bson.M) (string, interface{}) {
 }
 
 // getProjectedFieldName returns an interface to project the given field.
-func getProjectedFieldName(fieldName string, fieldType EvalType) interface{} {
+func getProjectedFieldName(fieldName string, fieldType types.EvalType) interface{} {
 
 	names := strings.Split(fieldName, ".")
 
@@ -632,7 +636,7 @@ func getProjectedFieldName(fieldName string, fieldType EvalType) interface{} {
 
 	value, err := strconv.Atoi(names[len(names)-1])
 	// special handling for legacy 2d array
-	if err == nil && fieldType == EvalArrNumeric {
+	if err == nil && fieldType == types.EvalArrNumeric {
 		fieldName = fieldName[0:strings.LastIndex(fieldName, ".")]
 		return bsonutil.NewM(bsonutil.NewDocElem("$arrayElemAt", bsonutil.NewArray(
 			"$"+fieldName,

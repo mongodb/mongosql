@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -181,7 +182,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 		if newN == nil {
 			newN = componentN
 		} else {
-			newN = NewJoinStage(CrossJoin, newN, componentN, NewSQLBool(valueKind, true))
+			newN = NewJoinStage(CrossJoin, newN, componentN, NewSQLValueExpr(values.NewSQLBool(valueKind, true)))
 		}
 	}
 
@@ -209,7 +210,7 @@ func (v *crossJoinOptimizer) optimizeSubtree() Node {
 		if newN == nil {
 			newN = newPlanStage
 		} else {
-			newN = NewJoinStage(CrossJoin, newN, newPlanStage, NewSQLBool(valueKind, true))
+			newN = NewJoinStage(CrossJoin, newN, newPlanStage, NewSQLValueExpr(values.NewSQLBool(valueKind, true)))
 		}
 	}
 
@@ -275,10 +276,10 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 		hasCardinalityReducingJoinCriteria := typedN.matcher != nil
 		if hasCardinalityReducingJoinCriteria {
 			switch typedM := typedN.matcher.(type) {
-			case SQLBool:
+			case SQLValueExpr:
 				// If the criteria is the boolean true - (1) - then it's not
 				// helpful in reducing cardinality.
-				hasCardinalityReducingJoinCriteria = Float64(typedM) != 1
+				hasCardinalityReducingJoinCriteria = values.Float64(typedM.Value) != 1
 			default:
 				conjunctiveCriteria, err := getConjunctiveTerms(typedN.matcher)
 				if err != nil {
@@ -343,7 +344,7 @@ func (v *crossJoinOptimizer) visit(n Node) (Node, error) {
 					}
 
 					if predicate == nil {
-						predicate = NewSQLBool(valueKind, true)
+						predicate = NewSQLValueExpr(values.NewSQLBool(valueKind, true))
 					}
 
 					n = NewJoinStage(kind, left.(PlanStage), right.(PlanStage), predicate)

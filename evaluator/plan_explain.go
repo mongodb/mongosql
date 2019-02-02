@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -133,13 +135,13 @@ func generateExplainColumns(dbName string) []*Column {
 			columns = append(columns,
 				NewColumn(i, tableName,
 					tableName, dbName, colNames[i],
-					colNames[i], "", EvalInt64,
+					colNames[i], "", types.EvalInt64,
 					schema.MongoInt64, false))
 		default:
 			columns = append(columns,
 				NewColumn(i, tableName,
 					tableName, dbName, colNames[i],
-					colNames[i], "", EvalString,
+					colNames[i], "", types.EvalString,
 					schema.MongoString, false))
 		}
 	}
@@ -150,8 +152,8 @@ func generateExplainColumns(dbName string) []*Column {
 
 // generateExplainRows generates the rows to be returned by an ExplainStage from
 // the provided slice of stage explanations.
-func generateExplainRow(kind SQLValueKind, cols []*Column, rec *ExplainRecord) *Row {
-	var values []Value
+func generateExplainRow(kind values.SQLValueKind, cols []*Column, rec *ExplainRecord) *Row {
+	var vs []Value
 	for i := 0; i < len(cols); i++ {
 
 		selectID := cols[i].SelectID
@@ -159,15 +161,15 @@ func generateExplainRow(kind SQLValueKind, cols []*Column, rec *ExplainRecord) *
 		tableName := cols[i].Table
 		name := cols[i].Name
 
-		var value SQLValue
+		var value values.SQLValue
 
 		switch name {
 		case stageID:
-			value = NewSQLInt64(kind, int64(rec.ID))
+			value = values.NewSQLInt64(kind, int64(rec.ID))
 		case planStage:
-			value = NewSQLVarchar(kind, rec.StageType)
+			value = values.NewSQLVarchar(kind, rec.StageType)
 		case planColumns:
-			value = NewSQLVarchar(kind, rec.Columns)
+			value = values.NewSQLVarchar(kind, rec.Columns)
 		case sources:
 			if len(rec.Sources) > 0 {
 				strs := []string{}
@@ -175,22 +177,22 @@ func generateExplainRow(kind SQLValueKind, cols []*Column, rec *ExplainRecord) *
 					strs = append(strs, strconv.Itoa(i))
 				}
 				result := fmt.Sprintf("[%v]", strings.Join(strs, ", "))
-				value = NewSQLVarchar(kind, result)
+				value = values.NewSQLVarchar(kind, result)
 			} else {
-				value = NewSQLNull(kind, EvalString)
+				value = values.NewSQLNull(kind)
 			}
 		case database:
-			value = NewSQLVarcharFromOpt(kind, rec.Database)
+			value = values.NewSQLVarcharFromOpt(kind, rec.Database)
 		case tables:
-			value = NewSQLVarcharFromOpt(kind, rec.Tables)
+			value = values.NewSQLVarcharFromOpt(kind, rec.Tables)
 		case aliases:
-			value = NewSQLVarcharFromOpt(kind, rec.Aliases)
+			value = values.NewSQLVarcharFromOpt(kind, rec.Aliases)
 		case collections:
-			value = NewSQLVarcharFromOpt(kind, rec.Collections)
+			value = values.NewSQLVarcharFromOpt(kind, rec.Collections)
 		case pipeline:
-			value = NewSQLVarcharFromOpt(kind, rec.Pipeline)
+			value = values.NewSQLVarcharFromOpt(kind, rec.Pipeline)
 		case pipelineExplain:
-			value = NewSQLVarcharFromOpt(kind, rec.PipelineExplain)
+			value = values.NewSQLVarcharFromOpt(kind, rec.PipelineExplain)
 		case comment:
 			if len(rec.PushdownFailures) > 0 {
 				val := struct {
@@ -204,18 +206,18 @@ func generateExplainRow(kind SQLValueKind, cols []*Column, rec *ExplainRecord) *
 					panic(err)
 				}
 
-				value = NewSQLVarchar(kind, string(b))
+				value = values.NewSQLVarchar(kind, string(b))
 			} else {
-				value = NewSQLNull(kind, EvalString)
+				value = values.NewSQLNull(kind)
 			}
 		default:
 			panic(fmt.Sprintf("unexpected explain column %q", name))
 		}
 
-		values = append(values, NewValue(selectID, dbName, tableName, name, value))
+		vs = append(vs, NewValue(selectID, dbName, tableName, name, value))
 	}
 
-	return &Row{Data: values}
+	return &Row{Data: vs}
 }
 
 // getPlanColumns returns a string representation of a stage's columns
@@ -229,10 +231,10 @@ func getPlanColumns(columns []*Column) string {
 		}
 		if len(c.Database) == 0 || len(c.Table) == 0 {
 			b.WriteString(fmt.Sprintf("{name: '%v', type: '%v'}",
-				c.Name, EvalTypeToSQLType(c.EvalType)))
+				c.Name, types.EvalTypeToSQLType(c.EvalType)))
 		} else {
 			b.WriteString(fmt.Sprintf("{name: %v.%v.'%v', type: '%v'}",
-				c.Database, c.Table, c.Name, EvalTypeToSQLType(c.EvalType)))
+				c.Database, c.Table, c.Name, types.EvalTypeToSQLType(c.EvalType)))
 		}
 	}
 	b.WriteString("]")

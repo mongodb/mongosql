@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 // A FilterStage ensures that only rows matching a given criteria are
@@ -78,7 +79,7 @@ func (fs *FilterStage) Collation() *collation.Collation {
 // return false, and the value of the provided Row should not be used.
 func (fi *FilterIter) Next(ctx context.Context, row *Row) bool {
 	var hasMatch, hasNext bool
-	var result SQLValue
+	var result values.SQLValue
 
 	for {
 
@@ -98,7 +99,7 @@ func (fi *FilterIter) Next(ctx context.Context, row *Row) bool {
 			return false
 		}
 
-		hasMatch = Bool(result)
+		hasMatch = values.Bool(result)
 		if hasMatch {
 			break
 		}

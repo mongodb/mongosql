@@ -5,28 +5,29 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
 )
 
 var (
-	SQL1  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 1)
-	SQL2  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 2)
-	SQL3  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 3)
-	SQL4  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 4)
-	SQL5  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 5)
-	SQL6  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 6)
-	SQL7  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 7)
-	SQL8  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 8)
-	SQL9  = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 9)
-	SQL10 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 10)
-	SQL11 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 11)
-	SQL12 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 12)
-	SQL13 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 13)
-	SQL14 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 14)
-	SQL15 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 15)
-	SQL16 = evaluator.NewSQLInt64(evaluator.MySQLValueKind, 16)
+	SQL1  = NewSQLInt64(MySQLValueKind, 1)
+	SQL2  = NewSQLInt64(MySQLValueKind, 2)
+	SQL3  = NewSQLInt64(MySQLValueKind, 3)
+	SQL4  = NewSQLInt64(MySQLValueKind, 4)
+	SQL5  = NewSQLInt64(MySQLValueKind, 5)
+	SQL6  = NewSQLInt64(MySQLValueKind, 6)
+	SQL7  = NewSQLInt64(MySQLValueKind, 7)
+	SQL8  = NewSQLInt64(MySQLValueKind, 8)
+	SQL9  = NewSQLInt64(MySQLValueKind, 9)
+	SQL10 = NewSQLInt64(MySQLValueKind, 10)
+	SQL11 = NewSQLInt64(MySQLValueKind, 11)
+	SQL12 = NewSQLInt64(MySQLValueKind, 12)
+	SQL13 = NewSQLInt64(MySQLValueKind, 13)
+	SQL14 = NewSQLInt64(MySQLValueKind, 14)
+	SQL15 = NewSQLInt64(MySQLValueKind, 15)
+	SQL16 = NewSQLInt64(MySQLValueKind, 16)
 )
 
 var (
@@ -71,7 +72,7 @@ var (
 
 type result map[string]interface{}
 
-func containsRow(t *testing.T, results []result, row *evaluator.Row) ([]result, bool) {
+func containsRow(t *testing.T, results []result, row *Row) ([]result, bool) {
 	toRemove := -1
 
 	contains := false
@@ -105,12 +106,12 @@ func TestUnionPlanStage(t *testing.T) {
 
 	bgCtx := context.Background()
 	execCfg := createTestExecutionCfg()
-	execState := evaluator.NewExecutionState()
+	execState := NewExecutionState()
 
 	test := func(t *testing.T, expectedColumns []string, expectedResults []result,
-		planStageFactory func() evaluator.PlanStage) {
+		planStageFactory func() PlanStage) {
 
-		row := &evaluator.Row{}
+		row := &Row{}
 
 		unionStage := planStageFactory()
 		iter, err := unionStage.Open(bgCtx, execCfg, execState)
@@ -142,10 +143,10 @@ func TestUnionPlanStage(t *testing.T) {
 				{"a": SQL5, "b": SQL6}, {"a": SQL7, "b": SQL8},
 				{"a": SQL9, "b": SQL10}, {"a": SQL11, "b": SQL12},
 				{"a": SQL13, "b": SQL14}, {"a": SQL15, "b": SQL16}},
-			func() evaluator.PlanStage {
-				return evaluator.NewUnionStage(evaluator.UnionDistinct,
-					evaluator.NewBSONSourceStage(1, "foo", collation.Default, basicTable1),
-					evaluator.NewBSONSourceStage(2, "bar", collation.Default, basicTable2),
+			func() PlanStage {
+				return NewUnionStage(UnionDistinct,
+					NewBSONSourceStage(1, "foo", collation.Default, basicTable1),
+					NewBSONSourceStage(2, "bar", collation.Default, basicTable2),
 				)
 			})
 	})
@@ -156,10 +157,10 @@ func TestUnionPlanStage(t *testing.T) {
 				{"c": SQL5, "d": SQL6}, {"c": SQL7, "d": SQL8},
 				{"c": SQL9, "d": SQL10}, {"c": SQL11, "d": SQL12},
 				{"c": SQL13, "d": SQL14}, {"c": SQL15, "d": SQL16}},
-			func() evaluator.PlanStage {
-				return evaluator.NewUnionStage(evaluator.UnionDistinct,
-					evaluator.NewBSONSourceStage(1, "foo", collation.Default, basicTable2),
-					evaluator.NewBSONSourceStage(2, "bar", collation.Default, basicTable1),
+			func() PlanStage {
+				return NewUnionStage(UnionDistinct,
+					NewBSONSourceStage(1, "foo", collation.Default, basicTable2),
+					NewBSONSourceStage(2, "bar", collation.Default, basicTable1),
 				)
 			})
 	})

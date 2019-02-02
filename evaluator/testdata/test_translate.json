@@ -16,15 +16,15 @@
     "add_nulls": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "add_str": {
@@ -226,15 +226,15 @@
     "aggregate_max_plus_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "aggregate_min": {
@@ -282,15 +282,15 @@
     "aggregate_std_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "aggregate_stddev": {
@@ -310,15 +310,15 @@
     "aggregate_stddev_plus_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "aggregate_stddev_pop": {
@@ -478,15 +478,15 @@
     "case": {
         "expr": {
             "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},{\"$literal\":\"gt\"},{\"$literal\":\"lt\"}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
-            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},{\"$literal\":\"gt\"},{\"$literal\":\"lt\"}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
-            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},{\"$literal\":\"gt\"},{\"$literal\":\"lt\"}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
-            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},{\"$literal\":\"gt\"},{\"$literal\":\"lt\"}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}"
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},\"gt\",\"lt\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},\"gt\",\"lt\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},\"gt\",\"lt\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},{\"$literal\":\"gt\"},{\"$literal\":\"lt\"}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},{\"$literal\":\"gt\"},{\"$literal\":\"lt\"}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}"
+            "3.6": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},\"gt\",\"lt\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}",
+            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$gt\":[\"$a\",1]}]},\"gt\",\"lt\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}"
         }
     },
     "column_bool": {
@@ -520,43 +520,43 @@
     "convert_bool_to_string": {
         "expr": {
             "3.2": "{\"$literal\":\"false\"}",
-            "3.4": "{\"$literal\":\"false\"}",
-            "3.6": "{\"$literal\":\"false\"}",
-            "4.0": "{\"$literal\":\"false\"}"
+            "3.4": "\"false\"",
+            "3.6": "\"false\"",
+            "4.0": "\"false\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"false\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"false\"}}"
+            "3.6": "{\"$expr\":\"false\"}",
+            "4.0": "{\"$expr\":\"false\"}"
         }
     },
     "convert_date_string_to_date": {
         "expr": {
             "3.2": "{\"$literal\":\"2018-09-07T00:00:00Z\"}",
-            "3.4": "{\"$literal\":\"2018-09-07T00:00:00Z\"}",
-            "3.6": "{\"$literal\":\"2018-09-07T00:00:00Z\"}",
-            "4.0": "{\"$literal\":\"2018-09-07T00:00:00Z\"}"
+            "3.4": "\"2018-09-07T00:00:00Z\"",
+            "3.6": "\"2018-09-07T00:00:00Z\"",
+            "4.0": "\"2018-09-07T00:00:00Z\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"2018-09-07T00:00:00Z\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"2018-09-07T00:00:00Z\"}}"
+            "3.6": "{\"$expr\":\"2018-09-07T00:00:00Z\"}",
+            "4.0": "{\"$expr\":\"2018-09-07T00:00:00Z\"}"
         }
     },
     "convert_datetime_string_to_date": {
         "expr": {
             "3.2": "{\"$literal\":\"2018-09-07T00:00:00Z\"}",
-            "3.4": "{\"$literal\":\"2018-09-07T00:00:00Z\"}",
-            "3.6": "{\"$literal\":\"2018-09-07T00:00:00Z\"}",
-            "4.0": "{\"$literal\":\"2018-09-07T00:00:00Z\"}"
+            "3.4": "\"2018-09-07T00:00:00Z\"",
+            "3.6": "\"2018-09-07T00:00:00Z\"",
+            "4.0": "\"2018-09-07T00:00:00Z\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"2018-09-07T00:00:00Z\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"2018-09-07T00:00:00Z\"}}"
+            "3.6": "{\"$expr\":\"2018-09-07T00:00:00Z\"}",
+            "4.0": "{\"$expr\":\"2018-09-07T00:00:00Z\"}"
         }
     },
     "convert_float_to_signed": {
@@ -576,29 +576,29 @@
     "convert_int_to_string": {
         "expr": {
             "3.2": "{\"$literal\":\"23\"}",
-            "3.4": "{\"$literal\":\"23\"}",
-            "3.6": "{\"$literal\":\"23\"}",
-            "4.0": "{\"$literal\":\"23\"}"
+            "3.4": "\"23\"",
+            "3.6": "\"23\"",
+            "4.0": "\"23\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"23\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"23\"}}"
+            "3.6": "{\"$expr\":\"23\"}",
+            "4.0": "{\"$expr\":\"23\"}"
         }
     },
     "convert_null_to_binary": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "convert_signed_to_unsigned": {
@@ -982,15 +982,15 @@
     "in_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "in_objectid_string_col": {
@@ -1276,15 +1276,15 @@
     "mod_invalid_zero": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "mod_multiple": {
@@ -1332,15 +1332,15 @@
     "multiply_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "multiply_str": {
@@ -1402,15 +1402,15 @@
     "ne_null_match": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "not_and": {
@@ -1640,15 +1640,15 @@
     "nse_one_null": {
         "expr": {
             "3.2": "{\"$eq\":[{\"$ifNull\":[\"$a\",null]},null]}",
-            "3.4": "{\"$eq\":[{\"$ifNull\":[\"$a\",null]},null]}",
-            "3.6": "{\"$eq\":[{\"$ifNull\":[\"$a\",null]},null]}",
-            "4.0": "{\"$eq\":[{\"$ifNull\":[\"$a\",null]},null]}"
+            "3.4": "{\"$eq\":[{\"$ifNull\":[\"$a\",null]},{\"$ifNull\":[null,null]}]}",
+            "3.6": "{\"$eq\":[{\"$ifNull\":[\"$a\",null]},{\"$ifNull\":[null,null]}]}",
+            "4.0": "{\"$eq\":[{\"$ifNull\":[\"$a\",null]},{\"$ifNull\":[null,null]}]}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$eq\":[{\"$ifNull\":[\"$a\",null]},null]}}",
-            "4.0": "{\"$expr\":{\"$eq\":[{\"$ifNull\":[\"$a\",null]},null]}}"
+            "3.6": "{\"$expr\":{\"$eq\":[{\"$ifNull\":[\"$a\",null]},{\"$ifNull\":[null,null]}]}}",
+            "4.0": "{\"$expr\":{\"$eq\":[{\"$ifNull\":[\"$a\",null]},{\"$ifNull\":[null,null]}]}}"
         }
     },
     "or_assoc_left_int": {
@@ -1780,15 +1780,15 @@
     "scalar_abs_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_abs_string": {
@@ -1822,29 +1822,29 @@
     "scalar_acos_arith_expr": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_acos_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_acos_string": {
@@ -2032,15 +2032,15 @@
     "scalar_adddate_12": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_ascii": {
@@ -2130,15 +2130,15 @@
     "scalar_asin_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_asin_string": {
@@ -2200,15 +2200,15 @@
     "scalar_atan2_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_atan2_string": {
@@ -2242,15 +2242,15 @@
     "scalar_atan_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_atan_string": {
@@ -2340,15 +2340,15 @@
     "scalar_cast_null_to_signed": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_cast_string_to_binary": {
@@ -2410,15 +2410,15 @@
     "scalar_ceil_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_ceil_string": {
@@ -2466,15 +2466,15 @@
     "scalar_ceiling_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_ceiling_string": {
@@ -2536,15 +2536,15 @@
     "scalar_char_null": {
         "expr": {
             "3.2": "{\"$literal\":\"\"}",
-            "3.4": "{\"$literal\":\"\"}",
-            "3.6": "{\"$literal\":\"\"}",
-            "4.0": "{\"$literal\":\"\"}"
+            "3.4": "\"\"",
+            "3.6": "\"\"",
+            "4.0": "\"\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"\"}}"
+            "3.6": "{\"$expr\":\"\"}",
+            "4.0": "{\"$expr\":\"\"}"
         }
     },
     "scalar_char_string": {
@@ -2592,15 +2592,15 @@
     "scalar_character_length_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_coalesce": {
@@ -2620,15 +2620,15 @@
     "scalar_coalesce_mixed_types": {
         "expr": {
             "3.2": "{\"$literal\":\"2\"}",
-            "3.4": "{\"$literal\":\"2\"}",
-            "3.6": "{\"$literal\":\"2\"}",
-            "4.0": "{\"$literal\":\"2\"}"
+            "3.4": "\"2\"",
+            "3.6": "\"2\"",
+            "4.0": "\"2\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"2\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"2\"}}"
+            "3.6": "{\"$expr\":\"2\"}",
+            "4.0": "{\"$expr\":\"2\"}"
         }
     },
     "scalar_coalesce_non_null": {
@@ -2648,43 +2648,43 @@
     "scalar_coalesce_only_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_concat": {
         "expr": {
             "3.2": "{\"$concat\":[\"$s\",{\"$literal\":\"funny\"}]}",
-            "3.4": "{\"$concat\":[\"$s\",{\"$literal\":\"funny\"}]}",
-            "3.6": "{\"$concat\":[\"$s\",{\"$literal\":\"funny\"}]}",
-            "4.0": "{\"$concat\":[\"$s\",{\"$literal\":\"funny\"}]}"
+            "3.4": "{\"$concat\":[\"$s\",\"funny\"]}",
+            "3.6": "{\"$concat\":[\"$s\",\"funny\"]}",
+            "4.0": "{\"$concat\":[\"$s\",\"funny\"]}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$concat\":[\"$s\",{\"$literal\":\"funny\"}]}}",
-            "4.0": "{\"$expr\":{\"$concat\":[\"$s\",{\"$literal\":\"funny\"}]}}"
+            "3.6": "{\"$expr\":{\"$concat\":[\"$s\",\"funny\"]}}",
+            "4.0": "{\"$expr\":{\"$concat\":[\"$s\",\"funny\"]}}"
         }
     },
     "scalar_concat_empty": {
         "expr": {
             "3.2": "{\"$concat\":[\"$s\",{\"$literal\":\"\"}]}",
-            "3.4": "{\"$concat\":[\"$s\",{\"$literal\":\"\"}]}",
-            "3.6": "{\"$concat\":[\"$s\",{\"$literal\":\"\"}]}",
-            "4.0": "{\"$concat\":[\"$s\",{\"$literal\":\"\"}]}"
+            "3.4": "{\"$concat\":[\"$s\",\"\"]}",
+            "3.6": "{\"$concat\":[\"$s\",\"\"]}",
+            "4.0": "{\"$concat\":[\"$s\",\"\"]}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$concat\":[\"$s\",{\"$literal\":\"\"}]}}",
-            "4.0": "{\"$expr\":{\"$concat\":[\"$s\",{\"$literal\":\"\"}]}}"
+            "3.6": "{\"$expr\":{\"$concat\":[\"$s\",\"\"]}}",
+            "4.0": "{\"$expr\":{\"$concat\":[\"$s\",\"\"]}}"
         }
     },
     "scalar_concat_mixed_types": {
@@ -2704,15 +2704,15 @@
     "scalar_concat_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_concat_ws": {
@@ -2788,15 +2788,15 @@
     "scalar_conv_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_convert_date_to_time": {
@@ -2858,15 +2858,15 @@
     "scalar_convert_null_to_signed": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_convert_string_to_binary": {
@@ -2928,15 +2928,15 @@
     "scalar_cos_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_cot": {
@@ -2970,15 +2970,15 @@
     "scalar_cot_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_count_0": {
@@ -3152,29 +3152,29 @@
     "scalar_date_format_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_date_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_date_redundant": {
@@ -3348,15 +3348,15 @@
     "scalar_day_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_day_string": {
@@ -3418,15 +3418,15 @@
     "scalar_dayofmonth_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_dayofweek": {
@@ -3502,29 +3502,29 @@
     "scalar_degrees_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_degrees_null_plus": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_elt": {
@@ -3544,29 +3544,29 @@
     "scalar_elt_too_high": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_elt_too_low": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_exp": {
@@ -3698,29 +3698,29 @@
     "scalar_floor_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_floor_null_mult": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_from_days": {
@@ -3740,15 +3740,15 @@
     "scalar_from_days_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_from_days_string": {
@@ -3894,29 +3894,29 @@
     "scalar_insert_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_insert_null_idx": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_instr": {
@@ -4062,15 +4062,15 @@
     "scalar_left_zero": {
         "expr": {
             "3.2": "{\"$literal\":\"\"}",
-            "3.4": "{\"$literal\":\"\"}",
-            "3.6": "{\"$literal\":\"\"}",
-            "4.0": "{\"$literal\":\"\"}"
+            "3.4": "\"\"",
+            "3.6": "\"\"",
+            "4.0": "\"\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"\"}}"
+            "3.6": "{\"$expr\":\"\"}",
+            "4.0": "{\"$expr\":\"\"}"
         }
     },
     "scalar_length": {
@@ -4132,29 +4132,29 @@
     "scalar_ln_mixed_null_plus": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_ln_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_ln_string": {
@@ -4258,15 +4258,15 @@
     "scalar_log2_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_log2_string": {
@@ -4314,15 +4314,15 @@
     "scalar_log_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_log_string": {
@@ -4384,15 +4384,15 @@
     "scalar_ltrim_blank": {
         "expr": {
             "3.2": "{\"$literal\":\"\"}",
-            "3.4": "{\"$literal\":\"\"}",
-            "3.6": "{\"$literal\":\"\"}",
-            "4.0": "{\"$literal\":\"\"}"
+            "3.4": "\"\"",
+            "3.6": "\"\"",
+            "4.0": "\"\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"\"}}"
+            "3.6": "{\"$expr\":\"\"}",
+            "4.0": "{\"$expr\":\"\"}"
         }
     },
     "scalar_ltrim_int": {
@@ -4468,15 +4468,15 @@
     "scalar_md5_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_microsecond": {
@@ -4608,29 +4608,29 @@
     "scalar_not_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_nullif": {
         "expr": {
             "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},{\"$literal\":null},\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
-            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},{\"$literal\":null},\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
-            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},{\"$literal\":null},\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
-            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},{\"$literal\":null},\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}"
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},null,\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},null,\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},null,\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},{\"$literal\":null},\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},{\"$literal\":null},\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}"
+            "3.6": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},null,\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}",
+            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$and\":[{\"$not\":[\"$$expr1\"]},{\"$lte\":[\"$$expr0\",null]}]},{\"$and\":[{\"$not\":[\"$$expr0\"]},{\"$lte\":[\"$$expr1\",null]}]}]},null,{\"$or\":[\"$$expr0\",\"$$expr1\"]}]},\"vars\":{\"expr0\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",1]}]},\"expr1\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$eq\":[\"$a\",true]}]}}}},null,\"$a\"]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}"
         }
     },
     "scalar_pi": {
@@ -4678,29 +4678,29 @@
     "scalar_power_all_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_power_of_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_power_to_bool": {
@@ -4720,15 +4720,15 @@
     "scalar_power_to_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_quarter": {
@@ -4846,43 +4846,43 @@
     "scalar_repeat_add": {
         "expr": {
             "3.2": "{\"$literal\":\"00\"}",
-            "3.4": "{\"$literal\":\"00\"}",
-            "3.6": "{\"$literal\":\"00\"}",
-            "4.0": "{\"$literal\":\"00\"}"
+            "3.4": "\"00\"",
+            "3.6": "\"00\"",
+            "4.0": "\"00\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"00\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"00\"}}"
+            "3.6": "{\"$expr\":\"00\"}",
+            "4.0": "{\"$expr\":\"00\"}"
         }
     },
     "scalar_repeat_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_repeat_null_str": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_repeat_zero": {
@@ -5140,15 +5140,15 @@
     "scalar_sqrt_neg": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_str_to_date_00": {
@@ -5322,15 +5322,15 @@
     "scalar_str_to_date_12": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_subdate": {
@@ -5350,15 +5350,15 @@
     "scalar_subdate_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_substr": {
@@ -5532,15 +5532,15 @@
     "scalar_time_to_sec_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_time_to_sec_string": {
@@ -5588,15 +5588,15 @@
     "scalar_timediff_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     },
     "scalar_timediff_string": {
@@ -5798,15 +5798,15 @@
     "scalar_upper_useless": {
         "expr": {
             "3.2": "{\"$literal\":\"UPPER\"}",
-            "3.4": "{\"$literal\":\"UPPER\"}",
-            "3.6": "{\"$literal\":\"UPPER\"}",
-            "4.0": "{\"$literal\":\"UPPER\"}"
+            "3.4": "\"UPPER\"",
+            "3.6": "\"UPPER\"",
+            "4.0": "\"UPPER\""
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":\"UPPER\"}}",
-            "4.0": "{\"$expr\":{\"$literal\":\"UPPER\"}}"
+            "3.6": "{\"$expr\":\"UPPER\"}",
+            "4.0": "{\"$expr\":\"UPPER\"}"
         }
     },
     "scalar_user": {
@@ -6022,15 +6022,15 @@
     "xor_null": {
         "expr": {
             "3.2": "{\"$literal\":null}",
-            "3.4": "{\"$literal\":null}",
-            "3.6": "{\"$literal\":null}",
-            "4.0": "{\"$literal\":null}"
+            "3.4": "null",
+            "3.6": "null",
+            "4.0": "null"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$literal\":null}}",
-            "4.0": "{\"$expr\":{\"$literal\":null}}"
+            "3.6": "{\"$expr\":null}",
+            "4.0": "{\"$expr\":null}"
         }
     }
 }

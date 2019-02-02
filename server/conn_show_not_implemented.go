@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/strutil"
@@ -263,7 +264,7 @@ func (c *conn) handleShowNotImplemented(sql string, stmt *parser.Show) error {
 	return c.writeResultset(r)
 }
 
-func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Resultset, error) {
+func (c *conn) buildEmptyResultset(names []string, st []schema.SQLType) (*Resultset, error) {
 
 	col, err := collation.Get(
 		c.variables.GetCharset(variable.CharacterSetResults).DefaultCollationName)
@@ -280,7 +281,7 @@ func (c *conn) buildEmptyResultset(names []string, types []schema.SQLType) (*Res
 			Charset: uint16(col.ID),
 		}
 
-		zeroValue := evaluator.SQLTypeToEvalType(types[i]).ZeroValue(valueKind)
+		zeroValue := evaluator.ZeroValue(types.SQLTypeToEvalType(st[i]), valueKind)
 		err = formatHeaderField(c.variables, field, zeroValue)
 		if err != nil {
 			return nil, err

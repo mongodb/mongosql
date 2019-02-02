@@ -1,11 +1,9 @@
-package evaluator
+package types
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/shopspring/decimal"
 )
 
 // EvalType are the types used in the evaluator. They are bytes for efficiency
@@ -81,6 +79,13 @@ const (
 	EvalArrNumeric EvalType = 0xF6
 )
 
+// EvalTyper defines an interface that has an EvalType method.
+type EvalTyper interface {
+	// EvalType returns the EvalType resulting from evaluating the expression, or
+	// the type of a SQLValue. (for instance, SQLEqualsExpr.EvalType() returns EvalBoolean).
+	EvalType() EvalType
+}
+
 var evalNumericTypes = map[EvalType]struct{}{
 	EvalDouble:     {},
 	EvalInt32:      {},
@@ -112,36 +117,6 @@ func (e EvalType) IsDate() bool {
 		return true
 	}
 	return false
-}
-
-// ZeroValue returns the zero value for the given EvalType receiver.
-func (e EvalType) ZeroValue(kind SQLValueKind) SQLValue {
-	switch e {
-	case EvalInt32, EvalInt64:
-		return NewSQLInt64(kind, 0)
-	case EvalUint32, EvalUint64:
-		return NewSQLUint64(kind, 0)
-	case EvalDouble, EvalArrNumeric:
-		return NewSQLFloat(kind, 0)
-	case EvalObjectID:
-		return NewSQLObjectID(kind, "")
-	case EvalString:
-		return NewSQLVarchar(kind, "")
-	case EvalDate:
-		return NewSQLDate(kind, time.Time{})
-	case EvalTimestamp, EvalDatetime:
-		return NewSQLTimestamp(kind, time.Time{})
-	case EvalBoolean:
-		return NewSQLBool(kind, false)
-	case EvalBinary:
-		return NewSQLVarchar(kind, "")
-	case EvalDecimal128:
-		return NewSQLDecimal128(kind, decimal.Decimal{})
-	case EvalPolymorphic:
-		return NewPolymorphicSQLNull(kind)
-	default:
-		panic(fmt.Sprintf("invalid EvalType %x in call to ZeroValue", e))
-	}
 }
 
 // evalTypeToMongoType returns the schema.MongoType for a byte kind.
@@ -334,12 +309,4 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 		panic("EvalNull should never exist outside of BSON Documents")
 	}
 	return false
-}
-
-// isBooleanComparable returns true if this EvalType can
-// be used directly as a boolean without conversion.
-func isBooleanComparable(evalType EvalType) bool {
-	return evalType == EvalInt64 || evalType == EvalBoolean ||
-		evalType == EvalInt32 || evalType == EvalUint64 ||
-		evalType == EvalUint32
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
@@ -94,7 +95,7 @@ type orderByRow struct {
 	terms []*OrderByTerm
 
 	// termValues hold the evaluated values of the terms.
-	termValues []SQLValue
+	termValues []values.SQLValue
 
 	// data holds the raw data that was evaluated.
 	data Values
@@ -174,7 +175,7 @@ func (ob *OrderByIter) sortRows(ctx context.Context) ([]orderByRow, error) {
 			return nil, err
 		}
 
-		var values []SQLValue
+		var vs []values.SQLValue
 		st := ob.st.WithRows(row)
 		for _, t := range ob.terms {
 			v, err := t.expr.Evaluate(ctx, ob.cfg, st)
@@ -182,10 +183,10 @@ func (ob *OrderByIter) sortRows(ctx context.Context) ([]orderByRow, error) {
 				return nil, err
 			}
 
-			values = append(values, v)
+			vs = append(vs, v)
 		}
 
-		obRow := orderByRow{ob.terms, values, row.Data}
+		obRow := orderByRow{ob.terms, vs, row.Data}
 		rows.rows = append(rows.rows, obRow)
 		row = &Row{}
 	}
@@ -276,7 +277,7 @@ func (rows orderByRows) Less(i, j int) bool {
 		left := r1.termValues[i]
 		right := r2.termValues[i]
 
-		cmp, err := CompareTo(left, right, rows.collation)
+		cmp, err := values.CompareTo(left, right, rows.collation)
 
 		if err != nil {
 			panic(err)
