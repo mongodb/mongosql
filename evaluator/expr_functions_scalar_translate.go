@@ -1101,7 +1101,7 @@ func (f *baseScalarFunctionExpr) insertToAggregationLanguage(t *PushdownTranslat
 	posCheck := bsonutil.WrapInLet(totalLengthAssignment,
 		bsonutil.WrapInCond(str,
 			concatenation,
-			bsonutil.WrapInOp(bsonutil.OpLte, pos, 0),
+			bsonutil.WrapInOp(bsonutil.OpLt, pos, 0),
 			bsonutil.WrapInOp(bsonutil.OpGte, pos, totalLength),
 		),
 	)

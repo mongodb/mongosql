@@ -1947,16 +1947,28 @@ testcases:
     sql: select ifnull(null, 2) from scalar
 
   - db: functions_test
-    expected_names: ['insert(b, 2, 4, ''What'')']
+    expected_names: [b, 'insert(b, 2, 4, ''What'')']
     expected_results:
-      - [hWhat]
-      - [yWhat]
-      - [null]
-      - [tWhat]
-      - [null]
-    expected_types: [varchar]
+      - [hey, hWhat]
+      - [yo, yWhat]
+      - [null, null]
+      - [this, tWhat]
+      - [null, null]
+    expected_types: [varchar, varchar]
     id: '103'
-    sql: select insert(b, 2, 4, 'What') from scalar
+    sql: select b, insert(b, 2, 4, 'What') from scalar
+
+  - db: functions_test
+    expected_names: ['b', 'insert(b, 1, 2, ''hi'')']
+    expected_results:
+      - [hey, hiy]
+      - [yo, hi]
+      - [null, null]
+      - [this, hiis]
+      - [null, null]
+    expected_types: [varchar, varchar]
+    id: 'insert_pos_equals_1'
+    sql: select b, insert(b, 1, 2, 'hi') from scalar
 
   - db: functions_test
     expected_names: [a, b, res1, res2, res3, res4, res5, res6, n1, res7, n2, res8]
