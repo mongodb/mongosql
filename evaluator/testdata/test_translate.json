@@ -769,6 +769,20 @@
             "4.0": "{\"t\":false}"
         }
     },
+    "equal_column": {
+        "expr": {
+            "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$eq\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$eq\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$eq\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$eq\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}"
+        },
+        "predicate": {
+            "3.2": "",
+            "3.4": "",
+            "3.6": "{\"$expr\":{\"$and\":[{\"$eq\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$eq\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}"
+        }
+    },
     "equal_complicated_mixed": {
         "expr": {
             "3.2": "",
@@ -780,7 +794,7 @@
             "3.2": "",
             "3.4": "",
             "3.6": "",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$lte\":[\"$$left\",null]},{\"$lte\":[\"$$right\",null]}]},{\"$literal\":null},{\"$eq\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$multiply\":[{\"$literal\":5},\"$a\"]},\"right\":{\"$literal\":{}}}}},\"right\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\",\"$a\",{\"$add\":[{\"$literal\":3},\"$a\"]}]},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}}}}}"
+            "4.0": "{\"$expr\":{\"$and\":[{\"$eq\":[{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$multiply\":[{\"$literal\":5},\"$a\"]},\"right\":{\"$literal\":{}}}}},{\"$add\":[{\"$multiply\":[\"$a\",\"$a\",\"$a\",{\"$add\":[{\"$literal\":3},\"$a\"]}]},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]}]},{\"$gt\":[{\"$let\":{\"in\":{\"$cond\":[{\"$eq\":[\"$$right\",0]},null,{\"$divide\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$multiply\":[{\"$literal\":5},\"$a\"]},\"right\":{\"$literal\":{}}}}},null]},{\"$gt\":[{\"$add\":[{\"$multiply\":[\"$a\",\"$a\",\"$a\",{\"$add\":[{\"$literal\":3},\"$a\"]}]},{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"double\"}}]},null]}]}}"
         }
     },
     "equal_impossible": {
@@ -822,7 +836,7 @@
             "3.2": "",
             "3.4": "",
             "3.6": "",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$lte\":[\"$$left\",null]},\"$$zsIsNull\"]},{\"$literal\":null},{\"$eq\":[\"$$left\",\"$s\"]}]},\"vars\":{\"left\":{\"$convert\":{\"input\":{\"$cond\":[{\"$eq\":[{\"$type\":\"$_id\"},\"bool\"]},{\"$cond\":[\"$_id\",\"1\",\"0\"]},\"$_id\"]},\"onError\":null,\"onNull\":null,\"to\":\"string\"}}}}},\"vars\":{\"zsIsNull\":{\"$lte\":[\"$s\",null]}}}}}"
+            "4.0": "{\"$expr\":{\"$and\":[{\"$eq\":[{\"$convert\":{\"input\":{\"$cond\":[{\"$eq\":[{\"$type\":\"$_id\"},\"bool\"]},{\"$cond\":[\"$_id\",\"1\",\"0\"]},\"$_id\"]},\"onError\":null,\"onNull\":null,\"to\":\"string\"}},\"$s\"]},{\"$gt\":[{\"$convert\":{\"input\":{\"$cond\":[{\"$eq\":[{\"$type\":\"$_id\"},\"bool\"]},{\"$cond\":[\"$_id\",\"1\",\"0\"]},\"$_id\"]},\"onError\":null,\"onNull\":null,\"to\":\"string\"}},null]},{\"$gt\":[\"$s\",null]}]}}"
         }
     },
     "equal_objectid_string_lit": {
@@ -850,7 +864,21 @@
             "3.2": "",
             "3.4": "",
             "3.6": "",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",{\"$lte\":[\"$$right\",null]}]},{\"$literal\":null},{\"$gt\":[\"$a\",\"$$right\"]}]},\"vars\":{\"right\":{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"long\"}}}}},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}}}"
+            "4.0": "{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"long\"}}]},{\"$gt\":[\"$a\",null]},{\"$gt\":[{\"$convert\":{\"input\":\"$t\",\"onError\":0,\"onNull\":null,\"to\":\"long\"}},null]}]}}"
+        }
+    },
+    "gt_column": {
+        "expr": {
+            "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}"
+        },
+        "predicate": {
+            "3.2": "",
+            "3.4": "",
+            "3.6": "{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}"
         }
     },
     "gt_const": {
@@ -895,6 +923,20 @@
             "4.0": "{\"$expr\":{\"$literal\":true}}"
         }
     },
+    "gte_column": {
+        "expr": {
+            "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$gte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}"
+        },
+        "predicate": {
+            "3.2": "",
+            "3.4": "",
+            "3.6": "{\"$expr\":{\"$and\":[{\"$gte\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$gte\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}"
+        }
+    },
     "gte_expr": {
         "expr": {
             "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$lte\":[\"$$left\",null]},{\"$literal\":null},{\"$gte\":[\"$$left\",9]}]},\"vars\":{\"left\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\"]},{\"$literal\":3}]}}}}",
@@ -905,8 +947,8 @@
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$lte\":[\"$$left\",null]},{\"$literal\":null},{\"$gte\":[\"$$left\",9]}]},\"vars\":{\"left\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\"]},{\"$literal\":3}]}}}}}",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$lte\":[\"$$left\",null]},{\"$literal\":null},{\"$gte\":[\"$$left\",9]}]},\"vars\":{\"left\":{\"$add\":[{\"$multiply\":[\"$a\",\"$a\"]},{\"$literal\":3}]}}}}}"
+            "3.6": "{\"$expr\":{\"$and\":[{\"$gte\":[{\"$add\":[{\"$multiply\":[\"$a\",\"$a\"]},{\"$literal\":3}]},{\"$literal\":9}]},{\"$gt\":[{\"$add\":[{\"$multiply\":[\"$a\",\"$a\"]},{\"$literal\":3}]},null]},{\"$gt\":[{\"$literal\":9},null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$gte\":[{\"$add\":[{\"$multiply\":[\"$a\",\"$a\"]},{\"$literal\":3}]},{\"$literal\":9}]},{\"$gt\":[{\"$add\":[{\"$multiply\":[\"$a\",\"$a\"]},{\"$literal\":3}]},null]},{\"$gt\":[{\"$literal\":9},null]}]}}"
         }
     },
     "gte_int": {
@@ -1217,6 +1259,20 @@
             "4.0": "{\"a\":{\"$regex\":{\"Pattern\":\"^.*un.*$\",\"Options\":\"i\"}}}"
         }
     },
+    "lt_column": {
+        "expr": {
+            "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lt\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}"
+        },
+        "predicate": {
+            "3.2": "",
+            "3.4": "",
+            "3.6": "{\"$expr\":{\"$and\":[{\"$lt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$lt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}"
+        }
+    },
     "lt_dates": {
         "expr": {
             "3.2": "",
@@ -1227,8 +1283,8 @@
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$lte\":[\"$$left\",null]},{\"$lte\":[\"$$right\",null]}]},{\"$literal\":null},{\"$lt\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},\"right\":{\"$add\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$literal\":2}]}}}}}",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$lte\":[\"$$left\",null]},{\"$lte\":[\"$$right\",null]}]},{\"$literal\":null},{\"$lt\":[\"$$left\",\"$$right\"]}]},\"vars\":{\"left\":{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},\"right\":{\"$add\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$literal\":2}]}}}}}"
+            "3.6": "{\"$expr\":{\"$and\":[{\"$lt\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$add\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$literal\":2}]}]},{\"$gt\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},null]},{\"$gt\":[{\"$add\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$literal\":2}]},null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$lt\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$add\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$literal\":2}]}]},{\"$gt\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},null]},{\"$gt\":[{\"$add\":[{\"$add\":[{\"$divide\":[{\"$millisecond\":\"$g\"},1000]},{\"$second\":\"$g\"},{\"$multiply\":[{\"$minute\":\"$g\"},100]},{\"$multiply\":[{\"$hour\":\"$g\"},10000]},{\"$multiply\":[{\"$dayOfMonth\":\"$g\"},1000000]},{\"$multiply\":[{\"$month\":\"$g\"},100000000]},{\"$multiply\":[{\"$year\":\"$g\"},10000000000]}]},{\"$literal\":2}]},null]}]}}"
         }
     },
     "lt_int": {
@@ -1243,6 +1299,20 @@
             "3.4": "{\"a\":{\"$lt\":3}}",
             "3.6": "{\"a\":{\"$lt\":3}}",
             "4.0": "{\"a\":{\"$lt\":3}}"
+        }
+    },
+    "lte_column": {
+        "expr": {
+            "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$lte\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}"
+        },
+        "predicate": {
+            "3.2": "",
+            "3.4": "",
+            "3.6": "{\"$expr\":{\"$and\":[{\"$lte\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$lte\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}"
         }
     },
     "lte_int": {
@@ -1396,7 +1466,7 @@
             "3.2": "",
             "3.4": "",
             "3.6": "",
-            "4.0": "{\"$expr\":{\"$let\":{\"in\":{\"$cond\":[{\"$lte\":[\"$$left\",null]},{\"$literal\":null},{\"$ne\":[\"$$left\",\"hello world\"]}]},\"vars\":{\"left\":{\"$convert\":{\"input\":{\"$cond\":[{\"$eq\":[{\"$type\":\"$t\"},\"bool\"]},{\"$cond\":[\"$t\",\"1\",\"0\"]},\"$t\"]},\"onError\":null,\"onNull\":null,\"to\":\"string\"}}}}}}"
+            "4.0": "{\"$expr\":{\"$and\":[{\"$ne\":[{\"$convert\":{\"input\":{\"$cond\":[{\"$eq\":[{\"$type\":\"$t\"},\"bool\"]},{\"$cond\":[\"$t\",\"1\",\"0\"]},\"$t\"]},\"onError\":null,\"onNull\":null,\"to\":\"string\"}},\"hello world\"]},{\"$gt\":[{\"$convert\":{\"input\":{\"$cond\":[{\"$eq\":[{\"$type\":\"$t\"},\"bool\"]},{\"$cond\":[\"$t\",\"1\",\"0\"]},\"$t\"]},\"onError\":null,\"onNull\":null,\"to\":\"string\"}},null]},{\"$gt\":[\"hello world\",null]}]}}"
         }
     },
     "ne_null_match": {
@@ -1439,6 +1509,20 @@
             "3.4": "{\"$and\":[{\"a\":{\"$ne\":3}},{\"a\":{\"$ne\":null}}]}",
             "3.6": "{\"$and\":[{\"a\":{\"$ne\":3}},{\"a\":{\"$ne\":null}}]}",
             "4.0": "{\"$and\":[{\"a\":{\"$ne\":3}},{\"a\":{\"$ne\":null}}]}"
+        }
+    },
+    "not_eq_column": {
+        "expr": {
+            "3.2": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$ne\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.4": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$ne\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "3.6": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$ne\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}",
+            "4.0": "{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[\"$$zaIsNull\",\"$$zbIsNull\"]},{\"$literal\":null},{\"$ne\":[\"$a\",\"$b\"]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]},\"zbIsNull\":{\"$lte\":[\"$b\",null]}}}}"
+        },
+        "predicate": {
+            "3.2": "",
+            "3.4": "",
+            "3.6": "{\"$expr\":{\"$and\":[{\"$ne\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}",
+            "4.0": "{\"$expr\":{\"$and\":[{\"$ne\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}"
         }
     },
     "not_gt": {

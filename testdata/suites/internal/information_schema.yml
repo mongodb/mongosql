@@ -67,6 +67,7 @@ testcases:
       - [def, where_test, where_4, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_4" }']
       - [def, where_test, where_5, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_5" }']
       - [def, where_test, where_6, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_6" }']
+      - [def, where_test, where_nulls, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_nulls" }']
       - [def, where_test, where_strings, BASE TABLE, '', '', '', null, null, null, null, null, null, 'NO', null, null, null, utf8_bin, null, null, '{ "collectionName": "where_strings" }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, int, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: 1b

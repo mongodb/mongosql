@@ -63,7 +63,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			defaultDB:        testDefaultDB,
 			mdbVersion:       testMdbVersion4,
 			expectError:      false,
-			expectedPipeline: `[{"$match":{"$expr":{"$let":{"in":{"$cond":[{"$or":["$$zbIsNull","$$zcIsNull"]},{"$literal":null},{"$lt":["$b","$c"]}]},"vars":{"zbIsNull":{"$lte":["$b",null]},"zcIsNull":{"$lte":["$c",null]}}}}}},{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			expectedPipeline: `[{"$match":{"$expr":{"$and":[{"$lt":["$b","$c"]},{"$gt":["$b",null]},{"$gt":["$c",null]}]}}},{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 	}
 

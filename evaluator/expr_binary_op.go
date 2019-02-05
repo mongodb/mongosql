@@ -704,21 +704,26 @@ func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface
 	return compExprToAggregationLanguageHelper(eq.left, eq.right, bsonutil.OpEq, t)
 }
 
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (eq *SQLEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	left, right, err := eq.toAggregationLanguageArgs(t)
+// binaryOpToAggregationPredicate translates a binary operation expression to the aggregation
+// language to be used as a predicate in a $match stage via $expr. It is used by most comparison
+// operators and translates the operation into a conjunctive expression that not only compares the
+// left and right children, but also checks if they are null.
+func binaryOpToAggregationPredicate(t *PushdownTranslator, node sqlBinaryNode, op string) (interface{}, PushdownFailure) {
+	left, right, err := node.toAggregationLanguageArgs(t)
 	if err != nil {
 		return nil, err
 	}
 
-	// When a SQLEqualsExpr is the top level expression of the $expr in a $match
-	// stage, we don't care about the difference between null and false. This
-	// allows us to omit $ifNull and $cond, which should improve index usage for
-	// some queries.
-	return bson.M{
-		bsonutil.OpEq: []interface{}{left, right},
-	}, nil
+	return bsonutil.WrapInOp(bsonutil.OpAnd,
+		bsonutil.WrapInOp(op, left, right),
+		bsonutil.WrapInOp(bsonutil.OpGt, left, nil),
+		bsonutil.WrapInOp(bsonutil.OpGt, right, nil)), nil
+}
+
+// ToAggregationPredicate translates this expression to the aggregation language
+// to be evaluated as a predicate directly in a $match stage via $expr.
+func (eq *SQLEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	return binaryOpToAggregationPredicate(t, eq.sqlBinaryNode, bsonutil.OpEq)
 }
 
 // ToMatchLanguage translates SQLEqualsExpr into something that can
@@ -867,7 +872,7 @@ func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (inte
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (gt *SQLGreaterThanExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return gt.ToAggregationLanguage(t)
+	return binaryOpToAggregationPredicate(t, gt.sqlBinaryNode, bsonutil.OpGt)
 }
 
 // ToMatchLanguage translates SQLGreaterThanExpr into something that can
@@ -981,7 +986,7 @@ func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslato
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (gte *SQLGreaterThanOrEqualExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return gte.ToAggregationLanguage(t)
+	return binaryOpToAggregationPredicate(t, gte.sqlBinaryNode, bsonutil.OpGte)
 }
 
 // ToMatchLanguage translates SQLGreaterThanOrEqualExpr into something that can
@@ -1405,7 +1410,7 @@ func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (interfa
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (lt *SQLLessThanExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return lt.ToAggregationLanguage(t)
+	return binaryOpToAggregationPredicate(t, lt.sqlBinaryNode, bsonutil.OpLt)
 }
 
 // ToMatchLanguage translates SQLLessThanExpr into something that can
@@ -1520,7 +1525,7 @@ func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (lte *SQLLessThanOrEqualExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return lte.ToAggregationLanguage(t)
+	return binaryOpToAggregationPredicate(t, lte.sqlBinaryNode, bsonutil.OpLte)
 }
 
 // ToMatchLanguage translates SQLLessThanOrEqualExpr into something that can
@@ -1845,7 +1850,7 @@ func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (neq *SQLNotEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return neq.ToAggregationLanguage(t)
+	return binaryOpToAggregationPredicate(t, neq.sqlBinaryNode, bsonutil.OpNeq)
 }
 
 // ToMatchLanguage translates SQLNotEqualsExpr into something that can

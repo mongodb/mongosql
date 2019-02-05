@@ -289,7 +289,7 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	doc, expr, _ = t.translatePredicateWithDepth(e)
 
 	if expr != nil && t.versionAtLeast(3, 6, 0) {
-		agg, err := t.TranslateExpr(e)
+		agg, err := t.TranslateAggPredicate(e)
 		if err == nil {
 			return bsonutil.NewM(bsonutil.NewDocElem("$expr", agg)), nil
 		}

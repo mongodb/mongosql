@@ -715,6 +715,12 @@
     - {_id: 3, c2: "FF"}
 
 - db: "join_test"
+  collection: "join_nulls"
+  docs:
+    - {_id: 0, b: ~}
+    - {_id: 1, b: "b"}
+
+- db: "join_test"
   collection: "join_8"
   docs:
     - {_id: 0, a: 1, b: [{c: 1}, {c: 2, d: [5, 6]}]}
@@ -988,6 +994,13 @@
     - {_id: 4, s: 'hello'}
     - {_id: 5, s: '  42world'}
     - {_id: 6, s: '123'}
+
+- db: "where_test"
+  collection: "where_nulls"
+  docs:
+   - {_id: 0, a: ~, b: ~}
+   - {_id: 1, a: 1, b: ~}
+   - {_id: 2, a: ~, b: 1}
 
 - db: "select_test"
   collection: "like_test"

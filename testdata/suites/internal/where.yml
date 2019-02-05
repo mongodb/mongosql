@@ -940,3 +940,45 @@ testcases:
     id: where_floating_point_arithmetic
     sql: select b from trig where b + b
     variables: {type_conversion_mode: mongosql}
+
+  - db: where_test
+    expected_names: [_id, a, b]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    id: where_equal_with_nulls
+    sql: select * from where_nulls where a = b
+
+  - db: where_test
+    expected_names: [_id, a, b]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    id: where_not_equal_with_nulls
+    sql: select * from where_nulls where a != b
+
+  - db: where_test
+    expected_names: [_id, a, b]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    id: where_less_than_with_nulls
+    sql: select * from where_nulls where a < b
+
+  - db: where_test
+    expected_names: [_id, a, b]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    id: where_greater_than_with_nulls
+    sql: select * from where_nulls where a > b
+
+  - db: where_test
+    expected_names: [_id, a, b]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    id: where_less_than_or_equal_to_with_nulls
+    sql: select * from where_nulls where a <= b
+
+  - db: where_test
+    expected_names: [_id, a, b]
+    expected_results: []
+    expected_types: [varchar, varchar, varchar]
+    id: where_greater_than_or_equal_to_with_nulls
+    sql: select * from where_nulls where a >= b

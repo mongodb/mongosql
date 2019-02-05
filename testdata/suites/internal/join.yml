@@ -2290,3 +2290,60 @@ testcases:
     expected_types: [int]
     id: self-join-left-join-optimization
     sql: select a._id from join_1 a left join join_1 b on a._id=b._id
+
+  - db: join_test
+    description: Ensure join criteria doesn't match on null
+    expected_names: [b, b]
+    expected_results: []
+    expected_types: [varchar, int]
+    id: inner-join-equal-nulls
+    sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b = join_1.b
+    variables: {type_conversion_mode: mongosql}
+
+  - db: join_test
+    description: Ensure join excludes nulls from not equal comparison
+    expected_names: [b, b]
+    expected_results:
+      - ["b", 1]
+    expected_types: [varchar, int]
+    id: inner-join-not-equal-nulls
+    sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b != join_1.b
+    variables: {type_conversion_mode: mongosql}
+
+  - db: join_test
+    description: Ensure join excludes nulls from greater than comparison
+    expected_names: [b, b]
+    expected_results: []
+    expected_types: [varchar, int]
+    id: inner-join-greater-than-null
+    sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b > join_1.b
+    variables: {type_conversion_mode: mongosql}
+
+  - db: join_test
+    description: Ensure join excludes nulls from less than comparison
+    expected_names: [b, b]
+    expected_results:
+      - ["b", 1]
+    expected_types: [varchar, int]
+    id: inner-join-less-than-null
+    sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b < join_1.b
+    variables: {type_conversion_mode: mongosql}
+
+  - db: join_test
+    description: Ensure join excludes nulls from greater than or equal comparison
+    expected_names: [b, b]
+    expected_results: []
+    expected_types: [varchar, int]
+    id: inner-join-greater-than-or-equal-null
+    sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b >= join_1.b
+    variables: {type_conversion_mode: mongosql}
+
+  - db: join_test
+    description: Ensure join excludes nulls from less than or equal comparison
+    expected_names: [b, b]
+    expected_results:
+      - ["b", 1]
+    expected_types: [varchar, int]
+    id: inner-join-less-than-or-equal-null
+    sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b <= join_1.b
+    variables: {type_conversion_mode: mongosql}

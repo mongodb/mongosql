@@ -64,6 +64,7 @@ func TestPushdownPlan(t *testing.T) {
 		{"join_subqueries_where_limit", "select f.a from foo f join (select bar.a from bar) b " +
 			"on f.a=b.a join (select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and " +
 			"f.a=c.a and f.b=b.a"},
+		{"join_translate_agg_predicate", "select foo.a from foo join bar where foo.a = bar.b + 2"},
 		{"three_way_join_with_predicates_using_all_tables", "select * from foo f join merge m1 " +
 			"on f._id=m1._id join merge_d_a m2 on m1._id=m2._id and f._id=m2._id"},
 		{"three_way_join_with_predicates_using_some_tables", "select foo.c, bar.a, baz.b from " +
@@ -121,6 +122,7 @@ func TestPushdownPlan(t *testing.T) {
 		{"where_and", "select a from foo where a = 10 AND b < c"},
 		{"where_and_flipped", "select a from foo where b < c AND a = 10"},
 		{"where_lt", "select a from foo where b < c"},
+		{"where_translate_agg_predicate", "select a from foo where b = c"},
 		{"where_nested_array_table", "select `d.a` from merge_d_a where `d.a` = 10"},
 		{"where_nested_array_table_or", "select `d.a` from merge_d_a where `d.a` = 10 OR `d.a`" +
 			" = 12"},
