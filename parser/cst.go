@@ -1764,6 +1764,23 @@ func (node *Subquery) Copy() CST {
 var _ CST = (*Subquery)(nil)
 
 // Children iterates through all direct children of this node.
+func (node *DualTableExpr) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *DualTableExpr) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds; DualTableExpr has no children")
+}
+
+// Copy produces a deep copy of this node.
+func (node *DualTableExpr) Copy() CST {
+	return &DualTableExpr{}
+}
+
+var _ CST = (*DualTableExpr)(nil)
+
+// Children iterates through all direct children of this node.
 func (node *BinaryExpr) Children() []CST {
 	return []CST{
 		node.Left,

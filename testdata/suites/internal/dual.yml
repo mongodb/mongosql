@@ -87,3 +87,23 @@ testcases:
     expected_types: [int]
     id: '10'
     sql: select 3 limit 1
+
+  - description: selecting individual column from dual does not leak collection data
+    expected_error: "Error 1054: Unknown column 'a' in 'field list'"
+    id: '11'
+    sql: select a from DUAL
+
+  - description: selecting multiple columns from dual does not leak collection data
+    expected_error: "Error 1054: Unknown column 'a' in 'field list'"
+    id: '12'
+    sql: select a, b from DUAL
+
+  - description: selecting simple and column from dual does not leak collection data
+    expected_error: "Error 1054: Unknown column 'b' in 'field list'"
+    id: '13'
+    sql: select 1+2, b from DUAL
+
+  - description: select star from dual does not leak collection data
+    expected_error: "Error 1096: No tables used"
+    id: '14'
+    sql: select * from DUAL

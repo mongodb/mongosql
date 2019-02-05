@@ -1222,6 +1222,12 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 	}
 
 	if isUnqualifiedSelectStar {
+		if len(tableExprs) == 1 {
+			if _, isDual := tableExprs[0].(*parser.DualTableExpr); isDual {
+				return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoTablesUsed)
+			}
+		}
+
 		a.columns = colsForProjection
 	}
 
@@ -1424,6 +1430,8 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
 		return a.translateSimpleTableExpr(typedT.Expr, typedT.As.Else(""))
+	case *parser.DualTableExpr:
+		return a.translateSimpleTableExpr(typedT, "")
 	case *parser.ParenTableExpr:
 		return a.translateTableExpr(typedT.Expr, hasGlobalStraightJoin)
 	case parser.SimpleTableExpr:
@@ -1542,74 +1550,69 @@ func (a *algebrizer) translateSimpleTableExpr(
 		var plan PlanStage
 		var err error
 
-		if strings.EqualFold(tableName, "DUAL") {
-			plan = a.newMongoSourceOrDualStage()
-		} else {
-			cteEvaluator := a.ctes[tableName]
-			// CTEs are not part of the database's namespace, so if database Qualifier
-			// is present this TableExpr is definitely not referring to a CTE.
-			// For example, with cte as (select * from tbl) select * from db.cte;
-			// will not reference the CTE created at the start of the query.
-			if typedT.Qualifier.IsNone() && cteEvaluator != nil {
-				cte := cteEvaluator.cte
-				subqueryAlgebrizer := cteEvaluator.algebrizer
-				plan = cteEvaluator.planStage.clone()
+		cteEvaluator := a.ctes[tableName]
+		// CTEs are not part of the database's namespace, so if database Qualifier
+		// is present this TableExpr is definitely not referring to a CTE.
+		// For example, with cte as (select * from tbl) select * from db.cte;
+		// will not reference the CTE created at the start of the query.
+		if typedT.Qualifier.IsNone() && cteEvaluator != nil {
+			cte := cteEvaluator.cte
+			subqueryAlgebrizer := cteEvaluator.algebrizer
+			plan = cteEvaluator.planStage.clone()
 
-				dbName := databaseFromPlanStage(plan)
-				plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID,
-					dbName, aliasName, true)
-				err = a.registerTable(dbName, aliasName)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				columns := plan.Columns()
-				if cte.ColumnExprs != nil {
-					if len(cte.ColumnExprs) != len(columns) {
-						// It's a confusing error message but that is MySQL's behavior.
-						return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErViewWrongList)
-					}
-					a.projectedColumns = make(ProjectedColumns, len(cte.ColumnExprs))
-					for i, expr := range cte.ColumnExprs {
-						a.projectedColumns[i] = columns[i].projectAs(expr.Name)
-					}
-				}
-				err = a.registerColumns(columns)
-				if err != nil {
-					return nil, nil, err
-				}
-
-				return plan, columns, nil
-			}
-
-			// Reach here if the table name in the from is not declared in a CTE.
-			dbName := typedT.Qualifier.Else("")
-			if dbName == "" {
-				dbName = a.cfg.dbName
-			}
-			dbName = strings.ToLower(dbName)
-
-			db, dbErr := a.cfg.catalog.Database(dbName)
-			if dbErr != nil {
-				return nil, nil, dbErr
-			}
-
-			table, dbErr := db.Table(tableName)
-			if dbErr != nil {
-				return nil, nil, dbErr
-			}
-
-			switch t := table.(type) {
-			case catalog.MongoDBTable:
-				plan = NewMongoSourceStage(db, t, a.selectID, aliasName)
-			case *catalog.DynamicTable:
-				plan = NewDynamicSourceStage(db, t, a.selectID, aliasName)
-			default:
-				return nil, nil, fmt.Errorf("unknown table type: %T", t)
-			}
+			dbName := databaseFromPlanStage(plan)
+			plan = NewSubquerySourceStage(plan, subqueryAlgebrizer.selectID,
+				dbName, aliasName, true)
 			err = a.registerTable(dbName, aliasName)
+			if err != nil {
+				return nil, nil, err
+			}
 
+			columns := plan.Columns()
+			if cte.ColumnExprs != nil {
+				if len(cte.ColumnExprs) != len(columns) {
+					// It's a confusing error message but that is MySQL's behavior.
+					return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErViewWrongList)
+				}
+				a.projectedColumns = make(ProjectedColumns, len(cte.ColumnExprs))
+				for i, expr := range cte.ColumnExprs {
+					a.projectedColumns[i] = columns[i].projectAs(expr.Name)
+				}
+			}
+			err = a.registerColumns(columns)
+			if err != nil {
+				return nil, nil, err
+			}
+
+			return plan, columns, nil
 		}
+
+		// Reach here if the table name in the from is not declared in a CTE.
+		dbName := typedT.Qualifier.Else("")
+		if dbName == "" {
+			dbName = a.cfg.dbName
+		}
+		dbName = strings.ToLower(dbName)
+
+		db, dbErr := a.cfg.catalog.Database(dbName)
+		if dbErr != nil {
+			return nil, nil, dbErr
+		}
+
+		table, dbErr := db.Table(tableName)
+		if dbErr != nil {
+			return nil, nil, dbErr
+		}
+
+		switch t := table.(type) {
+		case catalog.MongoDBTable:
+			plan = NewMongoSourceStage(db, t, a.selectID, aliasName)
+		case *catalog.DynamicTable:
+			plan = NewDynamicSourceStage(db, t, a.selectID, aliasName)
+		default:
+			return nil, nil, fmt.Errorf("unknown table type: %T", t)
+		}
+		err = a.registerTable(dbName, aliasName)
 
 		if err != nil {
 			return nil, nil, err
@@ -1656,6 +1659,10 @@ func (a *algebrizer) translateSimpleTableExpr(
 			return nil, nil, err
 		}
 
+		return plan, columns, nil
+	case *parser.DualTableExpr:
+		plan := a.newMongoSourceOrDualStage()
+		columns := plan.Columns()
 		return plan, columns, nil
 	default:
 		return nil,

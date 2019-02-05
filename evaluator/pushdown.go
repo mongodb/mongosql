@@ -1706,12 +1706,19 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 
 	// the tables must both belong to the same MongoDB database
 	if msLocal.dbName != msForeign.dbName {
-		v.logger.Warnf(log.Dev, "unable to translate join stage to expressive lookup: local database is different from foreign database")
-		v.addNewPushdownFailure(join, joinStageName, "local database is different from foreign database")
-		return join, nil
+		if !msForeign.IsDual() {
+			v.addNewPushdownFailure(join, joinStageName, "local database is different from foreign database")
+			return join, nil
+		}
+		// If msForeign is in fact a DUAL, then we should be able to just "fix" the
+		// database/collection choice we arbitrarily made when creating it to match
+		// the local database, and still JOIN successfully.
+		msForeign.dbName = msLocal.dbName
+		msForeign.collectionNames = msLocal.collectionNames
+		msForeign.isShardedCollection = msLocal.isShardedCollection
 	}
 
-	// the foreign table must not be sharded
+	// The foreign table must not be sharded.
 	for i, collection := range msForeign.collectionNames {
 		var isSharded bool
 		isSharded, ok = msForeign.isShardedCollection[collection]

@@ -305,6 +305,7 @@ var keywords = map[string]int{
 	"div":                IDIV,
 	"double":             DOUBLE,
 	"drop":               DROP,
+	"dual":               DUAL,
 	"else":               ELSE,
 	"end":                END,
 	"engine":             ENGINE,

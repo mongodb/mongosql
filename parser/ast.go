@@ -348,6 +348,7 @@ type TableExpr interface {
 }
 
 func (*AliasedTableExpr) ITableExpr() {}
+func (*DualTableExpr) ITableExpr()    {}
 func (*ParenTableExpr) ITableExpr()   {}
 func (*JoinTableExpr) ITableExpr()    {}
 
@@ -375,8 +376,9 @@ type SimpleTableExpr interface {
 	CST
 }
 
-func (*TableName) ISimpleTableExpr() {}
-func (*Subquery) ISimpleTableExpr()  {}
+func (*TableName) ISimpleTableExpr()     {}
+func (*Subquery) ISimpleTableExpr()      {}
+func (*DualTableExpr) ISimpleTableExpr() {}
 
 // TableName represents a table  name.
 type TableName struct {
@@ -783,6 +785,14 @@ type Subquery struct {
 
 func (node *Subquery) Format(buf *TrackedBuffer) {
 	buf.Fprintf("(%v)", node.Select)
+}
+
+// DualTableExpr represents a DUAL table, which has different semantics from
+// typical table expressions and is not a true table in MySQL.
+type DualTableExpr struct{}
+
+func (node *DualTableExpr) Format(buf *TrackedBuffer) {
+	buf.Fprintf("DUAL")
 }
 
 // BinaryExpr represents a binary value expression.

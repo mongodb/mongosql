@@ -100,6 +100,56 @@ func TestWith(t *testing.T) {
 	testParseError(t, sql)
 }
 
+func TestDual(t *testing.T) {
+	// a where clause cannot follow a dual
+	sql := "select * from dual where a = 3"
+	testParseError(t, sql)
+
+	// a order by clause cannot follow a dual
+	sql = "select * from dual order by a"
+	testParseError(t, sql)
+
+	// a group by clause cannot follow a dual
+	sql = "select * from dual group by a"
+	testParseError(t, sql)
+
+	// a group by clause and having clause cannot follow a dual
+	sql = "select * from dual group by a having a = 3"
+	testParseError(t, sql)
+
+	// a limit clause cannot follow a dual
+	sql = "select * from dual limit 1"
+	testParseError(t, sql)
+
+	// You cannot give dual an alias
+	sql = "select * from dual as d"
+	testParseError(t, sql)
+
+	// having dual in a multi-table from list is incorrect
+	sql = "select * from foo, bar, dual"
+	testParseError(t, sql)
+
+	// you cannot parenthesize dual
+	sql = "select * from (dual)"
+	testParseError(t, sql)
+
+	// dual cannot appear elsewhere, like in the select list
+	sql = "select dual from foo"
+	testParseError(t, sql)
+
+	// dual cannot appear elsewhere, like in the where clause
+	sql = "select a from foo where dual = 0"
+	testParseError(t, sql)
+
+	// dual can appear in the select list if escaped
+	sql = "select `dual` from foo"
+	testParse(t, sql)
+
+	// dual can appear in the where clause if escaped
+	sql = "select a from foo where `dual` = 0"
+	testParse(t, sql)
+}
+
 func TestAliases(t *testing.T) {
 	sql := "select col1 a1 from foo"
 	testParse(t, sql)

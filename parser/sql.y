@@ -84,7 +84,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
 %token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
 %token <empty> FN OJ ESCAPE
-%token <empty> TABLE INDEX VIEW IGNORE IF
+%token <empty> TABLE DUAL INDEX VIEW IGNORE IF
 %token <bytes> TRANSACTION ISOLATION LEVEL
 %token <bytes> READ WRITE ONLY
 %token <bytes> REPEATABLE COMMITTED UNCOMMITTED SERIALIZABLE
@@ -94,7 +94,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
 %token <empty> KILL FLUSH SAMPLE
 %token <empty> CONNECTION QUERY
-%token <empty> SESSION GLOBAL 
+%token <empty> SESSION GLOBAL
 %token <empty> TEMPORARY RESTRICT CASCADE
 %token <empty> USING
 %token <empty> OFF
@@ -108,7 +108,7 @@ func ForceEOF(yylex interface{}) {
 %left <empty> JOIN STRAIGHT_JOIN LEFT RIGHT INNER OUTER CROSS USE FORCE
 %left <empty> NATURAL
 %left <empty> ON
-%left <empty> OR 
+%left <empty> OR
 %left <empty> XOR
 %left <empty> AND
 %right <empty> NOT
@@ -147,11 +147,12 @@ func ForceEOF(yylex interface{}) {
 %type <selectExpr> select_expression
 %type <stropt> as_opt
 %type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_reserved_keyword func_expr_unconventional func_expr_generic func_expr_conflict
+%type <tableExprs> dual_table
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
 %type <bytes> column_definition data_type
 %type <tableExpr> table_expression join_expression
-%type <str> join_type 
+%type <str> join_type
 %type <smTableExpr> simple_table_expression
 %type <tableName> table_name
 %type <indexHints> index_hint_list
@@ -166,8 +167,8 @@ func ForceEOF(yylex interface{}) {
 %type <bytes> sql_time_interval
 %type <bytes> sql_time_unit
 %type <bytes> sql_types
-%type <bytes> substr 
-%type <subquery> subquery non_derived_subquery 
+%type <bytes> substr
+%type <subquery> subquery non_derived_subquery
 %type <byt> unary_operator
 %type <colName> column_name explain_column_name
 %type <caseExpr> case_expression
@@ -245,11 +246,15 @@ select_statement:
   {
     $$ = &SimpleSelect{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, Limit: $5}
   }
+| SELECT comment_opt query_globals_opt select_expression_list FROM dual_table
+  {
+    $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, From: $6}
+  }
 | SELECT comment_opt query_globals_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
   {
     $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, From: $6, Where: NewWhere(AST_WHERE, $7), GroupBy: GroupBy($8), Having: NewWhere(AST_HAVING, $9), OrderBy: $10, Limit: $11, Lock: $12}
   }
-| with_statement select_statement union_op select_statement %prec UNION 
+| with_statement select_statement union_op select_statement %prec UNION
   {
     $$ = &Union{With: $1, Left: $2, Right: $4, Type: $3}
   }
@@ -377,7 +382,7 @@ set_expr:
   }
 | expression
   {
-    $$ = $1  
+    $$ = $1
   }
 
 drop_statement:
@@ -624,15 +629,15 @@ substr:
   }
 
 in_or_from:
-  IN 
+  IN
 | FROM
 
 show_from_in:
-  in_or_from DOT ID 
+  in_or_from DOT ID
   {
     $$ = StrVal($3)
   }
-| in_or_from ID DOT ID 
+| in_or_from ID DOT ID
   {
     $$ = &ColName{Qualifier: option.SomeString(string($2)), Name: string($4)}
   }
@@ -640,7 +645,7 @@ show_from_in:
   {
     $$ = &ColName{Qualifier: option.SomeString(string($4)), Name: string($2)}
   }
-| in_or_from ID 
+| in_or_from ID
   {
     $$ = StrVal($2)
   }
@@ -761,7 +766,7 @@ show_statement:
   {
     $$ = &Show{Section: "engine", Modifier: string($3)}
   }
-| SHOW storage_opt ENGINES 
+| SHOW storage_opt ENGINES
   {
     $$ = &Show{Section: "engines"}
   }
@@ -773,7 +778,7 @@ show_statement:
   {
     $$ = &Show{Section: "count(*) errors"}
   }
-| SHOW EVENTS show_from_in_opt like_or_where_opt 
+| SHOW EVENTS show_from_in_opt like_or_where_opt
   {
     $$ = &Show{Section: "events"}
   }
@@ -928,7 +933,7 @@ explain_type:
 | FORMAT EQ format_name
   {
     $$ = $3
-  } 
+  }
 |
   {
     $$ = ""
@@ -971,7 +976,13 @@ table_name:
   {
     $$ = &TableName{Qualifier: option.SomeString($1), Name: $3}
   }
-  
+
+dual_table:
+  DUAL
+  {
+    $$ = TableExprs{&DualTableExpr{}}
+  }
+
 explain_statement:
   explain_alias table_name explain_column_name
   {
@@ -1344,7 +1355,7 @@ for_channel_opt:
   {
     $$ = nil
   }
-| FOR CHANNEL ID 
+| FOR CHANNEL ID
   {
     $$ = $3
   }
@@ -1733,7 +1744,7 @@ func_expr_reserved_keyword:
 /*
   function calls using unconventional call syntax. Most functions are called as (arg,arg,arg). The ones
   in this production are called with a different syntax.
-*/ 
+*/
 func_expr_unconventional:
   ADDDATE LPAREN select_expression COMMA INTERVAL select_expression interval_unit RPAREN
   {
@@ -1803,15 +1814,15 @@ func_expr_unconventional:
   {
     $$ = &FuncExpr{Name: string(TIMESTAMPDIFF_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
-| TRIM LPAREN select_expression_list RPAREN 
+| TRIM LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: $3}
   }
-| TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN 
+| TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN
   {
     $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: []SelectExpr{$6, &NonStarExpr{Expr: StrVal($3)}, $4}}
   }
-| TRIM LPAREN select_expression FROM select_expression RPAREN 
+| TRIM LPAREN select_expression FROM select_expression RPAREN
   {
     $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: []SelectExpr{$5, &NonStarExpr{Expr: StrVal(BOTH_BYTES)}, $3}}
   }
@@ -1957,7 +1968,7 @@ like_escape_opt:
   }
 
 both_leading_trailing_opt:
-  BOTH 
+  BOTH
   {
     $$ = BOTH_BYTES
   }
