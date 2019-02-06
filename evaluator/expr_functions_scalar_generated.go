@@ -83,7 +83,7 @@ func (f *absFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.absEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -165,7 +165,7 @@ func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.acosEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -247,7 +247,7 @@ func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.asciiEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -329,7 +329,7 @@ func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.asinEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -411,7 +411,7 @@ func (f *atanSingleArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error)
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.atanSingleArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -493,7 +493,7 @@ func (f *atanDualArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.atanDualArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -575,7 +575,7 @@ func (f *atan2SingleArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.atan2SingleArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -657,7 +657,7 @@ func (f *atan2DualArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.atan2DualArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -739,7 +739,7 @@ func (f *ceilFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.ceilEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -886,7 +886,7 @@ func (f *characterLengthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, erro
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.characterLengthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -968,7 +968,7 @@ func (f *concatFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.concatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1187,7 +1187,7 @@ func (f *convFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.convEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1269,7 +1269,7 @@ func (f *convertFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.convertEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1347,7 +1347,7 @@ func (f *cosFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.cosEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1429,7 +1429,7 @@ func (f *cotFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.cotEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1511,7 +1511,7 @@ func (f *currentDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.currentDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1593,7 +1593,7 @@ func (f *currentTimestampFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, err
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.currentTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1675,7 +1675,7 @@ func (f *curtimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.curtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1829,7 +1829,7 @@ func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateAddEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1911,7 +1911,7 @@ func (f *dateDiffFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -1993,7 +1993,7 @@ func (f *dateFormatFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateFormatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2075,7 +2075,7 @@ func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateSubEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2157,7 +2157,7 @@ func (f *dayNameFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayNameEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2239,7 +2239,7 @@ func (f *dayOfMonthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayOfMonthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2321,7 +2321,7 @@ func (f *dayOfWeekFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayOfWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2403,7 +2403,7 @@ func (f *dayOfYearFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayOfYearEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2485,7 +2485,7 @@ func (f *degreesFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.degreesEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2567,7 +2567,7 @@ func (f *expFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.expEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2649,7 +2649,7 @@ func (f *extractFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.extractEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2731,7 +2731,7 @@ func (f *floorFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.floorEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2813,7 +2813,7 @@ func (f *fromDaysFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.fromDaysEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2895,7 +2895,7 @@ func (f *fromUnixtimeToDatetimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExp
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.fromUnixtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -2977,7 +2977,7 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) FoldConstants(cfg *OptimizerConfig
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.fromUnixtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3059,7 +3059,7 @@ func (f *greatestFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.greatestEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3137,7 +3137,7 @@ func (f *hourFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.hourEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3219,7 +3219,7 @@ func (f *insertFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.insertEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3301,7 +3301,7 @@ func (f *instrFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.instrEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3383,7 +3383,7 @@ func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lastDayEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3465,7 +3465,7 @@ func (f *lcaseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lcaseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3547,7 +3547,7 @@ func (f *leastFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.leastEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3625,7 +3625,7 @@ func (f *leftFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.leftEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3707,7 +3707,7 @@ func (f *lengthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lengthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -3789,7 +3789,7 @@ func (f *lnFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lnEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4001,7 +4001,7 @@ func (f *logNaturalFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.logEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4083,7 +4083,7 @@ func (f *logWithBaseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.logEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4165,7 +4165,7 @@ func (f *log10Func) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.log10Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4247,7 +4247,7 @@ func (f *log2Func) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.log2Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4329,7 +4329,7 @@ func (f *lpadFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lpadEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4411,7 +4411,7 @@ func (f *ltrimFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.ltrimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4493,7 +4493,7 @@ func (f *makeDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.makeDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4575,7 +4575,7 @@ func (f *md5Func) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.md5Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4657,7 +4657,7 @@ func (f *microsecondFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.microsecondEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4739,7 +4739,7 @@ func (f *midFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.midEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4821,7 +4821,7 @@ func (f *minuteFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.minuteEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4903,7 +4903,7 @@ func (f *modFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.modEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -4985,7 +4985,7 @@ func (f *monthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.monthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5067,7 +5067,7 @@ func (f *monthNameFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.monthNameEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5210,7 +5210,7 @@ func (f *piFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.piEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5292,7 +5292,7 @@ func (f *powFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.powEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5374,7 +5374,7 @@ func (f *quarterFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.quarterEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5456,7 +5456,7 @@ func (f *radiansFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.radiansEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5668,7 +5668,7 @@ func (f *repeatFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.repeatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5750,7 +5750,7 @@ func (f *replaceFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.replaceEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5832,7 +5832,7 @@ func (f *reverseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.reverseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5914,7 +5914,7 @@ func (f *rightFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.rightEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -5996,7 +5996,7 @@ func (f *roundWithDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) (SQLExp
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.roundEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6078,7 +6078,7 @@ func (f *roundToZeroDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) (SQLE
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.roundEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6160,7 +6160,7 @@ func (f *rpadFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.rpadEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6242,7 +6242,7 @@ func (f *rtrimFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.rtrimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6324,7 +6324,7 @@ func (f *secondFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.secondEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6406,7 +6406,7 @@ func (f *signFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.signEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6488,7 +6488,7 @@ func (f *sinFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.sinEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6642,7 +6642,7 @@ func (f *spaceFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.spaceEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6724,7 +6724,7 @@ func (f *sqrtFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.sqrtEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6806,7 +6806,7 @@ func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.strToDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6888,7 +6888,7 @@ func (f *substringFromFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error)
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.substringEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -6970,7 +6970,7 @@ func (f *substringFromForFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, err
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.substringEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7117,7 +7117,7 @@ func (f *tanFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.tanEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7199,7 +7199,7 @@ func (f *timeDiffFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timeDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7281,7 +7281,7 @@ func (f *timeToSecFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timeToSecEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7363,7 +7363,7 @@ func (f *timestampAddTimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, err
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7445,7 +7445,7 @@ func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timestampAddEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7527,7 +7527,7 @@ func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error)
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timestampDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7609,7 +7609,7 @@ func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.toDaysEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7691,7 +7691,7 @@ func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.toSecondsEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7773,7 +7773,7 @@ func (f *trimSpacesFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7855,7 +7855,7 @@ func (f *trimStringFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -7937,7 +7937,7 @@ func (f *trimStringFromSideFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, e
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8019,7 +8019,7 @@ func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.truncateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8101,7 +8101,7 @@ func (f *ucaseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.ucaseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8183,7 +8183,7 @@ func (f *unixTimestampZeroFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, er
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.unixTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8265,7 +8265,7 @@ func (f *unixTimestampFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) (SQL
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.unixTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8419,7 +8419,7 @@ func (f *utcDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.utcDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8501,7 +8501,7 @@ func (f *utcTimestampFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.utcTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8655,7 +8655,7 @@ func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, 
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.weekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8737,7 +8737,7 @@ func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.weekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8819,7 +8819,7 @@ func (f *weekdayFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.weekdayEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8901,7 +8901,7 @@ func (f *yearFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.yearEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -8983,7 +8983,7 @@ func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLEx
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.yearWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
@@ -9065,7 +9065,7 @@ func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, err
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.yearWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f, nil
+		return nil, err
 	}
 	return NewSQLValueExpr(val), nil
 }
