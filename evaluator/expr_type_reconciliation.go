@@ -96,18 +96,14 @@ func preferentialTypeWithSorter(s *types.EvalTypeSorter, typers ...types.EvalTyp
 	return s.Types[len(s.Types)-1]
 }
 
-// ReconcileSQLExprs takes two SQLExpr and ensures that
-// they are of the same type. If they are of different
-// types but still comparable, it wraps the SQLExpr with
-// a lesser precedence in a SQLConvertExpr. If they are
-// not comparable, it returns a non-nil error. The optional
-// argument preferVarchar causes reconilation to varchar
-// if any of the types is a varchar/EvalString.
-func ReconcileSQLExprs(left, right SQLExpr, preferVarchar ...bool) (SQLExpr, SQLExpr, error) {
+// ReconcileSQLExprs takes two SQLExprs and ensures that they are the same type.
+// If they are of different types, it wraps the SQLExpr with a lesser precedence
+// in a SQLConvertExpr.
+func ReconcileSQLExprs(left, right SQLExpr) (SQLExpr, SQLExpr) {
 	leftType, rightType := left.EvalType(), right.EvalType()
 
 	if leftType == rightType || isSimilar(leftType, rightType) {
-		return left, right, nil
+		return left, right
 	}
 
 	_, leftIsLiteral := left.(SQLValueExpr)
@@ -119,18 +115,14 @@ func ReconcileSQLExprs(left, right SQLExpr, preferVarchar ...bool) (SQLExpr, SQL
 
 	if leftIsLiteralStr && rightIsID {
 		newLeft := NewSQLConvertExpr(left, types.EvalObjectID)
-		return newLeft, right, nil
+		return newLeft, right
 	} else if rightIsLiteralStr && leftIsID {
 		newRight := NewSQLConvertExpr(right, types.EvalObjectID)
-		return left, newRight, nil
+		return left, newRight
 	}
 
 	sorter := &types.EvalTypeSorter{
 		Types: []types.EvalType{leftType, rightType},
-	}
-
-	if len(preferVarchar) > 0 {
-		sorter.VarcharHighPriority = preferVarchar[0]
 	}
 
 	sort.Sort(sorter)
@@ -141,5 +133,5 @@ func ReconcileSQLExprs(left, right SQLExpr, preferVarchar ...bool) (SQLExpr, SQL
 		left = NewSQLConvertExpr(left, sorter.Types[1])
 	}
 
-	return left, right, nil
+	return left, right
 }

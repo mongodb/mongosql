@@ -14,7 +14,5 @@ func OptimizeEvaluations(cfg *OptimizerConfig, n Node) (Node, error) {
 		return n, nil
 	}
 
-	n = FoldConstants(cfg, n)
-
-	return n, nil
+	return FoldConstants(cfg, n)
 }

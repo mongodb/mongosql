@@ -94,34 +94,6 @@ func (sf baseScalarFunctionExpr) validateArgCount() error {
 	return nil
 }
 
-// validateArgs ensures that the slice of arguments in sf.args is valid (i.e.
-// that it has the correct number of arguments and each argument has the correct
-// EvalType). If validation fails, an error is returned.
-// nolint: megacheck
-func (sf baseScalarFunctionExpr) validateArgs() error {
-	err := sf.validateArgCount()
-	if err != nil {
-		return err
-	}
-
-	argTypes := sf.argTypes()
-	for i, typ := range argTypes {
-		// If the type is declared as polymorphic, there is nothing to check,
-		// as all types are conforming.
-		if typ == types.EvalPolymorphic {
-			continue
-		}
-		if sf.args[i].EvalType() != typ {
-			return fmt.Errorf(
-				"expected EvalType %x at index %d, but got %x",
-				typ, i, sf.args[i].EvalType(),
-			)
-		}
-	}
-
-	return nil
-}
-
 func (sf baseScalarFunctionExpr) String() string {
 	var exprs []string
 	for _, expr := range sf.args {

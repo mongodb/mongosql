@@ -18,8 +18,7 @@ func (v *constantFolder) visit(n Node) (Node, error) {
 	// check if the newNode is a SQLExpr.
 	expr, ok := n.(SQLExpr)
 	if ok {
-		folded := expr.FoldConstants(v.cfg)
-		return folded, nil
+		return expr.FoldConstants(v.cfg)
 	}
 	return n, nil
 }
@@ -27,9 +26,7 @@ func (v *constantFolder) visit(n Node) (Node, error) {
 // FoldConstants simplifies all expressions under the passed Node n where possible,
 // based on the presence of embedded constants. For example, x + 0 can be simplified
 // to x.
-func FoldConstants(cfg *OptimizerConfig, n Node) Node {
+func FoldConstants(cfg *OptimizerConfig, n Node) (Node, error) {
 	cf := &constantFolder{cfg: cfg}
-	// Visit cannot actually return an error for FoldConstants.
-	folded, _ := cf.visit(n)
-	return folded
+	return cf.visit(n)
 }

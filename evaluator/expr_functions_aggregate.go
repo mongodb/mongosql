@@ -150,8 +150,12 @@ func (f *SQLAvgFunctionExpr) ExprName() string {
 }
 
 // Evaluate does in memory evaluation for SQLAvgFunctionExpr.
-func (f *SQLAvgFunctionExpr) Evaluate(ctx context.Context,
-	cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+func (f *SQLAvgFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -235,11 +239,15 @@ func (f *SQLAvgFunctionExpr) String() string {
 }
 
 // FoldConstants simplifies *SQLAvgFunctionExpr based on statically known constants.
-func (f *SQLAvgFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+func (f *SQLAvgFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -287,6 +295,11 @@ func (f *SQLCountFunctionExpr) ExprName() string {
 
 // Evaluate does in memory evaluation for SQLCountFunctionExpr
 func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -350,13 +363,17 @@ func (f *SQLCountFunctionExpr) String() string {
 }
 
 // FoldConstants simplifies *SQLCountFunctionExpr based on statically known constants.
-func (f *SQLCountFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *SQLCountFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
+
 	// Unlike the other aggregation functions, we do not want to return null
 	// if the argument is null, count(NULL) returns 0 bizarrely.
 	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLInt64(cfg.sqlValueKind, 0))
+		return NewSQLValueExpr(values.NewSQLInt64(cfg.sqlValueKind, 0)), nil
 	}
-	return f
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -410,11 +427,15 @@ func NewSQLGroupConcatFunctionExpr(distinct bool, exprs []SQLExpr) *SQLGroupConc
 }
 
 // FoldConstants simplifies *SQLGroupConcatFunctionExpr based on statically known constants.
-func (f *SQLGroupConcatFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+func (f *SQLGroupConcatFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -494,6 +515,11 @@ func (f *SQLGroupConcatFunctionExpr) ExprName() string {
 
 // Evaluate does in memory computation for SQLGroupConcatFunctionExpr.
 func (f *SQLGroupConcatFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -606,6 +632,11 @@ func (f *SQLMaxFunctionExpr) ExprName() string {
 
 // Evaluate for SQLMaxFunctionExpr does in memory computation for max.
 func (f *SQLMaxFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	max := values.SQLValue(values.NewSQLNull(cfg.sqlValueKind))
 	for _, row := range st.rows {
 		subSt := st.WithRows(row)
@@ -651,11 +682,15 @@ func (f *SQLMaxFunctionExpr) String() string {
 }
 
 // FoldConstants simplifies *SQLMaxFunctionExpr based on statically known constants.
-func (f *SQLMaxFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+func (f *SQLMaxFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -699,6 +734,11 @@ func (f *SQLMinFunctionExpr) ExprName() string {
 
 // Evaluate for SQLMinFunctionExpr computes the minimal element in memory.
 func (f *SQLMinFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	min := values.SQLValue(values.NewSQLNull(cfg.sqlValueKind))
 	for _, row := range st.rows {
 		subSt := st.WithRows(row)
@@ -746,11 +786,15 @@ func (f *SQLMinFunctionExpr) String() string {
 }
 
 // FoldConstants simplifies *SQLMinFunctionExpr based on statically known constants.
-func (f *SQLMinFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+func (f *SQLMinFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -794,6 +838,11 @@ func (f *SQLSumFunctionExpr) ExprName() string {
 
 // Evaluate for SQLSumFunctionExpr computes summations in memory.
 func (f *SQLSumFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -876,11 +925,15 @@ func (f *SQLSumFunctionExpr) String() string {
 }
 
 // FoldConstants simplifies *SQLSumFunctionExpr based on statically known constants.
-func (f *SQLSumFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+func (f *SQLSumFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -934,6 +987,11 @@ func (f *SQLStdDevFunctionExpr) ExprName() string {
 // Evaluate for SQLStdDevFunctionExpr computes the standard deviation of a population
 // in memory.
 func (f *SQLStdDevFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	var distinctMap map[interface{}]bool
 	if f.distinct {
 		distinctMap = make(map[interface{}]bool)
@@ -1035,11 +1093,15 @@ func (f *SQLStdDevFunctionExpr) String() string {
 }
 
 // FoldConstants simplifies *SQLStdDevFunctionExpr based on statically known constants.
-func (f *SQLStdDevFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+func (f *SQLStdDevFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1088,6 +1150,11 @@ func (f *SQLStdDevSampleFunctionExpr) ExprName() string {
 // Evaluate for SQLStdDevSampleFunctionExpr computes standard deviation for
 // a sample in memory.
 func (f *SQLStdDevSampleFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
 	var data []values.SQLValue
 	var distinctMap map[interface{}]bool
 	if f.distinct {
@@ -1195,11 +1262,15 @@ func (f *SQLStdDevSampleFunctionExpr) String() string {
 }
 
 // FoldConstants simplifies *SQLStdDevSampleFunctionExpr based on statically known constants.
-func (f *SQLStdDevSampleFunctionExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if hasNullExpr(f.exprs[0]) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+func (f *SQLStdDevSampleFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+
+	if hasNullExpr(f.exprs[0]) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return f, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language

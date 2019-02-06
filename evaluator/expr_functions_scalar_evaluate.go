@@ -2267,6 +2267,11 @@ func (f baseScalarFunctionExpr) atanDualArgEvaluate(sqlValueKind values.SQLValue
 }
 
 // nolint: unparam
-func (f baseScalarFunctionExpr) atan2Evaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Atan2)
+func (f baseScalarFunctionExpr) atan2SingleArgEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, values []values.SQLValue) (values.SQLValue, error) {
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Atan)
+}
+
+// nolint: unparam
+func (f baseScalarFunctionExpr) atan2DualArgEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, values []values.SQLValue) (values.SQLValue, error) {
+	return f.dualArgFloatMathFuncEvaluate(sqlValueKind, values, math.Atan2)
 }

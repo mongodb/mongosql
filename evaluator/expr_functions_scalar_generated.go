@@ -30,8 +30,12 @@ var (
 )
 
 func (f *absFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -57,10 +61,13 @@ func (f *absFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *absFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *absFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -71,14 +78,14 @@ func (f *absFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.absEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *absFunc) reconcile() (SQLExpr, error) {
@@ -105,8 +112,12 @@ var (
 )
 
 func (f *acosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -132,10 +143,13 @@ func (f *acosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -146,14 +160,14 @@ func (f *acosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.acosEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *acosFunc) reconcile() (SQLExpr, error) {
@@ -180,8 +194,12 @@ var (
 )
 
 func (f *asciiFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -207,10 +225,13 @@ func (f *asciiFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -221,14 +242,14 @@ func (f *asciiFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.asciiEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *asciiFunc) reconcile() (SQLExpr, error) {
@@ -255,8 +276,12 @@ var (
 )
 
 func (f *asinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -282,10 +307,13 @@ func (f *asinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -296,14 +324,14 @@ func (f *asinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.asinEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *asinFunc) reconcile() (SQLExpr, error) {
@@ -330,8 +358,12 @@ var (
 )
 
 func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -357,10 +389,13 @@ func (f *atanSingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atanSingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *atanSingleArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -371,14 +406,14 @@ func (f *atanSingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.atanSingleArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *atanSingleArgFunc) reconcile() (SQLExpr, error) {
@@ -405,8 +440,12 @@ var (
 )
 
 func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -432,10 +471,13 @@ func (f *atanDualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atanDualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *atanDualArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -446,14 +488,14 @@ func (f *atanDualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.atanDualArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *atanDualArgFunc) reconcile() (SQLExpr, error) {
@@ -480,8 +522,12 @@ var (
 )
 
 func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -495,8 +541,8 @@ func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		}
 		args = append(args, val)
 	}
-	// Call the value based evaluation function that contains the appropriate evaluation logic.
-	return f.atan2Evaluate(cfg.sqlValueKind, st.collation, args)
+	// Call the separate values.SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+	return f.atan2SingleArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *atan2SingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -507,10 +553,13 @@ func (f *atan2SingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (inte
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atan2SingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *atan2SingleArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -521,14 +570,14 @@ func (f *atan2SingleArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
-	val, err := f.atan2Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	val, err := f.atan2SingleArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *atan2SingleArgFunc) reconcile() (SQLExpr, error) {
@@ -555,8 +604,12 @@ var (
 )
 
 func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -570,8 +623,8 @@ func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		}
 		args = append(args, val)
 	}
-	// Call the value based evaluation function that contains the appropriate evaluation logic.
-	return f.atan2Evaluate(cfg.sqlValueKind, st.collation, args)
+	// Call the separate values.SQLValue accepting evaluation function that contains the appropriate evaluation logic.
+	return f.atan2DualArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
 func (f *atan2DualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
@@ -582,10 +635,13 @@ func (f *atan2DualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *atan2DualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *atan2DualArgFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -596,14 +652,14 @@ func (f *atan2DualArgFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
-	val, err := f.atan2Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	val, err := f.atan2DualArgEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *atan2DualArgFunc) reconcile() (SQLExpr, error) {
@@ -630,8 +686,12 @@ var (
 )
 
 func (f *ceilFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -657,10 +717,13 @@ func (f *ceilFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *ceilFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *ceilFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -671,14 +734,14 @@ func (f *ceilFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.ceilEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *ceilFunc) reconcile() (SQLExpr, error) {
@@ -705,8 +768,12 @@ var (
 )
 
 func (f *charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -732,11 +799,14 @@ func (f *charFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *charFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.charFoldConstants(cfg); ok {
-		return newExpr
+func (f *charFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.charFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *charFunc) reconcile() (SQLExpr, error) {
@@ -763,8 +833,12 @@ var (
 )
 
 func (f *characterLengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -790,10 +864,13 @@ func (f *characterLengthFunc) ToAggregationPredicate(t *PushdownTranslator) (int
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *characterLengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *characterLengthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -804,14 +881,14 @@ func (f *characterLengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.characterLengthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *characterLengthFunc) reconcile() (SQLExpr, error) {
@@ -838,8 +915,12 @@ var (
 )
 
 func (f *concatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -865,10 +946,13 @@ func (f *concatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *concatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *concatFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -879,14 +963,14 @@ func (f *concatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.concatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *concatFunc) reconcile() (SQLExpr, error) {
@@ -913,8 +997,12 @@ var (
 )
 
 func (f *concatWsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -940,11 +1028,14 @@ func (f *concatWsFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *concatWsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.concatWsFoldConstants(cfg); ok {
-		return newExpr
+func (f *concatWsFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.concatWsFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *concatWsFunc) reconcile() (SQLExpr, error) {
@@ -971,8 +1062,12 @@ var (
 )
 
 func (f *connectionIDFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -998,9 +1093,12 @@ func (f *connectionIDFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *connectionIDFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *connectionIDFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1009,7 +1107,7 @@ func (f *connectionIDFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		} else {
 		}
 	}
-	return f
+	return f, nil
 }
 
 func (f *connectionIDFunc) reconcile() (SQLExpr, error) {
@@ -1036,8 +1134,12 @@ var (
 )
 
 func (f *convFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1063,10 +1165,13 @@ func (f *convFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *convFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *convFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1077,14 +1182,14 @@ func (f *convFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.convEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *convFunc) reconcile() (SQLExpr, error) {
@@ -1111,8 +1216,12 @@ var (
 )
 
 func (f *convertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1138,10 +1247,13 @@ func (f *convertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *convertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *convertFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1152,14 +1264,14 @@ func (f *convertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.convertEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *convertFunc) reconcile() (SQLExpr, error) {
@@ -1182,8 +1294,12 @@ var (
 )
 
 func (f *cosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1209,10 +1325,13 @@ func (f *cosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *cosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *cosFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1223,14 +1342,14 @@ func (f *cosFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.cosEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *cosFunc) reconcile() (SQLExpr, error) {
@@ -1257,8 +1376,12 @@ var (
 )
 
 func (f *cotFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1284,10 +1407,13 @@ func (f *cotFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *cotFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *cotFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1298,14 +1424,14 @@ func (f *cotFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.cotEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *cotFunc) reconcile() (SQLExpr, error) {
@@ -1332,8 +1458,12 @@ var (
 )
 
 func (f *currentDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1359,10 +1489,13 @@ func (f *currentDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *currentDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *currentDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1373,14 +1506,14 @@ func (f *currentDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.currentDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *currentDateFunc) reconcile() (SQLExpr, error) {
@@ -1407,8 +1540,12 @@ var (
 )
 
 func (f *currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1434,10 +1571,13 @@ func (f *currentTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *currentTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *currentTimestampFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1448,14 +1588,14 @@ func (f *currentTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.currentTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *currentTimestampFunc) reconcile() (SQLExpr, error) {
@@ -1482,8 +1622,12 @@ var (
 )
 
 func (f *curtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1509,10 +1653,13 @@ func (f *curtimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *curtimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *curtimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1523,14 +1670,14 @@ func (f *curtimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.curtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *curtimeFunc) reconcile() (SQLExpr, error) {
@@ -1557,8 +1704,12 @@ var (
 )
 
 func (f *databaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1584,9 +1735,12 @@ func (f *databaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *databaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *databaseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1595,7 +1749,7 @@ func (f *databaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		} else {
 		}
 	}
-	return f
+	return f, nil
 }
 
 func (f *databaseFunc) reconcile() (SQLExpr, error) {
@@ -1622,8 +1776,12 @@ var (
 )
 
 func (f *dateAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1649,10 +1807,13 @@ func (f *dateAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1663,14 +1824,14 @@ func (f *dateAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateAddEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dateAddFunc) reconcile() (SQLExpr, error) {
@@ -1697,8 +1858,12 @@ var (
 )
 
 func (f *dateDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1724,10 +1889,13 @@ func (f *dateDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dateDiffFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1738,14 +1906,14 @@ func (f *dateDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dateDiffFunc) reconcile() (SQLExpr, error) {
@@ -1772,8 +1940,12 @@ var (
 )
 
 func (f *dateFormatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1799,10 +1971,13 @@ func (f *dateFormatFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateFormatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dateFormatFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1813,14 +1988,14 @@ func (f *dateFormatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateFormatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dateFormatFunc) reconcile() (SQLExpr, error) {
@@ -1847,8 +2022,12 @@ var (
 )
 
 func (f *dateSubFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1874,10 +2053,13 @@ func (f *dateSubFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1888,14 +2070,14 @@ func (f *dateSubFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dateSubEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dateSubFunc) reconcile() (SQLExpr, error) {
@@ -1922,8 +2104,12 @@ var (
 )
 
 func (f *dayNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -1949,10 +2135,13 @@ func (f *dayNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dayNameFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -1963,14 +2152,14 @@ func (f *dayNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayNameEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dayNameFunc) reconcile() (SQLExpr, error) {
@@ -1997,8 +2186,12 @@ var (
 )
 
 func (f *dayOfMonthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2024,10 +2217,13 @@ func (f *dayOfMonthFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayOfMonthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dayOfMonthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2038,14 +2234,14 @@ func (f *dayOfMonthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayOfMonthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dayOfMonthFunc) reconcile() (SQLExpr, error) {
@@ -2072,8 +2268,12 @@ var (
 )
 
 func (f *dayOfWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2099,10 +2299,13 @@ func (f *dayOfWeekFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayOfWeekFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dayOfWeekFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2113,14 +2316,14 @@ func (f *dayOfWeekFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayOfWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dayOfWeekFunc) reconcile() (SQLExpr, error) {
@@ -2147,8 +2350,12 @@ var (
 )
 
 func (f *dayOfYearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2174,10 +2381,13 @@ func (f *dayOfYearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *dayOfYearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *dayOfYearFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2188,14 +2398,14 @@ func (f *dayOfYearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.dayOfYearEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *dayOfYearFunc) reconcile() (SQLExpr, error) {
@@ -2222,8 +2432,12 @@ var (
 )
 
 func (f *degreesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2249,10 +2463,13 @@ func (f *degreesFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *degreesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *degreesFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2263,14 +2480,14 @@ func (f *degreesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.degreesEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *degreesFunc) reconcile() (SQLExpr, error) {
@@ -2297,8 +2514,12 @@ var (
 )
 
 func (f *expFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2324,10 +2545,13 @@ func (f *expFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *expFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *expFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2338,14 +2562,14 @@ func (f *expFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.expEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *expFunc) reconcile() (SQLExpr, error) {
@@ -2372,8 +2596,12 @@ var (
 )
 
 func (f *extractFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2399,10 +2627,13 @@ func (f *extractFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *extractFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *extractFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2413,14 +2644,14 @@ func (f *extractFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.extractEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *extractFunc) reconcile() (SQLExpr, error) {
@@ -2447,8 +2678,12 @@ var (
 )
 
 func (f *floorFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2474,10 +2709,13 @@ func (f *floorFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *floorFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *floorFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2488,14 +2726,14 @@ func (f *floorFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.floorEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *floorFunc) reconcile() (SQLExpr, error) {
@@ -2522,8 +2760,12 @@ var (
 )
 
 func (f *fromDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2549,10 +2791,13 @@ func (f *fromDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *fromDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *fromDaysFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2563,14 +2808,14 @@ func (f *fromDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.fromDaysEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *fromDaysFunc) reconcile() (SQLExpr, error) {
@@ -2597,8 +2842,12 @@ var (
 )
 
 func (f *fromUnixtimeToDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2624,10 +2873,13 @@ func (f *fromUnixtimeToDatetimeFunc) ToAggregationPredicate(t *PushdownTranslato
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *fromUnixtimeToDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *fromUnixtimeToDatetimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2638,14 +2890,14 @@ func (f *fromUnixtimeToDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.fromUnixtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *fromUnixtimeToDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -2672,8 +2924,12 @@ var (
 )
 
 func (f *fromUnixtimeToFormattedDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2699,10 +2955,13 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationPredicate(t *Pushdown
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *fromUnixtimeToFormattedDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *fromUnixtimeToFormattedDatetimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2713,14 +2972,14 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) FoldConstants(cfg *OptimizerConfig
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.fromUnixtimeEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *fromUnixtimeToFormattedDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -2747,8 +3006,12 @@ var (
 )
 
 func (f *greatestFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2774,10 +3037,13 @@ func (f *greatestFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *greatestFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *greatestFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2788,14 +3054,14 @@ func (f *greatestFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.greatestEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *greatestFunc) reconcile() (SQLExpr, error) {
@@ -2818,8 +3084,12 @@ var (
 )
 
 func (f *hourFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2845,10 +3115,13 @@ func (f *hourFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *hourFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *hourFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2859,14 +3132,14 @@ func (f *hourFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.hourEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 // nolint: unparam
@@ -2893,8 +3166,12 @@ var (
 )
 
 func (f *insertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2920,10 +3197,13 @@ func (f *insertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *insertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *insertFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -2934,14 +3214,14 @@ func (f *insertFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.insertEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *insertFunc) reconcile() (SQLExpr, error) {
@@ -2968,8 +3248,12 @@ var (
 )
 
 func (f *instrFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -2995,10 +3279,13 @@ func (f *instrFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *instrFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *instrFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3009,14 +3296,14 @@ func (f *instrFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.instrEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *instrFunc) reconcile() (SQLExpr, error) {
@@ -3043,8 +3330,12 @@ var (
 )
 
 func (f *lastDayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3070,10 +3361,13 @@ func (f *lastDayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3084,14 +3378,14 @@ func (f *lastDayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lastDayEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *lastDayFunc) reconcile() (SQLExpr, error) {
@@ -3118,8 +3412,12 @@ var (
 )
 
 func (f *lcaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3145,10 +3443,13 @@ func (f *lcaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lcaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *lcaseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3159,14 +3460,14 @@ func (f *lcaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lcaseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *lcaseFunc) reconcile() (SQLExpr, error) {
@@ -3193,8 +3494,12 @@ var (
 )
 
 func (f *leastFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3220,10 +3525,13 @@ func (f *leastFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *leastFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *leastFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3234,14 +3542,14 @@ func (f *leastFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.leastEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *leastFunc) reconcile() (SQLExpr, error) {
@@ -3264,8 +3572,12 @@ var (
 )
 
 func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3291,10 +3603,13 @@ func (f *leftFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *leftFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *leftFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3305,14 +3620,14 @@ func (f *leftFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.leftEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *leftFunc) reconcile() (SQLExpr, error) {
@@ -3339,8 +3654,12 @@ var (
 )
 
 func (f *lengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3366,10 +3685,13 @@ func (f *lengthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *lengthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3380,14 +3702,14 @@ func (f *lengthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lengthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *lengthFunc) reconcile() (SQLExpr, error) {
@@ -3414,8 +3736,12 @@ var (
 )
 
 func (f *lnFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3441,10 +3767,13 @@ func (f *lnFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pus
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lnFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *lnFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3455,14 +3784,14 @@ func (f *lnFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lnEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *lnFunc) reconcile() (SQLExpr, error) {
@@ -3489,8 +3818,12 @@ var (
 )
 
 func (f *locateFromBeginningFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3516,11 +3849,14 @@ func (f *locateFromBeginningFunc) ToAggregationPredicate(t *PushdownTranslator) 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *locateFromBeginningFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.locateFoldConstants(cfg); ok {
-		return newExpr
+func (f *locateFromBeginningFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.locateFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *locateFromBeginningFunc) reconcile() (SQLExpr, error) {
@@ -3547,8 +3883,12 @@ var (
 )
 
 func (f *locateFromIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3574,11 +3914,14 @@ func (f *locateFromIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (int
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *locateFromIndexFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.locateFoldConstants(cfg); ok {
-		return newExpr
+func (f *locateFromIndexFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.locateFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *locateFromIndexFunc) reconcile() (SQLExpr, error) {
@@ -3605,8 +3948,12 @@ var (
 )
 
 func (f *logNaturalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3632,10 +3979,13 @@ func (f *logNaturalFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *logNaturalFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *logNaturalFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3646,14 +3996,14 @@ func (f *logNaturalFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.logEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *logNaturalFunc) reconcile() (SQLExpr, error) {
@@ -3680,8 +4030,12 @@ var (
 )
 
 func (f *logWithBaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3707,10 +4061,13 @@ func (f *logWithBaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *logWithBaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *logWithBaseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3721,14 +4078,14 @@ func (f *logWithBaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.logEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *logWithBaseFunc) reconcile() (SQLExpr, error) {
@@ -3755,8 +4112,12 @@ var (
 )
 
 func (f *log10Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3782,10 +4143,13 @@ func (f *log10Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *log10Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *log10Func) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3796,14 +4160,14 @@ func (f *log10Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.log10Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *log10Func) reconcile() (SQLExpr, error) {
@@ -3830,8 +4194,12 @@ var (
 )
 
 func (f *log2Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3857,10 +4225,13 @@ func (f *log2Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *log2Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *log2Func) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3871,14 +4242,14 @@ func (f *log2Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.log2Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *log2Func) reconcile() (SQLExpr, error) {
@@ -3905,8 +4276,12 @@ var (
 )
 
 func (f *lpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -3932,10 +4307,13 @@ func (f *lpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *lpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *lpadFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -3946,14 +4324,14 @@ func (f *lpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.lpadEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *lpadFunc) reconcile() (SQLExpr, error) {
@@ -3980,8 +4358,12 @@ var (
 )
 
 func (f *ltrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4007,10 +4389,13 @@ func (f *ltrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *ltrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *ltrimFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4021,14 +4406,14 @@ func (f *ltrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.ltrimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *ltrimFunc) reconcile() (SQLExpr, error) {
@@ -4055,8 +4440,12 @@ var (
 )
 
 func (f *makeDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4082,10 +4471,13 @@ func (f *makeDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *makeDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *makeDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4096,14 +4488,14 @@ func (f *makeDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.makeDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *makeDateFunc) reconcile() (SQLExpr, error) {
@@ -4130,8 +4522,12 @@ var (
 )
 
 func (f *md5Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4157,10 +4553,13 @@ func (f *md5Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *md5Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *md5Func) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4171,14 +4570,14 @@ func (f *md5Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.md5Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *md5Func) reconcile() (SQLExpr, error) {
@@ -4205,8 +4604,12 @@ var (
 )
 
 func (f *microsecondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4232,10 +4635,13 @@ func (f *microsecondFunc) ToAggregationPredicate(t *PushdownTranslator) (interfa
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *microsecondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *microsecondFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4246,14 +4652,14 @@ func (f *microsecondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.microsecondEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 // nolint: unparam
@@ -4280,8 +4686,12 @@ var (
 )
 
 func (f *midFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4307,10 +4717,13 @@ func (f *midFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *midFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *midFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4321,14 +4734,14 @@ func (f *midFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.midEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *midFunc) reconcile() (SQLExpr, error) {
@@ -4355,8 +4768,12 @@ var (
 )
 
 func (f *minuteFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4382,10 +4799,13 @@ func (f *minuteFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *minuteFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *minuteFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4396,14 +4816,14 @@ func (f *minuteFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.minuteEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 // nolint: unparam
@@ -4430,8 +4850,12 @@ var (
 )
 
 func (f *modFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4457,10 +4881,13 @@ func (f *modFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *modFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *modFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4471,14 +4898,14 @@ func (f *modFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.modEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *modFunc) reconcile() (SQLExpr, error) {
@@ -4505,8 +4932,12 @@ var (
 )
 
 func (f *monthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4532,10 +4963,13 @@ func (f *monthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *monthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *monthFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4546,14 +4980,14 @@ func (f *monthFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.monthEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *monthFunc) reconcile() (SQLExpr, error) {
@@ -4580,8 +5014,12 @@ var (
 )
 
 func (f *monthNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4607,10 +5045,13 @@ func (f *monthNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *monthNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *monthNameFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4621,14 +5062,14 @@ func (f *monthNameFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.monthNameEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *monthNameFunc) reconcile() (SQLExpr, error) {
@@ -4655,8 +5096,12 @@ var (
 )
 
 func (f *nopushdownFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4682,11 +5127,14 @@ func (f *nopushdownFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *nopushdownFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.nopushdownFoldConstants(cfg); ok {
-		return newExpr
+func (f *nopushdownFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.nopushdownFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *nopushdownFunc) reconcile() (SQLExpr, error) {
@@ -4709,8 +5157,12 @@ var (
 )
 
 func (f *piFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4736,10 +5188,13 @@ func (f *piFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pus
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *piFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *piFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4750,14 +5205,14 @@ func (f *piFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.piEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *piFunc) reconcile() (SQLExpr, error) {
@@ -4784,8 +5239,12 @@ var (
 )
 
 func (f *powFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4811,10 +5270,13 @@ func (f *powFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *powFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *powFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4825,14 +5287,14 @@ func (f *powFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.powEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *powFunc) reconcile() (SQLExpr, error) {
@@ -4859,8 +5321,12 @@ var (
 )
 
 func (f *quarterFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4886,10 +5352,13 @@ func (f *quarterFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *quarterFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *quarterFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4900,14 +5369,14 @@ func (f *quarterFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.quarterEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *quarterFunc) reconcile() (SQLExpr, error) {
@@ -4934,8 +5403,12 @@ var (
 )
 
 func (f *radiansFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -4961,10 +5434,13 @@ func (f *radiansFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *radiansFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *radiansFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -4975,14 +5451,14 @@ func (f *radiansFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.radiansEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *radiansFunc) reconcile() (SQLExpr, error) {
@@ -5009,8 +5485,12 @@ var (
 )
 
 func (f *randNoSeedFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5036,11 +5516,14 @@ func (f *randNoSeedFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *randNoSeedFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.randFoldConstants(cfg); ok {
-		return newExpr
+func (f *randNoSeedFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.randFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *randNoSeedFunc) reconcile() (SQLExpr, error) {
@@ -5067,8 +5550,12 @@ var (
 )
 
 func (f *randSeededFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5094,11 +5581,14 @@ func (f *randSeededFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *randSeededFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.randFoldConstants(cfg); ok {
-		return newExpr
+func (f *randSeededFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.randFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *randSeededFunc) reconcile() (SQLExpr, error) {
@@ -5125,8 +5615,12 @@ var (
 )
 
 func (f *repeatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5152,10 +5646,13 @@ func (f *repeatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *repeatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *repeatFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5166,14 +5663,14 @@ func (f *repeatFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.repeatEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *repeatFunc) reconcile() (SQLExpr, error) {
@@ -5200,8 +5697,12 @@ var (
 )
 
 func (f *replaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5227,10 +5728,13 @@ func (f *replaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *replaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *replaceFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5241,14 +5745,14 @@ func (f *replaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.replaceEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *replaceFunc) reconcile() (SQLExpr, error) {
@@ -5275,8 +5779,12 @@ var (
 )
 
 func (f *reverseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5302,10 +5810,13 @@ func (f *reverseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *reverseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *reverseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5316,14 +5827,14 @@ func (f *reverseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.reverseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *reverseFunc) reconcile() (SQLExpr, error) {
@@ -5350,8 +5861,12 @@ var (
 )
 
 func (f *rightFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5377,10 +5892,13 @@ func (f *rightFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *rightFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *rightFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5391,14 +5909,14 @@ func (f *rightFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.rightEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *rightFunc) reconcile() (SQLExpr, error) {
@@ -5425,8 +5943,12 @@ var (
 )
 
 func (f *roundWithDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5452,10 +5974,13 @@ func (f *roundWithDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTranslato
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *roundWithDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *roundWithDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5466,14 +5991,14 @@ func (f *roundWithDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.roundEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *roundWithDecimalPlacesFunc) reconcile() (SQLExpr, error) {
@@ -5500,8 +6025,12 @@ var (
 )
 
 func (f *roundToZeroDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5527,10 +6056,13 @@ func (f *roundToZeroDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTransla
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *roundToZeroDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *roundToZeroDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5541,14 +6073,14 @@ func (f *roundToZeroDecimalPlacesFunc) FoldConstants(cfg *OptimizerConfig) SQLEx
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.roundEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *roundToZeroDecimalPlacesFunc) reconcile() (SQLExpr, error) {
@@ -5575,8 +6107,12 @@ var (
 )
 
 func (f *rpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5602,10 +6138,13 @@ func (f *rpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *rpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *rpadFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5616,14 +6155,14 @@ func (f *rpadFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.rpadEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *rpadFunc) reconcile() (SQLExpr, error) {
@@ -5650,8 +6189,12 @@ var (
 )
 
 func (f *rtrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5677,10 +6220,13 @@ func (f *rtrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *rtrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *rtrimFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5691,14 +6237,14 @@ func (f *rtrimFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.rtrimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *rtrimFunc) reconcile() (SQLExpr, error) {
@@ -5725,8 +6271,12 @@ var (
 )
 
 func (f *secondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5752,10 +6302,13 @@ func (f *secondFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *secondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *secondFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5766,14 +6319,14 @@ func (f *secondFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.secondEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 // nolint: unparam
@@ -5800,8 +6353,12 @@ var (
 )
 
 func (f *signFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5827,10 +6384,13 @@ func (f *signFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *signFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *signFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5841,14 +6401,14 @@ func (f *signFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.signEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *signFunc) reconcile() (SQLExpr, error) {
@@ -5875,8 +6435,12 @@ var (
 )
 
 func (f *sinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5902,10 +6466,13 @@ func (f *sinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *sinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *sinFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5916,14 +6483,14 @@ func (f *sinFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.sinEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *sinFunc) reconcile() (SQLExpr, error) {
@@ -5950,8 +6517,12 @@ var (
 )
 
 func (f *sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -5977,9 +6548,12 @@ func (f *sleepFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *sleepFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *sleepFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -5988,7 +6562,7 @@ func (f *sleepFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		} else {
 		}
 	}
-	return f
+	return f, nil
 }
 
 func (f *sleepFunc) reconcile() (SQLExpr, error) {
@@ -6015,8 +6589,12 @@ var (
 )
 
 func (f *spaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6042,10 +6620,13 @@ func (f *spaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *spaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *spaceFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6056,14 +6637,14 @@ func (f *spaceFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.spaceEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *spaceFunc) reconcile() (SQLExpr, error) {
@@ -6090,8 +6671,12 @@ var (
 )
 
 func (f *sqrtFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6117,10 +6702,13 @@ func (f *sqrtFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *sqrtFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *sqrtFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6131,14 +6719,14 @@ func (f *sqrtFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.sqrtEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *sqrtFunc) reconcile() (SQLExpr, error) {
@@ -6165,8 +6753,12 @@ var (
 )
 
 func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6192,10 +6784,13 @@ func (f *strToDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6206,14 +6801,14 @@ func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.strToDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *strToDateFunc) reconcile() (SQLExpr, error) {
@@ -6240,8 +6835,12 @@ var (
 )
 
 func (f *substringFromFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6267,10 +6866,13 @@ func (f *substringFromFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *substringFromFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *substringFromFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6281,14 +6883,14 @@ func (f *substringFromFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.substringEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *substringFromFunc) reconcile() (SQLExpr, error) {
@@ -6315,8 +6917,12 @@ var (
 )
 
 func (f *substringFromForFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6342,10 +6948,13 @@ func (f *substringFromForFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *substringFromForFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *substringFromForFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6356,14 +6965,14 @@ func (f *substringFromForFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.substringEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *substringFromForFunc) reconcile() (SQLExpr, error) {
@@ -6390,8 +6999,12 @@ var (
 )
 
 func (f *substringIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6417,11 +7030,14 @@ func (f *substringIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (inte
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *substringIndexFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	if newExpr, ok := f.substringIndexFoldConstants(cfg); ok {
-		return newExpr
+func (f *substringIndexFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
 	}
-	return f
+	if newExpr, ok := f.substringIndexFoldConstants(cfg); ok {
+		return newExpr, nil
+	}
+	return f, nil
 }
 
 func (f *substringIndexFunc) reconcile() (SQLExpr, error) {
@@ -6448,8 +7064,12 @@ var (
 )
 
 func (f *tanFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6475,10 +7095,13 @@ func (f *tanFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, Pu
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *tanFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *tanFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6489,14 +7112,14 @@ func (f *tanFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.tanEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *tanFunc) reconcile() (SQLExpr, error) {
@@ -6523,8 +7146,12 @@ var (
 )
 
 func (f *timeDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6550,10 +7177,13 @@ func (f *timeDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timeDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *timeDiffFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6564,14 +7194,14 @@ func (f *timeDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timeDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *timeDiffFunc) reconcile() (SQLExpr, error) {
@@ -6598,8 +7228,12 @@ var (
 )
 
 func (f *timeToSecFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6625,10 +7259,13 @@ func (f *timeToSecFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timeToSecFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *timeToSecFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6639,14 +7276,14 @@ func (f *timeToSecFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timeToSecEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 // nolint: unparam
@@ -6673,8 +7310,12 @@ var (
 )
 
 func (f *timestampAddTimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6700,10 +7341,13 @@ func (f *timestampAddTimeFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timestampAddTimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *timestampAddTimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6714,14 +7358,14 @@ func (f *timestampAddTimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 // nolint: unparam
@@ -6748,8 +7392,12 @@ var (
 )
 
 func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6775,10 +7423,13 @@ func (f *timestampAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6789,14 +7440,14 @@ func (f *timestampAddFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timestampAddEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *timestampAddFunc) reconcile() (SQLExpr, error) {
@@ -6823,8 +7474,12 @@ var (
 )
 
 func (f *timestampDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6850,10 +7505,13 @@ func (f *timestampDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (inter
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6864,14 +7522,14 @@ func (f *timestampDiffFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.timestampDiffEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *timestampDiffFunc) reconcile() (SQLExpr, error) {
@@ -6898,8 +7556,12 @@ var (
 )
 
 func (f *toDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -6925,10 +7587,13 @@ func (f *toDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{},
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -6939,14 +7604,14 @@ func (f *toDaysFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.toDaysEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *toDaysFunc) reconcile() (SQLExpr, error) {
@@ -6973,8 +7638,12 @@ var (
 )
 
 func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7000,10 +7669,13 @@ func (f *toSecondsFunc) ToAggregationPredicate(t *PushdownTranslator) (interface
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7014,14 +7686,14 @@ func (f *toSecondsFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.toSecondsEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *toSecondsFunc) reconcile() (SQLExpr, error) {
@@ -7048,8 +7720,12 @@ var (
 )
 
 func (f *trimSpacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7075,10 +7751,13 @@ func (f *trimSpacesFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *trimSpacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *trimSpacesFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7089,14 +7768,14 @@ func (f *trimSpacesFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *trimSpacesFunc) reconcile() (SQLExpr, error) {
@@ -7123,8 +7802,12 @@ var (
 )
 
 func (f *trimStringFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7150,10 +7833,13 @@ func (f *trimStringFunc) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *trimStringFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *trimStringFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7164,14 +7850,14 @@ func (f *trimStringFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *trimStringFunc) reconcile() (SQLExpr, error) {
@@ -7198,8 +7884,12 @@ var (
 )
 
 func (f *trimStringFromSideFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7225,10 +7915,13 @@ func (f *trimStringFromSideFunc) ToAggregationPredicate(t *PushdownTranslator) (
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *trimStringFromSideFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *trimStringFromSideFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7239,14 +7932,14 @@ func (f *trimStringFromSideFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.trimEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *trimStringFromSideFunc) reconcile() (SQLExpr, error) {
@@ -7273,8 +7966,12 @@ var (
 )
 
 func (f *truncateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7300,10 +7997,13 @@ func (f *truncateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7314,14 +8014,14 @@ func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.truncateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *truncateFunc) reconcile() (SQLExpr, error) {
@@ -7348,8 +8048,12 @@ var (
 )
 
 func (f *ucaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7375,10 +8079,13 @@ func (f *ucaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *ucaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *ucaseFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7389,14 +8096,14 @@ func (f *ucaseFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.ucaseEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *ucaseFunc) reconcile() (SQLExpr, error) {
@@ -7423,8 +8130,12 @@ var (
 )
 
 func (f *unixTimestampZeroFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7450,10 +8161,13 @@ func (f *unixTimestampZeroFunc) ToAggregationPredicate(t *PushdownTranslator) (i
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *unixTimestampZeroFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *unixTimestampZeroFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7464,14 +8178,14 @@ func (f *unixTimestampZeroFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.unixTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *unixTimestampZeroFunc) reconcile() (SQLExpr, error) {
@@ -7498,8 +8212,12 @@ var (
 )
 
 func (f *unixTimestampFromDatetimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7525,10 +8243,13 @@ func (f *unixTimestampFromDatetimeFunc) ToAggregationPredicate(t *PushdownTransl
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *unixTimestampFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *unixTimestampFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7539,14 +8260,14 @@ func (f *unixTimestampFromDatetimeFunc) FoldConstants(cfg *OptimizerConfig) SQLE
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.unixTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *unixTimestampFromDatetimeFunc) reconcile() (SQLExpr, error) {
@@ -7573,8 +8294,12 @@ var (
 )
 
 func (f *userFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7600,9 +8325,12 @@ func (f *userFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *userFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *userFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7611,7 +8339,7 @@ func (f *userFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		} else {
 		}
 	}
-	return f
+	return f, nil
 }
 
 func (f *userFunc) reconcile() (SQLExpr, error) {
@@ -7638,8 +8366,12 @@ var (
 )
 
 func (f *utcDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7665,10 +8397,13 @@ func (f *utcDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *utcDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *utcDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7679,14 +8414,14 @@ func (f *utcDateFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.utcDateEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *utcDateFunc) reconcile() (SQLExpr, error) {
@@ -7713,8 +8448,12 @@ var (
 )
 
 func (f *utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7740,10 +8479,13 @@ func (f *utcTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *utcTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *utcTimestampFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7754,14 +8496,14 @@ func (f *utcTimestampFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.utcTimestampEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *utcTimestampFunc) reconcile() (SQLExpr, error) {
@@ -7788,8 +8530,12 @@ var (
 )
 
 func (f *versionFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7815,9 +8561,12 @@ func (f *versionFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *versionFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *versionFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7826,7 +8575,7 @@ func (f *versionFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		} else {
 		}
 	}
-	return f
+	return f, nil
 }
 
 func (f *versionFunc) reconcile() (SQLExpr, error) {
@@ -7853,8 +8602,12 @@ var (
 )
 
 func (f *weekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7880,10 +8633,13 @@ func (f *weekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslator) 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7894,14 +8650,14 @@ func (f *weekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.weekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *weekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
@@ -7928,8 +8684,12 @@ var (
 )
 
 func (f *weekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -7955,10 +8715,13 @@ func (f *weekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (interf
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -7969,14 +8732,14 @@ func (f *weekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.weekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *weekWithModeFunc) reconcile() (SQLExpr, error) {
@@ -8003,8 +8766,12 @@ var (
 )
 
 func (f *weekdayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -8030,10 +8797,13 @@ func (f *weekdayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *weekdayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *weekdayFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -8044,14 +8814,14 @@ func (f *weekdayFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.weekdayEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *weekdayFunc) reconcile() (SQLExpr, error) {
@@ -8078,8 +8848,12 @@ var (
 )
 
 func (f *yearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -8105,10 +8879,13 @@ func (f *yearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, P
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *yearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *yearFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -8119,14 +8896,14 @@ func (f *yearFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.yearEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *yearFunc) reconcile() (SQLExpr, error) {
@@ -8153,8 +8930,12 @@ var (
 )
 
 func (f *yearWeekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -8180,10 +8961,13 @@ func (f *yearWeekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslat
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -8194,14 +8978,14 @@ func (f *yearWeekWithDefaultModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExp
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.yearWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *yearWeekWithDefaultModeFunc) reconcile() (SQLExpr, error) {
@@ -8228,8 +9012,12 @@ var (
 )
 
 func (f *yearWeekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	// Validate this function's argument count.
+	// Validate this function's argument count and types.
 	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
 	if err != nil {
 		return nil, err
 	}
@@ -8255,10 +9043,13 @@ func (f *yearWeekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (in
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
 	allVals := true
 	if hasNullExpr(f.args...) {
-		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 	}
 	valArgs := make([]values.SQLValue, len(f.args))
 	for i, arg := range f.args {
@@ -8269,14 +9060,14 @@ func (f *yearWeekWithModeFunc) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if !allVals {
-		return f
+		return f, nil
 	}
 	// Call the function that contains the appropriate evaluation logic.
 	val, err := f.yearWeekEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 	if err != nil {
-		return f
+		return f, nil
 	}
-	return NewSQLValueExpr(val)
+	return NewSQLValueExpr(val), nil
 }
 
 func (f *yearWeekWithModeFunc) reconcile() (SQLExpr, error) {

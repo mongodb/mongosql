@@ -12,6 +12,7 @@ import (
 	. "github.com/10gen/sqlproxy/evaluator/types"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/shopspring/decimal"
 	"github.com/smartystreets/goconvey/convey"
@@ -76,6 +77,41 @@ func TestEvaluates(t *testing.T) {
 					result,
 					"type of evaluated SQLExpr does not match expected type",
 				)
+			})
+		}
+	}
+
+	type errTest struct {
+		name  string
+		expr  SQLExpr
+		valid bool
+	}
+
+	runEvaluateErrTests := func(t *testing.T, cfg *ExecutionConfig, st *ExecutionState, tests []errTest) {
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				req = require.New(t)
+				_, err := test.expr.Evaluate(context.Background(), cfg, st)
+				if test.valid {
+					req.Nil(err, "evaluate should not return an error for these types")
+				} else {
+					req.NotNil(err, "evaluate should return an error for these types")
+				}
+			})
+		}
+	}
+
+	runFoldConstantsErrTests := func(t *testing.T, eCfg *ExecutionConfig, tests []errTest) {
+		oCfg := CreateTestOptimizerCfg(collation.Default, eCfg)
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				req = require.New(t)
+				_, err := test.expr.FoldConstants(oCfg)
+				if test.valid {
+					req.Nil(err, "evaluate should not return an error for these types")
+				} else {
+					req.NotNil(err, "evaluate should return an error for these types")
+				}
 			})
 		}
 	}
@@ -2284,6 +2320,202 @@ func TestEvaluates(t *testing.T) {
 		}
 		runTypeTests(t, execCfg, execState, typeTests)
 
+		// error tests
+		t.Run("argument validation", func(t *testing.T) {
+			strVal := NewSQLValueExpr(NewSQLVarchar(knd, "bar"))
+			intVal := NewSQLValueExpr(NewSQLInt64(knd, 1))
+			floatVal := NewSQLValueExpr(NewSQLFloat(knd, 1))
+			boolVal := NewSQLValueExpr(NewSQLBool(knd, true))
+
+			// errTests is a list of test cases for the binary and unary operator and agg function SQLExprs. They
+			// have custom reconcile implementations, so they are all tested to check for errors when the argument
+			// types are unexpected.
+			// This list does not contain tests for the scalar functions since those all have their reconcile, Evaluate,
+			// and FoldConstants implementations generated the same way. They (mostly) all convert their arguments to
+			// the expected types and all call validateArgs in their Evaluate and FoldConstants implementations, so
+			// the unit tests for validateArgs is sufficient for them.
+			errTests := []errTest{
+				// arithmetic expressions: can evaluate if both arguments are numeric, cannot evaluate if at least one is not.
+				{"add(int,int)", NewSQLAddExpr(intVal, intVal), true},
+				{"add(float,float)", NewSQLAddExpr(floatVal, floatVal), true},
+				{"add(int,float)", NewSQLAddExpr(intVal, floatVal), true},
+				{"add(bool,bool)", NewSQLAddExpr(boolVal, boolVal), false},
+				{"add(int,bool)", NewSQLAddExpr(intVal, boolVal), false},
+				{"add(float,bool)", NewSQLAddExpr(floatVal, boolVal), false},
+				{"add(string,string)", NewSQLAddExpr(strVal, strVal), false},
+				{"add(int,string)", NewSQLAddExpr(intVal, strVal), false},
+				{"add(float,string)", NewSQLAddExpr(floatVal, strVal), false},
+
+				{"div(int,int)", NewSQLDivideExpr(intVal, intVal), true},
+				{"div(float,float)", NewSQLDivideExpr(floatVal, floatVal), true},
+				{"div(int,float)", NewSQLDivideExpr(intVal, floatVal), true},
+				{"div(bool,bool)", NewSQLDivideExpr(boolVal, boolVal), false},
+				{"div(int,bool)", NewSQLDivideExpr(intVal, boolVal), false},
+				{"div(float,bool)", NewSQLDivideExpr(floatVal, boolVal), false},
+				{"div(string,string)", NewSQLDivideExpr(strVal, strVal), false},
+				{"div(int,string)", NewSQLDivideExpr(intVal, strVal), false},
+				{"div(float,string)", NewSQLDivideExpr(floatVal, strVal), false},
+
+				{"idiv(int,int)", NewSQLIDivideExpr(intVal, intVal), true},
+				{"idiv(float,float)", NewSQLIDivideExpr(floatVal, floatVal), true},
+				{"idiv(int,float)", NewSQLIDivideExpr(intVal, floatVal), true},
+				{"idiv(bool,bool)", NewSQLIDivideExpr(boolVal, boolVal), false},
+				{"idiv(int,bool)", NewSQLIDivideExpr(intVal, boolVal), false},
+				{"idiv(float,bool)", NewSQLIDivideExpr(floatVal, boolVal), false},
+				{"idiv(string,string)", NewSQLIDivideExpr(strVal, strVal), false},
+				{"idiv(int,string)", NewSQLIDivideExpr(intVal, strVal), false},
+				{"idiv(float,string)", NewSQLIDivideExpr(floatVal, strVal), false},
+
+				{"mod(int,int)", NewSQLModExpr(intVal, intVal), true},
+				{"mod(float,float)", NewSQLModExpr(floatVal, floatVal), true},
+				{"mod(int,float)", NewSQLModExpr(intVal, floatVal), true},
+				{"mod(bool,bool)", NewSQLModExpr(boolVal, boolVal), false},
+				{"mod(int,bool)", NewSQLModExpr(intVal, boolVal), false},
+				{"mod(float,bool)", NewSQLModExpr(floatVal, boolVal), false},
+				{"mod(string,string)", NewSQLModExpr(strVal, strVal), false},
+				{"mod(int,string)", NewSQLModExpr(intVal, strVal), false},
+				{"mod(float,string)", NewSQLModExpr(floatVal, strVal), false},
+
+				{"mult(int,int)", NewSQLMultiplyExpr(intVal, intVal), true},
+				{"mult(float,float)", NewSQLMultiplyExpr(floatVal, floatVal), true},
+				{"mult(int,float)", NewSQLMultiplyExpr(intVal, floatVal), true},
+				{"mult(bool,bool)", NewSQLMultiplyExpr(boolVal, boolVal), false},
+				{"mult(int,bool)", NewSQLMultiplyExpr(intVal, boolVal), false},
+				{"mult(float,bool)", NewSQLMultiplyExpr(floatVal, boolVal), false},
+				{"mult(string,string)", NewSQLMultiplyExpr(strVal, strVal), false},
+				{"mult(int,string)", NewSQLMultiplyExpr(intVal, strVal), false},
+				{"mult(float,string)", NewSQLMultiplyExpr(floatVal, strVal), false},
+
+				{"sub(int,int)", NewSQLSubtractExpr(intVal, intVal), true},
+				{"sub(float,float)", NewSQLSubtractExpr(floatVal, floatVal), true},
+				{"sub(int,float)", NewSQLSubtractExpr(intVal, floatVal), true},
+				{"sub(bool,bool)", NewSQLSubtractExpr(boolVal, boolVal), false},
+				{"sub(int,bool)", NewSQLSubtractExpr(intVal, boolVal), false},
+				{"sub(float,bool)", NewSQLSubtractExpr(floatVal, boolVal), false},
+				{"sub(string,string)", NewSQLSubtractExpr(strVal, strVal), false},
+				{"sub(int,string)", NewSQLSubtractExpr(intVal, strVal), false},
+				{"sub(float,string)", NewSQLSubtractExpr(floatVal, strVal), false},
+
+				// logical expressions: can evaluate if both arguments are boolean comparable (int, uint, bool), cannot evaluate if at least one is not.
+				{"and(bool,bool)", NewSQLAndExpr(boolVal, boolVal), true},
+				{"and(int,bool)", NewSQLAndExpr(intVal, boolVal), true},
+				{"and(int,int)", NewSQLAndExpr(intVal, intVal), true},
+				{"and(int,string)", NewSQLAndExpr(intVal, strVal), false},
+				{"and(string,int)", NewSQLAndExpr(strVal, intVal), false},
+				{"and(string,string)", NewSQLAndExpr(strVal, strVal), false},
+
+				{"or(bool,bool)", NewSQLOrExpr(boolVal, boolVal), true},
+				{"or(int,bool)", NewSQLOrExpr(intVal, boolVal), true},
+				{"or(int,int)", NewSQLOrExpr(intVal, intVal), true},
+				{"or(int,string)", NewSQLOrExpr(intVal, strVal), false},
+				{"or(string,int)", NewSQLOrExpr(strVal, intVal), false},
+				{"or(string,string)", NewSQLOrExpr(strVal, strVal), false},
+
+				{"xor(bool,bool)", NewSQLXorExpr(boolVal, boolVal), true},
+				{"xor(int,bool)", NewSQLXorExpr(intVal, boolVal), true},
+				{"xor(int,int)", NewSQLXorExpr(intVal, intVal), true},
+				{"xor(int,string)", NewSQLXorExpr(intVal, strVal), false},
+				{"xor(string,int)", NewSQLXorExpr(strVal, intVal), false},
+				{"xor(string,string)", NewSQLXorExpr(strVal, strVal), false},
+
+				// comparison expressions: can evaluate if both arguments are similar (numeric types are similar), cannot evaluate if both types are different.
+				{"eq(string,string)", NewSQLEqualsExpr(strVal, strVal), true},
+				{"eq(int,int)", NewSQLEqualsExpr(intVal, intVal), true},
+				{"eq(bool,bool)", NewSQLEqualsExpr(boolVal, boolVal), true},
+				{"eq(int,float)", NewSQLEqualsExpr(intVal, floatVal), true},
+				{"eq(int,bool)", NewSQLEqualsExpr(intVal, boolVal), false},
+				{"eq(int,string)", NewSQLEqualsExpr(intVal, strVal), false},
+				{"eq(string,bool)", NewSQLEqualsExpr(strVal, boolVal), false},
+
+				{"gt(string,string)", NewSQLGreaterThanExpr(strVal, strVal), true},
+				{"gt(int,int)", NewSQLGreaterThanExpr(intVal, intVal), true},
+				{"gt(bool,bool)", NewSQLGreaterThanExpr(boolVal, boolVal), true},
+				{"gt(int,float)", NewSQLGreaterThanExpr(intVal, floatVal), true},
+				{"gt(int,bool)", NewSQLGreaterThanExpr(intVal, boolVal), false},
+				{"gt(int,string)", NewSQLGreaterThanExpr(intVal, strVal), false},
+				{"gt(string,bool)", NewSQLGreaterThanExpr(strVal, boolVal), false},
+
+				{"gte(string,string)", NewSQLGreaterThanOrEqualExpr(strVal, strVal), true},
+				{"gte(int,int)", NewSQLGreaterThanOrEqualExpr(intVal, intVal), true},
+				{"gte(bool,bool)", NewSQLGreaterThanOrEqualExpr(boolVal, boolVal), true},
+				{"gte(int,float)", NewSQLGreaterThanOrEqualExpr(intVal, floatVal), true},
+				{"gte(int,bool)", NewSQLGreaterThanOrEqualExpr(intVal, boolVal), false},
+				{"gte(int,string)", NewSQLGreaterThanOrEqualExpr(intVal, strVal), false},
+				{"gte(string,bool)", NewSQLGreaterThanOrEqualExpr(strVal, boolVal), false},
+
+				{"lt(string,string)", NewSQLLessThanExpr(strVal, strVal), true},
+				{"lt(int,int)", NewSQLLessThanExpr(intVal, intVal), true},
+				{"lt(bool,bool)", NewSQLLessThanExpr(boolVal, boolVal), true},
+				{"lt(int,float)", NewSQLLessThanExpr(intVal, floatVal), true},
+				{"lt(int,bool)", NewSQLLessThanExpr(intVal, boolVal), false},
+				{"lt(int,string)", NewSQLLessThanExpr(intVal, strVal), false},
+				{"lt(string,bool)", NewSQLLessThanExpr(strVal, boolVal), false},
+
+				{"lte(string,string)", NewSQLLessThanOrEqualExpr(strVal, strVal), true},
+				{"lte(int,int)", NewSQLLessThanOrEqualExpr(intVal, intVal), true},
+				{"lte(bool,bool)", NewSQLLessThanOrEqualExpr(boolVal, boolVal), true},
+				{"lte(int,float)", NewSQLLessThanOrEqualExpr(intVal, floatVal), true},
+				{"lte(int,bool)", NewSQLLessThanOrEqualExpr(intVal, boolVal), false},
+				{"lte(int,string)", NewSQLLessThanOrEqualExpr(intVal, strVal), false},
+				{"lte(string,bool)", NewSQLLessThanOrEqualExpr(strVal, boolVal), false},
+
+				{"neq(string,string)", NewSQLNotEqualsExpr(strVal, strVal), true},
+				{"neq(int,int)", NewSQLNotEqualsExpr(intVal, intVal), true},
+				{"neq(bool,bool)", NewSQLNotEqualsExpr(boolVal, boolVal), true},
+				{"neq(int,float)", NewSQLNotEqualsExpr(intVal, floatVal), true},
+				{"neq(int,bool)", NewSQLNotEqualsExpr(intVal, boolVal), false},
+				{"neq(int,string)", NewSQLNotEqualsExpr(intVal, strVal), false},
+				{"neq(string,bool)", NewSQLNotEqualsExpr(strVal, boolVal), false},
+
+				{"nse(string,string)", NewSQLNullSafeEqualsExpr(strVal, strVal), true},
+				{"nse(int,int)", NewSQLNullSafeEqualsExpr(intVal, intVal), true},
+				{"nse(bool,bool)", NewSQLNullSafeEqualsExpr(boolVal, boolVal), true},
+				{"nse(int,float)", NewSQLNullSafeEqualsExpr(intVal, floatVal), true},
+				{"nse(int,bool)", NewSQLNullSafeEqualsExpr(intVal, boolVal), false},
+				{"nse(int,string)", NewSQLNullSafeEqualsExpr(intVal, strVal), false},
+				{"nse(string,bool)", NewSQLNullSafeEqualsExpr(strVal, boolVal), false},
+
+				// is expression: right must always be boolean; can evaluate if left is numeric or boolean, cannot evaluate otherwise.
+				{"is(bool,bool)", NewSQLIsExpr(boolVal, boolVal), true},
+				{"is(int,bool)", NewSQLIsExpr(intVal, boolVal), true},
+				{"is(float,bool)", NewSQLIsExpr(floatVal, boolVal), true},
+				{"is(string,bool)", NewSQLIsExpr(strVal, boolVal), false},
+
+				// unary ops.
+				{"not(int)", NewSQLNotExpr(intVal), true},
+				{"not(bool)", NewSQLNotExpr(boolVal), true},
+				{"not(float)", NewSQLNotExpr(floatVal), false},
+				{"not(string)", NewSQLNotExpr(strVal), false},
+
+				{"unary_minus(int)", NewSQLUnaryMinusExpr(intVal), true},
+				{"unary_minus(bool)", NewSQLUnaryMinusExpr(boolVal), false},
+				{"unary_minus(float)", NewSQLUnaryMinusExpr(floatVal), true},
+				{"unary_minus(string)", NewSQLUnaryMinusExpr(strVal), false},
+
+				{"tilde(int)", NewSQLTildeExpr(intVal), true},
+				{"tilde(bool)", NewSQLTildeExpr(boolVal), false},
+				{"tilde(float)", NewSQLTildeExpr(floatVal), true},
+				{"tilde(string)", NewSQLTildeExpr(strVal), false},
+
+				// agg functions: all of the aggregation functions' reconcile methods are no-ops, so all invocations are valid.
+				{"avg", NewSQLAggregationFunctionExpr(parser.AvgAggregateName, false, []SQLExpr{intVal, intVal}), true},
+				{"count", NewSQLAggregationFunctionExpr(parser.CountAggregateName, false, []SQLExpr{intVal, intVal}), true},
+				{"groupConcat", NewSQLAggregationFunctionExpr(parser.GroupConcatAggregateName, false, []SQLExpr{strVal, strVal}), true},
+				{"max", NewSQLAggregationFunctionExpr(parser.MaxAggregateName, false, []SQLExpr{intVal, intVal}), true},
+				{"min", NewSQLAggregationFunctionExpr(parser.MinAggregateName, false, []SQLExpr{intVal, intVal}), true},
+				{"sum", NewSQLAggregationFunctionExpr(parser.SumAggregateName, false, []SQLExpr{intVal, intVal}), true},
+				{"stdDev", NewSQLAggregationFunctionExpr(parser.StdDevAggregateName, false, []SQLExpr{intVal, intVal}), true},
+				{"stdDevSample", NewSQLAggregationFunctionExpr(parser.StdDevSampleAggregateName, false, []SQLExpr{intVal, intVal}), true},
+			}
+
+			t.Run("Evaluate", func(t *testing.T) {
+				runEvaluateErrTests(t, execCfg, execState, errTests)
+			})
+			t.Run("FoldConstants", func(t *testing.T) {
+				runFoldConstantsErrTests(t, execCfg, errTests)
+			})
+		})
+
 		t.Run("sql_sleep_with_neg_value", func(t *testing.T) {
 			req := require.New(t)
 			subject, err := NewSQLScalarFunctionExpr(
@@ -3683,8 +3915,7 @@ func TestReconcileSQLExpr(t *testing.T) {
 				req.NoError(err)
 
 				left, right := GetBinaryExprLeaves(e)
-				left, right, err = ReconcileSQLExprs(left, right)
-				req.NoError(err)
+				left, right = ReconcileSQLExprs(left, right)
 
 				req.Zero(convey.ShouldResemble(left, tst.reconciledLeft))
 				req.Zero(convey.ShouldResemble(right, tst.reconciledRight))

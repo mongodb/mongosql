@@ -23,11 +23,6 @@
 # generated `reconcile()` implementation will call a user-defined reconciliation
 # function.
 #
-# The `validate_arg_types` field indicates whether this functions's 'Evaluate'
-# func should check its argument's types as well as count. At the moment, no
-# scalar functions do this, but it is something we should aim to do in the
-# future.
-#
 # The `separate_invocation_evaluation` field indicates whether a function with
 # multiple invocations should delegate to the same evaluation function for all
 # invocations, or a separate function per invocation. Currently, most scalar
@@ -126,6 +121,7 @@ functions:
     description: returns the arc tangent of the number(s) provided.
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_atan2
     names: ['atan2']
+    separate_invocation_evaluation: true
     no_pushdown: true
     invocations:
       - id: SingleArg

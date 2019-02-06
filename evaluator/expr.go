@@ -48,7 +48,7 @@ type SQLExpr interface {
 	Evaluate(context.Context, *ExecutionConfig, *ExecutionState) (values.SQLValue, error)
 	// FoldConstants performs constant-folding on this SQLExpr, returning a
 	// SQLExpr that is simplified as much as possible.
-	FoldConstants(cfg *OptimizerConfig) SQLExpr
+	FoldConstants(cfg *OptimizerConfig) (SQLExpr, error)
 	// ExprName returns a string representing this SQLExpr's name.
 	ExprName() string
 	// ToAggregationPredicate translates this expression to the aggregation language
@@ -112,8 +112,8 @@ func (e *MongoFilterExpr) reconcile() (SQLExpr, error) {
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *MongoFilterExpr.
-func (e *MongoFilterExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *MongoFilterExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	return e, nil
 }
 
 func (e *MongoFilterExpr) String() string {
@@ -188,6 +188,11 @@ func NewSQLAssignmentExpr(variable *SQLVariableExpr, expr SQLExpr) *SQLAssignmen
 
 // Evaluate evaluates a SQLAssignmentExpr into a values.SQLValue.
 func (e *SQLAssignmentExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	value, err := e.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -197,8 +202,12 @@ func (e *SQLAssignmentExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLAssignmentExpr.
-func (e *SQLAssignmentExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *SQLAssignmentExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 // nolint: unparam
@@ -267,6 +276,10 @@ func NewSQLBenchmarkExpr(count, expr SQLExpr) *SQLBenchmarkExpr {
 
 // Evaluate evaluates a SQLBenchmarkExpr into a values.SQLValue.
 func (e *SQLBenchmarkExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
 
 	count, err := e.count.Evaluate(ctx, cfg, st)
 	if err != nil {
@@ -284,8 +297,12 @@ func (e *SQLBenchmarkExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for SQLBenchmarkExpr.
-func (e *SQLBenchmarkExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *SQLBenchmarkExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 // nolint: unparam
@@ -365,6 +382,11 @@ func (SQLCaseExpr) ExprName() string {
 
 // Evaluate evaluates a SQLCaseExpr into a values.SQLValue.
 func (e *SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, condition := range e.caseConditions {
 		result, err := condition.matcher.Evaluate(ctx, cfg, st)
 		if err != nil {
@@ -380,7 +402,11 @@ func (e *SQLCaseExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for SQLCaseExpr.
-func (e *SQLCaseExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (e *SQLCaseExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
 	newCases := make([]caseCondition, 0)
 	for _, caseCond := range e.caseConditions {
 		if matchVal, ok := caseCond.matcher.(SQLValueExpr); ok {
@@ -394,7 +420,7 @@ func (e *SQLCaseExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 		}
 	}
 	if len(newCases) == 0 {
-		return e.elseValue
+		return e.elseValue, nil
 	}
 	// If caseConditions[0].match is a values.SQLValue, it must be true,
 	// as we have removed all false values.SQLValues, in such a case,
@@ -402,10 +428,10 @@ func (e *SQLCaseExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	// we cannot simplify any further because it must contain
 	// a column value.
 	if _, ok := newCases[0].matcher.(SQLValueExpr); ok {
-		return newCases[0].then
+		return newCases[0].then, nil
 	}
 	e.caseConditions = newCases
-	return e
+	return e, nil
 }
 
 // nolint: unparam
@@ -537,6 +563,10 @@ func (SQLColumnExpr) Children() []Node {
 
 // Evaluate evaluates a SQLColumnExpr into a values.SQLValue.
 func (e SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
 
 	for _, row := range st.rows {
 		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
@@ -554,8 +584,12 @@ func (e SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *Exe
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for SQLColumnExpr.
-func (e SQLColumnExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e SQLColumnExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 // nolint: unparam
@@ -688,6 +722,11 @@ func NewSQLConvertExpr(expr SQLExpr, targetType types.EvalType) *SQLConvertExpr 
 
 // Evaluate evaluates a SQLConvertExpr into a values.SQLValue.
 func (e *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	v, err := e.expr.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -697,12 +736,16 @@ func (e *SQLConvertExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLConvertExpr.
-func (e *SQLConvertExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (e *SQLConvertExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
 	if exprVal, ok := e.expr.(SQLValueExpr); ok {
 		out := NewSQLValueExpr(values.ConvertTo(exprVal.Value, e.targetType))
-		return out
+		return out, nil
 	}
-	return e
+	return e, nil
 }
 
 // nolint: unparam
@@ -1062,6 +1105,11 @@ func (*SQLExistsExpr) evaluateFromPlan(ctx context.Context,
 // EXISTS returns true if its subquery returns at least one row.
 // False is returned if there are no rows. EXISTS never returns NULL.
 func (e *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	if e.correlated {
 		return e.evaluateFromPlan(ctx, cfg, st.SubqueryState(), e.plan)
 	}
@@ -1078,8 +1126,12 @@ func (e *SQLExistsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLExistsExpr.
-func (e *SQLExistsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *SQLExistsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 // nolint: unparam
@@ -1140,8 +1192,11 @@ func (e *SQLLikeExpr) Children() []Node {
 }
 
 // Evaluate evaluates a SQLLikeExpr into a values.SQLValue.
-func (e *SQLLikeExpr) Evaluate(ctx context.Context,
-	cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+func (e *SQLLikeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
 
 	value, err := e.left.Evaluate(ctx, cfg, st)
 	if err != nil {
@@ -1310,19 +1365,23 @@ func (*SQLLikeExpr) EvalType() types.EvalType {
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLLikeExpr.
-func (e *SQLLikeExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (e *SQLLikeExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
 	valCount := 0
 	var left, right, escape SQLValueExpr
 	var ok bool
 	if left, ok = e.left.(SQLValueExpr); ok {
 		if left.Value.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		valCount++
 	}
 	if right, ok = e.right.(SQLValueExpr); ok {
 		if right.Value.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		valCount++
 	}
@@ -1332,11 +1391,11 @@ func (e *SQLLikeExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	if valCount == 3 {
 		val, err := e.evaluate(cfg.sqlValueKind, left.Value, right.Value, escape.Value)
 		if err != nil {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
-		return NewSQLValueExpr(val)
+		return NewSQLValueExpr(val), nil
 	}
-	return e
+	return e, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1383,6 +1442,11 @@ var _ translatableToMatch = (*SQLRegexExpr)(nil)
 
 // Evaluate evaluates a SQLRegexExpr into a values.SQLValue.
 func (e *SQLRegexExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	operand, err := e.operand.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1414,30 +1478,34 @@ func (e *SQLRegexExpr) evaluate(sqlValueKind values.SQLValueKind, operand, patte
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLRegexExpr.
-func (e *SQLRegexExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (e *SQLRegexExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
 	var operand, pattern SQLValueExpr
 	var ok bool
 	valCount := 0
 	if operand, ok = e.operand.(SQLValueExpr); ok {
 		if operand.Value.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		valCount++
 	}
 	if pattern, ok = e.pattern.(SQLValueExpr); ok {
 		if pattern.Value.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		valCount++
 	}
 	if valCount == 2 {
 		val, err := e.evaluate(cfg.sqlValueKind, operand.Value.SQLVarchar(), pattern.Value.SQLVarchar())
 		if err != nil {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
-		return NewSQLValueExpr(val)
+		return NewSQLValueExpr(val), nil
 	}
-	return e
+	return e, nil
 }
 
 // nolint: unparam
@@ -1655,13 +1723,17 @@ func (e *SQLSubqueryCmpExpr) reconcile() (SQLExpr, error) {
 
 // Evaluate evaluates a SQLSubqueryCmpExpr into a SQLValue.
 func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	if !e.leftCorrelated && !e.rightCorrelated && e.fullCache != nil {
 		return e.fullCache, nil
 	}
 
 	var leftRow []values.SQLValue
 	var rightRow []values.SQLValue
-	var err error
 	if e.leftCorrelated && !e.rightCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
@@ -1721,8 +1793,12 @@ func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryCmpExpr.
-func (e *SQLSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *SQLSubqueryCmpExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 func (e *SQLSubqueryCmpExpr) String() string {
@@ -1806,8 +1882,12 @@ func NewSQLSubqueryAllExpr(
 
 // Evaluate evaluates a SQLSubqueryAllExpr into a SQLValue.
 func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	var leftRow []values.SQLValue
-	var err error
 	if e.leftCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
@@ -1887,8 +1967,12 @@ func (e *SQLSubqueryAllExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryAllExpr.
-func (e *SQLSubqueryAllExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *SQLSubqueryAllExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 func (e *SQLSubqueryAllExpr) reconcile() (SQLExpr, error) {
@@ -1989,8 +2073,12 @@ func NewSQLSubqueryAnyExpr(
 // the result is NULL.
 // Else, the result is false.
 func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	var leftRow []values.SQLValue
-	var err error
 	if e.leftCorrelated {
 		leftRow, err = evaluatePlanToScalar(ctx, cfg, st.SubqueryState(), e.leftPlan)
 		if err != nil {
@@ -2070,8 +2158,12 @@ func (e *SQLSubqueryAnyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryAnyExpr.
-func (e *SQLSubqueryAnyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *SQLSubqueryAnyExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 func (e *SQLSubqueryAnyExpr) reconcile() (SQLExpr, error) {
@@ -2227,11 +2319,15 @@ func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 
 // Evaluate evaluates a SQLSubqueryExpr into a values.SQLValue.
 func (e *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	if e.correlated {
 		return e.evaluateFromPlan(ctx, cfg, st.SubqueryState(), e.plan)
 	}
 
-	var err error
 	if e.cache == nil {
 		// Populate cache.
 		e.cache, err = e.evaluateFromPlan(ctx, cfg, st, e.plan)
@@ -2244,8 +2340,12 @@ func (e *SQLSubqueryExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubqueryExpr.
-func (e *SQLSubqueryExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e *SQLSubqueryExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 // Exprs returns all the SQLColumnExprs associated with the columns of SQLSubqueryExpr.
@@ -2297,6 +2397,11 @@ func (e SQLValueExpr) ExprName() string {
 
 // Evaluate evaluates a SQLValueExpr into a values.SQLValue.
 func (e SQLValueExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	return e.Value, nil
 }
 
@@ -2308,8 +2413,12 @@ func (e SQLValueExpr) reconcile() (SQLExpr, error) {
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLValueExpr..
 // Because variable assignments (even to globals) are not allowed to change during a query,
 // it can be constant folded as its value.
-func (e SQLValueExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
-	return e
+func (e SQLValueExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
+	return e, nil
 }
 
 func (e SQLValueExpr) String() string {
@@ -2415,6 +2524,11 @@ func (*SQLVariableExpr) ExprName() string {
 
 // Evaluate evaluates a SQLVariableExpr into a values.SQLValue.
 func (e *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(e)
+	if err != nil {
+		return nil, err
+	}
+
 	val := values.GoValueToSQLValue(cfg.sqlValueKind, e.Value)
 	converted := values.ConvertTo(val, types.SQLTypeToEvalType(e.SQLType))
 	return converted, nil
@@ -2428,10 +2542,14 @@ func (e *SQLVariableExpr) reconcile() (SQLExpr, error) {
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLVariableExpr..
 // Because variable assignments (even to globals) are not allowed to change during a query,
 // it can be constant folded as its value.
-func (e *SQLVariableExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (e *SQLVariableExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(e); err != nil {
+		return nil, err
+	}
+
 	val := values.GoValueToSQLValue(cfg.sqlValueKind, e.Value)
 	converted := values.ConvertTo(val, types.SQLTypeToEvalType(e.SQLType))
-	return NewSQLValueExpr(converted)
+	return NewSQLValueExpr(converted), nil
 }
 
 func (e *SQLVariableExpr) String() string {
@@ -2504,25 +2622,90 @@ func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage, error)
 	leftPlan := panicIfNotProjectStage("left", left)
 	rightPlan := panicIfNotProjectStage("right", right)
 
-	leftColumns := leftPlan.projectedColumns
-	rightColumns := rightPlan.projectedColumns
+	leftColumns := make([]ProjectedColumn, len(leftPlan.projectedColumns))
+	rightColumns := make([]ProjectedColumn, len(rightPlan.projectedColumns))
 
 	if len(leftColumns) != len(rightColumns) {
 		return nil, nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(rightColumns))
 	}
 
-	for i, lc := range leftColumns {
-		newLeft, newRight, err := ReconcileSQLExprs(lc.Expr, rightColumns[i].Expr)
-		if err != nil {
-			return nil, nil, err
-		}
+	for i, lc := range leftPlan.projectedColumns {
+		rc := rightPlan.projectedColumns[i]
+		newLeft, newRight := ReconcileSQLExprs(lc.Expr, rc.Expr)
 
-		leftColumns[i].Expr = newLeft
-		rightColumns[i].Expr = newRight
+		leftColumns[i] = ProjectedColumn{lc.clone(), newLeft}
+		rightColumns[i] = ProjectedColumn{rc.clone(), newRight}
 	}
 
-	leftPlan.projectedColumns = leftColumns
-	rightPlan.projectedColumns = rightColumns
+	newLeftPlan := NewProjectStage(leftPlan.source.clone(), leftColumns...)
+	newRightPlan := NewProjectStage(rightPlan.source.clone(), rightColumns...)
 
-	return leftPlan, rightPlan, nil
+	return newLeftPlan, newRightPlan, nil
+}
+
+// validateArgs ensures that the expr's arguments are valid for evaluation
+// (i.e. they have the same type as they do when the SQLExpr is reconciled).
+// If validation fails, an error is returned.
+func validateArgs(expr SQLExpr) error {
+	children := expr.Children()
+
+	// SQLExprs with PlanStages as children instead of SQLExprs as children
+	// require different handling.
+	if hasAllPlanStageChildren(expr) {
+		// If there are two PlanStage Children (for example, SQLSubqueryCmpExpr),
+		// validation is delegated to a different helper function.
+		if len(children) == 2 {
+			return validateSubqueryPlans(children[0].(PlanStage), children[1].(PlanStage))
+		}
+
+		// This case is for SQLExprs with just one child (which is a PlanStage).
+		// Currently, the only two like this are SQLExistsExpr and SQLSubqueryExpr.
+		// SQLExprs of this form are always unconditionally valid.
+		return nil
+	}
+
+	preReconciliationChildren := nodesToExprs(children)
+
+	reconciled, err := expr.reconcile()
+	if err != nil {
+		return err
+	}
+
+	postReconciliationChildren := nodesToExprs(reconciled.Children())
+
+	for i, pre := range preReconciliationChildren {
+		post := postReconciliationChildren[i]
+		if !isSimilar(pre.EvalType(), post.EvalType()) {
+			return fmt.Errorf("expected EvalType %x at index %d, but got %x",
+				post.EvalType(), i, pre.EvalType())
+		}
+	}
+
+	return nil
+}
+
+// validateSubqueryPlans ensures that the left and right PlanStages have
+// similar eval types for corresponding columns. If any pair does not have
+// similar types, an error is returned.
+func validateSubqueryPlans(left, right PlanStage) error {
+	rightColumns := right.Columns()
+
+	for i, lc := range left.Columns() {
+		if !isSimilar(lc.EvalType, rightColumns[i].EvalType) {
+			return fmt.Errorf("expected EvalType %x at index %d, but got %x",
+				lc.EvalType, i, rightColumns[i].EvalType)
+		}
+	}
+
+	return nil
+}
+
+// hasAllPlanStageChildren returns true if the expr's Children are all PlanStages.
+func hasAllPlanStageChildren(expr SQLExpr) bool {
+	all := true
+	for _, c := range expr.Children() {
+		_, isPlanStage := c.(PlanStage)
+		all = all && isPlanStage
+	}
+	return all
 }

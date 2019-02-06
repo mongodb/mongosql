@@ -16,8 +16,7 @@ type sqlBinaryNode struct {
 	left, right SQLExpr
 }
 
-func (bn sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
-	var err error
+func (bn sqlBinaryNode) reconcileArithmetic() sqlBinaryNode {
 	kind := values.MongoSQLValueKind
 
 	left := bn.left
@@ -25,40 +24,23 @@ func (bn sqlBinaryNode) reconcileArithmetic() (sqlBinaryNode, error) {
 
 	if left.EvalType() == types.EvalDatetime || right.EvalType() == types.EvalDatetime {
 		// Arithmetic with Timestamps should treat them as floating points due to fractional seconds.
-
-		left, _, err = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))))
-		if err != nil {
-			return bn, err
-		}
-		_, right, err = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))), right)
-		if err != nil {
-			return bn, err
-		}
+		left, _ = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))))
+		_, right = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))), right)
 
 	} else if left.EvalType() == types.EvalDate || right.EvalType() == types.EvalDate {
 		// Arithmetic with Dates should treat them as integers.
-
-		left, _, err = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLInt64(kind, 0)))
-		if err != nil {
-			return bn, err
-		}
-		_, right, err = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLInt64(kind, 0)), right)
-		if err != nil {
-			return bn, err
-		}
+		left, _ = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLInt64(kind, 0)))
+		_, right = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLInt64(kind, 0)), right)
 
 	} else {
 		// otherwise, reconcile left and right side with each other
-		left, right, err = ReconcileSQLExprs(left, right)
-		if err != nil {
-			return bn, err
-		}
+		left, right = ReconcileSQLExprs(left, right)
 	}
 
 	// now convert them all to doubles
 	reconciled := convertAllExprs([]SQLExpr{left, right}, types.EvalDouble)
 
-	return sqlBinaryNode{reconciled[0], reconciled[1]}, nil
+	return sqlBinaryNode{reconciled[0], reconciled[1]}
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -178,6 +160,11 @@ func (*SQLAddExpr) ExprName() string {
 
 // Evaluate evaluates a SQLAddExpr into a values.SQLValue.
 func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(add)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := add.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -191,42 +178,42 @@ func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLAddExpr.
-func (add *SQLAddExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (add *SQLAddExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(add); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := add.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 		if values.IsZero(leftVal) {
-			return add.right
+			return add.right, nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 		if values.IsZero(rightVal) {
-			return add.left
+			return add.left, nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if out, err := doArithmetic(leftVal, rightVal, ADD); err == nil {
-			return NewSQLValueExpr(out)
+			return NewSQLValueExpr(out), nil
 		}
 	}
-	return add
+	return add, nil
 }
 
+// nolint: unparam
 func (add *SQLAddExpr) reconcile() (SQLExpr, error) {
-	bin, err := add.reconcileArithmetic()
-	if err != nil {
-		return nil, err
-	}
-	newExpr := SQLAddExpr{bin}
-	return &newExpr, nil
+	return &SQLAddExpr{add.reconcileArithmetic()}, nil
 }
 
 func (add *SQLAddExpr) String() string {
@@ -282,6 +269,11 @@ func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
 
 // Evaluate evaluates a SQLAndExpr into a values.SQLValue.
 func (and *SQLAndExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(and)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := and.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -299,35 +291,39 @@ func (and *SQLAndExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLAndExpr.
-func (and *SQLAndExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (and *SQLAndExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(and); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := and.sqlValueArgEnum()
 
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if values.IsFalsy(leftVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
 		}
 		if values.Bool(leftVal) {
 			and.left = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
 	case rightOnlyValueArg:
 		if values.IsFalsy(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
 		}
 		if values.Bool(rightVal) {
 			and.right = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
 		}
 	case bothValueArgs:
 		if values.IsFalsy(leftVal) || values.IsFalsy(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
 		}
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
-		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
 	}
-	return and
+	return and, nil
 }
 
 func (and *SQLAndExpr) String() string {
@@ -497,6 +493,11 @@ func (*SQLDivideExpr) ExprName() string {
 
 // Evaluate evaluates a SQLDivideExpr into a values.SQLValue.
 func (div *SQLDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(div)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := div.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -510,43 +511,43 @@ func (div *SQLDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLDivideExpr.
-func (div *SQLDivideExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (div *SQLDivideExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(div); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := div.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 		frightVal := values.Float64(rightVal)
 		if frightVal == 0.0 {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if frightVal == 1.0 {
-			return div.left
+			return div.left, nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if out, err := doArithmetic(leftVal, rightVal, DIV); err == nil {
-			return NewSQLValueExpr(out)
+			return NewSQLValueExpr(out), nil
 		}
 	}
-	return div
+	return div, nil
 }
 
+// nolint: unparam
 func (div *SQLDivideExpr) reconcile() (SQLExpr, error) {
-	bin, err := div.reconcileArithmetic()
-	if err != nil {
-		return nil, err
-	}
-	newExpr := SQLDivideExpr{bin}
-	return &newExpr, nil
+	return &SQLDivideExpr{div.reconcileArithmetic()}, nil
 }
 
 func (div *SQLDivideExpr) String() string {
@@ -637,6 +638,11 @@ func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
 
 // Evaluate evaluates a SQLEqualsExpr into a values.SQLValue.
 func (eq *SQLEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(eq)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := eq.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -655,32 +661,36 @@ func (eq *SQLEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLEqualsExpr.
-func (eq *SQLEqualsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (eq *SQLEqualsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(eq); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := eq.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c == 0))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c == 0)), nil
 		}
 	}
 	if shouldFlip(eq.sqlBinaryNode) {
 		left, right := eq.right, eq.left
 		eq.left, eq.right = left, right
 	}
-	return eq
+	return eq, nil
 }
 
 func (eq *SQLEqualsExpr) String() string {
@@ -728,6 +738,7 @@ func (*SQLEqualsExpr) EvalType() types.EvalType {
 	return types.EvalBoolean
 }
 
+// nolint: unparam
 func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	var reconciled bool
 
@@ -755,11 +766,7 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	}
 
 	if !reconciled {
-		var err error
-		left, right, err = ReconcileSQLExprs(eq.left, eq.right)
-		if err != nil {
-			return nil, err
-		}
+		left, right = ReconcileSQLExprs(eq.left, eq.right)
 	}
 
 	return NewSQLEqualsExpr(left, right), nil
@@ -786,6 +793,11 @@ func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
 
 // Evaluate evaluates a SQLGreaterThanExpr into a values.SQLValue.
 func (gt *SQLGreaterThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(gt)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := gt.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -803,39 +815,41 @@ func (gt *SQLGreaterThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLGreaterThanExpr.
-func (gt *SQLGreaterThanExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (gt *SQLGreaterThanExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(gt); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := gt.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c > 0))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c > 0)), nil
 		}
 	}
 	if shouldFlip(gt.sqlBinaryNode) {
 		left, right := gt.right, gt.left
-		return NewSQLLessThanExpr(left, right)
+		return NewSQLLessThanExpr(left, right), nil
 	}
-	return gt
+	return gt, nil
 }
 
+// nolint: unparam
 func (gt *SQLGreaterThanExpr) reconcile() (SQLExpr, error) {
-	left, right, err := ReconcileSQLExprs(gt.left, gt.right)
-	if err != nil {
-		return nil, err
-	}
+	left, right := ReconcileSQLExprs(gt.left, gt.right)
 	return NewSQLGreaterThanExpr(left, right), nil
 }
 
@@ -892,6 +906,11 @@ func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExp
 
 // Evaluate evaluates a SQLGreaterThanOrEqualExpr into a values.SQLValue.
 func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(gte)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := gte.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -910,39 +929,41 @@ func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx context.Context, cfg *Executi
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLGreaterThanOrEqualExpr.
-func (gte *SQLGreaterThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (gte *SQLGreaterThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(gte); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := gte.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c >= 0))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c >= 0)), nil
 		}
 	}
 	if shouldFlip(gte.sqlBinaryNode) {
 		left, right := gte.right, gte.left
-		return NewSQLLessThanOrEqualExpr(left, right)
+		return NewSQLLessThanOrEqualExpr(left, right), nil
 	}
-	return gte
+	return gte, nil
 }
 
+// nolint: unparam
 func (gte *SQLGreaterThanOrEqualExpr) reconcile() (SQLExpr, error) {
-	left, right, err := ReconcileSQLExprs(gte.left, gte.right)
-	if err != nil {
-		return nil, err
-	}
+	left, right := ReconcileSQLExprs(gte.left, gte.right)
 	return NewSQLGreaterThanOrEqualExpr(left, right), nil
 }
 
@@ -995,6 +1016,11 @@ func (*SQLIDivideExpr) ExprName() string {
 
 // Evaluate evaluates a SQLIDivideExpr into a values.SQLValue.
 func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(div)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := div.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1010,42 +1036,42 @@ func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLIDivideExpr.
-func (div *SQLIDivideExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (div *SQLIDivideExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(div); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := div.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 		irightVal := values.Int64(rightVal)
 		if irightVal == 0 {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if irightVal == 1 {
-			return div.left
+			return div.left, nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		frightVal := values.Float64(rightVal)
-		return NewSQLValueExpr(values.NewSQLInt64(cfg.sqlValueKind, int64(values.Float64(leftVal)/frightVal)))
+		return NewSQLValueExpr(values.NewSQLInt64(cfg.sqlValueKind, int64(values.Float64(leftVal)/frightVal))), nil
 	}
-	return div
+	return div, nil
 }
 
+// nolint: unparam
 func (div *SQLIDivideExpr) reconcile() (SQLExpr, error) {
-	bin, err := div.reconcileArithmetic()
-	if err != nil {
-		return nil, err
-	}
-	newExpr := SQLIDivideExpr{bin}
-	return &newExpr, nil
+	return &SQLIDivideExpr{div.reconcileArithmetic()}, nil
 }
 
 func (div *SQLIDivideExpr) String() string {
@@ -1114,6 +1140,11 @@ var _ translatableToMatch = (*SQLIsExpr)(nil)
 
 // Evaluate evaluates a SQLIsExpr into a values.SQLValue.
 func (is *SQLIsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(is)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := is.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1134,7 +1165,11 @@ func (is *SQLIsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLIsExpr.
-func (is *SQLIsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (is *SQLIsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(is); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := is.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs, leftOnlyValueArg:
@@ -1143,21 +1178,21 @@ func (is *SQLIsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case bothValueArgs:
 		if leftVal.IsNull() {
 			if rightVal.IsNull() {
-				return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
+				return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
 			}
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
 		}
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
 		}
 
-		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, values.Bool(leftVal) == values.Bool(rightVal)))
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, values.Bool(leftVal) == values.Bool(rightVal))), nil
 	}
 	if shouldFlip(is.sqlBinaryNode) {
 		left, right := is.right, is.left
 		is.left, is.right = left, right
 	}
-	return is
+	return is, nil
 }
 
 // nolint: unparam
@@ -1296,6 +1331,11 @@ func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
 
 // Evaluate evaluates a SQLLessThanExpr into a values.SQLValue.
 func (lt *SQLLessThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(lt)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := lt.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1313,39 +1353,41 @@ func (lt *SQLLessThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLLessThanExpr.
-func (lt *SQLLessThanExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (lt *SQLLessThanExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(lt); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := lt.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c < 0))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c < 0)), nil
 		}
 	}
 	if shouldFlip(lt.sqlBinaryNode) {
 		left, right := lt.right, lt.left
-		return NewSQLGreaterThanExpr(left, right)
+		return NewSQLGreaterThanExpr(left, right), nil
 	}
-	return lt
+	return lt, nil
 }
 
+// nolint: unparam
 func (lt *SQLLessThanExpr) reconcile() (SQLExpr, error) {
-	left, right, err := ReconcileSQLExprs(lt.left, lt.right)
-	if err != nil {
-		return nil, err
-	}
+	left, right := ReconcileSQLExprs(lt.left, lt.right)
 	return NewSQLLessThanExpr(left, right), nil
 }
 
@@ -1404,6 +1446,11 @@ func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
 
 // Evaluate evaluates a SQLLessThanOrEqualExpr into a values.SQLValue.
 func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(lte)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := lte.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1421,39 +1468,41 @@ func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionC
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLLessThanOrEqualExpr.
-func (lte *SQLLessThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (lte *SQLLessThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(lte); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := lte.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c <= 0))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c <= 0)), nil
 		}
 	}
 	if shouldFlip(lte.sqlBinaryNode) {
 		left, right := lte.right, lte.left
-		return NewSQLGreaterThanOrEqualExpr(left, right)
+		return NewSQLGreaterThanOrEqualExpr(left, right), nil
 	}
-	return lte
+	return lte, nil
 }
 
+// nolint: unparam
 func (lte *SQLLessThanOrEqualExpr) reconcile() (SQLExpr, error) {
-	left, right, err := ReconcileSQLExprs(lte.left, lte.right)
-	if err != nil {
-		return nil, err
-	}
+	left, right := ReconcileSQLExprs(lte.left, lte.right)
 	return NewSQLLessThanOrEqualExpr(left, right), nil
 }
 
@@ -1501,6 +1550,11 @@ func (*SQLModExpr) ExprName() string {
 
 // Evaluate evaluates a SQLModExpr into a values.SQLValue.
 func (mod *SQLModExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(mod)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := mod.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1520,49 +1574,49 @@ func (mod *SQLModExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLModExpr.
-func (mod *SQLModExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (mod *SQLModExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(mod); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := mod.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 		frightVal := values.Float64(rightVal)
 		if frightVal == 0.0 {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if frightVal == 1.0 {
-			return mod.left
+			return mod.left, nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		frightVal := values.Float64(rightVal)
 		if math.Abs(frightVal) == 0.0 || values.HasNullValue(leftVal, rightVal) {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		modVal := math.Mod(values.Float64(leftVal), frightVal)
 		if modVal == -0 {
 			modVal *= -1
 		}
-		return NewSQLValueExpr(values.NewSQLFloat(cfg.sqlValueKind, modVal))
+		return NewSQLValueExpr(values.NewSQLFloat(cfg.sqlValueKind, modVal)), nil
 	}
-	return mod
+	return mod, nil
 }
 
+// nolint: unparam
 func (mod *SQLModExpr) reconcile() (SQLExpr, error) {
-	bin, err := mod.reconcileArithmetic()
-	if err != nil {
-		return nil, err
-	}
-	newExpr := SQLModExpr{bin}
-	return &newExpr, nil
+	return &SQLModExpr{mod.reconcileArithmetic()}, nil
 }
 
 func (mod *SQLModExpr) String() string {
@@ -1606,6 +1660,11 @@ func (*SQLMultiplyExpr) ExprName() string {
 
 // Evaluate evaluates a SQLMultiplyExpr into a values.SQLValue.
 func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(mult)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := mult.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1619,42 +1678,42 @@ func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLMultiplyExpr.
-func (mult *SQLMultiplyExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (mult *SQLMultiplyExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(mult); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := mult.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 		if values.IsOne(leftVal) {
-			return mult.right
+			return mult.right, nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 		if values.IsOne(rightVal) {
-			return mult.left
+			return mult.left, nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if out, err := doArithmetic(leftVal, rightVal, MULT); err == nil {
-			return NewSQLValueExpr(out)
+			return NewSQLValueExpr(out), nil
 		}
 	}
-	return mult
+	return mult, nil
 }
 
+// nolint: unparam
 func (mult *SQLMultiplyExpr) reconcile() (SQLExpr, error) {
-	bin, err := mult.reconcileArithmetic()
-	if err != nil {
-		return nil, err
-	}
-	newExpr := SQLMultiplyExpr{bin}
-	return &newExpr, nil
+	return &SQLMultiplyExpr{mult.reconcileArithmetic()}, nil
 
 }
 
@@ -1711,6 +1770,11 @@ func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
 
 // Evaluate evaluates a SQLNotEqualsExpr into a values.SQLValue.
 func (neq *SQLNotEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(neq)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := neq.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1729,39 +1793,41 @@ func (neq *SQLNotEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLNotEqualsExpr.
-func (neq *SQLNotEqualsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (neq *SQLNotEqualsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(neq); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := neq.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c != 0))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c != 0)), nil
 		}
 	}
 	if shouldFlip(neq.sqlBinaryNode) {
 		left, right := neq.right, neq.left
 		neq.left, neq.right = left, right
 	}
-	return neq
+	return neq, nil
 }
 
+// nolint: unparam
 func (neq *SQLNotEqualsExpr) reconcile() (SQLExpr, error) {
-	left, right, err := ReconcileSQLExprs(neq.left, neq.right)
-	if err != nil {
-		return nil, err
-	}
+	left, right := ReconcileSQLExprs(neq.left, neq.right)
 	return NewSQLNotEqualsExpr(left, right), nil
 }
 
@@ -1840,6 +1906,11 @@ func NewSQLNullSafeEqualsExpr(left, right SQLExpr) *SQLNullSafeEqualsExpr {
 
 // Evaluate evaluates a SQLNullSafeEqualsExpr into a values.SQLValue.
 func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(nse)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := nse.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1854,7 +1925,11 @@ func (nse *SQLNullSafeEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionCo
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLNullSafeEqualsExpr.
-func (nse *SQLNullSafeEqualsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (nse *SQLNullSafeEqualsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(nse); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := nse.sqlValueArgEnum()
 	switch valMask {
 	// Because constant NULLs do not cause <=> to evaluate to NULL, there is
@@ -1863,21 +1938,19 @@ func (nse *SQLNullSafeEqualsExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 	case bothValueArgs:
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c == 0))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c == 0)), nil
 		}
 	}
 	if shouldFlip(nse.sqlBinaryNode) {
 		left, right := nse.right, nse.left
 		nse.left, nse.right = left, right
 	}
-	return nse
+	return nse, nil
 }
 
+// nolint: unparam
 func (nse *SQLNullSafeEqualsExpr) reconcile() (SQLExpr, error) {
-	left, right, err := ReconcileSQLExprs(nse.left, nse.right)
-	if err != nil {
-		return nil, err
-	}
+	left, right := ReconcileSQLExprs(nse.left, nse.right)
 	return NewSQLNullSafeEqualsExpr(left, right), nil
 }
 
@@ -1932,6 +2005,11 @@ func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
 
 // Evaluate evaluates a SQLOrExpr into a values.SQLValue.
 func (or *SQLOrExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(or)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := or.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -1949,35 +2027,39 @@ func (or *SQLOrExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLOrExpr.
-func (or *SQLOrExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (or *SQLOrExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(or); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := or.sqlValueArgEnum()
 
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if values.Bool(leftVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
 		}
 		if values.IsFalsy(leftVal) {
 			or.left = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
 	case rightOnlyValueArg:
 		if values.Bool(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
 		}
 		if values.IsFalsy(rightVal) {
 			or.right = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
 		}
 	case bothValueArgs:
 		if values.Bool(leftVal) || values.Bool(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
 		}
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
-		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
 	}
-	return or
+	return or, nil
 }
 
 func (or *SQLOrExpr) String() string {
@@ -2142,6 +2224,11 @@ func (*SQLSubtractExpr) ExprName() string {
 
 // Evaluate evaluates a SQLSubtractExpr into a values.SQLValue.
 func (sub *SQLSubtractExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(sub)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := sub.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -2163,46 +2250,46 @@ func (sub *SQLSubtractExpr) EvalType() types.EvalType {
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubtractExpr.
-func (sub *SQLSubtractExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (sub *SQLSubtractExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(sub); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := sub.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal)
+			return NewSQLValueExpr(leftVal), nil
 		}
 		if values.IsZero(leftVal) {
-			return sub.right
+			return sub.right, nil
 		}
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal)
+			return NewSQLValueExpr(rightVal), nil
 		}
 		if values.IsZero(rightVal) {
-			return sub.left
+			return sub.left, nil
 		}
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if out, err := doArithmetic(leftVal, rightVal, SUB); err == nil {
-			return NewSQLValueExpr(out)
+			return NewSQLValueExpr(out), nil
 		}
 	}
-	return sub
+	return sub, nil
 }
 
 func (sub *SQLSubtractExpr) String() string {
 	return fmt.Sprintf("%v-%v", sub.left, sub.right)
 }
 
+// nolint: unparam
 func (sub *SQLSubtractExpr) reconcile() (SQLExpr, error) {
-	bin, err := sub.reconcileArithmetic()
-	if err != nil {
-		return nil, err
-	}
-	newExpr := SQLSubtractExpr{bin}
-	return &newExpr, nil
+	return &SQLSubtractExpr{sub.reconcileArithmetic()}, nil
 }
 
 // ToAggregationLanguage translates SQLSubtractExpr into something that can
@@ -2241,6 +2328,11 @@ func (*SQLXorExpr) ExprName() string {
 
 // Evaluate evaluates a SQLXorExpr into a values.SQLValue.
 func (xor *SQLXorExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(xor)
+	if err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, err := xor.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -2258,39 +2350,43 @@ func (xor *SQLXorExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLXorExpr.
-func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(xor); err != nil {
+		return nil, err
+	}
+
 	leftVal, rightVal, valMask := xor.sqlValueArgEnum()
 
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
 		if leftVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind))
+			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		if values.IsFalsy(leftVal) {
 			// Type reconciliation will ensure that xor.right is converted to boolean already, if
 			// necessary.  So this is safe, unlike in the SQLOrExpr and SQLAndExpr cases.
-			return xor.right
+			return xor.right, nil
 		}
-		return NewSQLNotExpr(xor.right)
+		return NewSQLNotExpr(xor.right), nil
 	case rightOnlyValueArg:
 		if rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if values.IsFalsy(rightVal) {
-			return xor.left
+			return xor.left, nil
 		}
-		return NewSQLNotExpr(xor.left)
+		return NewSQLNotExpr(xor.left), nil
 	case bothValueArgs:
 		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind()))
+			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if values.IsFalsy(leftVal) != values.IsFalsy(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
+			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
 		}
-		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
+		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
 	}
-	return xor
+	return xor, nil
 }
 
 func (xor *SQLXorExpr) String() string {

@@ -123,19 +123,15 @@ var (
 )
 
 func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	{{- if $func.ValidateArgTypes}}
 	// Validate this function's argument count and types.
-	err := f.validateArgs()
-	if err != nil {
-		return nil, err
-	}
-	{{- else}}
-	// Validate this function's argument count.
 	err := f.validateArgCount()
 	if err != nil {
 		return nil, err
 	}
-	{{- end}}
+	err = validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
 
 	// evaluate arguments
 	args := []values.SQLValue{}
@@ -177,19 +173,23 @@ func (f *{{$func.ID}}{{.ID}}Func) ToAggregationPredicate(t *PushdownTranslator) 
 	return f.ToAggregationLanguage(t)
 }
 
-func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
+func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
+
 	{{- if $func.CustomFoldConstants}}
 		if newExpr, ok := f.{{$func.ID}}FoldConstants(cfg); ok {
-			return newExpr
+			return newExpr, nil
 		}
-		return f
+		return f, nil
 	{{- else}}
 		{{- if $func.UseFullEvaluationState}}
 		{{- else}}
 		allVals := true
 		{{- end}}
  		if hasNullExpr(f.args...) {
-   			 return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind, f.EvalType()))
+   			 return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		valArgs := make([]values.SQLValue, len(f.args))
 		for i, arg := range f.args {
@@ -203,10 +203,10 @@ func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 			}
 		}
 		{{- if $func.UseFullEvaluationState}}
-			return f
+			return f, nil
 		{{- else}}
 			if !allVals {
-				return f
+				return f, nil
 			}
 			// Call the function that contains the appropriate evaluation logic.
 			{{- if $func.SeparateInvocationEvaluation}}
@@ -215,9 +215,9 @@ func (f *{{$func.ID}}{{.ID}}Func) FoldConstants(cfg *OptimizerConfig) SQLExpr {
 				val, err := f.{{$func.ID}}Evaluate(cfg.sqlValueKind, cfg.collation, valArgs)
 			{{- end}}
 			if err != nil {
-				return f
+				return nil, err
 			}
-			return NewSQLValueExpr(val)
+			return NewSQLValueExpr(val), nil
 		{{- end}}
 	{{- end}}
 }

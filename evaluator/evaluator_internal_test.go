@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -615,6 +616,93 @@ func TestEvaluateComparison(t *testing.T) {
 			result, err := evaluateComparison(tc.left, tc.right, tc.op, knd, nil)
 			require.Nil(t, err, "unexpected error")
 			require.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestValidateArgs(t *testing.T) {
+	intOne := NewSQLValueExpr(values.NewSQLInt64(values.MongoSQLValueKind, 1))
+	strOne := NewSQLValueExpr(values.NewSQLVarchar(values.MongoSQLValueKind, "1"))
+	intCol := NewColumn(1, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false)
+	strCol := NewColumn(1, "", "", "", "", "", "", types.EvalString, schema.MongoString, false)
+
+	tests := []struct {
+		name        string
+		expr        SQLExpr
+		expectError bool
+	}{
+		{"(SQLExpr Children) all valid args", NewSQLAddExpr(intOne, intOne), false},
+		{"(SQLExpr Children) one invalid arg", NewSQLAddExpr(intOne, strOne), true},
+		{"(SQLExpr Children) all invalid args", NewSQLAddExpr(strOne, strOne), true},
+
+		{"(ProjectStage Children) SQLSubqueryExpr", NewSQLSubqueryExpr(true, true, NewDualStage()), false},
+		{"(ProjectStage Children) SQLExistExpr", NewSQLSubqueryExpr(true, true, NewDualStage()), false},
+
+		{
+			"(ProjectStage Children) SQLSubqueryCmpExpr valid args",
+			NewSQLSubqueryCmpExpr(true, true,
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				sqlOpEQ,
+			),
+			false,
+		},
+		{
+			"(ProjectStage Children) SQLSubqueryCmpExpr invalid args",
+			NewSQLSubqueryCmpExpr(true, true,
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: strCol, Expr: strOne}),
+				sqlOpEQ,
+			),
+			true,
+		},
+		{
+			"(ProjectStage Children) NewSQLSubqueryAllExpr() valid args",
+			NewSQLSubqueryAllExpr(true, true,
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				sqlOpEQ,
+			),
+			false,
+		},
+		{
+			"(ProjectStage Children) NewSQLSubqueryAllExpr() invalid args",
+			NewSQLSubqueryAllExpr(true, true,
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: strCol, Expr: strOne}),
+				sqlOpEQ,
+			),
+			true,
+		},
+		{
+			"(ProjectStage Children) NewSQLSubqueryAnyExpr() valid args",
+			NewSQLSubqueryAnyExpr(true, true,
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				sqlOpEQ,
+			),
+			false,
+		},
+		{
+			"(ProjectStage Children) NewSQLSubqueryAnyExpr() invalid args",
+			NewSQLSubqueryAnyExpr(true, true,
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: intCol, Expr: intOne}),
+				NewProjectStage(NewDualStage(), ProjectedColumn{Column: strCol, Expr: strOne}),
+				sqlOpEQ,
+			),
+			true,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := require.New(t)
+			err := validateArgs(test.expr)
+			if test.expectError {
+				req.NotNil(err, "validateArgs should return an error for these types")
+			} else {
+				req.Nil(err, "validateArgs should not return an error for these types")
+			}
 		})
 	}
 }
