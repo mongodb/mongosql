@@ -208,7 +208,7 @@ type ColumnInfo struct {
 	UUIDSubtype types.EvalType
 }
 
-// FastMongoSourceIter implements FastIter. It is an Iterator over raw BSON
+// FastMongoSourceIter implements DocIter. It is an Iterator over raw BSON
 // Documents.
 type FastMongoSourceIter struct {
 	// iter is an implementation for getting data directly
@@ -223,7 +223,7 @@ type FastMongoSourceIter struct {
 
 // FastOpen opens a more optimized Iter over raw BSON documents returned from
 // MongoDB in cases where no in-memory evaluation is needed to handle a query.
-func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (FastIter, error) {
+func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
 	err := ms.resolveDeps(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -383,7 +383,7 @@ func (ms *MongoSourceStage) resolveDeps(ctx context.Context, cfg *ExecutionConfi
 }
 
 // Open creates an Iter over rows returned from MongoDB.
-func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
 	err := ms.resolveDeps(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -723,7 +723,7 @@ func (p *NonCorrelatedSubqueryFuture) Evaluate(ctx context.Context, cfg *Executi
 	if err != nil {
 		return err
 	}
-	iter = newMemoryIter(cfg, iter)
+	iter = NewMemoryIter(cfg, iter)
 
 	row := &Row{}
 	ok := iter.Next(ctx, row)

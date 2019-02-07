@@ -6,21 +6,23 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/memory"
 )
 
-type memoryIter struct {
+type MemoryIter struct {
 	monitor memory.Monitor
-	source  Iter
+	source  RowIter
 
 	err error
 }
 
-func newMemoryIter(cfg *ExecutionConfig, src Iter) *memoryIter {
-	return &memoryIter{
+// NewMemoryIter creates a MemoryIter from a RowIter.
+func NewMemoryIter(cfg *ExecutionConfig, src RowIter) *MemoryIter {
+	return &MemoryIter{
 		monitor: cfg.memoryMonitor,
 		source:  src,
 	}
 }
 
-func (i *memoryIter) Next(ctx context.Context, row *Row) bool {
+// Next gets the next row.
+func (i *MemoryIter) Next(ctx context.Context, row *Row) bool {
 	hasNext := i.source.Next(ctx, row)
 	if hasNext {
 		i.err = i.monitor.Release(row.Data.Size())
@@ -31,7 +33,8 @@ func (i *memoryIter) Next(ctx context.Context, row *Row) bool {
 	return hasNext
 }
 
-func (i *memoryIter) Close() error {
+// Close closes the iter.
+func (i *MemoryIter) Close() error {
 	err := i.source.Close()
 	if err != nil {
 		return err
@@ -39,7 +42,8 @@ func (i *memoryIter) Close() error {
 	return i.monitor.ReleaseGlobal()
 }
 
-func (i *memoryIter) Err() error {
+// Err gets the error for an iter.
+func (i *MemoryIter) Err() error {
 	if err := i.source.Err(); err != nil {
 		return err
 	}

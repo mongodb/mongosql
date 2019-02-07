@@ -126,7 +126,7 @@ type fastUnionPacket struct {
 }
 
 // FastUnionAllIter returns BSON documents from the UNION ALL of two
-// FastIters.
+// DocIters.
 type FastUnionAllIter struct {
 	// cancelIter allows for cancelling iteration.
 	cancelIter context.CancelFunc
@@ -138,14 +138,14 @@ type FastUnionAllIter struct {
 	// errChan carries errors.
 	errChan chan error
 	// The left and right fast iter.
-	left, right FastIter
+	left, right DocIter
 	// leftChan and rightChan are channels returning bson.RawD results
 	// for the left and right of the union, respectively.
 	leftChan, rightChan chan fastUnionPacket
 }
 
 // FastUnionDistinctIter returns BSON documents from the UNION ALL of two
-// FastIters.
+// DocIters.
 type FastUnionDistinctIter struct {
 	FastUnionAllIter
 	// distinct set
@@ -157,7 +157,7 @@ type FastUnionDistinctIter struct {
 }
 
 // FastUnionDistinctIter32 returns BSON documents from the UNION ALL of two
-// FastIters when using server version < 3.4.0.
+// DocIters when using server version < 3.4.0.
 type FastUnionDistinctIter32 FastUnionDistinctIter
 
 // UnionIter returns rows from the union of two source iterators.
@@ -179,8 +179,8 @@ type UnionIter struct {
 	stageMonitor memory.Monitor
 }
 
-// FastOpen opens a FastIter for the UnionStage.
-func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (FastIter, error) {
+// FastOpen opens a DocIter for the UnionStage.
+func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
 	fastPlanLeft, ok := union.left.(FastPlanStage)
 	if !ok {
 		panic(fmt.Sprintf("left child of UnionStage must be FastPlanStage, "+
@@ -242,7 +242,7 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 	iter.leftChan = make(chan fastUnionPacket)
 	iter.rightChan = make(chan fastUnionPacket)
 
-	iterateSide := func(it FastIter, channel chan fastUnionPacket) func() {
+	iterateSide := func(it DocIter, channel chan fastUnionPacket) func() {
 		return func() {
 			b := &bson.RawD{}
 		Loop:
@@ -498,7 +498,7 @@ func (iter *FastUnionDistinctIter) Close() error {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
 	stageMonitor, err := cfg.memoryMonitor.CreateChild("UnionStage", cfg.maxStageSize)
 	if err != nil {
 		return nil, err
@@ -546,7 +546,7 @@ func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return iter, nil
 }
 
-func (iter *UnionIter) fetchRows(ctx context.Context, it Iter, ch chan *Row, errChan chan error) {
+func (iter *UnionIter) fetchRows(ctx context.Context, it RowIter, ch chan *Row, errChan chan error) {
 	r := &Row{}
 
 	syncChan := make(chan *Row)

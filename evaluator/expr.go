@@ -2269,7 +2269,7 @@ func (e *SQLSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interfa
 func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 	cfg *ExecutionConfig, st *ExecutionState, plan PlanStage) (values.SQLValue, error) {
 	var err error
-	var iter Iter
+	var iter RowIter
 	defer func() {
 		if iter != nil {
 			if err == nil {

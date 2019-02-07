@@ -53,24 +53,24 @@ type ProjectIter struct {
 	cfg              *ExecutionConfig
 	st               *ExecutionState
 	memoryMonitor    memory.Monitor
-	source           Iter
+	source           RowIter
 	projectedColumns ProjectedColumns
 	// err holds any error that may have occurred during processing
 	err error
 }
 
 // Open returns an iterator over this PlanStage's returned rows.
-func (pj *ProjectStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
-	sourceIter, err := pj.source.Open(ctx, cfg, st)
+func (ps *ProjectStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+	sourceIter, err := ps.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
 	return &ProjectIter{
 		cfg:              cfg,
-		st:               st.WithCollation(pj.Collation()),
+		st:               st.WithCollation(ps.Collation()),
 		memoryMonitor:    cfg.memoryMonitor,
-		projectedColumns: pj.projectedColumns,
+		projectedColumns: ps.projectedColumns,
 		source:           sourceIter,
 	}, nil
 }
@@ -112,21 +112,21 @@ func (pj *ProjectIter) Next(ctx context.Context, r *Row) bool {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (pj *ProjectStage) Columns() (columns []*Column) {
-	for _, projectedColumn := range pj.projectedColumns {
+func (ps *ProjectStage) Columns() (columns []*Column) {
+	for _, projectedColumn := range ps.projectedColumns {
 		columns = append(columns, projectedColumn.Column.clone())
 	}
 
 	if len(columns) == 0 {
-		columns = pj.source.Columns()
+		columns = ps.source.Columns()
 	}
 
 	return columns
 }
 
 // Collation returns the collation to use for comparisons.
-func (pj *ProjectStage) Collation() *collation.Collation {
-	return pj.source.Collation()
+func (ps *ProjectStage) Collation() *collation.Collation {
+	return ps.source.Collation()
 }
 
 // Close closes the iterator, returning any error encountered while doing so.
@@ -143,14 +143,14 @@ func (pj *ProjectIter) Err() error {
 	return pj.err
 }
 
-func (pj *ProjectStage) clone() PlanStage {
+func (ps *ProjectStage) clone() PlanStage {
 	return &ProjectStage{
-		source:           pj.source.clone(),
-		projectedColumns: pj.projectedColumns,
+		source:           ps.source.clone(),
+		projectedColumns: ps.projectedColumns,
 	}
 }
 
 // ProjectedColumns returns the projectedColumns.
-func (pj *ProjectStage) ProjectedColumns() ProjectedColumns {
-	return pj.projectedColumns
+func (ps *ProjectStage) ProjectedColumns() ProjectedColumns {
+	return ps.projectedColumns
 }

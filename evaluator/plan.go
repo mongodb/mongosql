@@ -14,7 +14,7 @@ type PlanStage interface {
 
 	// Open returns an iterator that returns results from executing this plan stage with the given
 	// ExecutionContext.
-	Open(context.Context, *ExecutionConfig, *ExecutionState) (Iter, error)
+	Open(context.Context, *ExecutionConfig, *ExecutionState) (RowIter, error)
 
 	// Columns returns the ordered set of columns that are contained in results from this plan.
 	Columns() []*Column
@@ -30,12 +30,11 @@ type FastPlanStage interface {
 	PlanStage
 
 	// FastOpen returns a FastIter that streams bson.RawD documents.
-	FastOpen(context.Context, *ExecutionConfig, *ExecutionState) (FastIter, error)
+	FastOpen(context.Context, *ExecutionConfig, *ExecutionState) (DocIter, error)
 }
 
-// ErrCloser is an interface that groups the basic Close and Error methods for
-// an Iter.
-type ErrCloser interface {
+// Iter is a super interface for the two types of iterators supported by the BIC.
+type Iter interface {
 	// Close frees up any resources in use by this iterator. Callers should always
 	// call the Close method once they are finished with an iterator.
 	Close() error
@@ -45,9 +44,9 @@ type ErrCloser interface {
 	Err() error
 }
 
-// Iter represents an object that can iterate through a set of rows.
-type Iter interface {
-	ErrCloser
+// RowIter represents an object that can iterate through a set of rows.
+type RowIter interface {
+	Iter
 	// Next retrieves the next row from this iterator. It returns true if it has
 	// additional data and false if there is no more data or if an error occurred
 	// during processing.
@@ -77,12 +76,12 @@ type Iter interface {
 	Next(context.Context, *Row) bool
 }
 
-// FastIter is like Iter, but yields bson.RawD instead of
+// DocIter is like RowIter, but yields bson.RawD instead of
 // *Row on calls to Next. It is used for performance reasons:
 // we can copy less data if we handle unmarshalling ourselves
 // with respect to the SQL Wire protocol in question.
-type FastIter interface {
-	ErrCloser
+type DocIter interface {
+	Iter
 	// Next retrieves the next row from this iterator. It returns true if it has
 	// additional data and false if there is no more data or if an error occurred
 	// during processing.

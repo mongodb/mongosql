@@ -274,10 +274,12 @@ func (st *ExecutionState) WithRows(rows ...*Row) *ExecutionState {
 	}
 }
 
-// ExecutePlan executes the provided plan with the specified ExecutionConfig,
-// returning an iterator. If possible, a FastIter will be returned.
-func ExecutePlan(ctx context.Context, cfg *ExecutionConfig, plan PlanStage) (ErrCloser, error) {
-	st := NewExecutionState()
+// CheckPlanExecution is a watchdog for query execution that also possibly optimizes (as a hack)
+// to a FastPlanStage in cases where the top level stage is not a FastPlanStage but could be:
+// see the documentation for getFastPlanStage for more information on what stages can be
+// optimized as FastPlanStages. It returns an error if, for some reason, we should not execute
+// this query, e.g., fullPushdownOnly is set and this query is not pushedDown.
+func CheckPlanExecution(ctx context.Context, cfg *ExecutionConfig, plan PlanStage) (PlanStage, error) {
 
 	// If possible, return a fast iterator for this plan.
 	mongodb32 := procutil.VersionExactly(cfg.mongoDBVersion, []uint8{3, 2})
@@ -288,7 +290,7 @@ func ExecutePlan(ctx context.Context, cfg *ExecutionConfig, plan PlanStage) (Err
 			"executing query plan with fast iterator: \n%v",
 			PrettyPrintPlan(fastPlan),
 		)
-		return fastPlan.FastOpen(ctx, cfg, st)
+		return fastPlan, nil
 	}
 
 	// If full pushdown exec mode is enabled, don't execute this query unless
@@ -306,15 +308,7 @@ func ExecutePlan(ctx context.Context, cfg *ExecutionConfig, plan PlanStage) (Err
 		PrettyPrintPlan(plan),
 	)
 
-	// We have a query plan that will be evaluated at least partially in memory.
-	iter, err := plan.Open(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	// Wrap the in-memory iter with a memory-tracking iter and return.
-	iter = newMemoryIter(cfg, iter)
-	return iter, nil
+	return plan, nil
 }
 
 // getFastPlanStage returns a FastPlanStage and true if possible,

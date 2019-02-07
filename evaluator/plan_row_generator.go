@@ -42,7 +42,7 @@ func NewRowGeneratorStage(source PlanStage, rowCountColumn *Column) *RowGenerato
 }
 
 // Open gets the iterator of its source plan stage and returns a RowGeneratorIter.
-func (rg *RowGeneratorStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+func (rg *RowGeneratorStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
 	sourceIter, err := rg.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (rg *RowGeneratorStage) Collation() *collation.Collation {
 type rowGeneratorIter struct {
 	memoryMonitor  memory.Monitor
 	rowCountColumn *Column
-	source         Iter
+	source         RowIter
 	err            error
 	currentRow     uint64
 	totalRows      uint64

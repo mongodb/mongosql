@@ -69,7 +69,7 @@ type JoinIter struct {
 	cfg          *ExecutionConfig
 	st           *ExecutionState
 	stageMonitor memory.Monitor
-	left, right  Iter
+	left, right  RowIter
 	onChan       <-chan Values
 	errChan      chan error
 	err          error
@@ -78,7 +78,7 @@ type JoinIter struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (join *JoinStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+func (join *JoinStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
 	stageMonitor, err := cfg.memoryMonitor.CreateChild("JoinStage", cfg.maxStageSize)
 	if err != nil {
 		return nil, err
@@ -152,7 +152,7 @@ func (join *JoinStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Execu
 // ch, closing it when the iterator is exhausted. Errors encountered during
 // iteration are published on errChan.
 func (iter *JoinIter) fetchRows(ctx context.Context,
-	it Iter,
+	it RowIter,
 	ch chan<- *Row,
 	errChan chan<- error) {
 	r := &Row{}

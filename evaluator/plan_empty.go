@@ -33,7 +33,7 @@ type EmptyIter struct{}
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (*EmptyStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (Iter, error) {
+func (*EmptyStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (RowIter, error) {
 	return &EmptyIter{}, nil
 }
 

@@ -52,7 +52,7 @@ type OrderByIter struct {
 	cfg *ExecutionConfig
 	st  *ExecutionState
 
-	source Iter
+	source RowIter
 
 	stageMonitor memory.Monitor
 
@@ -108,7 +108,7 @@ type orderByRows struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (ob *OrderByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+func (ob *OrderByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
 	sourceIter, err := ob.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err

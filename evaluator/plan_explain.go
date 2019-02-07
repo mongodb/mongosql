@@ -30,6 +30,7 @@ const (
 
 // ExplainStage is a stage containing information on the explain plan table of a query.
 type ExplainStage struct {
+	pCfg    *PushdownConfig
 	plan    PlanStage
 	columns []*Column
 }
@@ -44,10 +45,11 @@ type ExplainIter struct {
 
 // NewExplainStage creates a new ExplainStage
 // given a PlanStage and the generated columns for the table.
-func NewExplainStage(plan PlanStage, cfg *ExecutionConfig) *ExplainStage {
+func NewExplainStage(plan PlanStage, pCfg *PushdownConfig, eCfg *ExecutionConfig) *ExplainStage {
 	return &ExplainStage{
 		plan:    plan,
-		columns: generateExplainColumns(cfg.dbName),
+		pCfg:    pCfg,
+		columns: generateExplainColumns(eCfg.dbName),
 	}
 }
 
@@ -66,10 +68,20 @@ func (es *ExplainStage) ReplaceChild(i int, n Node) {
 	}
 }
 
+func (es *ExplainStage) clone() PlanStage {
+	clonedColumns := make([]*Column, len(es.columns))
+	copy(clonedColumns, es.columns)
+	return &ExplainStage{
+		plan:    es.plan.clone(),
+		pCfg:    es.pCfg,
+		columns: clonedColumns,
+	}
+}
+
 // Open creates a visitor that will walk through the explain plan
 // and return an iterator with the rows for the table.
-func (es *ExplainStage) Open(_ context.Context, pCfg *PushdownConfig, eCfg *ExecutionConfig, _ *ExecutionState) (Iter, error) {
-	explainRecords, err := explainQuery(es.plan, pCfg)
+func (es *ExplainStage) Open(_ context.Context, eCfg *ExecutionConfig, _ *ExecutionState) (RowIter, error) {
+	explainRecords, err := explainQuery(es.plan, es.pCfg)
 	if err != nil {
 		return nil, err
 	}

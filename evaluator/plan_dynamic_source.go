@@ -70,7 +70,7 @@ func (s *DynamicSourceStage) Collation() *collation.Collation {
 }
 
 // Open creates an Iter to loop over the results.
-func (s *DynamicSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (Iter, error) {
+func (s *DynamicSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
 	reader, err := s.table.OpenReader()
 	if err != nil {
 		return nil, err

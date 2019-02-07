@@ -28,21 +28,37 @@ type QueryOp byte
 // QueryResult represents the result of a query. It contains the parsed statement, the operation
 // executed, and optionally the columns in the result set, a result iterator, and PlanStats.
 type QueryResult struct {
-	Stmt    parser.Statement // allows statement execution tracking in server
-	Columns []*Column
-	Iter    ErrCloser
-	Stats   *PlanStats
-	Op      QueryOp
+	Stmt      parser.Statement // allows statement execution tracking in server
+	Columns   []*Column
+	planStage PlanStage
+	Stats     *PlanStats
+	Op        QueryOp
+}
+
+// GetDocIter returns the Iter as a DocIter, if it is
+// a DocIter, otherwise nil.
+func (qr *QueryResult) GetDocIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
+	switch typedPlan := qr.planStage.(type) {
+	case FastPlanStage:
+		return typedPlan.FastOpen(ctx, cfg, st)
+	}
+	return nil, nil
+}
+
+// GetRowIter returns the Iter as a RowIter, if it is
+// a RowIter, otherwise nil.
+func (qr *QueryResult) GetRowIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+	return qr.planStage.Open(ctx, cfg, st)
 }
 
 // NewQueryResult is a constructor for a QueryResult.
-func NewQueryResult(stmt parser.Statement, columns []*Column, iter ErrCloser, stats *PlanStats, op QueryOp) *QueryResult {
+func NewQueryResult(stmt parser.Statement, columns []*Column, planStage PlanStage, stats *PlanStats, op QueryOp) *QueryResult {
 	return &QueryResult{
-		Stmt:    stmt,
-		Columns: columns,
-		Iter:    iter,
-		Stats:   stats,
-		Op:      op,
+		Stmt:      stmt,
+		Columns:   columns,
+		planStage: planStage,
+		Stats:     stats,
+		Op:        op,
 	}
 }
 
@@ -124,24 +140,19 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 	}
 	plan = pushedDown
 
-	st := NewExecutionState()
-	explainPlan := NewExplainStage(plan, qCfg.eCfg)
-	iter, err := explainPlan.Open(ctx, qCfg.pCfg, qCfg.eCfg, st)
-	if err != nil {
-		// couldn't get an iterator, so we have to exit
-		return nil, err
-	}
+	explainPlan := NewExplainStage(plan, qCfg.pCfg, qCfg.eCfg)
 
 	stats, err := getPlanStats(plan, qCfg.pCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	res := NewQueryResult(parsedStmt, explainPlan.Columns(), iter, stats, EXPLAIN)
+	res := NewQueryResult(parsedStmt, explainPlan.Columns(), explainPlan, stats, EXPLAIN)
 
 	return res, nil
 }
 
+// EvaluateShow algebrizes and executes a show statement.
 func EvaluateShow(ctx context.Context, qCfg *QueryConfig, stmt *parser.Show) (*QueryResult, error) {
 	switch strings.ToLower(stmt.Section) {
 	case "charset", "collation", "columns", "create database", "create table",
@@ -202,8 +213,8 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 		return nil, err
 	}
 
-	// Step 6: Execute
-	iter, err := ExecutePlan(ctx, qCfg.eCfg, plan)
+	// Step 6: Check if this query should be executed
+	maybeFastPlan, err := CheckPlanExecution(ctx, qCfg.eCfg, plan)
 	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}
@@ -219,7 +230,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 		op = UNKNOWN
 	}
 
-	res := NewQueryResult(parsedStmt, plan.Columns(), iter, stats, op)
+	res := NewQueryResult(parsedStmt, plan.Columns(), maybeFastPlan, stats, op)
 
 	return res, nil
 }

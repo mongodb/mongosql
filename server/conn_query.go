@@ -125,26 +125,45 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 		return err
 	}
 
+	streamMemoryIter := func() error {
+		iter, err := res.GetRowIter(ctx, eCfg, evaluator.NewExecutionState())
+		if err != nil {
+			return err
+		}
+		memIter := evaluator.NewMemoryIter(eCfg, iter)
+		return c.streamRowResultset(queryCtx, res.Columns, memIter)
+	}
+
+	streamRowIter := func() error {
+		iter, err := res.GetRowIter(ctx, eCfg, evaluator.NewExecutionState())
+		if err != nil {
+			return err
+		}
+		return c.streamRowResultset(queryCtx, res.Columns, iter)
+	}
+
 	switch res.Op {
 	case evaluator.COMMAND:
-		err = c.writeOK(nil)
+		return c.writeOK(nil)
 	case evaluator.SHOWNOTIMPL:
 		v := res.Stmt.(*parser.Show)
-		err = c.handleShowNotImplemented(sql, v)
+		return c.handleShowNotImplemented(sql, v)
 	case evaluator.SHOW:
 		planStats = res.Stats
-		err = c.streamResultset(queryCtx, res.Columns, res.Iter)
+		return streamRowIter()
 	case evaluator.QUERY:
 		planStats = res.Stats
 		trackedStmt = res.Stmt
-		err = c.streamResultset(queryCtx, res.Columns, res.Iter)
+		docIter, _ := res.GetDocIter(ctx, eCfg, evaluator.NewExecutionState())
+		if docIter != nil {
+			return c.streamDocResultset(queryCtx, res.Columns, docIter)
+		}
+		return streamMemoryIter()
 	case evaluator.EXPLAIN:
-		err = c.streamResultset(queryCtx, res.Columns, res.Iter)
+		return streamRowIter()
 	default:
-		err = mysqlerrors.Unknownf("query result type %T not supported", res.Op)
+		return mysqlerrors.Unknownf("query result type %T not supported", res.Op)
 	}
-
-	return err
 }
 
 func (c *conn) cleanupMemory() error {
