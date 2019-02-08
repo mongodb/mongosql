@@ -395,21 +395,6 @@ functions:
         make ${var_target}
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
-  "restart dependency versions":
-    command: shell.exec
-    type: test
-    params:
-      evg_key: ${evg_key}
-      evg_user: ${evg_user}
-      working_dir: src/github.com/10gen/sqlproxy/release/scripts
-      script: |
-        export EVG_USER=${evg_user}
-        export EVG_KEY=${evg_key}
-        echo "Commencing dependency version restart...";
-        set -o verbose
-        set -o errexit
-        python dependency_restarter.py
-
   "run unit benchmarks":
     command: shell.exec
     type: test
@@ -1028,12 +1013,6 @@ tasks:
     - func: "build mongosqld"
     - func: "start mongosqld"
     - func: "run jdbc auth plugin sha256 tests"
-
-- name: dependency-restarter
-  tags:
-    - oneoff-task
-  commands:
-    - func: "restart dependency versions"
 
 - name: release
   depends_on:
@@ -2168,7 +2147,6 @@ buildvariants:
   tasks:
   - jdbc-auth-scram1
   - jdbc-auth-scram256
-  - dependency-restarter
 
 # We are excluding test-gssapi-with-keytab-and-username because RHEL currently does not pick up
 # keytabs specified in environment variables.
