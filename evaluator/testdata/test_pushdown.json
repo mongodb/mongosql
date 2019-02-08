@@ -1156,5 +1156,11 @@
         "3.4": "[{\"$match\":{\"a\":{\"$numberLong\":\"10\"}}},{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]",
         "3.6": "[{\"$match\":{\"a\":{\"$numberLong\":\"10\"}}},{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]",
         "4.0": "[{\"$match\":{\"a\":{\"$numberLong\":\"10\"}}},{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}}]"
+    },
+    "wrap_in_round_optimizes_pipeline_when_rounding_literal": {
+        "3.2": "",
+        "3.4": "",
+        "3.6": "",
+        "4.0": "[{\"$project\":{\"insert(Convert(test_DOT_foo_DOT_b, varchar),1,2,oo)\":{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$lte\":[\"$$str\",null]},{\"$lte\":[\"$$pos\",null]},{\"$lte\":[\"$$len\",null]}]},{\"$literal\":null},{\"$let\":{\"in\":{\"$cond\":[{\"$or\":[{\"$lt\":[\"$$pos\",0]},{\"$gte\":[\"$$pos\",\"$$totalLength\"]}]},\"$$str\",{\"$let\":{\"in\":{\"$concat\":[\"$$prefix\",\"oo\",\"$$suffix\"]},\"vars\":{\"prefix\":{\"$substrCP\":[\"$$str\",0,\"$$pos\"]},\"suffix\":{\"$substrCP\":[\"$$str\",{\"$add\":[\"$$pos\",\"$$len\"]},\"$$totalLength\"]}}}}]},\"vars\":{\"totalLength\":{\"$strLenCP\":[\"$$str\"]}}}}]},\"vars\":{\"len\":{\"$numberLong\":\"2\"},\"pos\":{\"$cond\":[{\"$lt\":[{\"$subtract\":[{\"$numberLong\":\"1\"},1]},0.0]},{\"$ceil\":[{\"$subtract\":[{\"$subtract\":[{\"$numberLong\":\"1\"},1]},0.5]}]},{\"$floor\":[{\"$add\":[{\"$subtract\":[{\"$numberLong\":\"1\"},1]},0.5]}]}]},\"str\":{\"$convert\":{\"input\":{\"$cond\":[{\"$eq\":[{\"$type\":\"$b\"},\"bool\"]},{\"$cond\":[\"$b\",\"1\",\"0\"]},\"$b\"]},\"onError\":null,\"onNull\":null,\"to\":\"string\"}}}}},\"_id\":0}}]"
     }
 }

@@ -374,6 +374,7 @@ func TestPushdownPlan(t *testing.T) {
 		{"lookup_join_with_duals_pushes_down", "select * from foo join (select 1, 2, 3) sub;"},
 		{"lookup_join_with_multiple_duals_pushes_down", "select * from foo join (select 1, 2, 3) sub1 join (select 4, 5, 6) sub2;"},
 		{"lookup_join_with_multiple_duals_and_where_pushes_down", "select * from foo join (select 1, 2, 3) sub1 join (select 4, 5, 6) sub2 where foo.a = sub1.`1` and sub2.`4` = sub1.`1`;"},
+		{"wrap_in_round_optimizes_pipeline_when_rounding_literal", "select INSERT(b, 1, 2, \"oo\") from foo;"},
 	}
 
 	// open the file with the cached test results
