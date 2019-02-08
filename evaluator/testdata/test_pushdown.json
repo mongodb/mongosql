@@ -37,15 +37,15 @@
     },
     "dual": {
         "3.2": "",
-        "3.4": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]",
-        "3.6": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]",
-        "4.0": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]"
+        "3.4": "",
+        "3.6": "",
+        "4.0": ""
     },
     "dual_add": {
         "3.2": "",
-        "3.4": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"5\":{\"$literal\":{\"$numberLong\":\"5\"}},\"_id\":0}}]",
-        "3.6": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"5\":{\"$literal\":{\"$numberLong\":\"5\"}},\"_id\":0}}]",
-        "4.0": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"5\":{\"$literal\":{\"$numberLong\":\"5\"}},\"_id\":0}}]"
+        "3.4": "",
+        "3.6": "",
+        "4.0": ""
     },
     "dual_join": {
         "3.2": "",
@@ -55,9 +55,9 @@
     },
     "dual_limit": {
         "3.2": "",
-        "3.4": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$limit\":{\"$numberLong\":\"1\"}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]",
-        "3.6": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$limit\":{\"$numberLong\":\"1\"}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]",
-        "4.0": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$limit\":{\"$numberLong\":\"1\"}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]"
+        "3.4": "",
+        "3.6": "",
+        "4.0": ""
     },
     "dual_limit_0": {
         "3.2": "",
@@ -67,9 +67,9 @@
     },
     "dual_simple": {
         "3.2": "",
-        "3.4": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]",
-        "3.6": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]",
-        "4.0": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"3\":{\"$literal\":{\"$numberLong\":\"3\"}},\"_id\":0}}]"
+        "3.4": "",
+        "3.6": "",
+        "4.0": ""
     },
     "dual_union": {
         "3.2": "",
@@ -79,9 +79,9 @@
     },
     "dual_variable": {
         "3.2": "",
-        "3.4": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"0\":{\"$literal\":false},\"_id\":0}}]",
-        "3.6": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"0\":{\"$literal\":false},\"_id\":0}}]",
-        "4.0": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"0\":{\"$literal\":false},\"_id\":0}}]"
+        "3.4": "",
+        "3.6": "",
+        "4.0": ""
     },
     "duplicate_pushdown_0": {
         "3.2": "[{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"test_DOT_foo_DOT_b\":\"$b\",\"_id\":0}}]",
@@ -869,12 +869,6 @@
         "3.6": "",
         "4.0": ""
     },
-    "scalar_func_quarter_with_literal": {
-        "3.2": "",
-        "3.4": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"2\":{\"$literal\":{\"$numberLong\":\"2\"}},\"_id\":0}}]",
-        "3.6": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"2\":{\"$literal\":{\"$numberLong\":\"2\"}},\"_id\":0}}]",
-        "4.0": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"2\":{\"$literal\":{\"$numberLong\":\"2\"}},\"_id\":0}}]"
-    },
     "scalar_func_right_with_literal_length": {
         "3.2": "",
         "3.4": "",
@@ -886,12 +880,6 @@
         "3.4": "[{\"$project\":{\"right(hello,test_DOT_foo_DOT_a)\":{\"$let\":{\"in\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$substrCP\":[\"hello\",{\"$max\":[0,{\"$subtract\":[{\"$strLenCP\":[\"hello\"]},{\"$cond\":[{\"$lt\":[{\"$max\":[0,\"$a\"]},0.0]},{\"$ceil\":[{\"$subtract\":[{\"$max\":[0,\"$a\"]},0.5]}]},{\"$floor\":[{\"$add\":[{\"$max\":[0,\"$a\"]},0.5]}]}]}]}]},{\"$cond\":[{\"$lt\":[{\"$max\":[0,\"$a\"]},0.0]},{\"$ceil\":[{\"$subtract\":[{\"$max\":[0,\"$a\"]},0.5]}]},{\"$floor\":[{\"$add\":[{\"$max\":[0,\"$a\"]},0.5]}]}]}]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}},\"_id\":0}}]",
         "3.6": "[{\"$project\":{\"right(hello,test_DOT_foo_DOT_a)\":{\"$let\":{\"in\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$substrCP\":[\"hello\",{\"$max\":[0,{\"$subtract\":[{\"$strLenCP\":[\"hello\"]},{\"$cond\":[{\"$lt\":[{\"$max\":[0,\"$a\"]},0.0]},{\"$ceil\":[{\"$subtract\":[{\"$max\":[0,\"$a\"]},0.5]}]},{\"$floor\":[{\"$add\":[{\"$max\":[0,\"$a\"]},0.5]}]}]}]}]},{\"$cond\":[{\"$lt\":[{\"$max\":[0,\"$a\"]},0.0]},{\"$ceil\":[{\"$subtract\":[{\"$max\":[0,\"$a\"]},0.5]}]},{\"$floor\":[{\"$add\":[{\"$max\":[0,\"$a\"]},0.5]}]}]}]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}},\"_id\":0}}]",
         "4.0": "[{\"$project\":{\"right(hello,test_DOT_foo_DOT_a)\":{\"$let\":{\"in\":{\"$cond\":[\"$$zaIsNull\",{\"$literal\":null},{\"$substrCP\":[\"hello\",{\"$max\":[0,{\"$subtract\":[{\"$strLenCP\":[\"hello\"]},{\"$cond\":[{\"$lt\":[{\"$max\":[0,\"$a\"]},0.0]},{\"$ceil\":[{\"$subtract\":[{\"$max\":[0,\"$a\"]},0.5]}]},{\"$floor\":[{\"$add\":[{\"$max\":[0,\"$a\"]},0.5]}]}]}]}]},{\"$cond\":[{\"$lt\":[{\"$max\":[0,\"$a\"]},0.0]},{\"$ceil\":[{\"$subtract\":[{\"$max\":[0,\"$a\"]},0.5]}]},{\"$floor\":[{\"$add\":[{\"$max\":[0,\"$a\"]},0.5]}]}]}]}]},\"vars\":{\"zaIsNull\":{\"$lte\":[\"$a\",null]}}}},\"_id\":0}}]"
-    },
-    "scalar_func_weekday_with_literal": {
-        "3.2": "",
-        "3.4": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"1\":{\"$literal\":{\"$numberLong\":\"1\"}},\"_id\":0}}]",
-        "3.6": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"1\":{\"$literal\":{\"$numberLong\":\"1\"}},\"_id\":0}}]",
-        "4.0": "[{\"$collStats\":{}},{\"$limit\":1},{\"$project\":{\"newField\":1}},{\"$project\":{\"1\":{\"$literal\":{\"$numberLong\":\"1\"}},\"_id\":0}}]"
     },
     "select_agg_from_subquery": {
         "3.2": "[{\"$project\":{\"test_DOT_bar_DOT__id\":\"$_id\",\"test_DOT_bar_DOT_a\":\"$a\",\"test_DOT_bar_DOT_b\":\"$b\"}},{\"$group\":{\"_id\":{},\"count(*)\":{\"$sum\":1}}},{\"$project\":{\"count(*)\":\"$count(*)\",\"_id\":0}}]",

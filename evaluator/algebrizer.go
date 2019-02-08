@@ -70,6 +70,7 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig, stmt parser.Statement) (Command, er
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		columnSet:                   make(map[string]struct{}),
+		isTopLevel:                  true,
 	}
 
 	switch typedStmt := stmt.(type) {
@@ -104,6 +105,7 @@ func AlgebrizeQuery(cfg *AlgebrizerConfig, stmt parser.Statement) (PlanStage, er
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		columnSet:                   make(map[string]struct{}),
 		ctes:                        make(ctePlanStages),
+		isTopLevel:                  true,
 	}
 
 	switch typedStmt := stmt.(type) {
@@ -163,6 +165,11 @@ func cloneCTEs(ctes ctePlanStages) ctePlanStages {
 // newMongoSourceOrDualStage returns a new MongoSource if at least one MongoTable is found in
 // the catalog, otherwise it returns a new Dual stage.
 func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
+	// Don't try to push down the dual stage if it is a top-level dual stage
+	if a.isTopLevel {
+		return NewDualStage()
+	}
+
 	// NewMongoSourceDualStage requires $collStats to work, which was only added in 3.4.
 	if !a.versionAtLeast(3, 4, 0) {
 		return NewDualStage()
@@ -236,6 +243,10 @@ type algebrizer struct {
 	currentClause string
 	// We need to keep track of the ctes as we descend down the scope.
 	ctes ctePlanStages
+	// Track whether or not this algebrizer is working on the top level of the
+	// query. This is used specifically for avoiding pushdown of top-level dual
+	// stages.
+	isTopLevel bool
 }
 
 func (a *algebrizer) valueKind() values.SQLValueKind {
@@ -251,6 +262,7 @@ func (a *algebrizer) clone() *algebrizer {
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		columnSet:                   make(map[string]struct{}),
 		ctes:                        cloneCTEs(a.ctes),
+		isTopLevel:                  a.isTopLevel,
 	}
 }
 
@@ -263,6 +275,7 @@ func (a *algebrizer) newSubqueryExprAlgebrizer() *algebrizer {
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		columnSet:                   make(map[string]struct{}),
 		ctes:                        cloneCTEs(a.ctes),
+		isTopLevel:                  false,
 	}
 }
 
@@ -274,6 +287,7 @@ func (a *algebrizer) newDerivedTableAlgebrizer() *algebrizer {
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
 		columnSet:                   make(map[string]struct{}),
 		ctes:                        cloneCTEs(a.ctes),
+		isTopLevel:                  false,
 	}
 }
 

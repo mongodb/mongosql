@@ -369,8 +369,6 @@ func TestPushdownPlan(t *testing.T) {
 		{"scalar_func_left_with_literal_length", "SELECT left(a, 2) from foo;"},
 		{"scalar_func_right_with_literal_string", "SELECT right('hello', a) from foo;"},
 		{"scalar_func_right_with_literal_length", "SELECT right(a, 2) from foo;"},
-		{"scalar_func_quarter_with_literal", "SELECT quarter('2008-04-01');"},
-		{"scalar_func_weekday_with_literal", "SELECT weekday('2008-04-01');"},
 		{"lookup_join_with_duals_pushes_down", "select * from foo join (select 1, 2, 3) sub;"},
 		{"lookup_join_with_multiple_duals_pushes_down", "select * from foo join (select 1, 2, 3) sub1 join (select 4, 5, 6) sub2;"},
 		{"lookup_join_with_multiple_duals_and_where_pushes_down", "select * from foo join (select 1, 2, 3) sub1 join (select 4, 5, 6) sub2 where foo.a = sub1.`1` and sub2.`4` = sub1.`1`;"},

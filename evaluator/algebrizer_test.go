@@ -1329,10 +1329,6 @@ func TestAlgebrizeQuery(t *testing.T) {
 		runTestsAsSubtest(fmt.Sprintf("Show Full Tables %s", from), tests)
 	}
 
-	dualDb, _ := testCatalog.Database(defaultDualDbName)
-	table, _ := dualDb.Table(defaultDualTableName)
-	dualTable, _ := table.(catalog.MongoDBTable)
-
 	// Select Statements
 	// Dual Queries
 	selectDualTests := []planTest{{
@@ -1340,7 +1336,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select 2 + 3",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
+				evaluator.NewDualStage(),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3",
 					evaluator.NewSQLAddExpr(evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2)),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 3)))),
@@ -1350,7 +1346,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select false",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
+				evaluator.NewDualStage(),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "false",
 					evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, false))),
 			)
@@ -1359,7 +1355,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select true",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
+				evaluator.NewDualStage(),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "true",
 					evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true))),
 			)
@@ -1368,7 +1364,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select 2 + 3 from dual",
 		func() evaluator.PlanStage {
 			return evaluator.NewProjectStage(
-				evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, ""),
+				evaluator.NewDualStage(),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "2+3",
 					evaluator.NewSQLAddExpr(evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2)),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 3)))),
@@ -1377,7 +1373,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select sum(2)",
 		func() evaluator.PlanStage {
-			source := evaluator.NewMongoSourceDualStage(dualDb, dualTable, 1, "")
+			source := evaluator.NewDualStage()
 			return evaluator.NewProjectStage(
 				evaluator.NewGroupByStage(source,
 					nil,
