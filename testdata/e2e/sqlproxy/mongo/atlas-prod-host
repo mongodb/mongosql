@@ -1,2 +1,2 @@
 
-SQLPROXY_MONGO_URI_ARGS="--mongo-uri mongodb://bic-prod-biconnector-6v4kt.mongodb.net"
+SQLPROXY_MONGO_URI_ARGS="--mongo-uri mongodb://bic-testing-shard-00-00-wzln1.mongodb.net:27017,bic-testing-shard-00-01-wzln1.mongodb.net:27017,bic-testing-shard-00-02-wzln1.mongodb.net:27017/?replicaSet=bic-testing-shard-0"
