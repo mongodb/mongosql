@@ -530,8 +530,10 @@ func TestTranslate(t *testing.T) {
 	//   }
 	// }
 	cache := make(map[string]map[string]map[string]string)
-	err = json.Unmarshal(data, &cache)
-	req.Nil(err, "failed to unmarshal cached results json")
+	if !*update {
+		err = json.Unmarshal(data, &cache)
+		req.Nil(err, "failed to unmarshal cached results json")
+	}
 
 	// define the MongoDB versions for which we want to test translation
 	versions := [][]uint8{
