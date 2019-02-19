@@ -2618,6 +2618,8 @@ func (c *caseCondition) String() string {
 	return fmt.Sprintf("when (%v) then %v", c.matcher, c.then)
 }
 
+// reconcileSubqueryPlans reconciles the left and right PlanStages'
+// projectedColumns with each other in a pairwise manner.
 func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage, error) {
 	leftPlan := panicIfNotProjectStage("left", left)
 	rightPlan := panicIfNotProjectStage("right", right)
