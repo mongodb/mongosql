@@ -258,10 +258,10 @@ testcases:
 
   - db: tuple_test
     description: Incorrect subquery equals
-    expected_error: 'Error 1241: Operand should contain 2 column(s)'
+    expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: 'Incorrect multi-column subquery equals single value'
     # We rewrite this as
-    # SELECT * FROM tupleTable WHERE (SELECT 1) = (SELECT a, b FROM tupleTable LIMIT 1), internally.
+    # SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = (SELECT 1), internally.
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = 1;
 
   - db: tuple_test
@@ -416,3 +416,31 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: 'Correct subquery with no results in subquery'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable where a = 200000 limit 1) IN (SELECT a FROM tupleTable);
+
+  - db: tuple_test
+    description: Single column subquery IN multi-column tuple is valid
+    expected_names: [a]
+    expected_results:
+      - [0]
+      - [1]
+    expected_types: [int]
+    id: 'Correct predicate where single column subquery IN multi-column tuple'
+    sql: select a from tupleTable where (select a) in (0, 1)
+
+  - db: tuple_test
+    description: Single column subquery IN single column tuple is valid
+    expected_names: [a]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: 'Correct predicate where single column subquery IN single-column tuple'
+    sql: select a from tupleTable where (select a) in (1)
+
+  - db: tuple_test
+    description: Multi-column subquery IN multi-column tuple is valid
+    expected_names: [a, b]
+    expected_results:
+      - [0, 3]
+    expected_types: [int, int]
+    id: 'Correct predicate where multi-column subquery IN multi-column tuple'
+    sql: select a, b from tupleTable where (select a, b) in ((0, 0), (0, 3), (1, 2))
