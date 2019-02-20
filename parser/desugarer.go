@@ -26,13 +26,13 @@ func DesugarQuery(statement Statement) (Statement, error) {
 	desugarers := []desugarPass{
 		{&isNotDesugarer{}, option.NoneString(), option.NoneString()},
 		{&unwrapSingleTuples{}, option.NoneString(), option.NoneString()},
-		{&subqueryOrderDesugarer{}, option.NoneString(), option.NoneString()},
 		{&someToAnyDesugarer{}, option.NoneString(), option.NoneString()},
 		{&betweenDesugarer{}, option.NoneString(), option.NoneString()},
 		{&ifToCaseDesugarer{}, option.NoneString(), option.NoneString()},
 		{&inSubqueryDesugarer{}, option.NoneString(), option.NoneString()},
 		{&inListConverter{}, option.NoneString(), option.NoneString()},
-		{&detupler{}, option.NoneString(), option.NoneString()},
+		{&subqueryComparisonConverter{}, option.NoneString(), option.NoneString()},
+		{&tupleComparisonDesugarer{}, option.NoneString(), option.NoneString()},
 		{&makeDualExplicit{}, option.NoneString(), option.NoneString()},
 	}
 
@@ -106,7 +106,7 @@ func (*makeDualExplicit) PostVisit(current CST) (CST, error) {
 
 var _ Walker = (*makeDualExplicit)(nil)
 
-// betweenDesugarer replaces SOME with ANY.
+// betweenDesugarer replaces BETWEEN (and NOT BETWEEN) with comparisons.
 type betweenDesugarer struct{}
 
 // PreVisit is called for every node before its children are walked.
@@ -365,54 +365,6 @@ func detupleWrappedExpr(node CST) CST {
 	return node
 }
 
-// subqueryOrderDesugarer reorders `(subquery) op expr` to `expr op (subquery)`.
-type subqueryOrderDesugarer struct{}
-
-// PreVisit is called for every node before its children are walked.
-func (*subqueryOrderDesugarer) PreVisit(current CST) (CST, error) {
-	return current, nil
-}
-
-func flipComparisonOperator(operator string) string {
-	switch operator {
-	case AST_LT:
-		return AST_GT
-	case AST_GT:
-		return AST_LT
-	case AST_LE:
-		return AST_GE
-	case AST_GE:
-		return AST_LE
-	case AST_EQ, AST_NE, AST_NSE, AST_IN, AST_NOT_IN, AST_IS:
-		return operator
-	case AST_IS_NOT:
-		panic("AST_IS_NOT must be removed by isNotDesugarer")
-	}
-	panic("unkown comparison operator in flipComparisonOperator")
-}
-
-// PostVisit is called for every node after its children are walked.
-func (*subqueryOrderDesugarer) PostVisit(current CST) (CST, error) {
-	if node, isComp := current.(*ComparisonExpr); isComp {
-		_, leftIsSub := node.Left.(*Subquery)
-		_, rightIsSub := node.Right.(*Subquery)
-		// Move left hand side subqueries to the right, but do not
-		// swap if both are subqueries since that will just needlessly
-		// confuse things.
-		if leftIsSub && !rightIsSub {
-			return &ComparisonExpr{
-				flipComparisonOperator(node.Operator),
-				node.Right,
-				node.Left,
-				node.SubqueryOperator,
-			}, nil
-		}
-	}
-	return current, nil
-}
-
-var _ Walker = (*subqueryOrderDesugarer)(nil)
-
 // someToAnyDesugarer replaces SOME with ANY, as they are aliases.
 type someToAnyDesugarer struct{}
 
@@ -547,48 +499,34 @@ func inListToDisjunction(leftExpr Expr, rightExprs ValTuple) Expr {
 	return makeDisjunction(leftExpr, rightExprs)
 }
 
-// detupler is a desugarer that rewrites multi-element tuples into other
-// expressions. For example, the detupler will rewrite `select (a, b) <
+// tupleComparisonDesugarer is a desugarer that rewrites multi-element tuples into other
+// expressions. For example, the tupleComparisonDesugarer will rewrite `select (a, b) <
 // (c, d) from foo` as `select a < c or a = c and b < d from foo`.
-type detupler struct{}
+type tupleComparisonDesugarer struct{}
 
 // PreVisit is called for every node before its children are walked.
-func (*detupler) PreVisit(current CST) (CST, error) {
+func (*tupleComparisonDesugarer) PreVisit(current CST) (CST, error) {
 	return current, nil
 }
 
 // PostVisit is called for every node after its children are walked.
-func (*detupler) PostVisit(current CST) (CST, error) {
+func (*tupleComparisonDesugarer) PostVisit(current CST) (CST, error) {
 	if node, isComp := current.(*ComparisonExpr); isComp {
-
-		left, leftIsTuple := node.Left.(ValTuple)
-		right, rightIsTuple := node.Right.(ValTuple)
-		_, leftIsSubquery := node.Left.(*Subquery)
-		_, rightIsSubquery := node.Right.(*Subquery)
+		_, leftIsTuple := node.Left.(ValTuple)
+		_, rightIsTuple := node.Right.(ValTuple)
 
 		if leftIsTuple || rightIsTuple {
-			if leftIsSubquery {
-				node.Right = detupleToSubquery(right)
-			} else if rightIsSubquery {
-				node.Left = detupleToSubquery(left)
-			} else {
-				var err error
-				current, err = detupleToBooleanCompare(node)
-				if err != nil {
-					return nil, err
-				}
+			var err error
+			current, err = detupleToBooleanCompare(node)
+			if err != nil {
+				return nil, err
 			}
-		} else if !leftIsSubquery && !leftIsTuple && rightIsSubquery {
-			// Even non-tuple comparison operands are converted into subqueries,
-			// as this allows us to always produce full subquery comparisons
-			// where the left and right operands are both subqueries.
-			node.Left = detupleToSubquery(ValTuple{node.Left})
 		}
 	}
 	return current, nil
 }
 
-var _ Walker = (*detupler)(nil)
+var _ Walker = (*tupleComparisonDesugarer)(nil)
 
 // Tuples are only legal in comparisons.
 // Tuple comparisons are either equivalent to conjunctions or disjunctions
@@ -743,4 +681,43 @@ func detupleToSubquery(node ValTuple) *Subquery {
 		&Select{SelectExprs: selExprs, QueryGlobals: &QueryGlobals{}},
 		false,
 	}
+}
+
+// toTuple returns the Expr as a tuple. If it already is one, it is returned
+// unchanged; if it is not, it is returned as a single-value tuple.
+func toTuple(e Expr) ValTuple {
+	if tuple, isTuple := e.(ValTuple); isTuple {
+		return tuple
+	}
+	return ValTuple{e}
+}
+
+// subqueryComparisonConverter is a desugarer that rewrites comparison
+// expressions that have a subquery on one side and not the other to
+// have subqueries on both sides.
+type subqueryComparisonConverter struct{}
+
+var _ Walker = (*subqueryComparisonConverter)(nil)
+
+// PreVisit is called for every node before its children are walked.
+func (*subqueryComparisonConverter) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*subqueryComparisonConverter) PostVisit(current CST) (CST, error) {
+	if node, isComp := current.(*ComparisonExpr); isComp {
+		_, leftIsSubquery := node.Left.(*Subquery)
+		_, rightIsSubquery := node.Right.(*Subquery)
+
+		// Even non-tuple comparison operands are converted into subqueries,
+		// as this allows us to always produce full subquery comparisons
+		// where the left and right operands are both subqueries.
+		if !leftIsSubquery && rightIsSubquery {
+			node.Left = detupleToSubquery(toTuple(node.Left))
+		} else if !rightIsSubquery && leftIsSubquery {
+			node.Right = detupleToSubquery(toTuple(node.Right))
+		}
+	}
+	return current, nil
 }
