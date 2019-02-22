@@ -29,6 +29,33 @@
 		}
 	},
 	{
+		"$unwind" : {
+			"path" : "$query.meta.functions"
+		}
+	},
+	{
+		"$match" : {
+			"$and" : [
+				{
+					"query.meta.functions.name" : {
+						"$ne" : "database"
+					}
+				},
+				{
+					"query.meta.functions.name" : {
+						"$ne" : "connection_id"
+					}
+				},
+				{
+					"query.meta.functions.name" : {
+						"$ne" : "current_user"
+					}
+				}
+			]
+		}
+	},
+
+	{
 		"$project" : {
 			"_id" : 0,
 			"sql" : "$query.sql",
