@@ -2,6 +2,8 @@ package values
 
 import (
 	"encoding/hex"
+	"fmt"
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -1007,7 +1009,19 @@ func (s BaseSQLUint64) SQLDate() SQLDate {
 
 // SQLDecimal128 converts the BaseSQLUint64 receiver, s, to a SQLDecimal128.
 func (s BaseSQLUint64) SQLDecimal128() SQLDecimal128 {
-	return NewSQLDecimal128(s.kind, decimal.New(int64(s.val), 0))
+	var d decimal.Decimal
+	var err error
+
+	if s.val > math.MaxInt64 {
+		d, err = decimal.NewFromString(fmt.Sprintf("%v", s.val))
+		if err != nil {
+			return nil
+		}
+	} else {
+		d = decimal.New(int64(s.val), 0)
+	}
+
+	return NewSQLDecimal128(s.kind, d)
 }
 
 // SQLFloat converts the BaseSQLUint64 receiver, s, to a SQLFloat.

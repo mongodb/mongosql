@@ -808,14 +808,65 @@ testcases:
     skip: true
     sql: 'select y, z FROM select_2 where (x > 4 or mfil=''{"_id": {"$gt": 2}}'') or _id = 3'
 
-  #  - db: select_sTest
-  #    description: adding max int64
-  #    expected_names: [result]
-  #    expected_results:
-  #      - ['18446744073709551614']
-  #    expected_types: [varchar]
-  #    id: '57'
-  #    sql: select 9223372036854775807+9223372036854775807 as result
+  - db: select_sTest
+    description: adding max int64 literals
+    expected_names: [result]
+    expected_results:
+      - ['18446744073709551614']
+    expected_types: [varchar]
+    id: arithmetic_overflow_adding_max_int64_literals
+    sql: select 9223372036854775807+9223372036854775807 as result
+
+#  - db: select_sTest
+#    description: adding max int64 with columns
+#    expected_names: [a, result]
+#    expected_results:
+#      - [1, '9223372036854775808']
+#      - [2, '9223372036854775809']
+#      - [3, '9223372036854775810']
+#    expected_types: [int, varchar]
+#    id: arithmetic_overflow_adding_max_int64_columns
+#    sql: select a, 9223372036854775807 + a as result from select_1
+
+  - db: select_sTest
+    description: adding overflowing int64 literals
+    expected_names: [result]
+    expected_results:
+      - ['18446744073709551616']
+    expected_types: [varchar]
+    id: arithmetic_overflow_adding_overflowing_int64_literals
+    sql: select 9223372036854775808 + 9223372036854775808 as result
+
+  - db: select_sTest
+    description: adding overflowing int64 with columns
+    expected_names: [a, result]
+    expected_results:
+      - [1, '9223372036854775809']
+      - [2, '9223372036854775810']
+      - [3, '9223372036854775811']
+    expected_types: [int, varchar]
+    id: arithmetic_overflow_adding_overflowing_int64_columnss
+    sql: select a, 9223372036854775808 + a as result from select_1;
+
+  - db: select_sTest
+    description: dividing overflowing int64 literals
+    expected_names: [result]
+    expected_results:
+      - [0.2168]
+    expected_types: [float]
+    id: arithmetic_overflow_division_with_overflowing_int64_literals
+    sql: select (2000 * 1000000000000000) / 9223372036854775808 as result
+
+  - db: select_sTest
+    description: dividing overflowing int64 columns
+    expected_names: [result]
+    expected_results:
+      - [0.1084]
+      - [0.2168]
+      - [0.3253]
+    expected_types: [float]
+    id: arithmetic_overflow_division_with_overflowing_int64_columns
+    sql: select (a * 1000 * 1000000000000000) / 9223372036854775808 as result from select_1
 
   - db: select_sTest
     description: adding large floats
