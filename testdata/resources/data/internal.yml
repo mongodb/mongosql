@@ -829,6 +829,61 @@
     - {_id: 1, a: 2}
     - {_id: 2, a: 3}
 
+- db: "subquery_cmp_pushdown_test"
+  collection: "test"
+  docs:
+  - { _id: 0, a: 0,    b: 3,    c: 0,    d: 2,    f: NULL }
+  - { _id: 1, a: 1,    b: 1,    c: 0,    d: 3,    f: NULL }
+  - { _id: 2, a: 2,    b: 3,    c: 1,    d: 3,    f: NULL }
+  - { _id: 3, a: 98,   b: 32,   c: 53,   d: 22,   f: NULL }
+  - { _id: 4, a: 80,   b: 54,   c: 90,   d: 23,   f: NULL }
+  - { _id: 5, a: 11,   b: 34,   c: 2,    d: 4,    f: NULL }
+  - { _id: 6, a: NULL, b: 3,    c: 0,    d: 23,   f: NULL }
+  - { _id: 7, a: 607,  b: 2,    c: 5,    d: 8,    f: NULL }
+  - { _id: 8, a: NULL, b: NULL, c: NULL, d: NULL, f: "blah" }
+
+- db: "subquery_cmp_pushdown_test"
+  collection: "test10"
+  docs:
+  - { _id: 0, a: 11, b: 93, c: "jZq3c", d: 21 }
+  - { _id: 1, a: 98, b: 50, c: "gJIuG", d: 32 }
+  - { _id: 2, a: 88, b: 50, c: "fshaD", d: 32 }
+  - { _id: 3, a: 29, b: 58, c: "GV6dK", d: 22 }
+  - { _id: 4, a: 48, b: 18, c: "Nn2DI", d: 23 }
+  - { _id: 5, a: 46, b: 63, c: "0wOPt", d: 43 }
+  - { _id: 6, a: 37, b: 18, c: "UuPya", d: 23 }
+  - { _id: 7, a: 80, b: 83, c: "bmtm3", d: 88 }
+  - { _id: 8, a: 92, b: 47, c: "kHazk", d: NULL }
+  - { _id: 9, a: 78, b: 29, c: "vzxln", d: NULL }
+
+- db: "subquery_cmp_pushdown_test"
+  collection: "bool"
+  docs:
+  - { _id: 0, a: true,  b: 4 }
+  - { _id: 1, a: true,  b: 6 }
+  - { _id: 2, a: false, b: 50 }
+  - { _id: 3, a: false, b: 1 }
+  - { _id: 4, a: false, b: 2 }
+  - { _id: 5, a: false, b: 3 }
+
+- db: "subquery_cmp_pushdown_test"
+  collection: "both_sum_test"
+  docs:
+  - { _id: 0, a: 799 }
+
+- db: "subquery_cmp_pushdown_test"
+  collection: "three"
+  docs:
+  - { _id: 0, a: NULL }
+
+- db: "subquery_cmp_pushdown_test"
+  collection: "missing_test"
+  docs:
+    - { _id: 0, v: 1}
+    - { _id: 1, v: 2}
+    - { _id: 2, v: 3}
+    - { _id: 3, a: 1, v: 0}
+
 - db: "tuple_test"
   collection: "tupleTable"
   docs:

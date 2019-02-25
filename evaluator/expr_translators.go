@@ -8,11 +8,14 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -133,11 +136,41 @@ type PushdownTranslator struct {
 	piecewiseDeps      []*NonCorrelatedSubqueryFuture
 	correlatedColumns  []*CorrelatedSubqueryColumnFuture
 	columnsToNullCheck map[string]struct{}
+	subqueryCmpStages  []bson.D
 }
 
 // NewPushdownTranslator returns a new PushdownTranslator.
 func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldName FieldNameLookup) *PushdownTranslator {
-	return &PushdownTranslator{Cfg: cfg, LookupFieldName: lookupFieldName, columnsToNullCheck: map[string]struct{}{}}
+	return &PushdownTranslator{
+		Cfg:                cfg,
+		LookupFieldName:    lookupFieldName,
+		columnsToNullCheck: map[string]struct{}{},
+		subqueryCmpStages:  []bson.D{},
+	}
+}
+
+func (t *PushdownTranslator) addSubqueryCmpLookupStage(subPlanMs *MongoSourceStage) error {
+	// cannot use expressive lookup before 3.6
+	if !t.versionAtLeast(3, 6, 0) {
+		return fmt.Errorf("cannot push down subquery comparison stage to " +
+			"expressive lookup: expressive lookup not available")
+	}
+
+	if subPlanMs.isShardedCollection[subPlanMs.Collection()] {
+		return fmt.Errorf("cannot use expressive $lookup on a sharded collection")
+	}
+
+	collName := subPlanMs.Collection()
+	lookup := bson.M{
+		"from":     collName,
+		"as":       getSubqueryLookupField(collName, subPlanMs.selectIDs),
+		"pipeline": subPlanMs.pipeline,
+	}
+
+	lookupBSON := bson.D{{Name: "$lookup", Value: lookup}}
+	t.subqueryCmpStages = append(t.subqueryCmpStages, lookupBSON)
+
+	return nil
 }
 
 func (t *PushdownTranslator) addNonCorrelatedSubqueryFuture(p PlanStage) *NonCorrelatedSubqueryFuture {
@@ -529,6 +562,251 @@ func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 	}
 
 	return translation, true
+}
+
+// getSubqueryLookupField returns a reference for the array that is embedded
+// into the pipeline documents from a $lookup that is used for pushing down a
+// subquery.
+func getSubqueryLookupField(table string, selectIDs []int) string {
+	return fmt.Sprintf("__subquery_%v_%v", table, selectIDs)
+}
+
+// lookupArrayRef returns a reference to an array of field values that
+// correspond to the given Column and MongoSourceStage that is returned from a
+// $lookup.
+// NOTE: This utilizes the behavior of addressing a fieldname on an array of
+// documents, wherein the referred field of the constituent member documents are
+// extracted out into an array.
+func lookupArrayRef(subPlanMs *MongoSourceStage, col *results.Column) (bson.M, error) {
+	matchFieldName, found := subPlanMs.mappingRegistry.lookupFieldName(
+		col.Database,
+		col.Table,
+		col.Name,
+	)
+	if !found {
+		return nil, fmt.Errorf("could not find field name using: %v, %v, %v",
+			col.Database, col.OriginalTable, col.MappingRegistryName)
+	}
+
+	collName := subPlanMs.Collection()
+	lookupArray := "$" + getSubqueryLookupField(collName, subPlanMs.selectIDs)
+
+	return bsonutil.WrapInMap(lookupArray, "this", bsonutil.WrapInIfNull("$$this"+"."+matchFieldName, nil)), nil
+}
+
+// constructNullChecks creates a slice of equality checks for each given arg to
+// check if it is NULL.
+func constructNullChecks(args []interface{}) []interface{} {
+	nullChecks := make([]interface{}, len(args))
+	for i, arg := range args {
+		nullChecks[i] = bsonutil.WrapInBinOp(bsonutil.OpEq, arg, nil)
+	}
+
+	return nullChecks
+}
+
+// threeValueLogicCheck returns an aggregation language expression that ensures
+// that we handle comparisons correctly in the presence of MySQL NULLs. This
+// involves essentially ensuring that NULLs always evaluate to a falsy result.
+// This is necessary due to the three-valued boolean logic of SQL.
+func threeValueLogicCheck(predicate bson.M, firstOperand interface{}) bson.M {
+	// TODO BI-1885: This code will need to be changed to consider the case where
+	// the operand is a subquery (or a tuple, which is desugared into a subquery
+	// anyways) and break apart the columns so that each column value will be
+	// checked against null. This currently is not happening because the
+	// implementation for this can't be tested until we support correlated
+	// subqueries.
+	args := []interface{}{firstOperand}
+
+	nullChecks := constructNullChecks(args)
+
+	notNullCheck := bsonutil.WrapInOp(bsonutil.OpNot, bsonutil.WrapInOp(bsonutil.OpOr, nullChecks...))
+
+	return bsonutil.WrapInBinOp(bsonutil.OpAnd, predicate, notNullCheck)
+}
+
+// opFromSQLOpForSubqueryCmp takes a given parser op string and returns its equivalent
+// bsonutil/aggregation operator string.
+// e.g.
+// parser.AST_EQ -> bsonutil.OpEq
+func opFromSQLOpForSubqueryCmp(op string) (string, error) {
+	switch op {
+	case parser.AST_EQ:
+		return bsonutil.OpEq, nil
+	case parser.AST_NE:
+		return bsonutil.OpNeq, nil
+	case parser.AST_LT:
+		return bsonutil.OpLt, nil
+	case parser.AST_LE:
+		return bsonutil.OpLte, nil
+	case parser.AST_GT:
+		return bsonutil.OpGt, nil
+	case parser.AST_GE:
+		return bsonutil.OpGte, nil
+	}
+
+	return "", fmt.Errorf("unrecognized comparison operator %v", op)
+}
+
+// constructMapArray creates the array argument that can be later passed into a
+// $map.
+func constructMapArray(subPlanMs *MongoSourceStage) (interface{}, error) {
+	var argArray interface{}
+	if len(subPlanMs.Columns()) > 1 {
+		// If the number of columns coming from the subquery is more than 1, we are
+		// dealing with tuple-based equality checking. In order to have this
+		// actually be correct, a simple $in is not enough, we have to create
+		// tuples in the agg pipeline ourselves and match against those.
+		inputs := make([]interface{}, len(subPlanMs.Columns()))
+		lastDBName := subPlanMs.Columns()[0].Database
+		for i := range subPlanMs.Columns() {
+			col := subPlanMs.Columns()[i]
+			curDBName := col.Database
+			if lastDBName != curDBName {
+				return nil, fmt.Errorf("cannot use expressive $lookup across databases")
+			}
+			ref, err := lookupArrayRef(subPlanMs, col)
+			if err != nil {
+				return nil, err
+			}
+			inputs[i] = ref
+		}
+
+		// No reason to check the mongod version here, since if they are too old to
+		// support $zip, they definitely can't support expressive $lookup!
+		argArray = bsonutil.NewM(bsonutil.NewDocElem(
+			bsonutil.OpZip,
+			bsonutil.NewM(bsonutil.NewDocElem("inputs", inputs)),
+		))
+	} else {
+		var err error
+		col := subPlanMs.Columns()[0]
+		argArray, err = lookupArrayRef(subPlanMs, col)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return argArray, nil
+}
+
+// constructMapCmp creates a $map with which to map the given array of
+// arguments into an array of booleans based on the given left argument and
+// comparison operator.
+func constructMapCmp(left interface{}, array interface{}, cmpOp string) (bson.M, error) {
+	mgoOp, err := opFromSQLOpForSubqueryCmp(cmpOp)
+	if err != nil {
+		return nil, err
+	}
+
+	as := "$$this"
+	operatorCmp := bsonutil.WrapInBinOp(mgoOp, left, as)
+
+	threeValuedCmp := threeValueLogicCheck(operatorCmp, left)
+
+	// This is nice, but we actually need to add a null check for $$this!
+	// Unfortunately, "$$this" is not a SQLExpr so we can't just wrap it in three
+	// valued logic like we do above. This is NOT due to three valued boolean
+	// logic, but because of `mongod`'s type comparison taking precedence over
+	// value!
+	// e.g. 4 > null = TRUE
+	thisNotNull := bsonutil.WrapInOp(
+		bsonutil.OpNot,
+		bsonutil.WrapInBinOp(bsonutil.OpEq, as, nil),
+	)
+
+	threeValuedCmp = bsonutil.WrapInBinOp(bsonutil.OpAnd, threeValuedCmp, thisNotNull)
+
+	return bsonutil.WrapInMap(array, "this", threeValuedCmp), nil
+}
+
+// boolConvertMapForCmpOp takes an operator, and creates a mapping that allows
+// for the reduction or folding of an array of comparison operator results into
+// a single boolean value, through the (eventual) use of things like
+// $allElementsTrue. This function is intended as a means of avoiding
+// duplication in SQLSubqueryCmpExpr toAggregationLanguage() implementations,
+// and performs the work of updating the pushdown translator's
+// subqueryCmpStages.
+func (t *PushdownTranslator) boolConvertMapForCmpOp(left interface{},
+	subPlanMs *MongoSourceStage, op string) (bson.M, error) {
+	err := t.addSubqueryCmpLookupStage(subPlanMs)
+	if err != nil {
+		return nil, err
+	}
+
+	mapArray, err := constructMapArray(subPlanMs)
+	if err != nil {
+		return nil, err
+	}
+
+	mapCmp, err := constructMapCmp(left, mapArray, op)
+	if err != nil {
+		return nil, err
+	}
+
+	return mapCmp, nil
+}
+
+// mapCmpForDoubleSubquery takes a double-subquery comparison expression based
+// on the given op, and produces a mapping from the row-wise comparisons
+// between the two subqueries to an array of booleans representing the
+// comparison results per row.
+func (t *PushdownTranslator) mapCmpForDoubleSubquery(e SQLExpr, leftPlan PlanStage, rightPlan PlanStage, op string) (bson.M, PushdownFailure) {
+	leftPlanMs, ok := leftPlan.(*MongoSourceStage)
+	if !ok {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+
+	if leftPlanMs.LimitRowCount != 1 && !leftPlanMs.IsDual() {
+		return nil, multiRowSubqueryPushdownFailure(e)
+	}
+
+	lookupStageAddErr := t.addSubqueryCmpLookupStage(leftPlanMs)
+	if lookupStageAddErr != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, lookupStageAddErr)
+	}
+
+	rightPlanMs, ok := rightPlan.(*MongoSourceStage)
+	if !ok {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+
+	// MySQL hardcode-desugars IN -> = ANY and NOT IN -> <> ALL, so we need to
+	// mimic this here.
+	numLeftCols := len(leftPlanMs.Columns())
+	_, isSQLAny := e.(*SQLSubqueryAnyExpr)
+	_, isSQLAll := e.(*SQLSubqueryAllExpr)
+	if numLeftCols > 1 && !((isSQLAny && op == "=") || (isSQLAll && op == "!=")) {
+		return nil, wrapExprErrWithPushdownFailure(e, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1))
+	}
+
+	leftCol := leftPlanMs.Columns()[0]
+	var leftRefValue interface{}
+
+	if numLeftCols > 1 {
+		leftRefs := make([]interface{}, numLeftCols)
+		for i, col := range leftPlanMs.Columns() {
+			leftRef, err := lookupArrayRef(leftPlanMs, col)
+			if err != nil {
+				return nil, wrapExprErrWithPushdownFailure(e, err)
+			}
+			leftRefs[i] = bsonutil.WrapInOp(bsonutil.OpArrElemAt, leftRef, 0)
+		}
+		leftRefValue = leftRefs
+	} else {
+		leftRef, err := lookupArrayRef(leftPlanMs, leftCol)
+		if err != nil {
+			return nil, wrapExprErrWithPushdownFailure(e, err)
+		}
+		leftRefValue = bsonutil.WrapInOp(bsonutil.OpArrElemAt, leftRef, 0)
+	}
+
+	mapCmp, err := t.boolConvertMapForCmpOp(leftRefValue, rightPlanMs, op)
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	return mapCmp, nil
 }
 
 func negate(op bson.M) bson.M {

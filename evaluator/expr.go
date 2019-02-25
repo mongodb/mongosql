@@ -1050,6 +1050,28 @@ func (e *SQLConvertExpr) ToAggregationPredicate(t *PushdownTranslator) (interfac
 	return e.ToAggregationLanguage(t)
 }
 
+func innerSubqueryPushdownFailure(expr SQLExpr) PushdownFailure {
+	return newPushdownFailure(
+		expr.ExprName(),
+		"could not push down subquery plan",
+	)
+}
+
+func multiRowSubqueryPushdownFailure(expr SQLExpr) PushdownFailure {
+	return newPushdownFailure(
+		expr.ExprName(),
+		mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow, 1).Message,
+	)
+}
+
+func wrapExprErrWithPushdownFailure(expr SQLExpr, err error) PushdownFailure {
+	return newPushdownFailure(
+		expr.ExprName(),
+		"unexpected error during translation",
+		"error", err.Error(),
+	)
+}
+
 // SQLExistsExpr is a wrapper around a PlanStage representing a check for
 // results from a subquery. It evaluates to true if any result is returned
 // from the subquery. A SQLExistsExpr always evaluates to a boolean.
@@ -1169,7 +1191,29 @@ func (e *SQLExistsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface
 // be used in an aggregation pipeline. If SQLExistsExpr cannot be translated,
 // it will return nil and error.
 func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
+	subPlan := e.plan
+	subPlanMs, ok := subPlan.(*MongoSourceStage)
+	if !ok {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+
+	err := t.addSubqueryCmpLookupStage(subPlanMs)
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	// We don't actually care _which_ column we get, because since this is the
+	// relational world, if there is N values for the first column, there will
+	// also be N values for second, third and so on.  So the first column
+	// suffices and will always exist.
+	ref, err := lookupArrayRef(subPlanMs, subPlanMs.Columns()[0])
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	ne := bsonutil.WrapInBinOp(bsonutil.OpNeq, bsonutil.WrapInOp(bsonutil.OpSize, ref), 0)
+
+	return ne, nil
 }
 
 // SQLLikeExpr evaluates to true if the left is 'like' the right.
@@ -1666,7 +1710,8 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 
 // SQLSubqueryCmpExpr evaluates to true if the right subquery compares true to
 // the left subquery by a provided comparison operator.
-// The left and right subqueries need not be scalar but must produce the same number of rows.
+// The left and right subqueries need not be scalar but must produce only one
+// row.
 type SQLSubqueryCmpExpr struct {
 	leftCorrelated  bool
 	rightCorrelated bool
@@ -1785,7 +1830,7 @@ func (e *SQLSubqueryCmpExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 		}
 	}
 
-	// Make sure both subqueres return the same number of columns.
+	// Make sure both subqueries return the same number of columns.
 	if len(leftRow) != len(rightRow) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, len(rightRow))
 	}
@@ -1832,7 +1877,71 @@ func (e *SQLSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (inte
 // be used in an aggregation pipeline. If SQLSubqueryCmpExpr cannot be translated,
 // it will return nil and error.
 func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
+	subPlanRight := e.rightPlan
+	subPlanMsRight, ok := subPlanRight.(*MongoSourceStage)
+	if !ok {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+
+	if subPlanMsRight.LimitRowCount != 1 && !subPlanMsRight.IsDual() {
+		return nil, multiRowSubqueryPushdownFailure(e)
+	}
+
+	subPlanLeft := e.leftPlan
+	subPlanMsLeft, ok := subPlanLeft.(*MongoSourceStage)
+	if !ok {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+
+	if subPlanMsLeft.LimitRowCount != 1 && !subPlanMsLeft.IsDual() {
+		return nil, multiRowSubqueryPushdownFailure(e)
+	}
+
+	err := t.addSubqueryCmpLookupStage(subPlanMsRight)
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	err = t.addSubqueryCmpLookupStage(subPlanMsLeft)
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	cmpOp, err := opFromSQLOpForSubqueryCmp(e.operator)
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	rightCols := subPlanMsRight.Columns()
+	leftCols := subPlanMsLeft.Columns()
+	if len(rightCols) != len(leftCols) {
+		// This should not be, this should have been caught during algebrization, so
+		// if we get here something has gone wrong.
+		panic("number of columns of subqueries do not match")
+	}
+
+	cmps := make([]interface{}, len(leftCols))
+
+	for i := range leftCols {
+		leftRef, err := lookupArrayRef(subPlanMsLeft, leftCols[i])
+		if err != nil {
+			return nil, wrapExprErrWithPushdownFailure(e, err)
+		}
+
+		rightRef, err := lookupArrayRef(subPlanMsRight, rightCols[i])
+		if err != nil {
+			return nil, wrapExprErrWithPushdownFailure(e, err)
+		}
+
+		leftSize := bsonutil.WrapInOp(bsonutil.OpSize, leftRef)
+		rightSize := bsonutil.WrapInOp(bsonutil.OpSize, rightRef)
+		sizeCheck := bsonutil.WrapInBinOp(bsonutil.OpEq, leftSize, rightSize)
+
+		arrCmp := bsonutil.WrapInBinOp(cmpOp, leftRef, rightRef)
+		cmps[i] = bsonutil.WrapInBinOp(bsonutil.OpAnd, sizeCheck, arrCmp)
+	}
+
+	return bsonutil.WrapInOp(bsonutil.OpAnd, cmps...), nil
 }
 
 // SQLSubqueryAllExpr evaluates to true if the left subquery expression compares true to
@@ -2015,7 +2124,15 @@ func (e *SQLSubqueryAllExpr) ToAggregationPredicate(t *PushdownTranslator) (inte
 // be used in an aggregation pipeline. If SQLSubqueryAllExpr cannot be translated,
 // it will return nil and error.
 func (e *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
+	leftPlan := e.leftPlan
+	rightPlan := e.rightPlan
+
+	mapCmp, err := t.mapCmpForDoubleSubquery(e, leftPlan, rightPlan, e.operator)
+	if err != nil {
+		return nil, err
+	}
+
+	return bsonutil.WrapInOp(bsonutil.OpAllElementsTrue, mapCmp), nil
 }
 
 // SQLSubqueryAnyExpr evaluates to true if the left subquery expression compares true to
@@ -2206,7 +2323,15 @@ func (e *SQLSubqueryAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (inte
 // be used in an aggregation pipeline. If SQLSubqueryAnyExpr cannot be translated,
 // it will return nil and error.
 func (e *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
+	leftPlan := e.leftPlan
+	rightPlan := e.rightPlan
+
+	mapCmp, err := t.mapCmpForDoubleSubquery(e, leftPlan, rightPlan, e.operator)
+	if err != nil {
+		return nil, err
+	}
+
+	return bsonutil.WrapInOp(bsonutil.OpAnyElementTrue, mapCmp), nil
 }
 
 // SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing a subquery

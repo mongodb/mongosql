@@ -52,6 +52,14 @@ type MongoSourceStage struct {
 	// as CorrelatedSubqueryColumnFutures, and must be evaluated before the
 	// pipeline can be marshalled.
 	correlatedColumns []*CorrelatedSubqueryColumnFuture
+
+	// A MongoSourceStage may be constrained by a LIMIT N. This field denotes the
+	// value of N, so that there is some ability to guarantee the number of rows
+	// that may be returned from this MongoSourceStage alone. Also, if this
+	// MongoSourceStage is a dual, then LimitRowCount will be 1 because a dual
+	// can have at most one row. If there exists no LIMIT N, then this field has
+	// value -1.
+	LimitRowCount int
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -73,6 +81,7 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 		tableType:         table.Type(),
 		piecewiseDeps:     []*NonCorrelatedSubqueryFuture{},
 		correlatedColumns: []*CorrelatedSubqueryColumnFuture{},
+		LimitRowCount:     -1,
 	}
 
 	if len(ms.aliasNames) == 0 || ms.aliasNames[0] == "" {
@@ -126,6 +135,7 @@ func NewMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 func NewMongoSourceDualStage(db catalog.Database, table catalog.MongoDBTable, selectID int, aliasName string) PlanStage {
 	ms := newMongoSourceStage(db, table, selectID, aliasName)
 	ms.isDual = true
+	ms.LimitRowCount = 1
 
 	// We use $collstats to get a guaranteed single document back, which is then used to house the fields from dual.
 	ms.pipeline = bsonutil.NewDArray(
@@ -160,6 +170,7 @@ func (ms *MongoSourceStage) clone() PlanStage {
 		isDual:              ms.isDual,
 		piecewiseDeps:       deps,
 		correlatedColumns:   corr,
+		LimitRowCount:       ms.LimitRowCount,
 	}
 }
 

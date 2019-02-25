@@ -538,6 +538,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 	var t *PushdownTranslator
 	var localMatcher SQLExpr
 	prePieces := []*NonCorrelatedSubqueryFuture{}
+	t = NewPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldName)
 
 	if valueExpr, ok := filter.matcher.(SQLValueExpr); ok {
 		value := valueExpr.Value
@@ -585,10 +586,9 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 		}
 
 		var matchBody bson.M
-		t = NewPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldName)
-
 		matchBody, localMatcher = t.TranslatePredicate(filter.matcher)
 		if matchBody != nil {
+			pipeline = append(pipeline, t.subqueryCmpStages...)
 			pipeline = append(pipeline, bsonutil.NewD(bsonutil.NewDocElem("$match", matchBody)))
 		}
 
@@ -655,6 +655,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 				)
 
 				predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, ms.mappingRegistry)
+				pipeline = append(pipeline, t.subqueryCmpStages...)
 				pipeline = append(
 					pipeline, predicateEvaluationStage, bsonutil.NewD(bsonutil.NewDocElem("$match", bsonutil.NewM(bsonutil.NewDocElem(fieldName, true)))),
 				)
@@ -714,12 +715,17 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	pipeline := ms.pipeline
 
 	// 1. Translate keys.
-	keys, keyPieces, err := v.translateGroupByKeys(gb.keys, ms.mappingRegistry.lookupFieldName)
+	keys, keyPieces, subqueryCmpStages, err := v.translateGroupByKeys(
+		gb.keys,
+		ms.mappingRegistry.lookupFieldName,
+	)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "cannot translate group by keys: %v", err)
 		v.addPushdownFailure(gb, err)
 		return gb, nil
 	}
+
+	pipeline = append(pipeline, subqueryCmpStages...)
 
 	// 2. Translate aggregations.
 	result, err := v.translateGroupByAggregates(gb.keys, gb.projectedColumns, ms.mappingRegistry.lookupFieldName)
@@ -822,7 +828,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 //
 // All projected names are the fully qualified name from SQL, ignoring the mongodb name except for
 // when referencing the underlying field.
-func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName FieldNameLookup) (bson.D, []*NonCorrelatedSubqueryFuture, PushdownFailure) {
+func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName FieldNameLookup) (bson.D, []*NonCorrelatedSubqueryFuture, []bson.D, PushdownFailure) {
 
 	keyDocumentElements := bsonutil.NewD()
 
@@ -831,7 +837,7 @@ func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName F
 	for _, key := range keys {
 		translatedKey, err := t.TranslateExpr(key)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
 		keyDocumentElements = append(keyDocumentElements, bsonutil.NewDocElem(
@@ -840,7 +846,7 @@ func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName F
 		))
 	}
 
-	return keyDocumentElements, t.piecewiseDeps, nil
+	return keyDocumentElements, t.piecewiseDeps, t.subqueryCmpStages, nil
 }
 
 // translateGroupByAggregatesResult is just a holder for the results from the
@@ -1845,6 +1851,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 				return join, nil
 			}
 
+			matchPipeline = append(matchPipeline, t.subqueryCmpStages...)
 			matchPipeline = append(matchPipeline, bsonutil.NewD(bsonutil.NewDocElem("$match", bsonutil.NewD(bsonutil.NewDocElem("$expr", translated)))))
 		}
 	}
@@ -1904,6 +1911,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 	ms.pipeline = pipeline
 	ms.piecewiseDeps = append(ms.piecewiseDeps, matchPieces...)
 	ms.mappingRegistry = newMappingRegistry
+	ms.LimitRowCount = int(math.Max(-1.0, float64(msLocal.LimitRowCount*msForeign.LimitRowCount)))
 
 	v.logger.Debugf(log.Dev, "successfully translated join stage to expressive lookup")
 
@@ -2348,11 +2356,13 @@ func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 		emptyPipeline := createEmptyResultsPipeline(v.cfg.mongoDBVersion)
 
 		ms.pipeline = emptyPipeline
+		ms.LimitRowCount = 0
 		return ms, nil
 	}
 
 	ms = ms.clone().(*MongoSourceStage)
 	ms.pipeline = pipeline
+	ms.LimitRowCount = int(limit.limit)
 	return ms, nil
 }
 
@@ -2638,6 +2648,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 	}
 
 	ms = ms.clone().(*MongoSourceStage)
+	ms.pipeline = append(ms.pipeline, t.subqueryCmpStages...)
 	ms.pipeline = append(ms.pipeline, bsonutil.NewD(bsonutil.NewDocElem("$project", fieldsToProject)))
 	ms.mappingRegistry = fixedMappingRegistry
 	ms.piecewiseDeps = append(ms.piecewiseDeps, t.piecewiseDeps...)
@@ -3464,6 +3475,7 @@ func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo 
 	ms.pipeline = pipeline
 	ms.piecewiseDeps = append(ms.piecewiseDeps, remainingPieces...)
 	ms.mappingRegistry = newMappingRegistry
+	ms.LimitRowCount = int(math.Max(-1.0, float64(msLocal.LimitRowCount*msForeign.LimitRowCount)))
 
 	return ms, nil
 }
