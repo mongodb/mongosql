@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
@@ -24,12 +25,12 @@ func TestLimitPlanStage(t *testing.T) {
 		limit uint64,
 		offset uint64,
 		rows []bson.D,
-		expectedRows []Values) {
+		expectedRows []RowValues) {
 
 		req := require.New(t)
 
 		bgCtx := context.Background()
-		execCfg := createTestExecutionCfg()
+		execCfg := createTestExecutionCfg(MySQLValueKind)
 		execState := NewExecutionState()
 
 		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
@@ -72,7 +73,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 2
 		offset = 0
 
-		expected := []Values{
+		expected := []RowValues{
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
 				Data: NewSQLInt64(MySQLValueKind, 1)}},
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
@@ -88,7 +89,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 2
 		offset = 4
 
-		expected := []Values{
+		expected := []RowValues{
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
 				Data: NewSQLInt64(MySQLValueKind, 5)}},
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
@@ -103,7 +104,7 @@ func TestLimitPlanStage(t *testing.T) {
 			limit = 2
 			offset = 40
 
-			expected := []Values{}
+			expected := []RowValues{}
 
 			runTest(t, limit, offset, rows, expected)
 		})
@@ -113,7 +114,7 @@ func TestLimitPlanStage(t *testing.T) {
 
 		limit = 40
 		offset = 40
-		expected := []Values{}
+		expected := []RowValues{}
 
 		runTest(t, limit, offset, rows, expected)
 	})
@@ -124,7 +125,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 40
 		offset = 0
 
-		expected := []Values{
+		expected := []RowValues{
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
 				Data: NewSQLInt64(MySQLValueKind, 1)}},
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
@@ -148,7 +149,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 1
 		offset = 1
 
-		expected := []Values{{{SelectID: 1, Database: BSONSourceDB,
+		expected := []RowValues{{{SelectID: 1, Database: BSONSourceDB,
 			Table: tableOneName, Name: "a",
 			Data: NewSQLInt64(MySQLValueKind, 2)}}}
 
@@ -161,7 +162,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 1
 		offset = 6
 
-		expected := []Values{{{SelectID: 1, Database: BSONSourceDB,
+		expected := []RowValues{{{SelectID: 1, Database: BSONSourceDB,
 			Table: tableOneName, Name: "a",
 			Data: NewSQLInt64(MySQLValueKind, 7)}}}
 
@@ -173,7 +174,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 0
 		offset = 0
 
-		expected := []Values{}
+		expected := []RowValues{}
 
 		runTest(t, limit, offset, rows, expected)
 	})
@@ -183,7 +184,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 3
 		offset = 0
 
-		expected := []Values{
+		expected := []RowValues{
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
 				Data: NewSQLInt64(MySQLValueKind, 1)}},
 			{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
@@ -199,7 +200,7 @@ func TestLimitPlanStage(t *testing.T) {
 		limit = 0
 		offset = 4
 
-		expected := []Values{}
+		expected := []RowValues{}
 
 		runTest(t, limit, offset, rows, expected)
 	})

@@ -6,39 +6,43 @@ import (
 
 	. "github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	. "github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	. "github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestDynamicSourceStage(t *testing.T) {
 	tableName := "foo"
-	table := catalog.NewDynamicTable(catalog.TableName(tableName), catalog.BaseTable, func() []*catalog.DataRow {
-		return []*catalog.DataRow{
-			catalog.NewDataRow(1, 2),
-			catalog.NewDataRow(2, 3),
-			catalog.NewDataRow(3, 4),
+	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func() Rows {
+		return Rows{
+			NewNamedRow("", "foo", NewNamedSQLValue("one", NewSQLInt64(valKind, 1)),
+				NewNamedSQLValue("two", NewSQLInt64(valKind, 2))),
+			NewNamedRow("", "foo", NewNamedSQLValue("one", NewSQLInt64(valKind, 2)),
+				NewNamedSQLValue("two", NewSQLInt64(valKind, 3))),
+			NewNamedRow("", "foo", NewNamedSQLValue("one", NewSQLInt64(valKind, 3)),
+				NewNamedSQLValue("two", NewSQLInt64(valKind, 4))),
 		}
 	})
 
-	_, err := table.AddColumn("one", catalog.SQLType(schema.SQLInt))
+	_, err := table.AddColumn(tableName, "one", types.EvalInt64)
 	require.NoError(t, err)
-	_, err = table.AddColumn("two", catalog.SQLType(schema.SQLInt))
+	_, err = table.AddColumn(tableName, "two", types.EvalInt64)
 	require.NoError(t, err)
 
-	expected := []Values{
+	expected := []RowValues{
 		{
 			{SelectID: 1, Table: tableName, Name: "one", Data: NewSQLInt64(valKind, 1)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: NewSQLInt64(valKind, 2)},
+			{SelectID: 2, Table: tableName, Name: "two", Data: NewSQLInt64(valKind, 2)},
 		},
 		{
 			{SelectID: 1, Table: tableName, Name: "one", Data: NewSQLInt64(valKind, 2)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: NewSQLInt64(valKind, 3)},
+			{SelectID: 2, Table: tableName, Name: "two", Data: NewSQLInt64(valKind, 3)},
 		},
 		{
 			{SelectID: 1, Table: tableName, Name: "one", Data: NewSQLInt64(valKind, 3)},
-			{SelectID: 1, Table: tableName, Name: "two", Data: NewSQLInt64(valKind, 4)},
+			{SelectID: 2, Table: tableName, Name: "two", Data: NewSQLInt64(valKind, 4)},
 		},
 	}
 
@@ -48,7 +52,7 @@ func TestDynamicSourceStage(t *testing.T) {
 	source := NewDynamicSourceStage(db, table, 1, tableName)
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(MySQLValueKind)
 	execState := NewExecutionState()
 
 	iter, err := source.Open(bgCtx, execCfg, execState)

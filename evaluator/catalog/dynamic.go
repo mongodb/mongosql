@@ -1,36 +1,41 @@
 package catalog
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 )
 
+const informationSchema = "information_schema"
+
 // NewDynamicTable creates a new DynamicTable.
-func NewDynamicTable(name TableName, tableType TableType, generator func() []*DataRow) *DynamicTable {
-	columnMap := make(map[string]*DynamicColumn)
+func NewDynamicTable(name string, tableType string, generator func() results.Rows) *DynamicTable {
+	columnMap := make(map[string]*results.Column)
 	return &DynamicTable{
-		name:      name,
-		tableType: tableType,
-		generator: generator,
-		columnMap: columnMap,
+		currSelectID: 1,
+		name:         name,
+		tableType:    tableType,
+		generator:    generator,
+		columnMap:    columnMap,
 	}
 }
 
 // DynamicTable is a table that returns its data dynamically.
 type DynamicTable struct {
-	name      TableName
-	columns   []*DynamicColumn
-	columnMap map[string]*DynamicColumn
-	tableType TableType
-	generator func() []*DataRow
+	currSelectID int
+	name         string
+	columns      results.Columns
+	columnMap    map[string]*results.Column
+	tableType    string
+	generator    func() results.Rows
 }
 
 // Name returns the name for the DynamicTable, t.
-func (t *DynamicTable) Name() TableName {
+func (t *DynamicTable) Name() string {
 	return t.name
 }
 
@@ -40,19 +45,20 @@ func (t *DynamicTable) Collation() *collation.Collation {
 }
 
 // Column returns the column of the specified name.
-func (t *DynamicTable) Column(name string) (Column, error) {
+func (t *DynamicTable) Column(name string) (*results.Column, error) {
 	if c, ok := t.columnMap[strings.ToLower(name)]; ok {
 		return c, nil
 	}
 
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, t.Name())
 }
 
 // Columns returns the columns in the DynamicTable, t.
-func (t *DynamicTable) Columns() []Column {
-	var cols []Column
+func (t *DynamicTable) Columns() results.Columns {
+	var cols results.Columns
 	for _, c := range t.columns {
-		cols = append(cols, c)
+		// TODO: remove this clone once we stop modifying catalog columns!
+		cols = append(cols, c.Clone())
 	}
 	return cols
 }
@@ -64,7 +70,7 @@ func (t *DynamicTable) Comments() string {
 
 // PrimaryKeys returns the primary keys for
 // the DynamicTable, t.
-func (t *DynamicTable) PrimaryKeys() []Column {
+func (t *DynamicTable) PrimaryKeys() results.Columns {
 	return nil
 }
 
@@ -79,21 +85,33 @@ func (t *DynamicTable) Indexes() []Index {
 }
 
 // Type is the type of the DynamicTable, t.
-func (t *DynamicTable) Type() TableType {
+func (t *DynamicTable) Type() string {
 	return t.tableType
 }
 
 // AddColumn adds a column to the DynamicTable, t.
-func (t *DynamicTable) AddColumn(name string, sqlType SQLType) (*DynamicColumn, error) {
+func (t *DynamicTable) AddColumn(tableName, name string, evalType types.EvalType) (*results.Column, error) {
 	lowerName := strings.ToLower(name)
 	if _, ok := t.columnMap[lowerName]; ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
 	}
 
-	c := &DynamicColumn{
-		name:    ColumnName(name),
-		sqlType: sqlType,
-	}
+	cb := results.NewColumnBuilder()
+	cb.SetColumnType(results.NewColumnType(evalType, schema.MongoNone))
+	cb.SetSelectID(t.currSelectID)
+	cb.SetTable(tableName)
+	cb.SetOriginalTable(tableName)
+	cb.SetDatabase(informationSchema)
+	cb.SetName(name)
+	cb.SetOriginalName(name)
+	cb.SetMappingRegistryName("")
+	cb.SetMongoName(name)
+	cb.SetPrimaryKey(false)
+	cb.SetComments("")
+	cb.SetIsPolymorphic(false)
+	cb.SetHasAlteredType(false)
+	c := cb.Build()
+	t.currSelectID++
 
 	t.columns = append(t.columns, c)
 	t.columnMap[lowerName] = c
@@ -101,61 +119,35 @@ func (t *DynamicTable) AddColumn(name string, sqlType SQLType) (*DynamicColumn, 
 	return c, nil
 }
 
+// DynamicColumnDeclaration is a column name with an EvalType that declares a column.
+type DynamicColumnDeclaration struct {
+	columnName string
+	evalType   types.EvalType
+}
+
+// NewDynamicColumnDeclaration creates a new DynamicColumnDeclaration.
+func NewDynamicColumnDeclaration(columnName string, evalType types.EvalType) DynamicColumnDeclaration {
+	return DynamicColumnDeclaration{
+		columnName: columnName,
+		evalType:   evalType,
+	}
+}
+
 // AddColumns is a helper function for combining multiple calls to AddColumn.
-func (t *DynamicTable) AddColumns(args ...string) {
-	if len(args)%2 != 0 {
-		panic(fmt.Errorf("must provide an even number of arguments"))
-	}
+func (t *DynamicTable) AddColumns(tableName string, args ...DynamicColumnDeclaration) {
 
-	var idx int
-	for idx < len(args) {
-		name := args[idx]
-		sqlType, err := schema.GetSQLType(args[idx+1])
+	for _, decl := range args {
+		_, err := t.AddColumn(
+			tableName,
+			decl.columnName,
+			decl.evalType)
 		if err != nil {
 			panic(err)
 		}
-
-		_, err = t.AddColumn(name, SQLType(sqlType))
-		if err != nil {
-			panic(err)
-		}
-
-		idx += 2
 	}
 }
 
-// OpenReader opens a DataReader to enumerate over the
-// t's generated rows.
-func (t *DynamicTable) OpenReader() (DataReader, error) {
-	return &dataRowSliceReader{
-		rows: t.generator(),
-	}, nil
-}
-
-// DynamicColumn is a column for a DynamicTable.
-type DynamicColumn struct {
-	comments string
-	name     ColumnName
-	sqlType  SQLType
-}
-
-// ShouldConvert always returns false, as data in dynamic
-// columns is never polymorphic.
-func (c *DynamicColumn) ShouldConvert(_ string) bool {
-	return false
-}
-
-// Name returns the name of the column.
-func (c *DynamicColumn) Name() ColumnName {
-	return c.name
-}
-
-// Type returns the type of the column.
-func (c *DynamicColumn) Type() SQLType {
-	return c.sqlType
-}
-
-// Comments returns the comments for the column.
-func (c *DynamicColumn) Comments() string {
-	return c.comments
+// Rows returns the rows.
+func (t *DynamicTable) Rows() results.Rows {
+	return t.generator()
 }

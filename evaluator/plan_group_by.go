@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/internal/procutil"
 )
 
@@ -14,7 +15,7 @@ import (
 // and an slice of the keys for each group.
 type orderedGroup struct {
 	// groups is a map of group key to group members.
-	groups map[string][]*Row
+	groups map[string][]*results.Row
 	// keys are the groups.
 	keys []string
 	// sizes holds the allocated memory each group uses.
@@ -22,8 +23,8 @@ type orderedGroup struct {
 }
 
 type aggRowCtx struct {
-	Row Row
-	Ctx []*Row
+	Row results.Row
+	Ctx []*results.Row
 }
 
 // A GroupByStage groups records according to one or more fields.
@@ -85,9 +86,9 @@ func NewGroupByStage(source PlanStage,
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (gb *GroupByStage) Columns() (columns []*Column) {
+func (gb *GroupByStage) Columns() (columns []*results.Column) {
 	for _, projectedColumn := range gb.projectedColumns {
-		columns = append(columns, projectedColumn.Column.clone())
+		columns = append(columns, projectedColumn.Column.Clone())
 	}
 	return columns
 }
@@ -158,7 +159,7 @@ func (gb *GroupByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exec
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (gb *GroupByIter) Next(ctx context.Context, row *Row) bool {
+func (gb *GroupByIter) Next(ctx context.Context, row *results.Row) bool {
 	var err error
 	if !gb.grouped {
 		if err = gb.createGroups(ctx); err != nil {
@@ -208,7 +209,7 @@ func (gb *GroupByIter) Err() error {
 	return err
 }
 
-func (gb *GroupByIter) evaluateGroupByKey(ctx context.Context, row *Row) (string, error) {
+func (gb *GroupByIter) evaluateGroupByKey(ctx context.Context, row *results.Row) (string, error) {
 
 	var gbKey string
 
@@ -228,12 +229,12 @@ func (gb *GroupByIter) evaluateGroupByKey(ctx context.Context, row *Row) (string
 func (gb *GroupByIter) createGroups(ctx context.Context) error {
 
 	gb.finalGrouping = orderedGroup{
-		groups: make(map[string][]*Row),
+		groups: make(map[string][]*results.Row),
 		sizes:  make(map[string]uint64),
 	}
 
 	// iterator source to create groupings
-	r := &Row{}
+	r := &results.Row{}
 	for gb.source.Next(ctx, r) {
 
 		err := gb.stageMonitor.Include(r.Data.Size())
@@ -254,7 +255,7 @@ func (gb *GroupByIter) createGroups(ctx context.Context) error {
 		gb.finalGrouping.groups[key] = append(gb.finalGrouping.groups[key], r)
 		gb.finalGrouping.sizes[key] += r.Data.Size()
 
-		r = &Row{}
+		r = &results.Row{}
 	}
 
 	gb.grouped = true
@@ -262,8 +263,8 @@ func (gb *GroupByIter) createGroups(ctx context.Context) error {
 	return gb.source.Err()
 }
 
-func (gb *GroupByIter) evaluateProjectedColumns(ctx context.Context, r []*Row) (*Row, error) {
-	row := &Row{}
+func (gb *GroupByIter) evaluateProjectedColumns(ctx context.Context, r []*results.Row) (*results.Row, error) {
+	row := &results.Row{}
 
 	st := gb.st.WithRows(r...)
 	for _, projectedColumn := range gb.projectedColumns {
@@ -273,7 +274,7 @@ func (gb *GroupByIter) evaluateProjectedColumns(ctx context.Context, r []*Row) (
 			return nil, err
 		}
 
-		value := NewValue(
+		value := results.NewRowValue(
 			projectedColumn.SelectID,
 			projectedColumn.Database,
 			projectedColumn.Table,

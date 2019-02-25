@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // SubquerySourceStage handles taking sourced rows and projecting them into an alias.
@@ -59,7 +60,7 @@ func (s *SubquerySourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st
 	var projectedColumns ProjectedColumns
 
 	for _, column := range s.source.Columns() {
-		projectedColumn := column.projectAs(column.Name)
+		projectedColumn := newProjectedColumnFromColumn(column)
 		projectedColumn.SelectID = s.selectID
 		projectedColumn.Table = s.aliasName
 		projectedColumns = append(projectedColumns, projectedColumn)
@@ -75,10 +76,10 @@ func (s *SubquerySourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (s *SubquerySourceStage) Columns() []*Column {
-	var columns []*Column
+func (s *SubquerySourceStage) Columns() []*results.Column {
+	var columns []*results.Column
 	for _, column := range s.source.Columns() {
-		c := column.clone()
+		c := column.Clone()
 		c.SelectID = s.selectID
 		c.Table = s.aliasName
 		columns = append(columns, c)

@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 
@@ -34,7 +36,7 @@ type Catalog interface {
 // VariableContainer is the interface that wraps methods for accessing values of variables.
 type VariableContainer interface {
 	// Get returns the value of the variable, "name", of Kind "kind" in the given "scope".
-	Get(name variable.Name, scope variable.Scope, kind variable.Kind) (variable.Value, error)
+	Get(name variable.Name, scope variable.Scope, kind variable.Kind) (values.SQLValue, error)
 	// GetCollation gets the collation of the variable with the specified name.
 	GetCollation(name variable.Name) *collation.Collation
 	// GetInt64 returns the int64 value of the given system variable, "name".
@@ -43,12 +45,10 @@ type VariableContainer interface {
 	GetBool(name variable.Name) bool
 	// GetString returns the string value of the given system variable, "name".
 	GetString(name variable.Name) string
-	// GetUint16 returns the uint64 value of the given system variable, "name".
-	GetUint16(name variable.Name) uint16
 	// GetUint64 returns the uint64 value of the given system variable, "name".
 	GetUint64(name variable.Name) uint64
 	// List returns the value of all variables of Kind "kind" in the given "scope".
-	List(scope variable.Scope, kind variable.Kind) []variable.Value
+	List(scope variable.Scope, kind variable.Kind) []values.NamedSQLValue
 }
 
 // SQLCatalog holds databases.
@@ -151,12 +151,12 @@ type SQLDatabase struct {
 
 // AddTable adds the table to the database.
 func (d *SQLDatabase) AddTable(t Table) error {
-	if _, err := d.Table(string(t.Name())); err == nil {
+	if _, err := d.Table(t.Name()); err == nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, t.Name())
 	}
 
 	d.tables = append(d.tables, t)
-	d.tableMap[strings.ToLower(string(t.Name()))] = t
+	d.tableMap[strings.ToLower(t.Name())] = t
 	return nil
 }
 
@@ -183,9 +183,9 @@ type Table interface {
 	// Collation gets the collection for the table.
 	Collation() *collation.Collation
 	// Column gets the columns of the specified name.
-	Column(string) (Column, error)
+	Column(string) (*results.Column, error)
 	// Columns gets the columns for the table.
-	Columns() []Column
+	Columns() results.Columns
 	// Comments gets the comments for the table.
 	Comments() string
 	// ForeignKeys returns the foreign keys for this table.
@@ -193,14 +193,15 @@ type Table interface {
 	// Indexes return the indexes for this table.
 	Indexes() []Index
 	// Name gets the name of the table.
-	Name() TableName
+	Name() string
 	// PrimaryKeys returns the primary keys
 	// for this table.
-	PrimaryKeys() []Column
+	PrimaryKeys() results.Columns
 	// Type is the type of the table.
-	Type() TableType
+	Type() string
 }
 
+// MongoDBTable represents a table that exists as a MongoDB collection.
 type MongoDBTable interface {
 	Table
 	// Collection returns the name of the underlying MongoDB collection.
@@ -211,85 +212,44 @@ type MongoDBTable interface {
 	Pipeline() []bson.D
 }
 
-// TableType is the type of a table.
-type TableType string
-
-// TableType constants.
+// Table type constants
 const (
-	BaseTable  TableType = "BASE TABLE"
-	SystemView TableType = "SYSTEM VIEW"
-	View       TableType = "VIEW"
+	BaseTable  = "BASE TABLE"
+	SystemView = "SYSTEM VIEW"
+	View       = "VIEW"
 )
 
-// TableName is the name of a table.
-type TableName string
-
+// information_schema databases table names.
 const (
-	CharacterSetsTable                      TableName = "CHARACTER_SETS"
-	CollationCharacterSetApplicabilityTable TableName = "COLLATION_CHARACTER_SET_APPLICABILITY"
-	CollationsTable                         TableName = "COLLATIONS"
-	ColumnPrivilegesTable                   TableName = "COLUMN_PRIVILEGES"
-	ColumnsTable                            TableName = "COLUMNS"
-	EnginesTable                            TableName = "ENGINES"
-	EventsTable                             TableName = "EVENTS"
-	GlobalStatusTable                       TableName = "GLOBAL_STATUS"
-	GlobalVariablesTable                    TableName = "GLOBAL_VARIABLES"
-	KeyColumnUsageTable                     TableName = "KEY_COLUMN_USAGE"
-	NdbTransidMysqlConnectionMapTable       TableName = "ndb_transid_mysql_connection_map"
-	PluginsTable                            TableName = "PLUGINS"
-	ParametersTable                         TableName = "PARAMETERS"
-	PartitionsTable                         TableName = "PARTITIONS"
-	ProfilingTable                          TableName = "PROFILING"
-	ReferentialConstraintsTable             TableName = "REFERENTIAL_CONSTRAINTS"
-	RoutinesTable                           TableName = "ROUTINES"
-	SchemaPrivilagesTable                   TableName = "SCHEMA_PRIVILEGES"
-	SchemataTable                           TableName = "SCHEMATA"
-	SessionStatusTable                      TableName = "SESSION_STATUS"
-	SessionVariablesTable                   TableName = "SESSION_VARIABLES"
-	StatisticsTable                         TableName = "STATISTICS"
-	TableConstraintsTable                   TableName = "TABLE_CONSTRAINTS"
-	TablePrivilagesTable                    TableName = "TABLE_PRIVILEGES"
-	TablespacesTable                        TableName = "TABLESPACES"
-	TablesTable                             TableName = "TABLES"
-	TriggersTable                           TableName = "TRIGGERS"
-	UserPrivilagesTable                     TableName = "USER_PRIVILEGES"
+	CharacterSetsTable                      = "CHARACTER_SETS"
+	CollationCharacterSetApplicabilityTable = "COLLATION_CHARACTER_SET_APPLICABILITY"
+	CollationsTable                         = "COLLATIONS"
+	ColumnPrivilegesTable                   = "COLUMN_PRIVILEGES"
+	ColumnsTable                            = "COLUMNS"
+	EnginesTable                            = "ENGINES"
+	EventsTable                             = "EVENTS"
+	GlobalStatusTable                       = "GLOBAL_STATUS"
+	GlobalVariablesTable                    = "GLOBAL_VARIABLES"
+	KeyColumnUsageTable                     = "KEY_COLUMN_USAGE"
+	NdbTransidMysqlConnectionMapTable       = "ndb_transid_mysql_connection_map"
+	PluginsTable                            = "PLUGINS"
+	ParametersTable                         = "PARAMETERS"
+	PartitionsTable                         = "PARTITIONS"
+	ProfilingTable                          = "PROFILING"
+	ReferentialConstraintsTable             = "REFERENTIAL_CONSTRAINTS"
+	RoutinesTable                           = "ROUTINES"
+	SchemaPrivilagesTable                   = "SCHEMA_PRIVILEGES"
+	SchemataTable                           = "SCHEMATA"
+	SessionStatusTable                      = "SESSION_STATUS"
+	SessionVariablesTable                   = "SESSION_VARIABLES"
+	StatisticsTable                         = "STATISTICS"
+	TableConstraintsTable                   = "TABLE_CONSTRAINTS"
+	TablePrivilagesTable                    = "TABLE_PRIVILEGES"
+	TablespacesTable                        = "TABLESPACES"
+	TablesTable                             = "TABLES"
+	TriggersTable                           = "TRIGGERS"
+	UserPrivilagesTable                     = "USER_PRIVILEGES"
 )
-
-// ColumnName is the name of a column.
-type ColumnName string
-
-// SQLType is human readable string representation of SQL types.
-type SQLType string
-
-// Column is the interface that wraps a SQL column.
-type Column interface {
-	// Name gets the name of the column.
-	Name() ColumnName
-	// Type is the type of the column.
-	Type() SQLType
-	// Comments gets the comments for the column.
-	Comments() string
-	// ShouldConvert returns true if this Column should
-	// be wrapped in a SQLConvertExpr when referenced.
-	// This occurs when there are sampled types that differ
-	// from the consensus type of the column for MongoColumns.
-	// It is always false for other types of Columns.
-	ShouldConvert(polymorphicTypeConversionMode string) bool
-}
-
-// Columns is a slice of `Column`s.
-type Columns []Column
-
-// Contains returns true if the given name
-// matches one of the columns in cols.
-func (cols Columns) Contains(name ColumnName) bool {
-	for _, c := range cols {
-		if strings.ToLower(string(c.Name())) == strings.ToLower(string(name)) {
-			return true
-		}
-	}
-	return false
-}
 
 // ForeignKey represents a foreign key in a SQL table.
 // This generally allows for cross-referencing related
@@ -297,7 +257,7 @@ func (cols Columns) Contains(name ColumnName) bool {
 // allows us to (from a child table) reference data in
 // a parent table.
 type ForeignKey struct {
-	columns              []Column
+	columns              results.Columns
 	constraintName       string
 	foreignDatabase      string
 	foreignTable         string
@@ -305,14 +265,14 @@ type ForeignKey struct {
 }
 
 // NewForeignKey returns a new foreign key for the column c.
-func NewForeignKey(c Column, name, db, tb, col string) ForeignKey {
+func NewForeignKey(c *results.Column, name, db, tb, col string) ForeignKey {
 	return ForeignKey{
-		columns:         []Column{c},
+		columns:         results.Columns{c},
 		constraintName:  name,
 		foreignDatabase: db,
 		foreignTable:    tb,
 		localToForeignColumn: map[string]string{
-			string(c.Name()): col,
+			c.Name: col,
 		},
 	}
 }

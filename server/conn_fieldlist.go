@@ -6,7 +6,6 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
-	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
@@ -40,12 +39,11 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	for _, column := range tableSchema.Columns() {
-		mongoColumn, ok := column.(*catalog.MongoColumn)
-		if ok && mongoColumn.MongoType == schema.MongoFilter {
+		if column.MongoType == schema.MongoFilter {
 			continue
 		}
 
-		name, table, database := []byte(column.Name()),
+		name, table, database := []byte(column.Name),
 			[]byte(tableName), []byte(catalog.InformationSchemaDatabase)
 
 		field := &Field{
@@ -57,7 +55,7 @@ func (c *conn) handleFieldList(data []byte) error {
 			Charset:       uint16(col.ID),
 		}
 
-		zeroValue := evaluator.ZeroValue(types.SQLTypeToEvalType(schema.SQLType(column.Type())), valueKind)
+		zeroValue := evaluator.ZeroValue(column.EvalType, valueKind)
 		if err = formatHeaderField(c.variables, field, zeroValue); err != nil {
 			return err
 		}

@@ -13,12 +13,12 @@
 # valid to set this variable. If `set_scopes` is an empty list, then this
 # variable cannot be set by the user.
 #
-# The `sql_type` field specifies the type of this variable. The value should
+# The `type` field specifies the type of this variable. The value should
 # correspond to a SQLType from `schema/types.go`.
 #
 # The `go_type` field specifies the go type that should be used to store this
 # variable's value. It only needs to be provided if the desired type is
-# different from the one chosed based on the `sql_type` field.
+# different from the one chosed based on the `type` field.
 #
 # The `custom_setter` field specifies that this variable has a custom setter
 # function in `system_variables.go` that should be called instead of generating
@@ -54,28 +54,28 @@ system_variables:
     default: true
     name: 'autocommit'
     set_scopes: [global, session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: characterSetClient
     custom_setter: true
     default: string(collation.DefaultCharset.Name)
     name: 'character_set_client'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: characterSetConnection
     custom_setter: true
     default: string(collation.DefaultCharset.Name)
     name: 'character_set_connection'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: characterSetDatabase
     custom_setter: true
     default: string(collation.DefaultCharset.Name)
     name: 'character_set_database'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: characterSetResults
     custom_getter: true
@@ -83,41 +83,41 @@ system_variables:
     default: string(collation.DefaultCharset.Name)
     name: 'character_set_results'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: collationConnection
     custom_setter: true
     default: string(collation.Default.Name)
     name: 'collation_connection'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: collationDatabase
     custom_setter: true
     default: string(collation.Default.Name)
     name: 'collation_database'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: collationServer
     custom_setter: true
     default: string(collation.Default.Name)
     name: 'collation_server'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: groupConcatMaxLen
     custom_setter: true
     default: 1024
     name: 'group_concat_max_len'
     set_scopes: [global, session]
-    sql_type: SQLInt
+    type: SQLInt64
 
   - _id: interactiveTimeoutSecs
     default: 28800
     name: 'interactive_timeout'
     set_scopes: [global, session]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       min: 1
 
@@ -125,7 +125,7 @@ system_variables:
     default: 1073741824
     name: 'max_allowed_packet'
     set_scopes: [global, session]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       max: 1073741824
       min: 1024
@@ -134,7 +134,7 @@ system_variables:
     default: 0
     name: 'max_connections'
     set_scopes: [global]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       min: 0
 
@@ -142,7 +142,7 @@ system_variables:
     default: 0
     name: 'max_execution_time'
     set_scopes: [global, session]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       min: 0
 
@@ -150,38 +150,38 @@ system_variables:
     default: '""'
     name: 'socket'
     set_scopes: [global]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: sqlAutoIsNull
     default: false
     name: 'sql_auto_is_null'
     set_scopes: [global, session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: sqlSelectLimit
     default: math.MaxUint64
     name: 'sql_select_limit'
     set_scopes: [global, session]
-    sql_type: SQLUint
+    type: SQLUint64
 
   - _id: version
     default: '"5.7.12"'
     name: 'version'
     set_scopes: []
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: versionComment
     default: fmt.Sprintf("mongosqld " + config.VersionStr)
     name: 'version_comment'
     set_scopes: []
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: waitTimeoutSecs
     custom_setter: true
     default: 28800
     name: 'wait_timeout'
     set_scopes: [global, session]
-    sql_type: SQLInt
+    type: SQLInt64
 
 
   # mongosqld-defined system variables:
@@ -191,20 +191,20 @@ system_variables:
     default: true
     name: 'anonymize_metrics'
     set_scopes: [global]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: enableTableAlterations
     config_field: SetParameter.EnableTableAlterations
     default: false
     name: 'enable_table_alterations'
     set_scopes: [global]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: fullPushdownExecMode
     default: false
     name: 'full_pushdown_exec_mode'
     set_scopes: [global, session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: logLevel
     config_field: SystemLog.Level()
@@ -212,14 +212,14 @@ system_variables:
     default: 0
     name: 'log_level'
     set_scopes: [global]
-    sql_type: SQLInt
+    type: SQLInt64
 
   - _id: maxNestedTableDepth
     config_field: Schema.Sample.MaxNestedTableDepth
     default: 50
     name: 'max_nested_table_depth'
     set_scopes: [global]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       min: 0
 
@@ -228,7 +228,7 @@ system_variables:
     default: 2000
     name: 'max_num_columns_per_table'
     set_scopes: [global]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       min: 1
 
@@ -237,7 +237,7 @@ system_variables:
     default: NoMetricsBackend
     name: 'metrics_backend'
     set_scopes: [global]
-    sql_type: SQLVarchar
+    type: SQLVarchar
     validation:
       enum:
         - {value: 'off', variant: 'No'}
@@ -249,21 +249,21 @@ system_variables:
     default: 0
     name: 'mongodb_max_server_size'
     set_scopes: [global, session]
-    sql_type: SQLUint
+    type: SQLUint64
 
   - _id: mongoDBMaxConnectionSize
     config_field: Runtime.Memory.MaxPerConnection
     default: 0
     name: 'mongodb_max_connection_size'
     set_scopes: [global, session]
-    sql_type: SQLUint
+    type: SQLUint64
 
   - _id: mongoDBMaxStageSize
     config_field: Runtime.Memory.MaxPerStage
     default: 0
     name: 'mongodb_max_stage_size'
     set_scopes: [global, session]
-    sql_type: SQLUint
+    type: SQLUint64
 
   - _id: mongoDBMaxVarcharLength
     config_field: Schema.MaxVarcharLength
@@ -271,7 +271,7 @@ system_variables:
     go_type: uint16
     name: 'mongodb_max_varchar_length'
     set_scopes: [global, session]
-    sql_type: SQLUint
+    type: SQLUint64
     validation:
       max: math.MaxUint16
       min: 0
@@ -280,81 +280,81 @@ system_variables:
     default: '""'
     name: 'mongodb_git_version'
     set_scopes: []
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: mongoDBTopology
     default: '""'
     name: 'mongodb_topology'
     set_scopes: []
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: mongoDBVersion
     default: '""'
     name: 'mongodb_version'
     set_scopes: []
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: mongoDBVersionCompatibility
     config_field: MongoDB.VersionCompatibility
     default: '""'
     name: 'mongodb_version_compatibility'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: mongosqldVersion
     default: config.VersionStr
     name: 'mongosqld_version'
     set_scopes: []
-    sql_type: SQLVarchar
+    type: SQLVarchar
 
   - _id: optimizeCrossJoins
     config_field: SetParameter.OptimizeCrossJoins
     default: true
     name: 'optimize_cross_joins'
     set_scopes: [session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: optimizeEvaluations
     config_field: SetParameter.OptimizeEvaluations
     default: true
     name: 'optimize_evaluations'
     set_scopes: [session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: optimizeFiltering
     config_field: SetParameter.OptimizeFiltering
     default: true
     name: 'optimize_filtering'
     set_scopes: [session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: optimizeInnerJoins
     config_field: SetParameter.OptimizeInnerJoins
     default: true
     name: 'optimize_inner_joins'
     set_scopes: [session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: optimizeSelfJoins
     config_field: SetParameter.OptimizeSelfJoins
     default: true
     name: 'optimize_self_joins'
     set_scopes: [session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: optimizeViewSampling
     config_field: SetParameter.OptimizeViewSampling
     default: true
     name: 'optimize_view_sampling'
     set_scopes: [global]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: polymorphicTypeConversionMode
     config_field: SetParameter.PolymorphicTypeConversionMode
     default: OffPolymorphicTypeConversionMode
     name: 'polymorphic_type_conversion_mode'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
     validation:
       enum:
         - {value: 'safe', variant: 'Safe'}
@@ -366,21 +366,21 @@ system_variables:
     default: true
     name: 'pushdown'
     set_scopes: [session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: rewriteDistinctAsGroup
     config_field: SetParameter.RewriteDistinctAsGroup
     default: false
     name: 'rewrite_distinct_as_group'
     set_scopes: [global, session]
-    sql_type: SQLBoolean
+    type: SQLBool
 
   - _id: sampleRefreshIntervalSecs
     config_field: Schema.Sample.RefreshIntervalSecs
     default: 0
     name: 'sample_refresh_interval_secs'
     set_scopes: [global]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       min: 0
 
@@ -389,7 +389,7 @@ system_variables:
     default: 1000
     name: 'sample_size'
     set_scopes: [global]
-    sql_type: SQLInt
+    type: SQLInt64
     validation:
       min: 0
 
@@ -398,7 +398,7 @@ system_variables:
     default: LatticeSchemaMappingMode
     name: 'schema_mapping_mode'
     set_scopes: [global]
-    sql_type: SQLVarchar
+    type: SQLVarchar
     validation:
       enum:
         - {value: 'majority', variant: Majority}
@@ -409,7 +409,7 @@ system_variables:
     default: MongoSQLTypeConversionMode
     name: 'type_conversion_mode'
     set_scopes: [global, session]
-    sql_type: SQLVarchar
+    type: SQLVarchar
     validation:
       enum:
         - {value: 'mongosql', variant: MongoSQL}

@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -530,7 +531,7 @@ type SQLColumnExpr struct {
 	databaseName string
 	tableName    string
 	columnName   string
-	columnType   ColumnType
+	columnType   results.ColumnType
 	correlated   bool
 }
 
@@ -542,11 +543,21 @@ func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, 
 		databaseName: databaseName,
 		tableName:    tableName,
 		columnName:   columnName,
-		columnType: NewColumnType(
+		columnType: results.NewColumnType(
 			evalType,
 			mongoType,
 		),
 	}
+}
+
+func newSQLColumnExprFromColumn(c *results.Column) SQLColumnExpr {
+	return NewSQLColumnExpr(c.SelectID,
+		c.Database,
+		c.Table,
+		c.Name,
+		c.EvalType,
+		c.MongoType,
+	)
 }
 
 // ExprName returns a string representing this SQLExpr's name.
@@ -1086,7 +1097,7 @@ func (*SQLExistsExpr) evaluateFromPlan(ctx context.Context,
 		return nil, err
 	}
 
-	row := &Row{}
+	row := &results.Row{}
 
 	hasNext := iter.Next(ctx, row)
 	// release this memory here... it will be re-allocated by a consuming
@@ -1582,7 +1593,7 @@ func evaluatePlan(ctx context.Context, cfg *ExecutionConfig,
 		return nil, err
 	}
 
-	row := &Row{}
+	row := &results.Row{}
 	var valueTable [][]values.SQLValue
 
 	for iter.Next(ctx, row) {
@@ -1619,7 +1630,7 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 		return nil, err
 	}
 
-	row := &Row{}
+	row := &results.Row{}
 
 	var valueRow []values.SQLValue
 	if iter.Next(ctx, row) {
@@ -1645,7 +1656,7 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 	}
 
 	// input must not have cardinality > 1
-	if iter.Next(ctx, &Row{}) {
+	if iter.Next(ctx, &results.Row{}) {
 		_ = iter.Close()
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
 	}
@@ -2291,7 +2302,7 @@ func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 		return nil, err
 	}
 
-	row := &Row{}
+	row := &results.Row{}
 	if iter.Next(ctx, row) {
 
 		// release this memory here... it will be re-allocated by a consuming stage
@@ -2301,7 +2312,7 @@ func (e *SQLSubqueryExpr) evaluateFromPlan(ctx context.Context,
 		}
 
 		// Filter has to check the entire source to return an accurate 'hasNext'
-		if iter.Next(ctx, &Row{}) {
+		if iter.Next(ctx, &results.Row{}) {
 			_ = iter.Close()
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
 		}
@@ -2494,21 +2505,19 @@ func (e SQLValueExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}
 
 // SQLVariableExpr represents a variable lookup.
 type SQLVariableExpr struct {
-	Name    string
-	Kind    variable.Kind
-	Scope   variable.Scope
-	Value   interface{}
-	SQLType schema.SQLType
+	Name  string
+	Kind  variable.Kind
+	Scope variable.Scope
+	Value values.SQLValue
 }
 
 // NewSQLVariableExpr is a constructor for SQLVariableExpr.
-func NewSQLVariableExpr(name string, kind variable.Kind, scope variable.Scope, sqlType schema.SQLType, value interface{}) *SQLVariableExpr {
+func NewSQLVariableExpr(name string, kind variable.Kind, scope variable.Scope, value values.SQLValue) *SQLVariableExpr {
 	return &SQLVariableExpr{
-		Name:    name,
-		Kind:    kind,
-		Scope:   scope,
-		SQLType: sqlType,
-		Value:   value,
+		Name:  name,
+		Kind:  kind,
+		Scope: scope,
+		Value: value,
 	}
 }
 
@@ -2529,9 +2538,11 @@ func (e *SQLVariableExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, _ *E
 		return nil, err
 	}
 
-	val := values.GoValueToSQLValue(cfg.sqlValueKind, e.Value)
-	converted := values.ConvertTo(val, types.SQLTypeToEvalType(e.SQLType))
-	return converted, nil
+	// e.Value can be nil: if this variable has never been set before.
+	if e.Value == nil {
+		return values.NewSQLNull(cfg.sqlValueKind), nil
+	}
+	return e.Value.CloneWithKind(cfg.sqlValueKind), nil
 }
 
 // nolint: unparam
@@ -2546,10 +2557,11 @@ func (e *SQLVariableExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 	if err := validateArgs(e); err != nil {
 		return nil, err
 	}
-
-	val := values.GoValueToSQLValue(cfg.sqlValueKind, e.Value)
-	converted := values.ConvertTo(val, types.SQLTypeToEvalType(e.SQLType))
-	return NewSQLValueExpr(converted), nil
+	// e.Value can be nil: if this variable has never been set before.
+	if e.Value == nil {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	return NewSQLValueExpr(e.Value.CloneWithKind(cfg.sqlValueKind)), nil
 }
 
 func (e *SQLVariableExpr) String() string {
@@ -2571,7 +2583,13 @@ func (e *SQLVariableExpr) String() string {
 
 // EvalType returns the EvalType associated with SQLVariableExpr.
 func (e *SQLVariableExpr) EvalType() types.EvalType {
-	return types.SQLTypeToEvalType(e.SQLType)
+	// e.Value will be nil during the assignment to a user variable,
+	// as it has no value at that time. Since it has no value, it is semantically
+	// correct for the EvalType to be EvalPolymorphic.
+	if e.Value == nil {
+		return types.EvalPolymorphic
+	}
+	return e.Value.EvalType()
 }
 
 // ReplaceChild replaces the i'th child of the receiver Node with the Node n.
@@ -2583,13 +2601,11 @@ func (e *SQLVariableExpr) ReplaceChild(i int, n Node) {
 // be used in an aggregation pipeline. If SQLVariableExpr cannot be translated,
 // it will return nil and error.
 func (e *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-
-	eb := types.SQLTypeToEvalType(e.SQLType)
-	if eb != types.EvalBoolean {
-		return nil, newPushdownFailure(e.ExprName(), "can only push down boolean variables")
+	// e.Value can be nil: if this variable has never been set before.
+	if e.Value == nil {
+		return NewSQLValueExpr(values.NewSQLNull(values.VariableSQLValueKind)).ToAggregationLanguage(t)
 	}
-
-	return bsonutil.WrapInLiteral(e.Value), nil
+	return NewSQLValueExpr(e.Value).ToAggregationLanguage(t)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2635,8 +2651,8 @@ func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage, error)
 		rc := rightPlan.projectedColumns[i]
 		newLeft, newRight := ReconcileSQLExprs(lc.Expr, rc.Expr)
 
-		leftColumns[i] = ProjectedColumn{lc.clone(), newLeft}
-		rightColumns[i] = ProjectedColumn{rc.clone(), newRight}
+		leftColumns[i] = ProjectedColumn{lc.Column.Clone(), newLeft}
+		rightColumns[i] = ProjectedColumn{rc.Column.Clone(), newRight}
 	}
 
 	newLeftPlan := NewProjectStage(leftPlan.source.clone(), leftColumns...)

@@ -1,4 +1,4 @@
-package evaluator
+package results
 
 import (
 	"strings"
@@ -8,7 +8,7 @@ import (
 
 // Row holds data from one or more tables.
 type Row struct {
-	Data Values
+	Data RowValues
 }
 
 // GetField takes a selectID, tableName, and columnName and returns the given
@@ -33,8 +33,8 @@ func (row *Row) GetField(selectID int,
 // Rows holds a slice of `Row`s.
 type Rows []Row
 
-// Value holds row values for a SQL column.
-type Value struct {
+// RowValue holds row values for a SQL column.
+type RowValue struct {
 	SelectID int
 	Database string
 	Table    string
@@ -42,19 +42,43 @@ type Value struct {
 	Data     values.SQLValue
 }
 
-// NewValue returns a Value with the provided selectID, database, table,
-// name, and data.
-func NewValue(selectID int, database, table, name string, data values.SQLValue) Value {
-	return Value{selectID, database, table, name, data}
+// NewNamelessRow creates a new row from a series of values.SQLValues, giving them
+// monotonically increasing selectIDs and no Database, Table, or Column names.
+func NewNamelessRow(vs ...values.SQLValue) Row {
+	ret := make(RowValues, len(vs))
+	for i, val := range vs {
+		ret[i] = NewRowValue(i+1, "", "", "", val)
+	}
+	return Row{
+		Data: ret,
+	}
 }
 
-// NewValueFromColumn generates a value from a provided Column and values.SQLValue.
-func NewValueFromColumn(column Column, sqlValue values.SQLValue) Value {
-	return NewValue(column.SelectID, column.Database, column.Table, column.Name, sqlValue)
+// NewNamedRow creates a new row from a series of values.SQLValues, giving them
+// monotonically increasing selectIDs
+func NewNamedRow(databaseName, tableName string, vs ...values.NamedSQLValue) Row {
+	ret := make(RowValues, len(vs))
+	for i, val := range vs {
+		ret[i] = NewRowValue(i+1, databaseName, tableName, val.Name, val.Value)
+	}
+	return Row{
+		Data: ret,
+	}
+}
+
+// NewRowValue returns a Value with the provided selectID, database, table,
+// name, and data.
+func NewRowValue(selectID int, database, table, name string, data values.SQLValue) RowValue {
+	return RowValue{selectID, database, table, name, data}
+}
+
+// NewRowValueFromColumn generates a value from a provided Column and values.SQLValue.
+func NewRowValueFromColumn(column Column, sqlValue values.SQLValue) RowValue {
+	return NewRowValue(column.SelectID, column.Database, column.Table, column.Name, sqlValue)
 }
 
 // Size returns the size of the Value in bytes.
-func (v *Value) Size() uint64 {
+func (v *RowValue) Size() uint64 {
 	s := uint64(8) // SelectID
 	s += uint64(len(v.Database)) + uint64(len(v.Table)) + uint64(len(v.Name))
 	if v.Data != nil {
@@ -64,11 +88,11 @@ func (v *Value) Size() uint64 {
 	return s
 }
 
-// Values holds a slice of `Value`s.
-type Values []Value
+// RowValues holds a slice of `RowValue`s.
+type RowValues []RowValue
 
 // Map returns a map of the Values' names to their values.SQLValues.
-func (v Values) Map() map[string]values.SQLValue {
+func (v RowValues) Map() map[string]values.SQLValue {
 	m := make(map[string]values.SQLValue)
 	for _, value := range v {
 		m[value.Name] = value.Data
@@ -77,7 +101,7 @@ func (v Values) Map() map[string]values.SQLValue {
 }
 
 // Size returns the sum of the sizes of all the values in the slice.
-func (v Values) Size() uint64 {
+func (v RowValues) Size() uint64 {
 	s := uint64(0)
 	for _, sv := range v {
 		s += sv.Size()

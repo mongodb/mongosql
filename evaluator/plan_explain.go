@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/schema"
@@ -32,14 +33,14 @@ const (
 type ExplainStage struct {
 	pCfg    *PushdownConfig
 	plan    PlanStage
-	columns []*Column
+	columns []*results.Column
 }
 
 // ExplainIter is an iterator that will iterate through the rows
 // of the explain plan table.
 type ExplainIter struct {
 	cfg        *ExecutionConfig
-	rows       []*Row
+	rows       []*results.Row
 	currentRow int
 }
 
@@ -69,7 +70,7 @@ func (es *ExplainStage) ReplaceChild(i int, n Node) {
 }
 
 func (es *ExplainStage) clone() PlanStage {
-	clonedColumns := make([]*Column, len(es.columns))
+	clonedColumns := make([]*results.Column, len(es.columns))
 	copy(clonedColumns, es.columns)
 	return &ExplainStage{
 		plan:    es.plan.clone(),
@@ -86,7 +87,7 @@ func (es *ExplainStage) Open(_ context.Context, eCfg *ExecutionConfig, _ *Execut
 		return nil, err
 	}
 
-	rows := []*Row{}
+	rows := []*results.Row{}
 	for _, exp := range explainRecords {
 		row := generateExplainRow(eCfg.sqlValueKind, es.Columns(), exp)
 		rows = append(rows, row)
@@ -102,7 +103,7 @@ func (es *ExplainStage) Open(_ context.Context, eCfg *ExecutionConfig, _ *Execut
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (es *ExplainStage) Columns() []*Column {
+func (es *ExplainStage) Columns() []*results.Column {
 	return es.columns
 }
 
@@ -112,7 +113,7 @@ func (es *ExplainStage) Collation() *collation.Collation {
 }
 
 // Next will pass the next row's data to the row pointer.
-func (ei *ExplainIter) Next(_ context.Context, row *Row) bool {
+func (ei *ExplainIter) Next(_ context.Context, row *results.Row) bool {
 	if ei.currentRow < len(ei.rows) {
 		row.Data = ei.rows[ei.currentRow].Data
 		ei.currentRow++
@@ -133,9 +134,9 @@ func (ei *ExplainIter) Err() error {
 }
 
 // generateExplainColumns will generate the columns for the explain plan table.
-func generateExplainColumns(dbName string) []*Column {
+func generateExplainColumns(dbName string) []*results.Column {
 
-	var columns []*Column
+	var columns []*results.Column
 
 	tableName := "explain"
 	colNames := []string{stageID, planStage, planColumns, sources, database,
@@ -145,13 +146,13 @@ func generateExplainColumns(dbName string) []*Column {
 		switch colNames[i] {
 		case stageID:
 			columns = append(columns,
-				NewColumn(i, tableName,
+				results.NewColumn(i, tableName,
 					tableName, dbName, colNames[i],
 					colNames[i], "", types.EvalInt64,
 					schema.MongoInt64, false))
 		default:
 			columns = append(columns,
-				NewColumn(i, tableName,
+				results.NewColumn(i, tableName,
 					tableName, dbName, colNames[i],
 					colNames[i], "", types.EvalString,
 					schema.MongoString, false))
@@ -164,8 +165,8 @@ func generateExplainColumns(dbName string) []*Column {
 
 // generateExplainRows generates the rows to be returned by an ExplainStage from
 // the provided slice of stage explanations.
-func generateExplainRow(kind values.SQLValueKind, cols []*Column, rec *ExplainRecord) *Row {
-	var vs []Value
+func generateExplainRow(kind values.SQLValueKind, cols []*results.Column, rec *ExplainRecord) *results.Row {
+	var vs results.RowValues
 	for i := 0; i < len(cols); i++ {
 
 		selectID := cols[i].SelectID
@@ -226,15 +227,15 @@ func generateExplainRow(kind values.SQLValueKind, cols []*Column, rec *ExplainRe
 			panic(fmt.Sprintf("unexpected explain column %q", name))
 		}
 
-		vs = append(vs, NewValue(selectID, dbName, tableName, name, value))
+		vs = append(vs, results.NewRowValue(selectID, dbName, tableName, name, value))
 	}
 
-	return &Row{Data: vs}
+	return &results.Row{Data: vs}
 }
 
 // getPlanColumns returns a string representation of a stage's columns
 // given the stage's columns.
-func getPlanColumns(columns []*Column) string {
+func getPlanColumns(columns []*results.Column) string {
 
 	b := bytes.NewBufferString("[")
 	for i, c := range columns {

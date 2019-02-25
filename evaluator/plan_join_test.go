@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/types"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -96,7 +97,7 @@ func TestJoinPlanStage(t *testing.T) {
 	)
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(MySQLValueKind)
 	execState := NewExecutionState()
 
 	row := &Row{}

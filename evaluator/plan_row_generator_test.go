@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/types"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -19,7 +20,7 @@ func TestRowGeneratorStage(t *testing.T) {
 		EvalUint64, schema.MongoInt64, false)
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(MySQLValueKind)
 	execState := NewExecutionState()
 
 	t.Run("should iterate through all rows contained successfully with only empty rows",
@@ -171,14 +172,14 @@ func TestRowGeneratorStage(t *testing.T) {
 		require.NoError(t, err)
 
 		kind := MySQLValueKind
-		row := &Row{Data: Values{
-			NewValue(0, "test", "foo", "a", NewSQLInt64(kind, 1))}}
+		row := &Row{Data: RowValues{
+			NewRowValue(0, "test", "foo", "a", NewSQLInt64(kind, 1))}}
 		i := 0
 		for iter.Next(bgCtx, row) {
 			require.Nil(t, row.Data)
 			i++
-			row = &Row{Data: Values{
-				NewValue(0, "test", "foo", "a", NewSQLInt64(kind, 1))}}
+			row = &Row{Data: RowValues{
+				NewRowValue(0, "test", "foo", "a", NewSQLInt64(kind, 1))}}
 		}
 
 		require.Equal(t, i, 3)

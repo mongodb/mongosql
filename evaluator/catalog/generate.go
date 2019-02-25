@@ -16,7 +16,7 @@ func GenerateCreateDatabase(database, modifier string) string {
 }
 
 // GenerateCreateTable generates a create table statement for the table.
-func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
+func GenerateCreateTable(table Table, maxVarcharLength uint64) string {
 
 	col := table.Collation()
 
@@ -24,9 +24,9 @@ func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 
 	switch table.Type() {
 	case BaseTable:
-		buf.WriteString("CREATE TABLE `" + string(table.Name()) + "` (\n")
+		buf.WriteString("CREATE TABLE `" + table.Name() + "` (\n")
 	default:
-		buf.WriteString("CREATE TEMPORARY TABLE `" + string(table.Name()) + "` (\n")
+		buf.WriteString("CREATE TEMPORARY TABLE `" + table.Name() + "` (\n")
 	}
 
 	for i, column := range table.Columns() {
@@ -34,15 +34,15 @@ func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 			buf.WriteString(",\n")
 		}
 
-		buf.WriteString("  `" + string(column.Name()) + "`")
-		colType := translateColumnType(column.Type(), maxVarcharLength)
+		buf.WriteString("  `" + column.Name + "`")
+		colType := translateColumnType(column.EvalType, maxVarcharLength)
 		buf.WriteString(" " + colType)
 		if strings.HasPrefix(colType, "varchar") {
 			buf.WriteString(" COLLATE " + string(col.Name))
 		}
 		buf.WriteString(" DEFAULT NULL")
-		if column.Comments() != "" {
-			buf.WriteString(" COMMENT '" + strings.Replace(column.Comments(), "'", "''", -1) + "'")
+		if column.Comments != "" {
+			buf.WriteString(" COMMENT '" + strings.Replace(column.Comments, "'", "''", -1) + "'")
 		}
 	}
 
@@ -54,7 +54,7 @@ func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 			if i > 0 {
 				buf.WriteString(",")
 			}
-			buf.WriteString("`" + string(column.Name()) + "`")
+			buf.WriteString("`" + column.Name + "`")
 		}
 		buf.WriteString(")")
 	}
@@ -72,7 +72,7 @@ func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 				if j > 0 {
 					buf.WriteString(",")
 				}
-				buf.WriteString("`" + string(col.Name()) + "`")
+				buf.WriteString("`" + col.Name + "`")
 			}
 			buf.WriteString(")")
 		}
@@ -87,14 +87,14 @@ func GenerateCreateTable(table Table, maxVarcharLength uint16) string {
 				if j > 0 {
 					buf.WriteString(",")
 				}
-				buf.WriteString("`" + string(col.Name()) + "`")
+				buf.WriteString("`" + col.Name + "`")
 			}
 			buf.WriteString(") REFERENCES `" + fk.foreignTable + "` (")
 			for j, col := range fk.columns {
 				if j > 0 {
 					buf.WriteString(",")
 				}
-				buf.WriteString("`" + fk.localToForeignColumn[string(col.Name())] + "`")
+				buf.WriteString("`" + fk.localToForeignColumn[col.Name] + "`")
 			}
 			buf.WriteString(")")
 			buf.WriteString(" ON DELETE CASCADE ON UPDATE CASCADE")

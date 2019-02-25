@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -95,7 +95,7 @@ func TestGetFastPlanStageTest(t *testing.T) {
 		dbName:     "foo",
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
-		tableType:  catalog.TableType("view"),
+		tableType:  "view",
 	}
 
 	// First successfully fastPlan optimizable tests on server version > 3.2
@@ -331,7 +331,7 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		dbName:     "foo",
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
-		tableType:  catalog.TableType("view"),
+		tableType:  "view",
 		pipeline: bsonutil.NewDArray(
 			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("foo", 1)))),
 		),
@@ -353,7 +353,7 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		dbName:     "foo",
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
-		tableType:  catalog.TableType("view"),
+		tableType:  "view",
 		pipeline: bsonutil.NewDArray(
 			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("foo", 1)))),
 		),
@@ -363,7 +363,7 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		dbName:     "foo",
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
-		tableType:  catalog.TableType("view"),
+		tableType:  "view",
 		pipeline: bsonutil.NewDArray(
 			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("bar", 2)))),
 		),
@@ -415,10 +415,10 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 
 	runTests := func(tests []test) {
 		for _, testCase := range tests {
-			fakeColumns := make(Columns, len(testCase.inputFields))
+			fakeColumns := make(results.Columns, len(testCase.inputFields))
 			for i := range fakeColumns {
-				fakeColumns[i] = &Column{
-					ColumnType: ColumnType{
+				fakeColumns[i] = &results.Column{
+					ColumnType: results.ColumnType{
 						EvalType: testCase.inputEvalType,
 					},
 				}
@@ -625,8 +625,8 @@ func TestEvaluateComparison(t *testing.T) {
 func TestValidateArgs(t *testing.T) {
 	intOne := NewSQLValueExpr(values.NewSQLInt64(values.MongoSQLValueKind, 1))
 	strOne := NewSQLValueExpr(values.NewSQLVarchar(values.MongoSQLValueKind, "1"))
-	intCol := NewColumn(1, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false)
-	strCol := NewColumn(1, "", "", "", "", "", "", types.EvalString, schema.MongoString, false)
+	intCol := results.NewColumn(1, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false)
+	strCol := results.NewColumn(1, "", "", "", "", "", "", types.EvalString, schema.MongoString, false)
 
 	tests := []struct {
 		name        string
@@ -2109,14 +2109,14 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
 	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
 
-	intCol := NewColumn(0, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false)
-	uintCol := NewColumn(0, "", "", "", "", "", "", types.EvalUint64, schema.MongoInt, false)
-	floatCol := NewColumn(0, "", "", "", "", "", "", types.EvalDouble, schema.MongoInt, false)
-	decimalCol := NewColumn(0, "", "", "", "", "", "", types.EvalDecimal128, schema.MongoInt, false)
-	boolCol := NewColumn(0, "", "", "", "", "", "", types.EvalBoolean, schema.MongoInt, false)
-	strCol := NewColumn(0, "", "", "", "", "", "", types.EvalString, schema.MongoInt, false)
-	dateCol := NewColumn(0, "", "", "", "", "", "", types.EvalDate, schema.MongoInt, false)
-	datetimeCol := NewColumn(0, "", "", "", "", "", "", types.EvalDatetime, schema.MongoInt, false)
+	intCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false)
+	uintCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalUint64, schema.MongoInt, false)
+	floatCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDouble, schema.MongoInt, false)
+	decimalCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDecimal128, schema.MongoInt, false)
+	boolCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalBoolean, schema.MongoInt, false)
+	strCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalString, schema.MongoInt, false)
+	dateCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDate, schema.MongoInt, false)
+	datetimeCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDatetime, schema.MongoInt, false)
 
 	intPC := ProjectedColumn{intCol, intVal}
 	uintPC := ProjectedColumn{uintCol, uintVal}

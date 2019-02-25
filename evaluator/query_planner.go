@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -38,7 +39,7 @@ type queryPlanBuilder struct {
 func (b *queryPlanBuilder) build() PlanStage {
 
 	if b.hasLimit && b.rowcount == 0 {
-		var columns []*Column
+		var columns []*results.Column
 		for _, projectedColumn := range b.project {
 			columns = append(columns, projectedColumn.Column)
 		}
@@ -308,15 +309,15 @@ func (b *queryPlanBuilder) includeWhere(where *parser.Where) error {
 func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColumn {
 	dbName := getDatabaseName(expr)
 	pc := &ProjectedColumn{
-		Column: NewColumn(b.selectID, "", "", dbName, "", "", "", types.EvalPolymorphic, schema.MongoNone, false),
+		Column: results.NewColumn(b.selectID, "", "", dbName, "", "", "", types.EvalPolymorphic, schema.MongoNone, false),
 		Expr:   expr,
 	}
 
 	if sqlCol, ok := expr.(SQLColumnExpr); ok {
 		if c := b.algebrizer.findSQLColumn(sqlCol); c != nil {
-			pc = c.projectWithExpr(expr)
+			pc = newProjectedColumnFromColumnWithExpr(c, expr)
 		} else {
-			pc.Column = NewColumn(sqlCol.selectID,
+			pc.Column = results.NewColumn(sqlCol.selectID,
 				sqlCol.tableName,
 				"",
 				sqlCol.databaseName,
@@ -329,7 +330,7 @@ func (b *queryPlanBuilder) projectedColumnFromExpr(expr SQLExpr) *ProjectedColum
 			)
 		}
 	} else {
-		pc.Column = NewColumn(b.selectID,
+		pc.Column = results.NewColumn(b.selectID,
 			"",
 			"",
 			dbName,

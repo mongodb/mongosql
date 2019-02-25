@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
@@ -15,7 +16,7 @@ type RowGeneratorStage struct {
 	source PlanStage
 	// rowCountColumn is the column that RowGeneratorStage needs to store
 	// for lookup in Next function.
-	rowCountColumn *Column
+	rowCountColumn *results.Column
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -34,7 +35,7 @@ func (rg *RowGeneratorStage) ReplaceChild(i int, n Node) {
 }
 
 // NewRowGeneratorStage creates a new RowGeneratorStage.
-func NewRowGeneratorStage(source PlanStage, rowCountColumn *Column) *RowGeneratorStage {
+func NewRowGeneratorStage(source PlanStage, rowCountColumn *results.Column) *RowGeneratorStage {
 	return &RowGeneratorStage{
 		source:         source,
 		rowCountColumn: rowCountColumn,
@@ -57,8 +58,8 @@ func (rg *RowGeneratorStage) Open(ctx context.Context, cfg *ExecutionConfig, st 
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (rg *RowGeneratorStage) Columns() (columns []*Column) {
-	return []*Column{}
+func (rg *RowGeneratorStage) Columns() (columns []*results.Column) {
+	return []*results.Column{}
 }
 
 // Collation returns the collation to use for comparisons.
@@ -69,7 +70,7 @@ func (rg *RowGeneratorStage) Collation() *collation.Collation {
 // RowGeneratorIter is used to iterate over data that it is getting from its iterator.
 type rowGeneratorIter struct {
 	memoryMonitor  memory.Monitor
-	rowCountColumn *Column
+	rowCountColumn *results.Column
 	source         RowIter
 	err            error
 	currentRow     uint64
@@ -77,7 +78,7 @@ type rowGeneratorIter struct {
 }
 
 // Next calls its source's next function to get the number of rows to generate.
-func (rgIter *rowGeneratorIter) Next(ctx context.Context, row *Row) bool {
+func (rgIter *rowGeneratorIter) Next(ctx context.Context, row *results.Row) bool {
 	for rgIter.currentRow >= rgIter.totalRows {
 		if !rgIter.source.Next(ctx, row) {
 			return false
@@ -114,5 +115,5 @@ func (rgIter *rowGeneratorIter) Err() error {
 }
 
 func (rg *RowGeneratorStage) clone() PlanStage {
-	return NewRowGeneratorStage(rg.source.clone(), rg.rowCountColumn.clone())
+	return NewRowGeneratorStage(rg.source.clone(), rg.rowCountColumn.Clone())
 }

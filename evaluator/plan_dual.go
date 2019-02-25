@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // A DualStage simulates a source for queries that don't require fields.
@@ -39,7 +40,7 @@ func (d *DualStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionStat
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (di *DualIter) Next(_ context.Context, _ *Row) bool {
+func (di *DualIter) Next(_ context.Context, _ *results.Row) bool {
 	if !di.called {
 		di.called = true
 		return true
@@ -48,8 +49,8 @@ func (di *DualIter) Next(_ context.Context, _ *Row) bool {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (d *DualStage) Columns() (columns []*Column) {
-	return []*Column{}
+func (d *DualStage) Columns() (columns []*results.Column) {
+	return []*results.Column{}
 }
 
 // Collation returns the collation to use for comparisons.

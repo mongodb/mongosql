@@ -588,7 +588,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 
 					req.Nil(err, "failed to algebrize query")
 
-					eCfg := createExecutionCfg("test_db_name", 0, versionByStr[version])
+					eCfg := createExecutionCfg("test_db_name", 0, versionByStr[version], MySQLValueKind)
 					oCfg := createOptimizerCfg(collation.Default, eCfg)
 					optimizedPlan, err := OptimizePlan(context.Background(), oCfg, plan)
 					req.Nil(err, "failed to optimize plan")
@@ -830,7 +830,7 @@ func TestPushdownSharding(t *testing.T) {
 
 			version := []uint8{3, 4, 0}
 
-			eCfg := createExecutionCfg("test_db", 0, version)
+			eCfg := createExecutionCfg("test_db", 0, version, MySQLValueKind)
 			oCfg := createOptimizerCfg(collation.Default, eCfg)
 			optimized, err := OptimizePlan(context.Background(), oCfg, plan)
 			req.NoError(err)
@@ -1110,7 +1110,7 @@ func TestOptimizeEvaluations(t *testing.T) {
 				e, err := GetSQLExpr(schema, dbOne, tableTwoName, tst.sql)
 				req.NoError(err)
 
-				eCfg := createTestExecutionCfg()
+				eCfg := createTestExecutionCfg(MySQLValueKind)
 				oCfg := createOptimizerCfg(collation.Default, eCfg)
 				result, err := OptimizeEvaluations(oCfg, e)
 				req.NoError(err)

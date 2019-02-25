@@ -4,17 +4,18 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // An EmptyStage is for when we find that 0 rows are going to be returned: we don't
 // need to hit MongoDB to get back nothing.
 type EmptyStage struct {
-	columns   []*Column
+	columns   []*results.Column
 	collation *collation.Collation
 }
 
 // NewEmptyStage creates a new Empty stage.
-func NewEmptyStage(columns []*Column, collation *collation.Collation) *EmptyStage {
+func NewEmptyStage(columns []*results.Column, collation *collation.Collation) *EmptyStage {
 	return &EmptyStage{columns, collation}
 }
 
@@ -38,7 +39,7 @@ func (*EmptyStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionState
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (es *EmptyStage) Columns() []*Column {
+func (es *EmptyStage) Columns() []*results.Column {
 	return es.columns
 }
 
@@ -50,7 +51,7 @@ func (es *EmptyStage) Collation() *collation.Collation {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (*EmptyIter) Next(_ context.Context, _ *Row) bool {
+func (*EmptyIter) Next(_ context.Context, _ *results.Row) bool {
 	return false
 }
 

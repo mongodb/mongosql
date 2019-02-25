@@ -397,14 +397,14 @@ type SystemLog struct {
 	LogRotate log.RotationStrategy
 	Path      string
 	Quiet     bool
-	Verbosity int
+	Verbosity int64
 }
 
 func (cfg SystemLog) Level() int64 {
 	if cfg.Quiet {
 		return -1
 	}
-	return int64(cfg.Verbosity)
+	return cfg.Verbosity
 }
 
 // Runtime holds runtime configuration.
@@ -422,7 +422,7 @@ type RuntimeMemory struct {
 // Schema holds schema configuration.
 type Schema struct {
 	Path             string
-	MaxVarcharLength uint16
+	MaxVarcharLength uint64
 	Sample           SchemaSampleOptions `config:"sample"`
 }
 

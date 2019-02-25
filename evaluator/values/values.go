@@ -67,6 +67,22 @@ type SQLValue interface {
 	Kind() SQLValueKind
 	// Size returns the size of this SQLValue in bytes.
 	Size() uint64
+	// CloneWithKind clones the SQLValue with the specified SQLValueKind.
+	CloneWithKind(SQLValueKind) SQLValue
+}
+
+// NamedSQLValue attaches a name to a values.SQLValue, useful for quickly initialization row values.
+type NamedSQLValue struct {
+	Name  string
+	Value SQLValue
+}
+
+// NewNamedSQLValue creates a new Named SQLValue.
+func NewNamedSQLValue(name string, value SQLValue) NamedSQLValue {
+	return NamedSQLValue{
+		Name:  name,
+		Value: value,
+	}
 }
 
 // SQLValueKind is an enum type representing the set of type conversion semantics
@@ -75,15 +91,16 @@ type SQLValueKind byte
 
 // These are the possible values for SQLValueKind.
 const (
-	NoSQLValueKind    SQLValueKind = 0x0
-	MongoSQLValueKind SQLValueKind = 0x1
-	MySQLValueKind    SQLValueKind = 0x2
+	NoSQLValueKind       SQLValueKind = 0x0
+	MongoSQLValueKind    SQLValueKind = 0x1
+	MySQLValueKind       SQLValueKind = 0x2
+	VariableSQLValueKind SQLValueKind = 0x3
 )
 
 // AssertValid panics if the SQLValueKind is unknown, and does nothing otherwise.
 func (k SQLValueKind) AssertValid() {
 	switch k {
-	case MySQLValueKind, MongoSQLValueKind:
+	case MySQLValueKind, MongoSQLValueKind, VariableSQLValueKind:
 		// valid
 	default:
 		panic(fmt.Errorf("AssertValid invalid SQLValueKind %x", k))
@@ -104,6 +121,8 @@ func NewSQLNull(kind SQLValueKind) SQLNull {
 		return MySQLNull{base}
 	case MongoSQLValueKind:
 		return MongoSQLNull{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLBool unknown SQLValueKind %x", kind))
 	}
@@ -117,6 +136,8 @@ func NewSQLBool(kind SQLValueKind, val bool) SQLBool {
 		return MySQLBool{base}
 	case MongoSQLValueKind:
 		return MongoSQLBool{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLBool unknown SQLValueKind %x", kind))
 	}
@@ -136,6 +157,8 @@ func NewSQLDate(kind SQLValueKind, val time.Time) SQLDate {
 		return MySQLDate{base}
 	case MongoSQLValueKind:
 		return MongoSQLDate{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLDate unknown SQLValueKind %x", kind))
 	}
@@ -155,6 +178,8 @@ func NewSQLDecimal128(kind SQLValueKind, val decimal.Decimal) SQLDecimal128 {
 		return MySQLDecimal128{base}
 	case MongoSQLValueKind:
 		return MongoSQLDecimal128{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLDecimal128 unknown SQLValueKind %x", kind))
 	}
@@ -174,6 +199,8 @@ func NewSQLFloat(kind SQLValueKind, val float64) SQLFloat {
 		return MySQLFloat{base}
 	case MongoSQLValueKind:
 		return MongoSQLFloat{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLFloat unknown SQLValueKind %x", kind))
 	}
@@ -204,6 +231,8 @@ func NewSQLInt64(kind SQLValueKind, val int64) SQLInt64 {
 		return MySQLInt64{base}
 	case MongoSQLValueKind:
 		return MongoSQLInt64{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLInt64 unknown SQLValueKind %x", kind))
 	}
@@ -223,6 +252,8 @@ func NewSQLObjectID(kind SQLValueKind, val string) SQLObjectID {
 		return MySQLObjectID{base}
 	case MongoSQLValueKind:
 		return MongoSQLObjectID{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLObjectID unknown SQLValueKind %x", kind))
 	}
@@ -253,6 +284,8 @@ func NewSQLUint64(kind SQLValueKind, val uint64) SQLUint64 {
 		return MySQLUint64{base}
 	case MongoSQLValueKind:
 		return MongoSQLUint64{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLUint64 unknown SQLValueKind %x", kind))
 	}
@@ -272,6 +305,8 @@ func NewSQLTimestamp(kind SQLValueKind, val time.Time) SQLTimestamp {
 		return MySQLTimestamp{base}
 	case MongoSQLValueKind:
 		return MongoSQLTimestamp{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLTimestamp unknown SQLValueKind %x", kind))
 	}
@@ -291,6 +326,8 @@ func NewSQLVarchar(kind SQLValueKind, val string) SQLVarchar {
 		return MySQLVarchar{base}
 	case MongoSQLValueKind:
 		return MongoSQLVarchar{base}
+	case VariableSQLValueKind:
+		return base
 	default:
 		panic(fmt.Errorf("newSQLVarchar unknown SQLValueKind %x", kind))
 	}

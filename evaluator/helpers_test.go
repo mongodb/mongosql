@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -43,7 +44,7 @@ func (*mockCmdHandler) Resample(context.Context) error {
 func (*mockCmdHandler) RotateLogs() error {
 	panic("unimplemented")
 }
-func (*mockCmdHandler) Set(variable.Name, variable.Scope, variable.Kind, interface{}) error {
+func (*mockCmdHandler) Set(variable.Name, variable.Scope, variable.Kind, values.SQLValue) error {
 	panic("unimplemented")
 }
 func (*mockCmdHandler) SetDatabase(db string) error {
@@ -57,8 +58,8 @@ func createAlgebrizerCfg(dbName string, cat catalog.Catalog) *evaluator.Algebriz
 	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat)
 }
 
-func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8) *evaluator.ExecutionConfig {
-	return evaluator.CreateTestExecutionCfg(dbName, maxStageSize, version)
+func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sqlValueKind values.SQLValueKind) *evaluator.ExecutionConfig {
+	return evaluator.CreateTestExecutionCfg(dbName, maxStageSize, version, sqlValueKind)
 }
 
 func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon memory.Monitor) *evaluator.ExecutionConfig {
@@ -69,8 +70,9 @@ func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, m
 	)
 }
 
-func createTestExecutionCfg() *evaluator.ExecutionConfig {
-	return createExecutionCfg("evaluator_unit_test_dbname", 0, []uint8{4, 0, 0})
+// nolint: unparam
+func createTestExecutionCfg(sqlValueKind values.SQLValueKind) *evaluator.ExecutionConfig {
+	return createExecutionCfg("evaluator_unit_test_dbname", 0, []uint8{4, 0, 0}, sqlValueKind)
 }
 
 func createOptimizerCfg(c *collation.Collation, eCfg *evaluator.ExecutionConfig) *evaluator.OptimizerConfig {
@@ -89,11 +91,11 @@ func createPushdownCfg(version []uint8) *evaluator.PushdownConfig {
 // the corresponding values.
 // nolint: unparam
 func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) (
-	[]evaluator.Value, error) {
-	vs := []evaluator.Value{}
+	[]results.RowValue, error) {
+	vs := []results.RowValue{}
 	for _, v := range document {
-		value := values.GoValueToSQLValue(values.MySQLValueKind, v.Value)
-		vs = append(vs, evaluator.NewValue(selectID, databaseName, tableName, v.Name,
+		value := evaluator.GoValueToSQLValue(values.MySQLValueKind, v.Value)
+		vs = append(vs, results.NewRowValue(selectID, databaseName, tableName, v.Name,
 			value))
 	}
 	return vs, nil
@@ -114,22 +116,24 @@ func createAllProjectedColumnsFromSource(selectID int, source evaluator.PlanStag
 	return results
 }
 
-func createProjectedColumnFromColumn(newSelectID int, column *evaluator.Column, projectedTableName,
+func createProjectedColumnFromColumn(newSelectID int, column *results.Column, projectedTableName,
 	projectedColumnName string) evaluator.ProjectedColumn {
 	return evaluator.ProjectedColumn{
-		Column: &evaluator.Column{
+		Column: &results.Column{
 			SelectID:      newSelectID,
 			Name:          projectedColumnName,
 			OriginalName:  column.OriginalName,
 			Database:      column.Database,
 			Table:         projectedTableName,
 			OriginalTable: column.OriginalTable,
-			ColumnType: evaluator.ColumnType{
+			ColumnType: results.ColumnType{
 				EvalType:    column.EvalType,
 				MongoType:   column.MongoType,
 				UUIDSubType: types.EvalBinary,
 			},
 			PrimaryKey: column.PrimaryKey,
+			Comments:   column.Comments,
+			MongoName:  column.MongoName,
 		},
 		Expr: evaluator.NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
 			column.Name, column.EvalType, column.MongoType),
@@ -199,4 +203,24 @@ func createFieldNameLookup(db *schema.Database) evaluator.FieldNameLookup {
 
 		return column.MongoName(), true
 	}
+}
+
+// This function sets all unimportant fields to default values so
+// that we can make algebrizer equality asserts pass.
+func unsetUnimportantFields(p evaluator.PlanStage) evaluator.PlanStage {
+	var aux func(n evaluator.Node) evaluator.Node
+	aux = func(n evaluator.Node) evaluator.Node {
+		switch typedN := n.(type) {
+		case *evaluator.ProjectStage:
+			for _, projectedColumn := range typedN.ProjectedColumns() {
+				projectedColumn.Column.Comments = ""
+				projectedColumn.Column.MongoName = ""
+			}
+		}
+		for i, child := range n.Children() {
+			n.ReplaceChild(i, aux(child))
+		}
+		return n
+	}
+	return aux(p.(evaluator.Node)).(evaluator.PlanStage)
 }

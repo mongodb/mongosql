@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
@@ -174,7 +175,7 @@ type CommandHandler interface {
 	// RotateLogs rotates the log file.
 	RotateLogs() error
 	// Set sets the value of the specified variable to the provided value.
-	Set(variable.Name, variable.Scope, variable.Kind, interface{}) error
+	Set(variable.Name, variable.Scope, variable.Kind, values.SQLValue) error
 	// SetDatabase sets the current database.
 	SetDatabase(db string) error
 	// SetScopeAuthorized returns an error if the user is not authorized to
@@ -190,11 +191,11 @@ type ExecutionState struct {
 	// should be used to resolve SQLColumnExprs to values.
 	// There will usually be just one row at a time, but there may be multiple
 	// rows when a join or union is involved.
-	rows []*Row
+	rows []*results.Row
 	// When evaluating a correlated subquery expression, correlatedRows
 	// contains the rows from parent queries that should be used to
 	// resolve correlated SQLColumnExprs to values.
-	correlatedRows []*Row
+	correlatedRows []*results.Row
 	// Collation may differ from table to table. This field specifies which
 	// collation should be used during evaluation.
 	collation *collation.Collation
@@ -206,7 +207,7 @@ type ExecutionState struct {
 // NewExecutionState returns a new ExecutionState initialized with default values.
 func NewExecutionState() *ExecutionState {
 	return &ExecutionState{
-		rows:        []*Row{},
+		rows:        []*results.Row{},
 		randomExprs: make(map[uint64]*rand.Rand),
 		collation:   collation.Default,
 	}
@@ -243,11 +244,11 @@ func (st *ExecutionState) RandomWithSeed(id uint64, seed int64) *rand.Rand {
 // SubqueryState returns a new ExecutionState with rows scoped
 // for executing a correlated subquery.
 func (st *ExecutionState) SubqueryState() *ExecutionState {
-	cRows := []*Row{}
+	cRows := []*results.Row{}
 	cRows = append(cRows, st.rows...)
 	cRows = append(cRows, st.correlatedRows...)
 	return &ExecutionState{
-		rows:           []*Row{},
+		rows:           []*results.Row{},
 		correlatedRows: cRows,
 		randomExprs:    st.randomExprs,
 		collation:      st.collation,
@@ -265,7 +266,7 @@ func (st *ExecutionState) WithCollation(c *collation.Collation) *ExecutionState 
 }
 
 // WithRows returns a new ExecutionState with the provided rows.
-func (st *ExecutionState) WithRows(rows ...*Row) *ExecutionState {
+func (st *ExecutionState) WithRows(rows ...*results.Row) *ExecutionState {
 	return &ExecutionState{
 		rows:           rows,
 		randomExprs:    st.randomExprs,

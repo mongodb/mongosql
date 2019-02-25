@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/types"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -17,13 +18,13 @@ import (
 func TestGroupByPlanStage(t *testing.T) {
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(MySQLValueKind)
 	execState := NewExecutionState()
 
 	runTest := func(t *testing.T,
 		projectedColumns ProjectedColumns,
 		keys []SQLExpr,
-		rows []bson.D, expectedRows []Values) {
+		rows []bson.D, expectedRows []RowValues) {
 
 		req := require.New(t)
 
@@ -92,7 +93,7 @@ func TestGroupByPlanStage(t *testing.T) {
 	keys := []SQLExpr{NewSQLColumnExpr(1, BSONSourceDB,
 		tableOneName, "a", EvalString, schema.MongoString)}
 
-	expected := []Values{
+	expected := []RowValues{
 		{{SelectID: 1, Database: BSONSourceDB, Table: tableOneName, Name: "a",
 			Data: NewSQLVarchar(MySQLValueKind, "a")}, {SelectID: 1,
 			Database: BSONSourceDB, Table: "", Name: "sum(b)",

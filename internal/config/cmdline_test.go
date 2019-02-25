@@ -102,10 +102,10 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, string(cfg.SystemLog.LogRotate), string(log.Reopen), "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "temp", "cfg.SystemLog.Quiet")
 	testBool(t, cfg.SystemLog.Quiet, true, "cfg.SystemLog.Quiet")
-	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
+	testInt64(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "path-to-file", "cfg.Schema.Path")
-	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
+	testUint64(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 
 	testStringSlice(
 		t,
@@ -392,7 +392,7 @@ func TestVerbosity_Valid(t *testing.T) {
 		if err != nil {
 			t.Fatalf("got err: \n\t%v\n\tduring call to ParseArgs", err)
 		}
-		testInt(t, cfg.SystemLog.Verbosity, test.level, "cfg.SystemLog.Verbosity")
+		testInt64(t, cfg.SystemLog.Verbosity, int64(test.level), "cfg.SystemLog.Verbosity")
 	}
 }
 

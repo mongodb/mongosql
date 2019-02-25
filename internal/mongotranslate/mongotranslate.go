@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	sqlLgr "github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
@@ -61,14 +62,20 @@ func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion string, showInferredSchem
 // getCatalog copies the inferred schema into a Catalog and returns it.
 func getCatalog(mdbVersion string, is InferredSchema) (catalog.Catalog, error) {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.SetSystemVariable(variable.MongoDBVersion, mdbVersion)
-	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
-	gbl.SetSystemVariable(variable.TypeConversionMode, variable.MongoSQLTypeConversionMode)
+	gbl.SetSystemVariable(variable.MongoDBVersion,
+		values.NewSQLVarchar(values.VariableSQLValueKind, mdbVersion))
+	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode,
+		values.NewSQLVarchar(values.VariableSQLValueKind, variable.OffPolymorphicTypeConversionMode))
+	gbl.SetSystemVariable(variable.TypeConversionMode,
+		values.NewSQLVarchar(values.VariableSQLValueKind, variable.MongoSQLTypeConversionMode))
 
 	vars := variable.NewSessionContainer(gbl)
-	vars.SetSystemVariable(variable.MongoDBVersion, mdbVersion)
-	vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
-	vars.SetSystemVariable(variable.TypeConversionMode, variable.MongoSQLTypeConversionMode)
+	vars.SetSystemVariable(variable.MongoDBVersion,
+		values.NewSQLVarchar(values.VariableSQLValueKind, mdbVersion))
+	vars.SetSystemVariable(variable.PolymorphicTypeConversionMode,
+		values.NewSQLVarchar(values.VariableSQLValueKind, variable.OffPolymorphicTypeConversionMode))
+	vars.SetSystemVariable(variable.TypeConversionMode,
+		values.NewSQLVarchar(values.VariableSQLValueKind, variable.MongoSQLTypeConversionMode))
 
 	ctlg := catalog.New("", vars)
 
@@ -97,7 +104,7 @@ func getCatalog(mdbVersion string, is InferredSchema) (catalog.Catalog, error) {
 				table.AddColumn(lgr, column, false)
 			}
 
-			err = db.AddTable(catalog.NewMongoTable(table, catalog.BaseTable, collation.Default))
+			err = db.AddTable(catalog.NewMongoTable(string(db.Name()), table, catalog.BaseTable, collation.Default))
 			if err != nil {
 				return nil, err
 			}

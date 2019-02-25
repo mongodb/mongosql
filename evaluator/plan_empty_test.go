@@ -6,7 +6,9 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -15,14 +17,14 @@ func TestEmptyOperator(t *testing.T) {
 	req := require.New(t)
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(values.MySQLValueKind)
 	execState := NewExecutionState()
 
-	columns := []*Column{
+	columns := []*results.Column{
 		{
 			Table: "foo",
 			Name:  "a",
-			ColumnType: ColumnType{
+			ColumnType: results.ColumnType{
 				EvalType:  EvalInt64,
 				MongoType: schema.MongoInt,
 			},

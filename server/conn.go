@@ -16,6 +16,9 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -592,7 +595,7 @@ func (c *conn) readHandshakeResponse() error {
 
 				for _, name := range names {
 					err = c.variables.Set(name, variable.SessionScope, variable.SystemKind,
-						string(col.CharsetName))
+						values.NewSQLVarchar(values.VariableSQLValueKind, string(col.CharsetName)))
 					if err != nil {
 						break
 					}
@@ -694,7 +697,7 @@ func (c *conn) readHandshakeResponse() error {
 
 	if (c.capability & ClientInteractive) != 0 {
 		c.variables.SetSystemVariable(variable.WaitTimeoutSecs,
-			c.variables.GetInt64(variable.InteractiveTimeoutSecs))
+			values.NewSQLInt64(values.VariableSQLValueKind, c.variables.GetInt64(variable.InteractiveTimeoutSecs)))
 	}
 
 	if pos == len(data) {
@@ -923,9 +926,12 @@ func (c *conn) setStatusVariables() {
 	if c.mongoDBInfo.IsMongos() {
 		topology = "mongos"
 	}
-	sessionVariables.SetSystemVariable(variable.MongoDBGitVersion, c.mongoDBInfo.GitVersion)
-	sessionVariables.SetSystemVariable(variable.MongoDBTopology, topology)
-	sessionVariables.SetSystemVariable(variable.MongoDBVersion, c.mongoDBInfo.Version)
+	sessionVariables.SetSystemVariable(variable.MongoDBGitVersion,
+		values.NewSQLVarchar(values.VariableSQLValueKind, c.mongoDBInfo.GitVersion))
+	sessionVariables.SetSystemVariable(variable.MongoDBTopology,
+		values.NewSQLVarchar(values.VariableSQLValueKind, topology))
+	sessionVariables.SetSystemVariable(variable.MongoDBVersion,
+		values.NewSQLVarchar(values.VariableSQLValueKind, c.mongoDBInfo.Version))
 }
 
 // loadMongoDBInfo sets system variables that store information about MongoDB.
@@ -965,7 +971,8 @@ func (c *conn) useDB(dbName string) error {
 	}
 	c.currentDB = db
 	serverCollationName := string(c.variables.GetCollation(variable.CollationServer).Name)
-	c.variables.SetSystemVariable(variable.CollationDatabase, serverCollationName)
+	c.variables.SetSystemVariable(variable.CollationDatabase,
+		values.NewSQLVarchar(values.VariableSQLValueKind, serverCollationName))
 	c.process.SetDB(string(db.Name()))
 	return nil
 }
@@ -1005,8 +1012,23 @@ func (c *conn) getFormattedAddress() string {
 // updateWithProcessListTable adds the PROCESSLIST table to the catalog after the latter has
 // been created. This function resides here due to dependency constraints.
 func (c *conn) updateWithProcessListTable(d catalog.Database) error {
-	t := catalog.NewDynamicTable("PROCESSLIST", catalog.SystemView, func() []*catalog.DataRow {
-		var rows []*catalog.DataRow
+	intv := func(name string, i int64) values.NamedSQLValue {
+		return values.NewNamedSQLValue(name, values.NewSQLInt64(values.MongoSQLValueKind, i))
+	}
+	strv := func(name, s string) values.NamedSQLValue {
+		return values.NewNamedSQLValue(name, values.NewSQLVarchar(values.MongoSQLValueKind, s))
+	}
+	pl := "PROCESSLIST"
+	id := "ID"
+	user := "USER"
+	host := "HOST"
+	db := "DB"
+	command := "COMMAND"
+	time := "TIME"
+	state := "STATE"
+	info := "INFO"
+	t := catalog.NewDynamicTable(pl, catalog.SystemView, func() results.Rows {
+		var rows results.Rows
 
 		s := c.server
 
@@ -1026,24 +1048,32 @@ func (c *conn) updateWithProcessListTable(d catalog.Database) error {
 			// user has the `inprog` privilege, or the user is the admin user.
 			p.lock.RLock()
 			if !c.server.cfg.Security.Enabled || c.canListProcess(p.user) {
-				rows = append(rows, catalog.NewDataRow(p.id, p.user,
-					p.host, p.db, p.command,
-					p.ComputeUptime(), p.state, p.info))
+				rows = append(rows, results.NewNamedRow(
+					"information_schema",
+					pl,
+					intv(id, int64(p.id)),
+					strv(user, p.user),
+					strv(host, p.host),
+					strv(db, p.db),
+					strv(command, p.command),
+					intv(time, int64(p.ComputeUptime())),
+					strv(state, p.state),
+					strv(info, p.info)))
 			}
 			p.lock.RUnlock()
 		}
 		return rows
 	})
 
-	t.AddColumns(
-		"ID", string(schema.SQLInt),
-		"USER", string(schema.SQLVarchar),
-		"HOST", string(schema.SQLVarchar),
-		"DB", string(schema.SQLVarchar),
-		"COMMAND", string(schema.SQLVarchar),
-		"TIME", string(schema.SQLInt),
-		"STATE", string(schema.SQLVarchar),
-		"INFO", string(schema.SQLVarchar),
+	t.AddColumns(pl,
+		catalog.NewDynamicColumnDeclaration(id, types.EvalInt64),
+		catalog.NewDynamicColumnDeclaration(user, types.EvalString),
+		catalog.NewDynamicColumnDeclaration(host, types.EvalString),
+		catalog.NewDynamicColumnDeclaration(db, types.EvalString),
+		catalog.NewDynamicColumnDeclaration(command, types.EvalString),
+		catalog.NewDynamicColumnDeclaration(time, types.EvalInt64),
+		catalog.NewDynamicColumnDeclaration(state, types.EvalString),
+		catalog.NewDynamicColumnDeclaration(info, types.EvalString),
 	)
 
 	return d.AddTable(t)

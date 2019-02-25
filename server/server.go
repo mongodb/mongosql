@@ -15,6 +15,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/evaluator/metrics"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
@@ -47,11 +48,11 @@ func New(ctx context.Context, cnl context.CancelFunc, sch *schema.Schema, sp *mo
 	}
 
 	s.variables.AllocatedMemory = s.memoryMonitor.Allocated
-	s.variables.SetSystemVariable(variable.SampleSize, s.cfg.Schema.Sample.Size)
+	s.variables.SetSystemVariable(variable.SampleSize,
+		values.NewSQLInt64(values.VariableSQLValueKind, s.cfg.Schema.Sample.Size))
 	s.variables.SetSystemVariable(
 		variable.SampleRefreshIntervalSecs,
-		s.cfg.Schema.Sample.RefreshIntervalSecs,
-	)
+		values.NewSQLInt64(values.VariableSQLValueKind, s.cfg.Schema.Sample.RefreshIntervalSecs))
 
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -275,9 +276,13 @@ func (s *Server) loadMongoDBInfo(ctx context.Context) error {
 		topology = "mongos"
 	}
 
-	s.variables.SetSystemVariable(variable.MongoDBGitVersion, i.GitVersion)
-	s.variables.SetSystemVariable(variable.MongoDBTopology, topology)
-	s.variables.SetSystemVariable(variable.MongoDBVersion, i.Version)
+	s.variables.SetSystemVariable(variable.MongoDBGitVersion,
+		values.NewSQLVarchar(values.VariableSQLValueKind, i.GitVersion))
+
+	s.variables.SetSystemVariable(variable.MongoDBTopology,
+		values.NewSQLVarchar(values.VariableSQLValueKind, topology))
+	s.variables.SetSystemVariable(variable.MongoDBVersion,
+		values.NewSQLVarchar(values.VariableSQLValueKind, i.Version))
 	return nil
 }
 

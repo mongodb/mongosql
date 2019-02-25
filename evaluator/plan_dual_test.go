@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/stretchr/testify/require"
 )
 
@@ -12,7 +14,7 @@ func TestDualOperator(t *testing.T) {
 	req := require.New(t)
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(values.MySQLValueKind)
 	execState := evaluator.NewExecutionState()
 
 	// dual operators should only ever return one row with no data
@@ -22,7 +24,7 @@ func TestDualOperator(t *testing.T) {
 	iter, err := operator.Open(bgCtx, execCfg, execState)
 	req.NoError(err, "failed to open DualStage")
 
-	row := &evaluator.Row{}
+	row := &results.Row{}
 
 	i := 0
 	for iter.Next(bgCtx, row) {

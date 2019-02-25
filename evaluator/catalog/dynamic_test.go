@@ -4,113 +4,41 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
-	"github.com/10gen/sqlproxy/schema"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
+	"github.com/stretchr/testify/require"
 )
 
-func TestDynamicTable(t *testing.T) {
-	Convey("Subject: DynamicTable", t, func() {
-		t := catalog.NewDynamicTable("foo", catalog.BaseTable, func() []*catalog.DataRow {
-			var rows []*catalog.DataRow
-			for i := 0; i < 3; i++ {
-				rows = append(rows, catalog.NewDataRow(i, i+1))
-			}
-			return rows
-		})
+func TestDynamic(t *testing.T) {
+	req := require.New(t)
 
-		Convey("NewDynamicTable", func() {
-			So(string(t.Name()), ShouldEqual, "foo")
-			So(len(t.Columns()), ShouldEqual, 0)
-		})
-
-		Convey("AddColumn", func() {
-			Convey("Should add the column if it doesn't already exist", func() {
-				_, err := t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
-				So(err, ShouldBeNil)
-				So(len(t.Columns()), ShouldEqual, 1)
-			})
-
-			Convey("Should return an error when an existing column has the same name", func() {
-				_, err := t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
-				So(err, ShouldBeNil)
-
-				_, err = t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
-				So(err, ShouldNotBeNil)
-
-				_, err = t.AddColumn("ID", catalog.SQLType(schema.SQLVarchar))
-				So(err, ShouldNotBeNil)
-			})
-		})
-
-		Convey("Column", func() {
-			_, err := t.AddColumn("id", catalog.SQLType(schema.SQLVarchar))
-			So(err, ShouldBeNil)
-
-			Convey("Should return an error if the column doesn't exist", func() {
-				_, err := t.Column("blah")
-				So(err, ShouldNotBeNil)
-			})
-
-			Convey("Should return the column when it exists", func() {
-				c, err := t.Column("id")
-				So(err, ShouldBeNil)
-				So(c, ShouldNotBeNil)
-				So(string(c.Name()), ShouldEqual, "id")
-
-				c, err = t.Column("ID")
-				So(err, ShouldBeNil)
-				So(c, ShouldNotBeNil)
-				So(string(c.Name()), ShouldEqual, "id")
-			})
-		})
-
-		Convey("Columns", func() {
-			_, err := t.AddColumn("one", catalog.SQLType(schema.SQLVarchar))
-			So(err, ShouldBeNil)
-
-			_, err = t.AddColumn("two", catalog.SQLType(schema.SQLVarchar))
-			So(err, ShouldBeNil)
-
-			_, err = t.AddColumn("three", catalog.SQLType(schema.SQLVarchar))
-			So(err, ShouldBeNil)
-
-			So(len(t.Columns()), ShouldEqual, 3)
-		})
-
-		Convey("OpenReader", func() {
-			_, err := t.AddColumn("one", catalog.SQLType(schema.SQLInt))
-			So(err, ShouldBeNil)
-
-			_, err = t.AddColumn("two", catalog.SQLType(schema.SQLInt))
-			So(err, ShouldBeNil)
-
-			reader, err := t.OpenReader()
-			So(reader, ShouldNotBeNil)
-			So(err, ShouldBeNil)
-
-			row := &catalog.DataRow{}
-			f, err := reader.Next(row)
-			So(f, ShouldBeTrue)
-			So(err, ShouldBeNil)
-			So(row.Values, ShouldResemble, []interface{}{0, 1})
-
-			f, err = reader.Next(row)
-			So(f, ShouldBeTrue)
-			So(err, ShouldBeNil)
-			So(row.Values, ShouldResemble, []interface{}{1, 2})
-
-			f, err = reader.Next(row)
-			So(f, ShouldBeTrue)
-			So(err, ShouldBeNil)
-			So(row.Values, ShouldResemble, []interface{}{2, 3})
-
-			f, err = reader.Next(row)
-			So(f, ShouldBeFalse)
-			So(err, ShouldBeNil)
-
-			err = reader.Close()
-			So(err, ShouldBeNil)
-		})
-
+	testTable := catalog.NewDynamicTable("bar", "foo", func() results.Rows {
+		out := make(results.Rows, 0)
+		for i := int64(0); i < 10; i += 2 {
+			out = append(out, results.NewNamedRow("bar", "foo",
+				values.NewNamedSQLValue("one", values.NewSQLInt64(values.MongoSQLValueKind, i)),
+				values.NewNamedSQLValue("two", values.NewSQLInt64(values.MongoSQLValueKind, i+1)),
+			))
+		}
+		return out
 	})
+
+	_, err := testTable.AddColumn("foo", "one", types.EvalInt64)
+	req.Nil(err)
+	_, err = testTable.AddColumn("foo", "two", types.EvalInt64)
+	req.Nil(err)
+
+	req.Equal(testTable.Columns()[0].Name, "one")
+	req.Equal(testTable.Columns()[0].SelectID, 1)
+	req.Equal(testTable.Columns()[1].Name, "two")
+	req.Equal(testTable.Columns()[1].SelectID, 2)
+
+	rows := testTable.Rows()
+	for i := int64(0); i < int64(len(rows)); i += 2 {
+		req.Equal(rows[i].Data[0].SelectID, 1)
+		req.Equal(rows[i].Data[1].SelectID, 2)
+		req.Equal(rows[i].Data[0].Name, "one")
+		req.Equal(rows[i].Data[1].Name, "two")
+	}
 }

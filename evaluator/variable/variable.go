@@ -5,7 +5,8 @@ package variable
 import (
 	"strings"
 
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 // Name is the name of a variable.
@@ -40,28 +41,16 @@ const (
 	SessionScopeName = "SESSION"
 )
 
-// Value represents the value of a variable.
-type Value struct {
-	// Name is the name of the variable.
-	Name Name
-	// Kind is the kind of the variable.
-	Kind Kind
-	// SQLType is the schema type the value will be.
-	SQLType schema.SQLType
-	// Value is the value of the variable.
-	Value interface{}
-}
-
 // definition holds information used to manipulate variables.
 type definition struct {
 	Dummy            bool
 	Name             Name
 	Kind             Kind
 	AllowedSetScopes Scope
-	SQLType          schema.SQLType
+	EvalType         types.EvalType
 
-	GetValue func(container *Container) interface{}
-	SetValue func(container *Container, value interface{}) error
+	GetValue func(container *Container) values.SQLValue
+	SetValue func(container *Container, value values.SQLValue) error
 }
 
 var definitions = make(map[Name]*definition)

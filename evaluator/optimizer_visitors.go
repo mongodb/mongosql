@@ -1,5 +1,9 @@
 package evaluator
 
+import (
+	"github.com/10gen/sqlproxy/evaluator/results"
+)
+
 // columnGatherer is a visitor that finds all the columns used in a Node.
 type columnGatherer struct {
 	columns []SQLColumnExpr
@@ -41,7 +45,7 @@ func getTableColumnsInExpr(table *MongoSourceStage, e SQLExpr) ([]SQLColumnExpr,
 
 type columnFinder struct {
 	selectIDsInScope []int
-	columns          Columns
+	columns          results.Columns
 	mustBeInScope    bool
 }
 
@@ -49,7 +53,7 @@ type columnFinder struct {
 // referenced in that expression. If mustBeInScope is true, it constrains
 // the columns referenced to those that have a select id matching one
 // within selectIDsInScope.
-func referencedColumns(selectIDsInScope []int, e SQLExpr, mustBeInScope bool) ([]*Column, error) {
+func referencedColumns(selectIDsInScope []int, e SQLExpr, mustBeInScope bool) ([]*results.Column, error) {
 	cf := &columnFinder{
 		selectIDsInScope: selectIDsInScope,
 		mustBeInScope:    mustBeInScope,
@@ -67,7 +71,7 @@ func (cf *columnFinder) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case SQLColumnExpr:
 		if !cf.mustBeInScope || containsInt(cf.selectIDsInScope, typedN.selectID) {
-			column := NewColumn(typedN.selectID,
+			column := results.NewColumn(typedN.selectID,
 				typedN.tableName,
 				"",
 				typedN.databaseName,

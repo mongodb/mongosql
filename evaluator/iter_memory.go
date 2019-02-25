@@ -4,8 +4,10 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
+// MemoryIter is an iterator of rows of an InMemory table.
 type MemoryIter struct {
 	monitor memory.Monitor
 	source  RowIter
@@ -22,7 +24,7 @@ func NewMemoryIter(cfg *ExecutionConfig, src RowIter) *MemoryIter {
 }
 
 // Next gets the next row.
-func (i *MemoryIter) Next(ctx context.Context, row *Row) bool {
+func (i *MemoryIter) Next(ctx context.Context, row *results.Row) bool {
 	hasNext := i.source.Next(ctx, row)
 	if hasNext {
 		i.err = i.monitor.Release(row.Data.Size())

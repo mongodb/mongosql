@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // ProjectStage handles taking sourced rows and projecting them into a different shape.
@@ -78,12 +79,12 @@ func (ps *ProjectStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exec
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (pj *ProjectIter) Next(ctx context.Context, r *Row) bool {
+func (pj *ProjectIter) Next(ctx context.Context, r *results.Row) bool {
 	if !pj.source.Next(ctx, r) {
 		return false
 	}
 
-	values := Values{}
+	vs := results.RowValues{}
 	st := pj.st.WithRows(r)
 	for _, projectedColumn := range pj.projectedColumns {
 		v, err := projectedColumn.Expr.Evaluate(ctx, pj.cfg, st)
@@ -92,29 +93,29 @@ func (pj *ProjectIter) Next(ctx context.Context, r *Row) bool {
 			return false
 		}
 
-		value := NewValue(
+		value := results.NewRowValue(
 			projectedColumn.SelectID,
 			projectedColumn.Database,
 			projectedColumn.Table,
 			projectedColumn.Name,
 			v)
 
-		values = append(values, value)
+		vs = append(vs, value)
 	}
 
 	pj.err = pj.memoryMonitor.Release(r.Data.Size())
 	if pj.err != nil {
 		return false
 	}
-	r.Data = values
+	r.Data = vs
 	pj.err = pj.memoryMonitor.Acquire(r.Data.Size())
 	return pj.err == nil
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (ps *ProjectStage) Columns() (columns []*Column) {
+func (ps *ProjectStage) Columns() (columns []*results.Column) {
 	for _, projectedColumn := range ps.projectedColumns {
-		columns = append(columns, projectedColumn.Column.clone())
+		columns = append(columns, projectedColumn.Column.Clone())
 	}
 
 	if len(columns) == 0 {

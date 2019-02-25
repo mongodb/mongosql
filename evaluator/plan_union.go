@@ -10,6 +10,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -166,7 +167,7 @@ type UnionIter struct {
 	// cancelIter allows for cancelling iteration.
 	cancelIter context.CancelFunc
 	// columns holds the slice of Column structs for this iterator.
-	columns []*Column
+	columns []*results.Column
 	// err holds any error that may occur during iteration.
 	err error
 	// errChan carries errors.
@@ -174,7 +175,7 @@ type UnionIter struct {
 	// The left and right iter.
 	left, right Iter
 	// onChan returns the unified row results.
-	onChan chan Row
+	onChan chan results.Row
 	// stageMonitor is the memory monitor for the current stage.
 	stageMonitor memory.Monitor
 }
@@ -514,8 +515,8 @@ func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exe
 		cancelIter:   cancel,
 	}
 
-	leftRows := make(chan *Row)
-	rightRows := make(chan *Row)
+	leftRows := make(chan *results.Row)
+	rightRows := make(chan *results.Row)
 
 	procutil.PanicSafeGo(func() {
 		iterator, err := union.left.Open(ctx, cfg, st)
@@ -546,10 +547,10 @@ func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return iter, nil
 }
 
-func (iter *UnionIter) fetchRows(ctx context.Context, it RowIter, ch chan *Row, errChan chan error) {
-	r := &Row{}
+func (iter *UnionIter) fetchRows(ctx context.Context, it RowIter, ch chan *results.Row, errChan chan error) {
+	r := &results.Row{}
 
-	syncChan := make(chan *Row)
+	syncChan := make(chan *results.Row)
 	fetchErrChan := make(chan error, 1)
 
 	procutil.PanicSafeGo(func() {
@@ -583,7 +584,7 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it RowIter, ch chan *Row, 
 
 			select {
 			case syncChan <- r:
-				r = &Row{}
+				r = &results.Row{}
 			case <-ctx.Done():
 			}
 		}
@@ -621,8 +622,8 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it RowIter, ch chan *Row, 
 	}
 }
 
-func mergeColumnsByType(lcols, rcols []*Column) []*Column {
-	outCols := make([]*Column, len(lcols))
+func mergeColumnsByType(lcols, rcols []*results.Column) []*results.Column {
+	outCols := make([]*results.Column, len(lcols))
 
 	sorter := &types.EvalTypeSorter{}
 	for i, lcol := range lcols {
@@ -630,7 +631,7 @@ func mergeColumnsByType(lcols, rcols []*Column) []*Column {
 		sorter.Types = []types.EvalType{lcol.EvalType, rcol.EvalType}
 		sort.Sort(sorter)
 
-		outCol := lcol.clone()
+		outCol := lcol.Clone()
 		outCol.EvalType = sorter.Types[1]
 		outCols[i] = outCol
 	}
@@ -639,7 +640,7 @@ func mergeColumnsByType(lcols, rcols []*Column) []*Column {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (union *UnionStage) Columns() []*Column {
+func (union *UnionStage) Columns() []*results.Column {
 	return mergeColumnsByType(union.left.Columns(), union.right.Columns())
 }
 
@@ -651,7 +652,7 @@ func (union *UnionStage) Collation() *collation.Collation {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (iter *UnionIter) Next(ctx context.Context, row *Row) bool {
+func (iter *UnionIter) Next(ctx context.Context, row *results.Row) bool {
 	select {
 	case err := <-iter.errChan:
 		iter.err = err
@@ -722,9 +723,9 @@ func (iter *UnionIter) Err() error {
 	return iter.err
 }
 
-func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *Row) chan Row {
+func (iter *UnionIter) unify(ctx context.Context, lChan, rChan chan *results.Row) chan results.Row {
 
-	ch := make(chan Row)
+	ch := make(chan results.Row)
 	closeChan := make(chan struct{})
 
 	// cleanup

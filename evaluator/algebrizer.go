@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -32,7 +33,7 @@ type AlgebrizerConfig struct {
 	lg                            log.Logger
 	sqlValueKind                  values.SQLValueKind
 	sqlSelectLimit                uint64
-	maxVarcharLength              uint16
+	maxVarcharLength              uint64
 	polymorphicTypeConversionMode string
 	version                       []uint8
 }
@@ -49,7 +50,7 @@ func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog) *Algeb
 		isMongos:                      vars.GetString(variable.MongoDBTopology) == "mongos",
 		sqlValueKind:                  GetSQLValueKind(vars),
 		sqlSelectLimit:                vars.GetUint64(variable.SQLSelectLimit),
-		maxVarcharLength:              vars.GetUint16(variable.MongoDBMaxVarcharLength),
+		maxVarcharLength:              vars.GetUint64(variable.MongoDBMaxVarcharLength),
 		groupConcatMaxLen:             vars.GetInt64(variable.GroupConcatMaxLen),
 		polymorphicTypeConversionMode: vars.GetString(variable.PolymorphicTypeConversionMode),
 		version:                       getMongoDBVersion(vars),
@@ -224,7 +225,7 @@ type algebrizer struct {
 	// the selectIDs that are currently used.
 	currentSelectIDs []int
 	// all the columns in scope.
-	columns []*Column
+	columns []*results.Column
 	// fully-qualified names of all the columns in scope.
 	columnSet map[string]struct{}
 	// all the table names in scope.
@@ -300,8 +301,8 @@ func (a *algebrizer) fullName(tableName, columnName string) string {
 	return fn
 }
 
-func (a *algebrizer) lookupColumn(databaseName, tableName, columnName string) (*Column, error) {
-	var found *Column
+func (a *algebrizer) lookupColumn(databaseName, tableName, columnName string) (*results.Column, error) {
+	var found *results.Column
 	for _, column := range a.columns {
 		if strings.EqualFold(column.Name, columnName) &&
 			(tableName == "" || strings.EqualFold(column.Table, tableName)) &&
@@ -342,7 +343,7 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 	return &result, found, nil
 }
 
-func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
+func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *results.Column {
 	for _, c := range a.columns {
 		if strings.EqualFold(c.Database, sqlCol.databaseName) &&
 			strings.EqualFold(c.Table, sqlCol.tableName) &&
@@ -355,27 +356,6 @@ func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *Column {
 		return a.parent.findSQLColumn(sqlCol)
 	}
 	return nil
-}
-
-// getCatalogColumn gets the catalog.Column corresponding to an evaluator.Column.
-func (a *algebrizer) getCatalogColumn(column *Column) (catalog.Column, error) {
-	if column.OriginalName == "" && column.MongoType == schema.MongoNone {
-		// this is from a subquery, and we cannot get a catalog reference.
-		return nil, nil
-	}
-	db, err := a.cfg.catalog.Database(column.Database)
-	if err != nil {
-		return nil, fmt.Errorf("could not find database: '%s' in catalog", column.Database)
-	}
-	table, err := db.Table(column.OriginalTable)
-	if err != nil {
-		return nil, fmt.Errorf("could not find table: '%s' in catalog", column.OriginalTable)
-	}
-	catColumn, err := table.Column(column.OriginalName)
-	if err != nil {
-		return nil, fmt.Errorf("could not find column: '%s' in catalog", column.OriginalName)
-	}
-	return catColumn, nil
 }
 
 var (
@@ -404,6 +384,26 @@ func (a *algebrizer) isAggFunction(name string) bool {
 	return ok
 }
 
+// ShouldConvert returns true if `c` is a column must be wrapped in a convert expression.
+// That means that either `c` contained polymorphic data types during sampling and the
+// PolymorphicConversionMode is "PolymorphicConversionTypeModeFast", or simply if the
+// PolymorphicConversionMode is "PolymorphicConversionModeSafe". "PolymorphicTypeConversionModeOff"
+// always returns false.
+func shouldConvert(c *results.Column, mode string) bool {
+	if mode == variable.OffPolymorphicTypeConversionMode {
+		return false
+	}
+	if mode == variable.SafePolymorphicTypeConversionMode {
+		return true
+	}
+	// In fast mode, we only want to introduce converts when we think they are
+	// necessary to avoid query aggregation failures. Two places we know that
+	// can definitely introduce aggregation failures are fields that were
+	// sampled as polymorphic, and fields that have had their type altered with
+	// the ALTER statement.
+	return c.IsPolymorphic || c.HasAlteredType
+}
+
 func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 	columnName string) (SQLExpr, error) {
 
@@ -424,12 +424,8 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 		}
 		colExpr := NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
 			column.Name, column.EvalType, column.MongoType)
-		catalogColumn, catalogErr := a.getCatalogColumn(column)
-		if catalogErr != nil {
-			return nil, catalogErr
-		}
 		mode := a.cfg.polymorphicTypeConversionMode
-		if catalogColumn != nil && catalogColumn.ShouldConvert(mode) {
+		if shouldConvert(column, mode) {
 			return NewSQLConvertExpr(colExpr, column.EvalType), nil
 		}
 		return colExpr, nil
@@ -461,7 +457,7 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 	return nil, err
 }
 
-func (a *algebrizer) registerColumns(columns []*Column) error {
+func (a *algebrizer) registerColumns(columns []*results.Column) error {
 	var sb strings.Builder
 	var empty struct{}
 
@@ -1040,11 +1036,11 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 	switch union.Type {
 	case parser.AST_UNION:
 		plan = NewUnionStage(UnionDistinct, left, right)
-		projectedColumns = Columns(plan.Columns()).ToProjectedColumns()
+		projectedColumns = columnsToProjectedColumns(plan.Columns())
 		plan = NewGroupByStage(plan, projectedColumns.Exprs(), projectedColumns)
 	case parser.AST_UNION_ALL:
 		plan = NewUnionStage(UnionAll, left, right)
-		projectedColumns = Columns(plan.Columns()).ToProjectedColumns()
+		projectedColumns = columnsToProjectedColumns(plan.Columns())
 	default:
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
 			"Cannot perform set operation '%s'", union.Type)
@@ -1080,13 +1076,9 @@ func (a *algebrizer) translateSelectExprs(
 					(databaseName == "" && strings.EqualFold(tableName, column.Table)) ||
 					(strings.EqualFold(tableName, column.Table) &&
 						strings.EqualFold(databaseName, column.Database)) {
-					projectedColumn := column.projectAs(column.Name)
+					projectedColumn := newProjectedColumnFromColumn(column)
 					projectedColumn.SelectID = a.selectID
-					catalogColumn, catalogErr := a.getCatalogColumn(column)
-					if catalogErr != nil {
-						return nil, catalogErr
-					}
-					if catalogColumn != nil && catalogColumn.ShouldConvert(mode) {
+					if shouldConvert(column, mode) {
 						projectedColumn.Expr = NewSQLConvertExpr(projectedColumn.Expr, column.EvalType)
 					}
 					projectedColumns = append(projectedColumns, projectedColumn)
@@ -1110,7 +1102,7 @@ func (a *algebrizer) translateSelectExprs(
 
 			if sqlCol, ok := translatedExpr.(SQLColumnExpr); ok {
 				if c := a.findSQLColumn(sqlCol); c != nil {
-					projectedColumn = c.projectWithExpr(translatedExpr)
+					projectedColumn = newProjectedColumnFromColumnWithExpr(c, translatedExpr)
 				}
 			}
 
@@ -1119,10 +1111,24 @@ func (a *algebrizer) translateSelectExprs(
 			// any sort of operator like '+'
 			if projectedColumn == nil {
 				dbName := getDatabaseName(translatedExpr)
+				cb := results.NewColumnBuilder()
+				cb.SetColumnType(results.NewColumnType(translatedExpr.EvalType(), schema.MongoNone))
+				cb.SetSelectID(a.selectID)
+				cb.SetTable("")
+				cb.SetOriginalTable("")
+				cb.SetDatabase(dbName)
+				cb.SetName("")
+				cb.SetOriginalName("")
+				cb.SetMappingRegistryName("")
+				cb.SetMongoName("")
+				cb.SetPrimaryKey(false)
+				cb.SetComments("")
+				cb.SetIsPolymorphic(false)
+				cb.SetHasAlteredType(false)
+				c := cb.Build()
 				projectedColumn = &ProjectedColumn{
-					Expr: translatedExpr,
-					Column: NewColumn(a.selectID, "", "", dbName, "", "", "",
-						translatedExpr.EvalType(), schema.MongoNone, false),
+					Expr:   translatedExpr,
+					Column: c,
 				}
 			}
 
@@ -1184,7 +1190,7 @@ func (a *algebrizer) translateUse(use *parser.Use) (*UseCommand, error) {
 func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 	isUnqualifiedSelectStar bool, hasGlobalStraightJoin bool) (PlanStage, error) {
 	var plan PlanStage
-	var colsForProjection []*Column
+	var colsForProjection []*results.Column
 	for i, tableExpr := range tableExprs {
 		temp, cols, err := a.translateTableExpr(tableExpr, hasGlobalStraightJoin)
 		if err != nil {
@@ -1222,7 +1228,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 
 // getTableName gets the name of the table that contains colName. The table
 // name is only specific to the column when tableExpr.(type) = JoinTableExpr.
-func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, columns []*Column) (string, error) {
+func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, columns []*results.Column) (string, error) {
 	switch typedE := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
 		if typedE.As.IsSome() {
@@ -1265,8 +1271,8 @@ func (a *algebrizer) getTableName(tableExpr parser.TableExpr, colName string, co
 // b, d) -> foo.a=bar.a && foo.b=bar.b && foo.d=bar.d.
 func (a *algebrizer) convertToAnd(
 	columns parser.ColumnExprs,
-	leftCols []*Column,
-	rightCols []*Column,
+	leftCols []*results.Column,
+	rightCols []*results.Column,
 	tableExpr *parser.JoinTableExpr) (parser.Expr, error) {
 	var expression parser.Expr
 	seenColumns := make(map[string]struct{})
@@ -1319,7 +1325,7 @@ func (a *algebrizer) convertToAnd(
 }
 
 type columnsUsing struct {
-	columns     []*Column
+	columns     []*results.Column
 	usingCols   parser.ColumnExprs
 	kind        JoinKind
 	rightTables map[string]struct{}
@@ -1369,13 +1375,13 @@ func (c columnsUsing) Sort() {
 	sort.Stable(c)
 }
 
-func (c columnsUsing) Filter() []*Column {
+func (c columnsUsing) Filter() []*results.Column {
 	// keep track of the USING columns to ensure we only project one for each column in the clause
 	seenColumns := make(map[string]bool)
 	for _, usingColumn := range c.usingCols {
 		seenColumns[usingColumn.Name] = false
 	}
-	var columnsForProjection []*Column
+	var columnsForProjection []*results.Column
 	for _, column := range c.columns {
 		// if column is a USING column, add it only if it's the first instance
 		if seenBefore, ok := seenColumns[column.Name]; ok {
@@ -1412,7 +1418,7 @@ func optimizeJoinKind(kind JoinKind, onClause parser.Expr, filterCols parser.Col
 	return kind
 }
 
-func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStraightJoin bool) (PlanStage, []*Column, error) {
+func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStraightJoin bool) (PlanStage, []*results.Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
 		return a.translateSimpleTableExpr(typedT.Expr, typedT.As.Else(""))
@@ -1525,7 +1531,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 }
 
 func (a *algebrizer) translateSimpleTableExpr(
-	tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*Column, error) {
+	tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*results.Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
 		tableName := strings.ToLower(typedT.Name)
@@ -1562,7 +1568,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 				}
 				a.projectedColumns = make(ProjectedColumns, len(cte.ColumnExprs))
 				for i, expr := range cte.ColumnExprs {
-					a.projectedColumns[i] = columns[i].projectAs(expr.Name)
+					a.projectedColumns[i] = newProjectedColumnFromColumnWithName(columns[i], expr.Name)
 				}
 			}
 			err = a.registerColumns(columns)
@@ -2381,10 +2387,8 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr, error) {
 
-	v := &SQLVariableExpr{
-		Kind:  variable.SystemKind,
-		Scope: variable.SessionScope,
-	}
+	kind := variable.SystemKind
+	scope := variable.SessionScope
 
 	pos := 0
 	str := c.Name
@@ -2395,36 +2399,33 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 	if str[pos] == '@' {
 		pos++
 		if len(str) > 1 && str[pos] != '@' {
-			v.Kind = variable.UserKind
+			kind = variable.UserKind
 		} else {
 			pos++
 		}
 	}
 
-	v.Name = str[pos:]
+	name := str[pos:]
 
-	if v.Kind != variable.UserKind {
-		idx := strings.Index(v.Name, ".")
+	if kind != variable.UserKind {
+		idx := strings.Index(name, ".")
 		if idx >= 0 {
-			switch strings.ToLower(v.Name[:idx+1]) {
+			switch strings.ToLower(name[:idx+1]) {
 			case "global.":
-				v.Name = v.Name[idx+1:]
-				v.Scope = variable.GlobalScope
+				name = name[idx+1:]
+				scope = variable.GlobalScope
 			case "session.", "local.":
-				v.Name = v.Name[idx+1:]
+				name = name[idx+1:]
 			}
 		}
 	}
 
-	value, err := a.cfg.catalog.Variables().Get(variable.Name(v.Name), v.Scope, v.Kind)
+	value, err := a.cfg.catalog.Variables().Get(variable.Name(name), scope, kind)
 	if err != nil {
 		return nil, err
 	}
 
-	v.Value = value.Value
-	v.SQLType = value.SQLType
-
-	return v, nil
+	return NewSQLVariableExpr(name, kind, scope, value), nil
 }
 
 func (a *algebrizer) versionAtLeast(major, minor, patch uint8) bool {

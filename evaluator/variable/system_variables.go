@@ -4,47 +4,48 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 )
 
-func getCharacterSetResults(c *Container) interface{} {
-	if c.characterSetResults == "" {
+func getCharacterSetResults(c *Container) values.SQLValue {
+	if c.characterSetResults.String() == "" {
 		return nil
 	}
 	return c.characterSetResults
 }
 
-func setCharacterSetClient(c *Container, v interface{}) error {
-	if v == nil {
+func setCharacterSetClient(c *Container, v values.SQLValue) error {
+	if v.IsNull() {
 		return invalidValueError(CharacterSetClient, nil)
 	}
 
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(CharacterSetClient, v)
-	}
-
-	cs, err := collation.GetCharset(collation.CharsetName(s))
+	s, err := convertSQLVarchar(CharacterSetResults, v)
 	if err != nil {
 		return err
 	}
-	c.characterSetClient = string(cs.Name)
+
+	cs, err := collation.GetCharset(collation.CharsetName(s.String()))
+	if err != nil {
+		return err
+	}
+	c.characterSetClient = values.NewSQLVarchar(values.VariableSQLValueKind, string(cs.Name))
 	return nil
 }
 
-func setCharacterSetConnection(c *Container, v interface{}) error {
-	if v == nil {
+func setCharacterSetConnection(c *Container, v values.SQLValue) error {
+	if v.IsNull() {
 		return invalidValueError(CharacterSetConnection, nil)
 	}
 
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(CharacterSetConnection, v)
+	s, err := convertSQLVarchar(CharacterSetConnection, v)
+	if err != nil {
+		return err
 	}
 
-	cs, err := collation.GetCharset(collation.CharsetName(s))
+	cs, err := collation.GetCharset(collation.CharsetName(s.String()))
 	if err != nil {
 		return err
 	}
@@ -54,22 +55,22 @@ func setCharacterSetConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetConnection = string(cs.Name)
-	c.collationConnection = string(col.Name)
+	c.characterSetConnection = values.NewSQLVarchar(values.VariableSQLValueKind, string(cs.Name))
+	c.collationConnection = values.NewSQLVarchar(values.VariableSQLValueKind, string(col.Name))
 	return nil
 }
 
-func setCharacterSetDatabase(c *Container, v interface{}) error {
-	if v == nil {
+func setCharacterSetDatabase(c *Container, v values.SQLValue) error {
+	if v.IsNull() {
 		return invalidValueError(CharacterSetDatabase, nil)
 	}
 
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(CharacterSetDatabase, v)
+	s, err := convertSQLVarchar(CharacterSetDatabase, v)
+	if err != nil {
+		return err
 	}
 
-	cs, err := collation.GetCharset(collation.CharsetName(s))
+	cs, err := collation.GetCharset(collation.CharsetName(s.String()))
 	if err != nil {
 		return err
 	}
@@ -79,41 +80,41 @@ func setCharacterSetDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetDatabase = string(cs.Name)
-	c.collationDatabase = string(col.Name)
+	c.characterSetDatabase = values.NewSQLVarchar(values.VariableSQLValueKind, string(cs.Name))
+	c.collationDatabase = values.NewSQLVarchar(values.VariableSQLValueKind, string(col.Name))
 	return nil
 }
 
-func setCharacterSetResults(c *Container, v interface{}) error {
-	if v == nil {
-		c.characterSetResults = string(collation.NullCharset.Name)
+func setCharacterSetResults(c *Container, v values.SQLValue) error {
+	if v.IsNull() {
+		c.characterSetResults = values.NewSQLNull(values.VariableSQLValueKind)
 		return nil
 	}
 
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(CharacterSetResults, v)
-	}
-
-	cs, err := collation.GetCharset(collation.CharsetName(s))
+	s, err := convertSQLVarchar(CharacterSetResults, v)
 	if err != nil {
 		return err
 	}
-	c.characterSetResults = string(cs.Name)
+
+	cs, err := collation.GetCharset(collation.CharsetName(s.String()))
+	if err != nil {
+		return err
+	}
+	c.characterSetResults = values.NewSQLVarchar(values.VariableSQLValueKind, string(cs.Name))
 	return nil
 }
 
-func setCollationConnection(c *Container, v interface{}) error {
-	if v == nil {
+func setCollationConnection(c *Container, v values.SQLValue) error {
+	if v.IsNull() {
 		return invalidValueError(CollationConnection, nil)
 	}
 
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(CollationConnection, v)
+	s, err := convertSQLVarchar(CollationConnection, v)
+	if err != nil {
+		return err
 	}
 
-	col, err := collation.Get(collation.Name(s))
+	col, err := collation.Get(collation.Name(s.String()))
 	if err != nil {
 		return err
 	}
@@ -123,22 +124,22 @@ func setCollationConnection(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetConnection = string(cs.Name)
-	c.collationConnection = string(col.Name)
+	c.characterSetConnection = values.NewSQLVarchar(values.VariableSQLValueKind, string(cs.Name))
+	c.collationConnection = values.NewSQLVarchar(values.VariableSQLValueKind, string(col.Name))
 	return nil
 }
 
-func setCollationDatabase(c *Container, v interface{}) error {
-	if v == nil {
+func setCollationDatabase(c *Container, v values.SQLValue) error {
+	if v.IsNull() {
 		return invalidValueError(CollationDatabase, nil)
 	}
 
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(CollationDatabase, v)
+	s, err := convertSQLVarchar(CollationDatabase, v)
+	if err != nil {
+		return err
 	}
 
-	col, err := collation.Get(collation.Name(s))
+	col, err := collation.Get(collation.Name(s.String()))
 	if err != nil {
 		return err
 	}
@@ -148,69 +149,72 @@ func setCollationDatabase(c *Container, v interface{}) error {
 		return err
 	}
 
-	c.characterSetDatabase = string(cs.Name)
-	c.collationDatabase = string(col.Name)
+	c.characterSetDatabase = values.NewSQLVarchar(values.VariableSQLValueKind, string(cs.Name))
+	c.collationDatabase = values.NewSQLVarchar(values.VariableSQLValueKind, string(col.Name))
 	return nil
 }
 
-func setCollationServer(c *Container, v interface{}) error {
-	if v == nil {
+func setCollationServer(c *Container, v values.SQLValue) error {
+	if v.IsNull() {
 		return invalidValueError(CollationServer, nil)
 	}
 
-	s, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(CollationServer, v)
-	}
-
-	col, err := collation.Get(collation.Name(s))
+	s, err := convertSQLVarchar(CollationServer, v)
 	if err != nil {
 		return err
 	}
 
-	c.collationServer = string(col.Name)
+	col, err := collation.Get(collation.Name(s.String()))
+	if err != nil {
+		return err
+	}
+
+	c.collationServer = values.NewSQLVarchar(values.VariableSQLValueKind, string(col.Name))
 	return nil
 }
 
-func setGroupConcatMaxLen(c *Container, v interface{}) error {
-	i, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(GroupConcatMaxLen, v)
+func setGroupConcatMaxLen(c *Container, v values.SQLValue) error {
+	i, err := convertSQLInt64(GroupConcatMaxLen, v)
+	if err != nil {
+		return err
 	}
+	ii := i.Value().(int64)
 
 	// MySQL's minimum group_concat_max_len value is 4. When a user tries to set the
 	// group_concat_max_len system variable to a value < 4, rather than throwing an error,
 	// we set the value to the minimum.
-	if i < 4 {
-		i = 4
+	if ii < 4 {
+		ii = 4
 	}
 
-	c.groupConcatMaxLen = i
+	c.groupConcatMaxLen = values.NewSQLInt64(values.VariableSQLValueKind, ii)
 	return nil
 }
 
-func setLogLevel(c *Container, v interface{}) error {
-	i, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(LogLevel, v)
+func setLogLevel(c *Container, v values.SQLValue) error {
+	i, err := convertSQLInt64(LogLevel, v)
+	if err != nil {
+		return err
 	}
+	ii := values.Int64(i)
 
 	// Changes the global logger's verbosity to whatever the user inputted.
 	// Too high and too low values are handled in  log.SetVerbosity
 	// The global logger is the parent of every component logger so this
 	// changes all of their verbosity's as well
-	log.SetVerbosity(log.Verbosity(i))
-	normalizedVerbosity := log.NormalizeVerbosityLevel(i)
-	c.logLevel = normalizedVerbosity
+	log.SetVerbosity(log.Verbosity(ii))
+	normalizedVerbosity := log.NormalizeVerbosityLevel(ii)
+	c.logLevel = values.NewSQLInt64(values.VariableSQLValueKind, normalizedVerbosity)
 
 	return nil
 }
 
-func setWaitTimeoutSecs(c *Container, v interface{}) error {
-	i, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(WaitTimeoutSecs, v)
+func setWaitTimeoutSecs(c *Container, v values.SQLValue) error {
+	i, err := convertSQLInt64(WaitTimeoutSecs, v)
+	if err != nil {
+		return err
 	}
+	ii := values.Int64(i)
 
 	upperLimit := int64(31536000)
 
@@ -218,11 +222,11 @@ func setWaitTimeoutSecs(c *Container, v interface{}) error {
 		upperLimit = int64(2147483)
 	}
 
-	if i < 1 || i > upperLimit {
+	if ii < 1 || ii > upperLimit {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar,
-			WaitTimeoutSecs, fmt.Sprintf("%v", i))
+			WaitTimeoutSecs, fmt.Sprintf("%v", ii))
 	}
 
-	c.waitTimeoutSecs = i
+	c.waitTimeoutSecs = values.NewSQLInt64(values.VariableSQLValueKind, ii)
 	return nil
 }

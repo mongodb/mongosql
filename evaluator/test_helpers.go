@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -20,7 +21,8 @@ import (
 
 // CreateTestExecutionCfg returns a new ExecutionConfig for use in unit tests.
 // This function should only be called from evaluator unit tests.
-func CreateTestExecutionCfg(dbName string, maxStageSize uint64, mongoDBVersion []uint8) *ExecutionConfig {
+func CreateTestExecutionCfg(dbName string, maxStageSize uint64,
+	mongoDBVersion []uint8, sqlValueKind values.SQLValueKind) *ExecutionConfig {
 	return &ExecutionConfig{
 		lg:               log.GlobalLogger(),
 		commandHandler:   nil,
@@ -33,7 +35,7 @@ func CreateTestExecutionCfg(dbName string, maxStageSize uint64, mongoDBVersion [
 		fullPushdownOnly: false,
 		memoryMonitor:    memory.NewMonitor("evaluator_unit_tests", maxStageSize),
 		maxStageSize:     maxStageSize,
-		sqlValueKind:     values.MySQLValueKind,
+		sqlValueKind:     sqlValueKind,
 	}
 }
 
@@ -90,10 +92,10 @@ func (v *pipelineGatherer) visit(n Node) (Node, error) {
 func CreateProjectedColumnFromSQLExpr(selectID int,
 	columnName string,
 	expr SQLExpr) ProjectedColumn {
-	column := &Column{
+	column := &results.Column{
 		SelectID: selectID,
 		Name:     columnName,
-		ColumnType: NewColumnType(
+		ColumnType: results.NewColumnType(
 			expr.EvalType(),
 			schema.MongoNone,
 		),
@@ -110,14 +112,20 @@ func CreateProjectedColumnFromSQLExpr(selectID int,
 // CreateTestVariables creates a container from a mongoDB config for testing.
 func CreateTestVariables(info *mongodb.Info) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.SetSystemVariable(variable.MongoDBVersion, info.Version)
-	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
-	gbl.SetSystemVariable(variable.TypeConversionMode, variable.MySQLTypeConversionMode)
+	gbl.SetSystemVariable(variable.MongoDBVersion,
+		values.NewSQLVarchar(values.MongoSQLValueKind, info.Version))
+	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode,
+		values.NewSQLVarchar(values.MongoSQLValueKind, variable.OffPolymorphicTypeConversionMode))
+	gbl.SetSystemVariable(variable.TypeConversionMode,
+		values.NewSQLVarchar(values.MongoSQLValueKind, variable.MySQLTypeConversionMode))
 
 	ctn := variable.NewSessionContainer(gbl)
-	gbl.SetSystemVariable(variable.MongoDBVersion, info.Version)
-	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode, variable.OffPolymorphicTypeConversionMode)
-	ctn.SetSystemVariable(variable.TypeConversionMode, variable.MySQLTypeConversionMode)
+	gbl.SetSystemVariable(variable.MongoDBVersion,
+		values.NewSQLVarchar(values.MongoSQLValueKind, info.Version))
+	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode,
+		values.NewSQLVarchar(values.MongoSQLValueKind, variable.OffPolymorphicTypeConversionMode))
+	ctn.SetSystemVariable(variable.TypeConversionMode,
+		values.NewSQLVarchar(values.MongoSQLValueKind, variable.MySQLTypeConversionMode))
 	return ctn
 }
 
@@ -126,11 +134,12 @@ func CreateTestVariables(info *mongodb.Info) *variable.Container {
 // This function should only be called from evaluator unit tests.
 func GetAllocatedMemorySizeAfterIteration(stage PlanStage) uint64 {
 	bgCtx := context.Background()
-	execCfg := CreateTestExecutionCfg("evaluator_unit_test_dbname", 0, []uint8{4, 0, 0})
+	execCfg := CreateTestExecutionCfg("evaluator_unit_test_dbname", 0, []uint8{4, 0, 0},
+		values.MySQLValueKind)
 	execState := NewExecutionState()
 
 	iter, _ := stage.Open(bgCtx, execCfg, execState)
-	row := &Row{}
+	row := &results.Row{}
 	for iter.Next(bgCtx, row) {
 	}
 

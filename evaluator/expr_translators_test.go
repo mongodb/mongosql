@@ -610,7 +610,7 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	db := testSchema.Database("translate_test_db")
 	req.NotNil(db, "failed to get db from schema")
 
-	execCfg := createExecutionCfg("translate_test_db", 0, version)
+	execCfg := createExecutionCfg("translate_test_db", 0, version, values.MySQLValueKind)
 	optimizerCfg := createOptimizerCfg(collation.Default, execCfg)
 	pushdownCfg := createPushdownCfg(version)
 
@@ -647,7 +647,7 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	db := testSchema.Database("translate_test_db")
 	req.NotNil(db, "could not find database in schema")
 
-	execCfg := createExecutionCfg("translate_test_db", 0, version)
+	execCfg := createExecutionCfg("translate_test_db", 0, version, values.MySQLValueKind)
 	optimizerCfg := createOptimizerCfg(collation.Default, execCfg)
 	pushdownCfg := createPushdownCfg(version)
 

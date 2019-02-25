@@ -14,6 +14,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -290,7 +291,7 @@ func formatHeaderField(variables *variable.Container, field *Field,
 		field.Flag = BinaryFlag
 	case values.SQLObjectID, values.SQLVarchar:
 		field.Type = MySQLTypeVarString
-		length := uint32(variables.GetUint16(variable.MongoDBMaxVarcharLength))
+		length := uint32(variables.GetUint64(variable.MongoDBMaxVarcharLength))
 		if length == 0 {
 			length = math.MaxUint16
 		}
@@ -309,7 +310,7 @@ func formatHeaderField(variables *variable.Container, field *Field,
 }
 
 // writeHeaders writes the column headers for a resultset.
-func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) error {
+func (c *conn) writeHeaders(columns []*results.Column, colID collation.ID) error {
 	columnLen := putLengthEncodedInt(uint64(len(columns)))
 
 	data := make([]byte, 4, 1024)
@@ -358,7 +359,7 @@ func (c *conn) writeHeaders(columns []*evaluator.Column, colID collation.ID) err
 
 // streamRows receives packets from a packet producer across the packetChan and writes them to the
 // conn. It is also responsible for closing the Iter once the packetChan is closed.
-func (c *conn) streamRows(ctx context.Context, packetChan chan []byte, errChan chan error, columns []*evaluator.Column,
+func (c *conn) streamRows(ctx context.Context, packetChan chan []byte, errChan chan error, columns []*results.Column,
 	iter evaluator.Iter) (err error) {
 	status := c.status()
 
@@ -432,9 +433,9 @@ streamer:
 // the passed Iter. The results are passed as a []byte to the
 // packetChan channel.
 func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter evaluator.RowIter) {
-	r := &evaluator.Row{}
+	r := &results.Row{}
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
-	mongoDBVarcharLength := int(c.variables.GetUint16(variable.MongoDBMaxVarcharLength))
+	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
 	for ctx.Err() == nil && iter.Next(ctx, r) {
 		packet := []byte{0, 0, 0, 0}
 		for _, value := range r.Data {
@@ -465,7 +466,7 @@ func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter eva
 func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fastIter evaluator.DocIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
-	mongoDBVarcharLength := int(c.variables.GetUint16(variable.MongoDBMaxVarcharLength))
+	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
 
 	doc := &bson.RawD{}
 
@@ -560,7 +561,7 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fastIter evaluator.DocIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
-	mongoDBVarcharLength := int(c.variables.GetUint16(variable.MongoDBMaxVarcharLength))
+	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
 
 	doc := &bson.RawD{}
 	columnInfo := fastIter.GetColumnInfo()
@@ -613,7 +614,7 @@ func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fa
 // writes those byte packets to the client. This producer consumer relation
 // allows for query cancellation. It operates on a RowIter, which means the results
 // are coming from in memory evaluation.
-func (c *conn) streamRowResultset(ctx context.Context, columns []*evaluator.Column, rowIter evaluator.RowIter) (err error) {
+func (c *conn) streamRowResultset(ctx context.Context, columns []*results.Column, rowIter evaluator.RowIter) (err error) {
 	packetChan := make(chan []byte, 1)
 	errChan := make(chan error, 1)
 
@@ -643,7 +644,7 @@ func (c *conn) streamRowResultset(ctx context.Context, columns []*evaluator.Colu
 // writes those byte packets to the client. This producer consumer relation
 // allows for query cancellation. It operators on a DocIter, which means the results
 // are coming straight from MongoDB.
-func (c *conn) streamDocResultset(ctx context.Context, columns []*evaluator.Column, docIter evaluator.DocIter) (err error) {
+func (c *conn) streamDocResultset(ctx context.Context, columns []*results.Column, docIter evaluator.DocIter) (err error) {
 	packetChan := make(chan []byte, 1)
 	errChan := make(chan error, 1)
 

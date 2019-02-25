@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
 )
@@ -78,7 +79,8 @@ func (s *Server) populateListeners() error {
 
 	if s.cfg.Net.UnixDomainSocket.Enabled {
 		socket := fmt.Sprintf("%s/%s", s.cfg.Net.UnixDomainSocket.PathPrefix, "mysql.sock")
-		s.variables.SetSystemVariable(variable.Socket, socket)
+		s.variables.SetSystemVariable(variable.Socket,
+			values.NewSQLVarchar(values.VariableSQLValueKind, socket))
 
 		permissions, err := strconv.ParseInt(s.cfg.Net.UnixDomainSocket.FilePermissions, 8, 64)
 		if err != nil {

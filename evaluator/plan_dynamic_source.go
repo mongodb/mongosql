@@ -5,9 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
-	"github.com/10gen/sqlproxy/evaluator/types"
-	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // DynamicSourceStage handles reading data from a catalog.DynamicTable.
@@ -32,7 +30,7 @@ func (DynamicSourceStage) ReplaceChild(i int, n Node) {
 func NewDynamicSourceStage(db catalog.Database, table *catalog.DynamicTable,
 	selectID int, aliasName string) *DynamicSourceStage {
 	if aliasName == "" {
-		aliasName = string(table.Name())
+		aliasName = table.Name()
 	}
 
 	return &DynamicSourceStage{
@@ -44,24 +42,8 @@ func NewDynamicSourceStage(db catalog.Database, table *catalog.DynamicTable,
 }
 
 // Columns gets the columns that will be projected from the stage.
-func (s *DynamicSourceStage) Columns() []*Column {
-	var columns []*Column
-	for _, c := range s.table.Columns() {
-		column := NewColumn(s.selectID,
-			s.aliasName,
-			string(s.table.Name()),
-			s.dbName,
-			string(c.Name()),
-			string(c.Name()),
-			"",
-			types.SQLTypeToEvalType(schema.SQLType(c.Type())),
-			schema.MongoNone,
-			false,
-		)
-		columns = append(columns, column)
-	}
-
-	return columns
+func (s *DynamicSourceStage) Columns() []*results.Column {
+	return s.table.Columns()
 }
 
 // Collation gets the collation the stage uses.
@@ -71,66 +53,45 @@ func (s *DynamicSourceStage) Collation() *collation.Collation {
 
 // Open creates an Iter to loop over the results.
 func (s *DynamicSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
-	reader, err := s.table.OpenReader()
-	if err != nil {
-		return nil, err
-	}
-
 	i := &dynamicDataSourceIter{
-		cfg:       cfg,
-		selectID:  s.selectID,
-		dbName:    s.dbName,
-		tableName: s.aliasName,
-		columns:   s.table.Columns(),
-		reader:    reader,
+		cfg:        cfg,
+		currentRow: 0,
+		selectID:   s.selectID,
+		dbName:     s.dbName,
+		tableName:  s.aliasName,
+		columns:    s.table.Columns(),
+		rows:       s.table.Rows(),
 	}
 	return i, nil
 }
 
 type dynamicDataSourceIter struct {
-	cfg       *ExecutionConfig
-	selectID  int
-	dbName    string
-	tableName string
-	columns   []catalog.Column
-	reader    catalog.DataReader
-
-	dataRow catalog.DataRow
-	err     error
+	cfg        *ExecutionConfig
+	currentRow int
+	selectID   int
+	dbName     string
+	tableName  string
+	columns    results.Columns
+	rows       results.Rows
+	err        error
 }
 
-func (i *dynamicDataSourceIter) Next(ctx context.Context, row *Row) bool {
+func (i *dynamicDataSourceIter) Next(ctx context.Context, row *results.Row) bool {
 	if i.err != nil {
 		return false
 	}
-
-	found, err := i.reader.Next(&i.dataRow)
-	if err != nil {
-		i.err = err
+	if i.currentRow == len(i.rows) {
 		return false
 	}
-	if !found {
-		return false
-	}
-
-	row.Data = Values{}
-	for x := 0; x < len(i.dataRow.Values); x++ {
-		sqlValue := values.GoValueToSQLValue(i.cfg.sqlValueKind, i.dataRow.Values[x])
-		converted := values.ConvertTo(sqlValue, types.SQLTypeToEvalType(schema.SQLType(i.columns[x].Type())))
-		row.Data = append(row.Data, NewValue(
-			i.selectID,
-			i.dbName,
-			i.tableName,
-			string(i.columns[x].Name()),
-			converted))
-	}
+	*row = i.rows[i.currentRow]
+	i.currentRow++
 
 	i.err = i.cfg.memoryMonitor.Acquire(row.Data.Size())
 	return i.err == nil
 }
 
 func (i *dynamicDataSourceIter) Close() error {
-	return i.reader.Close()
+	return nil
 }
 
 func (i *dynamicDataSourceIter) Err() error {

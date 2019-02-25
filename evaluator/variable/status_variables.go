@@ -4,7 +4,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
 // Status Variable Names
@@ -25,9 +26,9 @@ func init() {
 		Name:             BytesReceived,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return atomic.LoadUint64(c.BytesReceived)
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLUint64(values.VariableSQLValueKind, atomic.LoadUint64(c.BytesReceived))
 		},
 	}
 
@@ -35,9 +36,9 @@ func init() {
 		Name:             BytesSent,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return atomic.LoadUint64(c.BytesSent)
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLUint64(values.VariableSQLValueKind, atomic.LoadUint64(c.BytesSent))
 		},
 	}
 
@@ -45,9 +46,9 @@ func init() {
 		Name:             Connections,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return atomic.LoadUint32(c.Connections)
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLUint64(values.VariableSQLValueKind, uint64(atomic.LoadUint32(c.Connections)))
 		},
 	}
 
@@ -55,9 +56,9 @@ func init() {
 		Name:             MemoryAllocated,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return c.AllocatedMemory()
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLUint64(values.VariableSQLValueKind, c.AllocatedMemory())
 		},
 	}
 
@@ -65,9 +66,9 @@ func init() {
 		Name:             Queries,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return atomic.LoadUint64(c.Queries)
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLUint64(values.VariableSQLValueKind, atomic.LoadUint64(c.Queries))
 		},
 	}
 
@@ -75,9 +76,9 @@ func init() {
 		Name:             ThreadsConnected,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return atomic.LoadUint32(c.ThreadsConnected)
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLUint64(values.VariableSQLValueKind, uint64(atomic.LoadUint32(c.ThreadsConnected)))
 		},
 	}
 
@@ -85,9 +86,9 @@ func init() {
 		Name:             ThreadsCreated,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return atomic.LoadUint32(c.ThreadsConnected)
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLInt64(values.VariableSQLValueKind, int64(atomic.LoadUint32(c.ThreadsConnected)))
 		},
 	}
 
@@ -95,9 +96,9 @@ func init() {
 		Name:             Uptime,
 		Kind:             StatusKind,
 		AllowedSetScopes: Scope(0), // not allowed to be set
-		SQLType:          schema.SQLUint,
-		GetValue: func(c *Container) interface{} {
-			return uint64(time.Since(c.StartTime).Nanoseconds() / 1e9)
+		EvalType:         types.EvalUint64,
+		GetValue: func(c *Container) values.SQLValue {
+			return values.NewSQLUint64(values.VariableSQLValueKind, uint64(time.Since(c.StartTime).Nanoseconds()/1e9))
 		},
 	}
 }

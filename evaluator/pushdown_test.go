@@ -9,6 +9,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -469,7 +470,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 
 	req.Nil(err, "failed to algebrize query")
 
-	eCfg := createTestExecutionCfg()
+	eCfg := createTestExecutionCfg(values.MySQLValueKind)
 	oCfg := createOptimizerCfg(collation.Default, eCfg)
 	optimized, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
 	req.Nil(err, "failed to optimize plan")

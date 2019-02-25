@@ -79,12 +79,12 @@ func TestDatabase(t *testing.T) {
 
 	t2, err := d.Table("foo")
 	req.Nil(err)
-	req.Equal(string(t2.Name()), "foo")
+	req.Equal(t2.Name(), "foo")
 
 	t3, err := d.Table("FOO")
 	req.Nil(err)
 	req.NotNil(d)
-	req.Equal(string(t3.Name()), "foo")
+	req.Equal(t3.Name(), "foo")
 
 	req.Nil(d.AddTable(catalog.NewInMemoryTable("foo1")))
 	req.Nil(d.AddTable(catalog.NewInMemoryTable("foo2")))

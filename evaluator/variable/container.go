@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // Container holds variables based on a scope.
@@ -19,7 +19,7 @@ type Container struct {
 	parent *Container
 
 	// userValues is storage for user variables
-	userValues map[Name]interface{}
+	userValues map[Name]values.SQLValue
 
 	// Backing storage for system variables
 	systemVariableContainer
@@ -78,7 +78,7 @@ func NewSessionContainer(global *Container) *Container {
 	c := &Container{
 		scope:           SessionScope,
 		parent:          global,
-		userValues:      make(map[Name]interface{}),
+		userValues:      make(map[Name]values.SQLValue),
 		AllocatedMemory: func() uint64 { return 0 },
 	}
 
@@ -98,7 +98,7 @@ func NewSessionContainer(global *Container) *Container {
 }
 
 // List lists the values for the given scope and kind.
-func (c *Container) List(scope Scope, kind Kind) []Value {
+func (c *Container) List(scope Scope, kind Kind) []values.NamedSQLValue {
 	if c.scope == GlobalScope && kind == SystemKind {
 		c.lock.RLock()
 		defer c.lock.RUnlock()
@@ -109,22 +109,17 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 			panic("cannot get user variables from a global scope")
 		}
 
-		var values []Value
-		for k, v := range c.userValues {
-			values = append(values, Value{
-				Name:    k,
-				Kind:    UserKind,
-				SQLType: schema.SQLPolymorphic,
-				Value:   v,
-			})
+		var vs []values.NamedSQLValue
+		for name, v := range c.userValues {
+			vs = append(vs, values.NewNamedSQLValue(string(name), v))
 		}
 
-		return values
+		return vs
 	}
 
 	if c.scope == scope {
-		var values []Value
-		for _, def := range definitions {
+		var vs []values.NamedSQLValue
+		for name, def := range definitions {
 			if def.GetValue == nil {
 				continue
 			}
@@ -133,14 +128,9 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 				continue
 			}
 
-			values = append(values, Value{
-				Name:    def.Name,
-				Kind:    def.Kind,
-				SQLType: def.SQLType,
-				Value:   def.GetValue(c),
-			})
+			vs = append(vs, values.NewNamedSQLValue(string(name), def.GetValue(c)))
 		}
-		return values
+		return vs
 	} else if c.parent != nil {
 		return c.parent.List(scope, kind)
 	}
@@ -149,7 +139,7 @@ func (c *Container) List(scope Scope, kind Kind) []Value {
 }
 
 // Get gets the value of the variable with the specified name, scope, and kind.
-func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
+func (c *Container) Get(name Name, scope Scope, kind Kind) (values.SQLValue, error) {
 	if c.scope == GlobalScope && kind == SystemKind {
 		c.lock.RLock()
 		defer c.lock.RUnlock()
@@ -162,29 +152,27 @@ func (c *Container) Get(name Name, scope Scope, kind Kind) (Value, error) {
 		}
 
 		v := c.userValues[lowerName]
+		if v == nil {
+			v = values.NewSQLNull(values.VariableSQLValueKind)
+		}
 
-		return Value{
-			Name:    name,
-			Kind:    kind,
-			SQLType: schema.SQLPolymorphic,
-			Value:   v,
-		}, nil
+		return v, nil
 	}
 
 	if c.scope == scope {
 		if def, ok := definitions[lowerName]; ok && def.Kind == kind {
-			return Value{
-				Name:    name,
-				Kind:    def.Kind,
-				SQLType: def.SQLType,
-				Value:   def.GetValue(c),
-			}, nil
+			v := def.GetValue(c)
+			if v == nil {
+				v = values.NewSQLNull(values.VariableSQLValueKind)
+			}
+
+			return v, nil
 		}
 	} else if c.parent != nil {
 		return c.parent.Get(name, scope, kind)
 	}
 
-	return Value{}, mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
+	return values.NewSQLNull(values.VariableSQLValueKind), mysqlerrors.Defaultf(mysqlerrors.ErUnknownSystemVariable, name)
 }
 
 // GetBool gets the value of the variable with the specified name for system variable of
@@ -195,7 +183,7 @@ func (c *Container) GetBool(name Name) bool {
 		panic(fmt.Sprintf("cannot get boolean system variable %v: %v", name, err))
 	}
 
-	return value.Value.(bool)
+	return value.Value().(bool)
 }
 
 // GetCharset gets the value of the variable with the specified name for system variable of
@@ -206,11 +194,14 @@ func (c *Container) GetCharset(name Name) *collation.Charset {
 		panic(fmt.Sprintf("cannot get string system variable %v: %v", name, err))
 	}
 
-	if value.Value == nil {
+	if value == nil {
 		return collation.NullCharset
 	}
 
-	cs, err := collation.GetCharset(collation.CharsetName(value.Value.(string)))
+	if value.IsNull() {
+		return collation.NullCharset
+	}
+	cs, err := collation.GetCharset(collation.CharsetName(value.Value().(string)))
 	if err != nil {
 		panic(err)
 	}
@@ -236,7 +227,7 @@ func (c *Container) GetInt64(name Name) int64 {
 		panic(fmt.Sprintf("cannot get int64 system variable %v: %v", name, err))
 	}
 
-	return value.Value.(int64)
+	return value.SQLInt().Value().(int64)
 }
 
 // GetString gets the value of the variable with the specified name for system variable of
@@ -247,18 +238,7 @@ func (c *Container) GetString(name Name) string {
 		panic(fmt.Sprintf("cannot get string system variable %v: %v", name, err))
 	}
 
-	return value.Value.(string)
-}
-
-// GetUint16 gets the value of the variable with the specified name for system variable of
-// uint16 type.
-func (c *Container) GetUint16(name Name) uint16 {
-	value, err := c.Get(name, c.scope, SystemKind)
-	if err != nil {
-		panic(fmt.Sprintf("cannot get uint16 system variable %v: %v", name, err))
-	}
-
-	return value.Value.(uint16)
+	return value.String()
 }
 
 // GetUint64 gets the value of the variable with the specified name for system variable of
@@ -269,11 +249,11 @@ func (c *Container) GetUint64(name Name) uint64 {
 		panic(fmt.Sprintf("cannot get uint64 system variable %v: %v", name, err))
 	}
 
-	return value.Value.(uint64)
+	return value.SQLUint().Value().(uint64)
 }
 
 // Set sets the value of a variable with the specified name, scope, and kind.
-func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) error {
+func (c *Container) Set(name Name, scope Scope, kind Kind, value values.SQLValue) error {
 	lowerName := Name(strings.ToLower(string(name)))
 	switch kind {
 	case UserKind:
@@ -294,7 +274,7 @@ func (c *Container) Set(name Name, scope Scope, kind Kind, value interface{}) er
 	}
 }
 
-func (c *Container) setSystemVariable(scope Scope, name Name, value interface{}) error {
+func (c *Container) setSystemVariable(scope Scope, name Name, value values.SQLValue) error {
 	def, err := getDefinition(name)
 	if err != nil {
 		return err
@@ -306,11 +286,11 @@ func (c *Container) setSystemVariable(scope Scope, name Name, value interface{})
 	}
 
 	if fmt.Sprintf("%v", value) == "default" {
-		value, err := NewGlobalContainer(nil).Get(name, GlobalScope, SystemKind)
+		v, err := NewGlobalContainer(nil).Get(name, GlobalScope, SystemKind)
 		if err != nil {
 			return err
 		}
-		return c.setSystemVariable(scope, name, value.Value)
+		return c.setSystemVariable(scope, name, v)
 	}
 
 	if c.scope == scope {
@@ -325,7 +305,7 @@ func (c *Container) setSystemVariable(scope Scope, name Name, value interface{})
 // SetSystemVariable sets the value of the variable with the specified name for
 // system variable. This function skips set scope validation, so it should only
 // be used to initialize variables, not as part of a SET command.
-func (c *Container) SetSystemVariable(name Name, value interface{}) {
+func (c *Container) SetSystemVariable(name Name, value values.SQLValue) {
 	err := c.setSystemVariable(c.scope, name, value)
 	if err != nil {
 		panic(fmt.Sprintf("unexpected error initializing system variable '%s': %v", name, err))

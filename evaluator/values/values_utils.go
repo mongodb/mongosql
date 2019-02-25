@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/schema"
@@ -131,38 +130,6 @@ func CompareToPairwise(left, right []SQLValue, collation *collation.Collation) (
 	}
 
 	return 0, nil
-}
-
-// GoValueToSQLValue is only needed for dynamic sources and reading variables
-// and a few places in testing. As the name suggests, it converts a go value
-// to a SQLValue.
-func GoValueToSQLValue(kind SQLValueKind, v interface{}) SQLValue {
-	switch vTyped := v.(type) {
-	case nil:
-		return NewSQLNull(kind)
-	case bool:
-		return NewSQLBool(kind, vTyped)
-	case int:
-		return NewSQLInt64(kind, int64(vTyped))
-	case int64:
-		return NewSQLInt64(kind, vTyped)
-	case float64:
-		return NewSQLFloat(kind, vTyped)
-	case uint16:
-		return NewSQLUint64(kind, uint64(vTyped))
-	case uint32:
-		return NewSQLUint64(kind, uint64(vTyped))
-	case uint64:
-		return NewSQLUint64(kind, vTyped)
-	case string:
-		return NewSQLVarchar(kind, vTyped)
-	case variable.Name:
-		return NewSQLVarchar(kind, string(vTyped))
-	default:
-		panic(fmt.Sprintf(
-			"unexpected go type %T from dynamic source or system variable in GoValueToSQLValue",
-			vTyped))
-	}
 }
 
 func paddedDateString(val SQLValue) (string, bool) {

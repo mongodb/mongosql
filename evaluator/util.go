@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -194,7 +195,7 @@ func fullyQualifiedTableName(databaseName, tableName string) string {
 	return qualifiedName
 }
 
-func generateDbSetFromColumns(columns []*Column) map[string]struct{} {
+func generateDbSetFromColumns(columns []*results.Column) map[string]struct{} {
 	dbNames := make(map[string]struct{})
 	for _, c := range columns {
 		dbNames[c.Database] = struct{}{}
@@ -431,6 +432,38 @@ func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32
 	return aux(doc, 0)
 }
 
+// GoValueToSQLValue is only needed for dynamic sources and reading variables
+// and a few places in testing. As the name suggests, it converts a go value
+// to a SQLValue.
+func GoValueToSQLValue(kind values.SQLValueKind, v interface{}) values.SQLValue {
+	switch vTyped := v.(type) {
+	case nil:
+		return values.NewSQLNull(kind)
+	case bool:
+		return values.NewSQLBool(kind, vTyped)
+	case int:
+		return values.NewSQLInt64(kind, int64(vTyped))
+	case int64:
+		return values.NewSQLInt64(kind, vTyped)
+	case float64:
+		return values.NewSQLFloat(kind, vTyped)
+	case uint16:
+		return values.NewSQLUint64(kind, uint64(vTyped))
+	case uint32:
+		return values.NewSQLUint64(kind, uint64(vTyped))
+	case uint64:
+		return values.NewSQLUint64(kind, vTyped)
+	case string:
+		return values.NewSQLVarchar(kind, vTyped)
+	case variable.Name:
+		return values.NewSQLVarchar(kind, string(vTyped))
+	default:
+		panic(fmt.Sprintf(
+			"unexpected go type %T from dynamic source or system variable in GoValueToSQLValue",
+			vTyped))
+	}
+}
+
 // GetSQLValueKind is a utility function that gets the values.SQLValueKind to use for new
 // SQLValues based on the type_conversion_mode variable in the provided container.
 func GetSQLValueKind(vars catalog.VariableContainer) values.SQLValueKind {
@@ -455,10 +488,10 @@ func absInt64(i int64) int64 {
 	return i
 }
 
-func cloneColumns(columns []*Column) []*Column {
-	newColumns := make([]*Column, len(columns))
+func cloneColumns(columns []*results.Column) []*results.Column {
+	newColumns := make([]*results.Column, len(columns))
 	for i, col := range columns {
-		newColumns[i] = col.clone()
+		newColumns[i] = col.Clone()
 	}
 
 	return newColumns

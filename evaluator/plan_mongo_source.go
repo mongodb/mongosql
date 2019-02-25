@@ -11,6 +11,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -36,7 +37,7 @@ type MongoSourceStage struct {
 	aliasNames          []string
 	collectionNames     []string
 	isShardedCollection map[string]bool
-	tableType           catalog.TableType
+	tableType           string
 	mappingRegistry     *mappingRegistry
 	pipeline            []bson.D
 	isDual              bool
@@ -67,7 +68,7 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 	ms := &MongoSourceStage{
 		selectIDs:         []int{selectID},
 		dbName:            string(db.Name()),
-		tableNames:        []string{string(table.Name())},
+		tableNames:        []string{table.Name()},
 		aliasNames:        []string{aliasName},
 		tableType:         table.Type(),
 		piecewiseDeps:     []*NonCorrelatedSubqueryFuture{},
@@ -84,26 +85,30 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 	ms.isShardedCollection = map[string]bool{collectionName: table.IsSharded()}
 	ms.mappingRegistry = newMappingRegistry()
 
-	primaryKeys := catalog.Columns(table.PrimaryKeys())
-
 	for _, c := range table.Columns() {
-		mc := c.(*catalog.MongoColumn)
-		column := NewColumn(selectID,
-			ms.aliasNames[0],
-			ms.tableNames[0],
-			ms.dbName,
-			string(mc.Name()),
-			string(mc.Name()),
-			"",
-			types.SQLTypeToEvalType(schema.SQLType(mc.Type())),
-			mc.MongoType,
-			primaryKeys.Contains(mc.Name()),
-		)
-		ms.mappingRegistry.addColumn(column)
+		newColumn := c.Clone()
+		newColumn.SelectID = selectID
+		newColumn.Table = ms.aliasNames[0]
+		newColumn.OriginalTable = ms.tableNames[0]
+		newColumn.MappingRegistryName = ""
+		//               mc := c.(*catalog.MongoColumn)
+		//               column := NewColumn(selectID,
+		//                       ms.aliasNames[0],
+		//                       ms.tableNames[0],
+		//                       ms.dbName,
+		//                       string(mc.Name()),
+		//                       string(mc.Name()),
+		//                       "",
+		//                       types.SQLTypeToEvalType(schema.SQLType(mc.Type())),
+		//                       mc.MongoType,
+		//                       primaryKeys.Contains(mc.Name()),
+		//               )
+
+		ms.mappingRegistry.addColumn(newColumn)
 		ms.mappingRegistry.registerMapping(ms.dbName,
 			ms.aliasNames[0],
-			string(mc.Name()),
-			mc.MongoName)
+			c.Name,
+			c.MongoName)
 	}
 	return ms
 }
@@ -307,7 +312,7 @@ func (ms *FastMongoSourceIter) Close() error {
 // embedded documents actually occurred. The interface is busy, but pulling this
 // function out of Open allows for us to unit test this functionality.
 func buildProjectBodyForMongoSource(fields []string,
-	fieldNamesSet map[string]struct{}, columns Columns,
+	fieldNamesSet map[string]struct{}, columns results.Columns,
 	isAtLeast34 bool) (bson.D, []string, bool) {
 	// getUniqueFieldName will be used when creating $project/$addFields
 	// body names for embedded documents.
@@ -480,7 +485,7 @@ type MongoSourceIter struct {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
+func (ms *MongoSourceIter) Next(ctx context.Context, row *results.Row) bool {
 	document := &bson.RawD{}
 	if !ms.iter.Next(ctx, document) {
 		return false
@@ -488,7 +493,7 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
 
 	lenCols := len(ms.mappingRegistry.columns)
 	if len(row.Data) != lenCols {
-		row.Data = make([]Value, lenCols)
+		row.Data = make(results.RowValues, lenCols)
 	}
 
 	vs := *document
@@ -512,7 +517,7 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
 			return false
 		}
 		converted := values.ConvertTo(sqlValue, col.EvalType)
-		row.Data[i] = NewValue(col.SelectID, col.Database, col.Table, col.Name, converted)
+		row.Data[i] = results.NewRowValue(col.SelectID, col.Database, col.Table, col.Name, converted)
 	}
 	if ms.err != nil {
 		return false
@@ -523,7 +528,7 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *Row) bool {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (ms *MongoSourceStage) Columns() []*Column {
+func (ms *MongoSourceStage) Columns() []*results.Column {
 	return ms.mappingRegistry.columns
 }
 
@@ -574,12 +579,12 @@ func (ms *MongoSourceStage) Collection() string {
 
 // mappingRegistry provides a way to get a field name from a table/column.
 type mappingRegistry struct {
-	columns    []*Column
+	columns    []*results.Column
 	fields     map[string]map[string]map[string]string
 	fieldNames map[string]struct{}
 }
 
-func (mr *mappingRegistry) addColumn(column *Column) {
+func (mr *mappingRegistry) addColumn(column *results.Column) {
 	mr.columns = append(mr.columns, column)
 }
 
@@ -725,7 +730,7 @@ func (p *NonCorrelatedSubqueryFuture) Evaluate(ctx context.Context, cfg *Executi
 	}
 	iter = NewMemoryIter(cfg, iter)
 
-	row := &Row{}
+	row := &results.Row{}
 	ok := iter.Next(ctx, row)
 	if !ok {
 		// if the iter failed with an error, return it
@@ -740,7 +745,7 @@ func (p *NonCorrelatedSubqueryFuture) Evaluate(ctx context.Context, cfg *Executi
 		return nil
 	}
 
-	nullRow := &Row{}
+	nullRow := &results.Row{}
 	if iter.Next(ctx, nullRow) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
 	}
@@ -777,7 +782,7 @@ type CorrelatedSubqueryColumnFuture struct {
 	database   string
 	table      string
 	column     string
-	columnType ColumnType
+	columnType results.ColumnType
 }
 
 // NewCorrelatedSubqueryColumnFuture returns a new CorrelatedSubqueryColumnFuture based on

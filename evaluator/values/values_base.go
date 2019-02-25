@@ -46,6 +46,12 @@ func (s BaseSQLBool) IsNull() bool {
 	return false
 }
 
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLBool) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLBool(kind, s.val != 0.0)
+}
+
 // Kind returns the SQLValueKind for this SQLValue.
 func (s BaseSQLBool) Kind() SQLValueKind {
 	s.kind.AssertValid()
@@ -178,6 +184,12 @@ func (s BaseSQLDate) IsNull() bool {
 	return false
 }
 
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLDate) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLDate(kind, s.datetime)
+}
+
 // Kind returns the SQLValueKind for this SQLValue.
 func (s BaseSQLDate) Kind() SQLValueKind {
 	s.kind.AssertValid()
@@ -296,6 +308,12 @@ func newBaseSQLDecimal128(kind SQLValueKind, val decimal.Decimal) BaseSQLDecimal
 // IsNull returns true if the SQLValue is null, and false otherwise.
 func (s BaseSQLDecimal128) IsNull() bool {
 	return false
+}
+
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLDecimal128) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLDecimal128(kind, s.val)
 }
 
 // Kind returns the SQLValueKind for this SQLValue.
@@ -424,6 +442,12 @@ func (s BaseSQLFloat) IsNull() bool {
 	return false
 }
 
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLFloat) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLFloat(kind, s.val)
+}
+
 // Kind returns the SQLValueKind for this SQLValue.
 func (s BaseSQLFloat) Kind() SQLValueKind {
 	s.kind.AssertValid()
@@ -543,6 +567,12 @@ func newBaseSQLInt64(kind SQLValueKind, val int64) BaseSQLInt64 {
 // IsNull returns true if the SQLValue is null, and false otherwise.
 func (s BaseSQLInt64) IsNull() bool {
 	return false
+}
+
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLInt64) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLInt64(kind, s.val)
 }
 
 // Kind returns the SQLValueKind for this SQLValue.
@@ -670,6 +700,12 @@ func newBaseSQLObjectID(kind SQLValueKind, val string) BaseSQLObjectID {
 // IsNull returns true if the SQLValue is null, and false otherwise.
 func (s BaseSQLObjectID) IsNull() bool {
 	return false
+}
+
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLObjectID) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLObjectID(kind, s.val)
 }
 
 // Kind returns the SQLValueKind for this SQLValue.
@@ -804,6 +840,12 @@ func newBaseSQLTimestamp(kind SQLValueKind, val time.Time) BaseSQLTimestamp {
 // IsNull returns true if the SQLValue is null, and false otherwise.
 func (s BaseSQLTimestamp) IsNull() bool {
 	return false
+}
+
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLTimestamp) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLTimestamp(kind, s.datetime)
 }
 
 // Kind returns the SQLValueKind for this SQLValue.
@@ -942,6 +984,12 @@ func newBaseSQLUint64(kind SQLValueKind, val uint64) BaseSQLUint64 {
 // IsNull returns true if the SQLValue is null, and false otherwise.
 func (s BaseSQLUint64) IsNull() bool {
 	return false
+}
+
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLUint64) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLUint64(kind, s.val)
 }
 
 // Kind returns the SQLValueKind for this SQLValue.
@@ -1093,6 +1141,12 @@ func newBaseSQLVarchar(kind SQLValueKind, val string) BaseSQLVarchar {
 // IsNull returns true if the SQLValue is null, and false otherwise.
 func (s BaseSQLVarchar) IsNull() bool {
 	return false
+}
+
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLVarchar) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLVarchar(kind, s.val)
 }
 
 // Kind returns the SQLValueKind for this SQLValue.
@@ -1283,6 +1337,12 @@ func (BaseSQLNull) iSQLNull() {}
 // IsNull returns true if the SQLValue is null, and false otherwise.
 func (s BaseSQLNull) IsNull() bool {
 	return true
+}
+
+// CloneWithKind copies the SQLValue with the passed kind.
+func (s BaseSQLNull) CloneWithKind(kind SQLValueKind) SQLValue {
+	kind.AssertValid()
+	return NewSQLNull(kind)
 }
 
 // Kind returns the SQLValueKind for this SQLValue.

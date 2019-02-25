@@ -103,8 +103,8 @@ func TestGetCatalog(t *testing.T) {
 					t.Fatalf("unexpected error getting MongoDB Version variable for %s scope: %v", scope, err)
 				}
 
-				if expectedMdbVersion != actualMdbVersion.Value {
-					t.Fatalf("MongoDB Versions do not match, expected: %s, actual: %s", expectedMdbVersion, actualMdbVersion.Value)
+				if expectedMdbVersion != actualMdbVersion.Value() {
+					t.Fatalf("MongoDB Versions do not match, expected: %s, actual: %s", expectedMdbVersion, actualMdbVersion)
 				}
 			}
 		}
@@ -272,7 +272,7 @@ func TestGetCatalog(t *testing.T) {
 				actualTables := actualDB.Tables()
 				actualTableNames := make([]string, len(actualTables))
 				for i, actualTable := range actualTables {
-					actualTableNames[i] = string(actualTable.Name())
+					actualTableNames[i] = actualTable.Name()
 				}
 
 				// ensure no unexpected tables were included.
@@ -296,7 +296,7 @@ func TestGetCatalog(t *testing.T) {
 					actualColumns := actualTable.Columns()
 					actualColumnNames := make([]string, len(actualColumns))
 					for i, actualColumn := range actualColumns {
-						actualColumnNames[i] = string(actualColumn.Name())
+						actualColumnNames[i] = actualColumn.Name
 					}
 
 					// ensure no unexpected columns were included.

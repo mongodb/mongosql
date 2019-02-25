@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/10gen/mongo-go-driver/bson"
 
@@ -18,7 +19,7 @@ import (
 // checks if all members of the index key are included in a table's
 // columns. If they are, we add the columns and return the index;
 // otherwise, we return nil.
-func addColumnToIndex(index mongodb.Index, mongoNameToColumn map[string]Column) *Index {
+func addColumnToIndex(index mongodb.Index, mongoNameToColumn map[string]*results.Column) *Index {
 	uniqueIndex := &Index{constraintName: index.Name}
 	for _, key := range index.Key {
 		column, ok := mongoNameToColumn[key.Name]
@@ -69,25 +70,25 @@ func createUniqueIndexName(database, table string, position int) string {
 //
 // If the column is the first column of a non-unique index in which multiple
 // occurrences of a given value are permitted within the column, the key is multiKey.
-func getIndexKey(col Column, tbl Table) string {
-	colName := string(col.Name())
+func getIndexKey(col *results.Column, tbl Table) string {
+	colName := col.Name
 
 	for _, pk := range tbl.PrimaryKeys() {
-		if colName == string(pk.Name()) {
+		if colName == pk.Name {
 			return primaryKey
 		}
 	}
 
 	for _, idx := range tbl.Indexes() {
 		if len(idx.columns) == 1 {
-			if colName == string(idx.columns[0].Name()) {
+			if colName == idx.columns[0].Name {
 				if idx.unique {
 					return uniqueKey
 				}
 				return multiKey
 			}
 		} else if !idx.unique {
-			if colName == string(idx.columns[0].Name()) {
+			if colName == idx.columns[0].Name {
 				return multiKey
 			}
 		}
@@ -167,27 +168,27 @@ func sortForeignKeyCandidates(foreignKeyCandidates map[string]potentialForeignKe
 	}
 }
 
-func translateColumnType(sqlType SQLType, maxVarcharLength uint16) string {
-	switch schema.SQLType(sqlType) {
-	case schema.SQLBoolean:
+func translateColumnType(sqlType types.EvalType, maxVarcharLength uint64) string {
+	switch sqlType {
+	case types.EvalBoolean:
 		return "tinyint(1)"
-	case schema.SQLDate:
+	case types.EvalDate:
 		return "date"
-	case schema.SQLDecimal:
+	case types.EvalDatetime:
+		return "datetime"
+	case types.EvalDecimal128:
 		return "decimal(65,20)"
-	case schema.SQLFloat, schema.SQLNumeric, schema.SQLArrNumeric:
+	case types.EvalDouble, types.EvalArrNumeric:
 		return "double"
-	case schema.SQLInt:
+	case types.EvalInt64:
 		return "bigint(20)"
-	case schema.SQLObjectID:
+	case types.EvalObjectID:
 		return "varchar(24)"
-	case schema.SQLTimestamp:
+	case types.EvalTimestamp:
 		return "datetime(6)"
-	case schema.SQLUint:
+	case types.EvalUint64:
 		return "bigint(20) unsigned"
-	case schema.SQLUUID:
-		return "varchar(36)"
-	case schema.SQLVarchar:
+	case types.EvalString:
 		length := maxVarcharLength
 		if length == 0 {
 			length = math.MaxUint16

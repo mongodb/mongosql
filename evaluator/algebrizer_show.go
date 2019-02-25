@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
@@ -137,7 +138,7 @@ func (a *algebrizer) translateShowColumns(show *parser.Show) (PlanStage, error) 
 		return nil, err
 	} else {
 		dbName = string(db.Name())
-		table = string(tbl.Name())
+		table = tbl.Name()
 	}
 
 	info.predicate = &parser.AndExpr{
@@ -191,7 +192,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 	return NewProjectStage(
 		NewDualStage(),
 		ProjectedColumn{
-			Column: NewColumn(a.selectID,
+			Column: results.NewColumn(a.selectID,
 				"",
 				"",
 				"",
@@ -205,7 +206,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 			Expr: NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), databaseName)),
 		},
 		ProjectedColumn{
-			Column: NewColumn(a.selectID,
+			Column: results.NewColumn(a.selectID,
 				"",
 				"",
 				"",
@@ -256,7 +257,7 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 	return NewProjectStage(
 		NewDualStage(),
 		ProjectedColumn{
-			Column: NewColumn(a.selectID,
+			Column: results.NewColumn(a.selectID,
 				"",
 				"",
 				"",
@@ -267,10 +268,10 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 				schema.MongoNone,
 				false,
 			),
-			Expr: NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), string(table.Name()))),
+			Expr: NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), table.Name())),
 		},
 		ProjectedColumn{
-			Column: NewColumn(a.selectID,
+			Column: results.NewColumn(a.selectID,
 				"",
 				"",
 				"",
@@ -325,7 +326,7 @@ func (a *algebrizer) translateShowKeys(show *parser.Show) (PlanStage, error) {
 		return nil, err
 	} else {
 		dbName = string(db.Name())
-		tableName = string(tbl.Name())
+		tableName = tbl.Name()
 	}
 
 	info := showInfo{
@@ -542,10 +543,10 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		db,
 		tbl.(*catalog.DynamicTable),
 		subqueryAlgebrizer.selectID,
-		string(tbl.Name()),
+		tbl.Name(),
 	)
 
-	columns := Columns(plan.Columns())
+	columns := results.Columns(plan.Columns())
 
 	var projectedColumns ProjectedColumns
 
@@ -565,7 +566,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 		c.OriginalTable = info.tableName
 		c.OriginalName = c.Name
 
-		projColumn := ProjectedColumn{c, c.expr()}
+		projColumn := ProjectedColumn{c, newSQLColumnExprFromColumn(c)}
 
 		// apply expression colExprTransformations if given
 		if info.colExprTransformations != nil {
@@ -576,7 +577,7 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 				if err != nil {
 					panic(fmt.Sprintf("cannot transform column %s: %v", columnAlias, err))
 				}
-				projColumn = *c.projectWithExpr(transformation)
+				projColumn = *newProjectedColumnFromColumnWithExpr(c, transformation)
 			}
 		}
 
@@ -621,14 +622,14 @@ func (a *algebrizer) translateShowInfo(info *showInfo) (PlanStage, error) {
 	// need to get returned to the client; for instance, to perform
 	// filtering or ordering.
 	if len(info.columnNames) > len(info.columnAliases) {
-		columns := Columns(plan.Columns())
+		columns := results.Columns(plan.Columns())
 		var projectedColumns ProjectedColumns
 		for _, columnName := range info.columnAliases {
 			c, ok := columns.FindByName(columnName)
 			if !ok {
 				panic(fmt.Sprintf("cannot find column %s", columnName))
 			}
-			projectedColumn := c.projectAs(c.Name)
+			projectedColumn := newProjectedColumnFromColumn(c)
 			projectedColumn.SelectID = a.selectID
 			projectedColumns = append(projectedColumns, projectedColumn)
 		}

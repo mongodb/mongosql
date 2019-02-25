@@ -5,8 +5,8 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
-	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -77,18 +77,18 @@ func (bs *BSONSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *E
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (bs *BSONSourceIter) Next(_ context.Context, row *Row) bool {
+func (bs *BSONSourceIter) Next(_ context.Context, row *results.Row) bool {
 	valueKind := bs.cfg.sqlValueKind
 
 	if bs.index == len(bs.data) || bs.data == nil {
 		return false
 	}
 
-	var vs Values
+	var vs results.RowValues
 
 	for _, docElem := range bs.data[bs.index] {
-		value := values.GoValueToSQLValue(valueKind, docElem.Value)
-		vs = append(vs, NewValue(
+		value := GoValueToSQLValue(valueKind, docElem.Value)
+		vs = append(vs, results.NewRowValue(
 			bs.selectID,
 			bs.databaseName,
 			bs.tableName,
@@ -105,11 +105,11 @@ func (bs *BSONSourceIter) Next(_ context.Context, row *Row) bool {
 
 // Columns returns the ordered set of columns that are contained in results
 // from this plan.
-func (bs *BSONSourceStage) Columns() []*Column {
+func (bs *BSONSourceStage) Columns() []*results.Column {
 
-	var columns []*Column
+	var columns []*results.Column
 	for _, v := range bs.data[0] {
-		column := NewColumn(bs.selectID,
+		column := results.NewColumn(bs.selectID,
 			bs.tableName,
 			bs.tableName,
 			bs.databaseName,

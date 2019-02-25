@@ -18,10 +18,10 @@ func TestDefault(t *testing.T) {
 	testString(t, string(cfg.SystemLog.LogRotate), string(log.Rename), "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "", "cfg.SystemLog.Path")
 	testBool(t, cfg.SystemLog.Quiet, false, "cfg.SystemLog.Quiet")
-	testInt(t, cfg.SystemLog.Verbosity, 0, "cfg.SystemLog.Verbosity")
+	testInt64(t, cfg.SystemLog.Verbosity, 0, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
-	testUint16(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
+	testUint64(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
 	testString(t, cfg.Schema.Sample.SchemaMappingMode, "lattice", "cfg.Schema.Sample.SchemaMappingMode")
 	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
@@ -158,10 +158,10 @@ func TestLoad(t *testing.T) {
 	testString(t, string(cfg.SystemLog.LogRotate), string(log.Reopen), "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "temp", "cfg.SystemLog.Path")
 	testBool(t, cfg.SystemLog.Quiet, true, "cfg.SystemLog.Quiet")
-	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
+	testInt64(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
-	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
+	testUint64(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
 	testString(t, cfg.Schema.Sample.SchemaMappingMode, "majority", "cfg.Schema.Sample.SchemaMappingMode")
 	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
@@ -267,7 +267,7 @@ func TestLoadWithCLIArgs(t *testing.T) {
 	}
 
 	// 1 from the args, as opposed to the 2 from the file
-	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
+	testInt64(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
 	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_2",
 		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
 }
@@ -1067,13 +1067,6 @@ func testStringSlice(t *testing.T, actual, expected []string, key string) {
 		if actual[i] != expected[i] {
 			t.Errorf("%s should be %v but was %v", key, expected, actual)
 		}
-	}
-}
-
-// nolint: unparam
-func testUint16(t *testing.T, actual, expected uint16, key string) {
-	if actual != expected {
-		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
 }
 

@@ -4,17 +4,20 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/schema"
 )
 
 // NewInMemoryTable creates a new InMemoryTable.
-func NewInMemoryTable(name string, columns ...*InMemoryColumn) *InMemoryTable {
-	var columnMap = make(map[string]*InMemoryColumn)
+func NewInMemoryTable(name string, columns ...*results.Column) *InMemoryTable {
+	var columnMap = make(map[string]*results.Column)
 	for _, col := range columns {
-		columnMap[strings.ToLower(string(col.Name()))] = col
+		columnMap[strings.ToLower(col.Name)] = col
 	}
 	return &InMemoryTable{
-		name:      TableName(name),
+		name:      name,
 		columns:   columns,
 		columnMap: columnMap,
 	}
@@ -22,23 +25,37 @@ func NewInMemoryTable(name string, columns ...*InMemoryColumn) *InMemoryTable {
 
 // InMemoryTable is an in-memory table.
 type InMemoryTable struct {
-	name      TableName
-	columns   []*InMemoryColumn
-	columnMap map[string]*InMemoryColumn
-	Rows      []*DataRow
+	selectID  int
+	name      string
+	columns   results.Columns
+	columnMap map[string]*results.Column
+	Rows      results.Rows
 }
 
 // AddColumn adds a columns to the InMemoryTable, t.
-func (t *InMemoryTable) AddColumn(name string, sqlType SQLType) (*InMemoryColumn, error) {
+func (t *InMemoryTable) AddColumn(name string, evalType types.EvalType) (*results.Column, error) {
 	lowerName := strings.ToLower(name)
 	if _, ok := t.columnMap[lowerName]; ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, name)
 	}
 
-	c := &InMemoryColumn{
-		name:    ColumnName(name),
-		sqlType: sqlType,
-	}
+	cb := results.NewColumnBuilder()
+	cb.SetColumnType(results.NewColumnType(evalType, schema.MongoNone))
+	cb.SetSelectID(t.selectID)
+	cb.SetTable("")
+	cb.SetOriginalTable("")
+	cb.SetDatabase("")
+	cb.SetName(name)
+	cb.SetOriginalName("")
+	cb.SetMappingRegistryName("")
+	cb.SetMongoName("")
+	cb.SetPrimaryKey(false)
+	cb.SetComments("")
+	cb.SetIsPolymorphic(false)
+	cb.SetHasAlteredType(false)
+	c := cb.Build()
+
+	t.selectID++
 
 	t.columns = append(t.columns, c)
 	t.columnMap[lowerName] = c
@@ -47,87 +64,52 @@ func (t *InMemoryTable) AddColumn(name string, sqlType SQLType) (*InMemoryColumn
 }
 
 // Collation returns the collation for the InMemoryTable.
-func (_ *InMemoryTable) Collation() *collation.Collation {
+func (*InMemoryTable) Collation() *collation.Collation {
 	return collation.Default
 }
 
 // Column returns the column of the specified name.
-func (t *InMemoryTable) Column(name string) (Column, error) {
+func (t *InMemoryTable) Column(name string) (*results.Column, error) {
 	if c, ok := t.columnMap[strings.ToLower(name)]; ok {
 		return c, nil
 	}
-	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, string(t.Name()))
+	return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, name, t.Name())
 }
 
 // Columns returns the columns for the InMemoryTable, t.
-func (t *InMemoryTable) Columns() []Column {
-	var cols []Column
-	for _, c := range t.columns {
-		cols = append(cols, c)
-	}
+func (t *InMemoryTable) Columns() results.Columns {
+	var cols results.Columns
+	cols = append(cols, t.columns...)
 	return cols
 }
 
 // Comments returns comments about the InMemoryTable.
-func (_ *InMemoryTable) Comments() string {
+func (*InMemoryTable) Comments() string {
 	return ""
 }
 
 // ForeignKeys returns the foreign keys for the InMemoryTable.
-func (_ *InMemoryTable) ForeignKeys() []ForeignKey {
+func (*InMemoryTable) ForeignKeys() []ForeignKey {
 	return nil
 }
 
 // Indexes returns the indexes for the InMemoryTable.
-func (_ *InMemoryTable) Indexes() []Index {
+func (*InMemoryTable) Indexes() []Index {
 	return nil
 }
 
-// Insert inserts a row into the InMemoryTable, t.
-func (t *InMemoryTable) Insert(values ...interface{}) {
-	t.Rows = append(t.Rows, &DataRow{Values: values})
-}
-
 // Name returns the name for the InMemoryTable, t.
-func (t *InMemoryTable) Name() TableName {
+func (t *InMemoryTable) Name() string {
 	return t.name
 }
 
 // PrimaryKeys returns the primary keys for
 // the InMemoryTable.
-func (_ *InMemoryTable) PrimaryKeys() []Column {
+func (*InMemoryTable) PrimaryKeys() results.Columns {
 	return nil
 }
 
 // Type returns the type of the InMemoryTable.
-func (_ *InMemoryTable) Type() TableType {
+func (*InMemoryTable) Type() string {
 	return BaseTable
-}
-
-// InMemoryColumn is an in-memory table column.
-type InMemoryColumn struct {
-	comments string
-	name     ColumnName
-	sqlType  SQLType
-}
-
-// ShouldConvert always returns false, as data in memory
-// columns is never polymorphic.
-func (c *InMemoryColumn) ShouldConvert(_ string) bool {
-	return false
-}
-
-// Name returns the name of the column.
-func (c *InMemoryColumn) Name() ColumnName {
-	return c.name
-}
-
-// Type returns the type of the column.
-func (c *InMemoryColumn) Type() SQLType {
-	return c.sqlType
-}
-
-// Comments returns the comments for the column.
-func (c *InMemoryColumn) Comments() string {
-	return c.comments
 }

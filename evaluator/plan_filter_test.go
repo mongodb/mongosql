@@ -8,6 +8,8 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
 )
@@ -19,10 +21,10 @@ var (
 func TestFilterPlanStage(t *testing.T) {
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(values.MySQLValueKind)
 	execState := evaluator.NewExecutionState()
 
-	runTest := func(t *testing.T, matcher evaluator.SQLExpr, rows []bson.D, expectedRows []evaluator.Values) {
+	runTest := func(t *testing.T, matcher evaluator.SQLExpr, rows []bson.D, expectedRows []results.RowValues) {
 		req := require.New(t)
 
 		bss := evaluator.NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
@@ -31,14 +33,14 @@ func TestFilterPlanStage(t *testing.T) {
 		iter, err := filter.Open(bgCtx, execCfg, execState)
 		req.NoError(err)
 
-		row := &evaluator.Row{}
+		row := &results.Row{}
 
 		i := 0
 
 		for iter.Next(bgCtx, row) {
 			req.Equal(len(row.Data), len(expectedRows[i]))
 			req.Equal(row.Data, expectedRows[i])
-			row = &evaluator.Row{}
+			row = &results.Row{}
 			i++
 		}
 
@@ -69,7 +71,7 @@ func TestFilterPlanStage(t *testing.T) {
 	r1, err := bsonDToValues(1, evaluator.BSONSourceDB, tableTwoName, rows[1])
 	require.NoError(t, err)
 
-	expected := [][]evaluator.Values{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
+	expected := [][]results.RowValues{{r1}, {r0}, nil, {r1}, {r1}, {r0}}
 
 	for i, query := range queries {
 		matcher, err := evaluator.GetSQLExpr(schema, evaluator.BSONSourceDB, tableTwoName, query)

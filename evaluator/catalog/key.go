@@ -2,6 +2,8 @@ package catalog
 
 import (
 	"fmt"
+
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // key is an identifier for a
@@ -20,17 +22,17 @@ type namespace struct {
 
 type namespaces []namespace
 
-const (
-	mongoPrimaryKey  string = "_id"
-	primaryKey       string = "PRI"
-	uniqueKey        string = "UNI"
-	multiKey         string = "MUL"
-	defaultIndexType string = "BTREE"
+var (
+	mongoPrimaryKey  = "_id"
+	primaryKey       = "PRI"
+	uniqueKey        = "UNI"
+	multiKey         = "MUL"
+	defaultIndexType = "BTREE"
 )
 
 // Index represents an index in a SQL table.
 type Index struct {
-	columns        []Column
+	columns        results.Columns
 	unique         bool
 	constraintName string
 }
@@ -94,7 +96,7 @@ func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces,
 			}
 
 			collectionName := mongoTable.collectionName
-			tableName := string(tbl.Name())
+			tableName := tbl.Name()
 			ns := namespace{dbName, tableName}
 			collectionLineage[collectionName] = append(collectionLineage[collectionName], ns)
 
@@ -117,7 +119,7 @@ func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces,
 			// the foreign key candidates for this table.
 			for _, column := range mongoTable.columns {
 				if unwindPath, ok := pathAliases[column.MongoName]; ok {
-					fkName := string(column.name)
+					fkName := column.Name
 					fkCandidate := newForeignKeyCandidate(fkName, tableName, dbName, depth)
 					if _, ok := candidateForeignKeys[collectionName]; !ok {
 						candidateForeignKeys[collectionName] = map[string]foreignKeyCandidates{
@@ -198,7 +200,7 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 						// If this table already has a foreign key, add the current key
 						// to generate a compound foreign key.
 						foreignKey.columns = append(foreignKey.columns, column)
-						foreignKey.localToForeignColumn[string(column.name)] = fkColumn
+						foreignKey.localToForeignColumn[column.Name] = fkColumn
 						tableToForeignKey[fkTable] = foreignKey
 					}
 				}
@@ -211,104 +213,147 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 	}
 }
 
-func getDataRowForForeignKey(tableName TableName, ck key, fk ForeignKey, position int) *DataRow {
+func (b *catalogBuilder) getRowForForeignKey(tableName string, ck key, fk ForeignKey, position int, columnNames []string) results.Row {
 	catalog, database, table, column := ck.catalog, ck.database, ck.table, ck.column
 	constraintName, foreignColumn := fk.constraintName, fk.localToForeignColumn[column]
 	foreignDatabase, foreignTable := fk.foreignDatabase, fk.foreignTable
 	foreignKeyConstraintName := "FOREIGN KEY"
 
+	checkColumnNumber := func(num int) {
+		if len(columnNames) != num {
+			panic(fmt.Sprintf("table: %s must be passed %d columnNames, but got %d", tableName, num, len(columnNames)))
+		}
+	}
+
+	nullv, strv, intv := getValueCreators(b.variables)
 	switch tableName {
 	case KeyColumnUsageTable:
-		return NewDataRow(catalog, database, constraintName, catalog, database, table,
-			column, position, position, foreignDatabase, foreignTable, foreignColumn)
+		checkColumnNumber(12)
+		return newInfoRow(tableName,
+			strv(columnNames[0], catalog),
+			strv(columnNames[1], database),
+			strv(columnNames[2], constraintName),
+			strv(columnNames[3], catalog),
+			strv(columnNames[4], database),
+			strv(columnNames[5], table),
+			strv(columnNames[6], column),
+			intv(columnNames[7], int64(position)),
+			intv(columnNames[8], int64(position)),
+			strv(columnNames[9], foreignDatabase),
+			strv(columnNames[10], foreignTable),
+			strv(columnNames[11], foreignColumn),
+		)
 	case ReferentialConstraintsTable:
-		return NewDataRow(catalog, database, constraintName, catalog, database,
-			"PRIMARY", "NONE", "CASCADE", "CASCADE", table, foreignTable)
+		checkColumnNumber(11)
+		return newInfoRow(tableName,
+			strv(columnNames[0], catalog),
+			strv(columnNames[1], database),
+			strv(columnNames[2], constraintName),
+			strv(columnNames[3], catalog),
+			strv(columnNames[4], database),
+			strv(columnNames[5], "PRIMARY"),
+			strv(columnNames[6], "NONE"),
+			strv(columnNames[7], "CASCADE"),
+			strv(columnNames[8], "CASCADE"),
+			strv(columnNames[9], table),
+			strv(columnNames[10], foreignTable),
+		)
 	case StatisticsTable:
-		return NewDataRow(
-			catalog,
-			database,
-			table,
-			1,
-			database,
-			constraintName,
-			position,
-			column,
-			"A",
-			0,
-			nil,
-			nil,
-			"YES",
-			defaultIndexType,
-			"",
-			"",
+		checkColumnNumber(16)
+		return newInfoRow(tableName,
+			strv(columnNames[0], catalog),
+			strv(columnNames[1], database),
+			strv(columnNames[2], table),
+			intv(columnNames[3], 1),
+			strv(columnNames[4], database),
+			strv(columnNames[5], constraintName),
+			intv(columnNames[6], int64(position)),
+			strv(columnNames[7], column),
+			strv(columnNames[8], "A"),
+			intv(columnNames[9], 0),
+			nullv(columnNames[10]),
+			nullv(columnNames[11]),
+			strv(columnNames[12], "YES"),
+			strv(columnNames[13], defaultIndexType),
+			strv(columnNames[14], ""),
+			strv(columnNames[15], ""),
 		)
 	case TableConstraintsTable:
-		return NewDataRow(
-			catalog,
-			database,
-			constraintName,
-			database,
-			table,
-			foreignKeyConstraintName,
+		checkColumnNumber(6)
+		return newInfoRow(tableName,
+			strv(columnNames[0], catalog),
+			strv(columnNames[1], database),
+			strv(columnNames[2], constraintName),
+			strv(columnNames[3], database),
+			strv(columnNames[4], table),
+			strv(columnNames[5], foreignKeyConstraintName),
 		)
 	}
 	panic(fmt.Sprintf("unknown foreign key table: %v", tableName))
 }
 
-func getDataRowsForPrimaryKey(tableName TableName, ck key, primaryKeys []Column) []*DataRow {
+func (b *catalogBuilder) getRowsForPrimaryKey(tableName string, ck key, primaryKeys results.Columns, columnNames []string) results.Rows {
 	pkConstraintName, pkConstraintType := "PRIMARY", "PRIMARY KEY"
 	catalog, database, table := ck.catalog, ck.database, ck.table
 
-	var rows []*DataRow
+	var rows results.Rows
 
+	nullv, strv, intv := getValueCreators(b.variables)
+	checkColumnNumber := func(num int) {
+		if len(columnNames) != num {
+			panic(fmt.Sprintf("table: %s must be passed %d columnNames, but got %d", tableName, num, len(columnNames)))
+		}
+	}
 	for position, key := range primaryKeys {
 		switch tableName {
 		case KeyColumnUsageTable:
-			rows = append(rows, NewDataRow(
-				catalog,
-				database,
-				pkConstraintName,
-				catalog,
-				database,
-				table,
-				string(key.Name()),
-				position+1,
-				nil, // position in unique constraint
-				nil, // referenced table schema
-				nil, // referenced table name
-				nil, // referenced column name
+			checkColumnNumber(12)
+			rows = append(rows, newInfoRow(tableName,
+				strv(columnNames[0], catalog),
+				strv(columnNames[1], database),
+				strv(columnNames[2], pkConstraintName),
+				strv(columnNames[3], catalog),
+				strv(columnNames[4], database),
+				strv(columnNames[5], table),
+				strv(columnNames[6], key.Name),
+				intv(columnNames[7], int64(position+1)),
+				nullv(columnNames[8]),  // position in unique constraint
+				nullv(columnNames[9]),  // referenced table schema
+				nullv(columnNames[10]), // referenced table name
+				nullv(columnNames[11]), // referenced column name
 			))
 		case ReferentialConstraintsTable:
 		case StatisticsTable:
-			rows = append(rows, NewDataRow(
-				catalog,
-				database,
-				table,
-				0,
-				database,
-				pkConstraintName,
-				position+1,
-				string(key.Name()),
-				"A",
-				0,
-				nil,
-				nil,
-				"YES",
-				defaultIndexType,
-				"",
-				"",
+			checkColumnNumber(16)
+			rows = append(rows, newInfoRow(tableName,
+				strv(columnNames[0], catalog),
+				strv(columnNames[1], database),
+				strv(columnNames[2], table),
+				intv(columnNames[3], 0),
+				strv(columnNames[4], database),
+				strv(columnNames[5], pkConstraintName),
+				intv(columnNames[6], int64(position+1)),
+				strv(columnNames[7], key.Name),
+				strv(columnNames[8], "A"),
+				intv(columnNames[9], 0),
+				nullv(columnNames[10]),
+				nullv(columnNames[11]),
+				strv(columnNames[12], "YES"),
+				strv(columnNames[13], defaultIndexType),
+				strv(columnNames[14], ""),
+				strv(columnNames[15], ""),
 			))
 		case TableConstraintsTable:
+			checkColumnNumber(6)
 			// table constraints should only have one entry
 			// per key (simple/compound) relationship
-			rows = append(rows, NewDataRow(
-				catalog,
-				database,
-				pkConstraintName,
-				database,
-				table,
-				pkConstraintType,
+			rows = append(rows, newInfoRow(tableName,
+				strv(columnNames[0], catalog),
+				strv(columnNames[1], database),
+				strv(columnNames[2], pkConstraintName),
+				strv(columnNames[3], database),
+				strv(columnNames[4], table),
+				strv(columnNames[5], pkConstraintType),
 			))
 			return rows
 		default:
@@ -319,11 +364,19 @@ func getDataRowsForPrimaryKey(tableName TableName, ck key, primaryKeys []Column)
 	return rows
 }
 
-func getDataRowsForUniqueIndexes(tableName TableName, ck key, indexes []Index) []*DataRow {
-	position, uniqueKeyConstraint := 0, "UNIQUE"
-	catalog, database, table := ck.catalog, ck.database, ck.table
+func (b *catalogBuilder) getRowsForUniqueIndexes(tableName string, ck key, indexes []Index, columnNames []string) results.Rows {
+	uniqueKeyConstraint, catalog := "UNIQUE", ck.catalog
+	database, table := ck.database, ck.table
 
-	var rows []*DataRow
+	position := 0
+	var rows results.Rows
+
+	nullv, strv, intv := getValueCreators(b.variables)
+	checkColumnNumber := func(num int) {
+		if len(columnNames) != num {
+			panic(fmt.Sprintf("table: %s must be passed %d columnNames, but got %d", tableName, num, len(columnNames)))
+		}
+	}
 
 	for _, index := range indexes {
 		if !index.unique {
@@ -333,51 +386,54 @@ func getDataRowsForUniqueIndexes(tableName TableName, ck key, indexes []Index) [
 		switch tableName {
 		case KeyColumnUsageTable:
 			for ordinalPosition, column := range index.columns {
-				rows = append(rows, NewDataRow(
-					catalog,
-					database,
-					createUniqueIndexName(database, table, position),
-					catalog,
-					database,
-					table,
-					string(column.Name()),
-					ordinalPosition+1,
-					nil, // position in unique constraint
-					nil, // referenced table schema
-					nil, // referenced table name
-					nil, // referenced column name
+				checkColumnNumber(12)
+				rows = append(rows, newInfoRow(tableName,
+					strv(columnNames[0], catalog),
+					strv(columnNames[1], database),
+					strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),
+					strv(columnNames[3], catalog),
+					strv(columnNames[4], database),
+					strv(columnNames[5], table),
+					strv(columnNames[6], column.Name),
+					intv(columnNames[7], int64(ordinalPosition+1)),
+					nullv(columnNames[8]),  // position in unique constraint
+					nullv(columnNames[9]),  // referenced table schema
+					nullv(columnNames[10]), // referenced table name
+					nullv(columnNames[11]), // referenced column name
 				))
 			}
 		case ReferentialConstraintsTable:
 		case StatisticsTable:
 			for ordinalPosition, column := range index.columns {
-				rows = append(rows, NewDataRow(
-					catalog,
-					database,
-					table,
-					0,
-					database,
-					string(column.Name()),
-					ordinalPosition+1,
-					string(column.Name()),
-					"A",
-					0,
-					nil,
-					nil,
-					"YES",
-					defaultIndexType,
-					"",
-					"",
+				checkColumnNumber(16)
+				rows = append(rows, newInfoRow(tableName,
+					strv(columnNames[0], catalog),
+					strv(columnNames[1], database),
+					strv(columnNames[2], table),
+					intv(columnNames[3], 0),
+					strv(columnNames[4], database),
+					strv(columnNames[5], column.Name),
+					intv(columnNames[6], int64(ordinalPosition+1)),
+					strv(columnNames[7], column.Name),
+					strv(columnNames[8], "A"),
+					intv(columnNames[9], 0),
+					nullv(columnNames[10]),
+					nullv(columnNames[11]),
+					strv(columnNames[12], "YES"),
+					strv(columnNames[13], defaultIndexType),
+					strv(columnNames[14], ""),
+					strv(columnNames[15], ""),
 				))
 			}
 		case TableConstraintsTable:
-			rows = append(rows, NewDataRow(
-				catalog,
-				database,
-				createUniqueIndexName(database, table, position),
-				database,
-				table,
-				uniqueKeyConstraint,
+			checkColumnNumber(6)
+			rows = append(rows, newInfoRow(tableName,
+				strv(columnNames[0], catalog),
+				strv(columnNames[1], database),
+				strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),
+				strv(columnNames[3], database),
+				strv(columnNames[4], table),
+				strv(columnNames[5], uniqueKeyConstraint),
 			))
 		default:
 			panic(fmt.Sprintf("unknown unique key table: %v", tableName))

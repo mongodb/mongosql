@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
@@ -65,12 +66,12 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		),
 	)
 
-	var expected []evaluator.Values
-	var values []evaluator.Value
+	var expected []results.RowValues
+	var vs results.RowValues
 	for _, document := range rows {
-		values, err = bsonDToValues(1, dbOne, tableThreeName, document)
+		vs, err = bsonDToValues(1, dbOne, tableThreeName, document)
 		require.NoError(t, err)
-		expected = append(expected, values)
+		expected = append(expected, vs)
 	}
 
 	dbutils.DropCollection(session, dbOne, tableThreeName)
@@ -102,13 +103,13 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
-		row := &evaluator.Row{}
+		row := &results.Row{}
 
 		i := 0
 		for iter.Next(bgCtx, row) {
 			require.Equal(t, len(row.Data), len(expected[i]))
 			require.Equal(t, row.Data, expected[i])
-			row = &evaluator.Row{}
+			row = &results.Row{}
 			i++
 		}
 
@@ -126,13 +127,13 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
-		row := &evaluator.Row{}
+		row := &results.Row{}
 
 		i := 0
 		for iter.Next(bgCtx, row) {
 			require.Equal(t, len(row.Data), len(expected[i]))
 			require.Equal(t, row.Data, expected[i])
-			row = &evaluator.Row{}
+			row = &results.Row{}
 			i++
 		}
 

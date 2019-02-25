@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/log"
@@ -123,7 +124,7 @@ func (ch *commandHandler) RotateLogs() error {
 	return ch.conn.server.RotateLogs()
 }
 
-func (ch *commandHandler) Set(name variable.Name, scope variable.Scope, kind variable.Kind, value interface{}) error {
+func (ch *commandHandler) Set(name variable.Name, scope variable.Scope, kind variable.Kind, value values.SQLValue) error {
 	err := ch.SetScopeAuthorized(scope)
 	if err != nil {
 		return err

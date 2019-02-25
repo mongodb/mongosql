@@ -6,6 +6,9 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -110,11 +113,11 @@ func (b *catalogBuilder) buildFromSchema() error {
 				tableType = View
 			}
 
-			t := NewMongoTable(tblConfig, tableType, col)
+			t := NewMongoTable(dbConfig.Name(), tblConfig, tableType, col)
 
 			t.isSharded = collection.IsSharded
 
-			mongoNameToColumn := make(map[string]Column)
+			mongoNameToColumn := make(map[string]*results.Column)
 
 			for _, c := range t.columns {
 				mongoNameToColumn[c.MongoName] = c
@@ -261,79 +264,123 @@ func (b *catalogBuilder) buildInformationSchemaDatabase() error {
 	return b.addVariableTables(d)
 }
 
+func newInfoRow(tableName string, vs ...values.NamedSQLValue) results.Row {
+	return results.NewNamedRow("information_schema", tableName, vs...)
+}
+
+// getValueCreators returns three helper functions for creating NameSQLValues of type
+// SQLNull, SQLVarchar, and SQLInt64 respectively, each with the proper SQLValueKind.
+func getValueCreators(variables VariableContainer) (func(string) values.NamedSQLValue,
+	func(string, string) values.NamedSQLValue,
+	func(string, int64) values.NamedSQLValue) {
+
+	kind := values.MongoSQLValueKind
+	if variables.GetString(variable.TypeConversionMode) == variable.MySQLTypeConversionMode {
+		kind = values.MySQLValueKind
+	}
+	nullv := func(name string) values.NamedSQLValue {
+		return values.NewNamedSQLValue(name, values.NewSQLNull(kind))
+	}
+	strv := func(name, s string) values.NamedSQLValue {
+		return values.NewNamedSQLValue(name, values.NewSQLVarchar(kind, s))
+	}
+	intv := func(name string, i int64) values.NamedSQLValue {
+		return values.NewNamedSQLValue(name, values.NewSQLInt64(kind, i))
+	}
+	return nullv, strv, intv
+}
+
 func (b *catalogBuilder) addCharsetTable(d Database) error {
-	t := NewDynamicTable(CharacterSetsTable, SystemView, func() []*DataRow {
-		var rows []*DataRow
+	characterSetName := "CHARACTER_SET_NAME"
+	defaultCollateName := "DEFAULT_COLLATE_NAME"
+	description := "DESCRIPTION"
+	maxLen := "MAXLEN"
+	t := NewDynamicTable(CharacterSetsTable, SystemView, func() results.Rows {
+		_, strv, intv := getValueCreators(b.variables)
+		var rows results.Rows
 		for _, c := range collation.GetAllCharsets() {
-			rows = append(rows, NewDataRow(
-				string(c.Name),
-				string(c.DefaultCollationName),
-				c.Description,
-				int(c.MaxLen),
+			rows = append(rows, newInfoRow(CharacterSetsTable,
+				strv(characterSetName, string(c.Name)),
+				strv(defaultCollateName, string(c.DefaultCollationName)),
+				strv(description, c.Description),
+				intv(maxLen, int64(c.MaxLen)),
 			))
 		}
 		return rows
 	})
 
-	t.AddColumns(
-		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
-		"DEFAULT_COLLATE_NAME", string(schema.SQLVarchar),
-		"DESCRIPTION", string(schema.SQLVarchar),
-		"MAXLEN", string(schema.SQLInt),
+	t.AddColumns(CharacterSetsTable,
+		NewDynamicColumnDeclaration(characterSetName, types.EvalString),
+		NewDynamicColumnDeclaration(defaultCollateName, types.EvalString),
+		NewDynamicColumnDeclaration(description, types.EvalString),
+		NewDynamicColumnDeclaration(maxLen, types.EvalInt64),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addCollationTable(d Database) error {
-	t := NewDynamicTable(CollationsTable, SystemView, func() []*DataRow {
-		var rows []*DataRow
+
+	collationName := "COLLATION_NAME"
+	characterSetName := "CHARACTER_SET_NAME"
+	id := "ID"
+	isDefault := "IS_DEFAULT"
+	isCompiled := "IS_COMPILED"
+	sortlen := "SORTLEN"
+	t := NewDynamicTable(CollationsTable, SystemView, func() results.Rows {
+		var rows results.Rows
+		_, strv, intv := getValueCreators(b.variables)
 		for _, c := range collation.GetAll() {
-			isDefault := "No"
+			def := "No"
 
 			if c.Default {
-				isDefault = "Yes"
+				def = "Yes"
 			}
 
-			rows = append(rows, NewDataRow(
-				string(c.Name),
-				string(c.CharsetName),
-				int(c.ID),
-				isDefault,
-				"Yes",
-				int(c.SortLen),
+			rows = append(rows, newInfoRow(CollationsTable,
+				strv(collationName, string(c.Name)),
+				strv(characterSetName, string(c.CharsetName)),
+				intv(id, int64(c.ID)),
+				strv(isDefault, def),
+				strv(isCompiled, "Yes"),
+				intv(sortlen, int64(c.SortLen)),
 			))
 		}
 		return rows
 	})
 
-	t.AddColumns(
-		"COLLATION_NAME", string(schema.SQLVarchar),
-		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
-		"ID", string(schema.SQLInt),
-		"IS_DEFAULT", string(schema.SQLVarchar),
-		"IS_COMPILED", string(schema.SQLVarchar),
-		"SORTLEN", string(schema.SQLInt),
+	t.AddColumns(CollationsTable,
+		NewDynamicColumnDeclaration(collationName, types.EvalString),
+		NewDynamicColumnDeclaration(characterSetName, types.EvalString),
+		NewDynamicColumnDeclaration(id, types.EvalInt64),
+		NewDynamicColumnDeclaration(isDefault, types.EvalString),
+		NewDynamicColumnDeclaration(isCompiled, types.EvalString),
+		NewDynamicColumnDeclaration(sortlen, types.EvalInt64),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addCollationCharacterSetApplicabilityTable(d Database) error {
-	t := NewDynamicTable(CollationCharacterSetApplicabilityTable, SystemView, func() []*DataRow {
-		var rows []*DataRow
+	collationName := "COLLATION_NAME"
+	characterSetName := "CHARACTER_SET_NAME"
+
+	t := NewDynamicTable(CollationCharacterSetApplicabilityTable, SystemView, func() results.Rows {
+		var rows results.Rows
+		_, strv, _ := getValueCreators(b.variables)
 		for _, c := range collation.GetAll() {
-			rows = append(rows, NewDataRow(
-				string(c.Name),
-				string(c.CharsetName),
+			rows = append(rows, newInfoRow(
+				CollationCharacterSetApplicabilityTable,
+				strv(collationName, string(c.Name)),
+				strv(characterSetName, string(c.CharsetName)),
 			))
 		}
 		return rows
 	})
 
-	t.AddColumns(
-		"COLLATION_NAME", string(schema.SQLVarchar),
-		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
+	t.AddColumns(CollationCharacterSetApplicabilityTable,
+		NewDynamicColumnDeclaration(collationName, types.EvalString),
+		NewDynamicColumnDeclaration(characterSetName, types.EvalString),
 	)
 
 	return d.AddTable(t)
@@ -341,40 +388,72 @@ func (b *catalogBuilder) addCollationCharacterSetApplicabilityTable(d Database) 
 
 func (b *catalogBuilder) addColumnsTable(d Database) error {
 	c := b.catalog
-	t := NewDynamicTable(ColumnsTable, SystemView, func() []*DataRow {
-		var rows []*DataRow
+	tableName := ColumnsTable
+	columnDecls := []DynamicColumnDeclaration{
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLUMN_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("ORDINAL_POSITION", types.EvalInt64),
+		NewDynamicColumnDeclaration("COLUMN_DEFAULT", types.EvalString),
+		NewDynamicColumnDeclaration("IS_NULLABLE", types.EvalString),
+		NewDynamicColumnDeclaration("DATA_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_MAXIMUM_LENGTH", types.EvalUint64),
+		NewDynamicColumnDeclaration("CHARACTER_OCTET_LENGTH", types.EvalUint64),
+		NewDynamicColumnDeclaration("NUMERIC_PRECISION", types.EvalUint64),
+		NewDynamicColumnDeclaration("NUMERIC_SCALE", types.EvalUint64),
+		NewDynamicColumnDeclaration("DATETIME_PRECISION", types.EvalUint64),
+		NewDynamicColumnDeclaration("CHARACTER_SET_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLUMN_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("COLUMN_KEY", types.EvalString),
+		NewDynamicColumnDeclaration("EXTRA", types.EvalString),
+		NewDynamicColumnDeclaration("PRIVILEGES", types.EvalString),
+		NewDynamicColumnDeclaration("COLUMN_COMMENT", types.EvalString),
+		NewDynamicColumnDeclaration("GENERATION_EXPRESSION", types.EvalString),
+	}
+
+	columnNames := make([]string, len(columnDecls))
+	for i := range columnNames {
+		columnNames[i] = columnDecls[i].columnName
+	}
+
+	t := NewDynamicTable(tableName, SystemView, func() results.Rows {
+		var rows results.Rows
+		nullv, strv, intv := getValueCreators(b.variables)
 		for _, db := range c.Databases() {
 			for _, tbl := range db.Tables() {
 				for i, col := range tbl.Columns() {
 					columnKey := getIndexKey(col, tbl)
-					maxVarcharLength := b.variables.GetUint16(variable.MongoDBMaxVarcharLength)
-					columnType := translateColumnType(col.Type(), maxVarcharLength)
+					maxVarcharLength := b.variables.GetUint64(variable.MongoDBMaxVarcharLength)
+					columnType := translateColumnType(col.EvalType, maxVarcharLength)
 					dataType := columnType
 					if idx := strings.Index(dataType, "("); idx >= 0 {
 						dataType = dataType[:idx]
 					}
-					rows = append(rows, NewDataRow(
-						string(c.Name),
-						string(db.Name()),
-						string(tbl.Name()),
-						string(col.Name()),
-						i+1,
-						nil,
-						"YES",
-						dataType,
-						nil,
-						nil,
-						nil,
-						nil,
-						nil,
-						string(tbl.Collation().CharsetName),
-						string(tbl.Collation().Name),
-						columnType,
-						columnKey,
-						"",
-						"select",
-						col.Comments(),
-						"",
+					rows = append(rows, newInfoRow(
+						tableName,
+						strv(columnNames[0], string(c.Name)),
+						strv(columnNames[1], string(db.Name())),
+						strv(columnNames[2], tbl.Name()),
+						strv(columnNames[3], col.Name),
+						intv(columnNames[4], int64(i+1)),
+						nullv(columnNames[5]),
+						strv(columnNames[6], "YES"),
+						strv(columnNames[7], dataType),
+						nullv(columnNames[8]),
+						nullv(columnNames[9]),
+						nullv(columnNames[10]),
+						nullv(columnNames[11]),
+						nullv(columnNames[12]),
+						strv(columnNames[13], string(tbl.Collation().CharsetName)),
+						strv(columnNames[14], string(tbl.Collation().Name)),
+						strv(columnNames[15], columnType),
+						strv(columnNames[16], columnKey),
+						strv(columnNames[17], ""),
+						strv(columnNames[18], "select"),
+						strv(columnNames[19], col.Comments),
+						strv(columnNames[20], ""),
 					))
 				}
 			}
@@ -382,147 +461,128 @@ func (b *catalogBuilder) addColumnsTable(d Database) error {
 		return rows
 	})
 
-	t.AddColumns(
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"COLUMN_NAME", string(schema.SQLVarchar),
-		"ORDINAL_POSITION", string(schema.SQLInt),
-		"COLUMN_DEFAULT", string(schema.SQLVarchar),
-		"IS_NULLABLE", string(schema.SQLVarchar),
-		"DATA_TYPE", string(schema.SQLVarchar),
-		"CHARACTER_MAXIMUM_LENGTH", string(schema.SQLInt),
-		"CHARACTER_OCTET_LENGTH", string(schema.SQLInt),
-		"NUMERIC_PRECISION", string(schema.SQLInt),
-		"NUMERIC_SCALE", string(schema.SQLInt),
-		"DATETIME_PRECISION", string(schema.SQLInt),
-		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
-		"COLLATION_NAME", string(schema.SQLVarchar),
-		"COLUMN_TYPE", string(schema.SQLVarchar),
-		"COLUMN_KEY", string(schema.SQLVarchar),
-		"EXTRA", string(schema.SQLVarchar),
-		"PRIVILEGES", string(schema.SQLVarchar),
-		"COLUMN_COMMENT", string(schema.SQLVarchar),
-		"GENERATION_EXPRESSION", string(schema.SQLVarchar),
+	t.AddColumns(tableName,
+		columnDecls...,
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addColumnPrivilegesTable(d Database) error {
-	t := NewDynamicTable(ColumnPrivilegesTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(ColumnPrivilegesTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"GRANTEE", string(schema.SQLVarchar),
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"COLUMN_NAME", string(schema.SQLVarchar),
-		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
-		"IS_GRANTABLE", string(schema.SQLVarchar),
+	t.AddColumns(ColumnPrivilegesTable,
+		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLUMN_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("PRIVILEGE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("IS_GRANTABLE", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addEnginesTable(d Database) error {
-	t := NewDynamicTable(EnginesTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(EnginesTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"ENGINE", string(schema.SQLVarchar),
-		"SUPPORT", string(schema.SQLVarchar),
-		"COMMENT", string(schema.SQLVarchar),
-		"TRANSACTIONS", string(schema.SQLVarchar),
-		"XA", string(schema.SQLVarchar),
-		"SAVEPOINTS", string(schema.SQLVarchar),
+	t.AddColumns(EnginesTable,
+		NewDynamicColumnDeclaration("ENGINE", types.EvalString),
+		NewDynamicColumnDeclaration("SUPPORT", types.EvalString),
+		NewDynamicColumnDeclaration("COMMENT", types.EvalString),
+		NewDynamicColumnDeclaration("TRANSACTIONS", types.EvalString),
+		NewDynamicColumnDeclaration("XA", types.EvalString),
+		NewDynamicColumnDeclaration("SAVEPOINTS", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addEventsTable(d Database) error {
-	t := NewDynamicTable(EventsTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(EventsTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"EVENT_CATALOG", string(schema.SQLVarchar),
-		"EVENT_SCHEMA", string(schema.SQLVarchar),
-		"EVENT_NAME", string(schema.SQLVarchar),
-		"DEFINER", string(schema.SQLVarchar),
-		"TIME_ZONE", string(schema.SQLVarchar),
-		"EVENT_BODY", string(schema.SQLVarchar),
-		"EVENT_DEFINITION", string(schema.SQLVarchar),
-		"EVENT_TYPE", string(schema.SQLVarchar),
-		"EXECUTE_AT", string(schema.SQLVarchar),
-		"INTERVAL_VALUE", string(schema.SQLVarchar),
-		"INTERVAL_FIELD", string(schema.SQLVarchar),
-		"SQL_MODE", string(schema.SQLVarchar),
-		"STARTS", string(schema.SQLVarchar),
-		"ENDS", string(schema.SQLVarchar),
-		"STATUS", string(schema.SQLVarchar),
-		"ON_COMPLETION", string(schema.SQLVarchar),
-		"CREATED", string(schema.SQLVarchar),
-		"LAST_ALTERED", string(schema.SQLVarchar),
-		"LAST_EXECUTED", string(schema.SQLVarchar),
-		"EVENT_COMMENT", string(schema.SQLVarchar),
-		"ORIGINATOR", string(schema.SQLVarchar),
-		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
-		"COLLATION_CONNECTION", string(schema.SQLVarchar),
-		"DATABASE_COLLATION", string(schema.SQLVarchar),
+	t.AddColumns(EventsTable,
+		NewDynamicColumnDeclaration("EVENT_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("DEFINER", types.EvalString),
+		NewDynamicColumnDeclaration("TIME_ZONE", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_BODY", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_DEFINITION", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("EXECUTE_AT", types.EvalString),
+		NewDynamicColumnDeclaration("INTERVAL_VALUE", types.EvalString),
+		NewDynamicColumnDeclaration("INTERVAL_FIELD", types.EvalString),
+		NewDynamicColumnDeclaration("SQL_MODE", types.EvalString),
+		NewDynamicColumnDeclaration("STARTS", types.EvalString),
+		NewDynamicColumnDeclaration("ENDS", types.EvalString),
+		NewDynamicColumnDeclaration("STATUS", types.EvalString),
+		NewDynamicColumnDeclaration("ON_COMPLETION", types.EvalString),
+		NewDynamicColumnDeclaration("CREATED", types.EvalString),
+		NewDynamicColumnDeclaration("LAST_ALTERED", types.EvalString),
+		NewDynamicColumnDeclaration("LAST_EXECUTED", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_COMMENT", types.EvalString),
+		NewDynamicColumnDeclaration("ORIGINATOR", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_SET_CLIENT", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION_CONNECTION", types.EvalString),
+		NewDynamicColumnDeclaration("DATABASE_COLLATION", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addFilesTable(d Database) error {
-	t := NewDynamicTable("FILES", SystemView, func() []*DataRow {
-		return []*DataRow{}
+	files := "FILES"
+	t := NewDynamicTable(files, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"FILE_ID", string(schema.SQLVarchar),
-		"FILE_NAME", string(schema.SQLVarchar),
-		"FILE_TYPE", string(schema.SQLVarchar),
-		"TABLESPACE_NAME", string(schema.SQLVarchar),
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"LOGFILE_GROUP_NAME", string(schema.SQLVarchar),
-		"LOGFILE_GROUP_NUMBER", string(schema.SQLVarchar),
-		"ENGINE", string(schema.SQLVarchar),
-		"FULLTEXT_KEYS", string(schema.SQLVarchar),
-		"DELETED_ROWS", string(schema.SQLVarchar),
-		"UPDATE_COUNT", string(schema.SQLVarchar),
-		"FREE_EXTENTS", string(schema.SQLVarchar),
-		"TOTAL_EXTENTS", string(schema.SQLVarchar),
-		"EXTENT_SIZE", string(schema.SQLVarchar),
-		"INITIAL_SIZE", string(schema.SQLVarchar),
-		"MAXIMUM_SIZE", string(schema.SQLVarchar),
-		"AUTOEXTEND_SIZE", string(schema.SQLVarchar),
-		"CREATION_TIME", string(schema.SQLVarchar),
-		"LAST_UPDATE_TIME", string(schema.SQLVarchar),
-		"LAST_ACCESS_TIME", string(schema.SQLVarchar),
-		"RECOVER_TIME", string(schema.SQLVarchar),
-		"TRANSACTION_COUNTER", string(schema.SQLVarchar),
-		"VERSION", string(schema.SQLVarchar),
-		"ROW_FORMAT", string(schema.SQLVarchar),
-		"TABLE_ROWS", string(schema.SQLVarchar),
-		"AVG_ROW_LENGTH", string(schema.SQLVarchar),
-		"DATA_LENGTH", string(schema.SQLVarchar),
-		"MAX_DATA_LENGTH", string(schema.SQLVarchar),
-		"INDEX_LENGTH", string(schema.SQLVarchar),
-		"DATA_FREE", string(schema.SQLVarchar),
-		"CREATE_TIME", string(schema.SQLVarchar),
-		"UPDATE_TIME", string(schema.SQLVarchar),
-		"CHECK_TIME", string(schema.SQLVarchar),
-		"CHECKSUM", string(schema.SQLVarchar),
-		"STATUS", string(schema.SQLVarchar),
-		"EXTRA", string(schema.SQLVarchar),
+	t.AddColumns(files,
+		NewDynamicColumnDeclaration("FILE_ID", types.EvalString),
+		NewDynamicColumnDeclaration("FILE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("FILE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("TABLESPACE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("LOGFILE_GROUP_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("LOGFILE_GROUP_NUMBER", types.EvalString),
+		NewDynamicColumnDeclaration("ENGINE", types.EvalString),
+		NewDynamicColumnDeclaration("FULLTEXT_KEYS", types.EvalString),
+		NewDynamicColumnDeclaration("DELETED_ROWS", types.EvalString),
+		NewDynamicColumnDeclaration("UPDATE_COUNT", types.EvalString),
+		NewDynamicColumnDeclaration("FREE_EXTENTS", types.EvalString),
+		NewDynamicColumnDeclaration("TOTAL_EXTENTS", types.EvalString),
+		NewDynamicColumnDeclaration("EXTENT_SIZE", types.EvalString),
+		NewDynamicColumnDeclaration("INITIAL_SIZE", types.EvalString),
+		NewDynamicColumnDeclaration("MAXIMUM_SIZE", types.EvalString),
+		NewDynamicColumnDeclaration("AUTOEXTEND_SIZE", types.EvalString),
+		NewDynamicColumnDeclaration("CREATION_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("LAST_UPDATE_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("LAST_ACCESS_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("RECOVER_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("TRANSACTION_COUNTER", types.EvalString),
+		NewDynamicColumnDeclaration("VERSION", types.EvalString),
+		NewDynamicColumnDeclaration("ROW_FORMAT", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_ROWS", types.EvalString),
+		NewDynamicColumnDeclaration("AVG_ROW_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("DATA_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("MAX_DATA_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("INDEX_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("DATA_FREE", types.EvalString),
+		NewDynamicColumnDeclaration("CREATE_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("UPDATE_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("CHECK_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("CHECKSUM", types.EvalString),
+		NewDynamicColumnDeclaration("STATUS", types.EvalString),
+		NewDynamicColumnDeclaration("EXTRA", types.EvalString),
 	)
 
 	return d.AddTable(t)
@@ -538,215 +598,238 @@ func (b *catalogBuilder) getTableFromNamespace(ns namespace) (Table, error) {
 }
 
 func (b *catalogBuilder) addKeyColumnUsageTable(d Database) error {
-	t := NewDynamicTable(KeyColumnUsageTable, SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType(KeyColumnUsageTable)
+	tableName := KeyColumnUsageTable
+	columnDecls := []DynamicColumnDeclaration{
+		NewDynamicColumnDeclaration("CONSTRAINT_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("CONSTRAINT_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("CONSTRAINT_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLUMN_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("ORDINAL_POSITION", types.EvalInt64),
+		NewDynamicColumnDeclaration("POSITION_IN_UNIQUE_CONSTRAINT", types.EvalInt64),
+		NewDynamicColumnDeclaration("REFERENCED_TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("REFERENCED_TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("REFERENCED_COLUMN_NAME", types.EvalString),
+	}
+
+	columnNames := make([]string, len(columnDecls))
+	for i := range columnNames {
+		columnNames[i] = columnDecls[i].columnName
+	}
+
+	t := NewDynamicTable(tableName, SystemView, func() results.Rows {
+		return b.getRowsForTableType(tableName, columnNames)
 	})
 
-	t.AddColumns(
-		"CONSTRAINT_CATALOG", string(schema.SQLVarchar),
-		"CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
-		"CONSTRAINT_NAME", string(schema.SQLVarchar),
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"COLUMN_NAME", string(schema.SQLVarchar),
-		"ORDINAL_POSITION", string(schema.SQLVarchar),
-		"POSITION_IN_UNIQUE_CONSTRAINT", string(schema.SQLVarchar),
-		"REFERENCED_TABLE_SCHEMA", string(schema.SQLVarchar),
-		"REFERENCED_TABLE_NAME", string(schema.SQLVarchar),
-		"REFERENCED_COLUMN_NAME", string(schema.SQLVarchar),
+	t.AddColumns(tableName,
+		columnDecls...,
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addNdbTransidMysqlConnectionMapTable(d Database) error {
-	t := NewDynamicTable(NdbTransidMysqlConnectionMapTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(NdbTransidMysqlConnectionMapTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"mysql_connection_id", string(schema.SQLVarchar),
-		"node_id", string(schema.SQLVarchar),
-		"ndb_transid", string(schema.SQLVarchar),
+	t.AddColumns(NdbTransidMysqlConnectionMapTable,
+		NewDynamicColumnDeclaration("mysql_connection_id", types.EvalString),
+		NewDynamicColumnDeclaration("node_id", types.EvalString),
+		NewDynamicColumnDeclaration("ndb_transid", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addParametersTable(d Database) error {
-	t := NewDynamicTable(ParametersTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(ParametersTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"SPECIFIC_CATALOG", string(schema.SQLVarchar),
-		"SPECIFIC_SCHEMA", string(schema.SQLVarchar),
-		"SPECIFIC_NAME", string(schema.SQLVarchar),
-		"ORDINAL_POSITION", string(schema.SQLVarchar),
-		"PARAMETER_MODE", string(schema.SQLVarchar),
-		"PARAMETER_NAME", string(schema.SQLVarchar),
-		"DATA_TYPE", string(schema.SQLVarchar),
-		"CHARACTER_MAXIMUM_LENGTH", string(schema.SQLVarchar),
-		"CHARACTER_OCTET_LENGTH", string(schema.SQLVarchar),
-		"NUMERIC_PRECISION", string(schema.SQLVarchar),
-		"NUMERIC_SCALE", string(schema.SQLVarchar),
-		"DATETIME_PRECISION", string(schema.SQLVarchar),
-		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
-		"COLLATION_NAME", string(schema.SQLVarchar),
-		"DTD_IDENTIFIER", string(schema.SQLVarchar),
-		"ROUTINE_TYPE", string(schema.SQLVarchar),
+	t.AddColumns(ParametersTable,
+		NewDynamicColumnDeclaration("SPECIFIC_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("SPECIFIC_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("SPECIFIC_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("ORDINAL_POSITION", types.EvalString),
+		NewDynamicColumnDeclaration("PARAMETER_MODE", types.EvalString),
+		NewDynamicColumnDeclaration("PARAMETER_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("DATA_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_MAXIMUM_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_OCTET_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("NUMERIC_PRECISION", types.EvalString),
+		NewDynamicColumnDeclaration("NUMERIC_SCALE", types.EvalString),
+		NewDynamicColumnDeclaration("DATETIME_PRECISION", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_SET_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("DTD_IDENTIFIER", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_TYPE", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addPartitionsTable(d Database) error {
-	t := NewDynamicTable(PartitionsTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(PartitionsTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"PARTITION_NAME", string(schema.SQLVarchar),
-		"SUBPARTITION_NAME", string(schema.SQLVarchar),
-		"PARTITION_ORDINAL_POSITION", string(schema.SQLVarchar),
-		"SUBPARTITION_ORDINAL_POSITION", string(schema.SQLVarchar),
-		"PARTITION_METHOD", string(schema.SQLVarchar),
-		"SUBPARTITION_METHOD", string(schema.SQLVarchar),
-		"PARTITION_EXPRESSION", string(schema.SQLVarchar),
-		"SUBPARTITION_EXPRESSION", string(schema.SQLVarchar),
-		"PARTITION_DESCRIPTION", string(schema.SQLVarchar),
-		"TABLE_ROWS", string(schema.SQLVarchar),
-		"AVG_ROW_LENGTH", string(schema.SQLVarchar),
-		"DATA_LENGTH", string(schema.SQLVarchar),
-		"MAX_DATA_LENGTH", string(schema.SQLVarchar),
-		"INDEX_LENGTH", string(schema.SQLVarchar),
-		"DATA_FREE", string(schema.SQLVarchar),
-		"CREATE_TIME", string(schema.SQLVarchar),
-		"UPDATE_TIME", string(schema.SQLVarchar),
-		"CHECK_TIME", string(schema.SQLVarchar),
-		"CHECKSUM", string(schema.SQLVarchar),
-		"PARTITION_COMMENT", string(schema.SQLVarchar),
-		"NODEGROUP", string(schema.SQLVarchar),
-		"TABLESPACE_NAME", string(schema.SQLVarchar),
+	t.AddColumns(PartitionsTable,
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("PARTITION_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("SUBPARTITION_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("PARTITION_ORDINAL_POSITION", types.EvalString),
+		NewDynamicColumnDeclaration("SUBPARTITION_ORDINAL_POSITION", types.EvalString),
+		NewDynamicColumnDeclaration("PARTITION_METHOD", types.EvalString),
+		NewDynamicColumnDeclaration("SUBPARTITION_METHOD", types.EvalString),
+		NewDynamicColumnDeclaration("PARTITION_EXPRESSION", types.EvalString),
+		NewDynamicColumnDeclaration("SUBPARTITION_EXPRESSION", types.EvalString),
+		NewDynamicColumnDeclaration("PARTITION_DESCRIPTION", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_ROWS", types.EvalString),
+		NewDynamicColumnDeclaration("AVG_ROW_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("DATA_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("MAX_DATA_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("INDEX_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("DATA_FREE", types.EvalString),
+		NewDynamicColumnDeclaration("CREATE_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("UPDATE_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("CHECK_TIME", types.EvalString),
+		NewDynamicColumnDeclaration("CHECKSUM", types.EvalString),
+		NewDynamicColumnDeclaration("PARTITION_COMMENT", types.EvalString),
+		NewDynamicColumnDeclaration("NODEGROUP", types.EvalString),
+		NewDynamicColumnDeclaration("TABLESPACE_NAME", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addPluginsTable(d Database) error {
-	t := NewDynamicTable(PluginsTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(PluginsTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"PLUGIN_NAME", string(schema.SQLVarchar),
-		"PLUGIN_VERSION", string(schema.SQLVarchar),
-		"PLUGIN_STATUS", string(schema.SQLVarchar),
-		"PLUGIN_TYPE", string(schema.SQLVarchar),
-		"PLUGIN_TYPE_VERSION", string(schema.SQLVarchar),
-		"PLUGIN_LIBRARY", string(schema.SQLVarchar),
-		"PLUGIN_LIBRARY_VERSION", string(schema.SQLVarchar),
-		"PLUGIN_AUTHOR", string(schema.SQLVarchar),
-		"PLUGIN_DESCRIPTION", string(schema.SQLVarchar),
-		"PLUGIN_LICENSE", string(schema.SQLVarchar),
-		"LOAD_OPTION", string(schema.SQLVarchar),
+	t.AddColumns(PluginsTable,
+		NewDynamicColumnDeclaration("PLUGIN_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_VERSION", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_STATUS", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_TYPE_VERSION", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_LIBRARY", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_LIBRARY_VERSION", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_AUTHOR", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_DESCRIPTION", types.EvalString),
+		NewDynamicColumnDeclaration("PLUGIN_LICENSE", types.EvalString),
+		NewDynamicColumnDeclaration("LOAD_OPTION", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addProfilingTable(d Database) error {
-	t := NewDynamicTable(ProfilingTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(ProfilingTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"QUERY_ID", string(schema.SQLVarchar),
-		"SEQ", string(schema.SQLVarchar),
-		"STATE", string(schema.SQLVarchar),
-		"DURATION", string(schema.SQLVarchar),
-		"CPU_USER", string(schema.SQLVarchar),
-		"CPU_SYSTEM", string(schema.SQLVarchar),
-		"CONTEXT_VOLUNTARY", string(schema.SQLVarchar),
-		"CONTEXT_INVOLUNTARY", string(schema.SQLVarchar),
-		"BLOCK_OPS_IN", string(schema.SQLVarchar),
-		"BLOCK_OPS_OUT", string(schema.SQLVarchar),
-		"MESSAGES_SENT", string(schema.SQLVarchar),
-		"MESSAGES_RECEIVED", string(schema.SQLVarchar),
-		"PAGE_FAULTS_MAJOR", string(schema.SQLVarchar),
-		"PAGE_FAULTS_MINOR", string(schema.SQLVarchar),
-		"SWAPS", string(schema.SQLVarchar),
-		"SOURCE_FUNCTION", string(schema.SQLVarchar),
-		"SOURCE_FILE", string(schema.SQLVarchar),
-		"SOURCE_LINE", string(schema.SQLVarchar),
+	t.AddColumns(ProfilingTable,
+		NewDynamicColumnDeclaration("QUERY_ID", types.EvalString),
+		NewDynamicColumnDeclaration("SEQ", types.EvalString),
+		NewDynamicColumnDeclaration("STATE", types.EvalString),
+		NewDynamicColumnDeclaration("DURATION", types.EvalString),
+		NewDynamicColumnDeclaration("CPU_USER", types.EvalString),
+		NewDynamicColumnDeclaration("CPU_SYSTEM", types.EvalString),
+		NewDynamicColumnDeclaration("CONTEXT_VOLUNTARY", types.EvalString),
+		NewDynamicColumnDeclaration("CONTEXT_INVOLUNTARY", types.EvalString),
+		NewDynamicColumnDeclaration("BLOCK_OPS_IN", types.EvalString),
+		NewDynamicColumnDeclaration("BLOCK_OPS_OUT", types.EvalString),
+		NewDynamicColumnDeclaration("MESSAGES_SENT", types.EvalString),
+		NewDynamicColumnDeclaration("MESSAGES_RECEIVED", types.EvalString),
+		NewDynamicColumnDeclaration("PAGE_FAULTS_MAJOR", types.EvalString),
+		NewDynamicColumnDeclaration("PAGE_FAULTS_MINOR", types.EvalString),
+		NewDynamicColumnDeclaration("SWAPS", types.EvalString),
+		NewDynamicColumnDeclaration("SOURCE_FUNCTION", types.EvalString),
+		NewDynamicColumnDeclaration("SOURCE_FILE", types.EvalString),
+		NewDynamicColumnDeclaration("SOURCE_LINE", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addReferentialConstraintsTable(d Database) error {
-	t := NewDynamicTable(ReferentialConstraintsTable, SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType(ReferentialConstraintsTable)
+	tableName := ReferentialConstraintsTable
+	// All of the columns in this table are type varchar, so we can just
+	// declare the names, and generate the decls from the names rather than
+	// vice versa.
+	columnNames := []string{
+		"CONSTRAINT_CATALOG",
+		"CONSTRAINT_SCHEMA",
+		"CONSTRAINT_NAME",
+		"UNIQUE_CONSTRAINT_CATALOG",
+		"UNIQUE_CONSTRAINT_SCHEMA",
+		"UNIQUE_CONSTRAINT_NAME",
+		"MATCH_OPTION",
+		"UPDATE_RULE",
+		"DELETE_RULE",
+		"TABLE_NAME",
+		"REFERENCED_TABLE_NAME",
+	}
+
+	t := NewDynamicTable(tableName, SystemView, func() results.Rows {
+		return b.getRowsForTableType(tableName, columnNames)
 	})
 
-	t.AddColumns(
-		"CONSTRAINT_CATALOG", string(schema.SQLVarchar),
-		"CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
-		"CONSTRAINT_NAME", string(schema.SQLVarchar),
-		"UNIQUE_CONSTRAINT_CATALOG", string(schema.SQLVarchar),
-		"UNIQUE_CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
-		"UNIQUE_CONSTRAINT_NAME", string(schema.SQLVarchar),
-		"MATCH_OPTION", string(schema.SQLVarchar),
-		"UPDATE_RULE", string(schema.SQLVarchar),
-		"DELETE_RULE", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"REFERENCED_TABLE_NAME", string(schema.SQLVarchar),
+	columnDecls := make([]DynamicColumnDeclaration, len(columnNames))
+	for i := range columnNames {
+		columnDecls[i] = NewDynamicColumnDeclaration(columnNames[i], types.EvalString)
+	}
+
+	t.AddColumns(tableName,
+		columnDecls...,
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addRoutinesTable(d Database) error {
-	t := NewDynamicTable(RoutinesTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(RoutinesTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"SPECIFIC_NAME", string(schema.SQLVarchar),
-		"ROUTINE_CATALOG", string(schema.SQLVarchar),
-		"ROUTINE_SCHEMA", string(schema.SQLVarchar),
-		"ROUTINE_NAME", string(schema.SQLVarchar),
-		"ROUTINE_TYPE", string(schema.SQLVarchar),
-		"DATA_TYPE", string(schema.SQLVarchar),
-		"CHARACTER_MAXIMUM_LENGTH", string(schema.SQLVarchar),
-		"CHARACTER_OCTET_LENGTH", string(schema.SQLVarchar),
-		"NUMERIC_PRECISION", string(schema.SQLVarchar),
-		"NUMERIC_SCALE", string(schema.SQLVarchar),
-		"DATETIME_PRECISION", string(schema.SQLVarchar),
-		"CHARACTER_SET_NAME", string(schema.SQLVarchar),
-		"COLLATION_NAME", string(schema.SQLVarchar),
-		"DTD_IDENTIFIER", string(schema.SQLVarchar),
-		"ROUTINE_BODY", string(schema.SQLVarchar),
-		"ROUTINE_DEFINITION", string(schema.SQLVarchar),
-		"EXTERNAL_NAME", string(schema.SQLVarchar),
-		"EXTERNAL_LANGUAGE", string(schema.SQLVarchar),
-		"PARAMETER_STYLE", string(schema.SQLVarchar),
-		"IS_DETERMINISTIC", string(schema.SQLVarchar),
-		"SQL_DATA_ACCESS", string(schema.SQLVarchar),
-		"SQL_PATH", string(schema.SQLVarchar),
-		"SECURITY_TYPE", string(schema.SQLVarchar),
-		"CREATED", string(schema.SQLVarchar),
-		"LAST_ALTERED", string(schema.SQLVarchar),
-		"SQL_MODE", string(schema.SQLVarchar),
-		"ROUTINE_COMMENT", string(schema.SQLVarchar),
-		"DEFINER", string(schema.SQLVarchar),
-		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
-		"COLLATION_CONNECTION", string(schema.SQLVarchar),
-		"DATABASE_COLLATION", string(schema.SQLVarchar),
+	t.AddColumns(RoutinesTable,
+		NewDynamicColumnDeclaration("SPECIFIC_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("DATA_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_MAXIMUM_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_OCTET_LENGTH", types.EvalString),
+		NewDynamicColumnDeclaration("NUMERIC_PRECISION", types.EvalString),
+		NewDynamicColumnDeclaration("NUMERIC_SCALE", types.EvalString),
+		NewDynamicColumnDeclaration("DATETIME_PRECISION", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_SET_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("DTD_IDENTIFIER", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_BODY", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_DEFINITION", types.EvalString),
+		NewDynamicColumnDeclaration("EXTERNAL_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("EXTERNAL_LANGUAGE", types.EvalString),
+		NewDynamicColumnDeclaration("PARAMETER_STYLE", types.EvalString),
+		NewDynamicColumnDeclaration("IS_DETERMINISTIC", types.EvalString),
+		NewDynamicColumnDeclaration("SQL_DATA_ACCESS", types.EvalString),
+		NewDynamicColumnDeclaration("SQL_PATH", types.EvalString),
+		NewDynamicColumnDeclaration("SECURITY_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("CREATED", types.EvalString),
+		NewDynamicColumnDeclaration("LAST_ALTERED", types.EvalString),
+		NewDynamicColumnDeclaration("SQL_MODE", types.EvalString),
+		NewDynamicColumnDeclaration("ROUTINE_COMMENT", types.EvalString),
+		NewDynamicColumnDeclaration("DEFINER", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_SET_CLIENT", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION_CONNECTION", types.EvalString),
+		NewDynamicColumnDeclaration("DATABASE_COLLATION", types.EvalString),
 	)
 
 	return d.AddTable(t)
@@ -754,69 +837,90 @@ func (b *catalogBuilder) addRoutinesTable(d Database) error {
 
 func (b *catalogBuilder) addSchemataTable(d Database) error {
 	c := b.catalog
-	t := NewDynamicTable(SchemataTable, SystemView, func() []*DataRow {
-		var rows []*DataRow
+	tableName := SchemataTable
+	columnDecls := []DynamicColumnDeclaration{
+		NewDynamicColumnDeclaration("CATALOG_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("SCHEMA_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("DEFAULT_CHARACTER_SET_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("DEFAULT_COLLATION_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("SQL_PATH", types.EvalString),
+	}
+
+	columnNames := make([]string, len(columnDecls))
+	for i := range columnNames {
+		columnNames[i] = columnDecls[i].columnName
+	}
+
+	t := NewDynamicTable(tableName, SystemView, func() results.Rows {
+		var rows results.Rows
+		_, strv, _ := getValueCreators(b.variables)
 		for _, db := range c.Databases() {
-			rows = append(rows, NewDataRow(
-				string(c.Name),
-				string(db.Name()),
-				string(collation.DefaultCharset.Name),
-				string(collation.Default.Name),
-				"",
+			rows = append(rows, newInfoRow(tableName,
+				strv(columnNames[0], string(c.Name)),
+				strv(columnNames[1], string(db.Name())),
+				strv(columnNames[2], string(collation.DefaultCharset.Name)),
+				strv(columnNames[3], string(collation.Default.Name)),
+				strv(columnNames[4], ""),
 			))
 		}
 		return rows
 	})
 
-	t.AddColumns(
-		"CATALOG_NAME", string(schema.SQLVarchar),
-		"SCHEMA_NAME", string(schema.SQLVarchar),
-		"DEFAULT_CHARACTER_SET_NAME", string(schema.SQLVarchar),
-		"DEFAULT_COLLATION_NAME", string(schema.SQLVarchar),
-		"SQL_PATH", string(schema.SQLVarchar),
+	t.AddColumns(tableName,
+		columnDecls...,
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addSchemaPrivileges(d Database) error {
-	t := NewDynamicTable(SchemaPrivilagesTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(SchemaPrivilagesTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"GRANTEE", string(schema.SQLVarchar),
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
-		"IS_GRANTABLE", string(schema.SQLVarchar),
+	t.AddColumns(SchemaPrivilagesTable,
+		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("PRIVILEGE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("IS_GRANTABLE", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addStatisticsTable(d Database) error {
-	t := NewDynamicTable(StatisticsTable, SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType(StatisticsTable)
+	tableName := StatisticsTable
+	columnDecls := []DynamicColumnDeclaration{
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("NON_UNIQUE", types.EvalBoolean),
+		NewDynamicColumnDeclaration("INDEX_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("INDEX_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("SEQ_IN_INDEX", types.EvalInt64),
+		NewDynamicColumnDeclaration("COLUMN_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION", types.EvalString),
+		NewDynamicColumnDeclaration("CARDINALITY", types.EvalString),
+		NewDynamicColumnDeclaration("SUB_PART", types.EvalString),
+		NewDynamicColumnDeclaration("PACKED", types.EvalString),
+		NewDynamicColumnDeclaration("NULLABLE", types.EvalString),
+		NewDynamicColumnDeclaration("INDEX_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("COMMENT", types.EvalString),
+		NewDynamicColumnDeclaration("INDEX_COMMENT", types.EvalString),
+	}
+
+	columnNames := make([]string, len(columnDecls))
+	for i := range columnNames {
+		columnNames[i] = columnDecls[i].columnName
+	}
+
+	t := NewDynamicTable(tableName, SystemView, func() results.Rows {
+		return b.getRowsForTableType(tableName, columnNames)
 	})
 
-	t.AddColumns(
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"NON_UNIQUE", string(schema.SQLVarchar),
-		"INDEX_SCHEMA", string(schema.SQLVarchar),
-		"INDEX_NAME", string(schema.SQLVarchar),
-		"SEQ_IN_INDEX", string(schema.SQLVarchar),
-		"COLUMN_NAME", string(schema.SQLVarchar),
-		"COLLATION", string(schema.SQLVarchar),
-		"CARDINALITY", string(schema.SQLVarchar),
-		"SUB_PART", string(schema.SQLVarchar),
-		"PACKED", string(schema.SQLVarchar),
-		"NULLABLE", string(schema.SQLVarchar),
-		"INDEX_TYPE", string(schema.SQLVarchar),
-		"COMMENT", string(schema.SQLVarchar),
-		"INDEX_COMMENT", string(schema.SQLVarchar),
+	t.AddColumns(tableName,
+		columnDecls...,
 	)
 
 	return d.AddTable(t)
@@ -824,183 +928,209 @@ func (b *catalogBuilder) addStatisticsTable(d Database) error {
 
 func (b *catalogBuilder) addTablesTable(d Database) error {
 	c := b.catalog
-	t := NewDynamicTable(TablesTable, SystemView, func() []*DataRow {
-		var rows []*DataRow
+
+	tableName := TablesTable
+	columnDecls := []DynamicColumnDeclaration{
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("ENGINE", types.EvalString),
+		NewDynamicColumnDeclaration("VERSION", types.EvalUint64),
+		NewDynamicColumnDeclaration("ROW_FORMAT", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_ROWS", types.EvalUint64),
+		NewDynamicColumnDeclaration("AVG_ROW_LENGTH", types.EvalUint64),
+		NewDynamicColumnDeclaration("DATA_LENGTH", types.EvalUint64),
+		NewDynamicColumnDeclaration("MAX_DATA_LENGTH", types.EvalUint64),
+		NewDynamicColumnDeclaration("INDEX_LENGTH", types.EvalUint64),
+		NewDynamicColumnDeclaration("DATA_FREE", types.EvalUint64),
+		NewDynamicColumnDeclaration("AUTO_INCREMENT", types.EvalUint64),
+		NewDynamicColumnDeclaration("CREATE_TIME", types.EvalDatetime),
+		NewDynamicColumnDeclaration("UPDATE_TIME", types.EvalDatetime),
+		NewDynamicColumnDeclaration("CHECK_TIME", types.EvalDatetime),
+		NewDynamicColumnDeclaration("TABLE_COLLATION", types.EvalString),
+		NewDynamicColumnDeclaration("CHECKSUM", types.EvalUint64),
+		NewDynamicColumnDeclaration("CREATE_OPTIONS", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_COMMENT", types.EvalString),
+	}
+
+	columnNames := make([]string, len(columnDecls))
+	for i := range columnNames {
+		columnNames[i] = columnDecls[i].columnName
+	}
+
+	t := NewDynamicTable(TablesTable, SystemView, func() results.Rows {
+		var rows results.Rows
+		nullv, strv, _ := getValueCreators(b.variables)
 		for _, db := range c.Databases() {
 			for _, tbl := range db.Tables() {
-				rows = append(rows, NewDataRow(
-					string(c.Name),
-					string(db.Name()),
-					string(tbl.Name()),
-					string(tbl.Type()),
-					"",
-					"",
-					"",
-					nil,
-					nil,
-					nil,
-					nil,
-					nil,
-					nil,
-					"NO",
-					nil,
-					nil,
-					nil,
-					string(tbl.Collation().Name),
-					nil,
-					nil,
-					tbl.Comments(),
+				rows = append(rows, newInfoRow(tableName,
+					strv(columnNames[0], string(c.Name)),
+					strv(columnNames[1], string(db.Name())),
+					strv(columnNames[2], tbl.Name()),
+					strv(columnNames[3], tbl.Type()),
+					strv(columnNames[4], ""),
+					strv(columnNames[5], ""),
+					strv(columnNames[6], ""),
+					nullv(columnNames[7]),
+					nullv(columnNames[8]),
+					nullv(columnNames[9]),
+					nullv(columnNames[10]),
+					nullv(columnNames[11]),
+					nullv(columnNames[12]),
+					strv(columnNames[13], "NO"),
+					nullv(columnNames[14]),
+					nullv(columnNames[15]),
+					nullv(columnNames[16]),
+					strv(columnNames[17], string(tbl.Collation().Name)),
+					nullv(columnNames[18]),
+					nullv(columnNames[19]),
+					strv(columnNames[20], tbl.Comments()),
 				))
 			}
 		}
 		return rows
 	})
 
-	t.AddColumns(
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"TABLE_TYPE", string(schema.SQLVarchar),
-		"ENGINE", string(schema.SQLVarchar),
-		"VERSION", string(schema.SQLVarchar),
-		"ROW_FORMAT", string(schema.SQLVarchar),
-		"TABLE_ROWS", string(schema.SQLInt),
-		"AVG_ROW_LENGTH", string(schema.SQLInt),
-		"DATA_LENGTH", string(schema.SQLInt),
-		"MAX_DATA_LENGTH", string(schema.SQLInt),
-		"INDEX_LENGTH", string(schema.SQLInt),
-		"DATA_FREE", string(schema.SQLInt),
-		"AUTO_INCREMENT", string(schema.SQLVarchar),
-		"CREATE_TIME", string(schema.SQLTimestamp),
-		"UPDATE_TIME", string(schema.SQLTimestamp),
-		"CHECK_TIME", string(schema.SQLTimestamp),
-		"TABLE_COLLATION", string(schema.SQLVarchar),
-		"CHECKSUM", string(schema.SQLVarchar),
-		"CREATE_OPTIONS", string(schema.SQLVarchar),
-		"TABLE_COMMENT", string(schema.SQLVarchar),
+	t.AddColumns(tableName,
+		columnDecls...,
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addTableSpacesTable(d Database) error {
-	t := NewDynamicTable(TablespacesTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(TablespacesTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"TABLESPACE_NAME", string(schema.SQLVarchar),
-		"ENGINE", string(schema.SQLVarchar),
-		"TABLESPACE_TYPE", string(schema.SQLVarchar),
-		"LOGFILE_GROUP_NAME", string(schema.SQLVarchar),
-		"EXTENT_SIZE", string(schema.SQLVarchar),
-		"AUTOEXTEND_SIZE", string(schema.SQLVarchar),
-		"MAXIMUM_SIZE", string(schema.SQLVarchar),
-		"NODEGROUP_ID", string(schema.SQLVarchar),
-		"TABLESPACE_COMMENT", string(schema.SQLVarchar),
+	t.AddColumns(TablespacesTable,
+		NewDynamicColumnDeclaration("TABLESPACE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("ENGINE", types.EvalString),
+		NewDynamicColumnDeclaration("TABLESPACE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("LOGFILE_GROUP_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("EXTENT_SIZE", types.EvalString),
+		NewDynamicColumnDeclaration("AUTOEXTEND_SIZE", types.EvalString),
+		NewDynamicColumnDeclaration("MAXIMUM_SIZE", types.EvalString),
+		NewDynamicColumnDeclaration("NODEGROUP_ID", types.EvalString),
+		NewDynamicColumnDeclaration("TABLESPACE_COMMENT", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addTableConstraintsTable(d Database) error {
-	t := NewDynamicTable(TableConstraintsTable, SystemView, func() []*DataRow {
-		return b.getDataRowsForTableType(TableConstraintsTable)
+	tableName := TableConstraintsTable
+	// All of the columns in this table are type varchar, so we can just
+	// declare the names, and generate the decls from the names rather than
+	// vice versa.
+	columnNames := []string{
+		"CONSTRAINT_CATALOG",
+		"CONSTRAINT_SCHEMA",
+		"CONSTRAINT_NAME",
+		"TABLE_SCHEMA",
+		"TABLE_NAME",
+		"CONSTRAINT_TYPE",
+	}
+
+	t := NewDynamicTable(tableName, SystemView, func() results.Rows {
+		return b.getRowsForTableType(tableName, columnNames)
 	})
 
-	t.AddColumns(
-		"CONSTRAINT_CATALOG", string(schema.SQLVarchar),
-		"CONSTRAINT_SCHEMA", string(schema.SQLVarchar),
-		"CONSTRAINT_NAME", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"CONSTRAINT_TYPE", string(schema.SQLVarchar),
+	columnDecls := make([]DynamicColumnDeclaration, len(columnNames))
+	for i := range columnNames {
+		columnDecls[i] = NewDynamicColumnDeclaration(columnNames[i], types.EvalString)
+	}
+
+	t.AddColumns(tableName,
+		columnDecls...,
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addTablePrivilegesTable(d Database) error {
-	t := NewDynamicTable(TablePrivilagesTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(TablePrivilagesTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"GRANTEE", string(schema.SQLVarchar),
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
-		"IS_GRANTABLE", string(schema.SQLVarchar),
+	t.AddColumns(TablePrivilagesTable,
+		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("PRIVILEGE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("IS_GRANTABLE", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addTriggersTable(d Database) error {
-	t := NewDynamicTable(TriggersTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(TriggersTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"TRIGGER_CATALOG", string(schema.SQLVarchar),
-		"TRIGGER_SCHEMA", string(schema.SQLVarchar),
-		"TRIGGER_NAME", string(schema.SQLVarchar),
-		"EVENT_MANIPULATION", string(schema.SQLVarchar),
-		"EVENT_OBJECT_CATALOG", string(schema.SQLVarchar),
-		"EVENT_OBJECT_SCHEMA", string(schema.SQLVarchar),
-		"EVENT_OBJECT_TABLE", string(schema.SQLVarchar),
-		"ACTION_ORDER", string(schema.SQLVarchar),
-		"ACTION_CONDITION", string(schema.SQLVarchar),
-		"ACTION_STATEMENT", string(schema.SQLVarchar),
-		"ACTION_ORIENTATION", string(schema.SQLVarchar),
-		"ACTION_TIMING", string(schema.SQLVarchar),
-		"ACTION_REFERENCE_OLD_TABLE", string(schema.SQLVarchar),
-		"ACTION_REFERENCE_NEW_TABLE", string(schema.SQLVarchar),
-		"ACTION_REFERENCE_OLD_ROW", string(schema.SQLVarchar),
-		"ACTION_REFERENCE_NEW_ROW", string(schema.SQLVarchar),
-		"CREATED", string(schema.SQLVarchar),
-		"SQL_MODE", string(schema.SQLVarchar),
-		"DEFINER", string(schema.SQLVarchar),
-		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
-		"COLLATION_CONNECTION", string(schema.SQLVarchar),
-		"DATABASE_COLLATION", string(schema.SQLVarchar),
+	t.AddColumns(TriggersTable,
+		NewDynamicColumnDeclaration("TRIGGER_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TRIGGER_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TRIGGER_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_MANIPULATION", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_OBJECT_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_OBJECT_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("EVENT_OBJECT_TABLE", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_ORDER", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_CONDITION", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_STATEMENT", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_ORIENTATION", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_TIMING", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_REFERENCE_OLD_TABLE", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_REFERENCE_NEW_TABLE", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_REFERENCE_OLD_ROW", types.EvalString),
+		NewDynamicColumnDeclaration("ACTION_REFERENCE_NEW_ROW", types.EvalString),
+		NewDynamicColumnDeclaration("CREATED", types.EvalString),
+		NewDynamicColumnDeclaration("SQL_MODE", types.EvalString),
+		NewDynamicColumnDeclaration("DEFINER", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_SET_CLIENT", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION_CONNECTION", types.EvalString),
+		NewDynamicColumnDeclaration("DATABASE_COLLATION", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addUserPrivilegesTable(d Database) error {
-	t := NewDynamicTable(UserPrivilagesTable, SystemView, func() []*DataRow {
-		return []*DataRow{}
+	t := NewDynamicTable(UserPrivilagesTable, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"GRANTEE", string(schema.SQLVarchar),
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"PRIVILEGE_TYPE", string(schema.SQLVarchar),
-		"IS_GRANTABLE", string(schema.SQLVarchar),
+	t.AddColumns(UserPrivilagesTable,
+		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("PRIVILEGE_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("IS_GRANTABLE", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
 func (b *catalogBuilder) addViewsTable(d Database) error {
-	t := NewDynamicTable("VIEWS", SystemView, func() []*DataRow {
-		return []*DataRow{}
+	views := "VIEWS"
+	t := NewDynamicTable(views, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"TABLE_CATALOG", string(schema.SQLVarchar),
-		"TABLE_SCHEMA", string(schema.SQLVarchar),
-		"TABLE_NAME", string(schema.SQLVarchar),
-		"VIEW_DEFINITION", string(schema.SQLVarchar),
-		"CHECK_OPTION", string(schema.SQLVarchar),
-		"IS_UPDATABLE", string(schema.SQLVarchar),
-		"DEFINER", string(schema.SQLVarchar),
-		"SECURITY_TYPE", string(schema.SQLVarchar),
-		"CHARACTER_SET_CLIENT", string(schema.SQLVarchar),
-		"COLLATION_CONNECTION", string(schema.SQLVarchar),
+	t.AddColumns(views,
+		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_SCHEMA", types.EvalString),
+		NewDynamicColumnDeclaration("TABLE_NAME", types.EvalString),
+		NewDynamicColumnDeclaration("VIEW_DEFINITION", types.EvalString),
+		NewDynamicColumnDeclaration("CHECK_OPTION", types.EvalString),
+		NewDynamicColumnDeclaration("IS_UPDATABLE", types.EvalString),
+		NewDynamicColumnDeclaration("DEFINER", types.EvalString),
+		NewDynamicColumnDeclaration("SECURITY_TYPE", types.EvalString),
+		NewDynamicColumnDeclaration("CHARACTER_SET_CLIENT", types.EvalString),
+		NewDynamicColumnDeclaration("COLLATION_CONNECTION", types.EvalString),
 	)
 
 	return d.AddTable(t)
@@ -1023,21 +1153,28 @@ func (b *catalogBuilder) addVariableTables(d Database) error {
 	return b.addVariableTable(d, SessionStatusTable, variable.SessionScope, variable.StatusKind)
 }
 
-func (b *catalogBuilder) addVariableTable(d Database, name TableName,
+func (b *catalogBuilder) addVariableTable(d Database, name string,
 	scope variable.Scope, kind variable.Kind) error {
+	variableName := "VARIABLE_NAME"
+	variableValue := "VARIABLE_VALUE"
 
-	t := NewDynamicTable(name, SystemView, func() []*DataRow {
-		var rows []*DataRow
+	t := NewDynamicTable(name, SystemView, func() results.Rows {
+		var rows results.Rows
+		_, strv, _ := getValueCreators(b.variables)
 		for _, v := range b.variables.List(scope, kind) {
-			rows = append(rows, NewDataRow(v.Name, v.Value))
+			// TODO: display actual value instead of nullv!!!
+			rows = append(rows,
+				newInfoRow(name,
+					strv(variableName, v.Name),
+					values.NewNamedSQLValue(variableValue, v.Value)))
 		}
 
 		return rows
 	})
 
-	t.AddColumns(
-		"VARIABLE_NAME", string(schema.SQLVarchar),
-		"VARIABLE_VALUE", string(schema.SQLVarchar),
+	t.AddColumns(name,
+		NewDynamicColumnDeclaration(variableName, types.EvalString),
+		NewDynamicColumnDeclaration(variableValue, types.EvalString),
 	)
 
 	return d.AddTable(t)
@@ -1052,40 +1189,41 @@ func (b *catalogBuilder) buildMySQLDatabase() error {
 }
 
 func (b *catalogBuilder) addMySQLProcTable(d Database) error {
-	t := NewDynamicTable("proc", SystemView, func() []*DataRow {
-		return []*DataRow{}
+	proc := "proc"
+	t := NewDynamicTable(proc, SystemView, func() results.Rows {
+		return results.Rows{}
 	})
 
-	t.AddColumns(
-		"db", string(schema.SQLVarchar),
-		"name", string(schema.SQLVarchar),
-		"type", string(schema.SQLVarchar),
-		"specific_name", string(schema.SQLVarchar),
-		"language", string(schema.SQLVarchar),
-		"sql_data_access", string(schema.SQLVarchar),
-		"is_deterministic", string(schema.SQLVarchar),
-		"security_type", string(schema.SQLVarchar),
-		"param_list", string(schema.SQLVarchar),
-		"returns", string(schema.SQLVarchar),
-		"body", string(schema.SQLVarchar),
-		"definer", string(schema.SQLVarchar),
-		"created", string(schema.SQLTimestamp),
-		"modified", string(schema.SQLTimestamp),
-		"sql_mode", string(schema.SQLVarchar),
-		"comment", string(schema.SQLVarchar),
-		"character_set_client", string(schema.SQLVarchar),
-		"collation_connection", string(schema.SQLVarchar),
-		"db_collation", string(schema.SQLVarchar),
-		"body_utf8", string(schema.SQLVarchar),
+	t.AddColumns(proc,
+		NewDynamicColumnDeclaration("db", types.EvalString),
+		NewDynamicColumnDeclaration("name", types.EvalString),
+		NewDynamicColumnDeclaration("type", types.EvalString),
+		NewDynamicColumnDeclaration("specific_name", types.EvalString),
+		NewDynamicColumnDeclaration("language", types.EvalString),
+		NewDynamicColumnDeclaration("sql_data_access", types.EvalString),
+		NewDynamicColumnDeclaration("is_deterministic", types.EvalString),
+		NewDynamicColumnDeclaration("security_type", types.EvalString),
+		NewDynamicColumnDeclaration("param_list", types.EvalString),
+		NewDynamicColumnDeclaration("returns", types.EvalString),
+		NewDynamicColumnDeclaration("body", types.EvalString),
+		NewDynamicColumnDeclaration("definer", types.EvalString),
+		NewDynamicColumnDeclaration("created", types.EvalDatetime),
+		NewDynamicColumnDeclaration("modified", types.EvalDatetime),
+		NewDynamicColumnDeclaration("sql_mode", types.EvalString),
+		NewDynamicColumnDeclaration("comment", types.EvalString),
+		NewDynamicColumnDeclaration("character_set_client", types.EvalString),
+		NewDynamicColumnDeclaration("collation_connection", types.EvalString),
+		NewDynamicColumnDeclaration("db_collation", types.EvalString),
+		NewDynamicColumnDeclaration("body_utf8", types.EvalString),
 	)
 
 	return d.AddTable(t)
 }
 
-func (b *catalogBuilder) getDataRowsForTableType(systemTableName TableName) []*DataRow {
+func (b *catalogBuilder) getRowsForTableType(systemTableName string, columnNames []string) results.Rows {
 	c := b.catalog
 
-	var rows []*DataRow
+	var rows results.Rows
 
 	ck := key{
 		catalog: string(c.Name),
@@ -1095,9 +1233,9 @@ func (b *catalogBuilder) getDataRowsForTableType(systemTableName TableName) []*D
 		ck.database = string(db.Name())
 
 		for _, tb := range db.Tables() {
-			ck.table = string(tb.Name())
+			ck.table = tb.Name()
 
-			primaryKeyRows := getDataRowsForPrimaryKey(systemTableName, ck, tb.PrimaryKeys())
+			primaryKeyRows := b.getRowsForPrimaryKey(systemTableName, ck, tb.PrimaryKeys(), columnNames)
 
 			rows = append(rows, primaryKeyRows...)
 
@@ -1106,14 +1244,14 @@ func (b *catalogBuilder) getDataRowsForTableType(systemTableName TableName) []*D
 				continue
 			}
 
-			uniqueKeyRows := getDataRowsForUniqueIndexes(systemTableName, ck, mongoTable.indexes)
+			uniqueKeyRows := b.getRowsForUniqueIndexes(systemTableName, ck, mongoTable.indexes, columnNames)
 
 			rows = append(rows, uniqueKeyRows...)
 
 			for _, fk := range mongoTable.foreignKeys {
 				for position, col := range fk.columns {
-					ck.column = string(col.Name())
-					foreignKeyRow := getDataRowForForeignKey(systemTableName, ck, fk, position+1)
+					ck.column = col.Name
+					foreignKeyRow := b.getRowForForeignKey(systemTableName, ck, fk, position+1, columnNames)
 					rows = append(rows, foreignKeyRow)
 					// The break below occurs because only the name of the
 					// constraint needs to be recorded in the table constraints;

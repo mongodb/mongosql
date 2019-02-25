@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
@@ -42,7 +43,7 @@ type CountIter struct {
 	cfg         *ExecutionConfig
 	called      bool
 	count       int
-	countColumn *Column
+	countColumn *results.Column
 
 	err error
 }
@@ -94,8 +95,8 @@ func (cs *CountStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Execut
 }
 
 // Columns returns the projected column of count.
-func (cs *CountStage) Columns() (columns []*Column) {
-	return []*Column{cs.projectedColumn.Column}
+func (cs *CountStage) Columns() (columns []*results.Column) {
+	return []*results.Column{cs.projectedColumn.Column}
 }
 
 // Collation returns the collation.
@@ -104,11 +105,11 @@ func (cs *CountStage) Collation() *collation.Collation {
 }
 
 // Next generates a row containing the count and passes it to the row pointer.
-func (ci *CountIter) Next(ctx context.Context, row *Row) bool {
+func (ci *CountIter) Next(ctx context.Context, row *results.Row) bool {
 	if !ci.called {
 		ci.called = true
-		row.Data = Values{
-			NewValueFromColumn(*ci.countColumn, values.NewSQLInt64(ci.cfg.sqlValueKind, int64(ci.count))),
+		row.Data = results.RowValues{
+			results.NewRowValueFromColumn(*ci.countColumn, values.NewSQLInt64(ci.cfg.sqlValueKind, int64(ci.count))),
 		}
 		ci.err = ci.cfg.memoryMonitor.Acquire(row.Data.Size())
 		return ci.err == nil

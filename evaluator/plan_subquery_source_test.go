@@ -6,6 +6,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
@@ -16,13 +17,13 @@ import (
 func TestSubquerySourceStage(t *testing.T) {
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(MySQLValueKind)
 	execState := NewExecutionState()
 	oCfg := createOptimizerCfg(collation.Default, execCfg)
 	pCfg := createTestPushdownCfg()
 
 	runTest := func(t *testing.T, selectID int, aliasName string, optimize bool, rows []bson.D,
-		expectedRows []Values) {
+		expectedRows []RowValues) {
 		ts := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 		var plan PlanStage
@@ -65,7 +66,7 @@ func TestSubquerySourceStage(t *testing.T) {
 	aliasName := "funny"
 
 	kind := MySQLValueKind
-	expected := []Values{
+	expected := []RowValues{
 		{{SelectID: 42, Database: BSONSourceDB, Table: "funny", Name: "a",
 			Data: NewSQLInt64(kind, 6)}, {SelectID: 42, Database: BSONSourceDB,
 			Table: "funny", Name: "b", Data: NewSQLInt64(MySQLValueKind, 9)}},

@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -29,6 +30,23 @@ var (
 	testCatalog   = evaluator.GetCatalog(testSchema, testVars, testInfo)
 	defaultDbName = "test"
 )
+
+func setSystemVariable(vars *variable.Container, name variable.Name, value interface{}) {
+	var sqlValue values.SQLValue
+	switch typedV := value.(type) {
+	case string:
+		sqlValue = values.NewSQLVarchar(values.MongoSQLValueKind, typedV)
+	case int:
+		sqlValue = values.NewSQLInt64(values.MongoSQLValueKind, int64(typedV))
+	case int64:
+		sqlValue = values.NewSQLInt64(values.MongoSQLValueKind, typedV)
+	case uint64:
+		sqlValue = values.NewSQLUint64(values.MongoSQLValueKind, typedV)
+	default:
+		panic(fmt.Sprintf("unsupported type: %T for algebrizer_test system variables", value))
+	}
+	vars.SetSystemVariable(name, sqlValue)
+}
 
 const (
 	// foo.bar is the default test namespace for a dual source
@@ -52,8 +70,8 @@ func createMongoDualSource(selectID int) evaluator.PlanStage {
 }
 
 func TestAlgebrizeQuery(t *testing.T) {
-	testVars.SetSystemVariable(variable.MongoDBMaxVarcharLength, 10)
-	testVars.SetSystemVariable(variable.TypeConversionMode, "mysql")
+	setSystemVariable(testVars, variable.MongoDBMaxVarcharLength, 10)
+	setSystemVariable(testVars, variable.TypeConversionMode, "mysql")
 
 	type planTest struct {
 		sql                 string
@@ -110,6 +128,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 			expected := testCase.expectedPlanFactory()
 
+			expected = unsetUnimportantFields(expected)
+			actual = unsetUnimportantFields(actual)
 			req.Equal(expected, actual, "actual does not match expected")
 		})
 	}
@@ -175,13 +195,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 	subquery := evaluator.NewSubquerySourceStage(
 		evaluator.NewProjectStage(
 			source,
-			createProjectedColumn(2,
+			createProjectedColumn(1,
 				source,
 				subqueryAliasName,
 				"CHARACTER_SET_NAME",
 				subqueryAliasName,
 				"Charset"),
-			createProjectedColumn(2,
+			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"DESCRIPTION",
@@ -193,7 +213,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				"DEFAULT_COLLATE_NAME",
 				subqueryAliasName,
 				"Default collation"),
-			createProjectedColumn(2,
+			createProjectedColumn(4,
 				source, subqueryAliasName, "MAXLEN", subqueryAliasName, "Maxlen"),
 		),
 		2,
@@ -271,7 +291,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	subquery = evaluator.NewSubquerySourceStage(
 		evaluator.NewProjectStage(
 			source,
-			createProjectedColumn(2,
+			createProjectedColumn(1,
 				source,
 				subqueryAliasName,
 				"COLLATION_NAME",
@@ -285,28 +305,28 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName,
 				"Charset"),
 
-			createProjectedColumn(2,
+			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"ID",
 				subqueryAliasName,
 				"Id"),
 
-			createProjectedColumn(2,
+			createProjectedColumn(4,
 				source,
 				subqueryAliasName,
 				"IS_DEFAULT",
 				subqueryAliasName,
 				"Default"),
 
-			createProjectedColumn(2,
+			createProjectedColumn(5,
 				source,
 				subqueryAliasName,
 				"IS_COMPILED",
 				subqueryAliasName,
 				"Compiled"),
 
-			createProjectedColumn(2,
+			createProjectedColumn(6,
 				source,
 				subqueryAliasName,
 				"SORTLEN",
@@ -385,43 +405,43 @@ func TestAlgebrizeQuery(t *testing.T) {
 	subquery = evaluator.NewSubquerySourceStage(
 		evaluator.NewProjectStage(
 			source,
-			createProjectedColumn(2,
+			createProjectedColumn(4,
 				source,
 				subqueryAliasName,
 				"COLUMN_NAME",
 				subqueryAliasName,
 				"Field"),
-			createProjectedColumn(2,
+			createProjectedColumn(16,
 				source,
 				subqueryAliasName,
 				"COLUMN_TYPE",
 				subqueryAliasName,
 				"Type"),
-			createProjectedColumn(2,
+			createProjectedColumn(7,
 				source,
 				subqueryAliasName,
 				"IS_NULLABLE",
 				subqueryAliasName,
 				"Null"),
-			createProjectedColumn(2,
+			createProjectedColumn(17,
 				source,
 				subqueryAliasName,
 				"COLUMN_KEY",
 				subqueryAliasName,
 				"Key"),
-			createProjectedColumn(2,
+			createProjectedColumn(6,
 				source,
 				subqueryAliasName,
 				"COLUMN_DEFAULT",
 				subqueryAliasName,
 				"Default"),
-			createProjectedColumn(2,
+			createProjectedColumn(18,
 				source,
 				subqueryAliasName,
 				"EXTRA",
 				subqueryAliasName,
 				"Extra"),
-			createProjectedColumn(2,
+			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"TABLE_NAME",
@@ -433,7 +453,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				"TABLE_SCHEMA",
 				subqueryAliasName,
 				"TABLE_SCHEMA"),
-			createProjectedColumn(2,
+			createProjectedColumn(5,
 				source,
 				subqueryAliasName,
 				"ORDINAL_POSITION",
@@ -597,61 +617,61 @@ func TestAlgebrizeQuery(t *testing.T) {
 	subquery = evaluator.NewSubquerySourceStage(
 		evaluator.NewProjectStage(
 			source,
-			createProjectedColumn(2,
+			createProjectedColumn(4,
 				source,
 				subqueryAliasName,
 				"COLUMN_NAME",
 				subqueryAliasName,
 				"Field"),
-			createProjectedColumn(2,
+			createProjectedColumn(16,
 				source,
 				subqueryAliasName,
 				"COLUMN_TYPE",
 				subqueryAliasName,
 				"Type"),
-			createProjectedColumn(2,
+			createProjectedColumn(15,
 				source,
 				subqueryAliasName,
 				"COLLATION_NAME",
 				subqueryAliasName,
 				"Collation"),
-			createProjectedColumn(2,
+			createProjectedColumn(7,
 				source,
 				subqueryAliasName,
 				"IS_NULLABLE",
 				subqueryAliasName,
 				"Null"),
-			createProjectedColumn(2,
+			createProjectedColumn(17,
 				source,
 				subqueryAliasName,
 				"COLUMN_KEY",
 				subqueryAliasName,
 				"Key"),
-			createProjectedColumn(2,
+			createProjectedColumn(6,
 				source,
 				subqueryAliasName,
 				"COLUMN_DEFAULT",
 				subqueryAliasName,
 				"Default"),
-			createProjectedColumn(2,
+			createProjectedColumn(18,
 				source,
 				subqueryAliasName,
 				"EXTRA",
 				subqueryAliasName,
 				"Extra"),
-			createProjectedColumn(2,
+			createProjectedColumn(19,
 				source,
 				subqueryAliasName,
 				"PRIVILEGES",
 				subqueryAliasName,
 				"Privileges"),
-			createProjectedColumn(2,
+			createProjectedColumn(20,
 				source,
 				subqueryAliasName,
 				"COLUMN_COMMENT",
 				subqueryAliasName,
 				"Comment"),
-			createProjectedColumn(2,
+			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"TABLE_NAME",
@@ -663,7 +683,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				"TABLE_SCHEMA",
 				subqueryAliasName,
 				"TABLE_SCHEMA"),
-			createProjectedColumn(2,
+			createProjectedColumn(5,
 				source,
 				subqueryAliasName,
 				"ORDINAL_POSITION",
@@ -816,18 +836,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewDualStage(),
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID:   1,
 						Name:       "Database",
-						ColumnType: evaluator.NewColumnType(types.EvalString, schema.MongoNone),
+						ColumnType: results.NewColumnType(types.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, dbName)),
 				},
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID:   1,
 						Name:       "Create Database",
-						ColumnType: evaluator.NewColumnType(types.EvalString, schema.MongoNone),
+						ColumnType: results.NewColumnType(types.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(
 						valKind, catalog.GenerateCreateDatabase(dbName, ""),
@@ -840,18 +860,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewDualStage(),
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID:   1,
 						Name:       "Database",
-						ColumnType: evaluator.NewColumnType(types.EvalString, schema.MongoNone),
+						ColumnType: results.NewColumnType(types.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, dbName)),
 				},
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID:   1,
 						Name:       "Create Database",
-						ColumnType: evaluator.NewColumnType(types.EvalString, schema.MongoNone),
+						ColumnType: results.NewColumnType(types.EvalString, schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind,
 						catalog.GenerateCreateDatabase(dbName, "IF NOT EXISTS"))),
@@ -872,19 +892,19 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewDualStage(),
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID: 1,
 						Name:     "Table",
-						ColumnType: evaluator.NewColumnType(types.EvalString,
+						ColumnType: results.NewColumnType(types.EvalString,
 							schema.MongoNone),
 					},
-					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, string(tbl.Name()))),
+					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, tbl.Name())),
 				},
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						ColumnType: evaluator.NewColumnType(types.EvalString,
+						ColumnType: results.NewColumnType(types.EvalString,
 							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, createTableSQL)),
@@ -896,19 +916,19 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewDualStage(),
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID: 1,
 						Name:     "Table",
-						ColumnType: evaluator.NewColumnType(types.EvalString,
+						ColumnType: results.NewColumnType(types.EvalString,
 							schema.MongoNone),
 					},
-					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, string(tbl.Name()))),
+					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, tbl.Name())),
 				},
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						ColumnType: evaluator.NewColumnType(types.EvalString,
+						ColumnType: results.NewColumnType(types.EvalString,
 							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, createTableSQL)),
@@ -920,19 +940,19 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewDualStage(),
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID: 1,
 						Name:     "Table",
-						ColumnType: evaluator.NewColumnType(types.EvalString,
+						ColumnType: results.NewColumnType(types.EvalString,
 							schema.MongoNone),
 					},
-					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, string(tbl.Name()))),
+					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, tbl.Name())),
 				},
 				evaluator.ProjectedColumn{
-					Column: &evaluator.Column{
+					Column: &results.Column{
 						SelectID: 1,
 						Name:     "Create Table",
-						ColumnType: evaluator.NewColumnType(types.EvalString,
+						ColumnType: results.NewColumnType(types.EvalString,
 							schema.MongoNone),
 					},
 					Expr: evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, createTableSQL)),
@@ -1035,13 +1055,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 			varTbl, varErr := informationSchemaDB.Table(fmt.Sprintf("%s_%s", actualScope, kind))
 			req.Nil(varErr)
-			actualTableName := string(varTbl.Name())
+			actualTableName := varTbl.Name()
 			varSource := evaluator.NewDynamicSourceStage(informationSchemaDB,
 				varTbl.(*catalog.DynamicTable), 2, actualTableName)
 			varSubquery := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(
 					varSource,
-					createProjectedColumn(2, varSource, actualTableName, "VARIABLE_NAME",
+					createProjectedColumn(1, varSource, actualTableName, "VARIABLE_NAME",
 						actualTableName, "Variable_name"),
 					createProjectedColumn(2, varSource, actualTableName, "VARIABLE_VALUE",
 						actualTableName, "Value"),
@@ -1119,7 +1139,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	subquery = evaluator.NewSubquerySourceStage(
 		evaluator.NewProjectStage(
 			source,
-			createProjectedColumn(2, source, subqueryAliasName, "TABLE_NAME",
+			createProjectedColumn(3, source, subqueryAliasName, "TABLE_NAME",
 				subqueryAliasName, columnName),
 			createProjectedColumn(2, source, subqueryAliasName, "TABLE_SCHEMA",
 				subqueryAliasName, "TABLE_SCHEMA"),
@@ -1222,9 +1242,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 	subquery = evaluator.NewSubquerySourceStage(
 		evaluator.NewProjectStage(
 			source,
-			createProjectedColumn(2, source,
+			createProjectedColumn(3, source,
 				subqueryAliasName, "TABLE_NAME", subqueryAliasName, columnName),
-			createProjectedColumn(2, source,
+			createProjectedColumn(4, source,
 				subqueryAliasName, "TABLE_TYPE", subqueryAliasName, "Table_type"),
 			createProjectedColumn(2, source,
 				subqueryAliasName, "TABLE_SCHEMA", subqueryAliasName, "TABLE_SCHEMA"),
@@ -1614,12 +1634,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select g.a from (select a from foo) g",
 			func() *variable.Container {
 				vars := &variable.Container{}
-				vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-				vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-				vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
-				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
+				setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+				setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+				setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+				setSystemVariable(vars, variable.SQLSelectLimit, 5)
+				setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+				setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "off")
 				return vars
 			},
 			func() *mongodb.Info {
@@ -1638,12 +1658,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select fast.a from (select a from foo) fast",
 			func() *variable.Container {
 				vars := &variable.Container{}
-				vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-				vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-				vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
-				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
+				setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+				setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+				setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+				setSystemVariable(vars, variable.SQLSelectLimit, 5)
+				setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+				setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "fast")
 				return vars
 			},
 			func() *mongodb.Info {
@@ -1662,12 +1682,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"select safe.a from (select a from foo) safe",
 			func() *variable.Container {
 				vars := &variable.Container{}
-				vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-				vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-				vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-				vars.SetSystemVariable(variable.SQLSelectLimit, 5)
-				vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-				vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
+				setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+				setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+				setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+				setSystemVariable(vars, variable.SQLSelectLimit, 5)
+				setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+				setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "safe")
 				return vars
 			},
 			func() *mongodb.Info {
@@ -1685,7 +1705,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subquery := evaluator.NewSubquerySourceStage(
 					evaluator.NewProjectStage(source, projectedCol),
 					2, "test", "safe", false)
-				outterProjectedCol := createProjectedColumn(2, subquery, "safe", "a", "safe", "a")
+				outterProjectedCol := createProjectedColumn(1, subquery, "safe", "a", "", "a")
+				outterProjectedCol.Expr = evaluator.NewSQLConvertExpr(outterProjectedCol.Expr,
+					types.EvalInt64)
 				return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
 					outterProjectedCol)
 			}},
@@ -3814,7 +3836,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select a from foo limit 10,0",
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
-			return evaluator.NewEmptyStage([]*evaluator.Column{
+			return evaluator.NewEmptyStage([]*results.Column{
 				createProjectedColumn(1, source, "foo", "a", "foo", "a").Column,
 			}, collation.Default)
 		}}, {
@@ -3822,7 +3844,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select a from foo limit 0, 0",
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
-			return evaluator.NewEmptyStage([]*evaluator.Column{
+			return evaluator.NewEmptyStage([]*results.Column{
 				createProjectedColumn(1, source, "foo", "a", "foo", "a").Column,
 			}, collation.Default)
 		}},
@@ -3833,12 +3855,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select a from foo",
 		func() *variable.Container {
 			vars := &variable.Container{}
-			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-			vars.SetSystemVariable(variable.SQLSelectLimit, 10)
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
+			setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+			setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+			setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+			setSystemVariable(vars, variable.SQLSelectLimit, 10)
+			setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+			setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "off")
 			return vars
 		},
 		func() *mongodb.Info {
@@ -3855,12 +3877,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo",
 		func() *variable.Container {
 			vars := &variable.Container{}
-			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
+			setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+			setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+			setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+			setSystemVariable(vars, variable.SQLSelectLimit, uint64(18446744073709551615))
+			setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+			setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "off")
 			return vars
 		},
 		func() *mongodb.Info {
@@ -3877,12 +3899,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo fast",
 		func() *variable.Container {
 			vars := &variable.Container{}
-			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
+			setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+			setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+			setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+			setSystemVariable(vars, variable.SQLSelectLimit, uint64(18446744073709551615))
+			setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+			setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "fast")
 			return vars
 		},
 		func() *mongodb.Info {
@@ -3899,12 +3921,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo safe",
 		func() *variable.Container {
 			vars := &variable.Container{}
-			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-			vars.SetSystemVariable(variable.SQLSelectLimit, uint64(18446744073709551615))
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
+			setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+			setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+			setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+			setSystemVariable(vars, variable.SQLSelectLimit, uint64(18446744073709551615))
+			setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+			setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "safe")
 			return vars
 		},
 		func() *mongodb.Info {
@@ -3928,12 +3950,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{}
-			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "off")
+			setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+			setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+			setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+			setSystemVariable(vars, variable.SQLSelectLimit, 5)
+			setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+			setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "off")
 			return vars
 		},
 		func() *mongodb.Info {
@@ -3950,12 +3972,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo fast limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{}
-			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "fast")
+			setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+			setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+			setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+			setSystemVariable(vars, variable.SQLSelectLimit, 5)
+			setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+			setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "fast")
 			return vars
 		},
 		func() *mongodb.Info {
@@ -3972,12 +3994,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		"select b from foo safe limit 10, 20",
 		func() *variable.Container {
 			vars := &variable.Container{}
-			vars.SetSystemVariable(variable.MongoDBGitVersion, testInfo.GitVersion)
-			vars.SetSystemVariable(variable.MongoDBVersion, testInfo.Version)
-			vars.SetSystemVariable(variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
-			vars.SetSystemVariable(variable.SQLSelectLimit, 5)
-			vars.SetSystemVariable(variable.TypeConversionMode, "mysql")
-			vars.SetSystemVariable(variable.PolymorphicTypeConversionMode, "safe")
+			setSystemVariable(vars, variable.MongoDBGitVersion, testInfo.GitVersion)
+			setSystemVariable(vars, variable.MongoDBVersion, testInfo.Version)
+			setSystemVariable(vars, variable.MongoDBVersionCompatibility, testInfo.CompatibleVersion)
+			setSystemVariable(vars, variable.SQLSelectLimit, 5)
+			setSystemVariable(vars, variable.TypeConversionMode, "mysql")
+			setSystemVariable(vars, variable.PolymorphicTypeConversionMode, "safe")
 			return vars
 		},
 		func() *mongodb.Info {
@@ -4004,7 +4026,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 	countTests := []planTest{{
 		"select count(*) from foo",
 		func() evaluator.PlanStage {
-			column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "",
+			column := results.NewColumn(1, "", "", "", "count(*)", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
 			source := createMongoSource(1, "foo", "foo")
@@ -4015,7 +4037,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select count(*) as c from foo",
 		func() evaluator.PlanStage {
-			column := evaluator.NewColumn(1, "", "", "", "c", "", "",
+			column := results.NewColumn(1, "", "", "", "c", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
@@ -4028,7 +4050,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select count(*) as c from foo order by a",
 		func() evaluator.PlanStage {
-			column := evaluator.NewColumn(1, "", "", "", "c", "", "",
+			column := results.NewColumn(1, "", "", "", "c", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
@@ -4041,7 +4063,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select count(*) as c from foo order by 1",
 		func() evaluator.PlanStage {
-			column := evaluator.NewColumn(1, "", "", "", "c", "", "",
+			column := results.NewColumn(1, "", "", "", "c", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
@@ -4054,7 +4076,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 		"select count(*) from foo as c",
 		func() evaluator.PlanStage {
-			column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "",
+			column := results.NewColumn(1, "", "", "", "count(*)", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
 			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
@@ -4277,123 +4299,6 @@ func TestAlgebrizeCommand(t *testing.T) {
 		}},
 	}
 	runTestsAsSubtest("Flush Statements", flushTests)
-
-	// Test Algebrizing Set Statements.
-	setTests := []test{{
-		"set @t1 = 132",
-		func() evaluator.Command {
-			return evaluator.NewSetCommand(
-				[]*evaluator.SQLAssignmentExpr{
-					evaluator.NewSQLAssignmentExpr(
-						evaluator.NewSQLVariableExpr(
-							"t1",
-							variable.UserKind,
-							variable.SessionScope,
-							schema.SQLPolymorphic,
-							nil,
-						),
-						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 132)),
-					),
-				},
-			)
-		}}, {
-
-		"set @@max_allowed_packet = 12",
-		func() evaluator.Command {
-			return evaluator.NewSetCommand(
-				[]*evaluator.SQLAssignmentExpr{
-					evaluator.NewSQLAssignmentExpr(
-						evaluator.NewSQLVariableExpr(
-							"max_allowed_packet",
-							variable.SystemKind,
-							variable.SessionScope,
-							schema.SQLInt,
-							int64(1073741824),
-						),
-						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 12)),
-					),
-				},
-			)
-		}}, {
-
-		"set @@global.max_allowed_packet = 12",
-		func() evaluator.Command {
-			return evaluator.NewSetCommand(
-				[]*evaluator.SQLAssignmentExpr{
-					evaluator.NewSQLAssignmentExpr(
-						evaluator.NewSQLVariableExpr(
-							"max_allowed_packet",
-							variable.SystemKind,
-							variable.GlobalScope,
-							schema.SQLInt,
-							int64(1073741824),
-						),
-						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 12)),
-					),
-				},
-			)
-		}}, {
-
-		"set @@global.max_allowed_packet = (select a from foo)",
-		func() evaluator.Command {
-			fooSource := createMongoSource(1, "foo", "foo")
-			return evaluator.NewSetCommand(
-				[]*evaluator.SQLAssignmentExpr{
-					evaluator.NewSQLAssignmentExpr(
-						evaluator.NewSQLVariableExpr(
-							"max_allowed_packet",
-							variable.SystemKind,
-							variable.GlobalScope,
-							schema.SQLInt,
-							int64(1073741824),
-						),
-						evaluator.NewSQLSubqueryExpr(
-							false,
-							false,
-							evaluator.NewProjectStage(
-								fooSource,
-								createProjectedColumn(1,
-									fooSource,
-									"foo",
-									"a",
-									"foo",
-									"a"),
-							),
-						),
-					),
-				},
-			)
-		}}, {
-
-		"set @@max_allowed_packet=12, @interactive_timeout=1111",
-		func() evaluator.Command {
-			return evaluator.NewSetCommand(
-				[]*evaluator.SQLAssignmentExpr{
-					evaluator.NewSQLAssignmentExpr(
-						evaluator.NewSQLVariableExpr(
-							"max_allowed_packet",
-							variable.SystemKind,
-							variable.SessionScope,
-							schema.SQLInt,
-							int64(1073741824),
-						),
-						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 12)),
-					),
-					evaluator.NewSQLAssignmentExpr(
-						evaluator.NewSQLVariableExpr(
-							"interactive_timeout",
-							variable.UserKind,
-							variable.SessionScope,
-							schema.SQLPolymorphic,
-							nil,
-						),
-						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 1111)),
-					),
-				},
-			)
-		}},
-	}
-	runTestsAsSubtest("Set Statements", setTests)
 }
 
 func TestAlgebrizeExpr(t *testing.T) {
@@ -4890,9 +4795,11 @@ func TestAlgebrizeExpr(t *testing.T) {
 
 	// Variable Tests
 	varGlobal := evaluator.NewSQLVariableExpr("sql_auto_is_null",
-		variable.SystemKind, variable.GlobalScope, schema.SQLBoolean, false)
+		variable.SystemKind, variable.GlobalScope,
+		values.NewSQLBool(values.VariableSQLValueKind, false))
 	varSession := evaluator.NewSQLVariableExpr("sql_auto_is_null",
-		variable.SystemKind, variable.SessionScope, schema.SQLBoolean, false)
+		variable.SystemKind, variable.SessionScope,
+		values.NewSQLBool(values.VariableSQLValueKind, false))
 	variableTests := []test{
 		{
 			"@@global.sql_auto_is_null",
@@ -4912,7 +4819,8 @@ func TestAlgebrizeExpr(t *testing.T) {
 			testVersion,
 		}, {
 			"@hmmm",
-			evaluator.NewSQLVariableExpr("hmmm", variable.UserKind, variable.SessionScope, "", nil),
+			evaluator.NewSQLVariableExpr("hmmm", variable.UserKind,
+				variable.SessionScope, values.NewSQLNull(values.VariableSQLValueKind)),
 			testVersion,
 		},
 	}

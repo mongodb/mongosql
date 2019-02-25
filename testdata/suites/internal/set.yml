@@ -302,12 +302,10 @@ testcases:
 
   - db: set_test
     description: set session select limit to invalid value
-    expected_names: []
-    expected_types: [int]
-    id: '21'
+    expected_error: "Error 1231: Variable 'sql_select_limit' can't be set to the value of '-5'"
+    id: set_sql_select_limit_invalid_negative_int
     sql: set @@sql_select_limit = -5
     sql_cleanup: set @@sql_select_limit = DEFAULT
-    verify: select @@sql_select_limit
 
   - db: set_test
     description: set session select limit to default
@@ -679,26 +677,18 @@ testcases:
     verify: SELECT @@optimize_self_joins
 
   - db: set_test
-    description: SET @@optimize_self_joins = -3 with no error
-    expected_names: ['@@optimize_self_joins']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 30c
+    description: SET @@optimize_self_joins = -3 which throws an error
+    expected_error: "Error 1231: Variable 'optimize_self_joins' can't be set to the value of '-3'"
+    id: optimize_self_joins_set_invalid_negative_int
     sql: SET @@optimize_self_joins = -3
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
-    verify: SELECT @@optimize_self_joins
 
   - db: set_test
-    description: SET @@optimize_self_joins = 5 with no error
-    expected_names: ['@@optimize_self_joins']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 30d
+    description: SET @@optimize_self_joins = 5 which throws an error
+    expected_error: "Error 1231: Variable 'optimize_self_joins' can't be set to the value of '5'"
+    id: optimize_self_joins_set_invalid_int
     sql: SET @@optimize_self_joins = 5
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
-    verify: SELECT @@optimize_self_joins
 
   - db: set_test
     description: SET @@global.optimize_self_joins = false with error
@@ -709,8 +699,8 @@ testcases:
 
   - db: set_test
     description: SET @@optimize_self_joins = 'hello' with error
-    expected_error: 'Error 1232: Incorrect arg type for variable optimize_self_joins: string'
-    id: 30f
+    expected_error: "Error 1232: Incorrect argument type to variable 'optimize_self_joins'"
+    id: optimize_self_joins_set_invalid_string
     sql: SET @@optimize_self_joins = 'hello'
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
 
@@ -736,26 +726,18 @@ testcases:
     verify: SELECT @@optimize_cross_joins
 
   - db: set_test
-    description: SET @@optimize_cross_joins = -3 with no error
-    expected_names: ['@@optimize_cross_joins']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 31c
+    description: SET @@optimize_cross_joins = -10 with error
+    expected_error: "Error 1231: Variable 'optimize_cross_joins' can't be set to the value of '-10'"
+    id: set_optimize_cross_joins_invalid_negative_int
     sql: SET @@optimize_cross_joins = -10
     sql_cleanup: SET @@optimize_cross_joins = DEFAULT
-    verify: SELECT @@optimize_cross_joins
 
   - db: set_test
-    description: SET @@optimize_cross_joins = 5 with no error
-    expected_names: ['@@optimize_cross_joins']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 31d
+    description: SET @@optimize_cross_joins = 4 with no error
+    expected_error: "Error 1231: Variable 'optimize_cross_joins' can't be set to the value of '4'"
+    id: set_optimize_cross_joins_invalid_int
     sql: SET @@optimize_cross_joins = 4
     sql_cleanup: SET @@optimize_cross_joins = DEFAULT
-    verify: SELECT @@optimize_cross_joins
 
   - db: set_test
     description: SET @@global.optimize_cross_joins = false with error
@@ -766,8 +748,8 @@ testcases:
 
   - db: set_test
     description: SET @@optimize_cross_joins = 'hello' with error
-    expected_error: 'Error 1232: Incorrect arg type for variable optimize_cross_joins: string'
-    id: 31f
+    expected_error: "Error 1232: Incorrect argument type to variable 'optimize_cross_joins'"
+    id: optimize_cross_joins_set_invalid_string
     sql: SET @@optimize_cross_joins = 'hello'
     sql_cleanup: SET @@optimize_cross_joins = DEFAULT
 
@@ -793,26 +775,18 @@ testcases:
     verify: SELECT @@optimize_evaluations
 
   - db: set_test
-    description: SET @@optimize_evaluations = -3 with no error
-    expected_names: ['@@optimize_evaluations']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 32c
+    description: SET @@optimize_evaluations = -3 with error
+    expected_error: "Error 1231: Variable 'optimize_evaluations' can't be set to the value of '-33'"
+    id: set_optimize_evaluations_invalid_negative_int
     sql: SET @@optimize_evaluations = -33
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
-    verify: SELECT @@optimize_evaluations
 
   - db: set_test
-    description: SET @@optimize_evaluations = 5 with no error
-    expected_names: ['@@optimize_evaluations']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 32d
+    description: SET @@optimize_evaluations = 5 with error
+    expected_error: "Error 1231: Variable 'optimize_evaluations' can't be set to the value of '5'"
+    id: set_optimize_evaluations_invalid_int
     sql: SET @@optimize_evaluations = 5
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
-    verify: SELECT @@optimize_evaluations
 
   - db: set_test
     description: SET @@global.optimize_evaluations = false with error
@@ -823,8 +797,8 @@ testcases:
 
   - db: set_test
     description: SET @@optimize_evaluations = 'hello' with error
-    expected_error: 'Error 1232: Incorrect arg type for variable optimize_evaluations: string'
-    id: 32f
+    expected_error: "Error 1232: Incorrect argument type to variable 'optimize_evaluations'"
+    id: optimize_evaluations_set_invalid_string
     sql: SET @@optimize_evaluations = 'hello'
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
 
@@ -850,26 +824,18 @@ testcases:
     verify: SELECT @@optimize_filtering
 
   - db: set_test
-    description: SET @@optimize_filtering = -3 with no error
-    expected_names: ['@@optimize_filtering']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 33c
+    description: SET @@optimize_filtering = -3 with error
+    expected_error: "Error 1231: Variable 'optimize_filtering' can't be set to the value of '-3'"
+    id: optimize_filtering_set_invalid_negative_int
     sql: SET @@optimize_filtering = -3
     sql_cleanup: SET @@optimize_filtering = DEFAULT
-    verify: SELECT @@optimize_filtering
 
   - db: set_test
-    description: SET @@optimize_filtering = 5 with no error
-    expected_names: ['@@optimize_filtering']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 33d
+    description: SET @@optimize_filtering = 5 with error
+    expected_error: "Error 1231: Variable 'optimize_filtering' can't be set to the value of '5'"
+    id: optimize_filtering_set_invalid_int
     sql: SET @@optimize_filtering = 5
     sql_cleanup: SET @@optimize_filtering = DEFAULT
-    verify: SELECT @@optimize_filtering
 
   - db: set_test
     description: SET @@global.optimize_filtering = false with error
@@ -880,8 +846,8 @@ testcases:
 
   - db: set_test
     description: SET @@optimize_filtering = 'hello' with error
-    expected_error: 'Error 1232: Incorrect arg type for variable optimize_filtering: string'
-    id: 33f
+    expected_error: "Error 1232: Incorrect argument type to variable 'optimize_filtering'"
+    id: optimize_filtering_set_invalid_string
     sql: SET @@optimize_filtering = 'hello'
     sql_cleanup: SET @@optimize_filtering = DEFAULT
 
@@ -907,26 +873,18 @@ testcases:
     verify: SELECT @@optimize_inner_joins
 
   - db: set_test
-    description: SET @@optimize_inner_joins = -3 with no error
-    expected_names: ['@@optimize_inner_joins']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 34c
+    description: SET @@optimize_inner_joins = -3 with error
+    expected_error: "Error 1231: Variable 'optimize_inner_joins' can't be set to the value of '-3'"
+    id: set_optimize_cross_joins_invalid_negative_int
     sql: SET @@optimize_inner_joins = -3
     sql_cleanup: SET @@optimize_inner_joins = DEFAULT
-    verify: SELECT @@optimize_inner_joins
 
   - db: set_test
-    description: SET @@optimize_inner_joins = 5 with no error
-    expected_names: ['@@optimize_inner_joins']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 34d
+    description: SET @@optimize_inner_joins = 5 with error
+    expected_error: "Error 1231: Variable 'optimize_inner_joins' can't be set to the value of '5'"
+    id: set_optimize_inner_joins_invalid_int
     sql: SET @@optimize_inner_joins = 5
     sql_cleanup: SET @@optimize_inner_joins = DEFAULT
-    verify: SELECT @@optimize_inner_joins
 
   - db: set_test
     description: SET @@global.optimize_inner_joins = false with error
@@ -937,8 +895,8 @@ testcases:
 
   - db: set_test
     description: SET optimize_inner_joins = 'hello' with error
-    expected_error: 'Error 1232: Incorrect arg type for variable optimize_inner_joins: string'
-    id: 34f
+    expected_error: "Error 1232: Incorrect argument type to variable 'optimize_inner_joins'"
+    id: optimize_inner_joins_set_invalid_string
     sql: SET optimize_inner_joins = 'hello'
     sql_cleanup: SET optimize_inner_joins = DEFAULT
 
@@ -965,25 +923,17 @@ testcases:
 
   - db: set_test
     description: SET @@pushdown = -3 with no error
-    expected_names: ['@@pushdown']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 35c
+    expected_error: "Error 1231: Variable 'pushdown' can't be set to the value of '-3'"
+    id: set_pushdown_invalid_negative_int
     sql: SET @@pushdown = -3
     sql_cleanup: SET @@pushdown = DEFAULT
-    verify: SELECT @@pushdown
 
   - db: set_test
     description: SET @@pushdown = 5 with no error
-    expected_names: ['@@pushdown']
-    expected_results:
-      - [0]
-    expected_types: [int]
-    id: 35d
+    expected_error: "Error 1231: Variable 'pushdown' can't be set to the value of '5'"
+    id: set_pushdown_invalid_int
     sql: SET @@pushdown = 5
     sql_cleanup: SET @@pushdown = DEFAULT
-    verify: SELECT @@pushdown
 
   - db: set_test
     description: SET @@global.pushdown = false with error
@@ -994,8 +944,8 @@ testcases:
 
   - db: set_test
     description: SET @@pushdown = 'hello' with error
-    expected_error: 'Error 1232: Incorrect arg type for variable pushdown: string'
-    id: 35f
+    expected_error: "Error 1232: Incorrect argument type to variable 'pushdown'"
+    id: pushdown_set_invalid_string
     sql: SET @@pushdown = 'hello'
     sql_cleanup: SET @@pushdown = DEFAULT
 
@@ -1221,7 +1171,7 @@ testcases:
 
   - db: set_test
     description: SET @@global.optimize_view_sampling = 'hello' with error
-    expected_error: 'Error 1232: Incorrect arg type for variable optimize_view_sampling: string'
+    expected_error: "Error 1232: Incorrect argument type to variable 'optimize_view_sampling'"
     id: optimize_view_sampling_invalid
     sql: SET @@global.optimize_view_sampling = 'hello'
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
@@ -1284,7 +1234,7 @@ testcases:
     variables: {global.max_nested_table_depth: 33}
 
   - db: set_test
-    expected_error: 'Error 1232: Incorrect arg type for variable max_nested_table_depth: string'
+    expected_error: "Error 1232: Incorrect argument type to variable 'max_nested_table_depth'"
     id: max_nested_table_depth_set_invalid_string
     sql: set @@global.max_nested_table_depth = 'invalid'
 
@@ -1320,7 +1270,7 @@ testcases:
     variables: {global.max_num_columns_per_table: 546}
 
   - db: set_test
-    expected_error: 'Error 1232: Incorrect arg type for variable max_num_columns_per_table: string'
+    expected_error: "Error 1232: Incorrect argument type to variable 'max_num_columns_per_table'"
     id: max_num_columns_per_table_set_invalid_string
     sql: set @@global.max_num_columns_per_table = 'invalid'
 

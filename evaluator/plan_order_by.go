@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/procutil"
 )
@@ -61,7 +62,7 @@ type OrderByIter struct {
 	terms []*OrderByTerm
 
 	// channel on which to send sorted data
-	outChan chan Values
+	outChan chan results.RowValues
 
 	// sorted indicates if the source operator data has been sorted
 	sorted bool
@@ -98,7 +99,7 @@ type orderByRow struct {
 	termValues []values.SQLValue
 
 	// data holds the raw data that was evaluated.
-	data Values
+	data results.RowValues
 }
 
 type orderByRows struct {
@@ -136,7 +137,7 @@ func (ob *OrderByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exec
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (ob *OrderByIter) Next(ctx context.Context, row *Row) bool {
+func (ob *OrderByIter) Next(ctx context.Context, row *results.Row) bool {
 	if !ob.sorted {
 		rows, err := ob.sortRows(ctx)
 		if err != nil {
@@ -168,7 +169,7 @@ func (ob *OrderByIter) sortRows(ctx context.Context) ([]orderByRow, error) {
 		collation: ob.collation,
 	}
 
-	row := &Row{}
+	row := &results.Row{}
 	for ob.source.Next(ctx, row) {
 		err := ob.stageMonitor.Include(row.Data.Size())
 		if err != nil {
@@ -188,7 +189,7 @@ func (ob *OrderByIter) sortRows(ctx context.Context) ([]orderByRow, error) {
 
 		obRow := orderByRow{ob.terms, vs, row.Data}
 		rows.rows = append(rows.rows, obRow)
-		row = &Row{}
+		row = &results.Row{}
 	}
 
 	err := ob.source.Err()
@@ -230,7 +231,7 @@ func (ob *OrderByIter) Err() error {
 }
 
 func (ob *OrderByIter) startIterChan(ctx context.Context, rows []orderByRow) {
-	ob.outChan = make(chan Values)
+	ob.outChan = make(chan results.RowValues)
 	procutil.PanicSafeGo(func() {
 	rowLoop:
 		for _, row := range rows {
@@ -247,7 +248,7 @@ func (ob *OrderByIter) startIterChan(ctx context.Context, rows []orderByRow) {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (ob *OrderByStage) Columns() (columns []*Column) {
+func (ob *OrderByStage) Columns() (columns []*results.Column) {
 	return ob.source.Columns()
 }
 

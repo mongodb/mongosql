@@ -6,6 +6,8 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	"github.com/10gen/sqlproxy/evaluator/results"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
@@ -72,7 +74,7 @@ var (
 
 type result map[string]interface{}
 
-func containsRow(t *testing.T, results []result, row *Row) ([]result, bool) {
+func containsRow(t *testing.T, results []result, row *results.Row) ([]result, bool) {
 	toRemove := -1
 
 	contains := false
@@ -105,7 +107,7 @@ func containsRow(t *testing.T, results []result, row *Row) ([]result, bool) {
 func TestUnionPlanStage(t *testing.T) {
 
 	bgCtx := context.Background()
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(MySQLValueKind)
 	execState := NewExecutionState()
 
 	test := func(t *testing.T, expectedColumns []string, expectedResults []result,

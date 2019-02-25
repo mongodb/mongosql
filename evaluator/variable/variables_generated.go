@@ -7,9 +7,10 @@ import (
 	"math"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-	"github.com/10gen/sqlproxy/schema"
 )
 
 // These variables hold system variable names.
@@ -87,105 +88,105 @@ const (
 
 // These are constants representing variables' default values.
 var (
-	defaultAutocommit                    bool   = true
-	defaultCharacterSetClient            string = string(collation.DefaultCharset.Name)
-	defaultCharacterSetConnection        string = string(collation.DefaultCharset.Name)
-	defaultCharacterSetDatabase          string = string(collation.DefaultCharset.Name)
-	defaultCharacterSetResults           string = string(collation.DefaultCharset.Name)
-	defaultCollationConnection           string = string(collation.Default.Name)
-	defaultCollationDatabase             string = string(collation.Default.Name)
-	defaultCollationServer               string = string(collation.Default.Name)
-	defaultGroupConcatMaxLen             int64  = 1024
-	defaultInteractiveTimeoutSecs        int64  = 28800
-	defaultMaxAllowedPacket              int64  = 1073741824
-	defaultMaxConnections                int64  = 0
-	defaultMaxTimeMS                     int64  = 0
-	defaultSocket                        string = ""
-	defaultSQLAutoIsNull                 bool   = false
-	defaultSQLSelectLimit                uint64 = math.MaxUint64
-	defaultVersion                       string = "5.7.12"
-	defaultVersionComment                string = fmt.Sprintf("mongosqld " + config.VersionStr)
-	defaultWaitTimeoutSecs               int64  = 28800
-	defaultAnonymizeMetrics              bool   = true
-	defaultEnableTableAlterations        bool   = false
-	defaultFullPushdownExecMode          bool   = false
-	defaultLogLevel                      int64  = 0
-	defaultMaxNestedTableDepth           int64  = 50
-	defaultMaxNumColumnsPerTable         int64  = 2000
-	defaultMetricsBackend                string = NoMetricsBackend
-	defaultMongoDBMaxServerSize          uint64 = 0
-	defaultMongoDBMaxConnectionSize      uint64 = 0
-	defaultMongoDBMaxStageSize           uint64 = 0
-	defaultMongoDBMaxVarcharLength       uint16 = math.MaxUint16
-	defaultMongoDBGitVersion             string = ""
-	defaultMongoDBTopology               string = ""
-	defaultMongoDBVersion                string = ""
-	defaultMongoDBVersionCompatibility   string = ""
-	defaultMongosqldVersion              string = config.VersionStr
-	defaultOptimizeCrossJoins            bool   = true
-	defaultOptimizeEvaluations           bool   = true
-	defaultOptimizeFiltering             bool   = true
-	defaultOptimizeInnerJoins            bool   = true
-	defaultOptimizeSelfJoins             bool   = true
-	defaultOptimizeViewSampling          bool   = true
-	defaultPolymorphicTypeConversionMode string = OffPolymorphicTypeConversionMode
-	defaultPushdown                      bool   = true
-	defaultRewriteDistinctAsGroup        bool   = false
-	defaultSampleRefreshIntervalSecs     int64  = 0
-	defaultSampleSize                    int64  = 1000
-	defaultSchemaMappingMode             string = LatticeSchemaMappingMode
-	defaultTypeConversionMode            string = MongoSQLTypeConversionMode
+	defaultAutocommit                    values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultCharacterSetClient            values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCharacterSetConnection        values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCharacterSetDatabase          values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCharacterSetResults           values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCollationConnection           values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
+	defaultCollationDatabase             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
+	defaultCollationServer               values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
+	defaultGroupConcatMaxLen             values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1024)
+	defaultInteractiveTimeoutSecs        values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 28800)
+	defaultMaxAllowedPacket              values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1073741824)
+	defaultMaxConnections                values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultMaxTimeMS                     values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultSocket                        values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultSQLAutoIsNull                 values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultSQLSelectLimit                values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, math.MaxUint64)
+	defaultVersion                       values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "5.7.12")
+	defaultVersionComment                values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, fmt.Sprintf("mongosqld "+config.VersionStr))
+	defaultWaitTimeoutSecs               values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 28800)
+	defaultAnonymizeMetrics              values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultEnableTableAlterations        values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultFullPushdownExecMode          values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultLogLevel                      values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultMaxNestedTableDepth           values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 50)
+	defaultMaxNumColumnsPerTable         values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
+	defaultMetricsBackend                values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, NoMetricsBackend)
+	defaultMongoDBMaxServerSize          values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
+	defaultMongoDBMaxConnectionSize      values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
+	defaultMongoDBMaxStageSize           values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
+	defaultMongoDBMaxVarcharLength       values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, math.MaxUint16)
+	defaultMongoDBGitVersion             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongoDBTopology               values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongoDBVersion                values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongoDBVersionCompatibility   values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongosqldVersion              values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, config.VersionStr)
+	defaultOptimizeCrossJoins            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeEvaluations           values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeFiltering             values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeInnerJoins            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeSelfJoins             values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeViewSampling          values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultPolymorphicTypeConversionMode values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, OffPolymorphicTypeConversionMode)
+	defaultPushdown                      values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultRewriteDistinctAsGroup        values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultSampleRefreshIntervalSecs     values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultSampleSize                    values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1000)
+	defaultSchemaMappingMode             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, LatticeSchemaMappingMode)
+	defaultTypeConversionMode            values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, MongoSQLTypeConversionMode)
 )
 
 type systemVariableContainer struct {
-	autocommit                    bool
-	characterSetClient            string
-	characterSetConnection        string
-	characterSetDatabase          string
-	characterSetResults           string
-	collationConnection           string
-	collationDatabase             string
-	collationServer               string
-	groupConcatMaxLen             int64
-	interactiveTimeoutSecs        int64
-	maxAllowedPacket              int64
-	maxConnections                int64
-	maxTimeMS                     int64
-	socket                        string
-	sqlAutoIsNull                 bool
-	sqlSelectLimit                uint64
-	version                       string
-	versionComment                string
-	waitTimeoutSecs               int64
-	anonymizeMetrics              bool
-	enableTableAlterations        bool
-	fullPushdownExecMode          bool
-	logLevel                      int64
-	maxNestedTableDepth           int64
-	maxNumColumnsPerTable         int64
-	metricsBackend                string
-	mongoDBMaxServerSize          uint64
-	mongoDBMaxConnectionSize      uint64
-	mongoDBMaxStageSize           uint64
-	mongoDBMaxVarcharLength       uint16
-	mongoDBGitVersion             string
-	mongoDBTopology               string
-	mongoDBVersion                string
-	mongoDBVersionCompatibility   string
-	mongosqldVersion              string
-	optimizeCrossJoins            bool
-	optimizeEvaluations           bool
-	optimizeFiltering             bool
-	optimizeInnerJoins            bool
-	optimizeSelfJoins             bool
-	optimizeViewSampling          bool
-	polymorphicTypeConversionMode string
-	pushdown                      bool
-	rewriteDistinctAsGroup        bool
-	sampleRefreshIntervalSecs     int64
-	sampleSize                    int64
-	schemaMappingMode             string
-	typeConversionMode            string
+	autocommit                    values.SQLBool
+	characterSetClient            values.SQLVarchar
+	characterSetConnection        values.SQLVarchar
+	characterSetDatabase          values.SQLVarchar
+	characterSetResults           values.SQLVarchar
+	collationConnection           values.SQLVarchar
+	collationDatabase             values.SQLVarchar
+	collationServer               values.SQLVarchar
+	groupConcatMaxLen             values.SQLInt64
+	interactiveTimeoutSecs        values.SQLInt64
+	maxAllowedPacket              values.SQLInt64
+	maxConnections                values.SQLInt64
+	maxTimeMS                     values.SQLInt64
+	socket                        values.SQLVarchar
+	sqlAutoIsNull                 values.SQLBool
+	sqlSelectLimit                values.SQLUint64
+	version                       values.SQLVarchar
+	versionComment                values.SQLVarchar
+	waitTimeoutSecs               values.SQLInt64
+	anonymizeMetrics              values.SQLBool
+	enableTableAlterations        values.SQLBool
+	fullPushdownExecMode          values.SQLBool
+	logLevel                      values.SQLInt64
+	maxNestedTableDepth           values.SQLInt64
+	maxNumColumnsPerTable         values.SQLInt64
+	metricsBackend                values.SQLVarchar
+	mongoDBMaxServerSize          values.SQLUint64
+	mongoDBMaxConnectionSize      values.SQLUint64
+	mongoDBMaxStageSize           values.SQLUint64
+	mongoDBMaxVarcharLength       values.SQLUint64
+	mongoDBGitVersion             values.SQLVarchar
+	mongoDBTopology               values.SQLVarchar
+	mongoDBVersion                values.SQLVarchar
+	mongoDBVersionCompatibility   values.SQLVarchar
+	mongosqldVersion              values.SQLVarchar
+	optimizeCrossJoins            values.SQLBool
+	optimizeEvaluations           values.SQLBool
+	optimizeFiltering             values.SQLBool
+	optimizeInnerJoins            values.SQLBool
+	optimizeSelfJoins             values.SQLBool
+	optimizeViewSampling          values.SQLBool
+	polymorphicTypeConversionMode values.SQLVarchar
+	pushdown                      values.SQLBool
+	rewriteDistinctAsGroup        values.SQLBool
+	sampleRefreshIntervalSecs     values.SQLInt64
+	sampleSize                    values.SQLInt64
+	schemaMappingMode             values.SQLVarchar
+	typeConversionMode            values.SQLVarchar
 }
 
 func (svc *systemVariableContainer) setDefaults() {
@@ -240,30 +241,30 @@ func (svc *systemVariableContainer) setDefaults() {
 }
 
 func (svc *systemVariableContainer) setFromConfig(cfg *config.Config) {
-	svc.anonymizeMetrics = cfg.SetParameter.AnonymizeMetrics
-	svc.enableTableAlterations = cfg.SetParameter.EnableTableAlterations
-	svc.logLevel = cfg.SystemLog.Level()
-	svc.maxNestedTableDepth = cfg.Schema.Sample.MaxNestedTableDepth
-	svc.maxNumColumnsPerTable = cfg.Schema.Sample.MaxNumColumnsPerTable
-	svc.metricsBackend = cfg.SetParameter.MetricsBackend
-	svc.mongoDBMaxServerSize = cfg.Runtime.Memory.MaxPerServer
-	svc.mongoDBMaxConnectionSize = cfg.Runtime.Memory.MaxPerConnection
-	svc.mongoDBMaxStageSize = cfg.Runtime.Memory.MaxPerStage
-	svc.mongoDBMaxVarcharLength = cfg.Schema.MaxVarcharLength
-	svc.mongoDBVersionCompatibility = cfg.MongoDB.VersionCompatibility
-	svc.optimizeCrossJoins = cfg.SetParameter.OptimizeCrossJoins
-	svc.optimizeEvaluations = cfg.SetParameter.OptimizeEvaluations
-	svc.optimizeFiltering = cfg.SetParameter.OptimizeFiltering
-	svc.optimizeInnerJoins = cfg.SetParameter.OptimizeInnerJoins
-	svc.optimizeSelfJoins = cfg.SetParameter.OptimizeSelfJoins
-	svc.optimizeViewSampling = cfg.SetParameter.OptimizeViewSampling
-	svc.polymorphicTypeConversionMode = cfg.SetParameter.PolymorphicTypeConversionMode
-	svc.pushdown = cfg.SetParameter.Pushdown
-	svc.rewriteDistinctAsGroup = cfg.SetParameter.RewriteDistinctAsGroup
-	svc.sampleRefreshIntervalSecs = cfg.Schema.Sample.RefreshIntervalSecs
-	svc.sampleSize = cfg.Schema.Sample.Size
-	svc.schemaMappingMode = cfg.Schema.Sample.SchemaMappingMode
-	svc.typeConversionMode = cfg.SetParameter.TypeConversionMode
+	svc.anonymizeMetrics = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.AnonymizeMetrics)
+	svc.enableTableAlterations = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.EnableTableAlterations)
+	svc.logLevel = values.NewSQLInt64(values.VariableSQLValueKind, cfg.SystemLog.Level())
+	svc.maxNestedTableDepth = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNestedTableDepth)
+	svc.maxNumColumnsPerTable = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNumColumnsPerTable)
+	svc.metricsBackend = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.MetricsBackend)
+	svc.mongoDBMaxServerSize = values.NewSQLUint64(values.VariableSQLValueKind, cfg.Runtime.Memory.MaxPerServer)
+	svc.mongoDBMaxConnectionSize = values.NewSQLUint64(values.VariableSQLValueKind, cfg.Runtime.Memory.MaxPerConnection)
+	svc.mongoDBMaxStageSize = values.NewSQLUint64(values.VariableSQLValueKind, cfg.Runtime.Memory.MaxPerStage)
+	svc.mongoDBMaxVarcharLength = values.NewSQLUint64(values.VariableSQLValueKind, cfg.Schema.MaxVarcharLength)
+	svc.mongoDBVersionCompatibility = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.MongoDB.VersionCompatibility)
+	svc.optimizeCrossJoins = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.OptimizeCrossJoins)
+	svc.optimizeEvaluations = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.OptimizeEvaluations)
+	svc.optimizeFiltering = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.OptimizeFiltering)
+	svc.optimizeInnerJoins = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.OptimizeInnerJoins)
+	svc.optimizeSelfJoins = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.OptimizeSelfJoins)
+	svc.optimizeViewSampling = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.OptimizeViewSampling)
+	svc.polymorphicTypeConversionMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.PolymorphicTypeConversionMode)
+	svc.pushdown = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.Pushdown)
+	svc.rewriteDistinctAsGroup = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.RewriteDistinctAsGroup)
+	svc.sampleRefreshIntervalSecs = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.RefreshIntervalSecs)
+	svc.sampleSize = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.Size)
+	svc.schemaMappingMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.Schema.Sample.SchemaMappingMode)
+	svc.typeConversionMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.TypeConversionMode)
 }
 
 func init() {
@@ -272,8 +273,8 @@ func init() {
 		Name:             Autocommit,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.autocommit },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.autocommit },
 		SetValue:         setAutocommit,
 	}
 
@@ -281,8 +282,8 @@ func init() {
 		Name:             CharacterSetClient,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.characterSetClient },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.characterSetClient },
 		SetValue:         setCharacterSetClient,
 	}
 
@@ -290,8 +291,8 @@ func init() {
 		Name:             CharacterSetConnection,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.characterSetConnection },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.characterSetConnection },
 		SetValue:         setCharacterSetConnection,
 	}
 
@@ -299,8 +300,8 @@ func init() {
 		Name:             CharacterSetDatabase,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.characterSetDatabase },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.characterSetDatabase },
 		SetValue:         setCharacterSetDatabase,
 	}
 
@@ -308,7 +309,7 @@ func init() {
 		Name:             CharacterSetResults,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
+		EvalType:         types.EvalString,
 		GetValue:         getCharacterSetResults,
 		SetValue:         setCharacterSetResults,
 	}
@@ -317,8 +318,8 @@ func init() {
 		Name:             CollationConnection,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.collationConnection },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.collationConnection },
 		SetValue:         setCollationConnection,
 	}
 
@@ -326,8 +327,8 @@ func init() {
 		Name:             CollationDatabase,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.collationDatabase },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.collationDatabase },
 		SetValue:         setCollationDatabase,
 	}
 
@@ -335,8 +336,8 @@ func init() {
 		Name:             CollationServer,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.collationServer },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.collationServer },
 		SetValue:         setCollationServer,
 	}
 
@@ -344,8 +345,8 @@ func init() {
 		Name:             GroupConcatMaxLen,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.groupConcatMaxLen },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.groupConcatMaxLen },
 		SetValue:         setGroupConcatMaxLen,
 	}
 
@@ -353,8 +354,8 @@ func init() {
 		Name:             InteractiveTimeoutSecs,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.interactiveTimeoutSecs },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.interactiveTimeoutSecs },
 		SetValue:         setInteractiveTimeoutSecs,
 	}
 
@@ -362,8 +363,8 @@ func init() {
 		Name:             MaxAllowedPacket,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.maxAllowedPacket },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxAllowedPacket },
 		SetValue:         setMaxAllowedPacket,
 	}
 
@@ -371,8 +372,8 @@ func init() {
 		Name:             MaxConnections,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.maxConnections },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxConnections },
 		SetValue:         setMaxConnections,
 	}
 
@@ -380,8 +381,8 @@ func init() {
 		Name:             MaxTimeMS,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.maxTimeMS },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxTimeMS },
 		SetValue:         setMaxTimeMS,
 	}
 
@@ -389,8 +390,8 @@ func init() {
 		Name:             Socket,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.socket },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.socket },
 		SetValue:         setSocket,
 	}
 
@@ -398,8 +399,8 @@ func init() {
 		Name:             SQLAutoIsNull,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.sqlAutoIsNull },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.sqlAutoIsNull },
 		SetValue:         setSQLAutoIsNull,
 	}
 
@@ -407,8 +408,8 @@ func init() {
 		Name:             SQLSelectLimit,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.sqlSelectLimit },
+		EvalType:         types.EvalUint64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.sqlSelectLimit },
 		SetValue:         setSQLSelectLimit,
 	}
 
@@ -416,8 +417,8 @@ func init() {
 		Name:             Version,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0),
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.version },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.version },
 		SetValue:         setVersion,
 	}
 
@@ -425,8 +426,8 @@ func init() {
 		Name:             VersionComment,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0),
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.versionComment },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.versionComment },
 		SetValue:         setVersionComment,
 	}
 
@@ -434,8 +435,8 @@ func init() {
 		Name:             WaitTimeoutSecs,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.waitTimeoutSecs },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.waitTimeoutSecs },
 		SetValue:         setWaitTimeoutSecs,
 	}
 
@@ -443,8 +444,8 @@ func init() {
 		Name:             AnonymizeMetrics,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.anonymizeMetrics },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.anonymizeMetrics },
 		SetValue:         setAnonymizeMetrics,
 	}
 
@@ -452,8 +453,8 @@ func init() {
 		Name:             EnableTableAlterations,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.enableTableAlterations },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.enableTableAlterations },
 		SetValue:         setEnableTableAlterations,
 	}
 
@@ -461,8 +462,8 @@ func init() {
 		Name:             FullPushdownExecMode,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.fullPushdownExecMode },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.fullPushdownExecMode },
 		SetValue:         setFullPushdownExecMode,
 	}
 
@@ -470,8 +471,8 @@ func init() {
 		Name:             LogLevel,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.logLevel },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.logLevel },
 		SetValue:         setLogLevel,
 	}
 
@@ -479,8 +480,8 @@ func init() {
 		Name:             MaxNestedTableDepth,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.maxNestedTableDepth },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxNestedTableDepth },
 		SetValue:         setMaxNestedTableDepth,
 	}
 
@@ -488,8 +489,8 @@ func init() {
 		Name:             MaxNumColumnsPerTable,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.maxNumColumnsPerTable },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxNumColumnsPerTable },
 		SetValue:         setMaxNumColumnsPerTable,
 	}
 
@@ -497,8 +498,8 @@ func init() {
 		Name:             MetricsBackend,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.metricsBackend },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.metricsBackend },
 		SetValue:         setMetricsBackend,
 	}
 
@@ -506,8 +507,8 @@ func init() {
 		Name:             MongoDBMaxServerSize,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBMaxServerSize },
+		EvalType:         types.EvalUint64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBMaxServerSize },
 		SetValue:         setMongoDBMaxServerSize,
 	}
 
@@ -515,8 +516,8 @@ func init() {
 		Name:             MongoDBMaxConnectionSize,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBMaxConnectionSize },
+		EvalType:         types.EvalUint64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBMaxConnectionSize },
 		SetValue:         setMongoDBMaxConnectionSize,
 	}
 
@@ -524,8 +525,8 @@ func init() {
 		Name:             MongoDBMaxStageSize,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBMaxStageSize },
+		EvalType:         types.EvalUint64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBMaxStageSize },
 		SetValue:         setMongoDBMaxStageSize,
 	}
 
@@ -533,8 +534,8 @@ func init() {
 		Name:             MongoDBMaxVarcharLength,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLUint,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBMaxVarcharLength },
+		EvalType:         types.EvalUint64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBMaxVarcharLength },
 		SetValue:         setMongoDBMaxVarcharLength,
 	}
 
@@ -542,8 +543,8 @@ func init() {
 		Name:             MongoDBGitVersion,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0),
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBGitVersion },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBGitVersion },
 		SetValue:         setMongoDBGitVersion,
 	}
 
@@ -551,8 +552,8 @@ func init() {
 		Name:             MongoDBTopology,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0),
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBTopology },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBTopology },
 		SetValue:         setMongoDBTopology,
 	}
 
@@ -560,8 +561,8 @@ func init() {
 		Name:             MongoDBVersion,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0),
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBVersion },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBVersion },
 		SetValue:         setMongoDBVersion,
 	}
 
@@ -569,8 +570,8 @@ func init() {
 		Name:             MongoDBVersionCompatibility,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongoDBVersionCompatibility },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongoDBVersionCompatibility },
 		SetValue:         setMongoDBVersionCompatibility,
 	}
 
@@ -578,8 +579,8 @@ func init() {
 		Name:             MongosqldVersion,
 		Kind:             SystemKind,
 		AllowedSetScopes: Scope(0),
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.mongosqldVersion },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.mongosqldVersion },
 		SetValue:         setMongosqldVersion,
 	}
 
@@ -587,8 +588,8 @@ func init() {
 		Name:             OptimizeCrossJoins,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.optimizeCrossJoins },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.optimizeCrossJoins },
 		SetValue:         setOptimizeCrossJoins,
 	}
 
@@ -596,8 +597,8 @@ func init() {
 		Name:             OptimizeEvaluations,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.optimizeEvaluations },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.optimizeEvaluations },
 		SetValue:         setOptimizeEvaluations,
 	}
 
@@ -605,8 +606,8 @@ func init() {
 		Name:             OptimizeFiltering,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.optimizeFiltering },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.optimizeFiltering },
 		SetValue:         setOptimizeFiltering,
 	}
 
@@ -614,8 +615,8 @@ func init() {
 		Name:             OptimizeInnerJoins,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.optimizeInnerJoins },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.optimizeInnerJoins },
 		SetValue:         setOptimizeInnerJoins,
 	}
 
@@ -623,8 +624,8 @@ func init() {
 		Name:             OptimizeSelfJoins,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.optimizeSelfJoins },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.optimizeSelfJoins },
 		SetValue:         setOptimizeSelfJoins,
 	}
 
@@ -632,8 +633,8 @@ func init() {
 		Name:             OptimizeViewSampling,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.optimizeViewSampling },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.optimizeViewSampling },
 		SetValue:         setOptimizeViewSampling,
 	}
 
@@ -641,8 +642,8 @@ func init() {
 		Name:             PolymorphicTypeConversionMode,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.polymorphicTypeConversionMode },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.polymorphicTypeConversionMode },
 		SetValue:         setPolymorphicTypeConversionMode,
 	}
 
@@ -650,8 +651,8 @@ func init() {
 		Name:             Pushdown,
 		Kind:             SystemKind,
 		AllowedSetScopes: SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.pushdown },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.pushdown },
 		SetValue:         setPushdown,
 	}
 
@@ -659,8 +660,8 @@ func init() {
 		Name:             RewriteDistinctAsGroup,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLBoolean,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.rewriteDistinctAsGroup },
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.rewriteDistinctAsGroup },
 		SetValue:         setRewriteDistinctAsGroup,
 	}
 
@@ -668,8 +669,8 @@ func init() {
 		Name:             SampleRefreshIntervalSecs,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.sampleRefreshIntervalSecs },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.sampleRefreshIntervalSecs },
 		SetValue:         setSampleRefreshIntervalSecs,
 	}
 
@@ -677,8 +678,8 @@ func init() {
 		Name:             SampleSize,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLInt,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.sampleSize },
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.sampleSize },
 		SetValue:         setSampleSize,
 	}
 
@@ -686,8 +687,8 @@ func init() {
 		Name:             SchemaMappingMode,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.schemaMappingMode },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.schemaMappingMode },
 		SetValue:         setSchemaMappingMode,
 	}
 
@@ -695,29 +696,29 @@ func init() {
 		Name:             TypeConversionMode,
 		Kind:             SystemKind,
 		AllowedSetScopes: GlobalScope | SessionScope,
-		SQLType:          schema.SQLVarchar,
-		GetValue:         func(c *Container) interface{} { return c.systemVariableContainer.typeConversionMode },
+		EvalType:         types.EvalString,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.typeConversionMode },
 		SetValue:         setTypeConversionMode,
 	}
 }
 
-func setAutocommit(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(Autocommit, v)
+func setAutocommit(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(Autocommit, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.autocommit = val
 	return nil
 }
 
-func setInteractiveTimeoutSecs(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(InteractiveTimeoutSecs, v)
+func setInteractiveTimeoutSecs(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(InteractiveTimeoutSecs, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 1 {
+	if lessThan(val, 1) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, InteractiveTimeoutSecs, val)
 	}
 
@@ -725,17 +726,17 @@ func setInteractiveTimeoutSecs(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMaxAllowedPacket(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(MaxAllowedPacket, v)
+func setMaxAllowedPacket(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxAllowedPacket, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 1024 {
+	if lessThan(val, 1024) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxAllowedPacket, val)
 	}
 
-	if val > 1073741824 {
+	if greaterThan(val, 1073741824) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxAllowedPacket, val)
 	}
 
@@ -743,13 +744,13 @@ func setMaxAllowedPacket(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMaxConnections(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(MaxConnections, v)
+func setMaxConnections(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxConnections, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 0 {
+	if lessThan(val, 0) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxConnections, val)
 	}
 
@@ -757,13 +758,13 @@ func setMaxConnections(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMaxTimeMS(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(MaxTimeMS, v)
+func setMaxTimeMS(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxTimeMS, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 0 {
+	if lessThan(val, 0) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxTimeMS, val)
 	}
 
@@ -771,93 +772,93 @@ func setMaxTimeMS(c *Container, v interface{}) error {
 	return nil
 }
 
-func setSocket(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(Socket, v)
+func setSocket(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(Socket, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.socket = val
 	return nil
 }
 
-func setSQLAutoIsNull(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(SQLAutoIsNull, v)
+func setSQLAutoIsNull(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(SQLAutoIsNull, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.sqlAutoIsNull = val
 	return nil
 }
 
-func setSQLSelectLimit(c *Container, v interface{}) error {
-	val, ok := convertUint64(v)
-	if !ok {
-		return wrongTypeError(SQLSelectLimit, v)
+func setSQLSelectLimit(c *Container, v values.SQLValue) error {
+	val, err := convertSQLUint64(SQLSelectLimit, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.sqlSelectLimit = val
 	return nil
 }
 
-func setVersion(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(Version, v)
+func setVersion(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(Version, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.version = val
 	return nil
 }
 
-func setVersionComment(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(VersionComment, v)
+func setVersionComment(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(VersionComment, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.versionComment = val
 	return nil
 }
 
-func setAnonymizeMetrics(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(AnonymizeMetrics, v)
+func setAnonymizeMetrics(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(AnonymizeMetrics, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.anonymizeMetrics = val
 	return nil
 }
 
-func setEnableTableAlterations(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(EnableTableAlterations, v)
+func setEnableTableAlterations(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(EnableTableAlterations, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.enableTableAlterations = val
 	return nil
 }
 
-func setFullPushdownExecMode(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(FullPushdownExecMode, v)
+func setFullPushdownExecMode(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(FullPushdownExecMode, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.fullPushdownExecMode = val
 	return nil
 }
 
-func setMaxNestedTableDepth(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(MaxNestedTableDepth, v)
+func setMaxNestedTableDepth(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxNestedTableDepth, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 0 {
+	if lessThan(val, 0) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxNestedTableDepth, val)
 	}
 
@@ -865,13 +866,13 @@ func setMaxNestedTableDepth(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMaxNumColumnsPerTable(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(MaxNumColumnsPerTable, v)
+func setMaxNumColumnsPerTable(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxNumColumnsPerTable, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 1 {
+	if lessThan(val, 1) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxNumColumnsPerTable, val)
 	}
 
@@ -879,13 +880,13 @@ func setMaxNumColumnsPerTable(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMetricsBackend(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(MetricsBackend, v)
+func setMetricsBackend(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(MetricsBackend, v)
+	if err != nil {
+		return err
 	}
 
-	switch val {
+	switch val.String() {
 	case NoMetricsBackend:
 		// valid
 	case LogMetricsBackend:
@@ -900,47 +901,47 @@ func setMetricsBackend(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMongoDBMaxServerSize(c *Container, v interface{}) error {
-	val, ok := convertUint64(v)
-	if !ok {
-		return wrongTypeError(MongoDBMaxServerSize, v)
+func setMongoDBMaxServerSize(c *Container, v values.SQLValue) error {
+	val, err := convertSQLUint64(MongoDBMaxServerSize, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongoDBMaxServerSize = val
 	return nil
 }
 
-func setMongoDBMaxConnectionSize(c *Container, v interface{}) error {
-	val, ok := convertUint64(v)
-	if !ok {
-		return wrongTypeError(MongoDBMaxConnectionSize, v)
+func setMongoDBMaxConnectionSize(c *Container, v values.SQLValue) error {
+	val, err := convertSQLUint64(MongoDBMaxConnectionSize, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongoDBMaxConnectionSize = val
 	return nil
 }
 
-func setMongoDBMaxStageSize(c *Container, v interface{}) error {
-	val, ok := convertUint64(v)
-	if !ok {
-		return wrongTypeError(MongoDBMaxStageSize, v)
+func setMongoDBMaxStageSize(c *Container, v values.SQLValue) error {
+	val, err := convertSQLUint64(MongoDBMaxStageSize, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongoDBMaxStageSize = val
 	return nil
 }
 
-func setMongoDBMaxVarcharLength(c *Container, v interface{}) error {
-	val, ok := convertUint16(v)
-	if !ok {
-		return wrongTypeError(MongoDBMaxVarcharLength, v)
+func setMongoDBMaxVarcharLength(c *Container, v values.SQLValue) error {
+	val, err := convertSQLUint64(MongoDBMaxVarcharLength, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 0 {
+	if lessThan(val, 0) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MongoDBMaxVarcharLength, val)
 	}
 
-	if val > math.MaxUint16 {
+	if greaterThan(val, math.MaxUint16) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MongoDBMaxVarcharLength, val)
 	}
 
@@ -948,123 +949,123 @@ func setMongoDBMaxVarcharLength(c *Container, v interface{}) error {
 	return nil
 }
 
-func setMongoDBGitVersion(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(MongoDBGitVersion, v)
+func setMongoDBGitVersion(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(MongoDBGitVersion, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongoDBGitVersion = val
 	return nil
 }
 
-func setMongoDBTopology(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(MongoDBTopology, v)
+func setMongoDBTopology(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(MongoDBTopology, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongoDBTopology = val
 	return nil
 }
 
-func setMongoDBVersion(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(MongoDBVersion, v)
+func setMongoDBVersion(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(MongoDBVersion, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongoDBVersion = val
 	return nil
 }
 
-func setMongoDBVersionCompatibility(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(MongoDBVersionCompatibility, v)
+func setMongoDBVersionCompatibility(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(MongoDBVersionCompatibility, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongoDBVersionCompatibility = val
 	return nil
 }
 
-func setMongosqldVersion(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(MongosqldVersion, v)
+func setMongosqldVersion(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(MongosqldVersion, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.mongosqldVersion = val
 	return nil
 }
 
-func setOptimizeCrossJoins(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(OptimizeCrossJoins, v)
+func setOptimizeCrossJoins(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(OptimizeCrossJoins, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.optimizeCrossJoins = val
 	return nil
 }
 
-func setOptimizeEvaluations(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(OptimizeEvaluations, v)
+func setOptimizeEvaluations(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(OptimizeEvaluations, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.optimizeEvaluations = val
 	return nil
 }
 
-func setOptimizeFiltering(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(OptimizeFiltering, v)
+func setOptimizeFiltering(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(OptimizeFiltering, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.optimizeFiltering = val
 	return nil
 }
 
-func setOptimizeInnerJoins(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(OptimizeInnerJoins, v)
+func setOptimizeInnerJoins(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(OptimizeInnerJoins, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.optimizeInnerJoins = val
 	return nil
 }
 
-func setOptimizeSelfJoins(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(OptimizeSelfJoins, v)
+func setOptimizeSelfJoins(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(OptimizeSelfJoins, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.optimizeSelfJoins = val
 	return nil
 }
 
-func setOptimizeViewSampling(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(OptimizeViewSampling, v)
+func setOptimizeViewSampling(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(OptimizeViewSampling, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.optimizeViewSampling = val
 	return nil
 }
 
-func setPolymorphicTypeConversionMode(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(PolymorphicTypeConversionMode, v)
+func setPolymorphicTypeConversionMode(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(PolymorphicTypeConversionMode, v)
+	if err != nil {
+		return err
 	}
 
-	switch val {
+	switch val.String() {
 	case SafePolymorphicTypeConversionMode:
 		// valid
 	case FastPolymorphicTypeConversionMode:
@@ -1079,33 +1080,33 @@ func setPolymorphicTypeConversionMode(c *Container, v interface{}) error {
 	return nil
 }
 
-func setPushdown(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(Pushdown, v)
+func setPushdown(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(Pushdown, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.pushdown = val
 	return nil
 }
 
-func setRewriteDistinctAsGroup(c *Container, v interface{}) error {
-	val, ok := convertBool(v)
-	if !ok {
-		return wrongTypeError(RewriteDistinctAsGroup, v)
+func setRewriteDistinctAsGroup(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(RewriteDistinctAsGroup, v)
+	if err != nil {
+		return err
 	}
 
 	c.systemVariableContainer.rewriteDistinctAsGroup = val
 	return nil
 }
 
-func setSampleRefreshIntervalSecs(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(SampleRefreshIntervalSecs, v)
+func setSampleRefreshIntervalSecs(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(SampleRefreshIntervalSecs, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 0 {
+	if lessThan(val, 0) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, SampleRefreshIntervalSecs, val)
 	}
 
@@ -1113,13 +1114,13 @@ func setSampleRefreshIntervalSecs(c *Container, v interface{}) error {
 	return nil
 }
 
-func setSampleSize(c *Container, v interface{}) error {
-	val, ok := convertInt64(v)
-	if !ok {
-		return wrongTypeError(SampleSize, v)
+func setSampleSize(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(SampleSize, v)
+	if err != nil {
+		return err
 	}
 
-	if val < 0 {
+	if lessThan(val, 0) {
 		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, SampleSize, val)
 	}
 
@@ -1127,13 +1128,13 @@ func setSampleSize(c *Container, v interface{}) error {
 	return nil
 }
 
-func setSchemaMappingMode(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(SchemaMappingMode, v)
+func setSchemaMappingMode(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(SchemaMappingMode, v)
+	if err != nil {
+		return err
 	}
 
-	switch val {
+	switch val.String() {
 	case MajoritySchemaMappingMode:
 		// valid
 	case LatticeSchemaMappingMode:
@@ -1146,13 +1147,13 @@ func setSchemaMappingMode(c *Container, v interface{}) error {
 	return nil
 }
 
-func setTypeConversionMode(c *Container, v interface{}) error {
-	val, ok := convertString(v)
-	if !ok {
-		return wrongTypeError(TypeConversionMode, v)
+func setTypeConversionMode(c *Container, v values.SQLValue) error {
+	val, err := convertSQLVarchar(TypeConversionMode, v)
+	if err != nil {
+		return err
 	}
 
-	switch val {
+	switch val.String() {
 	case MongoSQLTypeConversionMode:
 		// valid
 	case MySQLTypeConversionMode:

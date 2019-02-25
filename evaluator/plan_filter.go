@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 )
 
@@ -65,7 +66,7 @@ func (fs *FilterStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Execu
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (fs *FilterStage) Columns() (columns []*Column) {
+func (fs *FilterStage) Columns() (columns []*results.Column) {
 	return fs.source.Columns()
 }
 
@@ -77,7 +78,7 @@ func (fs *FilterStage) Collation() *collation.Collation {
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (fi *FilterIter) Next(ctx context.Context, row *Row) bool {
+func (fi *FilterIter) Next(ctx context.Context, row *results.Row) bool {
 	var hasMatch, hasNext bool
 	var result values.SQLValue
 

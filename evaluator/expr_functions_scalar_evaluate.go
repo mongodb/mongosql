@@ -136,21 +136,7 @@ func (f baseScalarFunctionExpr) connectionIDEvaluateWithFullEvaluationState(ctx 
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) piEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.constantEvaluate(sqlValueKind, vs, math.Pi, types.EvalDouble)
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) constantEvaluate(sqlValueKind values.SQLValueKind,
-	vs []values.SQLValue, constVal interface{}, constEvalType types.EvalType) (values.SQLValue, error) {
-	sqlVal := values.GoValueToSQLValue(sqlValueKind, constVal)
-	if sqlVal.EvalType() != constEvalType {
-		err := fmt.Errorf(
-			"actual EvalType %x did not match declared EvalType %x",
-			sqlVal.EvalType(), constEvalType,
-		)
-		return nil, err
-	}
-	return sqlVal, nil
+	return values.NewSQLFloat(sqlValueKind, math.Pi), nil
 }
 
 // Diverges from MySQL behavior in its handling of negative values

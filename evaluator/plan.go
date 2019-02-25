@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/collation"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // PlanStage represents a single a node in the Plan tree.
@@ -17,7 +18,7 @@ type PlanStage interface {
 	Open(context.Context, *ExecutionConfig, *ExecutionState) (RowIter, error)
 
 	// Columns returns the ordered set of columns that are contained in results from this plan.
-	Columns() []*Column
+	Columns() []*results.Column
 
 	// Collation returns the collation to use for comparisons.
 	Collation() *collation.Collation
@@ -73,7 +74,7 @@ type RowIter interface {
 	//        return err
 	//    }
 	//
-	Next(context.Context, *Row) bool
+	Next(context.Context, *results.Row) bool
 }
 
 // DocIter is like RowIter, but yields bson.RawD instead of

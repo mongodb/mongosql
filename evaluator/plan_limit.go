@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
 // A LimitStage restricts the number of rows returned by a query.
@@ -69,9 +70,9 @@ func (l *LimitStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Executi
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (l *LimitIter) Next(ctx context.Context, row *Row) bool {
+func (l *LimitIter) Next(ctx context.Context, row *results.Row) bool {
 	if l.offset != 0 {
-		r := &Row{}
+		r := &results.Row{}
 		for l.source.Next(ctx, r) {
 			l.err = l.memoryMonitor.Release(r.Data.Size())
 			if l.err != nil {
@@ -100,7 +101,7 @@ func (l *LimitIter) Next(ctx context.Context, row *Row) bool {
 }
 
 // Columns returns the ordered set of columns that are contained in results from this plan.
-func (l *LimitStage) Columns() (columns []*Column) {
+func (l *LimitStage) Columns() (columns []*results.Column) {
 	return l.source.Columns()
 }
 

@@ -518,7 +518,7 @@ func (o *logOptions) mapToConfig(cfg *Config) error {
 		cfg.SystemLog.Quiet = *o.Quiet
 	}
 	if o.VLevel != nil {
-		cfg.SystemLog.Verbosity = *o.VLevel
+		cfg.SystemLog.Verbosity = int64(*o.VLevel)
 	}
 	return nil
 }
@@ -655,7 +655,7 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 	}
 
 	if o.MaxVarcharLength != nil {
-		cfg.Schema.MaxVarcharLength = *o.MaxVarcharLength
+		cfg.Schema.MaxVarcharLength = uint64(*o.MaxVarcharLength)
 	}
 
 	if !isEmptyOrUnset(o.SampleMode) {

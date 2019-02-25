@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/sample"
@@ -100,10 +101,11 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 
 func createVariables(info *mongodb.Info) catalog.VariableContainer {
 	gbl := variable.NewGlobalContainer(nil)
-	gbl.SetSystemVariable(variable.MongoDBVersion, info.Version)
+	version := values.NewSQLVarchar(values.VariableSQLValueKind, info.Version)
+	gbl.SetSystemVariable(variable.MongoDBVersion, version)
 
 	ctn := variable.NewSessionContainer(gbl)
-	ctn.SetSystemVariable(variable.MongoDBVersion, info.Version)
+	ctn.SetSystemVariable(variable.MongoDBVersion, version)
 	return ctn
 }
 

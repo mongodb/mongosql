@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -46,7 +47,7 @@ func TestCountPlanStage(t *testing.T) {
 
 	req := require.New(t)
 
-	var expected []evaluator.Values
+	var expected []results.RowValues
 	vs, err := bsonDToValues(1, "", "", bsonutil.NewD(bsonutil.NewDocElem("count(*)",
 		263),
 	))
@@ -71,7 +72,7 @@ func TestCountPlanStage(t *testing.T) {
 		panic("table doesn't exist")
 	}
 
-	column := evaluator.NewColumn(1, "", "", "", "count(*)", "", "", types.EvalInt64,
+	column := results.NewColumn(1, "", "", "", "count(*)", "", "", types.EvalInt64,
 		schema.MongoNone, false)
 	projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
 
@@ -86,7 +87,7 @@ func TestCountPlanStage(t *testing.T) {
 	iter, err := countStage.Open(bgCtx, execCfg, execState)
 	req.Nil(err, "error opening count stage")
 
-	row := &evaluator.Row{}
+	row := &results.Row{}
 
 	i := 0
 
@@ -95,7 +96,7 @@ func TestCountPlanStage(t *testing.T) {
 			" match number of expected columns")
 		req.Equal(row.Data, expected[i], "returned data values does not match expected"+
 			" data values")
-		row = &evaluator.Row{}
+		row = &results.Row{}
 		i++
 	}
 	req.Equal(i, len(expected), "returned number of rows does not match expected number"+

@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -2501,7 +2502,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 			}
 
 			newMappingRegistry := newMappingRegistry()
-			newColumn := NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
+			newColumn := results.NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
 				types.EvalUint64, schema.MongoInt64, false)
 			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table,
 				newColumn.Name, newColumn.MappingRegistryName) {
@@ -2675,7 +2676,7 @@ func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (Pl
 		}
 
 		if mr.registerMapping(column.Database, subquery.aliasName, column.Name, fieldName) {
-			newColumn := column.clone()
+			newColumn := column.Clone()
 			newColumn.Table = subquery.aliasName
 			mr.addColumn(newColumn)
 		}
@@ -2901,7 +2902,7 @@ func meetsSelfJoinPKCriteria(logger log.Logger, local,
 
 	exprs := splitExpression(matcher)
 
-	getPKs := func(columns []*Column) map[string]struct{} {
+	getPKs := func(columns []*results.Column) map[string]struct{} {
 		keys := make(map[string]struct{})
 		for _, c := range columns {
 			if _, counted := keys[c.Name]; !counted && c.PrimaryKey {

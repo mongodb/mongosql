@@ -101,10 +101,10 @@ setParameter:
 	testString(t, string(cfg.SystemLog.LogRotate), string(log.Reopen), "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "temp", "cfg.SystemLog.Quiet")
 	testBool(t, cfg.SystemLog.Quiet, true, "cfg.SystemLog.Quiet")
-	testInt(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
+	testInt64(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
 
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
-	testUint16(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
+	testUint64(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
 	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")

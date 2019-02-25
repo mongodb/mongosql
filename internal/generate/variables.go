@@ -14,7 +14,7 @@ type SystemVariableSpec struct {
 	ID           string         `yaml:"_id"`
 	Name         string         `yaml:"name"`
 	SetScopes    []string       `yaml:"set_scopes"`
-	SQLType      string         `yaml:"sql_type"`
+	VariableType string         `yaml:"type"`
 	GolangType   string         `yaml:"go_type"`
 	Default      string         `yaml:"default"`
 	ConfigField  string         `yaml:"config_field"`
@@ -53,26 +53,24 @@ func (sv SystemVariableSpec) SetterFunc() string {
 	return "set" + sv.NameVar()
 }
 
-var goTypeBySQLType = map[string]string{
-	"SQLInt":     "int64",
-	"SQLBoolean": "bool",
-	"SQLVarchar": "string",
-	"SQLUint":    "uint64",
+var evalTypeByVariableType = map[string]string{
+	"SQLInt64":   "EvalInt64",
+	"SQLBool":    "EvalBoolean",
+	"SQLVarchar": "EvalString",
+	"SQLUint64":  "EvalUint64",
 }
 
-func (sv SystemVariableSpec) GoType() string {
-	if sv.GolangType != "" {
-		return sv.GolangType
-	}
-	goType, ok := goTypeBySQLType[sv.SQLType]
-	if !ok {
-		panic(fmt.Sprintf("could not find go type for sql type %q", sv.SQLType))
-	}
-	return goType
+func (sv SystemVariableSpec) Initializer(value string) string {
+	return fmt.Sprintf("values.New%s(values.VariableSQLValueKind, %s)", sv.VariableType, value)
+}
+
+func (sv SystemVariableSpec) SetFromConfig(value string) string {
+	value = "cfg." + value
+	return sv.Initializer(value)
 }
 
 func (sv SystemVariableSpec) ConvertFunc() string {
-	return "convert" + strings.Title(sv.GoType())
+	return "convert" + sv.VariableType
 }
 
 func (sv SystemVariableSpec) ContainerField() string {
@@ -92,8 +90,12 @@ func (sv SystemVariableSpec) SetScopeExpr() string {
 	return strings.Join(scopeStrs, " | ")
 }
 
-func (sv SystemVariableSpec) SQLTypeExpr() string {
-	return "schema." + sv.SQLType
+func (sv SystemVariableSpec) VariableTypeExpr() string {
+	return "values." + sv.VariableType
+}
+
+func (sv SystemVariableSpec) EvalTypeExpr() string {
+	return "types." + evalTypeByVariableType[sv.VariableType]
 }
 
 type VariablesSpec struct {
@@ -123,9 +125,10 @@ import (
     "math"
 
     "github.com/10gen/sqlproxy/collation"
+    "github.com/10gen/sqlproxy/evaluator/types"
+    "github.com/10gen/sqlproxy/evaluator/values"
     "github.com/10gen/sqlproxy/internal/config"
     "github.com/10gen/sqlproxy/internal/mysqlerrors"
-    "github.com/10gen/sqlproxy/schema"
 )
 
 // These variables hold system variable names.
@@ -151,13 +154,13 @@ const (
 // These are constants representing variables' default values.
 var (
 {{- range .SystemVariables}}
-    {{.DefaultVar}} {{.GoType}} = {{.Default}}
+    {{.DefaultVar}} {{.VariableTypeExpr}} = {{.Initializer .Default}}
 {{- end}}
 )
 
 type systemVariableContainer struct {
 {{- range .SystemVariables}}
-    {{.ContainerField}} {{.GoType}}
+    {{.ContainerField}} {{.VariableTypeExpr}}
 {{- end}}
 }
 
@@ -170,7 +173,7 @@ func (svc *systemVariableContainer) setDefaults() {
 func (svc *systemVariableContainer) setFromConfig(cfg *config.Config) {
 {{- range .SystemVariables}}
 {{- if .ConfigField}}
-    svc.{{.ContainerField}} = cfg.{{.ConfigField}}
+    svc.{{.ContainerField}} = {{.SetFromConfig .ConfigField}}
 {{- end}}
 {{- end}}
 }
@@ -182,8 +185,8 @@ func init() {
         Name: {{.NameVar}},
         Kind: SystemKind,
         AllowedSetScopes: {{.SetScopeExpr}},
-        SQLType: {{.SQLTypeExpr}},
-        GetValue: {{if .CustomGetter}}{{.GetterFunc}}{{else}}func(c *Container) interface{} { return c.systemVariableContainer.{{.ContainerField}} }{{end}},
+        EvalType: {{.EvalTypeExpr}},
+        GetValue: {{if .CustomGetter}}{{.GetterFunc}}{{else}}func(c *Container) values.SQLValue { return c.systemVariableContainer.{{.ContainerField}} }{{end}},
         SetValue: {{.SetterFunc}},
     }
 {{- end}}
@@ -192,24 +195,24 @@ func init() {
 {{- range .SystemVariables}}
 {{- $var := .}}
 {{if .CustomSetter}}{{else}}
-func {{.SetterFunc}}(c *Container, v interface{}) error {
-    val, ok := {{.ConvertFunc}}(v)
-    if !ok {
-        return wrongTypeError({{.NameVar}}, v)
-    }
+func {{.SetterFunc}}(c *Container, v values.SQLValue) error {
+    val, err := {{.ConvertFunc}}({{$var.NameVar}}, v)
+	if err != nil {
+		return err
+	}
 
     {{if .Validation.Min}}
-    if val < {{.Validation.Min}} {
+    if lessThan(val, {{.Validation.Min}}) {
         return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, {{.NameVar}}, val)
     }
     {{end}}
     {{if .Validation.Max}}
-    if val > {{.Validation.Max}} {
+    if greaterThan(val, {{.Validation.Max}}) {
         return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, {{.NameVar}}, val)
     }
     {{end}}
     {{if .Validation.Enum}}
-    switch val {
+    switch val.String() {
     {{- range .Validation.Enum}}
     case {{.Variant}}{{$var.NameVar}}:
         // valid

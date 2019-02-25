@@ -4,6 +4,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
@@ -29,7 +30,7 @@ type QueryOp byte
 // executed, and optionally the columns in the result set, a result iterator, and PlanStats.
 type QueryResult struct {
 	Stmt      parser.Statement // allows statement execution tracking in server
-	Columns   []*Column
+	Columns   []*results.Column
 	planStage PlanStage
 	Stats     *PlanStats
 	Op        QueryOp
@@ -52,7 +53,7 @@ func (qr *QueryResult) GetRowIter(ctx context.Context, cfg *ExecutionConfig, st 
 }
 
 // NewQueryResult is a constructor for a QueryResult.
-func NewQueryResult(stmt parser.Statement, columns []*Column, planStage PlanStage, stats *PlanStats, op QueryOp) *QueryResult {
+func NewQueryResult(stmt parser.Statement, columns []*results.Column, planStage PlanStage, stats *PlanStats, op QueryOp) *QueryResult {
 	return &QueryResult{
 		Stmt:      stmt,
 		Columns:   columns,

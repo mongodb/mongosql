@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/types"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -17,14 +18,14 @@ import (
 
 func TestMemoryLimits(t *testing.T) {
 	bgCtx := context.Background()
-	execCfg := createExecutionCfg("evaluator_unit_test_dbname", 100, []uint8{4, 0, 0})
+	execCfg := createExecutionCfg("evaluator_unit_test_dbname", 100, []uint8{4, 0, 0}, MySQLValueKind)
 	execState := NewExecutionState()
 
 	t.Run("group_by", func(t *testing.T) { testGroupByMemoryLimits(bgCtx, t, execCfg, execState) })
 	t.Run("order_by", func(t *testing.T) { testOrderByMemoryLimits(bgCtx, t, execCfg, execState) })
 
-	execCfg = createExecutionCfg("evaluator_unit_test_dbname", 500, []uint8{4, 0, 0})
-	t.Run("join", func(t *testing.T) { testJoinMemoryLimits(t, bgCtx, execCfg, execState) })
+	execCfg = createExecutionCfg("evaluator_unit_test_dbname", 500, []uint8{4, 0, 0}, MySQLValueKind)
+	t.Run("join", func(t *testing.T) { testJoinMemoryLimits(bgCtx, t, execCfg, execState) })
 }
 
 func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfig, st *ExecutionState) {
@@ -125,7 +126,7 @@ func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 	runTest(terms, data)
 }
 
-func testJoinMemoryLimits(t *testing.T, ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) {
+func testJoinMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfig, st *ExecutionState) {
 
 	criteria := NewSQLEqualsExpr(
 		NewSQLColumnExpr(
@@ -472,17 +473,17 @@ func testLimitMemoryMonitor(t *testing.T) {
 
 func testDynamicSourceMemoryMonitor(t *testing.T) {
 	tableName := "foo"
-	table := catalog.NewDynamicTable(catalog.TableName(tableName), catalog.BaseTable, func() []*catalog.DataRow {
-		return []*catalog.DataRow{
-			catalog.NewDataRow(1, 2),
-			catalog.NewDataRow(2, 3),
-			catalog.NewDataRow(3, 4),
+	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func() Rows {
+		return Rows{
+			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 1), NewSQLInt64(MongoSQLValueKind, 2)),
+			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 2), NewSQLInt64(MongoSQLValueKind, 3)),
+			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 3), NewSQLInt64(MongoSQLValueKind, 4)),
 		}
 	})
 
-	_, err := table.AddColumn("one", catalog.SQLType(schema.SQLInt))
+	_, err := table.AddColumn(tableName, "one", EvalInt64)
 	require.NoError(t, err)
-	_, err = table.AddColumn("two", catalog.SQLType(schema.SQLInt))
+	_, err = table.AddColumn(tableName, "two", EvalInt64)
 	require.NoError(t, err)
 
 	db, err := catalog.New("def", nil).AddDatabase("db")
@@ -491,10 +492,7 @@ func testDynamicSourceMemoryMonitor(t *testing.T) {
 	source := NewDynamicSourceStage(db, table, 1, tableName)
 
 	actual := getAllocatedMemorySizeAfterIteration(source)
-	expected := (valueSize(string(db.Name()), tableName, "one",
-		NewSQLInt64(MySQLValueKind, 0)) +
-		valueSize(string(db.Name()), tableName,
-			"two", NewSQLInt64(MySQLValueKind, 0))) * 3
+	expected := uint64(0x60)
 
 	require.Equal(t, expected, actual)
 }

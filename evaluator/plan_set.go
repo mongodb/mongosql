@@ -64,16 +64,11 @@ func (s *SetCommand) Execute(ctx context.Context, cfg *ExecutionConfig, st *Exec
 			return err
 		}
 
-		var literal interface{}
-		if !sqlVal.IsNull() {
-			literal = sqlVal.Value()
-		}
-
 		err = cfg.commandHandler.Set(
 			variable.Name(a.variable.Name),
 			a.variable.Scope,
 			a.variable.Kind,
-			literal,
+			sqlVal,
 		)
 		if err != nil {
 			return err

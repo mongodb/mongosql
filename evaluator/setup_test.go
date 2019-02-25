@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/kr/pretty"
@@ -526,7 +527,7 @@ func ShouldResembleDiffed(actual interface{}, expected ...interface{}) string {
 }
 
 func valueSize(dbName, tableName, columnName string, data SQLValue) uint64 {
-	value := NewValue(0, dbName, tableName, columnName, data)
+	value := NewRowValue(0, dbName, tableName, columnName, data)
 	return value.Size()
 }
 

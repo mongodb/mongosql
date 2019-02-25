@@ -9,6 +9,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
+	. "github.com/10gen/sqlproxy/evaluator/results"
 	. "github.com/10gen/sqlproxy/evaluator/types"
 	. "github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -116,11 +117,11 @@ func TestEvaluates(t *testing.T) {
 		}
 	}
 
-	execCfg := createTestExecutionCfg()
+	execCfg := createTestExecutionCfg(knd)
 
 	t.Run("evaluates", func(t *testing.T) {
 		row := &Row{
-			Data: Values{
+			Data: RowValues{
 				{
 					SelectID: 1,
 					Database: "test",
@@ -2139,7 +2140,7 @@ func TestEvaluates(t *testing.T) {
 		t2 = t1.Add(time.Hour)
 
 		aggRows := []*Row{
-			{Data: Values{
+			{Data: RowValues{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
 					Data: NewSQLNull(knd)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
@@ -2154,7 +2155,7 @@ func TestEvaluates(t *testing.T) {
 					Data:     NewSQLDate(knd, t1),
 				},
 			}},
-			{Data: Values{
+			{Data: RowValues{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
 					Data: NewSQLInt64(knd, 3)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
@@ -2169,7 +2170,7 @@ func TestEvaluates(t *testing.T) {
 					Data:     NewSQLDate(knd, t2),
 				},
 			}},
-			{Data: Values{
+			{Data: RowValues{
 				{SelectID: 1, Database: "test", Table: "bar", Name: "a",
 					Data: NewSQLInt64(knd, 5)},
 				{SelectID: 1, Database: "test", Table: "bar", Name: "b",
@@ -2543,8 +2544,7 @@ func TestEvaluates(t *testing.T) {
 					"test",
 					variable.UserKind,
 					variable.SessionScope,
-					"",
-					nil,
+					NewSQLNull(MongoSQLValueKind),
 				),
 				NewSQLAddExpr(
 					NewSQLValueExpr(NewSQLInt64(knd, 1)),
