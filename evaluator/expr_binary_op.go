@@ -2369,9 +2369,15 @@ func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
 		}
 		if values.IsFalsy(leftVal) {
-			// Type reconciliation will ensure that xor.right is converted to boolean already, if
-			// necessary.  So this is safe, unlike in the SQLOrExpr and SQLAndExpr cases.
-			return xor.right, nil
+			// Type reconciliation only ensures that xor.right is boolean comparable.
+			// If it is actually boolean, we can return it.
+			if xor.right.EvalType() == types.EvalBoolean {
+				return xor.right, nil
+			}
+
+			// Otherwise, do not constant fold this expression (since we should not
+			// wrap in conversion during constant folding).
+			return xor, nil
 		}
 		return NewSQLNotExpr(xor.right), nil
 	case rightOnlyValueArg:
@@ -2379,7 +2385,10 @@ func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
 		if values.IsFalsy(rightVal) {
-			return xor.left, nil
+			if xor.left.EvalType() == types.EvalBoolean {
+				return xor.left, nil
+			}
+			return xor, nil
 		}
 		return NewSQLNotExpr(xor.left), nil
 	case bothValueArgs:
