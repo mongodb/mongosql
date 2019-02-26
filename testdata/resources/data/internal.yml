@@ -257,6 +257,19 @@
     - {_id: 4, z: ~}
 
 - db: "functions_test"
+  collection: "booleans"
+  docs:
+    - {_id: 0, a: true, b: true}
+    - {_id: 1, a: true, b: false}
+    - {_id: 2, a: true, b: null}
+    - {_id: 3, a: false, b: true}
+    - {_id: 4, a: false, b: false}
+    - {_id: 5, a: false, b: null}
+    - {_id: 6, a: null, b: true}
+    - {_id: 7, a: null, b: false}
+    - {_id: 8, a: null, b: null}
+
+- db: "functions_test"
   collection: "trig"
   docs:
     - {a: 0.785398163397, b: -1}

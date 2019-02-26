@@ -4187,16 +4187,20 @@ testcases:
     sql: select !null from scalar
 
   - db: functions_test
-    expected_names: [a, c, a xor c]
+    expected_names: [a, b, a xor b]
     expected_results:
-      - [1, 1.456, 0]
-      - [null, -121.232, null]
-      - [-3, 56.7342, 0]
-      - [4, null, null]
+      - [1, 1, 0]
+      - [1, 0, 1]
+      - [1, null, null]
+      - [0, 1, 1]
+      - [0, 0, 0]
+      - [0, null, null]
+      - [null, 1, null]
+      - [null, 0, null]
       - [null, null, null]
-    expected_types: [int, float, int]
+    expected_types: [int, int, int]
     id: xor
-    sql: select a, c, a xor c from scalar
+    sql: select a, b, a xor b from booleans
 
   - db: functions_test
     expected_names: [_id, a, c, _id xor a xor c]
