@@ -2416,6 +2416,13 @@ func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
 // it will return nil and error.
 func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, newPushdownFailure(
+			"SQLXorExpr",
+			"cannot push down to MongoDB < 3.4",
+		)
+	}
+
 	children := eatChildren(xor.ExprName(), nodesToExprs(xor.Children()))
 
 	args, err := t.typedTranslateArgs(children)
