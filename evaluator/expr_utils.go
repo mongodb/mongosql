@@ -26,9 +26,15 @@ const (
 	regexCharsToEscape = ".^$*+?()[{\\|"
 	timeSeparator      = ':'
 	maxPrecisionInt    = int64(1 << 53)
+	minPrecisionInt    = -maxPrecisionInt - 1
 	maxHour            = 838
 	maxMinute          = 59
 	maxSecond          = 59
+)
+
+var (
+	maxIntAsDecimal = decimal.New(math.MaxInt64, 0)
+	minIntAsDecimal = decimal.New(math.MinInt64, 0)
 )
 
 var (

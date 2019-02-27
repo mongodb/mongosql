@@ -809,24 +809,292 @@ testcases:
     sql: 'select y, z FROM select_2 where (x > 4 or mfil=''{"_id": {"$gt": 2}}'') or _id = 3'
 
   - db: select_sTest
-    description: adding max int64 literals
-    expected_names: [result]
+    description: adding literals to literal max int64
+    expected_names: [a, b, c, d, e]
     expected_results:
-      - ['18446744073709551614']
-    expected_types: [varchar]
-    id: arithmetic_overflow_adding_max_int64_literals
-    sql: select 9223372036854775807+9223372036854775807 as result
+      - [9223372036854776000, 9223372036854776000, 9223372036854776000, 18446744073709552000, -1]
+    expected_types: [float, float, float, float, int]
+    id: arithmetic_overflow_adding_literals_to_max_int64_literal
+    sql: select 9223372036854775807 + 1 as a, 9223372036854775807 + 2 as b, 9223372036854775807 + 3 as c, 9223372036854775807 + 9223372036854775807 as d, 9223372036854775807 + -9223372036854775808 as e
 
-#  - db: select_sTest
-#    description: adding max int64 with columns
-#    expected_names: [a, result]
-#    expected_results:
-#      - [1, '9223372036854775808']
-#      - [2, '9223372036854775809']
-#      - [3, '9223372036854775810']
-#    expected_types: [int, varchar]
-#    id: arithmetic_overflow_adding_max_int64_columns
-#    sql: select a, 9223372036854775807 + a as result from select_1
+  - db: select_sTest
+    description: adding columns to literal max int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 18446744073709552000]
+      - [-9223372036854775808, -1]
+      - [1, 9223372036854776000]
+      - [2, 9223372036854776000]
+      - [3, 9223372036854776000]
+    expected_types: [int, float]
+    id: arithmetic_overflow_adding_columns_to_max_int64_literal
+    sql: select a, 9223372036854775807 + a as result from int_bounds
+
+  - db: select_sTest
+    description: adding literals to column max int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [9223372036854776000, 9223372036854776000, 9223372036854776000, 18446744073709552000, -1]
+      - [9223372036854776000, 9223372036854776000, 9223372036854776000, 18446744073709552000, -1]
+      - [9223372036854776000, 9223372036854776000, 9223372036854776000, 18446744073709552000, -1]
+      - [9223372036854776000, 9223372036854776000, 9223372036854776000, 18446744073709552000, -1]
+      - [9223372036854776000, 9223372036854776000, 9223372036854776000, 18446744073709552000, -1]
+    expected_types: [float, float, float, float, int]
+    id: arithmetic_overflow_adding_literals_to_max_int64_column
+    sql: select maxInt + 1 as a, maxInt + 2 as b, maxInt + 3 as c, maxInt + 9223372036854775807 as d, maxInt + -9223372036854775808 as e from int_bounds
+
+  - db: select_sTest
+    description: adding columns to column max int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 18446744073709552000]
+      - [-9223372036854775808, -1]
+      - [1, 9223372036854776000]
+      - [2, 9223372036854776000]
+      - [3, 9223372036854776000]
+    expected_types: [int, float]
+    id: arithmetic_overflow_adding_columns_to_max_int64_column
+    sql: select a, maxInt + a as result from int_bounds
+
+  - db: select_sTest
+    description: subtracting literals from literal max int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
+    expected_types: [float, float, float, int, int]
+    id: arithmetic_overflow_subtracting_literals_from_max_int64_literal
+    sql: select 9223372036854775807 - 1 as a, 9223372036854775807 - 2 as b, 9223372036854775807 - 3 as c, 9223372036854775807 - 9223372036854775807 as d, 9223372036854775807 - -9223372036854775808 as e
+
+  - db: select_sTest
+    description: subtracting columns from literal max int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 0]
+      - [-9223372036854775808, -1] # the server overflows so MAX_INT64 - MIN_INT64 = MAX_INT64 + (MAX_INT64 + 1) = MAX_INT64 + MIN_INT64 = -1
+      - [1, 9223372036854775806]
+      - [2, 9223372036854775805]
+      - [3, 9223372036854775804]
+    expected_types: [int, float]
+    id: arithmetic_overflow_subtracting_columns_from_max_int64_literal
+    sql: select a, 9223372036854775807 - a as result from int_bounds
+
+  - db: select_sTest
+    description: subtracting literals from column max int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
+      - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
+      - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
+      - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
+      - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
+    expected_types: [float, float, float, int, int]
+    id: arithmetic_overflow_subtracting_literals_from_max_int64_column
+    sql: select maxInt - 1 as a, maxInt - 2 as b, maxInt - 3 as c, maxInt - 9223372036854775807 as d, maxInt - -9223372036854775808 as e from int_bounds
+
+  - db: select_sTest
+    description: subtracting columns from column max int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 0]
+      - [-9223372036854775808, -1] # the server overflows so MAX_INT64 - MIN_INT64 = MAX_INT64 + (MAX_INT64 + 1) = MAX_INT64 + MIN_INT64 = -1
+      - [1, 9223372036854775806]
+      - [2, 9223372036854775805]
+      - [3, 9223372036854775804]
+    expected_types: [int, float]
+    id: arithmetic_overflow_subtracting_columns_from_max_int64_column
+    sql: select a, maxInt - a as result from int_bounds
+
+  - db: select_sTest
+    description: multiplying literals by literal max int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [9223372036854775807, 18446744073709552000, 27670116110564327000, 8.507059173023462e+37, -8.507059173023462e+37]
+    expected_types: [float, float, float, float, float]
+    id: arithmetic_overflow_multiplying_literals_by_max_int64_literal
+    sql: select 9223372036854775807 * 1 as a, 9223372036854775807 * 2 as b, 9223372036854775807 * 3 as c, 9223372036854775807 * 9223372036854775807 as d, 9223372036854775807 * -9223372036854775808 as e
+
+  - db: select_sTest
+    description: multiplying columns by literal max int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 8.507059173023462e+37]
+      - [-9223372036854775808, -8.507059173023462e+37]
+      - [1, 9223372036854775807]
+      - [2, 18446744073709552000]
+      - [3, 27670116110564327000]
+    expected_types: [int, float]
+    id: arithmetic_overflow_multiplying_columns_by_max_int64_literal
+    sql: select a, 9223372036854775807 * a as result from int_bounds
+
+  - db: select_sTest
+    description: multiplying literals by column max int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [9223372036854775807, 18446744073709552000, 27670116110564327000, 8.507059173023462e+37, -8.507059173023462e+37]
+      - [9223372036854775807, 18446744073709552000, 27670116110564327000, 8.507059173023462e+37, -8.507059173023462e+37]
+      - [9223372036854775807, 18446744073709552000, 27670116110564327000, 8.507059173023462e+37, -8.507059173023462e+37]
+      - [9223372036854775807, 18446744073709552000, 27670116110564327000, 8.507059173023462e+37, -8.507059173023462e+37]
+      - [9223372036854775807, 18446744073709552000, 27670116110564327000, 8.507059173023462e+37, -8.507059173023462e+37]
+    expected_types: [float, float, float, float, float]
+    id: arithmetic_overflow_multiplying_literals_by_max_int64_column
+    sql: select maxInt * 1 as a, maxInt * 2 as b, maxInt * 3 as c, maxInt * 9223372036854775807 as d, maxInt * -9223372036854775808 as e from int_bounds
+
+  - db: select_sTest
+    description: multiplying columns by column max int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 8.507059173023462e+37]
+      - [-9223372036854775808, -8.507059173023462e+37]
+      - [1, 9223372036854775807]
+      - [2, 18446744073709552000]
+      - [3, 27670116110564327000]
+    expected_types: [int, float]
+    id: arithmetic_overflow_multiplying_columns_by_max_int64_column
+    sql: select a, maxInt * a as result from int_bounds
+
+  - db: select_sTest
+    description: adding literals to literal min int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [-9223372036854775807, -9223372036854775806, -9223372036854775805, -1, -18446744073709552000]
+    expected_types: [float, float, float, int, float]
+    id: arithmetic_overflow_adding_literals_to_min_int64_literal
+    sql: select -9223372036854775808 + 1 as a, -9223372036854775808 + 2 as b, -9223372036854775808 + 3 as c, -9223372036854775808 + 9223372036854775807 as d, -9223372036854775808 + -9223372036854775808 as e
+
+  - db: select_sTest
+    description: adding columns to literal min int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, -1]
+      - [-9223372036854775808, -18446744073709552000]
+      - [1, -9223372036854775807]
+      - [2, -9223372036854775806]
+      - [3, -9223372036854775805]
+    expected_types: [int, float]
+    id: arithmetic_overflow_adding_columns_to_min_int64_literal
+    sql: select a, -9223372036854775808 + a as result from int_bounds
+
+  - db: select_sTest
+    description: adding literals to column min int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [-9223372036854775807, -9223372036854775806, -9223372036854775805, -1, -18446744073709552000]
+      - [-9223372036854775807, -9223372036854775806, -9223372036854775805, -1, -18446744073709552000]
+      - [-9223372036854775807, -9223372036854775806, -9223372036854775805, -1, -18446744073709552000]
+      - [-9223372036854775807, -9223372036854775806, -9223372036854775805, -1, -18446744073709552000]
+      - [-9223372036854775807, -9223372036854775806, -9223372036854775805, -1, -18446744073709552000]
+    expected_types: [float, float, float, int, float]
+    id: arithmetic_overflow_adding_literals_to_min_int64_column
+    sql: select minInt + 1 as a, minInt + 2 as b, minInt + 3 as c, minInt + 9223372036854775807 as d, minInt + -9223372036854775808 as e from int_bounds
+
+  - db: select_sTest
+    description: adding columns to column min int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, -1]
+      - [-9223372036854775808, -18446744073709552000]
+      - [1, -9223372036854775807]
+      - [2, -9223372036854775806]
+      - [3, -9223372036854775805]
+    expected_types: [int, float]
+    id: arithmetic_overflow_adding_columns_to_min_int64_column
+    sql: select a, minInt + a as result from int_bounds
+
+  - db: select_sTest
+    description: subtracting literals from literal min int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
+    expected_types: [float, float, float, int, int]
+    id: arithmetic_overflow_subtracting_literals_from_min_int64_literal
+    sql: select -9223372036854775808 - 1 as a, -9223372036854775808 - 2 as b, -9223372036854775808 - 3 as c, -9223372036854775808 - 9223372036854775807 as d, -9223372036854775808 - -9223372036854775808 as e
+
+  - db: select_sTest
+    description: subtracting columns from literal min int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 1]
+      - [-9223372036854775808, 0]
+      - [1, 9223372036854775807]
+      - [2, 9223372036854775806]
+      - [3, 9223372036854775805]
+    expected_types: [int, float]
+    id: arithmetic_overflow_subtracting_columns_from_min_int64_literal
+    sql: select a, -9223372036854775808 - a as result from int_bounds
+
+  - db: select_sTest
+    description: subtracting literals from column min int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
+      - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
+      - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
+      - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
+      - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
+    expected_types: [float, float, float, int, int]
+    id: arithmetic_overflow_subtracting_literals_from_min_int64_column
+    sql: select minInt - 1 as a, minInt - 2 as b, minInt - 3 as c, minInt - 9223372036854775807 as d, minInt - -9223372036854775808 as e from int_bounds
+
+  - db: select_sTest
+    description: subtracting columns from column min int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, 1]
+      - [-9223372036854775808, 0]
+      - [1, 9223372036854775807]
+      - [2, 9223372036854775806]
+      - [3, 9223372036854775805]
+    expected_types: [int, float]
+    id: arithmetic_overflow_subtracting_columns_from_min_int64_column
+    sql: select a, minInt - a as result from int_bounds
+
+  - db: select_sTest
+    description: multiplying literals by literal min int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [-9223372036854775808, -18446744073709552000, -27670116110564327000, -8.507059173023462e+37, 8.507059173023462e+37]
+    expected_types: [float, float, float, float, float]
+    id: arithmetic_overflow_multiplying_literals_by_min_int64_literal
+    sql: select -9223372036854775808 * 1 as a, -9223372036854775808 * 2 as b, -9223372036854775808 * 3 as c, -9223372036854775808 * 9223372036854775807 as d, -9223372036854775808 * -9223372036854775808 as e
+
+  - db: select_sTest
+    description: multiplying columns by literal min int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, -8.507059173023462e+37]
+      - [-9223372036854775808, 8.507059173023462e+37]
+      - [1, -9223372036854775808]
+      - [2, -18446744073709552000]
+      - [3, -27670116110564327000]
+    expected_types: [int, float]
+    id: arithmetic_overflow_multiplying_columns_by_min_int64_literal
+    sql: select a, -9223372036854775808 * a as result from int_bounds
+
+  - db: select_sTest
+    description: multiplying literals by column min int64
+    expected_names: [a, b, c, d, e]
+    expected_results:
+      - [-9223372036854775808, -18446744073709552000, -27670116110564327000, -8.507059173023462e+37, 8.507059173023462e+37]
+      - [-9223372036854775808, -18446744073709552000, -27670116110564327000, -8.507059173023462e+37, 8.507059173023462e+37]
+      - [-9223372036854775808, -18446744073709552000, -27670116110564327000, -8.507059173023462e+37, 8.507059173023462e+37]
+      - [-9223372036854775808, -18446744073709552000, -27670116110564327000, -8.507059173023462e+37, 8.507059173023462e+37]
+      - [-9223372036854775808, -18446744073709552000, -27670116110564327000, -8.507059173023462e+37, 8.507059173023462e+37]
+    expected_types: [float, float, float, float, float]
+    id: arithmetic_overflow_multiplying_literals_by_min_int64_column
+    sql: select minInt * 1 as a, minInt * 2 as b, minInt * 3 as c, minInt * 9223372036854775807 as d, minInt * -9223372036854775808 as e from int_bounds
+
+  - db: select_sTest
+    description: multiplying columns by column min int64
+    expected_names: [a, result]
+    expected_results:
+      - [9223372036854775807, -8.507059173023462e+37]
+      - [-9223372036854775808, 8.507059173023462e+37]
+      - [1, -9223372036854775808]
+      - [2, -18446744073709552000]
+      - [3, -27670116110564327000]
+    expected_types: [int, float]
+    id: arithmetic_overflow_multiplying_columns_by_min_int64_column
+    sql: select a, minInt * a as result from int_bounds
 
   - db: select_sTest
     description: adding overflowing int64 literals
@@ -890,7 +1158,7 @@ testcases:
     description: multiplying large numbers
     expected_names: [result]
     expected_results:
-      - ['85070591730234615847396907784232501249']
+      - ['85070591730234620000000000000000000000'] # we match the server's imprecision
     expected_types: [varchar]
     id: '61'
     sql: select 9223372036854775807*9223372036854775807 as result
