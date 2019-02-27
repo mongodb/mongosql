@@ -923,11 +923,8 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr, projectedCo
 			if pdf, ok := err.(PushdownFailure); ok {
 				return nil, pdf
 			}
-			return nil, newPushdownFailure(
-				groupByStageName,
-				"encountered fatal error while translating aggregates",
-				"error", err.Error(),
-			)
+			panic(fmt.Errorf("encountered fatal error while translating aggregates in %v: %v",
+				groupByStageName, err.Error()))
 		}
 
 		mappedProjectedColumn := &mappedProjectedColumn{
@@ -964,8 +961,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 	case SQLColumnExpr:
 		fieldName, ok := v.lookupFieldName(typedN.databaseName, typedN.tableName, typedN.columnName)
 		if !ok {
-			return nil, fmt.Errorf("could not map %v.%v to a field", typedN.tableName,
-				typedN.columnName)
+			panic(fmt.Errorf("could not map %v.%v to a field", typedN.tableName, typedN.columnName))
 		}
 		if !v.isGroupKey(typedN) {
 			// Since it's not an aggregation function, this implies that it takes the first value of
@@ -1005,7 +1001,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// $reduce was introduced in Mongo 3.4, so we cannot push down the query if
 			// the user is using an earlier Mongo version.
 			if isGroupConcat && !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
-				return nil, fmt.Errorf("cannot push down group_concat for versions < 3.4")
+				return nil, newPushdownFailure(typedN.Name(), "cannot push down group_concat for versions < 3.4")
 			}
 
 			v.requiresTwoSteps = true
@@ -1025,8 +1021,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				for _, expr := range typedN.Exprs() {
 					trans, pushdownFail = t.TranslateExpr(expr)
 					if pushdownFail != nil {
-						return nil, fmt.Errorf("could not translate group_concat aggregate '%v'",
-							expr.String())
+						return nil, pushdownFail
 					}
 
 					if expr.EvalType() == types.EvalString {
@@ -1035,8 +1030,8 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 						// $convert was introduced in Mongo 4.0, so we cannot push down the query if
 						// the user is using an earlier Mongo version.
 						if !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{4, 0, 0}) {
-							return nil, fmt.Errorf("cannot push down group_concat of non-strings" +
-								" for versions < 4.0")
+							return nil, newPushdownFailure(expr.ExprName(),
+								"cannot push down group_concat of non-strings for versions < 4.0")
 						}
 						translatedExprs = append(translatedExprs,
 							translateConvert(trans, expr.EvalType(), types.EvalString))
@@ -1060,8 +1055,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			} else {
 				trans, pushdownFail = t.TranslateExpr(typedN.Exprs()[0])
 				if pushdownFail != nil {
-					return nil, fmt.Errorf("could not translate group by aggregate function '%v'",
-						typedN.String())
+					return nil, pushdownFail
 				}
 
 				v.group[fieldName] = bsonutil.NewM(bsonutil.NewDocElem(operator, trans))
@@ -1107,8 +1101,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				} else {
 					trans, pushdownFail = t.TranslateExpr(typedN.Exprs()[0])
 					if pushdownFail != nil {
-						return nil, fmt.Errorf("could not translate count aggregate '%v'",
-							typedN.Exprs()[0].String())
+						return nil, pushdownFail
 					}
 
 					trans = getCountAggregation(trans)
@@ -1116,8 +1109,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			} else {
 				trans, pushdownFail = t.TranslateExpr(typedN)
 				if pushdownFail != nil {
-					return nil, fmt.Errorf("could not translate %v aggregate '%v'", typedN.Name(),
-						typedN.String())
+					return nil, pushdownFail
 				}
 			}
 
@@ -1134,8 +1126,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				v.requiresTwoSteps = true
 				countTrans, pushdownFail := t.TranslateExpr(typedN.Exprs()[0])
 				if pushdownFail != nil {
-					return nil, fmt.Errorf("could not translate sum aggregate '%v'",
-						typedN.Exprs()[0].String())
+					return nil, pushdownFail
 				}
 				countFieldName := sanitizeFieldName(typedN.String() + sumAggregateCountSuffix)
 				v.group[countFieldName] = getCountAggregation(countTrans)
@@ -1186,7 +1177,11 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 		// necessary pieces. Finally, return the now changed expression such that $project can act
 		// on them appropriately.
 		v.requiresTwoSteps = true
-		return walk(v, n)
+		newN, err := walk(v, n)
+		if err != nil {
+			panic(err)
+		}
+		return newN, nil
 	default:
 		// PlanStages will end up here and we don't need to do anything in them.
 		return n, nil
