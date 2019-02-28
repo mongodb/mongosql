@@ -802,15 +802,6 @@
     - {_id: 4, x: 7, y: 6, z: 1}
     - {_id: 5, x: 4, y: 1, z: 5}
 
-- db: "select_sTest"
-  collection: "int_bounds"
-  docs:
-    - {maxInt: {$numberLong: "9223372036854775807"}, minInt: {$numberLong: "-9223372036854775808"}, a: {$numberLong: "9223372036854775807"}}
-    - {maxInt: {$numberLong: "9223372036854775807"}, minInt: {$numberLong: "-9223372036854775808"}, a: {$numberLong: "-9223372036854775808"}}
-    - {maxInt: {$numberLong: "9223372036854775807"}, minInt: {$numberLong: "-9223372036854775808"}, a: {$numberLong: "1"}}
-    - {maxInt: {$numberLong: "9223372036854775807"}, minInt: {$numberLong: "-9223372036854775808"}, a: {$numberLong: "2"}}
-    - {maxInt: {$numberLong: "9223372036854775807"}, minInt: {$numberLong: "-9223372036854775808"}, a: {$numberLong: "3"}}
-
 - db: "select_test"
   collection: "strings_as_floats"
   docs:

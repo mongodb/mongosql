@@ -590,10 +590,6 @@ func (div *SQLDivideExpr) ToAggregationPredicate(t *PushdownTranslator) (interfa
 
 // EvalType returns the EvalType associated with SQLDivideExpr.
 func (div *SQLDivideExpr) EvalType() types.EvalType {
-	// the server returns a decimal if, and only if, either side is decimal.
-	if div.left.EvalType() == types.EvalDecimal128 || div.right.EvalType() == types.EvalDecimal128 {
-		return types.EvalDecimal128
-	}
 	return types.EvalDouble
 }
 
@@ -2255,8 +2251,7 @@ func (sub *SQLSubtractExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 
 // EvalType returns the EvalType associated with SQLSubtractExpr.
 func (sub *SQLSubtractExpr) EvalType() types.EvalType {
-	// the server determines the result's type based on the input types.
-	return arithmeticEvalType(sub.left, sub.right)
+	return types.EvalDouble
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLSubtractExpr.
