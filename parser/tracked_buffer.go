@@ -9,22 +9,8 @@ import (
 	"fmt"
 )
 
-// ParserError: To be deprecated.
-// TODO(sougou): deprecate.
-type ParserError struct {
-	Message string
-}
-
-func NewParserError(format string, args ...interface{}) ParserError {
-	return ParserError{fmt.Sprintf(format, args...)}
-}
-
-func (err ParserError) Error() string {
-	return err.Message
-}
-
 // TrackedBuffer is used to rebuild a query from the ast.
-// bindLocations keeps track of locations in the buffer that
+// BindLocations keeps track of locations in the buffer that
 // use bind variables for efficient future substitutions.
 // nodeFormatter is the formatting function the buffer will
 // use to format a node. By default(nil), it's FormatNode.
@@ -36,6 +22,12 @@ type TrackedBuffer struct {
 	nodeFormatter func(buf *TrackedBuffer, node SQLNode)
 }
 
+// nolint: golint
+type BindLocation struct {
+	Offset, Length int
+}
+
+// NewTrackedBuffer is a constructor for TrackedBuffer.
 func NewTrackedBuffer(nodeFormatter func(buf *TrackedBuffer, node SQLNode)) *TrackedBuffer {
 	buf := &TrackedBuffer{
 		Buffer:        bytes.NewBuffer(make([]byte, 0, 128)),
@@ -105,8 +97,4 @@ func (buf *TrackedBuffer) WriteArg(arg string) {
 	buf.bindLocations = append(buf.bindLocations, BindLocation{buf.Len(), len(arg) + 1})
 	buf.WriteByte(':')
 	buf.WriteString(arg)
-}
-
-func (buf *TrackedBuffer) ParsedQuery() *ParsedQuery {
-	return &ParsedQuery{buf.String(), buf.bindLocations}
 }

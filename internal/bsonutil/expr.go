@@ -87,6 +87,7 @@ const (
 	OpZip             = "$zip"
 )
 
+// Expression Translation Literals
 var (
 	MgoNullLiteral         = WrapInLiteral(nil)
 	DateComponentSeparator = NewArray("!", "\"", "#", WrapInLiteral("$"), "%", "&", "'",

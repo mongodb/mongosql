@@ -28,9 +28,8 @@ func (v *reconciler) visit(n Node) (Node, error) {
 		newN, err := expr.reconcile()
 		if err == nil {
 			return newN, nil
-		} else {
-			v.cfg.lg.Warnf(log.Admin, "error running reconcileExprs: %v", err)
 		}
+		v.cfg.lg.Warnf(log.Admin, "error running reconcileExprs: %v", err)
 	} else if plan, ok := n.(PlanStage); ok {
 		if project, ok := plan.(*ProjectStage); ok {
 			for _, c := range project.ProjectedColumns() {

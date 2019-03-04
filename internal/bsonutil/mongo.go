@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/mongo-go-driver/bson"
 )
 
+// URI literals
 const (
 	MongoDBScheme     = "mongodb://"
 	DefaultMongoDBURI = "mongodb://localhost:27017"

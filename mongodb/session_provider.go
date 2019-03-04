@@ -20,6 +20,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 )
 
+// NewDrdlSessionProvider creates a new session provider for mongodrdl.
 func NewDrdlSessionProvider(rp *readpref.ReadPref, c *cluster.Cluster, timeout time.Duration,
 	numConns int) *SessionProvider {
 	return &SessionProvider{
@@ -253,6 +254,7 @@ func (c *autoLogoutConnection) Close() error {
 	return c.Connection.Close()
 }
 
+// GetConnectTimeout returns the connection string's ConnectTimeout.
 func GetConnectTimeout(cs connstring.ConnString) time.Duration {
 	if cs.ConnectTimeout == 0 {
 		return 5000 * time.Millisecond
@@ -261,6 +263,7 @@ func GetConnectTimeout(cs connstring.ConnString) time.Duration {
 	return cs.ConnectTimeout
 }
 
+// GetReadPreference returns the connection string's ReadPreference.
 func GetReadPreference(cs connstring.ConnString) (*readpref.ReadPref, error) {
 	var err error
 	mode := readpref.PrimaryMode

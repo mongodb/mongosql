@@ -1,2 +1,2 @@
-// package procutil provides commonly used process utility functions.
+// Package procutil provides commonly used process utility functions.
 package procutil

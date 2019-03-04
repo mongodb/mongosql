@@ -66,6 +66,7 @@ type Collation struct {
 	CharsetName CharsetName
 }
 
+// NewCollation is a constructor for Collation.
 func NewCollation(t language.Tag, collator *collate.Collator, ignoreCase bool,
 	ignoreDiacritics bool, ignoreWidth bool, charsetName CharsetName, sortLen uint8) *Collation {
 

@@ -67,7 +67,7 @@ func TestEvaluates(t *testing.T) {
 		result EvalType
 	}
 
-	runTypeTests := func(t *testing.T, cfg *ExecutionConfig, st *ExecutionState, tests []typeTest) {
+	runTypeTests := func(t *testing.T, tests []typeTest) {
 		sc := MustLoadSchema(testSchema3)
 		for _, test := range tests {
 			t.Run(test.name, func(t *testing.T) {
@@ -2193,14 +2193,14 @@ func TestEvaluates(t *testing.T) {
 			{"sql_agg_expr_avg_4", "AVG('a')", NewSQLFloat(knd, 0)},
 			{"sql_agg_expr_avg_5", "AVG(-20)", NewSQLFloat(knd, -20)},
 			{"sql_agg_expr_avg_6", "AVG(20)", NewSQLFloat(knd, 20)},
-			{"sql_count_expr_0", "COUNT(NULL)", NewSQLInt64(knd, 0)},
-			{"sql_count_expr_1", "COUNT(a)", NewSQLInt64(knd, 2)},
-			{"sql_count_expr_2", "COUNT(b)", NewSQLInt64(knd, 2)},
-			{"sql_count_expr_3", "COUNT(c)", NewSQLInt64(knd, 0)},
-			{"sql_count_expr_4", "COUNT(g)", NewSQLInt64(knd, 2)},
-			{"sql_count_expr_5", "COUNT('a')", NewSQLInt64(knd, 3)},
-			{"sql_count_expr_6", "COUNT(-20)", NewSQLInt64(knd, 3)},
-			{"sql_count_expr_7", "COUNT(20)", NewSQLInt64(knd, 3)},
+			{"sql_count_expr_0", "COUNT(NULL)", NewSQLUint64(knd, 0)},
+			{"sql_count_expr_1", "COUNT(a)", NewSQLUint64(knd, 2)},
+			{"sql_count_expr_2", "COUNT(b)", NewSQLUint64(knd, 2)},
+			{"sql_count_expr_3", "COUNT(c)", NewSQLUint64(knd, 0)},
+			{"sql_count_expr_4", "COUNT(g)", NewSQLUint64(knd, 2)},
+			{"sql_count_expr_5", "COUNT('a')", NewSQLUint64(knd, 3)},
+			{"sql_count_expr_6", "COUNT(-20)", NewSQLUint64(knd, 3)},
+			{"sql_count_expr_7", "COUNT(20)", NewSQLUint64(knd, 3)},
 			{"sql_group_concat_expr_1", "GROUP_CONCAT(a)", NewSQLVarchar(knd, "3,5")},
 			{"sql_group_concat_expr_2", "GROUP_CONCAT(a,b)", NewSQLVarchar(knd, "56")},
 			{"sql_group_concat_expr_3", "GROUP_CONCAT(DISTINCT a)", NewSQLVarchar(knd, "3,5")},
@@ -2321,7 +2321,7 @@ func TestEvaluates(t *testing.T) {
 				EvalDatetime,
 			},
 		}
-		runTypeTests(t, execCfg, execState, typeTests)
+		runTypeTests(t, typeTests)
 
 		// error tests
 		t.Run("argument validation", func(t *testing.T) {

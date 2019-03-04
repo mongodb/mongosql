@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 )
 
+// Monitor tracks memory usage.
 type Monitor interface {
 	// Acquire attempts to "checkout" the specified amount of
 	// memory. An error will be returned if the amount requested

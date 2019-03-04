@@ -1,2 +1,2 @@
-// package strutil provides commonly used string processing utility functions.
+// Package strutil provides commonly used string processing utility functions.
 package strutil

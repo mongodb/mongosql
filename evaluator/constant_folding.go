@@ -23,9 +23,8 @@ func (v *constantFolder) visit(n Node) (Node, error) {
 		newN, err := expr.FoldConstants(v.cfg)
 		if err == nil {
 			return newN, nil
-		} else {
-			v.cfg.lg.Warnf(log.Admin, "error running FoldConstants: %v", err)
 		}
+		v.cfg.lg.Warnf(log.Admin, "error running FoldConstants: %v", err)
 	}
 
 	return n, nil

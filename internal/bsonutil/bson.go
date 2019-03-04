@@ -18,6 +18,7 @@ func NewM(kvs ...bson.DocElem) bson.M {
 	return m
 }
 
+// NewMArray returns an array of bson.M.
 func NewMArray(bsonMs ...bson.M) []bson.M {
 	//return empty slice instead of nil slice
 	if len(bsonMs) == 0 {

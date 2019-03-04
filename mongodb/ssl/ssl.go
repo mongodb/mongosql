@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
+// nolint: golint
 var (
 	FipsModeSetter func(bool) error
 )
@@ -150,6 +151,7 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 	return ctx, nil
 }
 
+// nolint: golint
 func Dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) DialFunc {
 	return func(ctx context.Context, dialer *net.Dialer, network, addr string) (net.Conn, error) {
 		var c net.Conn
@@ -175,6 +177,7 @@ func Dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) DialFunc {
 	}
 }
 
+// SetMinimumTLSProtocolVersion sets the minimum TLS version in the OpenSSL context.
 func SetMinimumTLSProtocolVersion(minTLS string, ctx *openssl.Ctx) {
 	// OpAll - Activate all bug workaround options, to support buggy client SSL's.
 	// NoSSLv2 - Disable SSL v2 support

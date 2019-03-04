@@ -138,13 +138,13 @@ func TestMergeSchema(t *testing.T) {
 						},
 					}
 
-					newJsonExpected, err := newExpected.JSONSchema()
+					newJSONExpected, err := newExpected.JSONSchema()
 					So(err, ShouldBeNil)
 
-					newJsonActual, err := schema.JSONSchema()
+					newJSONActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
 
-					So(newJsonActual, ShouldEqual, newJsonExpected)
+					So(newJSONActual, ShouldEqual, newJSONExpected)
 				})
 			})
 
@@ -170,13 +170,13 @@ func TestMergeSchema(t *testing.T) {
 						},
 					}
 
-					newJsonExpected, err := newExpected.JSONSchema()
+					newJSONExpected, err := newExpected.JSONSchema()
 					So(err, ShouldBeNil)
 
-					newJsonActual, err := schema.JSONSchema()
+					newJSONActual, err := schema.JSONSchema()
 					So(err, ShouldBeNil)
 
-					So(newJsonActual, ShouldEqual, newJsonExpected)
+					So(newJSONActual, ShouldEqual, newJSONExpected)
 				})
 			})
 		})

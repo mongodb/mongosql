@@ -26,6 +26,7 @@ func NewServer(serviceName, hostname string) *SaslServer {
 
 type saslState int
 
+// saslState constants
 const (
 	Start saslState = iota
 	ContextComplete
@@ -41,10 +42,12 @@ type SaslServer struct {
 	state saslState
 }
 
+// Close closes the SASL Server.
 func (ss *SaslServer) Close() {
 	C.mongosql_gssapi_server_destroy(&ss.gss)
 }
 
+// Start initializes the SASL Server.
 func (ss *SaslServer) Start() error {
 	cusername := C.CString(ss.servicePrincipalName)
 	defer C.free(unsafe.Pointer(cusername))
@@ -57,6 +60,7 @@ func (ss *SaslServer) Start() error {
 	return nil
 }
 
+// Next uses the challenge provided to continue with authentication and update the state of the server.
 func (ss *SaslServer) Next(challenge []byte) ([]byte, error) {
 
 	var buf unsafe.Pointer
@@ -113,6 +117,8 @@ func (ss *SaslServer) Next(challenge []byte) ([]byte, error) {
 	return C.GoBytes(outBuf, C.int(outBufLen)), nil
 }
 
+// Completed indicates whether the server is in the "Done" state,
+// ie. the authentication process is complete.
 func (ss *SaslServer) Completed() bool {
 	return ss.state == Done
 }
@@ -121,7 +127,7 @@ func (ss *SaslServer) getError(prefix string) error {
 	return getError(prefix, ss.gss.maj_stat, ss.gss.min_stat)
 }
 
-// New creates a new SaslClient.
+// NewClient creates a new SaslClient.
 func NewClient(hostname string, server *SaslServer, serviceName string,
 	canonicalizeHostName bool, serviceRealm string) *SaslClient {
 
@@ -144,10 +150,12 @@ type SaslClient struct {
 	state saslState
 }
 
+// Close closes the SASL Client.
 func (sc *SaslClient) Close() {
 	C.mongosql_gssapi_client_destroy(&sc.gss)
 }
 
+// Start initializes the SASL Client.
 func (sc *SaslClient) Start() (string, []byte, error) {
 	const mechName = "GSSAPI"
 
@@ -162,6 +170,7 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 	return mechName, nil, nil
 }
 
+// Next uses the challenge provided to continue with authentication and update the state of the client.
 func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 
 	var buf unsafe.Pointer
@@ -214,6 +223,8 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 	return C.GoBytes(outBuf, C.int(outBufLen)), nil
 }
 
+// Completed indicates whether the client is in the "Done" state,
+// ie. the authentication process is complete.
 func (sc *SaslClient) Completed() bool {
 	return sc.state == Done
 }

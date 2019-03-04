@@ -8,7 +8,7 @@ import (
 // it into a semantically equivalent tree and partially evaluating
 // any subtrees that are evaluatable without data.
 func OptimizeEvaluations(cfg *OptimizerConfig, n Node) (Node, error) {
-	var newN Node = n
+	newN := n
 	var err error
 
 	if cfg.optimizeEvaluations {

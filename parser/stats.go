@@ -27,32 +27,34 @@ func newQueryStats() *QueryStats {
 	}
 }
 
+// PreVisit is called for every node before its children are walked.
 func (s *QueryStats) PreVisit(current CST) (CST, error) {
 	switch typed := current.(type) {
 	case *FuncExpr:
 		name := typed.Name
-		s.Functions[name] += 1
+		s.Functions[name]++
 	case *JoinTableExpr:
 		kind := typed.Join
-		s.Joins[kind] += 1
+		s.Joins[kind]++
 	case TableExprs:
 		if len(typed) > 1 {
 			kind := "comma"
-			s.Joins[kind] += 1
+			s.Joins[kind]++
 		}
 	case *Union:
 		kind := typed.Type
-		s.Unions[kind] += 1
+		s.Unions[kind]++
 	case *Subquery:
 		kind := "expr"
 		if typed.IsDerived {
 			kind = "derived_table"
 		}
-		s.Subqueries[kind] += 1
+		s.Subqueries[kind]++
 	}
 	return current, nil
 }
 
+// PostVisit is called for every node after its children are walked.
 func (*QueryStats) PostVisit(current CST) (CST, error) {
 	return current, nil
 }

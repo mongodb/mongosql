@@ -5,6 +5,8 @@ import (
 	"strconv"
 )
 
+// AnonymizeStatement returns a query with column and literal values replaced
+// with generic values.
 func AnonymizeStatement(stmt Statement) Statement {
 	switch stmt.(type) {
 	case *Select, *Union:

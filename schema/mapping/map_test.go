@@ -36,7 +36,7 @@ func TestMapSchema(t *testing.T) {
 			// test basic json-to-relation schema mapping
 			name := collection + "-lattice-map"
 			t.Run(name, func(t *testing.T) {
-				err := testMapSchemaFromJson(collection, false, config.LatticeMappingMode)
+				err := testMapSchemaFromJSON(collection, false, config.LatticeMappingMode)
 				if err != nil {
 					t.Fatal(err.Error())
 				}
@@ -46,7 +46,7 @@ func TestMapSchema(t *testing.T) {
 			// test basic json-to-relation schema mapping
 			name := collection + "-majority-map"
 			t.Run(name, func(t *testing.T) {
-				err := testMapSchemaFromJson(collection, false, config.MajorityMappingMode)
+				err := testMapSchemaFromJSON(collection, false, config.MajorityMappingMode)
 				if err != nil {
 					t.Fatal(err.Error())
 				}
@@ -56,7 +56,7 @@ func TestMapSchema(t *testing.T) {
 			// test json-to-relation schema mapping with prejoins
 			name := collection + "-map-prejoined"
 			t.Run(name, func(t *testing.T) {
-				err := testMapSchemaFromJson(collection, true, config.LatticeMappingMode)
+				err := testMapSchemaFromJSON(collection, true, config.LatticeMappingMode)
 				if err != nil {
 					t.Fatal(err.Error())
 				}
@@ -83,7 +83,7 @@ func TestMapSchema(t *testing.T) {
 	}
 }
 
-func testMapSchemaFromJson(collection string, prejoined bool, mappingMode config.MappingMode) error {
+func testMapSchemaFromJSON(collection string, prejoined bool, mappingMode config.MappingMode) error {
 	dir := "testdata/" + collection + "/"
 
 	expectedFile := dir + mappingMode + "_schema.yml"
@@ -145,7 +145,7 @@ func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
 	}
 
 	// unmarshal sample document into bson.D
-	sample, err := bsonFromJson(sampleBytes)
+	sample, err := bsonFromJSON(sampleBytes)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	return actual.Equals(expected)
 }
 
-func bsonFromJson(jsonBytes []byte) (bson.D, error) {
+func bsonFromJSON(jsonBytes []byte) (bson.D, error) {
 	dict := map[string]interface{}{}
 	err := json.Unmarshal(jsonBytes, &dict)
 	if err != nil {

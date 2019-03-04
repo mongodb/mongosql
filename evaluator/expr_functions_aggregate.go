@@ -305,7 +305,6 @@ func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfi
 		distinctMap = make(map[interface{}]bool)
 	}
 	count := uint64(0)
-	fCount := float64(math.MaxUint64)
 	dCount := decimal.NewFromFloat(math.MaxFloat64)
 	inDecimalRange, decimalOne := false, decimal.NewFromFloat(1.0)
 
@@ -326,11 +325,9 @@ func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfi
 			}
 
 			if eval != nil && !eval.IsNull() {
-				inDecimalRange = fCount == math.MaxFloat64
+				inDecimalRange = count == math.MaxUint64
 				if inDecimalRange {
 					dCount.Add(decimalOne)
-				} else if count >= math.MaxUint64 {
-					fCount++
 				} else {
 					count++
 				}
@@ -340,11 +337,9 @@ func (f *SQLCountFunctionExpr) Evaluate(ctx context.Context, cfg *ExecutionConfi
 
 	if inDecimalRange {
 		return values.NewSQLDecimal128(cfg.sqlValueKind, dCount), nil
-	} else if count > math.MaxInt64 {
-		return values.NewSQLFloat(cfg.sqlValueKind, fCount), nil
 	}
 
-	return values.NewSQLInt64(cfg.sqlValueKind, int64(count)), nil
+	return values.NewSQLUint64(cfg.sqlValueKind, count), nil
 }
 
 // Name returns name.

@@ -400,6 +400,7 @@ type SystemLog struct {
 	Verbosity int64
 }
 
+// Level returns the verbosity level of the logging configuration.
 func (cfg SystemLog) Level() int64 {
 	if cfg.Quiet {
 		return -1

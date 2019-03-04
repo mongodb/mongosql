@@ -4,7 +4,7 @@ import (
 	"reflect"
 )
 
-// A parser.Walker visits each node in a CST allowing in-place mutation.
+// Walker visits each node in a CST allowing in-place mutation.
 // Implement this interface for each phase of operation on the CST.
 type Walker interface {
 	// PreVisit is called for every node before its children are walked.

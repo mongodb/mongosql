@@ -1,6 +1,6 @@
 package parser
 
-// A node in the CST.
+// CST represents a node in the CST.
 // Currently this is a uniform interface on top of differently-shaped
 // parse nodes.
 type CST interface {

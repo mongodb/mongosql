@@ -627,6 +627,7 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind values.SQLValueKind,
 	collation *collation.Collation, date time.Time, format string) (string, error) {
 	formatRunes := []rune(format)
 
+	// nolint: unparam
 	noPad := func(s string) (string, error) {
 		str := date.Format(s)
 		if len(str) == 2 && str[0] == '0' {
@@ -669,6 +670,7 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind values.SQLValueKind,
 		return eval.String()[:4], nil
 	}
 
+	// nolint: unparam
 	zeroPad := func(s string) (string, error) {
 		return fmt.Sprintf("%02v", date.Format(s)), nil
 	}
@@ -695,16 +697,19 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind values.SQLValueKind,
 	formatters := map[rune]func() (string, error){
 		'D': func() (string, error) { return suffixFmt(2) },
 		'd': func() (string, error) { return zeroPad("2") },
+		// nolint: unparam
 		'f': func() (string, error) { return date.Format(".000000")[1:], nil },
 		'H': func() (string, error) { return zeroPad("15") },
 		'h': func() (string, error) { return zeroPad("3") },
 		'I': func() (string, error) { return zeroPad("3") },
+		// nolint: unparam
 		'j': func() (string, error) { return fmt.Sprintf("%03v", date.YearDay()), nil },
 		'k': func() (string, error) { return noPad("15") },
 		'U': func() (string, error) { return weekFmt(0) },
 		'u': func() (string, error) { return weekFmt(1) },
 		'V': func() (string, error) { return weekFmt(2) },
 		'v': func() (string, error) { return weekFmt(3) },
+		// nolint: unparam
 		'w': func() (string, error) { return strconv.Itoa(int(date.Weekday())), nil },
 		'X': func() (string, error) { return yearFmt(0) },
 		'x': func() (string, error) { return yearFmt(1) },
@@ -713,6 +718,7 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind values.SQLValueKind,
 
 	for k, v := range fmtTokens {
 		localV := v
+		// nolint: unparam
 		formatters[k] = func() (string, error) {
 			return date.Format(localV), nil
 		}

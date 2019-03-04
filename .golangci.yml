@@ -5,7 +5,6 @@ linters:
   enable:
     - deadcode
     - errcheck
-    - goconst
     - gofmt
     - goimports
     - golint
@@ -18,6 +17,11 @@ linters:
     - unparam
     - varcheck
   fast: false
+issues:
+    exclude-use-default: false
+    exclude:
+        # errcheck: Almost all programs ignore errors on these functions and in most cases it's ok
+        - Error return value of .((os\.)?std(out|err)\..*|.*Close|.*Flush|os\.Remove(All)?|.*printf?|os\.(Un)?Setenv). is not checked
 output:
   format: colored-line-number
   print-issued-lines: true
@@ -33,4 +37,3 @@ run:
     - "parser/sql.go"
     - "parser/sql.y"
     - "parser/yaccpar"
-    - "parser/yacctab"
