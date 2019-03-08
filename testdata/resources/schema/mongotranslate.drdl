@@ -1,0 +1,45 @@
+schema:
+- db: test
+  tables:
+  - table: foo
+    collection: foo
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: objectid
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: float
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: float
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: float
+- db: test2
+  tables:
+  - table: bar
+    collection: bar
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: objectid
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: float
+    - Name: b
+      MongoType: float64
+      SqlName: b
+      SqlType: float
+    - Name: c
+      MongoType: float64
+      SqlName: c
+      SqlType: float

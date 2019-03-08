@@ -3,15 +3,16 @@ package mongotranslate
 import (
 	"context"
 	"fmt"
-	"log"
+	"os"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
-	sqlLgr "github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
 // TranslateSQLQuery takes a sql query (as a string) and returns a MongoDB
@@ -20,21 +21,17 @@ import (
 // and an mdbVersion that is used as the MongoDB version for the aggregation
 // language.
 // If the showInferredSchema argument is true, this function will log the schema.
-func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion string, showInferredSchema bool) (string, error) {
+func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion, schemaPath string) (string, error) {
 	// unconditionally prepend "explain" to the query. If the sqlQuery is
 	// unexplainable (for example, a command), an error will be returned.
 	sqlQuery = "explain " + sqlQuery
 
-	is, err := InferSchemaFromQuery(sqlQuery, defaultDB)
+	schema, err := loadSchema(schemaPath)
 	if err != nil {
-		return "", fmt.Errorf("fatal error inferring schema: %v", err)
+		return "", fmt.Errorf("fatal error getting schema from drdl: %v", err)
 	}
 
-	if showInferredSchema {
-		log.Printf("*** Inferred Schema ***\n%s\n", is.String())
-	}
-
-	ctlg, err := getCatalog(mdbVersion, is)
+	ctlg, err := getCatalog(mdbVersion, schema)
 	if err != nil {
 		return "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
@@ -59,8 +56,38 @@ func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion string, showInferredSchem
 	return res.Stats.Explain[0].Pipeline.Else(""), nil
 }
 
-// getCatalog copies the inferred schema into a Catalog and returns it.
-func getCatalog(mdbVersion string, is InferredSchema) (catalog.Catalog, error) {
+func loadSchema(path string) (*schema.Schema, error) {
+	fi, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var drdlSchema *drdl.Schema
+
+	if fi.IsDir() {
+		drdlSchema, err = drdl.NewFromDir(path)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		drdlSchema, err = drdl.NewFromFile(path)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	lgr := log.GlobalLogger()
+
+	relationalSchema, err := schema.NewFromDRDL(lgr, drdlSchema)
+	if err != nil {
+		return nil, err
+	}
+
+	return relationalSchema, nil
+}
+
+// getCatalog copies the schema into a Catalog and returns it.
+func getCatalog(mdbVersion string, relationalSchema *schema.Schema) (catalog.Catalog, error) {
 	gbl := variable.NewGlobalContainer(nil)
 	gbl.SetSystemVariable(variable.MongoDBVersion,
 		values.NewSQLVarchar(values.VariableSQLValueKind, mdbVersion))
@@ -79,32 +106,32 @@ func getCatalog(mdbVersion string, is InferredSchema) (catalog.Catalog, error) {
 
 	ctlg := catalog.New("", vars)
 
-	lgr := sqlLgr.GlobalLogger()
+	lgr := log.GlobalLogger()
 
 	var db catalog.Database
 	var err error
 
-	// Populate the catalog with the inferred schema
-	for _, database := range is.Databases() {
-		db, err = ctlg.AddDatabase(database)
+	// Populate the catalog with the schema
+	for _, database := range relationalSchema.Databases() {
+		db, err = ctlg.AddDatabase(database.Name())
 		if err != nil {
 			return nil, err
 		}
 
-		tableNames, _ := is.Tables(database)
-		for _, tableName := range tableNames {
-			table, err := schema.NewTable(lgr, tableName, tableName, nil, nil)
+		tables := database.Tables()
+		for _, table := range tables {
+			tbl, err := schema.NewTable(lgr, table.SQLName(), table.MongoName(), nil, nil)
 			if err != nil {
 				return nil, err
 			}
 
-			columns, _ := is.Columns(database, tableName)
-			for _, columnName := range columns {
-				column := schema.NewColumn(columnName, schema.SQLInt, columnName, schema.MongoInt)
-				table.AddColumn(lgr, column, false)
+			columns := table.Columns()
+			for _, column := range columns {
+				col := schema.NewColumn(column.SQLName(), column.SQLType(), column.MongoName(), column.MongoType())
+				tbl.AddColumn(lgr, col, false)
 			}
 
-			err = db.AddTable(catalog.NewMongoTable(string(db.Name()), table, catalog.BaseTable, collation.Default))
+			err = db.AddTable(catalog.NewMongoTable(string(db.Name()), tbl, catalog.BaseTable, collation.Default))
 			if err != nil {
 				return nil, err
 			}
