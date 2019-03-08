@@ -30,7 +30,6 @@ typedef struct {
     gss_cred_id_t cred;
     gss_ctx_id_t ctx;
 
-    int has_delegated_client_cred;
     gss_cred_id_t delegated_client_cred;
 
     OM_uint32 maj_stat;
