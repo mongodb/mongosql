@@ -425,7 +425,7 @@ int mongosql_gssapi_server_init(
         spn,                // desired_name
         GSS_C_INDEFINITE,   // time_req
         GSS_C_NO_OID_SET,   // desired_mech
-        GSS_C_BOTH,         // cred_usage
+        GSS_C_ACCEPT,       // cred_usage
         &server->cred,      // output_cred_handle
         NULL,               // actual_mechs
         NULL                // time_rec
@@ -507,6 +507,10 @@ int mongosql_gssapi_server_negotiate(
 
     if (server->maj_stat == GSS_S_CONTINUE_NEEDED) {
         return GSSAPI_CONTINUE;
+    }
+
+    if (ret_flags & GSS_C_DELEG_FLAG) {
+        server->has_delegated_client_cred = 1;
     }
 
     return GSSAPI_OK;
