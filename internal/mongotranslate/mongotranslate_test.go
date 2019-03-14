@@ -14,124 +14,164 @@ import (
 )
 
 const (
-	testMdbVersion4 = "4.0.0"
-	testMdbVersion3 = "3.0.0"
-	testDefaultDB   = "test"
-	testSchema      = "../../testdata/resources/schema/mongotranslate.drdl"
+	testMongoVersion4 = "4.0.0"
+	testMongoVersion3 = "3.0.0"
+	testDBName        = "test"
+	testSchema        = "../../testdata/resources/schema/mongotranslate.drdl"
+	testFormat        = "none"
 )
 
 func TestTranslateSQLQuery(t *testing.T) {
 	tcases := []struct {
 		desc             string
 		query            string
-		defaultDB        string
-		mdbVersion       string
+		dbName           string
+		mongoVersion     string
 		schema           string
+		format           string
 		expectedError    string
 		expectedPipeline string
 	}{
 		{
-			desc:       "query that can't be parsed/explained (command)",
-			query:      "drop table foo.t",
-			defaultDB:  testDefaultDB,
-			mdbVersion: testMdbVersion4,
-			schema:     testSchema,
+			desc:         "query that can't be parsed/explained (command)",
+			query:        "drop table foo.t",
+			dbName:       testDBName,
+			mongoVersion: testMongoVersion4,
+			schema:       testSchema,
+			format:       testFormat,
 			expectedError: `fatal error executing sql "explain drop table foo.t": ERROR 1064 (42000): ` +
 				`parse sql 'explain drop table foo.t' error: syntax error at position 14 near drop`,
 		},
 		{
-			desc:       "query that can't be pushed down (char_length with version < 3.4)",
-			query:      "select char_length(foo.a) from foo",
-			defaultDB:  testDefaultDB,
-			mdbVersion: testMdbVersion3,
-			schema:     testSchema,
-			expectedError: "query not fully pushed down: failed to push down SQLScalarFunctionExpr(characterLength): " +
-				"cannot push down to MongoDB < 3.4.",
+			desc:          "query that can't be pushed down (char_length with version < 3.4)",
+			query:         "select char_length(foo.a) from foo",
+			dbName:        testDBName,
+			mongoVersion:  testMongoVersion3,
+			schema:        testSchema,
+			format:        testFormat,
+			expectedError: "query not fully pushed down; run with --explain for more details",
 		},
 		{
 			desc:          "query that can't be pushed down (cross join with local db different from foreign db)",
 			query:         "select foo.a, bar.b from test.foo, test2.bar",
-			defaultDB:     testDefaultDB,
-			mdbVersion:    testMdbVersion4,
+			dbName:        testDBName,
+			mongoVersion:  testMongoVersion4,
 			schema:        testSchema,
-			expectedError: "query not fully pushed down: failed to push down ProjectStage: unable to push down source stage.",
+			format:        testFormat,
+			expectedError: "query not fully pushed down; run with --explain for more details",
 		},
 		{
-			desc:             "simple select query (unqualified table) correctly translated to pipeline, using defaultDB",
+			desc:             "simple select query (unqualified table) correctly translated to pipeline, using dbName",
 			query:            "select foo.a from foo",
-			defaultDB:        testDefaultDB,
-			mdbVersion:       testMdbVersion4,
+			dbName:           testDBName,
+			mongoVersion:     testMongoVersion4,
 			schema:           testSchema,
+			format:           testFormat,
 			expectedPipeline: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
 			desc:             "simple select query (qualified table) correctly translated to pipeline",
 			query:            "select foo.a from test.foo",
-			defaultDB:        testDefaultDB,
-			mdbVersion:       testMdbVersion4,
+			dbName:           testDBName,
+			mongoVersion:     testMongoVersion4,
 			schema:           testSchema,
+			format:           testFormat,
 			expectedPipeline: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
 			desc:             "simple select query (qualified table) correctly translated to pipeline",
 			query:            "select foo.a from foo where foo.b < foo.c",
-			defaultDB:        testDefaultDB,
-			mdbVersion:       testMdbVersion4,
+			dbName:           testDBName,
+			mongoVersion:     testMongoVersion4,
 			schema:           testSchema,
+			format:           testFormat,
 			expectedPipeline: `[{"$match":{"$expr":{"$and":[{"$lt":["$b","$c"]},{"$gt":["$b",null]},{"$gt":["$c",null]}]}}},{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
 			desc:          "invalid schema parameter - non-drdl file",
 			query:         "select foo.a from foo",
-			defaultDB:     testDefaultDB,
-			mdbVersion:    testMdbVersion4,
+			dbName:        testDBName,
+			mongoVersion:  testMongoVersion4,
 			schema:        "../../parser/Makefile",
+			format:        testFormat,
 			expectedError: "fatal error getting schema from drdl: Invalid timestamp: 'MAKEFLAGS = -s\nsql.go' at line 4, column 0",
 		},
 		{
 			desc:          "invalid schema parameter - no drdl files found in directory",
 			query:         "select foo.a from foo",
-			defaultDB:     testDefaultDB,
-			mdbVersion:    testMdbVersion4,
+			dbName:        testDBName,
+			mongoVersion:  testMongoVersion4,
 			schema:        "../../testdata/resources",
+			format:        testFormat,
 			expectedError: `fatal error executing sql "explain select foo.a from foo": ERROR 1049 (42000): Unknown database 'test'`,
 		},
 		{
 			desc:             "valid directory passed in as schema parameter",
 			query:            "select foo.a from foo",
-			defaultDB:        testDefaultDB,
-			mdbVersion:       testMdbVersion4,
+			dbName:           testDBName,
+			mongoVersion:     testMongoVersion4,
 			schema:           "../../testdata/resources/schema",
+			format:           testFormat,
 			expectedPipeline: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
 			desc:          "database doesn't exist in schema",
 			query:         "select foo.a from foo",
-			defaultDB:     "invalidDatabase",
-			mdbVersion:    testMdbVersion4,
+			dbName:        "invalidDatabase",
+			mongoVersion:  testMongoVersion4,
 			schema:        testSchema,
+			format:        testFormat,
 			expectedError: `fatal error executing sql "explain select foo.a from foo": ERROR 1049 (42000): Unknown database 'invaliddatabase'`,
 		},
 		{
 			desc:          "table doesn't exist in schema",
 			query:         "select a from invalidTable",
-			defaultDB:     testDefaultDB,
-			mdbVersion:    testMdbVersion4,
+			dbName:        testDBName,
+			mongoVersion:  testMongoVersion4,
 			schema:        testSchema,
+			format:        testFormat,
 			expectedError: `fatal error executing sql "explain select a from invalidTable": ERROR 1146 (42S02): Table 'test.invalidtable' doesn't exist`,
 		},
 		{
 			desc:          "column doesn't exist in schema",
 			query:         "select invalidColumn from foo",
-			defaultDB:     testDefaultDB,
-			mdbVersion:    testMdbVersion4,
+			dbName:        testDBName,
+			mongoVersion:  testMongoVersion4,
 			schema:        testSchema,
+			format:        testFormat,
 			expectedError: `fatal error executing sql "explain select invalidColumn from foo": ERROR 1054 (42S22): Unknown column 'invalidColumn' in 'field list'`,
+		},
+		{
+			desc:             "pretty flag one stage",
+			query:            "select a from foo",
+			dbName:           testDBName,
+			mongoVersion:     testMongoVersion4,
+			schema:           testSchema,
+			format:           "multiline",
+			expectedPipeline: "[\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}},\n]",
+		},
+		{
+			desc:             "pretty flag multiple stages",
+			query:            "select a, b from foo where a > b group by c order by b desc",
+			dbName:           testDBName,
+			mongoVersion:     testMongoVersion4,
+			schema:           testSchema,
+			format:           "multiline",
+			expectedPipeline: "[\n\t{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}},\n\t{\"$group\":{\"_id\":{\"test_DOT_foo_DOT_c\":\"$c\"},\"test_DOT_foo_DOT_a\":{\"$first\":\"$a\"},\"test_DOT_foo_DOT_b\":{\"$first\":\"$b\"}}},\n\t{\"$sort\":{\"test_DOT_foo_DOT_b\":-1}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\":\"$test_DOT_foo_DOT_b\",\"_id\":0}},\n]",
+		},
+		{
+			desc:             "pretty flag, pipeline contains $lookup with pipeline field",
+			query:            "select foo.a, baz.b from foo join baz where foo.a > baz.b",
+			dbName:           testDBName,
+			mongoVersion:     testMongoVersion4,
+			schema:           testSchema,
+			format:           "multiline",
+			expectedPipeline: "[\n\t{\"$lookup\":{\"as\":\"__joined_baz\",\"from\":\"baz\",\"let\":{\"local_table__a\":\"$a\"},\"pipeline\":[{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$$local_table__a\",\"$b\"]},{\"$gt\":[\"$$local_table__a\",null]},{\"$gt\":[\"$b\",null]}]}}}]}},\n\t{\"$unwind\":{\"path\":\"$__joined_baz\",\"preserveNullAndEmptyArrays\":false}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"test_DOT_baz_DOT_b\":\"$__joined_baz.b\",\"_id\":0}},\n]",
 		},
 	}
 
 	for _, tcase := range tcases {
-		actualPipeline, err := TranslateSQLQuery(tcase.query, tcase.defaultDB, tcase.mdbVersion, tcase.schema)
+		actualPipeline, err := TranslateSQLQuery(tcase.query, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format)
 
 		if tcase.expectedError != "" {
 			if err == nil {
@@ -155,7 +195,7 @@ type ctlgTest struct {
 
 func TestGetCatalog(t *testing.T) {
 
-	// test that mdbVersion is set as expected
+	// test that mongoVersion is set as expected
 	t.Run("correctly set MongoDB version", func(t *testing.T) {
 		tcases := []string{"3.2.1", "3.6.0", "4.0.2"}
 
@@ -216,8 +256,8 @@ func TestGetCatalog(t *testing.T) {
 	schema5, _ := schema.New([]*schema.Database{dbManyTableManyColumn, dbManyTableManyColumn2}, nil)
 	schema6, _ := schema.New([]*schema.Database{dbManyTableManySameColumn, dbManyTableManySameColumn2}, nil)
 
-	// test that inferred schema is mapped to catalog as expected
-	t.Run("correctly map inferred schema to catalog", func(t *testing.T) {
+	// test that schema is mapped to catalog as expected
+	t.Run("correctly map schema to catalog", func(t *testing.T) {
 
 		var tcases = []ctlgTest{
 			{

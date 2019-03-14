@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
@@ -16,12 +17,11 @@ import (
 )
 
 // TranslateSQLQuery takes a sql query (as a string) and returns a MongoDB
-// aggregation pipeline as a string. This function also takes a defaultDB
+// aggregation pipeline as a string. This function also takes a dbName
 // that is used as the default database for unqualified tables in the query,
-// and an mdbVersion that is used as the MongoDB version for the aggregation
+// and a mongoVersion that is used as the MongoDB version for the aggregation
 // language.
-// If the showInferredSchema argument is true, this function will log the schema.
-func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion, schemaPath string) (string, error) {
+func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string) (string, error) {
 	// unconditionally prepend "explain" to the query. If the sqlQuery is
 	// unexplainable (for example, a command), an error will be returned.
 	sqlQuery = "explain " + sqlQuery
@@ -31,12 +31,12 @@ func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion, schemaPath string) (stri
 		return "", fmt.Errorf("fatal error getting schema from drdl: %v", err)
 	}
 
-	ctlg, err := getCatalog(mdbVersion, schema)
+	ctlg, err := getCatalog(mongoVersion, schema)
 	if err != nil {
 		return "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
 
-	qCfg := evaluator.NewDefaultQueryConfig(mdbVersion, defaultDB, ctlg)
+	qCfg := evaluator.NewDefaultQueryConfig(mongoVersion, dbName, ctlg)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
 	if err != nil {
@@ -44,16 +44,50 @@ func TranslateSQLQuery(sqlQuery, defaultDB, mdbVersion, schemaPath string) (stri
 	}
 
 	// check for any PushdownFailures.
-	for _, e := range res.Stats.Explain {
-		// this is necessary for queries such as 'select t.a, s.b from db1.t, db2.s'
-		// which produce res.Stats.Explain slices of length > 1 and have PushdownFailures
-		// at res.Stats.Explain[ index > 0 ].
-		if len(e.PushdownFailures) > 0 {
-			return "", fmt.Errorf("query not fully pushed down: %v", e.PushdownFailures[0])
-		}
+	if !res.Stats.FullyPushedDown {
+		return "", fmt.Errorf("query not fully pushed down; run with --explain for more details")
 	}
 
+	if format == "multiline" {
+		return prettyFormat(res.Stats.Explain[0].Pipeline.Else("")), nil
+	}
 	return res.Stats.Explain[0].Pipeline.Else(""), nil
+}
+
+func getStages(pipeline string) []string {
+	var i, j, openCount, closedCount, nextBracket int
+	var results []string
+
+	pipeline = pipeline[1:]
+	for {
+		nextBracket = strings.IndexAny(pipeline[j:], "{}")
+		if nextBracket == -1 {
+			break
+		}
+		j += nextBracket
+
+		if pipeline[j] == '{' {
+			openCount++
+		} else {
+			closedCount++
+			if openCount == closedCount {
+				results = append(results, pipeline[i:j+1])
+				i = j + 2
+			}
+		}
+		j++
+	}
+
+	return results
+}
+
+func prettyFormat(pipeline string) string {
+	formattedPipeline := fmt.Sprintf("[\n")
+	stages := getStages(pipeline)
+	for _, stage := range stages {
+		formattedPipeline = fmt.Sprintf("%v\t%v,\n", formattedPipeline, stage)
+	}
+	return fmt.Sprintf("%v]", formattedPipeline)
 }
 
 func loadSchema(path string) (*schema.Schema, error) {
@@ -87,10 +121,10 @@ func loadSchema(path string) (*schema.Schema, error) {
 }
 
 // getCatalog copies the schema into a Catalog and returns it.
-func getCatalog(mdbVersion string, relationalSchema *schema.Schema) (catalog.Catalog, error) {
+func getCatalog(mongoVersion string, relationalSchema *schema.Schema) (catalog.Catalog, error) {
 	gbl := variable.NewGlobalContainer(nil)
 	gbl.SetSystemVariable(variable.MongoDBVersion,
-		values.NewSQLVarchar(values.VariableSQLValueKind, mdbVersion))
+		values.NewSQLVarchar(values.VariableSQLValueKind, mongoVersion))
 	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode,
 		values.NewSQLVarchar(values.VariableSQLValueKind, variable.OffPolymorphicTypeConversionMode))
 	gbl.SetSystemVariable(variable.TypeConversionMode,
@@ -98,7 +132,7 @@ func getCatalog(mdbVersion string, relationalSchema *schema.Schema) (catalog.Cat
 
 	vars := variable.NewSessionContainer(gbl)
 	vars.SetSystemVariable(variable.MongoDBVersion,
-		values.NewSQLVarchar(values.VariableSQLValueKind, mdbVersion))
+		values.NewSQLVarchar(values.VariableSQLValueKind, mongoVersion))
 	vars.SetSystemVariable(variable.PolymorphicTypeConversionMode,
 		values.NewSQLVarchar(values.VariableSQLValueKind, variable.OffPolymorphicTypeConversionMode))
 	vars.SetSystemVariable(variable.TypeConversionMode,
