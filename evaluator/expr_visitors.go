@@ -193,15 +193,12 @@ type explainVisitor struct {
 	records map[PlanStage]*ExplainRecord
 	// currentStageID keeps track of the number of stages visited to generate unique IDs
 	currentStageID int
-	// sourceNodes contains the stage IDs of the children of a given PlanStage.
-	sourceNodes []int
 }
 
 func newExplainVisitor() *explainVisitor {
 	return &explainVisitor{
 		records:        make(map[PlanStage]*ExplainRecord),
 		currentStageID: 0,
-		sourceNodes:    []int{},
 	}
 }
 
@@ -246,9 +243,6 @@ func (v *explainVisitor) visit(n Node) (Node, error) {
 
 		rec := v.generateExplainRecord(typedN, curr)
 		v.records[typedN] = rec
-
-		v.sourceNodes = append(v.sourceNodes, curr)
-
 	case PlanStage:
 		v.currentStageID++
 		curr := v.currentStageID
@@ -260,9 +254,6 @@ func (v *explainVisitor) visit(n Node) (Node, error) {
 
 		rec := v.generateExplainRecord(typedN, curr)
 		v.records[typedN] = rec
-
-		v.sourceNodes = []int{}
-		v.sourceNodes = append(v.sourceNodes, curr)
 	}
 
 	return n, nil
@@ -298,8 +289,7 @@ func (v *explainVisitor) generateExplainRecord(stage PlanStage, curr int) *Expla
 	}
 
 	// get source nodes
-	sourceNodes = make([]int, len(v.sourceNodes))
-	copy(sourceNodes, v.sourceNodes)
+	sourceNodes = getSources(stage, v)
 
 	// get mongosource-specific fields
 	ms, ok := stage.(*MongoSourceStage)
@@ -325,6 +315,17 @@ func (v *explainVisitor) generateExplainRecord(stage PlanStage, curr int) *Expla
 		option.NoneString(),             // PipelineExplain
 		nil,                             // PushdownFailures
 	)
+}
+
+func getSources(stage PlanStage, v *explainVisitor) []int {
+	children := stage.Children()
+	ret := make([]int, 0, len(children))
+	for _, child := range children {
+		if planStage, ok := child.(PlanStage); ok {
+			ret = append(ret, v.records[planStage].ID)
+		}
+	}
+	return ret
 }
 
 type selectIDGatherer struct {

@@ -1,7 +1,9 @@
 package mongotranslate
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -21,7 +23,7 @@ import (
 // that is used as the default database for unqualified tables in the query,
 // and a mongoVersion that is used as the MongoDB version for the aggregation
 // language.
-func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string) (string, error) {
+func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string, explain bool) (string, error) {
 	// unconditionally prepend "explain" to the query. If the sqlQuery is
 	// unexplainable (for example, a command), an error will be returned.
 	sqlQuery = "explain " + sqlQuery
@@ -43,6 +45,10 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 		return "", fmt.Errorf("fatal error executing sql %q: %v", sqlQuery, err)
 	}
 
+	if explain {
+		return getExplainOutput(format, res.Stats.Explain)
+	}
+
 	// check for any PushdownFailures.
 	if !res.Stats.FullyPushedDown {
 		return "", fmt.Errorf("query not fully pushed down; run with --explain for more details")
@@ -52,6 +58,31 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 		return prettyFormat(res.Stats.Explain[0].Pipeline.Else("")), nil
 	}
 	return res.Stats.Explain[0].Pipeline.Else(""), nil
+}
+
+func jsonMarshal(t interface{}, indent string) ([]byte, error) {
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	encoder.SetIndent("", indent)
+	err := encoder.Encode(t)
+	return buffer.Bytes(), err
+}
+
+func getExplainOutput(format string, explainRecords []*evaluator.ExplainRecord) (string, error) {
+	var explainOutput string
+	var jsonExplain []byte
+	var err error
+	if format == "multiline" {
+		jsonExplain, err = jsonMarshal(explainRecords, "\t")
+	} else {
+		jsonExplain, err = jsonMarshal(explainRecords, "")
+	}
+	if err != nil {
+		return "", fmt.Errorf("fatal error marshalling explain record to json: %v", err)
+	}
+	explainOutput = fmt.Sprintf("%v%+v", explainOutput, string(jsonExplain))
+	return strings.TrimSuffix(explainOutput, "\n"), nil
 }
 
 func getStages(pipeline string) []string {

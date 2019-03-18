@@ -20,6 +20,7 @@ func main() {
 	dbName := flag.String("dbName", defaultDbName, "The database name to use for unqualified tables in the query.")
 	mongoVersion := flag.String("mongoVersion", defaultMongoVersion, "The MongoDB version to which to translate the query.")
 	format := flag.String("format", defaultFormat, `The desired formatting for the output. The flag can be set to "multiline" (formats output with one pipeline stage per line) or "none" (no formatting at all).`)
+	explain := flag.Bool("explain", false, "Returns the explain output for the query rather than the pipeline output.")
 
 	flag.Parse()
 
@@ -36,7 +37,7 @@ func main() {
 		return
 	}
 
-	explainPlan, err := mongotranslate.TranslateSQLQuery(*sqlQuery, *dbName, *mongoVersion, *schema, *format)
+	explainPlan, err := mongotranslate.TranslateSQLQuery(*sqlQuery, *dbName, *mongoVersion, *schema, *format, *explain)
 	if err != nil {
 		log.Fatal(err)
 	}

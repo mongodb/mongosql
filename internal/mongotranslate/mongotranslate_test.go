@@ -23,14 +23,15 @@ const (
 
 func TestTranslateSQLQuery(t *testing.T) {
 	tcases := []struct {
-		desc             string
-		query            string
-		dbName           string
-		mongoVersion     string
-		schema           string
-		format           string
-		expectedError    string
-		expectedPipeline string
+		desc           string
+		query          string
+		dbName         string
+		mongoVersion   string
+		schema         string
+		format         string
+		explain        bool
+		expectedError  string
+		expectedOutput string
 	}{
 		{
 			desc:         "query that can't be parsed/explained (command)",
@@ -61,31 +62,31 @@ func TestTranslateSQLQuery(t *testing.T) {
 			expectedError: "query not fully pushed down; run with --explain for more details",
 		},
 		{
-			desc:             "simple select query (unqualified table) correctly translated to pipeline, using dbName",
-			query:            "select foo.a from foo",
-			dbName:           testDBName,
-			mongoVersion:     testMongoVersion4,
-			schema:           testSchema,
-			format:           testFormat,
-			expectedPipeline: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			desc:           "simple select query (unqualified table) correctly translated to pipeline, using dbName",
+			query:          "select foo.a from foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         testFormat,
+			expectedOutput: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
-			desc:             "simple select query (qualified table) correctly translated to pipeline",
-			query:            "select foo.a from test.foo",
-			dbName:           testDBName,
-			mongoVersion:     testMongoVersion4,
-			schema:           testSchema,
-			format:           testFormat,
-			expectedPipeline: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			desc:           "simple select query (qualified table) correctly translated to pipeline",
+			query:          "select foo.a from test.foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         testFormat,
+			expectedOutput: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
-			desc:             "simple select query (qualified table) correctly translated to pipeline",
-			query:            "select foo.a from foo where foo.b < foo.c",
-			dbName:           testDBName,
-			mongoVersion:     testMongoVersion4,
-			schema:           testSchema,
-			format:           testFormat,
-			expectedPipeline: `[{"$match":{"$expr":{"$and":[{"$lt":["$b","$c"]},{"$gt":["$b",null]},{"$gt":["$c",null]}]}}},{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			desc:           "simple select query (qualified table) correctly translated to pipeline",
+			query:          "select foo.a from foo where foo.b < foo.c",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         testFormat,
+			expectedOutput: `[{"$match":{"$expr":{"$and":[{"$lt":["$b","$c"]},{"$gt":["$b",null]},{"$gt":["$c",null]}]}}},{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
 			desc:          "invalid schema parameter - non-drdl file",
@@ -106,13 +107,13 @@ func TestTranslateSQLQuery(t *testing.T) {
 			expectedError: `fatal error executing sql "explain select foo.a from foo": ERROR 1049 (42000): Unknown database 'test'`,
 		},
 		{
-			desc:             "valid directory passed in as schema parameter",
-			query:            "select foo.a from foo",
-			dbName:           testDBName,
-			mongoVersion:     testMongoVersion4,
-			schema:           "../../testdata/resources/schema",
-			format:           testFormat,
-			expectedPipeline: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			desc:           "valid directory passed in as schema parameter",
+			query:          "select foo.a from foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         "../../testdata/resources/schema",
+			format:         testFormat,
+			expectedOutput: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
 		},
 		{
 			desc:          "database doesn't exist in schema",
@@ -142,36 +143,85 @@ func TestTranslateSQLQuery(t *testing.T) {
 			expectedError: `fatal error executing sql "explain select invalidColumn from foo": ERROR 1054 (42S22): Unknown column 'invalidColumn' in 'field list'`,
 		},
 		{
-			desc:             "pretty flag one stage",
-			query:            "select a from foo",
-			dbName:           testDBName,
-			mongoVersion:     testMongoVersion4,
-			schema:           testSchema,
-			format:           "multiline",
-			expectedPipeline: "[\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}},\n]",
+			desc:           "format flag one stage",
+			query:          "select a from foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         "multiline",
+			expectedOutput: "[\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}},\n]",
 		},
 		{
-			desc:             "pretty flag multiple stages",
-			query:            "select a, b from foo where a > b group by c order by b desc",
-			dbName:           testDBName,
-			mongoVersion:     testMongoVersion4,
-			schema:           testSchema,
-			format:           "multiline",
-			expectedPipeline: "[\n\t{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}},\n\t{\"$group\":{\"_id\":{\"test_DOT_foo_DOT_c\":\"$c\"},\"test_DOT_foo_DOT_a\":{\"$first\":\"$a\"},\"test_DOT_foo_DOT_b\":{\"$first\":\"$b\"}}},\n\t{\"$sort\":{\"test_DOT_foo_DOT_b\":-1}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\":\"$test_DOT_foo_DOT_b\",\"_id\":0}},\n]",
+			desc:           "format flag multiple stages",
+			query:          "select a, b from foo where a > b group by c order by b desc",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         "multiline",
+			expectedOutput: "[\n\t{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}},\n\t{\"$group\":{\"_id\":{\"test_DOT_foo_DOT_c\":\"$c\"},\"test_DOT_foo_DOT_a\":{\"$first\":\"$a\"},\"test_DOT_foo_DOT_b\":{\"$first\":\"$b\"}}},\n\t{\"$sort\":{\"test_DOT_foo_DOT_b\":-1}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\":\"$test_DOT_foo_DOT_b\",\"_id\":0}},\n]",
 		},
 		{
-			desc:             "pretty flag, pipeline contains $lookup with pipeline field",
-			query:            "select foo.a, baz.b from foo join baz where foo.a > baz.b",
-			dbName:           testDBName,
-			mongoVersion:     testMongoVersion4,
-			schema:           testSchema,
-			format:           "multiline",
-			expectedPipeline: "[\n\t{\"$lookup\":{\"as\":\"__joined_baz\",\"from\":\"baz\",\"let\":{\"local_table__a\":\"$a\"},\"pipeline\":[{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$$local_table__a\",\"$b\"]},{\"$gt\":[\"$$local_table__a\",null]},{\"$gt\":[\"$b\",null]}]}}}]}},\n\t{\"$unwind\":{\"path\":\"$__joined_baz\",\"preserveNullAndEmptyArrays\":false}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"test_DOT_baz_DOT_b\":\"$__joined_baz.b\",\"_id\":0}},\n]",
+			desc:           "format flag, pipeline contains $lookup with pipeline field",
+			query:          "select foo.a, baz.b from foo join baz where foo.a > baz.b",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         "multiline",
+			expectedOutput: "[\n\t{\"$lookup\":{\"as\":\"__joined_baz\",\"from\":\"baz\",\"let\":{\"local_table__a\":\"$a\"},\"pipeline\":[{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$$local_table__a\",\"$b\"]},{\"$gt\":[\"$$local_table__a\",null]},{\"$gt\":[\"$b\",null]}]}}}]}},\n\t{\"$unwind\":{\"path\":\"$__joined_baz\",\"preserveNullAndEmptyArrays\":false}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"test_DOT_baz_DOT_b\":\"$__joined_baz.b\",\"_id\":0}},\n]",
+		},
+		{
+			desc:           "format flag, pipeline contains $lookup with pipeline field",
+			query:          "select foo.a, baz.b from foo join baz where foo.a > baz.b",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         "multiline",
+			expectedOutput: "[\n\t{\"$lookup\":{\"as\":\"__joined_baz\",\"from\":\"baz\",\"let\":{\"local_table__a\":\"$a\"},\"pipeline\":[{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$$local_table__a\",\"$b\"]},{\"$gt\":[\"$$local_table__a\",null]},{\"$gt\":[\"$b\",null]}]}}}]}},\n\t{\"$unwind\":{\"path\":\"$__joined_baz\",\"preserveNullAndEmptyArrays\":false}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"test_DOT_baz_DOT_b\":\"$__joined_baz.b\",\"_id\":0}},\n]",
+		},
+		{
+			desc:           "explain flag, no formatting, fully pushed down",
+			query:          "select a from foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         testFormat,
+			explain:        true,
+			expectedOutput: `[{"ID":1,"StageType":"MongoSourceStage","Columns":"[{name: test.foo.'a', type: 'float'}]","Sources":null,"Database":{},"Tables":{},"Aliases":{},"Collections":{},"Pipeline":{},"PipelineExplain":{},"PushdownFailures":null}]`,
+		},
+		{
+			desc:           "explain flag, with formatting, fully pushed down",
+			query:          "select a from foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         "multiline",
+			explain:        true,
+			expectedOutput: "[\n\t{\n\t\t\"ID\": 1,\n\t\t\"StageType\": \"MongoSourceStage\",\n\t\t\"Columns\": \"[{name: test.foo.'a', type: 'float'}]\",\n\t\t\"Sources\": null,\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": null\n\t}\n]",
+		},
+		{
+			desc:           "explain flag, no formatting, not fully pushed down",
+			query:          "select adddate(a, 1) from foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion3,
+			schema:         testSchema,
+			format:         testFormat,
+			explain:        true,
+			expectedOutput: `[{"ID":1,"StageType":"ProjectStage","Columns":"[{name: 'adddate(a, 1, day)', type: 'timestamp'}]","Sources":[2],"Database":{},"Tables":{},"Aliases":{},"Collections":{},"Pipeline":{},"PipelineExplain":{},"PushdownFailures":[{"name":"SQLConvertExpr","reason":"cannot push down mongosql-mode conversions to MongoDB < 4.0"}]},{"ID":2,"StageType":"MongoSourceStage","Columns":"[{name: test.foo.'a', type: 'float'}]","Sources":null,"Database":{},"Tables":{},"Aliases":{},"Collections":{},"Pipeline":{},"PipelineExplain":{},"PushdownFailures":null}]`,
+		},
+		{
+			desc:           "explain flag, with formatting, not fully pushed down",
+			query:          "select adddate(a, 1) from foo",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion3,
+			schema:         testSchema,
+			format:         "multiline",
+			explain:        true,
+			expectedOutput: "[\n\t{\n\t\t\"ID\": 1,\n\t\t\"StageType\": \"ProjectStage\",\n\t\t\"Columns\": \"[{name: 'adddate(a, 1, day)', type: 'timestamp'}]\",\n\t\t\"Sources\": [\n\t\t\t2\n\t\t],\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": [\n\t\t\t{\n\t\t\t\t\"name\": \"SQLConvertExpr\",\n\t\t\t\t\"reason\": \"cannot push down mongosql-mode conversions to MongoDB < 4.0\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"ID\": 2,\n\t\t\"StageType\": \"MongoSourceStage\",\n\t\t\"Columns\": \"[{name: test.foo.'a', type: 'float'}]\",\n\t\t\"Sources\": null,\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": null\n\t}\n]",
 		},
 	}
 
 	for _, tcase := range tcases {
-		actualPipeline, err := TranslateSQLQuery(tcase.query, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format)
+		actualOutput, err := TranslateSQLQuery(tcase.query, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format, tcase.explain)
 
 		if tcase.expectedError != "" {
 			if err == nil {
@@ -182,8 +232,8 @@ func TestTranslateSQLQuery(t *testing.T) {
 			continue
 		}
 
-		if actualPipeline != tcase.expectedPipeline {
-			t.Fatalf("%s: actual pipeline is not same as expected pipeline (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualPipeline, tcase.expectedPipeline)
+		if actualOutput != tcase.expectedOutput {
+			t.Fatalf("%s: actual output is not same as expected (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualOutput, tcase.expectedOutput)
 		}
 	}
 }

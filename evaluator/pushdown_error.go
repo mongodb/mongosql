@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 )
@@ -153,5 +154,10 @@ func (p *pushdownFailure) MarshalJSON() ([]byte, error) {
 		p.reason,
 	}
 
-	return json.Marshal(val)
+	buffer := &bytes.Buffer{}
+	encoder := json.NewEncoder(buffer)
+	encoder.SetEscapeHTML(false)
+	err := encoder.Encode(val)
+
+	return buffer.Bytes(), err
 }

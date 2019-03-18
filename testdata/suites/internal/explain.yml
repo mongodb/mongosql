@@ -153,7 +153,7 @@ testcases:
     expected_results:
       - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match":{"a":NumberLong(''1'')}},{"$project":{"explain_test_DOT_set_1_DOT_a":"$a","_id":0}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '8'
+    id: '14'
     pushdown_only: true
     sql: explain select a from set_1 where a = 1
 
@@ -165,6 +165,21 @@ testcases:
       - [1, ProjectStage, '[{name: ''b+2'', type: ''float''}]', '[2]', null, null, null, null, null, null, '{"pushdown_errors":[{"name":"SQLConvertExpr","reason":"cannot push down mysql-mode conversion from type ''string''"}]}']
       - [2, MongoSourceStage, '[{name: functions_test.scalar.''b'', type: ''varchar''}]', null, functions_test, '[scalar]', '[scalar]', '[scalar]', '[{"$project":{"b":"$b","_id":0}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '9'
+    id: '15'
     pushdown_only: true
     sql: explain select b+2 from scalar
+
+  - db: join_test
+    description: explain query with plan stage having mongosource as left child and plan stage as right
+    exact_server_version: '3.4'
+    expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
+    expected_results:
+      - [1, ProjectStage, '[{name: join_test.join_2.''c'', type: ''int''}]', '[2]', null, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
+      - [2, 'cross join', '[{name: join_test.join_1.''_id'', type: ''int''}, {name: join_test.join_1.''a'', type: ''int''}, {name: join_test.join_1.''b'', type: ''int''}, {name: join_test.join_2.''c'', type: ''int''}]', '[3, 5]', null, null, null, null, null, null, '{"pushdown_errors":[{"name":"JoinStage","reason":"join kind is not inner, left, or straight"},{"name":"JoinStage","reason":"cannot push down expressive lookup to MongoDB \u003c 3.6"}]}']
+      - [3, ProjectStage, '[{name: join_test.join_1.''_id'', type: ''int''}, {name: join_test.join_1.''a'', type: ''int''}, {name: join_test.join_1.''b'', type: ''int''}]', '[4]', null, null, null, null, null, null, null]
+      - [4, MongoSourceStage, '[{name: join_test.join_1.''_id'', type: ''int''}, {name: join_test.join_1.''a'', type: ''int''}, {name: join_test.join_1.''b'', type: ''int''}]', null, 'join_test', '[join_1]', '[join_1]', '[join_1]', '[]', null, null]
+      - [5, MongoSourceStage, '[{name: join_test.join_2.''c'', type: ''int''}]', null, 'join_test', '[join_2]', '[join_2]', '[join_2]', '[{"$project":{"join_test_DOT_join_2_DOT_c":"$c"}},{"$project":{"join_test_DOT_join_2_DOT_c":"$join_test_DOT_join_2_DOT_c"}}]', null, null]
+    expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+    id: '16'
+    pushdown_only: true
+    sql: explain select join_2.c from join_1 join join_2
