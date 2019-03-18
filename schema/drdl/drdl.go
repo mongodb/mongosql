@@ -12,6 +12,7 @@ import (
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/json"
 )
 
 // These are components of a Byte Order Mark which appears at the
@@ -180,4 +181,57 @@ func (t *Table) MarshalYAML() (string, interface{}, error) {
 		Pipeline:  bsonutil.PipelineToMapSlice(t.Pipeline),
 		Columns:   t.Columns,
 	}, nil
+}
+
+// GetBSON provides a custom struct that should be marshalled into a BSON
+// document in place of this Table. Table deviates from the default BSON
+// marshalling implementation by marshalling the `Pipeline` field as a JSON
+// string instead of BSON arrays and documents. This is necessary in order to
+// store the table in MongoDB, since $-prefixed keys are not allowed.
+func (t *Table) GetBSON() (interface{}, error) {
+	pb, err := bsonutil.PipelineJSON(t.Pipeline, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	pipelineJSON := "[" + string(pb) + "]"
+
+	return struct {
+		SQLName   string    `bson:"sql_name"`
+		MongoName string    `bson:"mongo_name"`
+		Pipeline  string    `bson:"pipeline"`
+		Columns   []*Column `bson:"columns"`
+	}{
+		SQLName:   t.SQLName,
+		MongoName: t.MongoName,
+		Pipeline:  pipelineJSON,
+		Columns:   t.Columns,
+	}, nil
+}
+
+// SetBSON unmarshals the provided bson.Raw into the Table.
+func (t *Table) SetBSON(raw bson.Raw) error {
+	tbl := struct {
+		SQLName   string    `bson:"sql_name"`
+		MongoName string    `bson:"mongo_name"`
+		Pipeline  string    `bson:"pipeline"`
+		Columns   []*Column `bson:"columns"`
+	}{}
+
+	err := raw.Unmarshal(&tbl)
+	if err != nil {
+		return err
+	}
+
+	pipeline := []bson.D{}
+	err = json.Unmarshal([]byte(tbl.Pipeline), &pipeline)
+	if err != nil {
+		return err
+	}
+
+	t.SQLName = tbl.SQLName
+	t.MongoName = tbl.MongoName
+	t.Pipeline = pipeline
+	t.Columns = tbl.Columns
+
+	return nil
 }

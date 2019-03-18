@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 )
 
@@ -149,6 +150,89 @@ func (s *Session) Count(ctx context.Context, database, collection string) (int, 
 		nil,
 		nil,
 	)
+}
+
+// Delete deletes all documents from the specified namespace matching the
+// provided query.
+func (s *Session) Delete(ctx context.Context, db, col string, query interface{}) error {
+	ns := ops.NewNamespace(db, col)
+
+	result := struct {
+		N  int `bson:"n"`
+		Ok int `bson:"ok"`
+	}{}
+
+	deletes := []bson.D{
+		bsonutil.NewD(
+			bsonutil.NewDocElem("q", query),
+			bsonutil.NewDocElem("limit", 0),
+		),
+	}
+
+	wc := writeconcern.New(writeconcern.WMajority(-1))
+	err := ops.Delete(ctx, s.selectedServer, ns, wc, deletes, &result)
+	if err != nil {
+		return err
+	}
+
+	if result.Ok != 1 {
+		return fmt.Errorf("error deleting document")
+	}
+
+	return nil
+}
+
+// Insert inserts the provided documents into the specified namespace.
+func (s *Session) Insert(ctx context.Context, db, col string, docs []interface{}) error {
+	ns := ops.NewNamespace(db, col)
+
+	result := struct {
+		N  int `bson:"n"`
+		Ok int `bson:"ok"`
+	}{}
+
+	wc := writeconcern.New(writeconcern.WMajority(-1))
+	err := ops.Insert(ctx, s.selectedServer, ns, wc, docs, &result)
+	if err != nil {
+		return err
+	}
+
+	if result.Ok != 1 {
+		return fmt.Errorf("error inserting document")
+	}
+
+	return nil
+}
+
+// Upsert replaces a single document matching the provided query in the
+// specified namespace with the provided update document.
+func (s *Session) Upsert(ctx context.Context, db, col string, query, update interface{}) error {
+	ns := ops.NewNamespace(db, col)
+
+	result := struct {
+		N  int `bson:"n"`
+		Ok int `bson:"ok"`
+	}{}
+
+	updates := []bson.D{
+		bsonutil.NewD(
+			bsonutil.NewDocElem("q", query),
+			bsonutil.NewDocElem("u", update),
+			bsonutil.NewDocElem("upsert", true),
+		),
+	}
+
+	wc := writeconcern.New(writeconcern.WMajority(-1))
+	err := ops.Update(ctx, s.selectedServer, ns, wc, updates, &result)
+	if err != nil {
+		return err
+	}
+
+	if result.Ok != 1 {
+		return fmt.Errorf("error upserting document")
+	}
+
+	return nil
 }
 
 type cursorRequest struct {
