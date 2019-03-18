@@ -1,141 +1,175 @@
 package mongodrdl_test
 
 import (
-	"os"
-	"strings"
 	"testing"
 
 	"github.com/10gen/sqlproxy/internal/mongodrdl"
+	"github.com/stretchr/testify/require"
 )
 
-func TestParseArgs_Valid(t *testing.T) {
+func TestParseArgs(t *testing.T) {
+	t.Run("host_and_port", testHostAndPort)
+	t.Run("invalid_ssl", testInvalidSSL)
 
-	test := func(args []string, expected string) {
-		os.Args = args
+	t.Run("help", func(t *testing.T) {
+		req := require.New(t)
 		opts, err := mongodrdl.NewDrdlOptions()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+		req.NoError(err)
+		req.NoError(opts.Parse([]string{"help"}))
+		req.NoError(opts.Parse([]string{"-help"}))
+		req.NoError(opts.Parse([]string{"--help"}))
+	})
 
-		_, err = opts.Parse()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
+	t.Run("unknown command", func(t *testing.T) {
+		req := require.New(t)
+		opts, err := mongodrdl.NewDrdlOptions()
+		req.NoError(err)
+		req.NoError(opts.Parse([]string{"unknown"}))
+		err = opts.Validate()
+		req.Error(err)
+	})
 
-		if opts.DrdlConnection.Host != expected {
-			t.Fatalf("expected '%s', but got '%s'", expected, opts.DrdlConnection.Host)
-		}
-	}
+	t.Run("explicit sample command", func(t *testing.T) {
+		req := require.New(t)
+		opts, err := mongodrdl.NewDrdlOptions()
+		req.NoError(err)
+		req.NoError(opts.Parse([]string{"sample", "-d", "test"}))
+		err = opts.Validate()
+		req.NoError(err)
+	})
 
-	test(
+	t.Run("extra positional args", func(t *testing.T) {
+		req := require.New(t)
+		opts, err := mongodrdl.NewDrdlOptions()
+		req.NoError(err)
+		req.Error(opts.Parse([]string{"sample", "foo"}))
+	})
+
+	t.Run("command not at beginning", func(t *testing.T) {
+		req := require.New(t)
+		opts, err := mongodrdl.NewDrdlOptions()
+		req.NoError(err)
+		req.NoError(opts.Parse([]string{"-d", "test", "sample"}))
+		err = opts.Validate()
+		req.NoError(err)
+	})
+}
+
+func testHostAndPort(t *testing.T) {
+
+	tests := []struct {
+		description  string
+		args         []string
+		expectedHost string
+	}{{
+		"host and port",
 		[]string{
-			"mongodrdl",
 			"--host", "localhost",
 			"--port", "6999",
 		},
 		"localhost:6999",
-	)
-
-	test(
+	}, {
+		"host with port and port",
 		[]string{
-			"mongodrdl",
 			"--host", "localhost:34325452",
 			"--port", "6999",
 		},
 		"localhost:6999",
-	)
-
-	test(
+	}, {
+		"host with port",
 		[]string{
-			"mongodrdl",
 			"--host", "localhost:6999",
 		},
 		"localhost:6999",
-	)
-
-	test(
+	}, {
+		"host and port and misc ssl opts",
 		[]string{
-			"mongodrdl",
 			"--host", "localhost",
 			"--port", "6999",
 			"--ssl",
 			"--sslCAFile", "hello",
 		},
 		"localhost:6999",
-	)
-}
+	}}
 
-func TestParseSSL_Invalid(t *testing.T) {
-
-	test := func(args []string) {
-		os.Args = args
-		opts, err := mongodrdl.NewDrdlOptions()
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-
-		_, err = opts.Parse()
-		if err != nil {
-			t.Fatalf("expected parse error %v got none", err)
-		}
-
-		expectedErr := "when specifying SSL options, SSL must be enabled with --ssl"
-		err = opts.Validate()
-		if err == nil {
-			t.Fatalf("expected SSL related error for %q but got none", strings.Join(args, " "))
-		} else if err.Error() != expectedErr {
-			t.Fatalf("expected SSL related error for %q got %v", strings.Join(args, " "), err)
-		}
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			req := require.New(t)
+			opts, err := mongodrdl.NewDrdlOptions()
+			req.NoError(err)
+			req.NoError(opts.Parse(test.args))
+			req.Equal(test.expectedHost, opts.DrdlConnection.Host)
+		})
 	}
 
-	test(
-		[]string{
-			"mongodrdl",
-			"--host", "localhost",
-			"--port", "6999",
-			"--sslCAFile", "hello",
-			"-d", "output",
-		},
-	)
+}
 
-	test(
-		[]string{
-			"mongodrdl",
-			"--host", "localhost",
-			"--port", "6999",
-			"--sslPEMKeyFile", "hello",
-			"-d", "output",
+func testInvalidSSL(t *testing.T) {
+	tests := []struct {
+		description string
+		args        []string
+	}{
+		{
+			"ca file without ssl",
+			[]string{
+				"--host", "localhost",
+				"--port", "6999",
+				"--sslCAFile", "hello",
+				"-d", "output",
+			},
 		},
-	)
 
-	test(
-		[]string{
-			"mongodrdl",
-			"--host", "localhost",
-			"--port", "6999",
-			"--sslPEMKeyPassword", "hello",
-			"-d", "output",
+		{
+			"pem file without ssl",
+			[]string{
+				"--host", "localhost",
+				"--port", "6999",
+				"--sslPEMKeyFile", "hello",
+				"-d", "output",
+			},
 		},
-	)
 
-	test(
-		[]string{
-			"mongodrdl",
-			"--host", "localhost",
-			"--port", "6999",
-			"--sslCRLFile", "hello",
-			"-d", "output",
+		{
+			"pem pwd without ssl",
+			[]string{
+				"--host", "localhost",
+				"--port", "6999",
+				"--sslPEMKeyPassword", "hello",
+				"-d", "output",
+			},
 		},
-	)
 
-	test(
-		[]string{
-			"mongodrdl",
-			"--host", "localhost",
-			"--port", "6999",
-			"--sslAllowInvalidCertificates", "hello",
-			"-d", "output",
+		{
+			"crl file without ssl",
+			[]string{
+				"--host", "localhost",
+				"--port", "6999",
+				"--sslCRLFile", "hello",
+				"-d", "output",
+			},
 		},
-	)
 
+		{
+			"allow invalid certs without ssl",
+			[]string{
+				"--host", "localhost",
+				"--port", "6999",
+				"--sslAllowInvalidCertificates",
+				"-d", "output",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.description, func(t *testing.T) {
+			req := require.New(t)
+			opts, err := mongodrdl.NewDrdlOptions()
+			req.NoError(err)
+			req.NoError(opts.Parse(test.args))
+
+			expectedErr := "when specifying SSL options, SSL must be enabled with --ssl"
+			err = opts.Validate()
+			req.EqualError(err, expectedErr)
+		})
+	}
 }

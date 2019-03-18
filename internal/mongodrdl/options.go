@@ -1,6 +1,8 @@
 package mongodrdl
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"regexp"
@@ -8,11 +10,25 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/persist"
 	"github.com/jessevdk/go-flags"
 )
 
 var drdlUsage = "mongodrdl <options>"
+
+const (
+	noCommand              = ""
+	sampleCommand          = "sample"
+	uploadCommand          = "upload"
+	downloadCommand        = "download"
+	deleteCommand          = "delete"
+	nameSchemaCommand      = "name-schema"
+	listSchemaNamesCommand = "list-schema-names"
+	listSchemaIDsCommand   = "list-schema-ids"
+)
 
 // DrdlOptions hold command line options for mongodrdl.
 type DrdlOptions struct {
@@ -25,6 +41,7 @@ type DrdlOptions struct {
 	*DrdlNamespace
 	*DrdlOutput
 	*DrdlSample
+	*DrdlStored
 
 	// ReplicaSetName, if specified, will prevent the obtained session from
 	// communicating with any server which is not part of a replica set
@@ -33,6 +50,102 @@ type DrdlOptions struct {
 	ReplicaSetName string
 
 	parser *flags.Parser
+}
+
+// Run executes the mongodrdl command specified by the parsed command-line
+// options.
+func (o *DrdlOptions) Run() error {
+	ctx := context.Background()
+
+	sp, err := newDrdlSessionProvider(*o)
+	if err != nil {
+		return err
+	}
+
+	persistor := persist.NewPersistor(sp, o.SchemaSource)
+
+	switch o.Command.Name {
+	case noCommand, sampleCommand:
+		lg := log.NewComponentLogger(
+			fmt.Sprintf("%-10v [schemaGeneration]", log.MongodrdlComponent),
+			log.GlobalLogger(),
+		)
+		return GenerateSchema(ctx, lg, *o)
+
+	case deleteCommand:
+		if o.SchemaName != "" {
+			return persistor.DeleteName(ctx, o.SchemaName)
+		}
+		return persistor.DeleteSchema(ctx, o.SchemaID)
+
+	case downloadCommand:
+		var sch *drdl.Schema
+		var err error
+		if o.SchemaName != "" {
+			sch, err = persistor.FindSchemaByName(ctx, o.SchemaName)
+		} else {
+			sch, err = persistor.FindSchemaByID(ctx, o.SchemaID)
+		}
+		if err != nil {
+			return err
+		}
+		writer, err := getOutputWriter(o.DrdlOutput.Out)
+		if err != nil {
+			return err
+		}
+		schBytes, err := sch.ToYAML()
+		if err != nil {
+			return err
+		}
+		_, err = writer.Write(schBytes)
+		return err
+
+	case uploadCommand:
+		f, err := os.Stat(o.DrdlStored.DRDL)
+		if err != nil {
+			return err
+		}
+		var drdlSchema *drdl.Schema
+		if f.IsDir() {
+			drdlSchema, err = drdl.NewFromDir(o.DrdlStored.DRDL)
+		} else {
+			drdlSchema, err = drdl.NewFromFile(o.DrdlStored.DRDL)
+		}
+		if err != nil {
+			return err
+		}
+		oid, err := persistor.InsertSchema(ctx, drdlSchema)
+		if err != nil {
+			return err
+		}
+		fmt.Println(oid.Hex())
+
+	case nameSchemaCommand:
+		return persistor.UpsertName(ctx, o.SchemaName, o.SchemaID)
+
+	case listSchemaIDsCommand:
+		schemas, err := persistor.FindSchemas(ctx)
+		if err != nil {
+			return err
+		}
+		for _, s := range schemas {
+			fmt.Printf("%s %s\n", s.ID.Hex(), s.Created.Format("2006-01-02T15:04:05.000Z"))
+		}
+
+	case listSchemaNamesCommand:
+		names, err := persistor.FindNames(ctx)
+		if err != nil {
+			return err
+		}
+		for _, n := range names {
+			fmt.Printf("%s %s\n", n.ID, n.SchemaID.Hex())
+		}
+
+	default:
+		panic(fmt.Errorf("unknown command %q", o.Command.Name))
+	}
+
+	return nil
 }
 
 // DrdlAuth holds authentication related command line options for mongodrdl.
@@ -79,8 +192,26 @@ func (*DrdlNamespace) Name() string {
 	return "Namespace"
 }
 
+// DrdlStored holds flags related to manipulating stored schemas with mongodrdl.
+type DrdlStored struct {
+	DRDL         string `long:"drdl" value-name:"<schema-file>" description:"file or directory containing a DRDL schema"`
+	SchemaID     bson.ObjectId
+	SchemaIDHex  string `long:"schema" value-name:"<schema-id>" description:"hex string representing ObjectId of a stored schema"`
+	SchemaName   string `long:"name" value-name:"<schema-name>" description:"name of a stored schema"`
+	SchemaSource string `long:"schemaSource" value-name:"<schema-source-db>" description:"database to use for schema storage"`
+}
+
+// Name returns the name for the general command-line options section for
+// mongodrdl.
+func (*DrdlStored) Name() string {
+	return "Stored Schema"
+}
+
 // DrdlGeneral holds the help and version flags for mongodrdl.
 type DrdlGeneral struct {
+	Command struct {
+		Name string `positional-arg-name:"sample|upload|download|delete|list-schema-ids|list-schema-names|name-schema"`
+	} `positional-args:"yes"`
 	Help    bool `long:"help" description:"print usage"`
 	Version bool `long:"version" description:"print the tool version and exit"`
 }
@@ -209,6 +340,7 @@ func NewDrdlOptions() (*DrdlOptions, error) {
 		DrdlNamespace:  &DrdlNamespace{},
 		DrdlOutput:     &DrdlOutput{},
 		DrdlSample:     &DrdlSample{},
+		DrdlStored:     &DrdlStored{},
 		parser:         flags.NewNamedParser(drdlUsage, flags.None),
 	}
 
@@ -222,6 +354,7 @@ func NewDrdlOptions() (*DrdlOptions, error) {
 		opts.DrdlNamespace,
 		opts.DrdlOutput,
 		opts.DrdlSample,
+		opts.DrdlStored,
 	}
 
 	for _, group := range groups {
@@ -234,9 +367,8 @@ func NewDrdlOptions() (*DrdlOptions, error) {
 	return opts, nil
 }
 
-// Parse parses the flags passed to the mongodrdl tool and
-// returns any additional unparsed arguments back.
-func (o DrdlOptions) Parse() ([]string, error) {
+// Parse parses the flags passed to the mongodrdl tool.
+func (o DrdlOptions) Parse(osArgs []string) error {
 	// called when -v or --verbose is parsed
 	o.DrdlLog.SetVerbosity = func(val string) error {
 		if i, err := strconv.Atoi(val); err == nil {
@@ -255,7 +387,10 @@ func (o DrdlOptions) Parse() ([]string, error) {
 
 	// use the quiet verbosity level by default
 	o.DrdlLog.VLevel = -1
-	args, err := o.parser.Parse()
+	args, err := o.parser.ParseArgs(osArgs)
+	if err != nil {
+		return err
+	}
 
 	// Handle Port and Host. If both Host and Port contain a port spec, we assume the user
 	// prefers the one coming from Port, but warn just in case.
@@ -267,7 +402,20 @@ func (o DrdlOptions) Parse() ([]string, error) {
 		}
 		o.DrdlConnection.Host += ":" + o.DrdlConnection.Port
 	}
-	return args, err
+
+	if o.DrdlStored.SchemaIDHex != "" {
+		if bson.IsObjectIdHex(o.DrdlStored.SchemaIDHex) {
+			o.DrdlStored.SchemaID = bson.ObjectIdHex(o.DrdlStored.SchemaIDHex)
+		} else {
+			return fmt.Errorf("invalid ObjectId hex string %q", o.DrdlStored.SchemaIDHex)
+		}
+	}
+
+	if len(args) > 0 {
+		return fmt.Errorf("found illegal positional arguments: %v", args)
+	}
+
+	return nil
 }
 
 // GetAuthenticationDatabase returns the authentication database with
@@ -283,13 +431,11 @@ func (o DrdlOptions) GetAuthenticationDatabase() string {
 	return ""
 }
 
-// PrintHelp prints the usage message for the tool to stdout. Returns whether or not the
-// help flag is specified.
-func (o DrdlOptions) PrintHelp(force bool) bool {
-	if o.Help || force {
-		o.parser.WriteHelp(os.Stdout)
-	}
-	return o.Help
+// HelpText returns the usage message for mongodrdl.
+func (o DrdlOptions) HelpText() string {
+	buf := bytes.NewBuffer([]byte{})
+	o.parser.WriteHelp(buf)
+	return buf.String()
 }
 
 // UseSSL returns true if mongodrdl is configured to use SSL and false otherwise.
@@ -306,12 +452,7 @@ func (o DrdlOptions) UseFIPSMode() bool {
 // Validate validates the options passed to the mongodrdl tool.
 // It returns any error found during validation.
 func (o DrdlOptions) Validate() error {
-	switch {
-	case o.DrdlNamespace.DB == "":
-		return fmt.Errorf("cannot export a schema without a specified database")
-	case o.DrdlNamespace.DB == "" && o.DrdlNamespace.Collection != "":
-		return fmt.Errorf("cannot export a schema for a collection without a specified database")
-	case o.DrdlSSL.SSLFipsMode && runtime.GOOS == "darwin":
+	if o.DrdlSSL.SSLFipsMode && runtime.GOOS == "darwin" {
 		return fmt.Errorf("this version of mongodrdl was not compiled with FIPS support")
 	}
 
@@ -324,6 +465,49 @@ func (o DrdlOptions) Validate() error {
 		o.SSLFipsMode) {
 		return fmt.Errorf("when specifying SSL options, SSL must be enabled with --ssl")
 	}
+
+	switch o.Command.Name {
+	case noCommand, sampleCommand:
+		if o.DrdlNamespace.DB == "" {
+			return fmt.Errorf("cannot export a schema without a specified database")
+		}
+
+	case uploadCommand:
+		if o.DrdlStored.SchemaSource == "" {
+			return fmt.Errorf("must provide --schemaSource flag")
+		}
+		if o.DrdlStored.DRDL == "" {
+			return fmt.Errorf("must provide --drdl flag")
+		}
+
+	case downloadCommand, deleteCommand:
+		if o.DrdlStored.SchemaSource == "" {
+			return fmt.Errorf("must provide --schemaSource flag")
+		}
+		if o.DrdlStored.SchemaName == "" && o.DrdlStored.SchemaIDHex == "" {
+			return fmt.Errorf("must provide --name or --schema flag")
+		}
+
+	case nameSchemaCommand:
+		if o.DrdlStored.SchemaSource == "" {
+			return fmt.Errorf("must provide --schemaSource flag")
+		}
+		if o.DrdlStored.SchemaName == "" {
+			return fmt.Errorf("must provide --name flag")
+		}
+		if o.DrdlStored.SchemaID == "" {
+			return fmt.Errorf("must provide --schema flag")
+		}
+
+	case listSchemaIDsCommand, listSchemaNamesCommand:
+		if o.DrdlStored.SchemaSource == "" {
+			return fmt.Errorf("must provide --schemaSource flag")
+		}
+
+	default:
+		return fmt.Errorf("unknown command %q", o.Command.Name)
+	}
+
 	return nil
 }
 

@@ -2,10 +2,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
-	"runtime"
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mongodrdl"
@@ -14,24 +12,15 @@ import (
 )
 
 func main() {
-
-	runtime.GOMAXPROCS(runtime.NumCPU())
-
 	opts, err := mongodrdl.NewDrdlOptions()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error generating command line options: %v\n", err)
 		os.Exit(procutil.ExitError)
 	}
 
-	args, err := opts.Parse()
+	err = opts.Parse(os.Args[1:])
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "error parsing command line options: %v\n", err)
-		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
-		os.Exit(procutil.ExitBadOptions)
-	}
-
-	if len(args) > 0 {
-		_, _ = fmt.Fprintf(os.Stderr, "positional arguments not allowed: %v\n", args)
 		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
 		os.Exit(procutil.ExitBadOptions)
 	}
@@ -42,13 +31,14 @@ func main() {
 	}
 
 	// print help, if specified
-	if opts.PrintHelp(false) {
+	if opts.Help {
+		fmt.Println(opts.HelpText())
 		os.Exit(procutil.ExitClean)
 	}
 
-	if err = opts.Validate(); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "%v\n", err)
-		_, _ = fmt.Fprintln(os.Stderr, "try 'mongodrdl --help' for more information")
+	err = opts.Validate()
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%v\ntry 'mongodrdl --help' for more information", err)
 		os.Exit(procutil.ExitBadOptions)
 	}
 
@@ -62,14 +52,7 @@ func main() {
 	}
 	log.SetVerbosity(verbosity)
 
-	lg := log.NewComponentLogger(
-		fmt.Sprintf("%-10v [schemaGeneration]", log.MongodrdlComponent),
-		log.GlobalLogger(),
-	)
-
-	ctx := context.Background()
-
-	err = mongodrdl.GenerateSchema(ctx, lg, *opts)
+	err = opts.Run()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Failed: %v\n", err)
 		if err == procutil.ErrTerminated {

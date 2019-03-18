@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
@@ -64,6 +65,29 @@ func TestPersistSchema(t *testing.T) {
 
 		err := p.UpsertName(ctx, "defaultSchema", bson.NewObjectId())
 		req.NoError(err, "failed to insert name")
+	})
+
+	t.Run("find schemas empty collection", func(t *testing.T) {
+		setup(sp)
+		req := require.New(t)
+
+		schemas, err := p.FindSchemas(ctx)
+		req.NoError(err, "failed to fetch schemas")
+		req.Empty(schemas)
+	})
+
+	t.Run("find single schema", func(t *testing.T) {
+		setup(sp)
+		req := require.New(t)
+
+		sid, err := p.InsertSchema(ctx, drdlSchema)
+		req.NoError(err, "failed to insert schema")
+
+		schemas, err := p.FindSchemas(ctx)
+		req.NoError(err, "failed to fetch schemas")
+		req.Len(schemas, 1)
+		req.Equal(sid, schemas[0].ID)
+		req.WithinDuration(time.Now(), schemas[0].Created, 10*time.Second)
 	})
 
 	t.Run("find names empty collection", func(t *testing.T) {

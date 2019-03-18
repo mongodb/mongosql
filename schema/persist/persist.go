@@ -3,6 +3,7 @@ package persist
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -55,6 +56,39 @@ func (p Persistor) FindNames(ctx context.Context) ([]Name, error) {
 	}
 
 	return names, nil
+}
+
+// SchemaInfo contains the ObjectId and creation time for a schema.
+type SchemaInfo struct {
+	ID      bson.ObjectId `bson:"_id"`
+	Created time.Time     `bson:"created"`
+}
+
+// FindSchemas retrieves info on all stored Schemas.
+func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
+	s, err := p.session(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	pipeline := []interface{}{}
+	iter, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = iter.Close(ctx) }()
+
+	schemas := []SchemaInfo{}
+	sch := &SchemaInfo{}
+	for iter.Next(ctx, &sch) {
+		schemas = append(schemas, *sch)
+	}
+
+	if err := iter.Err(); err != nil {
+		return nil, err
+	}
+
+	return schemas, nil
 }
 
 // FindSchemaByName returns the drdl.Schema corresponding to the provided name,
