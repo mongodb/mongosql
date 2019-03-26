@@ -22,9 +22,11 @@ func TestDefault(t *testing.T) {
 
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
 	testUint64(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
-	testSampleMode(t, cfg.Schema.Sample.Mode, "read", "cfg.Schema.Sample.Mode")
+	testInt64(t, cfg.Schema.RefreshIntervalSecs, 0, "cfg.Schema.RefreshIntervalSecs")
+	testStoredSchemaMode(t, cfg.Schema.Stored.Mode, NoStoredSchemaMode, "cfg.Schema.Stored.Mode")
+	testString(t, cfg.Schema.Stored.Source, "", "cfg.Schema.Stored.Source")
+	testString(t, cfg.Schema.Stored.Name, "defaultSchema", "cfg.Schema.Stored.Name")
 	testString(t, cfg.Schema.Sample.SchemaMappingMode, "lattice", "cfg.Schema.Sample.SchemaMappingMode")
-	testString(t, cfg.Schema.Sample.Source, "", "cfg.Schema.Sample.Source")
 	testInt64(t, cfg.Schema.Sample.Size, 1000, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, false, "cfg.Schema.Sample.PreJoin")
 	testBool(t, cfg.Schema.Sample.OptimizeViewSampling, true,
@@ -38,7 +40,7 @@ func TestDefault(t *testing.T) {
 		[]string{"*.*"},
 		"cfg.Schema.Sample.Namespaces",
 	)
-	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 0, "cfg.Schema.Sample.RefreshIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
 	testString(t,
 		cfg.Schema.Sample.UUIDSubtype3Encoding,
 		"old",
@@ -162,15 +164,16 @@ func TestLoad(t *testing.T) {
 
 	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
 	testUint64(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
-	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
+	testInt64(t, cfg.Schema.RefreshIntervalSecs, 983, "cfg.Schema.RefreshIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
+	testStoredSchemaMode(t, cfg.Schema.Stored.Mode, CustomStoredSchemaMode, "cfg.Schema.Stored.Mode")
 	testString(t, cfg.Schema.Sample.SchemaMappingMode, "majority", "cfg.Schema.Sample.SchemaMappingMode")
-	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
+	testString(t, cfg.Schema.Stored.Source, "sampleDb", "cfg.Schema.Stored.Source")
+	testString(t, cfg.Schema.Stored.Name, "mySchema", "cfg.Schema.Stored.Name")
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
 	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"},
 		"cfg.Schema.Sample.Namespaces")
-	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecs, 983,
-		"cfg.Schema.Sample.RefreshIntervalSecs")
 	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java",
 		"cfg.Schema.Sample.UUIDSubtype3Encoding",
 	)
@@ -350,7 +353,7 @@ func TestValidate_Invalid_Server_MinimumTLSVersion(t *testing.T) {
 
 func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 	cfg := Default()
-	cfg.Schema.Sample.Source = "test"
+	cfg.Schema.Stored.Source = "test"
 
 	cfg.MongoDB.Net.Auth.Mechanism = "foo"
 
@@ -368,7 +371,7 @@ func TestValidate_Invalid_SampleAuth_Mechanism(t *testing.T) {
 func TestValidate_Invalid_Sample_MaxNumColumnsPerTable(t *testing.T) {
 	cfg := Default()
 	cfg.Schema.Sample.MaxNumColumnsPerTable = 0
-	cfg.Schema.Sample.Source = "test"
+	cfg.Schema.Stored.Source = "test"
 
 	err := Validate(cfg)
 	if err == nil {
@@ -384,7 +387,7 @@ func TestValidate_Invalid_Sample_MaxNumColumnsPerTable(t *testing.T) {
 func TestValidate_Invalid_Sample_MaxNestedTableDepth(t *testing.T) {
 	cfg := Default()
 	cfg.Schema.Sample.MaxNestedTableDepth = -1
-	cfg.Schema.Sample.Source = "test"
+	cfg.Schema.Stored.Source = "test"
 
 	err := Validate(cfg)
 	if err == nil {
@@ -399,7 +402,7 @@ func TestValidate_Invalid_Sample_MaxNestedTableDepth(t *testing.T) {
 
 func TestValidate_Valid_SampleAuth_Mechanism(t *testing.T) {
 	cfg := Default()
-	cfg.Schema.Sample.Source = "test"
+	cfg.Schema.Stored.Source = "test"
 
 	cfg.MongoDB.Net.Auth.Mechanism = "SCRAM-SHA-1"
 	err := Validate(cfg)
@@ -426,21 +429,21 @@ func TestValidate_Valid_SampleAuth_Mechanism(t *testing.T) {
 	}
 }
 
-func TestValidate_Sample_Invalid_Mode(t *testing.T) {
+func TestValidate_Invalid_Stored_Schema_Mode(t *testing.T) {
 	tests := []struct {
-		mode  SampleMode
+		mode  StoredSchemaMode
 		valid bool
 	}{
-		{ReadSampleMode, true},
-		{WriteSampleMode, true},
-		{SampleMode("nope"), false},
+		{AutoStoredSchemaMode, true},
+		{CustomStoredSchemaMode, true},
+		{StoredSchemaMode("nope"), false},
 	}
 
 	for _, test := range tests {
 		t.Run(string(test.mode), func(t *testing.T) {
 			cfg := Default()
-			cfg.Schema.Sample.Source = "temp"
-			cfg.Schema.Sample.Mode = test.mode
+			cfg.Schema.Stored.Source = "temp"
+			cfg.Schema.Stored.Mode = test.mode
 
 			err := Validate(cfg)
 			if err != nil && test.valid {
@@ -516,7 +519,7 @@ func TestValidate_Sample_Invalid_Namespaces(t *testing.T) {
 	}
 }
 
-func TestValidate_Sample_Invalid_Source(t *testing.T) {
+func TestValidate_Invalid_Stored_Schema_Source(t *testing.T) {
 	tests := []struct {
 		source string
 		valid  bool
@@ -530,7 +533,7 @@ func TestValidate_Sample_Invalid_Source(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.source, func(t *testing.T) {
 			cfg := Default()
-			cfg.Schema.Sample.Source = test.source
+			cfg.Schema.Stored.Source = test.source
 
 			err := Validate(cfg)
 			if err != nil && test.valid {
@@ -544,7 +547,7 @@ func TestValidate_Sample_Invalid_Source(t *testing.T) {
 	}
 }
 
-func TestValidate_Sample_Source_And_Schema(t *testing.T) {
+func TestValidate_Stored_Schema_Source_And_Schema_File(t *testing.T) {
 	tests := []struct {
 		source string
 		schema string
@@ -559,7 +562,7 @@ func TestValidate_Sample_Source_And_Schema(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.source, func(t *testing.T) {
 			cfg := Default()
-			cfg.Schema.Sample.Source = test.source
+			cfg.Schema.Stored.Source = test.source
 			cfg.Schema.Path = test.schema
 			err := Validate(cfg)
 			if err != nil && test.valid {
@@ -573,33 +576,16 @@ func TestValidate_Sample_Source_And_Schema(t *testing.T) {
 	}
 }
 
-func TestValidate_Sample_StandaloneWriter(t *testing.T) {
+func TestValidate_CustomMode_Source(t *testing.T) {
 	cfg := Default()
-	cfg.Schema.Sample.Mode = WriteSampleMode
+	cfg.Schema.Stored.Mode = CustomStoredSchemaMode
 
 	err := Validate(cfg)
 	if err == nil {
 		t.Fatalf("expected an error, but got none")
 	}
 
-	expected := "sample mode 'write' requires a non-empty sample source"
-	if err.Error() != expected {
-		t.Fatalf("expected error to be '%s', but go '%s'", expected, err)
-	}
-}
-
-func TestValidate_Sample_ClusteredSamplingReader(t *testing.T) {
-	cfg := Default()
-	cfg.Schema.Sample.Source = "somewhere"
-	cfg.Schema.Sample.RefreshIntervalSecs = 1
-
-	err := Validate(cfg)
-	if err == nil {
-		t.Fatalf("expected an error, but got none")
-	}
-
-	expected := "sample mode 'read' with a non-empty sample source cannot specify " +
-		"a sample refresh interval"
+	expected := "stored schema modes require a non-empty schema source"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but go '%s'", expected, err)
 	}
@@ -699,7 +685,7 @@ func TestValidate_auth_specified_without_admin_creds(t *testing.T) {
 func TestValidate_admin_creds_specified_but_auth_disabled(t *testing.T) {
 	cfg := Default()
 	cfg.MongoDB.Net.Auth.Username = "foo"
-	cfg.Schema.Sample.Source = "test"
+	cfg.Schema.Stored.Source = "test"
 
 	err := Validate(cfg)
 	if err == nil {
@@ -929,7 +915,7 @@ func TestValidate_LogRotate_unsupported(t *testing.T) {
 func TestValidate_Invalid_SampleSize(t *testing.T) {
 	cfg := Default()
 	cfg.Schema.Sample.Size = -1
-	cfg.Schema.Sample.Source = "test"
+	cfg.Schema.Stored.Source = "test"
 
 	err := Validate(cfg)
 	if err == nil {
@@ -1046,7 +1032,7 @@ func testInt64(t *testing.T, actual, expected int64, key string) {
 }
 
 // nolint: unparam
-func testSampleMode(t *testing.T, actual, expected SampleMode, key SampleMode) {
+func testStoredSchemaMode(t *testing.T, actual, expected StoredSchemaMode, key StoredSchemaMode) {
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}

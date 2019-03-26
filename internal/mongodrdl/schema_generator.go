@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
+	"github.com/10gen/sqlproxy/schema/sample"
 
 	yaml "github.com/10gen/candiedyaml"
 )
@@ -90,33 +90,15 @@ func databaseSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) ([]byt
 // schemaForNamespaces returns the YAML marshaled bytes of the sampled
 // schema for the namespaces requested.
 func schemaForNamespaces(ctx context.Context, lg log.Logger, opts DrdlOptions, ns []string) ([]byte, error) {
-	session, err := getSession(ctx, opts)
+	sp, err := newDrdlSessionProvider(opts)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = session.Close() }()
+	// TODO ensure this is closed
 
-	cfg := config.NewSchemaSampleOptions(
-		1000,                                 // maxNestedTableDepth
-		1000,                                 // maxNumColumnsPerTable
-		config.ReadSampleMode,                // mode
-		ns,                                   // namespaces
-		true,                                 // optimizeViewSampling
-		opts.DrdlOutput.PreJoined,            // preJoin
-		0,                                    // refreshIntervalSecs
-		config.LatticeMappingMode,            // schemaMappingMode
-		opts.DrdlSample.Size,                 // size
-		"",                                   // source
-		opts.DrdlOutput.UUIDSubtype3Encoding, // uuidSubtype3Encoding
-	)
-
-	sqldSchema, _, err := sample.Schema(
-		ctx,
-		sample.NewSchemaSampleOptions(&cfg),
-		"mongodrdl",
-		session,
-		lg,
-	)
+	sampleCfg := newSampleConfig(opts, ns)
+	sampler := sample.NewSampler(sampleCfg, lg, sp)
+	sqldSchema, err := sampler.Sample(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -149,4 +131,23 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts DrdlOptions, n
 	}
 
 	return sqldSchema.ToDRDL().ToYAML()
+}
+
+func newSampleConfig(opts DrdlOptions, ns []string) sample.Config {
+	cfg := &config.Schema{
+		Stored: config.SchemaStorageOptions{
+			Source: "",
+		},
+		Sample: config.NewSchemaSampleOptions(
+			1000,                                 // maxNestedTableDepth
+			1000,                                 // maxNumColumnsPerTable
+			ns,                                   // namespaces
+			true,                                 // optimizeViewSampling
+			opts.DrdlOutput.PreJoined,            // preJoin
+			config.LatticeMappingMode,            // schemaMappingMode
+			opts.DrdlSample.Size,                 // size
+			opts.DrdlOutput.UUIDSubtype3Encoding, // uuidSubtype3Encoding
+		),
+	}
+	return sample.NewMongosqldConfig(cfg, nil)
 }

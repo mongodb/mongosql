@@ -11,11 +11,11 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/sample"
 
 	"github.com/pkg/errors"
 )
@@ -29,7 +29,7 @@ type Translator struct {
 
 // NewTranslator creates a new Translator by fetching and translating the latest
 // schema stored in the sampleSource database.
-func NewTranslator(ctx context.Context, o *config.SchemaSampleOptions, s *mongodb.SessionProvider) (*Translator, error) {
+func NewTranslator(ctx context.Context, cfg *config.Schema, s *mongodb.SessionProvider) (*Translator, error) {
 	lgr := log.GlobalLogger()
 
 	session, err := s.AuthenticatedAdminSession(context.Background())
@@ -37,7 +37,9 @@ func NewTranslator(ctx context.Context, o *config.SchemaSampleOptions, s *mongod
 		return nil, err
 	}
 
-	sch, err := sample.ReadSchema(ctx, sample.NewSchemaSampleOptions(o), session, lgr)
+	sampleCfg := sample.NewMongosqldConfig(cfg, nil)
+	sampler := sample.NewSampler(sampleCfg, lgr, s)
+	sch, err := sampler.Sample(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -46,9 +48,8 @@ func NewTranslator(ctx context.Context, o *config.SchemaSampleOptions, s *mongod
 		return nil, fmt.Errorf("no schema found in sampleSource")
 	}
 
-	cfg := config.Default()
-
-	info, err := mongodb.LoadInfo(ctx, lgr, s, session, sch, cfg)
+	defaultCfg := config.Default()
+	info, err := mongodb.LoadInfo(ctx, lgr, s, session, sch, defaultCfg)
 	if err != nil {
 		return nil, err
 	}

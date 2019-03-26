@@ -618,19 +618,22 @@ func (o *metricsOptions) mapToConfig(cfg *Config) error {
 
 // nolint: lll
 type schemaOptions struct {
-	Schema           *string `long:"schema" description:"the path to a schema file"`
-	SchemaDir        *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
-	MaxVarcharLength *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
+	Schema                    *string `long:"schema" description:"the path to a schema file"`
+	SchemaDir                 *string `long:"schemaDirectory" description:"the path to a directory containing schema files to load"`
+	MaxVarcharLength          *uint16 `long:"maxVarcharLength" description:"the maximum length of a varchar"`
+	SchemaRefreshIntervalSecs *int64  `long:"schemaRefreshIntervalSecs" description:"the interval (in seconds) mongosqld waits before updating its schema"`
 
-	SampleSource *string `long:"sampleSource" description:"database to use for reading/writing sampled schema"`
-	SampleMode   *string `long:"sampleMode" description:"set the mongosqld sampling operation mode ('read' by default)" choice:"read" choice:"write"`
-	SampleSize   *int64  `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (1000 by default)"`
-	PreJoin      *bool   `long:"prejoin" description:"generate unwound tables including parent columns, effectively resulting in a pre-joined table"`
+	StoredSchemaSource *string `long:"schemaSource" description:"database to use for stored schemas"`
+	StoredSchemaMode   *string `long:"schemaMode" description:"set the stored-schema mode ('' by default)" choice:"auto" choice:"custom"`
+	StoredSchemaName   *string `long:"schemaName" description:"the name of the stored schema to use in custom mode ('defaultSchema' by default)"`
+
+	SampleSize *int64 `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (1000 by default)"`
+	PreJoin    *bool  `long:"prejoin" description:"generate unwound tables including parent columns, effectively resulting in a pre-joined table"`
 
 	// Namespaces will append the namespace every time the option is encountered
 	// (can be set multiple times, like --sampleNamespaces foo.* --sampleNamespaces bar.*_dev)
 	SampleNamespaces           []string `long:"sampleNamespaces" value-name:"<sample namespaces>" description:"namespace(s) to sample in generating schema (defaults to all namespaces - except admin and local databases)"`
-	SampleRefreshIntervalSecs  *int64   `long:"sampleRefreshIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the schema(s)"`
+	SampleRefreshIntervalSecs  *int64   `long:"sampleRefreshIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the schema(s)" hidden:"true"`
 	SampleUUIDSubtype3Encoding *string  `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
 	SchemaMappingMode          *string  `long:"schemaMappingMode" hidden:"true" description:"schema mapping mode to use" choice:"lattice" choice:"majority"`
 }
@@ -658,12 +661,29 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 		cfg.Schema.MaxVarcharLength = uint64(*o.MaxVarcharLength)
 	}
 
-	if !isEmptyOrUnset(o.SampleMode) {
-		cfg.Schema.Sample.Mode = SampleMode(*o.SampleMode)
+	if o.SchemaRefreshIntervalSecs != nil && o.SampleRefreshIntervalSecs != nil {
+		return fmt.Errorf("must specify only one of --schemaRefreshIntervalSecs or --sampleRefreshIntervalSecs")
 	}
 
-	if !isEmptyOrUnset(o.SampleSource) {
-		cfg.Schema.Sample.Source = *o.SampleSource
+	if o.SchemaRefreshIntervalSecs != nil {
+		cfg.Schema.RefreshIntervalSecs = *o.SchemaRefreshIntervalSecs
+	}
+
+	if o.SampleRefreshIntervalSecs != nil {
+		// TODO deprecation warning?
+		cfg.Schema.RefreshIntervalSecs = *o.SampleRefreshIntervalSecs
+	}
+
+	if !isEmptyOrUnset(o.StoredSchemaMode) {
+		cfg.Schema.Stored.Mode = StoredSchemaMode(*o.StoredSchemaMode)
+	}
+
+	if !isEmptyOrUnset(o.StoredSchemaSource) {
+		cfg.Schema.Stored.Source = *o.StoredSchemaSource
+	}
+
+	if !isEmptyOrUnset(o.StoredSchemaName) {
+		cfg.Schema.Stored.Name = *o.StoredSchemaName
 	}
 
 	if o.SampleSize != nil {
@@ -676,10 +696,6 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 
 	if o.SampleNamespaces != nil {
 		cfg.Schema.Sample.Namespaces = o.SampleNamespaces
-	}
-
-	if o.SampleRefreshIntervalSecs != nil {
-		cfg.Schema.Sample.RefreshIntervalSecs = *o.SampleRefreshIntervalSecs
 	}
 
 	if !isEmptyOrUnset(o.SampleUUIDSubtype3Encoding) {

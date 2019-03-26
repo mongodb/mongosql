@@ -444,9 +444,9 @@ functions:
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-majority"
         fi
 
-        if [ "${var_clustered_write}" = "true" ]; then
-            # use clustered-write mode so that the benchmark harness can grab the schema directly from mongodb
-            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/clustered,sqlproxy/schema/write"
+        if [ "${var_custom_schema_mode}" = "true" ]; then
+            # use custom-schema mode so that the benchmark harness can grab the schema directly from mongodb
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/custom"
         fi
 
         ${SCRIPT_DIR}/start-mongosqld.sh
@@ -691,7 +691,7 @@ tasks:
         var_version: 4.0
     - func: "run unit benchmarks"
       vars:
-        var_package: internal/sample
+        var_package: schema/sample
     - func: "process benchmark results"
       vars:
         var_type: unit
@@ -784,7 +784,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_mode: lattice
-        var_clustered_write: 'true'
+        var_custom_schema_mode: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead
@@ -804,7 +804,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_mode: lattice
-        var_clustered_write: 'true'
+        var_custom_schema_mode: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead
@@ -824,7 +824,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_mode: lattice
-        var_clustered_write: 'true'
+        var_custom_schema_mode: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead
@@ -844,7 +844,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_mode: lattice
-        var_clustered_write: 'true'
+        var_custom_schema_mode: 'true'
     - func: "run benchmarks"
       vars:
         var_type: overhead
@@ -1213,10 +1213,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-mongo-auth-alter-failure
-  tags: ["test", "config"]
-
-- <<: *run-config-test
   name: test-mongo-auth-set-failure
   tags: ["test", "config"]
 
@@ -1329,10 +1325,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-read-v1-schema
-  tags: ["test", "config"]
-
-- <<: *run-config-test
   name: test-read-ssl
   tags: ["test", "config", "mongo-ssl"]
 
@@ -1441,10 +1433,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-read-most-recent
-  tags: ["test", "config"]
-
-- <<: *run-config-test
   name: test-read-after-sampling
   tags: ["test", "config"]
 
@@ -1473,11 +1461,11 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-alter-clustered-read
+  name: test-alter-auto-mode
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-alter-clustered-write
+  name: test-alter-custom-mode
   tags: ["test", "config"]
 
 - <<: *run-config-test

@@ -28,7 +28,7 @@ const (
 	RewriterComponent   = "REWRITER"
 	AlgebrizerComponent = "ALGEBRIZER"
 	LoggerComponent     = "LOGGER"
-	SamplerComponent    = "SAMPLER"
+	SchemaComponent     = "SCHEMA"
 	MongodrdlComponent  = "MONGODRDL"
 	EvaluatorComponent  = "EVALUATOR"
 )
@@ -108,6 +108,21 @@ type Logger interface {
 	GetComponent() string
 	getParent() *parentLogger
 }
+
+// NoOpLogger returns a Logger that does not print any messages.
+func NoOpLogger() Logger {
+	return noopLogger{}
+}
+
+type noopLogger struct{}
+
+func (noopLogger) Infof(Verbosity, string, ...interface{})  {}
+func (noopLogger) Debugf(Verbosity, string, ...interface{}) {}
+func (noopLogger) Warnf(Verbosity, string, ...interface{})  {}
+func (noopLogger) Errf(Verbosity, string, ...interface{})   {}
+func (noopLogger) Fatalf(Verbosity, string, ...interface{}) {}
+func (noopLogger) GetComponent() string                     { return "" }
+func (noopLogger) getParent() *parentLogger                 { return nil }
 
 type parentLogger struct {
 	buffer *writeBuffer

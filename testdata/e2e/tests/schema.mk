@@ -15,9 +15,6 @@ test-schema-unavailable: test-sample-connect-failure
 _write-initial-schema:
 	$(ENV) GENERATION=0 testdata/bin/write-schema.sh
 
-_write-v1-schema:
-	$(ENV) GENERATION=0 PROTOCOL=v1 testdata/bin/write-schema.sh
-
 _write-mixed-case-document:
 	testdata/bin/write-mixed-case-document.sh
 
@@ -26,9 +23,6 @@ _write-polymorphic-data:
 
 _write-updated-schema:
 	$(ENV) GENERATION=1 testdata/bin/write-schema.sh
-
-test-read-v1-schema: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
-test-read-v1-schema: build-mongosqld run-mongodb _write-initial-docs _write-v1-schema run-mongosqld _test-connect-success _test-read-schema
 
 test-read-schema: build-mongosqld run-mongodb _write-initial-docs _write-initial-schema run-mongosqld _test-schema-available _test-connect-success _test-read-schema
 _test-read-schema: TABLE := sample_test
@@ -111,19 +105,19 @@ _test-schema-mapping-mode-updated: NEW_SHELL_PER_CMD := 1
 _test-schema-mapping-mode-updated: _test-mysql-query
 
 # test that basic schema reading works fine
-test-read-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
+test-read-simple: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/custom
 test-read-simple: test-read-schema
 
 # test that reading works fine with ssl
-test-read-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,mongo/ssl/basic,sqlproxy/mongo-ssl/enabled
+test-read-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/custom,mongo/ssl/basic,sqlproxy/mongo-ssl/enabled
 test-read-ssl: test-read-schema
 
 # test that reading works fine with auth
-test-read-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered,mongo/auth,sqlproxy/auth/enabled,sqlproxy/auth/admin-creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
+test-read-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/custom,mongo/auth,sqlproxy/auth/enabled,sqlproxy/auth/admin-creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-read-auth: test-read-schema
 
 # test that read-only mongosqlds get an updated schema for each new connection
-test-read-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
+test-read-updated: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/custom
 test-read-updated: build-mongosqld run-mongodb _write-initial-schema run-mongosqld _test-connect-success _write-updated-schema _test-read-updated-schema
 
 # test that basic sampling works fine
@@ -189,7 +183,7 @@ _test-sample-refresh-interval-update: _write-initial-docs _update-sample-refresh
 test-sample-refresh-interval-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-all
 test-sample-refresh-interval-update: _test-sample-refresh-interval-update
 
-test-sample-refresh-interval-update-write: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-all,sqlproxy/schema/clustered,sqlproxy/schema/write
+test-sample-refresh-interval-update-write: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/sample-all,sqlproxy/schema/auto
 test-sample-refresh-interval-update-write: _test-sample-refresh-interval-update
 
 # If our sample size global system variable was not updated to the given sample
@@ -278,10 +272,6 @@ test-sample-auth-failure-4.0: test-schema-unavailable
 
 test-sample-auth-failure-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth
 test-sample-auth-failure-latest: test-schema-unavailable
-
-# when there are multiple schema versions available, make sure we use the one with the highest generation
-test-read-most-recent: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,sqlproxy/schema/clustered
-test-read-most-recent: build-mongosqld run-mongodb _write-initial-schema _write-updated-schema run-mongosqld _test-connect-success _test-read-updated-schema
 
 # even if we sampled the first schema, we should use a stored schema when one becomes available
 test-read-after-sampling: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority

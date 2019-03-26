@@ -3,7 +3,6 @@ package schema
 import (
 	"fmt"
 	"strings"
-	"time"
 )
 
 // AlterationType is an enum that represents the type of change being made by a
@@ -20,7 +19,6 @@ const (
 
 // An Alteration specifies a change to be made to the schema of a SQL table.
 type Alteration struct {
-	Timestamp     time.Time      `bson:"timestamp"`
 	Type          AlterationType `bson:"type"`
 	Db            string         `bson:"db"`
 	Table         string         `bson:"table"`
@@ -33,7 +31,6 @@ type Alteration struct {
 // DeepCopy returns a deep copy of this Alteration.
 func (a *Alteration) DeepCopy() *Alteration {
 	return &Alteration{
-		Timestamp:     a.Timestamp,
 		Type:          a.Type,
 		Db:            a.Db,
 		Table:         a.Table,

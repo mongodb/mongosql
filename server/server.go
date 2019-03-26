@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"os"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,11 +18,11 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
-	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"github.com/10gen/sqlproxy/schema/manager"
 	"github.com/shopspring/decimal"
 )
 
@@ -34,32 +32,27 @@ func New(ctx context.Context, cnl context.CancelFunc, sch *schema.Schema, sp *mo
 	decimal.DivisionPrecision = 34
 	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
 	logger := log.NewComponentLogger(component, log.GlobalLogger())
+	globalVars := variable.NewGlobalContainer(cfg)
+
+	schemaManager := manager.NewManager(
+		manager.NewMongosqldConfig(&cfg.Schema, globalVars, sch),
+		log.GlobalLogger(),
+		sp, cfg.Schema.Stored.Source,
+	)
 
 	s := &Server{
 		cfg:               cfg,
 		cancelCtx:         cnl,
 		activeConnections: make(map[uint32]*conn),
-		fileBasedSchema:   sch,
+		schemaManager:     schemaManager,
 		sessionProvider:   sp,
-		variables:         variable.NewGlobalContainer(cfg),
+		variables:         globalVars,
 		logger:            logger,
 		memoryMonitor:     memory.NewMonitor("Server", cfg.Runtime.Memory.MaxPerServer),
 		recordsChan:       make(chan []metrics.Record),
 	}
 
 	s.variables.AllocatedMemory = s.memoryMonitor.Allocated
-	s.variables.SetSystemVariable(variable.SampleSize,
-		values.NewSQLInt64(values.VariableSQLValueKind, s.cfg.Schema.Sample.Size))
-	s.variables.SetSystemVariable(
-		variable.SampleRefreshIntervalSecs,
-		values.NewSQLInt64(values.VariableSQLValueKind, s.cfg.Schema.Sample.RefreshIntervalSecs))
-
-	hostname, err := os.Hostname()
-	if err != nil {
-		hostname = strings.Join(s.cfg.Net.BindIP, ",")
-	}
-
-	s.processName = fmt.Sprintf("mongosqld-%s-%d-%s", hostname, os.Getpid(), randomString(6))
 
 	if err := s.populateListeners(); err != nil {
 		return nil, fmt.Errorf("error populating listeners: %v", err)
@@ -88,11 +81,7 @@ type Server struct {
 
 	logger log.Logger
 
-	processName string
-
-	fileBasedSchemaMx sync.RWMutex
-	fileBasedSchema   *schema.Schema
-	sampler           *sample.Sampler
+	schemaManager *manager.Manager
 
 	sessionProvider *mongodb.SessionProvider
 	variables       *variable.Container
@@ -109,20 +98,7 @@ func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.
 	if !s.variables.GetBool(variable.EnableTableAlterations) {
 		return nil, fmt.Errorf("cannot alter schema: alterations not enabled")
 	}
-
-	s.fileBasedSchemaMx.Lock()
-	if s.fileBasedSchema != nil {
-		s.fileBasedSchema.AddAlterations(alts...)
-		s.fileBasedSchemaMx.Unlock()
-	} else {
-		s.fileBasedSchemaMx.Unlock()
-		err := s.sampler.Alter(ctx, alts)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return s.getSchema(ctx), nil
+	return s.schemaManager.Alter(ctx, alts)
 }
 
 // Close stops the server and stops accepting connections.
@@ -146,18 +122,6 @@ func (s *Server) Close(ctx context.Context) {
 	}
 
 	s.activeConnectionsMx.RUnlock()
-}
-
-func (s *Server) getSchema(ctx context.Context) *schema.Schema {
-	s.fileBasedSchemaMx.RLock()
-	if s.fileBasedSchema != nil {
-		fileBasedSchema := s.fileBasedSchema
-		s.fileBasedSchemaMx.RUnlock()
-		return fileBasedSchema
-	}
-	s.fileBasedSchemaMx.RUnlock()
-
-	return s.sampler.Schema(ctx)
 }
 
 // isAdminUser returns true if the passed user is the AdminUser.
@@ -239,19 +203,7 @@ func (s *Server) killQuery(ctx context.Context, targetConnID uint32, requestingC
 
 // Resample forces a sample refresh.
 func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
-	s.fileBasedSchemaMx.RLock()
-	if s.fileBasedSchema != nil {
-		s.fileBasedSchemaMx.RUnlock()
-		return nil, fmt.Errorf("sampling is disabled; schema was loaded from a file")
-	}
-	s.fileBasedSchemaMx.RUnlock()
-
-	err := s.sampler.Refresh(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return s.getSchema(ctx), nil
+	return s.schemaManager.Resample(ctx)
 }
 
 // loadMongoDBInfo loads MongoDB-specific information for the server.
@@ -316,21 +268,8 @@ func (s *Server) Run(ctx context.Context) {
 		}
 	}
 
-	// Asynchronously load the schema from MongoDB by sampling if needed.
-	if s.fileBasedSchema == nil {
-		s.sampler = sample.NewSampler(
-			&s.cfg.Schema.Sample,
-			s.processName,
-			s.sessionProvider,
-			s.variables,
-		)
-		procutil.PanicSafeGo(func() {
-			s.sampler.Run(ctx)
-		}, func(err interface{}) {
-			s.logger.Fatalf(log.Always, "error sampling schema: %v", err)
-			s.Close(ctx)
-		})
-	}
+	// start the schema manager
+	s.schemaManager.Start()
 
 	// Asynchronously send metrics records to the current metrics backend.
 	procutil.PanicSafeGo(func() {

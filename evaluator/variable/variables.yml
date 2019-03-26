@@ -376,7 +376,7 @@ system_variables:
     type: SQLBool
 
   - _id: sampleRefreshIntervalSecs
-    config_field: Schema.Sample.RefreshIntervalSecs
+    config_field: Schema.RefreshIntervalSecs
     default: 0
     name: 'sample_refresh_interval_secs'
     set_scopes: [global]

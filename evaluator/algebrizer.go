@@ -539,7 +539,6 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, newColName)
 			}
 			alteration := &schema.Alteration{
-				Timestamp: time.Now(),
 				Type:      schema.RenameColumn,
 				Db:        a.cfg.dbName,
 				Table:     tableName,
@@ -561,11 +560,10 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 				return nil, fmt.Errorf("cannot drop column %s: not allowed", colName)
 			}
 			alteration := &schema.Alteration{
-				Timestamp: time.Now(),
-				Type:      schema.DropColumn,
-				Db:        a.cfg.dbName,
-				Table:     tableName,
-				Column:    colName,
+				Type:   schema.DropColumn,
+				Db:     a.cfg.dbName,
+				Table:  tableName,
+				Column: colName,
 			}
 			alterations = append(alterations, alteration)
 
@@ -576,7 +574,6 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 				return nil, err
 			}
 			alteration := &schema.Alteration{
-				Timestamp:     time.Now(),
 				Type:          schema.ModifyColumn,
 				Db:            a.cfg.dbName,
 				Table:         tableName,
@@ -592,11 +589,10 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, newTableName)
 			}
 			alteration := &schema.Alteration{
-				Timestamp: time.Now(),
-				Type:      schema.RenameTable,
-				Db:        a.cfg.dbName,
-				Table:     tableName,
-				NewTable:  newTableName,
+				Type:     schema.RenameTable,
+				Db:       a.cfg.dbName,
+				Table:    tableName,
+				NewTable: newTableName,
 			}
 			alterations = append(alterations, alteration)
 
@@ -640,11 +636,10 @@ func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCom
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, newTableName)
 		}
 		alteration := &schema.Alteration{
-			Timestamp: time.Now(),
-			Type:      schema.RenameTable,
-			Db:        a.cfg.dbName,
-			Table:     tableName,
-			NewTable:  newTableName,
+			Type:     schema.RenameTable,
+			Db:       a.cfg.dbName,
+			Table:    tableName,
+			NewTable: newTableName,
 		}
 		alterations = append(alterations, alteration)
 

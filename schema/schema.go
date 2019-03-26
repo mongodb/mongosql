@@ -11,10 +11,6 @@ import (
 
 // Schema represents a relational schema.
 type Schema struct {
-	// alterations is a slice of alterations that should be applied to the schema
-	// defined in databases in order to achieve the desired schema.
-	alterations []*Alteration
-
 	// databases is a slice of schemas for all of the databases in the schema.
 	databases map[normalizedName]*Database
 	// cachedSortedDatabases is the cached result of the last call to DatabasesSorted. If it
@@ -32,14 +28,13 @@ func New(dbs []*Database, alterations []*Alteration) (*Schema, error) {
 	s := &Schema{
 		databases: map[normalizedName]*Database{},
 	}
-	s.AddAlterations(alterations...)
 	for _, db := range dbs {
 		err := s.AddDatabase(db)
 		if err != nil {
 			return nil, err
 		}
 	}
-	return s, nil
+	return s.Altered(alterations...)
 }
 
 // NewFromDRDL returns a new schema that is built from the provided DRDL schema.
@@ -59,12 +54,6 @@ func NewFromDRDL(lg log.Logger, drdl *drdl.Schema) (*Schema, error) {
 	return New(dbs, nil)
 }
 
-// AddAlterations adds the provided alterations to the end of this Schema's list
-// of alterations.
-func (s *Schema) AddAlterations(alts ...*Alteration) {
-	s.alterations = append(s.alterations, alts...)
-}
-
 // AddDatabase attempts to add the provided database to the schema. If the
 // database's name conflicts with the name of an existing database, an error is
 // returned.
@@ -80,31 +69,23 @@ func (s *Schema) AddDatabase(d *Database) error {
 	return nil
 }
 
-// Alterations returns this Schema's list of alterations.
-func (s *Schema) Alterations() []*Alteration {
-	alterations := s.alterations
-	return alterations
-}
-
 // Altered returns a new Schema that is equivalent to the current schema with
-// its alterations applied. The returned schema will have an empty Alterations
-// slice.
-func (s *Schema) Altered() (*Schema, error) {
-	if len(s.Alterations()) == 0 {
+// the provided alterations applied.
+func (s *Schema) Altered(alts ...*Alteration) (*Schema, error) {
+	if len(alts) == 0 {
 		return s, nil
 	}
 
 	newSchema := s.DeepCopy()
 
-	for _, a := range s.Alterations() {
+	for _, a := range alts {
 		err := a.alter(newSchema)
 		if err != nil {
 			return nil, fmt.Errorf("could not alter schema: %v", err)
 		}
 	}
 
-	newSchema.alterations = nil
-	s.invalidateCachedSort()
+	newSchema.invalidateCachedSort()
 	return newSchema, nil
 }
 
@@ -160,14 +141,8 @@ func (s *Schema) DeepCopy() *Schema {
 		dbs[key] = db.DeepCopy()
 	}
 
-	alts := []*Alteration{}
-	for _, alt := range s.alterations {
-		alts = append(alts, alt.DeepCopy())
-	}
-
 	return &Schema{
-		alterations: alts,
-		databases:   dbs,
+		databases: dbs,
 	}
 }
 

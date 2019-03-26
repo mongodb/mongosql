@@ -261,7 +261,7 @@ func (svc *systemVariableContainer) setFromConfig(cfg *config.Config) {
 	svc.polymorphicTypeConversionMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.PolymorphicTypeConversionMode)
 	svc.pushdown = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.Pushdown)
 	svc.rewriteDistinctAsGroup = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.RewriteDistinctAsGroup)
-	svc.sampleRefreshIntervalSecs = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.RefreshIntervalSecs)
+	svc.sampleRefreshIntervalSecs = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.RefreshIntervalSecs)
 	svc.sampleSize = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.Size)
 	svc.schemaMappingMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.Schema.Sample.SchemaMappingMode)
 	svc.typeConversionMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.TypeConversionMode)

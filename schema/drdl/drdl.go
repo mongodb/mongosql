@@ -44,10 +44,10 @@ type Table struct {
 
 // Column represents a DRDL column definition.
 type Column struct {
-	MongoName string `yaml:"Name"`
-	MongoType string `yaml:"MongoType"`
-	SQLName   string `yaml:"SqlName"`
-	SQLType   string `yaml:"SqlType"`
+	MongoName string `yaml:"Name" bson:"mongo_name"`
+	MongoType string `yaml:"MongoType" bson:"mongo_type"`
+	SQLName   string `yaml:"SqlName" bson:"sql_name"`
+	SQLType   string `yaml:"SqlType" bson:"sql_type"`
 }
 
 // NewFromDir returns a new Schema loaded from DRDL files in the specified

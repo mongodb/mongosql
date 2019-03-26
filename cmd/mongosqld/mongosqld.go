@@ -233,6 +233,12 @@ func (p *program) loadConfig(args []string) ([]string, error) {
 		return nil, err
 	}
 
+	if cfg.SetParameter.EnableTableAlterations {
+		msg := "schema modification via DDL is deprecated and will be removed in a future release."
+		msg += " Please provide a DRDL file or use custom-schema mode instead."
+		_, _ = fmt.Fprintln(os.Stderr, "WARNING: "+msg)
+	}
+
 	p.cfg = cfg
 	return args, nil
 }
@@ -259,7 +265,7 @@ func (p *program) loadSchema() error {
 		}
 
 		lgr := log.NewComponentLogger(
-			fmt.Sprintf("%-10v [schemaParsing]", log.SamplerComponent),
+			fmt.Sprintf("%-10v [parsing]", log.SchemaComponent),
 			p.controlLogger,
 		)
 

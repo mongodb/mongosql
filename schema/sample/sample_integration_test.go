@@ -1,25 +1,20 @@
 //+build integration
 
-package sample_test
+package sample
 
 import (
 	"context"
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
-	. "github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
-	"github.com/10gen/sqlproxy/schema/mongo"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,7 +24,7 @@ const (
 )
 
 func init() {
-	cfg.Schema.Sample.Source = "sampleStore"
+	cfg.Schema.Stored.Source = "sampleStore"
 	cfg.Schema.Sample.Namespaces = []string{
 		"sampleTest*.*", "sampleStore.*",
 	}
@@ -63,7 +58,7 @@ func TestFetchNamespaces(t *testing.T) {
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
 
-	mappings, err := FetchNamespaces(context.Background(), session, lgr, matcher)
+	mappings, err := fetchNamespaces(context.Background(), session, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 
 	req.Equal(len(mappings[db1]), 1)
@@ -71,7 +66,7 @@ func TestFetchNamespaces(t *testing.T) {
 	req.Equal(len(mappings[db2]), 2)
 
 	dbutils.DropDatabase(session, db2)
-	mappings, err = FetchNamespaces(context.Background(), session, lgr, matcher)
+	mappings, err = fetchNamespaces(context.Background(), session, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 	_, found := mappings[db1]
 
@@ -110,9 +105,9 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 
 	baseCollection, view1, view2 := "baseCollection", "view-1-on-collection", "view-2-on-collection"
 
-	view1Ns := NewNamespaceWithoutID(db1, view1).String()
-	view2Ns := NewNamespaceWithoutID(db1, view2).String()
-	baseCollectionNs := NewNamespaceWithoutID(db1, baseCollection).String()
+	view1Ns := formatNamespace(db1, view1, false)
+	view2Ns := formatNamespace(db1, view2, false)
+	baseCollectionNs := formatNamespace(db1, baseCollection, false)
 
 	pipeline1 := bsonutil.NewD(
 		bsonutil.NewDocElem("$group", bsonutil.NewD(
@@ -156,258 +151,7 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 
 }
 
-func TestInsertSampleRecord(t *testing.T) {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
-	if err != nil {
-		t.Fatalf("failed to set up session provider to test server: %v", err)
-	}
-
-	session, err := provider.Session(context.Background())
-	if err != nil {
-		t.Fatalf("failed to set up session to test server: %v", err)
-	}
-
-	defer session.Close()
-	defer cleanupData(session)
-
-	Convey("With a given database", t, func() {
-		cleanupData(session)
-
-		Convey("inserting a sample record ", func() {
-			version := NewVersion("pname")
-			startTime := time.Now()
-			version.StartSampleTime = startTime
-			endTime := startTime.Add(3 * time.Minute)
-			version.EndSampleTime = endTime
-			namespace := NewNamespace(db1, c1, version.ID)
-			version.Databases = []VersionDatabase{
-				{Name: db1, Collections: []string{c1}},
-			}
-			record := &Record{
-				Database:   cfg.Schema.Sample.Source,
-				Version:    version,
-				Namespaces: []*Namespace{namespace},
-			}
-
-			err := InsertSampleRecord(context.Background(), record, session, lgr)
-			So(err, ShouldBeNil)
-
-			Convey("should match the version supplied", func() {
-				cursor := dbutils.Find(session, cfg.Schema.Sample.Source,
-					mongodb.VersionsCollection, 1000)
-				initialBatch := cursor.InitialBatch()
-				if l := len(initialBatch); l != 1 {
-					t.Fatalf("unexpected version collection document count: %v", l)
-				}
-				dbVersion := &Version{}
-				err = bson.Unmarshal(initialBatch[0].Data, dbVersion)
-				So(err, ShouldBeNil)
-				So(dbVersion.ProcessName, ShouldResemble, version.ProcessName)
-				So(dbVersion.Databases, ShouldResemble, version.Databases)
-				So(dbVersion.Protocol, ShouldResemble, version.Protocol)
-				So(dbVersion.Generation, ShouldResemble, version.Generation)
-
-				// MongoDB can only store up to millisecond precision
-				So(dbVersion.EndSampleTime.Truncate(time.Millisecond).String(),
-					ShouldResemble, version.EndSampleTime.Truncate(time.Millisecond).String())
-				So(dbVersion.StartSampleTime.Truncate(time.Millisecond).String(),
-					ShouldResemble, version.StartSampleTime.Truncate(time.Millisecond).String())
-			})
-
-			Convey("should match the namespace(s) supplied", func() {
-				Convey("should match the version supplied", func() {
-					cursor := dbutils.Find(
-						session,
-						cfg.Schema.Sample.Source,
-						mongodb.SchemasCollection,
-						1000,
-					)
-					initialBatch := cursor.InitialBatch()
-					if l := len(initialBatch); l != 1 {
-						t.Fatalf("unexpected schemas collection document count: %v", l)
-					}
-					dbNamespace := &Namespace{}
-					err = bson.Unmarshal(initialBatch[0].Data, dbNamespace)
-					So(err, ShouldBeNil)
-					// MongoDB can only store up to millisecond precision
-					So(dbNamespace.EndSampleTime.Truncate(time.Millisecond).String(),
-						ShouldResemble, namespace.EndSampleTime.Truncate(time.Millisecond).String())
-					So(
-						dbNamespace.StartSampleTime.Truncate(time.Millisecond).String(),
-						ShouldResemble,
-						namespace.StartSampleTime.Truncate(time.Millisecond).String(),
-					)
-					So(dbNamespace.Database, ShouldResemble, namespace.Database)
-					So(dbNamespace.Collection, ShouldResemble, namespace.Collection)
-					So(dbNamespace.SampleSize, ShouldResemble, namespace.SampleSize)
-					So(dbNamespace.VersionID, ShouldResemble, namespace.VersionID)
-				})
-			})
-		})
-	})
-}
-
-func TestReadSchema(t *testing.T) {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
-	if err != nil {
-		t.Fatalf("failed to set up session provider to test server: %v", err)
-	}
-
-	session, err := provider.Session(context.Background())
-	if err != nil {
-		t.Fatalf("failed to set up session to test server: %v", err)
-	}
-
-	defer session.Close()
-	defer cleanupData(session)
-
-	Convey("With a given database", t, func() {
-		cleanupData(session)
-
-		Convey("after inserting a valid sample record ", func() {
-			version := NewVersion("pname")
-			startTime := time.Now()
-			version.StartSampleTime = startTime
-			endTime := startTime.Add(3 * time.Minute)
-			version.EndSampleTime = endTime
-			mongoSchema, err := mongo.NewObjectSchema(bsonutil.NewD(
-				bsonutil.NewDocElem("_id", 10),
-				bsonutil.NewDocElem("name", bsonutil.NewD(
-					bsonutil.NewDocElem("first", "Jack"),
-					bsonutil.NewDocElem("last", "McJack"),
-				)),
-				bsonutil.NewDocElem("addresses", bsonutil.NewArray(
-					"1",
-					"2",
-					"3",
-				)),
-			))
-			So(err, ShouldBeNil)
-
-			ns1 := NewNamespace(db1, c1, version.ID)
-			ns1.Schema = mongoSchema
-			ns2 := NewNamespace(db1, c2, version.ID)
-			ns2.Schema = mongoSchema
-			ns3 := NewNamespace(db2, c1, version.ID)
-			ns3.Schema = mongoSchema
-
-			namespaces := []*Namespace{ns1, ns2, ns3}
-			version.Databases = []VersionDatabase{
-				{Name: db1, Collections: []string{c1, c2}},
-				{Name: db2, Collections: []string{c1}},
-			}
-			record := &Record{
-				Database:   cfg.Schema.Sample.Source,
-				Version:    version,
-				Namespaces: namespaces,
-			}
-
-			err = InsertSampleRecord(context.Background(), record, session, lgr)
-			So(err, ShouldBeNil)
-
-			Convey("reading the schema should match the inserted schema", func() {
-
-				schema, err := ReadSchema(context.Background(),
-					NewSchemaSampleOptions(&cfg.Schema.Sample), session, lgr)
-				So(err, ShouldBeNil)
-
-				dbs := schema.DatabasesSorted()
-				So(len(dbs), ShouldEqual, 2)
-				schemaDB := dbs[0]
-				So(schemaDB.Name(), ShouldEqual, db1)
-				So(len(schemaDB.Tables()), ShouldEqual, 4)
-
-				schemaTable := schemaDB.TablesSorted()[0]
-				So(schemaTable.SQLName(), ShouldEqual, c1)
-				So(schemaTable.MongoName(), ShouldEqual, c1)
-				So(len(schemaTable.Pipeline()), ShouldEqual, 0)
-				So(len(schemaTable.Columns()), ShouldEqual, 3)
-
-				schemaTable = schemaDB.TablesSorted()[1]
-				So(schemaTable.SQLName(), ShouldEqual, c1+"_addresses")
-				So(schemaTable.MongoName(), ShouldEqual, c1)
-				So(len(schemaTable.Pipeline()), ShouldEqual, 1)
-				So(len(schemaTable.Columns()), ShouldEqual, 3)
-
-				schemaTable = schemaDB.TablesSorted()[2]
-				So(schemaTable.SQLName(), ShouldEqual, c2)
-				So(schemaTable.MongoName(), ShouldEqual, c2)
-				So(len(schemaTable.Columns()), ShouldEqual, 3)
-
-				schemaTable = schemaDB.TablesSorted()[3]
-				So(schemaTable.SQLName(), ShouldEqual, c2+"_addresses")
-				So(schemaTable.MongoName(), ShouldEqual, c2)
-				So(len(schemaTable.Columns()), ShouldEqual, 3)
-
-				schemaDB = dbs[1]
-				So(schemaDB.Name(), ShouldEqual, db2)
-				So(len(schemaDB.Tables()), ShouldEqual, 2)
-
-				schemaTable = schemaDB.TablesSorted()[0]
-				So(schemaTable.SQLName(), ShouldEqual, c1)
-				So(schemaTable.MongoName(), ShouldEqual, c1)
-				So(len(schemaTable.Pipeline()), ShouldEqual, 0)
-				So(len(schemaTable.Columns()), ShouldEqual, 3)
-
-				schemaTable = schemaDB.TablesSorted()[1]
-				So(schemaTable.SQLName(), ShouldEqual, c1+"_addresses")
-				So(schemaTable.MongoName(), ShouldEqual, c1)
-				So(len(schemaTable.Pipeline()), ShouldEqual, 1)
-				So(len(schemaTable.Columns()), ShouldEqual, 3)
-			})
-		})
-
-		Convey("after inserting an invalid sample record ", func() {
-			version := NewVersion("pname")
-			startTime := time.Now()
-			version.StartSampleTime = startTime
-			endTime := startTime.Add(3 * time.Minute)
-			version.EndSampleTime = endTime
-			mongoSchema, err := mongo.NewObjectSchema(bsonutil.NewD(
-				bsonutil.NewDocElem("_id", 10),
-				bsonutil.NewDocElem("name", bsonutil.NewD(
-					bsonutil.NewDocElem("first", "Jack"),
-					bsonutil.NewDocElem("last", "McJack"),
-				)),
-				bsonutil.NewDocElem("addresses", bsonutil.NewArray(
-					"1",
-					"2",
-					"3",
-				)),
-			))
-			So(err, ShouldBeNil)
-
-			ns1 := NewNamespace(db1, c1, version.ID)
-			ns1.Schema = mongoSchema
-			ns2 := NewNamespace(db1, c2, version.ID)
-			ns2.Schema = mongoSchema
-			ns3 := NewNamespace(db2, c1, version.ID)
-			ns3.Schema = mongoSchema
-
-			namespaces := []*Namespace{ns1, ns2, ns3}
-			version.Databases = []VersionDatabase{
-				{Name: db1, Collections: []string{c1, c2}},
-				{Name: db2, Collections: []string{c1, c2}}, // c2 shouldn't be here
-			}
-			record := &Record{
-				Database:   cfg.Schema.Sample.Source,
-				Version:    version,
-				Namespaces: namespaces,
-			}
-
-			err = InsertSampleRecord(context.Background(), record, session, lgr)
-			So(err, ShouldBeNil)
-
-			Convey("reading the schema should match the inserted schema", func() {
-				_, err := ReadSchema(context.Background(),
-					NewSchemaSampleOptions(&cfg.Schema.Sample), session, lgr)
-				So(err, ShouldNotBeNil)
-			})
-		})
-	})
-}
-
-func TestSchema(t *testing.T) {
+func TestSample(t *testing.T) {
 	provider, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
@@ -429,85 +173,58 @@ func TestSchema(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, c1, doc)
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
-	dbutils.InsertDocuments(session, cfg.Schema.Sample.Source, c1, doc)
+	dbutils.InsertDocuments(session, cfg.Schema.Stored.Source, c1, doc)
 
 	// enabling profiling should introduce an additional system.profile
 	// collection which should not be sampled
 	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 1)), &struct{}{})
 
-	opts := NewSchemaSampleOptions(&cfg.Schema.Sample)
-	sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
+	opts := NewMongosqldConfig(&cfg.Schema, nil)
+	sampler := NewSampler(opts, lgr, getSessionProvider(req))
+	sampleSchema, err := sampler.Sample(context.Background())
+
 	req.Nilf(err, "did not expect error in sampling")
 	req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
 	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
 
-	req.NotNilf(sampleRecord, "did not expect sample record to be nil")
-	req.Equalf(sampleRecord.Database, cfg.Schema.Sample.Source, "mismatched sample source")
-	req.NotNilf(sampleRecord, "did not expect sample record version to be nil")
-	req.NotEqualf(len(sampleRecord.Namespaces), 0, "found no sampled namespaces")
-
-	versionID := sampleRecord.Version.ID
-
-	for _, ns := range sampleRecord.Namespaces {
-		req.Equalf(ns.VersionID, versionID, "namespace version ids should match version id")
-	}
-
-	req.Equalf(sampleRecord.Version.ProcessName, "temp",
-		"version sampling process name should be set")
-
-	db1c1 := NewNamespace(db1, c1, versionID)
-	db2c2 := NewNamespace(db2, c2, versionID)
-	db2c1 := NewNamespace(db2, c1, versionID)
-	sampleNS := NewNamespace(cfg.Schema.Sample.Source, c1, versionID)
+	req.NotZero(countTables(sampleSchema), "found no sampled namespaces")
 
 	errMsg := "whitelisted namespaces should be present"
-	_, found := sampleRecord.Version.FindDatabase(db1)
-	req.Truef(found, errMsg)
-	_, found = sampleRecord.Version.FindDatabase(db2)
-	req.Truef(found, errMsg)
-	_, found = sampleRecord.Version.FindDatabase(cfg.Schema.Sample.Source)
-	req.Truef(found, errMsg)
-
-	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, db1c1), errMsg)
-	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, db2c2), errMsg)
-	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, db2c1), errMsg)
-	req.Emptyf(shouldContainNS(sampleRecord.Namespaces, sampleNS), errMsg)
+	req.True(containsNS(sampleSchema, formatNamespace(db1, c1, false)), errMsg)
+	req.True(containsNS(sampleSchema, formatNamespace(db2, c2, false)), errMsg)
+	req.True(containsNS(sampleSchema, formatNamespace(db2, c1, false)), errMsg)
+	req.True(containsNS(sampleSchema, formatNamespace(cfg.Schema.Stored.Source, c1, false)), errMsg)
 
 	errMsg = "non-existent namespaces should not be present"
-
-	_, found = sampleRecord.Version.FindDatabase("admin")
-	req.Falsef(found, errMsg)
-	_, found = sampleRecord.Version.FindDatabase("config")
-	req.Falsef(found, errMsg)
-	_, found = sampleRecord.Version.FindDatabase("local")
-	req.Falsef(found, errMsg)
-	_, found = sampleRecord.Version.FindDatabase("system")
-	req.Falsef(found, errMsg)
+	req.Nil(sampleSchema.Database("admin"), errMsg)
+	req.Nil(sampleSchema.Database("config"), errMsg)
+	req.Nil(sampleSchema.Database("local"), errMsg)
+	req.Nil(sampleSchema.Database("system"), errMsg)
 
 	errMsg = "non-existent namespaces should not be present"
-
-	db1c2 := NewNamespace(db1, c2, versionID)
-	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, db1c2), errMsg)
-	db3c2 := NewNamespace(db3, c2, versionID)
-	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, db3c2), errMsg)
-	db3c1 := NewNamespace(db3, c1, versionID)
-	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, db3c1), errMsg)
-	profile := NewNamespace(db2, "system.profile", versionID)
-	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, profile), errMsg)
+	req.False(containsNS(sampleSchema, formatNamespace(db1, c2, false)), errMsg)
+	req.False(containsNS(sampleSchema, formatNamespace(db3, c2, false)), errMsg)
+	req.False(containsNS(sampleSchema, formatNamespace(db3, c1, false)), errMsg)
+	req.False(containsNS(sampleSchema, formatNamespace(db2, "system.profile", false)), errMsg)
 
 	errMsg = "special sampling namespaces should not be present"
-	ns := NewNamespace(cfg.Schema.Sample.Source, mongodb.SchemasCollection, versionID)
-	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
-	ns = NewNamespace(cfg.Schema.Sample.Source, mongodb.LockCollection, versionID)
-	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
-	ns = NewNamespace(cfg.Schema.Sample.Source, mongodb.VersionsCollection, versionID)
-	req.Emptyf(shouldNotContainNS(sampleRecord.Namespaces, ns), errMsg)
+	req.False(containsNS(sampleSchema, formatNamespace(cfg.Schema.Stored.Source, "schemas", false)), errMsg)
+	req.False(containsNS(sampleSchema, formatNamespace(cfg.Schema.Stored.Source, "names", false)), errMsg)
+}
 
-	for _, ns := range sampleRecord.Namespaces {
-		req.Equalf(ns.SampleSize, int64(1), "sample size should be stored with each namespace")
+func TestNamespaceSelectors(t *testing.T) {
+	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	if err != nil {
+		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
 
-	sampleTestDatabases := []string{"bic_test", "bic_blackbox", "bic_functions_test"}
+	session, err := provider.Session(context.Background())
+	if err != nil {
+		t.Fatalf("failed to set up session to test server: %v", err)
+	}
+	defer session.Close()
+
+	sampleTestDatabases := []string{"bic_test", "bic_blackbox", "bic_functions_test", "persist_test"}
 	databaseNamespaces := map[string][]string{
 		sampleTestDatabases[0]: {"eleanor", "bar", "hello"},
 		sampleTestDatabases[1]: {"bob", "alice", "joe"},
@@ -519,6 +236,8 @@ func TestSchema(t *testing.T) {
 	// enumerate what collections we know exist, instead.
 	cleanupData(session, sampleTestDatabases...)
 	defer cleanupData(session, sampleTestDatabases...)
+
+	doc := bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("a", bsonutil.NewM())))
 	for db, collections := range databaseNamespaces {
 		for _, collection := range collections {
 			dbutils.InsertDocuments(session, db, collection, doc)
@@ -825,26 +544,30 @@ func TestSchema(t *testing.T) {
 		},
 	}
 
-	nsOpts := config.Default().Schema.Sample
+	nsOpts := config.Default().Schema
 	for _, test := range namespaceSelectorTests {
 		t.Run(test.description, func(t *testing.T) {
-			req = require.New(t)
-			nsOpts.Namespaces = test.samplePattern
-			opts := NewSchemaSampleOptions(&nsOpts)
-			sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
+			req := require.New(t)
+
+			nsOpts.Sample.Namespaces = test.samplePattern
+
+			opts := NewMongosqldConfig(&nsOpts, nil)
+			sampler := NewSampler(opts, lgr, getSessionProvider(req))
+			sampleSchema, err := sampler.Sample(context.Background())
+
 			req.Nilf(err, "did not expect error in sampling")
 			req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
-			req.NotNilf(sampleRecord, "did not expect sample record to be nil")
-			req.NotNilf(sampleRecord.Version, "did not expect sample record version to be nil")
-			req.Equalf(len(test.expectedNamespaces), len(sampleRecord.Namespaces),
-				"sample namespaces not equal")
+
+			yb, err := sampleSchema.ToDRDL().ToYAML()
+			if err != nil {
+				panic(err)
+			}
+			t.Logf("sampled schema:\n%s", string(yb))
+
+			req.Equalf(len(test.expectedNamespaces), countTables(sampleSchema), "namespace count not equal")
 
 			for _, expectedNamespace := range test.expectedNamespaces {
-				nsComponent := strings.SplitN(expectedNamespace, ".", 2)
-				req.Equalf(len(nsComponent), 2, "invalid construction of expected namespace")
-				expectedNs := NewNamespace(nsComponent[0], nsComponent[1], sampleRecord.Version.ID)
-				req.Emptyf(shouldContainNS(sampleRecord.Namespaces, expectedNs),
-					"expected namespaces should be present")
+				req.Truef(containsNS(sampleSchema, expectedNamespace), "namespace %q should be in schema", expectedNamespace)
 			}
 		})
 	}
@@ -888,31 +611,26 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, t3, doc)
 	dbutils.InsertDocuments(session, db1, t4, doc)
 
-	opts := NewSchemaSampleOptions(&cfg.Schema.Sample)
-	sampleSchema, sampleRecord, err := Schema(context.Background(), opts, "temp", session, lgr)
+	opts := NewMongosqldConfig(&cfg.Schema, nil)
+	sampler := NewSampler(opts, lgr, getSessionProvider(req))
+	sampleSchema, err := sampler.Sample(context.Background())
+
 	req.Nil(err)
 	req.NotNilf(sampleSchema, "sample schema is nil")
 	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
 
-	req.NotNilf(sampleRecord, "sample record is nil")
-	req.Equal(sampleRecord.Database, cfg.Schema.Sample.Source)
-	req.NotNilf(sampleRecord.Version, "sample version is nil")
-	req.NotEqual(len(sampleRecord.Namespaces), 0)
+	req.NotZero(countTables(sampleSchema), "no namespaces sampled")
 
-	versionID := sampleRecord.Version.ID
+	db1c1 := formatNamespace(db1, t1, false)
+	db1c2 := formatNamespace(db1, t2, false)
+	db1c3 := formatNamespace(db1, t3, false)
+	db1c4 := formatNamespace(db1, t4, false)
 
-	db1c1 := NewNamespace(db1, t1, versionID)
-	db1c2 := NewNamespace(db1, t2, versionID)
-	db1c3 := NewNamespace(db1, t3, versionID)
-	db1c4 := NewNamespace(db1, t4, versionID)
-
-	_, found := sampleRecord.Version.FindDatabase(db1)
-	req.True(found)
-	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c1))
-	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c2))
-	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c3))
-	req.Empty(shouldContainNS(sampleRecord.Namespaces, db1c4))
-	req.Equal(len(sampleSchema.Databases()), 1)
+	req.True(containsNS(sampleSchema, db1c1))
+	req.True(containsNS(sampleSchema, db1c2))
+	req.True(containsNS(sampleSchema, db1c3))
+	req.True(containsNS(sampleSchema, db1c4))
+	req.Equal(1, len(sampleSchema.Databases()))
 
 	dbs := sampleSchema.DatabasesSorted()
 	req.Equal(dbs[0].Name(), db1)
@@ -941,7 +659,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 		mappings = append(mappings, mapping)
 	}
 
-	req.Empty(ShouldResemble(mappings, expectedTableMappings))
+	req.Equal(mappings, expectedTableMappings)
 
 	getColumnMappings := func(t *schema.Table) (mappings []sqlColumnMapping) {
 		for _, c := range t.ColumnsSorted() {
@@ -956,41 +674,41 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	expectedColumnMappings := []sqlColumnMapping{
 		{"_id", "_id"}, {"Xx.b", "Xx.b"}, {"Xx_idx", "Xx_idx"},
 	}
-	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+	req.Equal(getColumnMappings(table), expectedColumnMappings)
 
 	table = dbs[0].Table("foo_Xx_0")
 	req.NotNilf(table, "did not find table foo_Xx_0")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"hello", "hello"},
 	}
-	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+	req.Equal(getColumnMappings(table), expectedColumnMappings)
 
 	table = dbs[0].Table("foo_xX")
 	req.NotNilf(table, "did not find table foo_xX")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"xX.c", "xX.c"}, {"xX_idx", "xX_idx"},
 	}
-	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+	req.Equal(getColumnMappings(table), expectedColumnMappings)
 
 	table = dbs[0].Table("x_0")
 	req.NotNilf(table, "did not find table x_0")
 	expectedColumnMappings = []sqlColumnMapping{{"_id", "_id"}}
-	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+	req.Equal(getColumnMappings(table), expectedColumnMappings)
 
 	table = dbs[0].Table("X")
 	req.NotNilf(table, "did not find table X")
-	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+	req.Equal(getColumnMappings(table), expectedColumnMappings)
 
 	table = dbs[0].Table("foo")
 	req.NotNilf(table, "did not find table foo")
 	expectedColumnMappings = []sqlColumnMapping{
 		{"_id", "_id"}, {"XX", "XX"}, {"xX_0", "xX_0"},
 	}
-	req.Empty(ShouldResemble(getColumnMappings(table), expectedColumnMappings))
+	req.Equal(getColumnMappings(table), expectedColumnMappings)
 }
 
 func cleanupData(session *mongodb.Session, databases ...string) {
-	dbutils.DropDatabase(session, cfg.Schema.Sample.Source)
+	dbutils.DropDatabase(session, cfg.Schema.Stored.Source)
 	dbutils.DropDatabase(session, db1)
 	dbutils.DropDatabase(session, db2)
 	dbutils.DropDatabase(session, db3)
@@ -999,50 +717,24 @@ func cleanupData(session *mongodb.Session, databases ...string) {
 	}
 }
 
-func shouldContainNS(actual interface{}, expected ...interface{}) string {
-	namespaces, ok := actual.([]*Namespace)
-	if !ok {
-		return fmt.Sprintf("expected *Namespace, got %T", actual)
+func containsNS(sch *schema.Schema, ns string) bool {
+	parts := strings.Split(ns, ".")
+	dbName := parts[0]
+	tblName := parts[1]
+
+	db := sch.Database(dbName)
+	if db == nil {
+		return false
 	}
 
-	if l := len(expected); l != 1 {
-		return fmt.Sprintf("expected 1 namespace, got %v", l)
-	}
-
-	ns, ok := expected[0].(*Namespace)
-	if !ok {
-		return fmt.Sprintf("expected string, got %T", expected)
-	}
-
-	for _, namespace := range namespaces {
-		if namespace.Equals(ns) {
-			return ""
-		}
-	}
-
-	return fmt.Sprintf("could not find namespace %v", ns)
+	tbl := db.Table(tblName)
+	return tbl != nil
 }
 
-func shouldNotContainNS(actual interface{}, expected ...interface{}) string {
-	namespaces, ok := actual.([]*Namespace)
-	if !ok {
-		return fmt.Sprintf("expected *Namespace, got %T", actual)
+func countTables(sch *schema.Schema) int {
+	count := 0
+	for _, db := range sch.Databases() {
+		count += len(db.Tables())
 	}
-
-	if l := len(expected); l != 1 {
-		return fmt.Sprintf("expected 1 namespace, got %v", l)
-	}
-
-	ns, ok := expected[0].(*Namespace)
-	if !ok {
-		return fmt.Sprintf("expected *Namespace, got %T", expected)
-	}
-
-	for _, namespace := range namespaces {
-		if namespace.Equals(ns) {
-			return fmt.Sprintf("found unexpected namespace %v", ns)
-		}
-	}
-
-	return ""
+	return count
 }
