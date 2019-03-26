@@ -715,7 +715,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	pipeline := ms.pipeline
 
 	// 1. Translate keys.
-	keys, keyPieces, subqueryCmpStages, err := v.translateGroupByKeys(
+	keys, keyNameMapping, keyPieces, subqueryCmpStages, err := v.translateGroupByKeys(
 		gb.keys,
 		ms.mappingRegistry.lookupFieldName,
 	)
@@ -728,7 +728,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	pipeline = append(pipeline, subqueryCmpStages...)
 
 	// 2. Translate aggregations.
-	result, err := v.translateGroupByAggregates(gb.keys, gb.projectedColumns, ms.mappingRegistry.lookupFieldName)
+	result, err := v.translateGroupByAggregates(keyNameMapping, gb.projectedColumns, ms.mappingRegistry.lookupFieldName)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "cannot translate group by aggregates: %v", err)
 		v.addPushdownFailure(gb, err)
@@ -813,40 +813,49 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 }
 
 // translateGroupByKeys takes the key expressions and builds an _id document. All keys, even single
-// keys, will be nested underneath the '_id' field. In addition, each field's name will be the
-// stringified version of its SQLExpr.
+// keys, will be nested underneath the '_id' field. Each field's name will be "group_key_i" where
+// "i" is the index in the keys slice. The mapping from stringified SQLExpr to key name will be
+// returned in addition to the _id document so the names can be looked up as needed.
 // For example, 'select a, b from foo group by c' will build an id document that looks like this:
-//      _id: { foo_DOT_c: "$c" }
+//      _id: { group_key_0: "$c" }
+// and a key name mapping that looks like this:
+//     map[string]string{"foo_DOT_c": "group_key_0"}
 //
 // Likewise, multiple columns will build something similar.
 // For example, 'select a, b from foo group by c,d' will build an id document that looks like this:
-//      _id: { foo_DOT_c: "$c", foo_DOT_d: "$c" }
+//      _id: { group_key_0: "$c", group_key_1: "$d" }
+// and the appropriate mapping.
 //
 // Finally, anything other than a column will still build similarly.
 // For example, 'select a, b from foo group by c+d' will build an id document that looks like this:
-//      _id: { "foo_DOT_c+foo_DOT_d": { $add: ["$c", "$d"] } }
+//      _id: { group_key_0: { $add: ["$c", "$d"] } }
+// with the expected mapping:
+//      map[string]string{"foo_DOT_c+foo_DOT_d": "group_key_0"}
 //
 // All projected names are the fully qualified name from SQL, ignoring the mongodb name except for
 // when referencing the underlying field.
-func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName FieldNameLookup) (bson.D, []*NonCorrelatedSubqueryFuture, []bson.D, PushdownFailure) {
+func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldName FieldNameLookup) (bson.D, map[SQLExpr]string, []*NonCorrelatedSubqueryFuture, []bson.D, PushdownFailure) {
 
 	keyDocumentElements := bsonutil.NewD()
+	keyNameMapping := make(map[SQLExpr]string)
 
 	t := NewPushdownTranslator(v.cfg, lookupFieldName)
 
-	for _, key := range keys {
+	for i, key := range keys {
 		translatedKey, err := t.TranslateExpr(key)
 		if err != nil {
-			return nil, nil, nil, err
+			return nil, nil, nil, nil, err
 		}
 
+		uniqueKeyName := fmt.Sprintf("group_key_%d", i)
 		keyDocumentElements = append(keyDocumentElements, bsonutil.NewDocElem(
-			sanitizeFieldName(key.String()),
+			uniqueKeyName,
 			translatedKey,
 		))
+		keyNameMapping[key] = uniqueKeyName
 	}
 
-	return keyDocumentElements, t.piecewiseDeps, t.subqueryCmpStages, nil
+	return keyDocumentElements, keyNameMapping, t.piecewiseDeps, t.subqueryCmpStages, nil
 }
 
 // translateGroupByAggregatesResult is just a holder for the results from the
@@ -868,7 +877,7 @@ type mappedProjectedColumn struct {
 // $group stage. It does this by employing a visitor that walks each of the select expressions
 // individually and, depending on the type of expression, builds a full solution or a partial
 // solution to accomplishing the goal. For example, the query 'select sum(a) from foo' can be fully
-// realized with a single $group, where as 'select sum(distinct a) from foo' requires a $group which
+// realized with a single $group, whereas 'select sum(distinct a) from foo' requires a $group which
 // adds 'a' to a set ($addToSet) and a subsequent $project which then does a $sum on the set created
 // in the $group. Currently, we always build the $project whether it's necessary or not.
 //
@@ -884,20 +893,7 @@ type mappedProjectedColumn struct {
 // and return a new SQLAggFunctionExpr which refers to the newly created $addToSet field called
 // 'distinct foo_DOT_a'. This way, the subsequent $project
 // now has the correct reference to the field name in the $group.
-func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr, projectedColumns ProjectedColumns, lookupFieldName FieldNameLookup) (*translateGroupByAggregatesResult, PushdownFailure) {
-
-	// For example, in "select a + sum(b) from bar group by a", we should not create
-	// an aggregate for a because it's part of the key.
-	isGroupKey := func(expr SQLExpr) bool {
-		exprString := expr.String()
-		for _, key := range keys {
-			if exprString == key.String() {
-				return true
-			}
-		}
-
-		return false
-	}
+func (v *pushdownVisitor) translateGroupByAggregates(keys map[SQLExpr]string, projectedColumns ProjectedColumns, lookupFieldName FieldNameLookup) (*translateGroupByAggregatesResult, PushdownFailure) {
 
 	// This represents all the expressions that should be passed on to $project such that
 	// translateGroupByProject is able to do its work without redoing a bunch of the conditionals
@@ -909,7 +905,7 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr, projectedCo
 	translator := &groupByAggregateTranslator{
 		cfg:              v.cfg,
 		group:            bsonutil.NewM(),
-		isGroupKey:       isGroupKey,
+		groupKeyNames:    keys,
 		lookupFieldName:  lookupFieldName,
 		mappingRegistry:  newMappingRegistry(),
 		requiresTwoSteps: false,
@@ -942,7 +938,7 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys []SQLExpr, projectedCo
 type groupByAggregateTranslator struct {
 	cfg              *PushdownConfig
 	group            bson.M
-	isGroupKey       func(SQLExpr) bool
+	groupKeyNames    map[SQLExpr]string // a map from SQLExpr to group key names used in the _id document.
 	lookupFieldName  FieldNameLookup
 	mappingRegistry  *mappingRegistry
 	requiresTwoSteps bool
@@ -963,7 +959,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 		if !ok {
 			panic(fmt.Errorf("could not map %v.%v to a field", typedN.tableName, typedN.columnName))
 		}
-		if !v.isGroupKey(typedN) {
+		if keyName, ok := v.groupKeyNames[typedN]; !ok {
 			// Since it's not an aggregation function, this implies that it takes the first value of
 			// the column. So project the field, and register the mapping.
 			v.group[sanitizeFieldName(typedN.String())] = bsonutil.NewM(bsonutil.NewDocElem("$first", getProjectedFieldName(
@@ -975,8 +971,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// user has also projected the group key, in which we'll need this to look it up in
 			// translateGroupByProject under its name. Hence, all we need to do is register the
 			// mapping.
-			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName,
-				typedN.columnName, groupID+"."+sanitizeFieldName(typedN.String()))
+			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName, typedN.columnName, groupID+"."+keyName)
 		}
 		return typedN, nil
 	case SQLAggFunctionExpr:
@@ -1157,7 +1152,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 		return newExpr, nil
 
 	case SQLExpr:
-		if v.isGroupKey(typedN) {
+		if keyName, ok := v.groupKeyNames[typedN]; ok {
 			// The _id is added to the $group in translateGroupByKeys. We will only be here if the
 			// user has also projected the group key, in which we'll need this to look it up in
 			// translateGroupByProject under its name. In this, we need to create a new expr that is
@@ -1166,8 +1161,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			dbName := getDatabaseName(typedN)
 			newExpr := NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
 				typedN.EvalType(), schema.MongoNone)
-			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName,
-				groupID+"."+fieldName)
+			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, groupID+"."+keyName)
 			return newExpr, nil
 		}
 

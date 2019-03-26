@@ -158,7 +158,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}},\n\t{\"$group\":{\"_id\":{\"test_DOT_foo_DOT_c\":\"$c\"},\"test_DOT_foo_DOT_a\":{\"$first\":\"$a\"},\"test_DOT_foo_DOT_b\":{\"$first\":\"$b\"}}},\n\t{\"$sort\":{\"test_DOT_foo_DOT_b\":-1}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\":\"$test_DOT_foo_DOT_b\",\"_id\":0}},\n]",
+			expectedOutput: "[\n\t{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}},\n\t{\"$group\":{\"_id\":{\"group_key_0\":\"$c\"},\"test_DOT_foo_DOT_a\":{\"$first\":\"$a\"},\"test_DOT_foo_DOT_b\":{\"$first\":\"$b\"}}},\n\t{\"$sort\":{\"test_DOT_foo_DOT_b\":-1}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\":\"$test_DOT_foo_DOT_b\",\"_id\":0}},\n]",
 		},
 		{
 			desc:           "format flag, pipeline contains $lookup with pipeline field",
