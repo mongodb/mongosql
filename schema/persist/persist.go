@@ -37,6 +37,7 @@ func (p Persistor) FindNames(ctx context.Context) ([]Name, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = s.Close() }()
 
 	pipeline := []interface{}{}
 	iter, err := s.Aggregate(ctx, p.schemaSourceDB, namesCollection, pipeline)
@@ -70,6 +71,7 @@ func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = s.Close() }()
 
 	pipeline := []interface{}{}
 	iter, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
@@ -94,6 +96,12 @@ func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
 // FindSchemaByName returns the drdl.Schema corresponding to the provided name,
 // if the name and its corresponding schema both exist.
 func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Schema, error) {
+	s, err := p.session(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = s.Close() }()
+
 	pipeline := bsonutil.NewArray(
 		bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewD(
 			bsonutil.NewDocElem("from", namesCollection),
@@ -106,11 +114,6 @@ func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Sch
 			bsonutil.NewDocElem("name._id", name),
 		))),
 	)
-
-	s, err := p.session(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	iter, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
 	if err != nil {
@@ -136,6 +139,12 @@ func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Sch
 // FindSchemaByID returns the drdl.Schema corresponding to the provided
 // ObjectId if it exists.
 func (p Persistor) FindSchemaByID(ctx context.Context, schemaID bson.ObjectId) (*drdl.Schema, error) {
+	s, err := p.session(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = s.Close() }()
+
 	pipeline := bsonutil.NewArray(
 		bsonutil.NewD(
 			bsonutil.NewDocElem("$match", bsonutil.NewD(
@@ -143,11 +152,6 @@ func (p Persistor) FindSchemaByID(ctx context.Context, schemaID bson.ObjectId) (
 			)),
 		),
 	)
-
-	s, err := p.session(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	iter, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
 	if err != nil {
@@ -173,36 +177,44 @@ func (p Persistor) FindSchemaByID(ctx context.Context, schemaID bson.ObjectId) (
 // DeleteSchema deletes the drdl.Schema corresponding to the provided ObjectId
 // if it exists.
 func (p Persistor) DeleteSchema(ctx context.Context, schemaID bson.ObjectId) error {
-	query := bsonutil.NewD(bsonutil.NewDocElem("_id", schemaID))
 	s, err := p.session(ctx)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = s.Close() }()
+
+	query := bsonutil.NewD(bsonutil.NewDocElem("_id", schemaID))
 	return s.Delete(ctx, p.schemaSourceDB, schemasCollection, query)
 }
 
 // DeleteName deletes the provided name if it exists.
 func (p Persistor) DeleteName(ctx context.Context, name string) error {
-	query := bsonutil.NewD(bsonutil.NewDocElem("_id", name))
 	s, err := p.session(ctx)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = s.Close() }()
+
+	query := bsonutil.NewD(bsonutil.NewDocElem("_id", name))
 	return s.Delete(ctx, p.schemaSourceDB, namesCollection, query)
 }
 
 // InsertSchema inserts the provided drdl.Schema, returning the ObjectId by
 // which it can be referenced in the future.
 func (p Persistor) InsertSchema(ctx context.Context, drdlSchema *drdl.Schema) (bson.ObjectId, error) {
-	sch := newSchema(drdlSchema)
 	s, err := p.session(ctx)
 	if err != nil {
 		return "", err
 	}
+	defer func() { _ = s.Close() }()
+
+	sch := newSchema(drdlSchema)
+
 	err = s.Insert(ctx, p.schemaSourceDB, schemasCollection, []interface{}{sch})
 	if err != nil {
 		return "", err
 	}
+
 	return sch.ID, nil
 }
 
@@ -210,12 +222,15 @@ func (p Persistor) InsertSchema(ctx context.Context, drdlSchema *drdl.Schema) (b
 // specified ObjectId. If the provided name does not exist, a new one is
 // created instead.
 func (p Persistor) UpsertName(ctx context.Context, name string, schemaID bson.ObjectId) error {
-	query := bsonutil.NewD(bsonutil.NewDocElem("_id", name))
-	update := newName(name, schemaID)
 	s, err := p.session(ctx)
 	if err != nil {
 		return err
 	}
+	defer func() { _ = s.Close() }()
+
+	query := bsonutil.NewD(bsonutil.NewDocElem("_id", name))
+	update := newName(name, schemaID)
+
 	return s.Upsert(ctx, p.schemaSourceDB, namesCollection, query, update)
 }
 

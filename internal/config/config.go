@@ -38,11 +38,11 @@ var (
 
 // These are the constants for default values of variables.
 const (
-	DefaultSampleRefreshIntervalSecs = 0
-	DefaultSampleSize                = 1000
-	DefaultMaxNumColumnsPerTable     = 2000
-	DefaultMaxNestedTableDepth       = 50
-	DefaultMaxAllowedPacket          = 1073741824
+	DefaultRefreshIntervalSecs   = 0
+	DefaultSampleSize            = 1000
+	DefaultMaxNumColumnsPerTable = 2000
+	DefaultMaxNestedTableDepth   = 50
+	DefaultMaxAllowedPacket      = 1073741824
 )
 
 // These are constants for the allowed values of NumConnectionsPerSession.
@@ -135,15 +135,20 @@ func Default() *Config {
 	cfg.ProcessManagement.Service.DisplayName = "MongoSQL Service"
 	cfg.ProcessManagement.Service.Description = "MongoSQL accesses MongoDB data with SQL"
 
+	cfg.Schema.RefreshIntervalSecs = DefaultRefreshIntervalSecs
+
 	cfg.Schema.Sample.Size = DefaultSampleSize
 	cfg.Schema.Sample.MaxNumColumnsPerTable = DefaultMaxNumColumnsPerTable
 	cfg.Schema.Sample.MaxNestedTableDepth = DefaultMaxNestedTableDepth
-	cfg.Schema.Sample.Mode = "read"
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
 	cfg.Schema.Sample.OptimizeViewSampling = true
-	cfg.Schema.Sample.RefreshIntervalSecs = DefaultSampleRefreshIntervalSecs
+	cfg.Schema.Sample.RefreshIntervalSecsDeprecated = DefaultRefreshIntervalSecs
 	cfg.Schema.Sample.UUIDSubtype3Encoding = "old"
 	cfg.Schema.Sample.SchemaMappingMode = LatticeMappingMode
+
+	cfg.Schema.Stored.Mode = ""
+	cfg.Schema.Stored.Source = ""
+	cfg.Schema.Stored.Name = "defaultSchema"
 
 	cfg.SystemLog.LogRotate = log.Rename
 
@@ -276,8 +281,8 @@ func Validate(cfg *Config) error {
 			MinConnections, MaxConnections)
 	}
 
-	if cfg.Schema.Path != "" && cfg.Schema.Sample.Source != "" {
-		return fmt.Errorf("must specify only one of sample source or schema")
+	if cfg.Schema.Path != "" && cfg.Schema.Stored.Source != "" {
+		return fmt.Errorf("cannot specify both a schema file path and a stored schema source")
 	}
 
 	if cfg.Schema.Sample.Size < 0 {
@@ -296,8 +301,11 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid specification: %v", err)
 	}
 
-	if cfg.Schema.Sample.Mode != ReadSampleMode && cfg.Schema.Sample.Mode != WriteSampleMode {
-		return fmt.Errorf("invalid schema sample mode: %v", cfg.Schema.Sample.Mode)
+	switch cfg.Schema.Stored.Mode {
+	case AutoStoredSchemaMode, CustomStoredSchemaMode, NoStoredSchemaMode:
+		// known values
+	default:
+		return fmt.Errorf("invalid schema mode: %v", cfg.Schema.Stored.Mode)
 	}
 
 	if !(cfg.Schema.Sample.SchemaMappingMode == LatticeMappingMode ||
@@ -306,22 +314,14 @@ func Validate(cfg *Config) error {
 			cfg.Schema.Sample.SchemaMappingMode)
 	}
 
-	if cfg.Schema.Sample.Source != "" {
-		if err := procutil.ValidateDBName(cfg.Schema.Sample.Source); err != nil {
-			return fmt.Errorf("invalid sample source: %v", err)
+	if cfg.Schema.Stored.Source != "" {
+		if err := procutil.ValidateDBName(cfg.Schema.Stored.Source); err != nil {
+			return fmt.Errorf("invalid schema source: %v", err)
 		}
 	}
 
-	if cfg.Schema.Sample.Source == "" && cfg.Schema.Sample.Mode == WriteSampleMode {
-		return fmt.Errorf("sample mode 'write' requires a non-empty sample source")
-	}
-
-	if cfg.Schema.Sample.Source != "" &&
-		cfg.Schema.Sample.Mode == ReadSampleMode &&
-		cfg.Schema.Sample.RefreshIntervalSecs > 0 {
-
-		return fmt.Errorf("sample mode 'read' with a non-empty sample source cannot specify a " +
-			"sample refresh interval")
+	if cfg.Schema.Stored.Source == "" && cfg.Schema.Stored.Mode != NoStoredSchemaMode {
+		return fmt.Errorf("stored schema modes require a non-empty schema source")
 	}
 
 	switch cfg.SystemLog.LogRotate {
@@ -422,18 +422,21 @@ type RuntimeMemory struct {
 
 // Schema holds schema configuration.
 type Schema struct {
-	Path             string
-	MaxVarcharLength uint64
-	Sample           SchemaSampleOptions `config:"sample"`
+	Path                string
+	MaxVarcharLength    uint64
+	RefreshIntervalSecs int64
+	Sample              SchemaSampleOptions  `config:"sample"`
+	Stored              SchemaStorageOptions `config:"stored"`
 }
 
-// SampleMode is an enum representing mongosqld's sampling modes.
-type SampleMode string
+// StoredSchemaMode is an enum representing mongosqld's stored-schema-management modes.
+type StoredSchemaMode string
 
-// Values for SampleMode.
+// Values for StoredSchemaMode.
 const (
-	ReadSampleMode  = "read"
-	WriteSampleMode = "write"
+	NoStoredSchemaMode     = ""
+	AutoStoredSchemaMode   = "auto"
+	CustomStoredSchemaMode = "custom"
 )
 
 // MappingMode is a name for the sampling mode to use.
@@ -448,45 +451,45 @@ const (
 	MajorityMappingMode = "majority"
 )
 
+// SchemaStorageOptions holds stored-schema-management configuration.
+type SchemaStorageOptions struct {
+	Mode   StoredSchemaMode `config:"mode"`
+	Source string           `config:"source"`
+	Name   string           `config:"name"`
+}
+
 // SchemaSampleOptions holds schema sampling configuration.
 type SchemaSampleOptions struct {
-	MaxNestedTableDepth   int64       `config:"-"`
-	MaxNumColumnsPerTable int64       `config:"-"`
-	Mode                  SampleMode  `config:"mode"`
-	Namespaces            []string    `config:"namespaces"`
-	OptimizeViewSampling  bool        `config:"optimizeViewSampling"`
-	PreJoin               bool        `config:"prejoin"`
-	RefreshIntervalSecs   int64       `config:"refreshIntervalSecs"`
-	SchemaMappingMode     MappingMode `config:"schemaMappingMode"`
-	Size                  int64       `config:"size"`
-	Source                string      `config:"source"`
-	UUIDSubtype3Encoding  string      `config:"uuidSubtype3Encoding"`
+	MaxNestedTableDepth           int64       `config:"-"`
+	MaxNumColumnsPerTable         int64       `config:"-"`
+	Namespaces                    []string    `config:"namespaces"`
+	OptimizeViewSampling          bool        `config:"optimizeViewSampling"`
+	PreJoin                       bool        `config:"prejoin"`
+	RefreshIntervalSecsDeprecated int64       `config:"refreshIntervalSecs"`
+	SchemaMappingMode             MappingMode `config:"schemaMappingMode"`
+	Size                          int64       `config:"size"`
+	UUIDSubtype3Encoding          string      `config:"uuidSubtype3Encoding"`
 }
 
 // NewSchemaSampleOptions creates a new schema sampling configuration with the given options.
 func NewSchemaSampleOptions(maxNestedTableDepth int64,
 	maxNumColumnsPerTable int64,
-	mode SampleMode,
 	namespaces []string,
 	optimizeViewSampling bool,
 	preJoin bool,
-	refreshIntervalSecs int64,
 	schemaMappingMode MappingMode,
 	size int64,
-	source string,
 	uuidSubtype3Encoding string) SchemaSampleOptions {
 	return SchemaSampleOptions{
-		MaxNestedTableDepth:   maxNestedTableDepth,
-		MaxNumColumnsPerTable: maxNumColumnsPerTable,
-		Mode:                  mode,
-		Namespaces:            namespaces,
-		OptimizeViewSampling:  optimizeViewSampling,
-		PreJoin:               preJoin,
-		RefreshIntervalSecs:   refreshIntervalSecs,
-		SchemaMappingMode:     schemaMappingMode,
-		Size:                  size,
-		Source:                source,
-		UUIDSubtype3Encoding:  uuidSubtype3Encoding,
+		MaxNestedTableDepth:           maxNestedTableDepth,
+		MaxNumColumnsPerTable:         maxNumColumnsPerTable,
+		Namespaces:                    namespaces,
+		OptimizeViewSampling:          optimizeViewSampling,
+		PreJoin:                       preJoin,
+		RefreshIntervalSecsDeprecated: DefaultRefreshIntervalSecs,
+		SchemaMappingMode:             schemaMappingMode,
+		Size:                          size,
+		UUIDSubtype3Encoding:          uuidSubtype3Encoding,
 	}
 }
 

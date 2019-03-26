@@ -53,6 +53,7 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 	primaryKeys := map[normalizedName]struct{}{}
 
 	table := &Table{
+		pipeline:   []bson.D{},
 		sqlName:    tbl,
 		mongoName:  col,
 		columns:    map[normalizedName]*Column{},

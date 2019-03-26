@@ -173,7 +173,7 @@ func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userS
 	}
 
 	if config.Security.Enabled {
-		err = i.loadAuthInfo(ctx, logger, userSession, config.Schema.Sample.Source)
+		err = i.loadAuthInfo(ctx, logger, userSession, config.Schema.Stored.Source)
 		if err != nil {
 			return nil, err
 		}

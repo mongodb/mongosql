@@ -1,0 +1,3 @@
+
+SQLPROXY_SCHEMA_MODE="--schemaMode custom"
+SQLPROXY_SCHEMA_SOURCE="--schemaSource mongosqld_sample_test"

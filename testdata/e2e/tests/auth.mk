@@ -241,16 +241,10 @@ test-mongo-auth-flush-sample-read-failure: EXPECTED_ERROR := ERROR 1105 (HY000) 
 test-mongo-auth-flush-sample-read-failure: test-auth-command-data-failure
 
 # the user must have `insert` and `update` permissions on the sample namespace
-test-mongo-auth-flush-sample-write-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds,sqlproxy/schema/clustered,sqlproxy/schema/write
+test-mongo-auth-flush-sample-write-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds,sqlproxy/schema/auto
 test-mongo-auth-flush-sample-write-failure: QUERY := FLUSH SAMPLE
 test-mongo-auth-flush-sample-write-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: must have \`insert\` and \`update\` privileges on the 'sample source' or be admin user in order to flush sample
 test-mongo-auth-flush-sample-write-failure: test-auth-command-data-failure
-
-# a user cannot alter tables without insert and update privleges for the table in question when in clustered write mode
-test-mongo-auth-alter-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,mongo/other-user/read-some-dbs,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds,sqlproxy/schema/enable-alter,sqlproxy/schema/clustered,sqlproxy/schema/write
-test-mongo-auth-alter-failure: QUERY :=  use join_test,,alter table join_1 drop column a
-test-mongo-auth-alter-failure: EXPECTED_ERROR := ERROR 1105 (HY000) at line 1: must have \`insert\` and \`update\` privileges for the 'sample source' or be admin user in order to alter tables
-test-mongo-auth-alter-failure: test-auth-command-data-failure
 
 # when not admin user, the user should not be able to set globals
 test-mongo-auth-set-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,mongo/other-user/no-roles,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/other-user-creds

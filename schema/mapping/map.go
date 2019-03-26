@@ -47,6 +47,8 @@ func NewSchemaMappingConfig(
 	maxNumColumnsPerTable int64,
 	maxNestedTableDepth int64,
 ) SchemaMappingConfig {
+	component := fmt.Sprintf("%-10v [mapping]", log.SchemaComponent)
+	logger = log.NewComponentLogger(component, logger)
 	return SchemaMappingConfig{
 		Database:              database,
 		Schema:                schema,

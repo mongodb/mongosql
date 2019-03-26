@@ -18,5 +18,21 @@ func ParseYaml(cfg *Config, r io.Reader) error {
 		return err
 	}
 
-	return fromMap("", reflect.ValueOf(cfg), root)
+	err = fromMap("", reflect.ValueOf(cfg), root)
+	if err != nil {
+		return err
+	}
+
+	return postProcess(cfg)
+}
+
+// postProcess performs some transformations on a parsed config. Notably, it
+// moves values provided at deprecated config field paths to their updated
+// fields.
+func postProcess(cfg *Config) error {
+	if cfg.Schema.RefreshIntervalSecs == DefaultRefreshIntervalSecs {
+		cfg.Schema.RefreshIntervalSecs = cfg.Schema.Sample.RefreshIntervalSecsDeprecated
+	}
+	cfg.Schema.Sample.RefreshIntervalSecsDeprecated = DefaultRefreshIntervalSecs
+	return nil
 }

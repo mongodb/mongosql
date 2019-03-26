@@ -5,103 +5,58 @@
 
 create_schema_cmd_for_generation() {
     generation=$1
-    protocol=$2
 
     other_fields=""
     for i in $(seq 0 $generation); do
         other_fields="$other_fields,
-        $i: { bsonType: \"int\" }"
+            {
+                mongo_name: 'field$i',
+                mongo_type: 'bool',
+                sql_name: 'col$1',
+                sql_type: 'boolean',
+            }"
     done
 
     cmd="
-        vId = new ObjectId();
-        db.mongosqld.schemas.insert({
-            _id: new ObjectId(),
-            versionId: vId,
-            database: \"test\",
-            collection: \"sample_test\",
-            sampleSize: NumberLong(1),
-            startSampleTime: new Date(),
-            endSampleTime: new Date(),
+        sId = UUID().toString().slice(6, 43);
+        db.schemas.insert({
+            _id: sId,
+            created: ISODate(),
             schema: {
-                bsonType: \"object\",
-                properties: {
-                    _id: { bsonType: \"int\" }$other_fields
-                },
+                databases: [{
+                    name: 'test',
+                    tables: [{
+                        sql_name: 'sample_test',
+                        mongo_name: 'sample_test',
+                        pipeline: '[]',
+                        columns: [
+                            {
+                                mongo_name: '_id',
+                                mongo_type: 'bson.ObjectId',
+                                sql_name: '_id',
+                                sql_type: 'objectid',
+                            }$other_fields
+                        ],
+                    }]
+                }]
             }
         });
-        db.mongosqld.versions.insert({
-            _id: vId,
-            startSampleTime: new Date(),
-            endSampleTime: new Date(),
-            databases: [ { name: \"test\", collections: [ \"sample_test\" ] } ],
-            generation: NumberLong($1),
-            protocol: \"v1\",
-            processName: \"write-initial-schema.sh\"
+        db.names.drop();
+        db.names.insert({
+            _id: 'defaultSchema',
+            schema_id: sId,
         });
     "
-
-    if [ "$protocol" = 'v2' ]; then
-    other_fields=""
-    for i in $(seq 0 $generation); do
-        other_fields="$other_fields,
-        $i: {
-             schemas: {
-                 int: { bsonType: \"int\" }
-             },
-             counts: {
-                 int: 3
-             }
-        }"
-    done
-
-    cmd="
-        vId = new ObjectId();
-        db.mongosqld.schemas.insert({
-            _id: new ObjectId(),
-            versionId: vId,
-            database: \"test\",
-            collection: \"sample_test\",
-            sampleSize: NumberLong(1),
-            startSampleTime: new Date(),
-            endSampleTime: new Date(),
-            schema: {
-                bsonType: \"object\",
-                properties: {
-                    _id: {
-                        schemas: {
-                            int: { bsonType: \"int\" }
-                        },
-                        counts: {
-                            int: 3
-                        }
-                    }$other_fields
-                },
-            }
-        });
-        db.mongosqld.versions.insert({
-            _id: vId,
-            startSampleTime: new Date(),
-            endSampleTime: new Date(),
-            databases: [ { name: \"test\", collections: [ \"sample_test\" ] } ],
-            generation: NumberLong($1),
-            protocol: \"v2\",
-            processName: \"write-initial-schema.sh\"
-        });
-    "
-    fi
     echo $cmd
 }
 
 (
     set -o errexit
 
-    protocol="${PROTOCOL:-v2}"
-
     generation=${GENERATION:-0}
     echo "writing schema for generation $generation..."
 
-    cmd="$(create_schema_cmd_for_generation $generation $protocol)"
+    cmd="$(create_schema_cmd_for_generation $generation)"
 
     set +o errexit
 

@@ -5,8 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	pseudorand "math/rand"
-	"time"
 )
 
 // nolint: unparam
@@ -24,20 +22,6 @@ func randomBuf(size int) ([]byte, error) {
 		}
 	}
 	return buf, nil
-}
-
-var src = pseudorand.NewSource(time.Now().UnixNano())
-
-// nolint: unparam
-func randomString(size int) string {
-	const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-
-	b := make([]byte, size)
-	for i := range b {
-		b[i] = letterBytes[int(src.Int63())%len(letterBytes)]
-	}
-
-	return string(b)
 }
 
 func lengthEncodedInt(b []byte) (num uint64, isNull bool, n int) {

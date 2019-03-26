@@ -53,11 +53,13 @@ func TestParseArgs_Valid(t *testing.T) {
 
 		// Schema
 		"--schema", "path-to-file",
+		"--schemaMode", "custom",
+		"--schemaName", "mySchema",
+		"--schemaSource", "schemaDb",
 		"--maxVarcharLength", "1000",
 		"--sampleNamespaces", "foo.*",
 		"--sampleNamespaces", "*.bar",
 		"--sampleSize", "500",
-		"--sampleMode", "write",
 		"--sampleRefreshIntervalSecs", "983",
 		"--uuidSubtype3Encoding", "java",
 		"--prejoin",
@@ -114,7 +116,8 @@ func TestParseArgs_Valid(t *testing.T) {
 		"cfg.Schema.Sample.Namespaces",
 	)
 	testInt64(t, cfg.Schema.Sample.Size, 500, "cfg.Schema.Sample.Size")
-	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
+	testStoredSchemaMode(t, cfg.Schema.Stored.Mode, CustomStoredSchemaMode, "cfg.Schema.Stored.Mode")
+	testString(t, cfg.Schema.Stored.Source, "schemaDb", "cfg.Schema.Stored.Source")
 	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
 	testBool(t,
 		cfg.Schema.Sample.OptimizeViewSampling,
@@ -123,9 +126,15 @@ func TestParseArgs_Valid(t *testing.T) {
 	)
 	testInt64(
 		t,
-		cfg.Schema.Sample.RefreshIntervalSecs,
+		cfg.Schema.Sample.RefreshIntervalSecsDeprecated,
+		0,
+		"cfg.Schema.Sample.RefreshIntervalSecsDeprecated",
+	)
+	testInt64(
+		t,
+		cfg.Schema.RefreshIntervalSecs,
 		983,
-		"cfg.Schema.Sample.RefreshIntervalSecs",
+		"cfg.Schema.RefreshIntervalSecs",
 	)
 	testString(
 		t,
@@ -290,6 +299,18 @@ func TestParseArgs_Invalid(t *testing.T) {
 				longOptDelim + "setParameter' (expected <param>=<value>): " +
 				"invalid setParameter expression: enableTableAlterations",
 			args: []string{"--setParameter", "enableTableAlterations"},
+		},
+		{
+			err:  "error parsing command line options: unknown flag `sampleMode'",
+			args: []string{"--sampleMode", "auto"},
+		},
+		{
+			err:  "error parsing command line options: unknown flag `sampleSource'",
+			args: []string{"--sampleSource", "auto"},
+		},
+		{
+			err:  "must specify only one of --schemaRefreshIntervalSecs or --sampleRefreshIntervalSecs",
+			args: []string{"--sampleRefreshIntervalSecs", "10", "--schemaRefreshIntervalSecs", "10"},
 		},
 	}
 

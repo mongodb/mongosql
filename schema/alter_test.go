@@ -26,9 +26,8 @@ func testRenameColumn(t *testing.T) {
 	}
 
 	sch := createTestSchema()
-	sch.AddAlterations(rename)
+	altered, err := sch.Altered(rename)
 
-	altered, err := sch.Altered()
 	req.NoError(err, "failed to alter schema")
 	req.Equal(
 		"bar",
@@ -57,9 +56,8 @@ func testRenameColumnTwice(t *testing.T) {
 	}
 
 	sch := createTestSchema()
-	sch.AddAlterations(firstRename, secondRename)
+	altered, err := sch.Altered(firstRename, secondRename)
 
-	altered, err := sch.Altered()
 	req.NoError(err, "failed to alter schema")
 	req.Equal(
 		"baz",
@@ -79,9 +77,8 @@ func testRenameTable(t *testing.T) {
 	}
 
 	sch := createTestSchema()
-	sch.AddAlterations(rename)
+	altered, err := sch.Altered(rename)
 
-	altered, err := sch.Altered()
 	req.NoError(err, "failed to alter schema")
 	req.Equal(
 		"foo",
@@ -108,9 +105,8 @@ func testRenameTableTwice(t *testing.T) {
 	}
 
 	sch := createTestSchema()
-	sch.AddAlterations(firstRename, secondRename)
+	altered, err := sch.Altered(firstRename, secondRename)
 
-	altered, err := sch.Altered()
 	req.NoError(err, "failed to alter schema")
 	req.Equal(
 		"bar",

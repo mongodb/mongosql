@@ -23,9 +23,12 @@ systemLog:
 schema:
   path: "/var/test"
   maxVarcharLength: 1000
-  sample:
-    mode: write
+  refreshIntervalSecs: 0
+  stored:
+    mode: custom
     source: sampleDb
+    name: mySchema
+  sample:
     size: 969
     prejoin: true
     namespaces: ["foo.*", "*.bar"]
@@ -107,17 +110,22 @@ setParameter:
 	testUint64(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
 	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
 	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
-	testSampleMode(t, cfg.Schema.Sample.Mode, "write", "cfg.Schema.Sample.Mode")
-	testString(t, cfg.Schema.Sample.Source, "sampleDb", "cfg.Schema.Sample.Source")
+	testStoredSchemaMode(t, cfg.Schema.Stored.Mode, CustomStoredSchemaMode, "cfg.Schema.Stored.Mode")
+	testString(t, cfg.Schema.Stored.Source, "sampleDb", "cfg.Schema.Stored.Source")
 	testStringSlice(t,
 		cfg.Schema.Sample.Namespaces,
 		[]string{"foo.*",
 			"*.bar"}, "cfg.Schema.Sample.Namespaces",
 	)
 	testInt64(t,
-		cfg.Schema.Sample.RefreshIntervalSecs,
+		cfg.Schema.RefreshIntervalSecs,
 		983,
-		"cfg.Schema.Sample.RefreshIntervalSecs",
+		"cfg.Schema.RefreshIntervalSecs",
+	)
+	testInt64(t,
+		cfg.Schema.Sample.RefreshIntervalSecsDeprecated,
+		0,
+		"cfg.Schema.Sample.RefreshIntervalSecsDeprecated",
 	)
 	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java", "cfg.Schema.UUIDSubtype3Encoding")
 
@@ -259,6 +267,67 @@ net:
 
 	testStringSlice(t, cfg.Net.BindIP, []string{"192.168.20.1", "host2"}, "cfg.Net.BindIP")
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
+}
+
+func TestParseYaml_RefreshInterval(t *testing.T) {
+	cfg := Default()
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+schema:
+  refreshIntervalSecs: 10
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testInt64(t, cfg.Schema.RefreshIntervalSecs, 10, "cfg.Schema.RefreshIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
+}
+
+func TestParseYaml_RefreshInterval_Deprecated(t *testing.T) {
+	cfg := Default()
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+schema:
+  sample:
+    refreshIntervalSecs: 10
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testInt64(t, cfg.Schema.RefreshIntervalSecs, 10, "cfg.Schema.RefreshIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
+}
+
+func TestParseYaml_RefreshInterval_Override(t *testing.T) {
+	cfg := Default()
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+schema:
+  refreshIntervalSecs: 0
+  sample:
+    refreshIntervalSecs: 10
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testInt64(t, cfg.Schema.RefreshIntervalSecs, 10, "cfg.Schema.RefreshIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
+}
+
+func TestParseYaml_RefreshInterval_No_Override(t *testing.T) {
+	cfg := Default()
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+schema:
+  refreshIntervalSecs: 100
+  sample:
+    refreshIntervalSecs: 10
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testInt64(t, cfg.Schema.RefreshIntervalSecs, 100, "cfg.Schema.RefreshIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
 }
 
 func TestParseYaml_Invalid(t *testing.T) {
