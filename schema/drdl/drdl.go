@@ -11,6 +11,7 @@ import (
 
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/json"
 )
@@ -189,7 +190,11 @@ func (t *Table) MarshalYAML() (string, interface{}, error) {
 // string instead of BSON arrays and documents. This is necessary in order to
 // store the table in MongoDB, since $-prefixed keys are not allowed.
 func (t *Table) GetBSON() (interface{}, error) {
-	pb, err := bsonutil.PipelineJSON(t.Pipeline, 0, false)
+	pipeline, err := astutil.ParsePipeline(t.Pipeline)
+	if err != nil {
+		return nil, err
+	}
+	pb, err := astutil.PipelineJSON(pipeline, 0, false)
 	if err != nil {
 		return nil, err
 	}

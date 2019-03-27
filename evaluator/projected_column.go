@@ -110,3 +110,18 @@ func (pcs ProjectedColumns) Unique() ProjectedColumns {
 
 	return results
 }
+
+// String is useful for ProjectedColumn because during pushdown we
+// use the result of this method for field names in $project stages.
+// The special-cased subquery exprs return the ProjectedColumn.Name
+// as opposed to ProjectedColumn.Expr.String() for two main reasons.
+// Their String() output contains pretty-printed PlanStages which
+// (1) are unnecessarily long, and (2) contain newlines and tabs.
+func (pc ProjectedColumn) String() string {
+	switch pc.Expr.(type) {
+	case *SQLSubqueryAllExpr, *SQLSubqueryAnyExpr, *SQLSubqueryCmpExpr, *SQLSubqueryExpr:
+		return pc.Name
+	default:
+		return pc.Expr.String()
+	}
+}

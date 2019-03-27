@@ -3,13 +3,12 @@ package catalog
 import (
 	"strings"
 
+	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
-
-	"github.com/10gen/mongo-go-driver/bson"
 )
 
 const (
@@ -209,7 +208,7 @@ type MongoDBTable interface {
 	// IsSharded returns true if this MongoDB table is sharded and false otherwise.
 	IsSharded() bool
 	// Pipeline returns the BSON pipeline to be prepended for this table.
-	Pipeline() []bson.D
+	Pipeline() *ast.Pipeline
 }
 
 // Table type constants

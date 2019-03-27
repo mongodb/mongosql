@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
@@ -11,7 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
-	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
@@ -67,7 +69,7 @@ func CreateTestPushdownCfg(mongoDBVersion []uint8) *PushdownConfig {
 }
 
 type pipelineGatherer struct {
-	pipelines [][]bson.D
+	pipelines []*ast.Pipeline
 }
 
 func (v *pipelineGatherer) visit(n Node) (Node, error) {
@@ -78,8 +80,8 @@ func (v *pipelineGatherer) visit(n Node) (Node, error) {
 
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
-		if len(typedN.pipeline) > 0 {
-			pipeline := bsonutil.DeepCopyDSlice(typedN.pipeline)
+		if len(typedN.pipeline.Stages) > 0 {
+			pipeline := astutil.DeepCopyPipeline(typedN.pipeline)
 			v.pipelines = append(v.pipelines, pipeline)
 		}
 	}
@@ -289,7 +291,7 @@ func GetProjectProjectedColumnExpr(plan PlanStage) SQLExpr {
 }
 
 // GetNodePipeline walks a node and returns all the aggregation pipelines found.
-func GetNodePipeline(n Node) [][]bson.D {
+func GetNodePipeline(n Node) []*ast.Pipeline {
 	pg := &pipelineGatherer{}
 	_, err := pg.visit(n)
 	// This err was previously ignored.

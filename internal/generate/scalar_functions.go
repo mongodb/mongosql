@@ -94,6 +94,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 )
@@ -161,7 +162,7 @@ func (f *{{$func.ID}}{{.ID}}Func) Evaluate(ctx context.Context, cfg *ExecutionCo
 	{{- end}}
 }
 
-func (f *{{$func.ID}}{{.ID}}Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *{{$func.ID}}{{.ID}}Func) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	{{- if $func.NoPushdown}}
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 	{{- else}}
@@ -169,7 +170,7 @@ func (f *{{$func.ID}}{{.ID}}Func) ToAggregationLanguage(t *PushdownTranslator) (
 	{{- end}}
 }
 
-func (f *{{$func.ID}}{{.ID}}Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *{{$func.ID}}{{.ID}}Func) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 

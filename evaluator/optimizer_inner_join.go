@@ -297,7 +297,7 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 
 	case *MongoSourceStage:
 		ms := joinLeafSource{
-			nPipelineStages: len(typedN.pipeline),
+			nPipelineStages: len(typedN.pipeline.Stages),
 			dataSource:      typedN,
 		}
 		v.sources[fullyQualifiedTableName(typedN.dbName, typedN.aliasNames[0])] = ms

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/collation"
@@ -188,20 +190,19 @@ func getMongoDBInfoWithShardedCollection(versionArray []uint8, sch *schema.Schem
 	return info
 }
 
-func createFieldNameLookup(db *schema.Database) evaluator.FieldNameLookup {
-
-	return func(databaseName, tableName, columnName string) (string, bool) {
+func createFieldRefLookup(db *schema.Database) evaluator.FieldRefLookup {
+	return func(databaseName, tableName, columnName string) (ast.Ref, bool) {
 		table := db.Table(tableName)
 		if table == nil {
-			return "", false
+			return nil, false
 		}
 
 		column := table.Column(columnName)
 		if column == nil {
-			return "", false
+			return nil, false
 		}
 
-		return column.MongoName(), true
+		return ast.NewFieldRef(column.MongoName(), nil), true
 	}
 }
 

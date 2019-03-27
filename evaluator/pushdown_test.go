@@ -7,10 +7,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/10gen/mongoast/astprint"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
@@ -544,13 +544,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	var actual string
 	ms, ok := pushedDown.(*evaluator.MongoSourceStage)
 	if ok {
-		converted, err := bsonutil.GetBSONValueAsJSON(ms.Pipeline(), true)
-		req.Nil(err, "failed to get pipeline as json")
-
-		actualBytes, err := json.Marshal(converted)
-		req.Nil(err, "failed to marshal pipeline to json")
-
-		actual = string(actualBytes)
+		actual = astprint.String(ms.Pipeline())
 	}
 
 	return actual

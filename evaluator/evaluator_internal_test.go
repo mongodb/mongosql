@@ -4,10 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -332,8 +333,8 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
 		tableType:  "view",
-		pipeline: bsonutil.NewDArray(
-			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("foo", 1)))),
+		pipeline: ast.NewPipeline(
+			ast.NewProjectStage(ast.NewIncludeProjectItem(ast.NewFieldRef("foo", nil))),
 		),
 	}
 
@@ -345,7 +346,7 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 	ensureFastPlanProjectInvariant(fastPlan)
 	ms, ok := fastPlan.(*MongoSourceStage)
 	req.True(ok)
-	req.Equal(0, ms.pipeline[0][0].Value.(bson.D).Map()["_id"],
+	req.True(projectStageExcludesID(ms.pipeline.Stages[0].(*ast.ProjectStage)),
 		"_id:0 must be added to project")
 
 	mongoSourceStage1 := &MongoSourceStage{
@@ -354,8 +355,8 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
 		tableType:  "view",
-		pipeline: bsonutil.NewDArray(
-			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("foo", 1)))),
+		pipeline: ast.NewPipeline(
+			ast.NewProjectStage(ast.NewIncludeProjectItem(ast.NewFieldRef("foo", nil))),
 		),
 	}
 	mongoSourceStage2 := &MongoSourceStage{
@@ -364,8 +365,8 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 		tableNames: []string{"bar"},
 		aliasNames: []string{"biz"},
 		tableType:  "view",
-		pipeline: bsonutil.NewDArray(
-			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(bsonutil.NewDocElem("bar", 2)))),
+		pipeline: ast.NewPipeline(
+			ast.NewProjectStage(ast.NewAssignProjectItem("bar", astutil.Int32Constant(2))),
 		),
 	}
 	optimizableUnion := &ProjectStage{
@@ -386,12 +387,22 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 	req.True(ok)
 	ms1, ok := us.left.(*MongoSourceStage)
 	req.True(ok)
-	req.Equal(0, ms1.pipeline[0][0].Value.(bson.D).Map()["_id"],
+	req.True(projectStageExcludesID(ms1.pipeline.Stages[0].(*ast.ProjectStage)),
 		"_id:0 must be added to left stage project")
 	ms2, ok := us.right.(*MongoSourceStage)
 	req.True(ok)
-	req.Equal(0, ms2.pipeline[0][0].Value.(bson.D).Map()["_id"],
+	req.True(projectStageExcludesID(ms2.pipeline.Stages[0].(*ast.ProjectStage)),
 		"_id:0 must be added to right stage project")
+}
+
+func projectStageExcludesID(project *ast.ProjectStage) bool {
+	for field := range project.ExcludeItems() {
+		if field == "_id" {
+			return true
+		}
+	}
+
+	return false
 }
 
 func TestBuildProjectBodyForMongoSource(t *testing.T) {
@@ -409,7 +420,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 		inputEvalType       types.EvalType
 		inputIs34           bool
 		expectedFields      []string
-		expectedBody        bson.D
+		expectedBody        []*ast.AddFieldsItem
 		expectedHasEmbedded bool
 	}
 
@@ -459,27 +470,27 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputEvalType:       types.EvalInt64,
 			inputIs34:           true,
 			expectedFields:      nonEmbeddedFields,
-			expectedBody:        bsonutil.NewD(),
+			expectedBody:        []*ast.AddFieldsItem{},
 			expectedHasEmbedded: false},
 
 		{inputFields: noConflictEmbeddedFields,
 			inputEvalType:  types.EvalInt64,
 			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFields,
-			expectedBody: bsonutil.NewD(
-				bsonutil.NewDocElem("c_DOT_a", "$c.a"),
-				bsonutil.NewDocElem("c_DOT_d", "$c.d"),
-			),
+			expectedBody: []*ast.AddFieldsItem{
+				ast.NewAddFieldsItem("c_DOT_a", ast.NewFieldRef("c.a", nil)),
+				ast.NewAddFieldsItem("c_DOT_d", ast.NewFieldRef("c.d", nil)),
+			},
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFields,
 			inputEvalType:  types.EvalInt64,
 			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFields,
-			expectedBody: bsonutil.NewD(
-				bsonutil.NewDocElem("a_DOT_b0", "$a.b"),
-				bsonutil.NewDocElem("a_DOT_c1", "$a.c"),
-			),
+			expectedBody: []*ast.AddFieldsItem{
+				ast.NewAddFieldsItem("a_DOT_b0", ast.NewFieldRef("a.b", nil)),
+				ast.NewAddFieldsItem("a_DOT_c1", ast.NewFieldRef("a.c", nil)),
+			},
 			expectedHasEmbedded: true},
 
 		//tests for pre-3.4+ which should generate project bodies
@@ -487,33 +498,33 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputEvalType:       types.EvalInt64,
 			inputIs34:           false,
 			expectedFields:      nonEmbeddedFields,
-			expectedBody:        bsonutil.NewD(),
+			expectedBody:        []*ast.AddFieldsItem{},
 			expectedHasEmbedded: false},
 
 		{inputFields: noConflictEmbeddedFields32,
 			inputEvalType:  types.EvalInt64,
 			inputIs34:      false,
 			expectedFields: expectedNoConflictEmbeddedFields,
-			expectedBody: bsonutil.NewD(
-				bsonutil.NewDocElem("a", true),
-				bsonutil.NewDocElem("b", true),
-				bsonutil.NewDocElem("c_DOT_a", "$c.a"),
-				bsonutil.NewDocElem("c_DOT_d", "$c.d"),
-			),
+			expectedBody: []*ast.AddFieldsItem{
+				ast.NewAddFieldsItem("a", astutil.TrueLiteral),
+				ast.NewAddFieldsItem("b", astutil.TrueLiteral),
+				ast.NewAddFieldsItem("c_DOT_a", ast.NewFieldRef("c.a", nil)),
+				ast.NewAddFieldsItem("c_DOT_d", ast.NewFieldRef("c.d", nil)),
+			},
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFields32,
 			inputEvalType:  types.EvalInt64,
 			inputIs34:      false,
 			expectedFields: expectedConflictedEmbeddedFields,
-			expectedBody: bsonutil.NewD(
-				bsonutil.NewDocElem("a_DOT_b", true),
-				bsonutil.NewDocElem("a_DOT_c", true),
-				bsonutil.NewDocElem("a_DOT_c0", true),
-				bsonutil.NewDocElem("a_DOT_b0", "$a.b"),
-				bsonutil.NewDocElem("a_DOT_c1", "$a.c"),
-				bsonutil.NewDocElem("b", true),
-			),
+			expectedBody: []*ast.AddFieldsItem{
+				ast.NewAddFieldsItem("a_DOT_b", astutil.TrueLiteral),
+				ast.NewAddFieldsItem("a_DOT_c", astutil.TrueLiteral),
+				ast.NewAddFieldsItem("a_DOT_c0", astutil.TrueLiteral),
+				ast.NewAddFieldsItem("a_DOT_b0", ast.NewFieldRef("a.b", nil)),
+				ast.NewAddFieldsItem("a_DOT_c1", ast.NewFieldRef("a.c", nil)),
+				ast.NewAddFieldsItem("b", astutil.TrueLiteral),
+			},
 			expectedHasEmbedded: true},
 
 		// tests for 3.4+ which should generate addFields bodies,
@@ -522,27 +533,27 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputEvalType:  types.EvalArrNumeric,
 			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFieldsArr,
-			expectedBody: bsonutil.NewD(
-				bsonutil.NewDocElem("c_DOT_a_DOT_1", bsonutil.NewM(bsonutil.NewDocElem("$arrayElemAt", bsonutil.NewArray(
-					"$c.a",
-					1,
-				)))),
-				bsonutil.NewDocElem("c_DOT_d", "$c.d"),
-			),
+			expectedBody: []*ast.AddFieldsItem{
+				ast.NewAddFieldsItem("c_DOT_a_DOT_1", astutil.WrapInOp(bsonutil.OpArrElemAt,
+					ast.NewFieldRef("c.a", nil),
+					astutil.Int64Value(1),
+				)),
+				ast.NewAddFieldsItem("c_DOT_d", ast.NewFieldRef("c.d", nil)),
+			},
 			expectedHasEmbedded: true},
 
 		{inputFields: conflictedEmbeddedFieldsArr,
 			inputEvalType:  types.EvalArrNumeric,
 			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFieldsArr,
-			expectedBody: bsonutil.NewD(
-				bsonutil.NewDocElem("a_DOT_c_DOT_1", bsonutil.NewM(bsonutil.NewDocElem("$arrayElemAt", bsonutil.NewArray(
-					"$a_DOT_c",
-					1,
-				)))),
-				bsonutil.NewDocElem("a_DOT_b0", "$a.b"),
-				bsonutil.NewDocElem("a_DOT_c", "$a.c"),
-			),
+			expectedBody: []*ast.AddFieldsItem{
+				ast.NewAddFieldsItem("a_DOT_c_DOT_1", astutil.WrapInOp(bsonutil.OpArrElemAt,
+					ast.NewFieldRef("a_DOT_c", nil),
+					astutil.Int64Value(1),
+				)),
+				ast.NewAddFieldsItem("a_DOT_b0", ast.NewFieldRef("a.b", nil)),
+				ast.NewAddFieldsItem("a_DOT_c", ast.NewFieldRef("a.c", nil)),
+			},
 			expectedHasEmbedded: true},
 	}
 

@@ -3661,16 +3661,31 @@ testcases:
     sql: select d, timestamp(d, '12:15:18') as a, timestamp(d, '140928') as b from scalar
 
   - db: functions_test
-    expected_names: [d, to_days(d)]
+    description: to_days in many forms
+    expected_names: [d, res]
+    expected_results:
+      - ['2017-12-12', 737040]
+      - ['1066-01-02', 389350]
+      - ['0566-01-02', 206729]
+      - ['0166-01-02', 60632]
+      - ['0001-01-02', 367]
+      - ['0000-03-01', 60]
+    expected_types: [varchar, int]
+    id: to_days
+    sql: select d, to_days(d) as res from dates
+
+  - db: functions_test
+    description: to_days with fractional dates
+    expected_names: [d, dd]
     expected_results:
       - ['2000-09-23 13:45:00.400000', 730751]
       - ['2000-09-24 13:45:00', 730752]
       - ['2000-10-24 13:45:00.007000', 730782]
       - [null, null]
       - [null, null]
-    expected_types: [varchar, float]
-    id: to_days
-    sql: select d, to_days(d) from scalar
+    expected_types: [varchar, int]
+    id: to_days_2
+    sql: select d, TO_DAYS(d) dd from scalar
 
   - db: functions_test
     expected_names: ['truncate(null, 2)']
@@ -6290,33 +6305,6 @@ testcases:
     id: utc_timestamp_2
     min_server_version: 3.4
     sql: select d, year(date(d)) + 2000 > year(utc_timestamp()) as res from dates
-
-  - db: functions_test
-    description: to_days in many forms
-    expected_names: [d, res]
-    expected_results:
-      - ['2017-12-12', 737040]
-      - ['1066-01-02', 389350]
-      - ['0566-01-02', 206729]
-      - ['0166-01-02', 60632]
-      - ['0001-01-02', 367]
-      - ['0000-03-01', 60]
-    expected_types: [varchar, int]
-    id: to_days_2
-    sql: select d, to_days(d) as res from dates
-
-  - db: functions_test
-    description: to_days with fractional dates
-    expected_names: [d, dd]
-    expected_results:
-      - ['2000-09-23 13:45:00.400000', 730751]
-      - ['2000-09-24 13:45:00', 730752]
-      - ['2000-10-24 13:45:00.007000', 730782]
-      - [null, null]
-      - [null, null]
-    expected_types: [varchar, int]
-    id: to_days_3
-    sql: select d, TO_DAYS(d) dd from scalar
 
   - db: functions_test
     description: no column reference in field list

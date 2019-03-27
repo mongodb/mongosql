@@ -9,13 +9,14 @@ import (
 
 	"github.com/10gen/mongo-go-driver/bson"
 
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -39,19 +40,8 @@ type MongoSourceStage struct {
 	isShardedCollection map[string]bool
 	tableType           string
 	mappingRegistry     *mappingRegistry
-	pipeline            []bson.D
+	pipeline            *ast.Pipeline
 	isDual              bool
-
-	// A MongoSourceStage may require evaluation of one or more
-	// NonCorrelatedSubqueryFutures before its evaluation can commence.
-	// This is empty if a MongoSourceStage has no piecewise dependencies.
-	piecewiseDeps []*NonCorrelatedSubqueryFuture
-
-	// A MongoSourceStage representing a portion of a subquery may reference
-	// columns from parent scopes. When pushed down, these columns are stored
-	// as CorrelatedSubqueryColumnFutures, and must be evaluated before the
-	// pipeline can be marshalled.
-	correlatedColumns []*CorrelatedSubqueryColumnFuture
 
 	// A MongoSourceStage may be constrained by a LIMIT N. This field denotes the
 	// value of N, so that there is some ability to guarantee the number of rows
@@ -74,14 +64,12 @@ func (MongoSourceStage) ReplaceChild(i int, e Node) {
 
 func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, selectID int, aliasName string) *MongoSourceStage {
 	ms := &MongoSourceStage{
-		selectIDs:         []int{selectID},
-		dbName:            string(db.Name()),
-		tableNames:        []string{table.Name()},
-		aliasNames:        []string{aliasName},
-		tableType:         table.Type(),
-		piecewiseDeps:     []*NonCorrelatedSubqueryFuture{},
-		correlatedColumns: []*CorrelatedSubqueryColumnFuture{},
-		LimitRowCount:     -1,
+		selectIDs:     []int{selectID},
+		dbName:        string(db.Name()),
+		tableNames:    []string{table.Name()},
+		aliasNames:    []string{aliasName},
+		tableType:     table.Type(),
+		LimitRowCount: -1,
 	}
 
 	if len(ms.aliasNames) == 0 || ms.aliasNames[0] == "" {
@@ -100,18 +88,6 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 		newColumn.Table = ms.aliasNames[0]
 		newColumn.OriginalTable = ms.tableNames[0]
 		newColumn.MappingRegistryName = ""
-		//               mc := c.(*catalog.MongoColumn)
-		//               column := NewColumn(selectID,
-		//                       ms.aliasNames[0],
-		//                       ms.tableNames[0],
-		//                       ms.dbName,
-		//                       string(mc.Name()),
-		//                       string(mc.Name()),
-		//                       "",
-		//                       types.SQLTypeToEvalType(schema.SQLType(mc.Type())),
-		//                       mc.MongoType,
-		//                       primaryKeys.Contains(mc.Name()),
-		//               )
 
 		ms.mappingRegistry.addColumn(newColumn)
 		ms.mappingRegistry.registerMapping(ms.dbName,
@@ -125,7 +101,7 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoDBTable.
 func NewMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, selectID int, aliasName string) *MongoSourceStage {
 	ms := newMongoSourceStage(db, table, selectID, aliasName)
-	ms.pipeline = bsonutil.DeepCopyDSlice(table.Pipeline())
+	ms.pipeline = astutil.DeepCopyPipeline(table.Pipeline())
 	return ms
 }
 
@@ -138,24 +114,18 @@ func NewMongoSourceDualStage(db catalog.Database, table catalog.MongoDBTable, se
 	ms.LimitRowCount = 1
 
 	// We use $collstats to get a guaranteed single document back, which is then used to house the fields from dual.
-	ms.pipeline = bsonutil.NewDArray(
-		bsonutil.NewD(bsonutil.NewDocElem("$collStats", bsonutil.NewD())),
-		bsonutil.NewD(bsonutil.NewDocElem("$limit", 1)), // Avoid getting more than one document back in sharded case.
+	ms.pipeline = ast.NewPipeline(
+		ast.NewCollStatsStage(nil, nil, nil),
+		ast.NewLimitStage(1), // Avoid getting more than one document back in sharded case.
 		// By projecting a field that does not exist, we create an empty document.
 		// This is a small optimization to throw out the output of $collStats.
-		bsonutil.NewD(bsonutil.NewDocElem(
-			"$project", bsonutil.NewD(bsonutil.NewDocElem("newField", 1)))),
+		ast.NewProjectStage(ast.NewIncludeProjectItem(ast.NewFieldRef("newField", nil))),
 	)
 
 	return ms
 }
 
 func (ms *MongoSourceStage) clone() PlanStage {
-	deps := make([]*NonCorrelatedSubqueryFuture, len(ms.piecewiseDeps))
-	copy(deps, ms.piecewiseDeps)
-	corr := make([]*CorrelatedSubqueryColumnFuture, len(ms.correlatedColumns))
-	copy(corr, ms.correlatedColumns)
-
 	return &MongoSourceStage{
 		selectIDs:           ms.selectIDs,
 		dbName:              ms.dbName,
@@ -166,10 +136,8 @@ func (ms *MongoSourceStage) clone() PlanStage {
 		isShardedCollection: ms.isShardedCollection,
 		collation:           ms.collation,
 		mappingRegistry:     ms.mappingRegistry.copy(),
-		pipeline:            bsonutil.DeepCopyDSlice(ms.pipeline),
+		pipeline:            astutil.DeepCopyPipeline(ms.pipeline),
 		isDual:              ms.isDual,
-		piecewiseDeps:       deps,
-		correlatedColumns:   corr,
 		LimitRowCount:       ms.LimitRowCount,
 	}
 }
@@ -191,7 +159,9 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *Execu
 	var err error
 
 	procutil.PanicSafeGo(func() {
-		iter, err = cfg.commandHandler.Aggregate(ctx, ms.dbName, ms.collectionNames[0], ms.pipeline)
+		// Convert from ast.Pipeline to []bson.Raw
+		bsonPipeline := astutil.RawDeparsePipeline(ms.pipeline)
+		iter, err = cfg.commandHandler.Aggregate(ctx, ms.dbName, ms.collectionNames[0], bsonPipeline)
 		errChan <- err
 	}, func(err interface{}) {
 		cfg.lg.Errf(log.Admin, "MongoDB data access session closed: %v", err)
@@ -240,11 +210,6 @@ type FastMongoSourceIter struct {
 // FastOpen opens a more optimized Iter over raw BSON documents returned from
 // MongoDB in cases where no in-memory evaluation is needed to handle a query.
 func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
-	err := ms.resolveDeps(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
 	columns := ms.mappingRegistry.columns
 	lenColumns := len(columns)
 	uniqueFields := make(map[string]struct{}, lenColumns)
@@ -322,9 +287,12 @@ func (ms *FastMongoSourceIter) Close() error {
 // embedded documents, it also returns the updated fields and whether or not any
 // embedded documents actually occurred. The interface is busy, but pulling this
 // function out of Open allows for us to unit test this functionality.
-func buildProjectBodyForMongoSource(fields []string,
-	fieldNamesSet map[string]struct{}, columns results.Columns,
-	isAtLeast34 bool) (bson.D, []string, bool) {
+func buildProjectBodyForMongoSource(
+	fields []string,
+	fieldNamesSet map[string]struct{},
+	columns results.Columns,
+	isAtLeast34 bool,
+) ([]*ast.AddFieldsItem, []string, bool) {
 	// getUniqueFieldName will be used when creating $project/$addFields
 	// body names for embedded documents.
 	getUniqueFieldName := func(fieldName string) string {
@@ -337,7 +305,7 @@ func buildProjectBodyForMongoSource(fields []string,
 			ret = fieldName + strconv.Itoa(i)
 		}
 	}
-	projectBody := bsonutil.NewD()
+	projectBody := make([]*ast.AddFieldsItem, 0, len(fields))
 	hasEmbeddedDocs := false
 	for i, mappedFieldName := range fields {
 		fieldIsEmbedded := strings.Contains(mappedFieldName, ".")
@@ -356,55 +324,25 @@ func buildProjectBodyForMongoSource(fields []string,
 			// (EvalArrNumeric), it will properly add array indexing to get the
 			// two values out.
 			projectBody = append(projectBody,
-				bsonutil.NewDocElem(
+				ast.NewAddFieldsItem(
 					flattenedFieldName,
 					getProjectedFieldName(mappedFieldName, columns[i].EvalType),
-				))
+				),
+			)
 		} else if !isAtLeast34 {
 			// We have to add this column if !asAtLeast34 or we will drop fields.
 			// Note that even though we are building the projectBody, it will not
 			// actually be added to the pipeline unless hasEmbeddedDocs is true.
-			projectBody = append(projectBody, bsonutil.NewDocElem(mappedFieldName,
-				true))
+			projectBody = append(projectBody,
+				ast.NewAddFieldsItem(mappedFieldName, astutil.TrueLiteral),
+			)
 		}
 	}
 	return projectBody, fields, hasEmbeddedDocs
 }
 
-func (ms *MongoSourceStage) resolveDeps(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
-	for i, dep := range ms.piecewiseDeps {
-		cfg.lg.Debugf(log.Dev,
-			"executing piecewise dependency %d:\n%s",
-			i, PrettyPrintPlan(dep.plan),
-		)
-		err := dep.Evaluate(ctx, cfg, st)
-		if err != nil {
-			if _, ok := err.(*mysqlerrors.MySQLError); ok {
-				return err
-			}
-			return fmt.Errorf("error evaluating piecewise dependency: %v", err)
-		}
-	}
-	for i, col := range ms.correlatedColumns {
-		cfg.lg.Debugf(log.Dev,
-			"resolving pushed down correlated column %d:\n%s",
-			i, col.String,
-		)
-		err := col.Evaluate(cfg, st)
-		if err != nil {
-			return fmt.Errorf("error resolving pushed down correlated column: %v", err)
-		}
-	}
-	return nil
-}
-
 // Open creates an Iter over rows returned from MongoDB.
 func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
-	err := ms.resolveDeps(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
 	columns := ms.mappingRegistry.columns
 
 	// We need to add a last $project or $addFields stage to flatten any embedded
@@ -445,12 +383,19 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 	// If the there are embedded documents we will add a project to flatten them,
 	// otherwise we will not change the pipeline.
 	if hasEmbeddedDocs {
-		stageName := "$project"
 		if isAtLeast34 {
-			stageName = "$addFields"
+			ms.pipeline.Stages = append(ms.pipeline.Stages,
+				ast.NewAddFieldsStage(projectBody...),
+			)
+		} else {
+			projectItems := make([]ast.ProjectItem, len(projectBody))
+			for i, afi := range projectBody {
+				projectItems[i] = ast.NewAssignProjectItem(afi.Name, afi.Expr)
+			}
+			ms.pipeline.Stages = append(ms.pipeline.Stages,
+				ast.NewProjectStage(projectItems...),
+			)
 		}
-		project := bsonutil.NewD(bsonutil.NewDocElem(stageName, projectBody))
-		ms.pipeline = append(ms.pipeline, project)
 	}
 
 	iter, err := ms.getAggregationCursor(ctx, cfg)
@@ -552,10 +497,10 @@ func (ms *MongoSourceStage) Collation() *collation.Collation {
 func (ms *MongoSourceStage) PipelineString() string {
 	b := bytes.NewBufferString("")
 	b.WriteRune('[')
-	if len(ms.pipeline) > 0 {
-		prettyPipeline, err := bsonutil.PipelineJSON(ms.pipeline, 0, false)
+	if len(ms.pipeline.Stages) > 0 {
+		prettyPipeline, err := astutil.PipelineJSON(ms.pipeline, 0, false)
 		if err != nil { // marshaling as json failed, fall back to Sprintf
-			prettyPipeline = bsonutil.PipelineString(ms.pipeline, 0)
+			prettyPipeline = astutil.PipelineString(ms.pipeline, 0)
 		}
 		b.Write(prettyPipeline)
 	}
@@ -578,7 +523,7 @@ func (ms *MongoSourceIter) Err() error {
 }
 
 // Pipeline returns the aggregation pipeline used by this MongoSourceStage.
-func (ms *MongoSourceStage) Pipeline() []bson.D {
+func (ms *MongoSourceStage) Pipeline() *ast.Pipeline {
 	return ms.pipeline
 }
 
@@ -671,6 +616,15 @@ func (mr *mappingRegistry) lookupFieldName(dbName, tableName, columnName string)
 	return field, ok
 }
 
+func (mr *mappingRegistry) lookupFieldRef(dbName, tableName, columnName string) (ast.Ref, bool) {
+	fieldName, ok := mr.lookupFieldName(dbName, tableName, columnName)
+	if !ok {
+		return nil, false
+	}
+
+	return ast.NewFieldRef(fieldName, nil), true
+}
+
 func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) bool {
 
 	if mr.fields == nil {
@@ -708,140 +662,4 @@ func (mr *mappingRegistry) String() string {
 		}
 	}
 	return b.String()
-}
-
-// NonCorrelatedSubqueryFuture represents a value that must be obtained by executing a query
-// plan before it can be used. A piece should be placed into an
-// aggregation pipeline when pushing down an expression containing
-// a non-correlated SQLSubqueryExpr into a MongoSourceStage.
-type NonCorrelatedSubqueryFuture struct {
-	evaluated bool
-	value     interface{}
-	plan      PlanStage
-}
-
-// NewNonCorrelatedSubqueryFuture returns a new NonCorrelatedSubqueryFuture based on the provided query plan.
-func NewNonCorrelatedSubqueryFuture(p PlanStage) *NonCorrelatedSubqueryFuture {
-	return &NonCorrelatedSubqueryFuture{
-		evaluated: false,
-		value:     nil,
-		plan:      p,
-	}
-}
-
-// Evaluate executes this piece's query plan and sets its value to the result.
-func (p *NonCorrelatedSubqueryFuture) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) error {
-	if p.evaluated {
-		panic("cannot evaluate piece twice")
-	}
-
-	iter, err := p.plan.Open(ctx, cfg, st)
-	if err != nil {
-		return err
-	}
-	iter = NewMemoryIter(cfg, iter)
-
-	row := &results.Row{}
-	ok := iter.Next(ctx, row)
-	if !ok {
-		// if the iter failed with an error, return it
-		err = iter.Err()
-		if err != nil {
-			return err
-		}
-
-		// otherwise, there are no results in the result set, so we return NULL
-		p.evaluated = true
-		p.value = nil
-		return nil
-	}
-
-	nullRow := &results.Row{}
-	if iter.Next(ctx, nullRow) {
-		return mysqlerrors.Defaultf(mysqlerrors.ErSubqueryNoOneRow)
-	}
-
-	if len(row.Data) != 1 {
-		// we shouldn't get here, because the algebrizer should have
-		// rejected any query returning multiple columns
-		panic("too many columns in correlated subquery expr result")
-	}
-
-	p.value = row.Data[0].Data.Value()
-	p.evaluated = true
-
-	return nil
-}
-
-// GetBSON returns this piece's cached result for BSON marshalling.
-// This function panics if the piece has not yet been evaluated.
-func (p *NonCorrelatedSubqueryFuture) GetBSON() (interface{}, error) {
-	if !p.evaluated {
-		panic("cannot marshal pipeline with unevaluated piece")
-	}
-	return p.value, nil
-}
-
-// CorrelatedSubqueryColumnFuture represents a value that must be obtained from a
-// correlated column expr before it can be used. A CorrelatedSubqueryColumnFuture
-// should be placed into an aggregation pipeline when pushing down a
-// correlated SQLSubqueryExpr's internal query plan.
-type CorrelatedSubqueryColumnFuture struct {
-	evaluated  bool
-	value      interface{}
-	selectID   int
-	database   string
-	table      string
-	column     string
-	columnType results.ColumnType
-}
-
-// NewCorrelatedSubqueryColumnFuture returns a new CorrelatedSubqueryColumnFuture based on
-// the provided SQLColumnExpr.
-func NewCorrelatedSubqueryColumnFuture(expr *SQLColumnExpr) *CorrelatedSubqueryColumnFuture {
-	return &CorrelatedSubqueryColumnFuture{
-		evaluated:  false,
-		value:      nil,
-		selectID:   expr.selectID,
-		database:   expr.databaseName,
-		table:      expr.tableName,
-		column:     expr.columnName,
-		columnType: expr.columnType,
-	}
-}
-
-// Evaluate resolves this CorrelatedSubqueryColumnFuture to a value.
-func (cc *CorrelatedSubqueryColumnFuture) Evaluate(cfg *ExecutionConfig, st *ExecutionState) error {
-	for _, row := range st.correlatedRows {
-		if result, ok := row.GetField(cc.selectID, cc.database, cc.table, cc.column); ok {
-			cc.value = values.ConvertTo(result, cc.columnType.EvalType)
-			return nil
-		}
-	}
-
-	panic(fmt.Sprintf("cannot find column %q", cc))
-}
-
-// GetBSON returns the correlated column's cached result for BSON marshalling.
-// This function panics if the column's value has not yet been resolved.
-func (cc *CorrelatedSubqueryColumnFuture) GetBSON() (interface{}, error) {
-	if !cc.evaluated {
-		panic("cannot marshal pipeline with unresolved correlated column")
-	}
-	return cc.value, nil
-}
-
-func (cc *CorrelatedSubqueryColumnFuture) String() string {
-	if cc.database != "" {
-		return fmt.Sprintf("%v.%v.%v", cc.database, cc.table, cc.column)
-	} else if cc.table != "" {
-		return fmt.Sprintf("%v.%v", cc.table, cc.column)
-	} else {
-		return fmt.Sprintf("%v", cc.column)
-	}
-}
-
-// MarshalJSON returns the JSON representation of this CorrelatedSubqueryColumnFuture.
-func (cc *CorrelatedSubqueryColumnFuture) MarshalJSON() ([]byte, error) {
-	return []byte(cc.String()), nil
 }

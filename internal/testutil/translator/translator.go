@@ -9,12 +9,15 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/sample"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+
+	"github.com/pkg/errors"
 )
 
 // Translator is a type for translating MySQL queries to MongoDB aggregation
@@ -96,7 +99,12 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 		return nil, "", err
 	}
 
-	return ms.Pipeline(), ms.Collection(), nil
+	bsonPipeline, err := astutil.DeparsePipeline(ms.Pipeline())
+	if err != nil {
+		return nil, "", errors.Wrap(err, "failed to deparse ast.Pipeline into []bson.D")
+	}
+
+	return bsonPipeline, ms.Collection(), nil
 }
 
 func createVariables(info *mongodb.Info) catalog.VariableContainer {

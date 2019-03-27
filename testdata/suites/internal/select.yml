@@ -1197,7 +1197,7 @@ testcases:
       - [2, '9223372036854775810']
       - [3, '9223372036854775811']
     expected_types: [int, varchar]
-    id: arithmetic_overflow_adding_overflowing_int64_columnss
+    id: arithmetic_overflow_adding_overflowing_int64_columns
     sql: select a, 9223372036854775808 + a as result from select_1;
 
   - db: select_sTest

@@ -1,0 +1,18 @@
+package parser
+
+import (
+	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/internal/bsonutil"
+
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+)
+
+// DeparsePipeline turns the pipeline into a bson.Array.
+func DeparsePipeline(pipeline *ast.Pipeline) bsoncore.Value {
+	values := make([]bsoncore.Value, len(pipeline.Stages))
+	for i, s := range pipeline.Stages {
+		values[i] = DeparseStage(s)
+	}
+
+	return bsonutil.ArrayFromValues(values...)
+}

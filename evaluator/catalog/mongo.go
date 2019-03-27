@@ -5,10 +5,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -80,6 +82,12 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string, collati
 	} else {
 		comment = fmt.Sprintf(`{ "collectionName": "%s" }`, t.MongoName())
 	}
+
+	pipeline, err := astutil.ParsePipeline(t.Pipeline())
+	if err != nil {
+		panic(fmt.Sprintf("failed to parse schema pipeline ([]bson.D) into evaluator pipeline (ast.Pipeline): %v", err))
+	}
+
 	return &MongoTable{
 		name:           t.SQLName(),
 		collation:      collation,
@@ -88,7 +96,7 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string, collati
 		tableType:      tblType,
 		primaryKeys:    primaryKeys,
 		collectionName: t.MongoName(),
-		pipeline:       t.Pipeline(),
+		pipeline:       pipeline,
 		comments:       comment,
 	}
 }
@@ -106,7 +114,7 @@ type MongoTable struct {
 	tableType      string
 	isSharded      bool
 	collectionName string
-	pipeline       []bson.D
+	pipeline       *ast.Pipeline
 }
 
 // Name is the name of the MongoTable, t.
@@ -162,7 +170,7 @@ func (t *MongoTable) Collection() string {
 }
 
 // Pipeline returns the BSON pipeline to be prepended for this table.
-func (t *MongoTable) Pipeline() []bson.D {
+func (t *MongoTable) Pipeline() *ast.Pipeline {
 	return t.pipeline
 }
 

@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -13,7 +15,6 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
 )
@@ -86,32 +87,24 @@ func ensureFastPlanProjectInvariant(fastPlan FastPlanStage) {
 		panic(fmt.Sprintf("expected UnionStage or MongoSourceStage, but got :%T",
 			fastPlan))
 	}
-	noIDDocElem := bsonutil.NewDocElem(mongoPrimaryKey, 0)
+	noIDDocElem := ast.NewExcludeProjectItem(ast.NewFieldRef(mongoPrimaryKey, nil))
 	pipeline := mongoSourcePlan.pipeline
-	if len(pipeline) == 0 {
+	if len(pipeline.Stages) == 0 {
 		panic(fmt.Sprintf("expected pipeline with at least 1 stage,"+
 			" got empty pipeline resulting from tables: %v",
 			strings.Join(mongoSourcePlan.tableNames, ", ")))
 	}
-	lastStage := pipeline[len(pipeline)-1]
-	if lastStage[0].Name != "$project" {
+	lastStage := pipeline.Stages[len(pipeline.Stages)-1]
+	projectStage, isProject := lastStage.(*ast.ProjectStage)
+	if !isProject {
 		// it is a coding error if the last stage of our pipeline
 		// is not a project.
-		panic(fmt.Sprintf("expected $project as last pipeline stage, got %v"+
-			" resulting from tables: %v", lastStage[0].Name,
+		panic(fmt.Sprintf("expected $project as last pipeline stage, got %T"+
+			" resulting from tables: %v", lastStage,
 			strings.Join(mongoSourcePlan.tableNames, ", ")))
 	}
-	untypedProjectFields := lastStage[0].Value
-	projectFields, ok := untypedProjectFields.(bson.D)
-	if !ok {
-		panic(fmt.Sprintf("expected bson.D in $project, got %T"+
-			" resulting from tables %v",
-			untypedProjectFields,
-			strings.Join(mongoSourcePlan.tableNames, ", ")))
-	}
-	if _, ok := projectFields.Map()[mongoPrimaryKey]; !ok {
-		projectFields = append(projectFields, noIDDocElem)
-		lastStage[0].Value = projectFields
+	if _, ok := projectStage.ExcludeItems()[mongoPrimaryKey]; !ok {
+		projectStage.Items = append(projectStage.Items, noIDDocElem)
 	}
 }
 

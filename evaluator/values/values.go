@@ -14,6 +14,8 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 
 	"github.com/shopspring/decimal"
+
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // NullDate is an internal representation for the MySQL
@@ -63,6 +65,8 @@ type SQLValue interface {
 	IsNull() bool
 	// Value returns an interface{} that represents the literal value of this SQLValue.
 	Value() interface{}
+	// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+	BSONValue() (bsoncore.Value, error)
 	// Kind returns the SQLValueKind for this SQLValue.
 	Kind() SQLValueKind
 	// Size returns the size of this SQLValue in bytes.

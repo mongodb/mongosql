@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 )
 
@@ -101,30 +103,19 @@ func (not *SQLNotExpr) String() string {
 // ToAggregationLanguage translates SQLNotExpr into something that can
 // be used in an aggregation pipeline. If SQLNotExpr cannot be translated,
 // it will return nil and error.
-func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	args, err := t.typedTranslateArgs([]SQLExpr{not.expr})
+func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	args, err := t.translateArgs([]SQLExpr{not.expr})
 	if err != nil {
 		return nil, err
 	}
 
 	assignments, args := minimizeLetAssignments([]string{"op"}, args)
 
-	if args[0].t == argLiteralType {
-		switch args[0].v {
-		case nil:
-			return bsonutil.MgoNullLiteral, nil
-		case false, 0:
-			return true, nil
-		default:
-			return false, nil
-		}
-	}
-
 	evaluation := wrapInNullCheckedCond(
 		t.ColumnsToNullCheck(),
-		bsonutil.MgoNullLiteral,
-		bsonutil.WrapInOp(bsonutil.OpNot, args[0].v),
-		args...,
+		astutil.NullLiteral,
+		ast.NewFunction(bsonutil.OpNot, args[0]),
+		args[0],
 	)
 
 	return wrapInLet(assignments, evaluation), nil
@@ -132,7 +123,7 @@ func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (not *SQLNotExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (not *SQLNotExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return not.ToAggregationLanguage(t)
 }
 
@@ -140,7 +131,7 @@ func (not *SQLNotExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{
 // be used in an match expression. If SQLNotExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLNotExpr.
-func (not *SQLNotExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+func (not *SQLNotExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	match, ex := t.ToMatchLanguage(not.expr)
 	if match == nil {
 		return nil, not
@@ -226,8 +217,8 @@ func (um *SQLUnaryMinusExpr) String() string {
 // ToAggregationLanguage translates SQLUnaryMinusExpr into something that can
 // be used in an aggregation pipeline. If SQLUnaryMinusExpr cannot be translated,
 // it will return nil and error.
-func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	args, err := t.typedTranslateArgs([]SQLExpr{um.expr})
+func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	args, err := t.translateArgs([]SQLExpr{um.expr})
 	if err != nil {
 		return nil, err
 	}
@@ -235,9 +226,9 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 	assignments, args := minimizeLetAssignments([]string{"operand"}, args)
 	evaluation := wrapInNullCheckedCond(
 		t.ColumnsToNullCheck(),
-		bsonutil.MgoNullLiteral,
-		bsonutil.WrapInOp(bsonutil.OpMultiply, -1, args[0].v),
-		args...,
+		astutil.NullLiteral,
+		ast.NewBinary(bsonutil.OpMultiply, astutil.Int32Value(-1), args[0]),
+		args[0],
 	)
 
 	return wrapInLet(assignments, evaluation), nil
@@ -245,7 +236,7 @@ func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (um *SQLUnaryMinusExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (um *SQLUnaryMinusExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return um.ToAggregationLanguage(t)
 }
 
@@ -325,7 +316,7 @@ func (td *SQLTildeExpr) String() string {
 // ToAggregationLanguage translates SQLTildeExpr into something that can
 // be used in an aggregation pipeline. If SQLTildeExpr cannot be translated,
 // it will return nil and error.
-func (*SQLTildeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (*SQLTildeExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(
 		"SQLTildeExpr",
 		"cannot push down to MongoDB",
@@ -334,6 +325,6 @@ func (*SQLTildeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, 
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (td *SQLTildeExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (td *SQLTildeExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return td.ToAggregationLanguage(t)
 }

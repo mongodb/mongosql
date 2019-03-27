@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/astutil"
 )
 
 // PrettyPrintCommand takes a command and prints it out.
@@ -27,7 +27,7 @@ func prettyPrintNode(n Node) string {
 
 func prettyPrint(b *bytes.Buffer, n Node, d int) {
 
-	bsonutil.PrintTabs(b, d)
+	astutil.PrintTabs(b, d)
 
 	switch typedN := n.(type) {
 	case *AlterCommand:
@@ -92,13 +92,13 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		b.WriteString("↳ Join:\n")
 
 		prettyPrint(b, typedN.left, d+1)
-		bsonutil.PrintTabs(b, d+1)
+		astutil.PrintTabs(b, d+1)
 
 		b.WriteString(fmt.Sprintf("%v\n", typedN.kind))
 		prettyPrint(b, typedN.right, d+1)
 
 		if typedN.matcher != nil {
-			bsonutil.PrintTabs(b, d+1)
+			astutil.PrintTabs(b, d+1)
 			b.WriteString(fmt.Sprintf("on %v\n", typedN.matcher.String()))
 		}
 	case *KillCommand:
@@ -121,11 +121,11 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedN.aliasNames))
 		}
 
-		if len(typedN.pipeline) > 0 {
+		if len(typedN.pipeline.Stages) > 0 {
 			b.WriteString(":\n")
-			prettyPipeline, err := bsonutil.PipelineJSON(typedN.pipeline, d+1, true)
+			prettyPipeline, err := astutil.PipelineJSON(typedN.pipeline, d+1, true)
 			if err != nil { // marshaling as json failed, fall back to Sprintf
-				prettyPipeline = bsonutil.PipelineString(typedN.pipeline, d+1)
+				prettyPipeline = astutil.PipelineString(typedN.pipeline, d+1)
 			}
 			b.Write(prettyPipeline)
 		}
@@ -167,7 +167,7 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 	case *SetCommand:
 		b.WriteString("↳ Set:\n")
 		for i, e := range typedN.assignments {
-			bsonutil.PrintTabs(b, d+1)
+			astutil.PrintTabs(b, d+1)
 			b.WriteString(e.String())
 			if i != len(typedN.assignments)-1 {
 				b.WriteString("\n")
@@ -190,7 +190,7 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		b.WriteString(fmt.Sprintf("↳ Union (%s):\n", kind))
 
 		prettyPrint(b, typedN.left, d+1)
-		bsonutil.PrintTabs(b, d+1)
+		astutil.PrintTabs(b, d+1)
 
 		b.WriteString("\n")
 		prettyPrint(b, typedN.right, d+1)

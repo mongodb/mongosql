@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/mongoast/astprint"
+	"github.com/10gen/mongoast/parser"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/types"
@@ -616,7 +618,7 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 
 	translator := evaluator.NewPushdownTranslator(
 		pushdownCfg,
-		createFieldNameLookup(db),
+		createFieldRefLookup(db),
 	)
 
 	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql, false, nil)
@@ -631,9 +633,7 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	translated, pf := translator.TranslateExpr(e)
 
 	if pf == nil {
-		jsonResult, err := json.Marshal(translated)
-		req.Nil(err, "failed to marshal pipeline to json")
-		return string(jsonResult)
+		return astprint.String(translated)
 	}
 
 	return ""
@@ -653,7 +653,7 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 
 	translator := evaluator.NewPushdownTranslator(
 		pushdownCfg,
-		createFieldNameLookup(db),
+		createFieldRefLookup(db),
 	)
 
 	e, err := evaluator.GetSQLExpr(testSchema, "translate_test_db", tableTwoName, sql, false, nil)
@@ -668,9 +668,7 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	match, local := translator.TranslatePredicate(e)
 
 	if local == nil {
-		jsonResult, err := json.Marshal(match)
-		req.Nil(err, "failed to marshal pipeline to json")
-		return string(jsonResult)
+		return parser.DeparseMatchExpr(match).String()
 	}
 
 	return ""
@@ -700,7 +698,7 @@ func TestTranslateCurrentDateExpr(t *testing.T) {
 		if asString {
 			return fmt.Sprintf(`"%s-%s-%s"`, yearStr, monthStr, dayStr)
 		}
-		return fmt.Sprintf(`{"$literal":%s%s%s}`, yearStr, monthStr, dayStr)
+		return fmt.Sprintf(`{"$literal": {"$numberLong":"%s%s%s"}}`, yearStr, monthStr, dayStr)
 	}
 
 	tests := []test{
@@ -743,7 +741,7 @@ func TestTranslatePartialPredicate(t *testing.T) {
 
 		translator := evaluator.NewPushdownTranslator(
 			pushdownCfg,
-			createFieldNameLookup(db),
+			createFieldRefLookup(db),
 		)
 
 		for _, test := range tests {
@@ -761,9 +759,8 @@ func TestTranslatePartialPredicate(t *testing.T) {
 				req.Nilf(err, "could not get sql expr for %v", test.localDesc)
 
 				match, local := translator.TranslatePredicate(e)
-				jsonResult, err := json.Marshal(match)
-				req.Nil(err, "could not marshal json result")
-				req.Equalf(test.expected, string(jsonResult), "actual match expr did "+
+				jsonResult := parser.DeparseMatchExpr(match).String()
+				req.Equalf(test.expected, jsonResult, "actual match expr did "+
 					"not match expected in %v", test.localDesc)
 				req.Zerof(convey.ShouldResemble(test.local, local), "untranslated exprs "+
 					"did not match in %v", test.localDesc)
@@ -771,30 +768,44 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		}
 	}
 
+	db := "translate_test_db"
+
 	tests := []test{
 		// non-boolean types always exclude null
-		{"0", "a", `{"a":{"$ne":null}}`, `a`, evaluator.NewSQLColumnExpr(1, "translate_test_db",
-			tableTwoName, "a", types.EvalInt64, schema.MongoInt)},
-		{"1", "a = 3 AND a < b", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(
-			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a",
-				types.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-				types.EvalInt64, schema.MongoInt))},
-		{"2", "a = 3 AND a < b AND b = 4", `{"$and":[{"a":3},{"b":4}]}`, "a < b",
-			evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1, "translate_test_db",
-				tableTwoName, "a", types.EvalInt64, schema.MongoInt),
-				evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-					types.EvalInt64, schema.MongoInt))},
-		{"3", "a < b AND a = 3", `{"a":3}`, "a < b", evaluator.NewSQLLessThanExpr(
-			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "a",
-				types.EvalInt64, schema.MongoInt),
-			evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-				types.EvalInt64, schema.MongoInt))},
-		{"4", "NOT (a = 3 AND a < b)", `{"$and":[{"a":{"$ne":3}},{"a":{"$ne":null}}]}`, "NOT a < b",
-			evaluator.NewSQLNotExpr(evaluator.NewSQLLessThanExpr(evaluator.NewSQLColumnExpr(1,
-				"translate_test_db", tableTwoName, "a", types.EvalInt64, schema.MongoInt),
-				evaluator.NewSQLColumnExpr(1, "translate_test_db", tableTwoName, "b",
-					types.EvalInt64, schema.MongoInt)))},
+		{
+			"0", "a", `{"a": {"$ne": null}}`, `a`,
+			evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
+		},
+		{
+			"1", "a = 3 AND a < b", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
+			evaluator.NewSQLLessThanExpr(
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+			),
+		},
+		{
+			"2", "a = 3 AND a < b AND b = 4", `{"$and": [{"a": {"$eq": {"$numberLong":"3"}}},{"b": {"$eq": {"$numberLong":"4"}}}]}`, "a < b",
+			evaluator.NewSQLLessThanExpr(
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+			),
+		},
+		{
+			"3", "a < b AND a = 3", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
+			evaluator.NewSQLLessThanExpr(
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+			),
+		},
+		{
+			"4", "NOT (a = 3 AND a < b)", `{"$and": [{"a": {"$ne": {"$numberLong":"3"}}},{"a": {"$ne": null}}]}`, "NOT a < b",
+			evaluator.NewSQLNotExpr(
+				evaluator.NewSQLLessThanExpr(
+					evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
+					evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+				),
+			),
+		},
 	}
 
 	runPartialTests(tests)
@@ -816,19 +827,19 @@ func TestTranslateSQLValue(t *testing.T) {
 
 	datetime, _ := time.Parse("2006 Jan 02 15:04:05", "2012 Dec 07 12:15:30.918273645")
 	tests := []test{
-		{"SQLTrue", values.NewSQLBool(values.MySQLValueKind, true), `{"$literal":true}`},
-		{"SQLFalse", values.NewSQLBool(values.MySQLValueKind, false), `{"$literal":false}`},
-		{"SQLFloat", values.NewSQLFloat(values.MySQLValueKind, 1.1), `{"$literal":1.1}`},
-		{"SQLInt", values.NewSQLInt64(values.MySQLValueKind, 11), `{"$literal":11}`},
-		{"SQLUint", values.NewSQLUint64(values.MySQLValueKind, 32), `{"$literal":32}`},
+		{"SQLTrue", values.NewSQLBool(values.MySQLValueKind, true), `{"$literal": true}`},
+		{"SQLFalse", values.NewSQLBool(values.MySQLValueKind, false), `{"$literal": false}`},
+		{"SQLFloat", values.NewSQLFloat(values.MySQLValueKind, 1.1), `{"$literal": {"$numberDouble":"1.1"}}`},
+		{"SQLInt", values.NewSQLInt64(values.MySQLValueKind, 11), `{"$literal": {"$numberLong":"11"}}`},
+		{"SQLUint", values.NewSQLUint64(values.MySQLValueKind, 32), `{"$literal": {"$numberLong":"32"}}`},
 		{"SQLVarchar", values.NewSQLVarchar(values.MySQLValueKind, "vc"),
 			`"vc"`},
 		{"SQLNull", values.NewSQLNull(values.MySQLValueKind),
 			`null`},
 		{"SQLDate", values.NewSQLDate(values.MySQLValueKind, datetime),
-			`"2012-12-07T00:00:00Z"`},
+			`{"$date":{"$numberLong":"1354838400000"}}`},
 		{"SQLTimestamp", values.NewSQLTimestamp(values.MySQLValueKind, datetime),
-			`"2012-12-07T12:15:30.918273645Z"`},
+			`{"$date":{"$numberLong":"1354882530918"}}`},
 	}
 
 	// Should always translate on any server version.
@@ -836,20 +847,19 @@ func TestTranslateSQLValue(t *testing.T) {
 
 	translator := evaluator.NewPushdownTranslator(
 		pushdownCfg,
-		createFieldNameLookup(db),
+		createFieldRefLookup(db),
 	)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := require.New(t)
 
-			match, pf := translator.TranslateExpr(evaluator.NewSQLValueExpr(test.sqlValue))
+			translation, pf := translator.TranslateExpr(evaluator.NewSQLValueExpr(test.sqlValue))
 			req.Nil(pf)
 
-			jsonResult, err := json.Marshal(match)
-			req.Nil(err)
+			jsonResult := astprint.String(translation)
 
-			req.Equal(test.expected, string(jsonResult), "they should be equal")
+			req.Equal(test.expected, jsonResult, "they should be equal")
 		})
 	}
 }

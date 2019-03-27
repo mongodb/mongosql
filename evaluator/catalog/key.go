@@ -160,7 +160,7 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 
 			if !ok {
 				continue
-			} else if len(mongoTable.Pipeline()) == 0 {
+			} else if len(mongoTable.Pipeline().Stages) == 0 {
 				continue
 			}
 

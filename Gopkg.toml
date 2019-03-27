@@ -22,6 +22,10 @@ required = ["github.com/go-sql-driver/mysql"]
   name = "github.com/10gen/openssl"
   branch = "master"
 
+[[constraint]]
+  branch = "master"
+  name = "github.com/10gen/mongoast"
+
 #
 # dependencies from github.com/mongodb
 #
@@ -33,6 +37,10 @@ required = ["github.com/go-sql-driver/mysql"]
 #
 # third-party dependencies
 #
+
+[[constraint]]
+  name = "go.mongodb.org/mongo-driver"
+  branch = "master"
 
 [[constraint]]
   name = "github.com/jessevdk/go-flags"

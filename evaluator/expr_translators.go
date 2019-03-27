@@ -3,20 +3,28 @@ package evaluator
 import (
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/10gen/mongo-go-driver/bson"
+
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
@@ -30,7 +38,7 @@ const (
 	MaxDepth = 180
 )
 
-func translateConvert(expr interface{}, from, to types.EvalType) interface{} {
+func translateConvert(expr ast.Expr, from, to types.EvalType) ast.Expr {
 	var targetType string
 	switch to {
 	case types.EvalBoolean:
@@ -41,12 +49,12 @@ func translateConvert(expr interface{}, from, to types.EvalType) interface{} {
 		// integer to be true. As it is now, MongoDB will convert the string '0'
 		// to true.
 		if from == types.EvalString {
-			expr = bsonutil.WrapInConvert(expr, "int", 0, nil)
+			expr = astutil.WrapInConvert(expr, "int", astutil.ZeroInt32Literal, astutil.NullLiteral)
 
 			// If the from type is a floating point type, we need to round because
 			// -0.4 through 0.4 should be treated as false.
 		} else if from == types.EvalDouble || from == types.EvalDecimal128 {
-			expr = bsonutil.WrapInRound(expr)
+			expr = astutil.WrapInRound(expr)
 		}
 	case types.EvalDecimal128:
 		targetType = "decimal"
@@ -61,14 +69,14 @@ func translateConvert(expr interface{}, from, to types.EvalType) interface{} {
 	case types.EvalInt32, types.EvalUint32:
 		targetType = "int"
 		if from == types.EvalDecimal128 || from == types.EvalDouble {
-			expr = bsonutil.WrapInRound(expr)
+			expr = astutil.WrapInRound(expr)
 		} else if from == types.EvalObjectID {
 			expr = translateConvert(expr, from, types.EvalDatetime)
 		}
 	case types.EvalInt64, types.EvalUint64:
 		targetType = "long"
 		if from == types.EvalDecimal128 || from == types.EvalDouble {
-			expr = bsonutil.WrapInRound(expr)
+			expr = astutil.WrapInRound(expr)
 		} else if from == types.EvalObjectID {
 			expr = translateConvert(expr, from, types.EvalDatetime)
 		}
@@ -78,12 +86,16 @@ func translateConvert(expr interface{}, from, to types.EvalType) interface{} {
 		targetType = "string"
 		// Bools need to be converted to String as "1" or "0", rather than
 		// as "true" and "false".
-		cond := bsonutil.WrapInOp(bsonutil.OpEq,
-			bsonutil.WrapInType(expr),
-			"bool",
+		cond := ast.NewBinary(bsonutil.OpEq,
+			astutil.WrapInType(expr),
+			astutil.StringValue("bool"),
 		)
 
-		expr = bsonutil.WrapInCond(bsonutil.WrapInCond("1", "0", expr), expr, cond)
+		expr = astutil.WrapInCond(
+			astutil.WrapInCond(astutil.StringValue("1"), astutil.StringValue("0"), expr),
+			expr,
+			cond,
+		)
 	case types.EvalDatetime, types.EvalDate:
 		targetType = "date"
 	default:
@@ -94,58 +106,58 @@ func translateConvert(expr interface{}, from, to types.EvalType) interface{} {
 	if from == types.EvalDate {
 		// Need to special-case date-to-string.
 		if targetType == "string" {
-			converted := bsonutil.WrapInDateToString(expr, "%Y-%m-%d")
+			converted := astutil.WrapInDateToString(expr, "%Y-%m-%d")
 			return converted
 		}
 
 		// If the expression is a date, mask its time fields.
-		expr = bsonutil.WrapInDateFromParts(expr, expr, expr)
+		expr = astutil.WrapInDateFromParts(expr, expr, expr)
 	}
 
-	var defaultVal interface{}
+	defaultVal := astutil.NullLiteral
 	switch targetType {
 	case "bool":
-		defaultVal = false
+		defaultVal = astutil.FalseLiteral
 	case "decimal":
-		defaultVal = 0
+		defaultVal = astutil.ZeroInt32Literal
 	case "double":
-		defaultVal = 0
+		defaultVal = astutil.ZeroInt32Literal
 	case "int":
-		defaultVal = 0
+		defaultVal = astutil.ZeroInt32Literal
 	case "long":
-		defaultVal = 0
+		defaultVal = astutil.ZeroInt32Literal
 	}
 
-	return bsonutil.WrapInConvert(expr, targetType, defaultVal, nil)
+	return astutil.WrapInConvert(expr, targetType, defaultVal, astutil.NullLiteral)
 }
 
 // translatableToMatch is an interface for any Expr node that can currently
 // be translated to MongoDB Match language.
 type translatableToMatch interface {
-	ToMatchLanguage(*PushdownTranslator) (bson.M, SQLExpr)
+	ToMatchLanguage(*PushdownTranslator) (ast.Expr, SQLExpr)
 }
 
-// FieldNameLookup is a function that, given a tableName and a columnName, will return
-// the field name coming back from mongodb.
-type FieldNameLookup func(databaseName, tableName, columnName string) (string, bool)
+// FieldRefLookup is a function that, given a tableName and a columnName, will return
+// the field name coming back from mongodb. It may return a variable reference in the
+// case of left joins where columns with the "as" field as their prefix may be renamed
+// using "this" (a variable reference) in $filter and $map functions.
+type FieldRefLookup func(databaseName, tableName, columnName string) (ast.Ref, bool)
 
 // PushdownTranslator handles the state necessary to do pushdown translation.
 type PushdownTranslator struct {
-	LookupFieldName    FieldNameLookup
+	LookupFieldRef     FieldRefLookup
 	Cfg                *PushdownConfig
-	piecewiseDeps      []*NonCorrelatedSubqueryFuture
-	correlatedColumns  []*CorrelatedSubqueryColumnFuture
 	columnsToNullCheck map[string]struct{}
-	subqueryCmpStages  []bson.D
+	subqueryCmpStages  []ast.Stage
 }
 
 // NewPushdownTranslator returns a new PushdownTranslator.
-func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldName FieldNameLookup) *PushdownTranslator {
+func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldRef FieldRefLookup) *PushdownTranslator {
 	return &PushdownTranslator{
 		Cfg:                cfg,
-		LookupFieldName:    lookupFieldName,
+		LookupFieldRef:     lookupFieldRef,
 		columnsToNullCheck: map[string]struct{}{},
-		subqueryCmpStages:  []bson.D{},
+		subqueryCmpStages:  []ast.Stage{},
 	}
 }
 
@@ -161,28 +173,16 @@ func (t *PushdownTranslator) addSubqueryCmpLookupStage(subPlanMs *MongoSourceSta
 	}
 
 	collName := subPlanMs.Collection()
-	lookup := bson.M{
-		"from":     collName,
-		"as":       getSubqueryLookupField(collName, subPlanMs.selectIDs),
-		"pipeline": subPlanMs.pipeline,
-	}
+	lookup := ast.NewLookupStage(
+		collName, "", "",
+		getSubqueryLookupField(collName, subPlanMs.selectIDs),
+		[]*ast.LookupLetItem{},
+		subPlanMs.pipeline,
+	)
 
-	lookupBSON := bson.D{{Name: "$lookup", Value: lookup}}
-	t.subqueryCmpStages = append(t.subqueryCmpStages, lookupBSON)
+	t.subqueryCmpStages = append(t.subqueryCmpStages, lookup)
 
 	return nil
-}
-
-func (t *PushdownTranslator) addNonCorrelatedSubqueryFuture(p PlanStage) *NonCorrelatedSubqueryFuture {
-	piece := NewNonCorrelatedSubqueryFuture(p)
-	t.piecewiseDeps = append(t.piecewiseDeps, piece)
-	return piece
-}
-
-func (t *PushdownTranslator) addCorrelatedSubqueryColumnFuture(c *SQLColumnExpr) *CorrelatedSubqueryColumnFuture {
-	cc := NewCorrelatedSubqueryColumnFuture(c)
-	t.correlatedColumns = append(t.correlatedColumns, cc)
-	return cc
 }
 
 func (t *PushdownTranslator) valueKind() values.SQLValueKind {
@@ -208,13 +208,13 @@ func (t *PushdownTranslator) ColumnsToNullCheck() map[string]struct{} {
 // ToAggregationLanguage translates the provided SQLExpr into something that can
 // be used in an aggregation pipeline. If the provided SQLExpr cannot be
 // translated, the second return value will be an error.
-func (t *PushdownTranslator) ToAggregationLanguage(e SQLExpr) (interface{}, PushdownFailure) {
+func (t *PushdownTranslator) ToAggregationLanguage(e SQLExpr) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationPredicate translates the provided SQLExpr to the aggregation
 // language to be evaluated as a predicate directly in a $match stage via $expr.
-func (t *PushdownTranslator) ToAggregationPredicate(e SQLExpr) (interface{}, PushdownFailure) {
+func (t *PushdownTranslator) ToAggregationPredicate(e SQLExpr) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationPredicate(t)
 }
 
@@ -224,7 +224,7 @@ func (t *PushdownTranslator) ToAggregationPredicate(e SQLExpr) (interface{}, Pus
 // nil. If the provided SQLExpr cannot be fully translated, the first return
 // value will be the partially translated expression, and the second will be the
 // original SQLExpr.
-func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
+func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (ast.Expr, SQLExpr) {
 	if predicate, ok := e.(translatableToMatch); ok {
 		return predicate.ToMatchLanguage(t)
 	}
@@ -233,14 +233,20 @@ func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (bson.M, SQLExpr) {
 
 // withNullCheckedColumnsScope wraps the argument in a $let with the
 // variable bindings for this translator's columns to null-check (if any exist).
-func (t *PushdownTranslator) withNullCheckedColumnsScope(evaluation interface{}) interface{} {
-	assignments := make([]bson.DocElem, len(t.columnsToNullCheck))
+func (t *PushdownTranslator) withNullCheckedColumnsScope(evaluation ast.Expr) ast.Expr {
+	assignments := make([]*ast.LetVariable, len(t.columnsToNullCheck))
 	i := 0
 	for columnName := range t.columnsToNullCheck {
-		assignments[i] = bsonutil.NewDocElem(
-			toNullCheckedLetVarName(columnName), bsonutil.WrapInNullCheck(columnName))
+		assignments[i] = ast.NewLetVariable(
+			toNullCheckedLetVarName(columnName), astutil.WrapInNullCheck(ast.NewFieldRef(columnName, nil)))
 		i++
 	}
+
+	// Sort the assignments so the order of let variables is deterministic.
+	// This is useful for testing.
+	sort.Slice(assignments, func(i, j int) bool {
+		return assignments[i].Name < assignments[j].Name
+	})
 
 	return wrapInLet(assignments, evaluation)
 }
@@ -248,7 +254,7 @@ func (t *PushdownTranslator) withNullCheckedColumnsScope(evaluation interface{})
 // TranslateExpr is a wrapper around ToAggregationLanguage that will fail to
 // translate the expr if the resulting aggregation exceeds the maximum allowed
 // nesting depth for BSON documents.
-func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (interface{}, PushdownFailure) {
+func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (ast.Expr, PushdownFailure) {
 	doc, err, _ := t.translateExprWithDepth(e)
 	if err != nil {
 		return doc, err
@@ -258,7 +264,7 @@ func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (interface{}, PushdownFail
 }
 
 // nolint: unparam
-func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, PushdownFailure, uint32) {
+func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (ast.Expr, PushdownFailure, uint32) {
 	doc, err := t.ToAggregationLanguage(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
@@ -282,7 +288,7 @@ func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (interface{}, Pus
 // TranslateAggPredicate is a wrapper around ToAggregationPredicate that will
 // fail to translate the expr if the resulting aggregation exceeds the maximum
 // allowed nesting depth for BSON documents.
-func (t *PushdownTranslator) TranslateAggPredicate(e SQLExpr) (interface{}, PushdownFailure) {
+func (t *PushdownTranslator) TranslateAggPredicate(e SQLExpr) (ast.Expr, PushdownFailure) {
 	doc, err, _ := t.translateAggPredicateWithDepth(e)
 	if err != nil {
 		return doc, err
@@ -291,7 +297,7 @@ func (t *PushdownTranslator) TranslateAggPredicate(e SQLExpr) (interface{}, Push
 	return t.withNullCheckedColumnsScope(doc), nil
 }
 
-func (t *PushdownTranslator) translateAggPredicateWithDepth(e SQLExpr) (interface{}, PushdownFailure, uint32) {
+func (t *PushdownTranslator) translateAggPredicateWithDepth(e SQLExpr) (ast.Expr, PushdownFailure, uint32) {
 	doc, err := t.ToAggregationPredicate(e)
 	depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 	if depth <= MaxDepth {
@@ -315,8 +321,8 @@ func (t *PushdownTranslator) translateAggPredicateWithDepth(e SQLExpr) (interfac
 // TranslatePredicate is a wrapper around ToMatchLanguage that will fail to
 // translate the expr if the resulting aggregation exceeds the maximum allowed
 // nesting depth for BSON documents.
-func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
-	var doc bson.M
+func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (ast.Expr, SQLExpr) {
+	var doc ast.Expr
 	var expr SQLExpr
 
 	doc, expr, _ = t.translatePredicateWithDepth(e)
@@ -324,7 +330,7 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 	if expr != nil && t.versionAtLeast(3, 6, 0) {
 		agg, err := t.TranslateAggPredicate(e)
 		if err == nil {
-			return bsonutil.NewM(bsonutil.NewDocElem("$expr", agg)), nil
+			return ast.NewAggExpr(agg), nil
 		}
 	}
 
@@ -332,7 +338,7 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (bson.M, SQLExpr) {
 }
 
 // nolint: unparam
-func (t *PushdownTranslator) translatePredicateWithDepth(e SQLExpr) (bson.M, SQLExpr, uint32) {
+func (t *PushdownTranslator) translatePredicateWithDepth(e SQLExpr) (ast.Expr, SQLExpr, uint32) {
 	translatable, ok := e.(translatableToMatch)
 	if !ok {
 		return nil, e, 0
@@ -352,17 +358,16 @@ func (t *PushdownTranslator) translatePredicateWithDepth(e SQLExpr) (bson.M, SQL
 	return nil, e, 0
 }
 
-func (t *PushdownTranslator) getFieldName(e SQLExpr) (string, bool) {
+func (t *PushdownTranslator) getFieldOrVariableRef(e SQLExpr) (ast.Ref, bool) {
 	switch field := e.(type) {
 	case SQLColumnExpr:
-		return t.LookupFieldName(field.databaseName, field.tableName, field.columnName)
+		return t.LookupFieldRef(field.databaseName, field.tableName, field.columnName)
 	default:
-		return "", false
+		return nil, false
 	}
 }
 
-func (t *PushdownTranslator) getValue(e SQLExpr) (interface{}, PushdownFailure) {
-
+func (t *PushdownTranslator) getValue(e SQLExpr) (*ast.Constant, PushdownFailure) {
 	cons, ok := e.(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure(
@@ -372,14 +377,27 @@ func (t *PushdownTranslator) getValue(e SQLExpr) (interface{}, PushdownFailure) 
 		)
 	}
 
+	if cons.Value.IsNull() {
+		return astutil.NullConstant(), nil
+	}
+
 	if cons.EvalType() == types.EvalDecimal128 {
 		return t.translateDecimal(cons.Value, cons.ExprName())
 	}
 
-	return cons.Value.Value(), nil
+	v, err := cons.Value.BSONValue()
+	if err != nil {
+		return nil, newPushdownFailure(
+			cons.ExprName(),
+			"failed to get value from SQLValue",
+			"error", fmt.Sprintf("%v", err),
+		)
+	}
+
+	return ast.NewConstant(v), nil
 }
 
-func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (interface{}, PushdownFailure) {
+func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (ast.Expr, PushdownFailure) {
 	formatValue, ok := f.args[1].(SQLValueExpr)
 	if !ok {
 		return nil, newPushdownFailure(f.ExprName(), "format string argument was not literal")
@@ -434,74 +452,60 @@ func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (inter
 		return nil, newPushdownFailure(f.ExprName(), "no year in date format string")
 	}
 
-	var parts []interface{}
+	parts := make([]ast.Expr, 0, 5)
 	if !hasMonth {
-		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
-			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
-				bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpDayOfYear, date)),
-				1,
-			))),
-			uint64(24*time.Hour/time.Millisecond),
-		)),
+		parts = append(parts, ast.NewBinary(bsonutil.OpMultiply,
+			astutil.Int32Value(int32(24*time.Hour/time.Millisecond)),
+			ast.NewBinary(bsonutil.OpSubtract,
+				ast.NewFunction(bsonutil.OpDayOfYear, date),
+				astutil.OneInt32Literal,
+			),
 		))
 
 	} else if !hasDay {
-		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
-			bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
-				bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", date)),
-				1,
-			))),
-			uint64(24*time.Hour/time.Millisecond),
-		)),
+		parts = append(parts, ast.NewBinary(bsonutil.OpMultiply,
+			astutil.Int32Value(int32(24*time.Hour/time.Millisecond)),
+			ast.NewBinary(bsonutil.OpSubtract,
+				ast.NewFunction(bsonutil.OpDayOfMonth, date),
+				astutil.OneInt32Literal,
+			),
 		))
 	}
 
 	if !hasHour {
-		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
-			bsonutil.NewM(bsonutil.NewDocElem("$hour", date)),
-			uint64(time.Hour/time.Millisecond),
-		)),
+		parts = append(parts, ast.NewBinary(bsonutil.OpMultiply,
+			astutil.Int32Value(int32(time.Hour/time.Millisecond)),
+			ast.NewFunction(bsonutil.OpHour, date),
 		))
 	}
 	if !hasMinute {
-		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
-			bsonutil.NewM(bsonutil.NewDocElem("$minute", date)),
-			uint64(time.Minute/time.Millisecond),
-		)),
+		parts = append(parts, ast.NewBinary(bsonutil.OpMultiply,
+			astutil.Int32Value(int32(time.Minute/time.Millisecond)),
+			ast.NewFunction(bsonutil.OpMinute, date),
 		))
 	}
 	if !hasSecond {
-		parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpMultiply, bsonutil.NewArray(
-			bsonutil.NewM(bsonutil.NewDocElem("$second", date)),
-			uint64(time.Second/time.Millisecond),
-		)),
+		parts = append(parts, ast.NewBinary(bsonutil.OpMultiply,
+			astutil.Int32Value(int32(time.Second/time.Millisecond)),
+			ast.NewFunction(bsonutil.OpSecond, date),
 		))
 	}
 
-	parts = append(parts, bsonutil.NewM(bsonutil.NewDocElem("$millisecond", date)))
+	parts = append(parts, ast.NewFunction(bsonutil.OpMillisecond, date))
 
-	var totalMS interface{}
+	var totalMS ast.Expr
 	if len(parts) == 1 {
 		totalMS = parts[0]
 	} else {
-		totalMS = bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpAdd, parts))
+		totalMS = astutil.WrapInOp(bsonutil.OpAdd, parts...)
 	}
 
-	sub := bsonutil.NewM(
-		bsonutil.NewDocElem(bsonutil.OpSubtract, bsonutil.NewArray(
-			date,
-			totalMS,
-		)),
-	)
+	sub := ast.NewBinary(bsonutil.OpSubtract, date, totalMS)
 
-	return bsonutil.WrapInNullCheckedCond(
-		nil,
-		sub,
-		date,
-	), nil
+	return astutil.WrapInNullCheckedCond(astutil.NullLiteral, sub, date), nil
 }
 
-func (t *PushdownTranslator) translateDecimal(cons values.SQLValue, exprName string) (interface{}, PushdownFailure) {
+func (t *PushdownTranslator) translateDecimal(cons values.SQLValue, exprName string) (*ast.Constant, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
 		return nil, newPushdownFailure(
 			exprName,
@@ -509,21 +513,16 @@ func (t *PushdownTranslator) translateDecimal(cons values.SQLValue, exprName str
 		)
 	}
 
-	parsed, err := bson.ParseDecimal128(cons.String())
+	d, err := cons.BSONValue()
 	if err != nil {
-		return nil, newPushdownFailure(
-			exprName,
-			"failed to parse decimal from SQLValue string",
-			"string", cons.String(),
-			"error", err.Error(),
-		)
+		return nil, newPushdownFailure(exprName, "cannot translate SQLValue to decimal", fmt.Sprintf("%v", err))
 	}
 
-	return parsed, nil
+	return ast.NewConstant(d), nil
 }
 
-func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLExpr) (bson.M, bool) {
-	name, ok := t.getFieldName(nameExpr)
+func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLExpr) (*ast.Binary, bool) {
+	ref, ok := t.getFieldOrVariableRef(nameExpr)
 	if !ok {
 		return nil, false
 	}
@@ -537,31 +536,32 @@ func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 	mType := colExpr.columnType.MongoType
 	if ok {
 		if values.IsUUID(mType) {
-			fieldValue, ok = GetBinaryFromExpr(mType, valExpr)
+			bin, ok := GetBinaryFromExpr(mType, valExpr)
 			if !ok {
 				return nil, false
 			}
+			fieldValue = astutil.BinaryConstant(bin)
 		} else if mType == schema.MongoObjectID {
 			// We know this type assert is safe because of the call to
 			// t.getValue(valExpr) above.
+			var hex string
 			switch typed := valExpr.(SQLValueExpr).Value.(type) {
 			case values.SQLVarchar:
-				fieldValue = bson.ObjectIdHex(values.String(typed))
+				hex = string(bson.ObjectIdHex(values.String(typed)))
 			case values.SQLObjectID:
-				fieldValue = typed.Value()
+				hex = typed.Value().(bson.ObjectId).Hex()
 			default:
 				return nil, false
 			}
+			oid, err := primitive.ObjectIDFromHex(hex)
+			if err != nil {
+				panic(fmt.Sprintf("failed to convert ObjectID SQLValue into ast.Constant: %v", err))
+			}
+			fieldValue = astutil.ObjectIDConstant(oid)
 		}
 	}
 
-	translation := bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(op, fieldValue))))
-
-	if op == bsonutil.OpEq {
-		translation = bsonutil.NewM(bsonutil.NewDocElem(name, fieldValue))
-	}
-
-	return translation, true
+	return ast.NewBinary(ast.BinaryOp(op), ref, fieldValue), true
 }
 
 // getSubqueryLookupField returns a reference for the array that is embedded
@@ -577,7 +577,7 @@ func getSubqueryLookupField(table string, selectIDs []int) string {
 // NOTE: This utilizes the behavior of addressing a fieldname on an array of
 // documents, wherein the referred field of the constituent member documents are
 // extracted out into an array.
-func lookupArrayRef(subPlanMs *MongoSourceStage, col *results.Column) (bson.M, error) {
+func lookupArrayRef(subPlanMs *MongoSourceStage, col *results.Column) (*ast.Function, error) {
 	matchFieldName, found := subPlanMs.mappingRegistry.lookupFieldName(
 		col.Database,
 		col.Table,
@@ -589,17 +589,19 @@ func lookupArrayRef(subPlanMs *MongoSourceStage, col *results.Column) (bson.M, e
 	}
 
 	collName := subPlanMs.Collection()
-	lookupArray := "$" + getSubqueryLookupField(collName, subPlanMs.selectIDs)
+	lookupArray := ast.NewFieldRef(getSubqueryLookupField(collName, subPlanMs.selectIDs), nil)
 
-	return bsonutil.WrapInMap(lookupArray, "this", bsonutil.WrapInIfNull("$$this"+"."+matchFieldName, nil)), nil
+	in := astutil.WrapInIfNull(ast.NewVariableRef("this."+matchFieldName), astutil.NullLiteral)
+
+	return astutil.WrapInMap(lookupArray, "this", in), nil
 }
 
 // constructNullChecks creates a slice of equality checks for each given arg to
 // check if it is NULL.
-func constructNullChecks(args []interface{}) []interface{} {
-	nullChecks := make([]interface{}, len(args))
+func constructNullChecks(args []ast.Expr) []ast.Expr {
+	nullChecks := make([]ast.Expr, len(args))
 	for i, arg := range args {
-		nullChecks[i] = bsonutil.WrapInBinOp(bsonutil.OpEq, arg, nil)
+		nullChecks[i] = ast.NewBinary(bsonutil.OpEq, arg, astutil.NullLiteral)
 	}
 
 	return nullChecks
@@ -609,40 +611,40 @@ func constructNullChecks(args []interface{}) []interface{} {
 // that we handle comparisons correctly in the presence of MySQL NULLs. This
 // involves essentially ensuring that NULLs always evaluate to a falsy result.
 // This is necessary due to the three-valued boolean logic of SQL.
-func threeValueLogicCheck(predicate bson.M, firstOperand interface{}) bson.M {
+func threeValueLogicCheck(predicate ast.Expr, firstOperand ast.Expr) ast.Expr {
 	// TODO BI-1885: This code will need to be changed to consider the case where
 	// the operand is a subquery (or a tuple, which is desugared into a subquery
 	// anyways) and break apart the columns so that each column value will be
 	// checked against null. This currently is not happening because the
 	// implementation for this can't be tested until we support correlated
 	// subqueries.
-	args := []interface{}{firstOperand}
+	args := []ast.Expr{firstOperand}
 
 	nullChecks := constructNullChecks(args)
 
-	notNullCheck := bsonutil.WrapInOp(bsonutil.OpNot, bsonutil.WrapInOp(bsonutil.OpOr, nullChecks...))
+	notNullCheck := ast.NewFunction(bsonutil.OpNot, astutil.WrapInOp(bsonutil.OpOr, nullChecks...))
 
-	return bsonutil.WrapInBinOp(bsonutil.OpAnd, predicate, notNullCheck)
+	return ast.NewBinary(ast.And, predicate, notNullCheck)
 }
 
 // opFromSQLOpForSubqueryCmp takes a given parser op string and returns its equivalent
 // bsonutil/aggregation operator string.
 // e.g.
 // parser.AST_EQ -> bsonutil.OpEq
-func opFromSQLOpForSubqueryCmp(op string) (string, error) {
+func opFromSQLOpForSubqueryCmp(op string) (ast.BinaryOp, error) {
 	switch op {
 	case parser.AST_EQ:
-		return bsonutil.OpEq, nil
+		return ast.Equals, nil
 	case parser.AST_NE:
-		return bsonutil.OpNeq, nil
+		return ast.NotEquals, nil
 	case parser.AST_LT:
-		return bsonutil.OpLt, nil
+		return ast.LessThan, nil
 	case parser.AST_LE:
-		return bsonutil.OpLte, nil
+		return ast.LessThanOrEquals, nil
 	case parser.AST_GT:
-		return bsonutil.OpGt, nil
+		return ast.GreaterThan, nil
 	case parser.AST_GE:
-		return bsonutil.OpGte, nil
+		return ast.GreaterThanOrEquals, nil
 	}
 
 	return "", fmt.Errorf("unrecognized comparison operator %v", op)
@@ -650,14 +652,14 @@ func opFromSQLOpForSubqueryCmp(op string) (string, error) {
 
 // constructMapArray creates the array argument that can be later passed into a
 // $map.
-func constructMapArray(subPlanMs *MongoSourceStage) (interface{}, error) {
-	var argArray interface{}
+func constructMapArray(subPlanMs *MongoSourceStage) (*ast.Function, error) {
+	var argArray *ast.Function
 	if len(subPlanMs.Columns()) > 1 {
 		// If the number of columns coming from the subquery is more than 1, we are
 		// dealing with tuple-based equality checking. In order to have this
 		// actually be correct, a simple $in is not enough, we have to create
 		// tuples in the agg pipeline ourselves and match against those.
-		inputs := make([]interface{}, len(subPlanMs.Columns()))
+		inputs := make([]ast.Expr, len(subPlanMs.Columns()))
 		lastDBName := subPlanMs.Columns()[0].Database
 		for i := range subPlanMs.Columns() {
 			col := subPlanMs.Columns()[i]
@@ -674,9 +676,8 @@ func constructMapArray(subPlanMs *MongoSourceStage) (interface{}, error) {
 
 		// No reason to check the mongod version here, since if they are too old to
 		// support $zip, they definitely can't support expressive $lookup!
-		argArray = bsonutil.NewM(bsonutil.NewDocElem(
-			bsonutil.OpZip,
-			bsonutil.NewM(bsonutil.NewDocElem("inputs", inputs)),
+		argArray = ast.NewFunction(bsonutil.OpZip, ast.NewDocument(
+			ast.NewDocumentElement("inputs", ast.NewArray(inputs...)),
 		))
 	} else {
 		var err error
@@ -693,14 +694,13 @@ func constructMapArray(subPlanMs *MongoSourceStage) (interface{}, error) {
 // constructMapCmp creates a $map with which to map the given array of
 // arguments into an array of booleans based on the given left argument and
 // comparison operator.
-func constructMapCmp(left interface{}, array interface{}, cmpOp string) (bson.M, error) {
+func constructMapCmp(left ast.Expr, array ast.Expr, cmpOp string) (*ast.Function, error) {
 	mgoOp, err := opFromSQLOpForSubqueryCmp(cmpOp)
 	if err != nil {
 		return nil, err
 	}
 
-	as := "$$this"
-	operatorCmp := bsonutil.WrapInBinOp(mgoOp, left, as)
+	operatorCmp := ast.NewBinary(mgoOp, left, astutil.ThisVarRef)
 
 	threeValuedCmp := threeValueLogicCheck(operatorCmp, left)
 
@@ -710,14 +710,14 @@ func constructMapCmp(left interface{}, array interface{}, cmpOp string) (bson.M,
 	// logic, but because of `mongod`'s type comparison taking precedence over
 	// value!
 	// e.g. 4 > null = TRUE
-	thisNotNull := bsonutil.WrapInOp(
+	thisNotNull := ast.NewFunction(
 		bsonutil.OpNot,
-		bsonutil.WrapInBinOp(bsonutil.OpEq, as, nil),
+		ast.NewBinary(ast.Equals, astutil.ThisVarRef, astutil.NullLiteral),
 	)
 
-	threeValuedCmp = bsonutil.WrapInBinOp(bsonutil.OpAnd, threeValuedCmp, thisNotNull)
+	threeValuedCmp = ast.NewBinary(ast.And, threeValuedCmp, thisNotNull)
 
-	return bsonutil.WrapInMap(array, "this", threeValuedCmp), nil
+	return astutil.WrapInMap(array, "this", threeValuedCmp), nil
 }
 
 // boolConvertMapForCmpOp takes an operator, and creates a mapping that allows
@@ -727,8 +727,8 @@ func constructMapCmp(left interface{}, array interface{}, cmpOp string) (bson.M,
 // duplication in SQLSubqueryCmpExpr toAggregationLanguage() implementations,
 // and performs the work of updating the pushdown translator's
 // subqueryCmpStages.
-func (t *PushdownTranslator) boolConvertMapForCmpOp(left interface{},
-	subPlanMs *MongoSourceStage, op string) (bson.M, error) {
+func (t *PushdownTranslator) boolConvertMapForCmpOp(left ast.Expr,
+	subPlanMs *MongoSourceStage, op string) (*ast.Function, error) {
 	err := t.addSubqueryCmpLookupStage(subPlanMs)
 	if err != nil {
 		return nil, err
@@ -751,7 +751,7 @@ func (t *PushdownTranslator) boolConvertMapForCmpOp(left interface{},
 // on the given op, and produces a mapping from the row-wise comparisons
 // between the two subqueries to an array of booleans representing the
 // comparison results per row.
-func (t *PushdownTranslator) mapCmpForDoubleSubquery(e SQLExpr, leftPlan PlanStage, rightPlan PlanStage, op string) (bson.M, PushdownFailure) {
+func (t *PushdownTranslator) mapCmpForDoubleSubquery(e SQLExpr, leftPlan PlanStage, rightPlan PlanStage, op string) (*ast.Function, PushdownFailure) {
 	leftPlanMs, ok := leftPlan.(*MongoSourceStage)
 	if !ok {
 		return nil, innerSubqueryPushdownFailure(e)
@@ -781,24 +781,24 @@ func (t *PushdownTranslator) mapCmpForDoubleSubquery(e SQLExpr, leftPlan PlanSta
 	}
 
 	leftCol := leftPlanMs.Columns()[0]
-	var leftRefValue interface{}
+	var leftRefValue ast.Expr
 
 	if numLeftCols > 1 {
-		leftRefs := make([]interface{}, numLeftCols)
+		leftRefs := make([]ast.Expr, numLeftCols)
 		for i, col := range leftPlanMs.Columns() {
 			leftRef, err := lookupArrayRef(leftPlanMs, col)
 			if err != nil {
 				return nil, wrapExprErrWithPushdownFailure(e, err)
 			}
-			leftRefs[i] = bsonutil.WrapInOp(bsonutil.OpArrElemAt, leftRef, 0)
+			leftRefs[i] = astutil.WrapInOp(bsonutil.OpArrElemAt, leftRef, astutil.ZeroInt32Literal)
 		}
-		leftRefValue = leftRefs
+		leftRefValue = ast.NewArray(leftRefs...)
 	} else {
 		leftRef, err := lookupArrayRef(leftPlanMs, leftCol)
 		if err != nil {
 			return nil, wrapExprErrWithPushdownFailure(e, err)
 		}
-		leftRefValue = bsonutil.WrapInOp(bsonutil.OpArrElemAt, leftRef, 0)
+		leftRefValue = astutil.WrapInOp(bsonutil.OpArrElemAt, leftRef, astutil.ZeroInt32Literal)
 	}
 
 	mapCmp, err := t.boolConvertMapForCmpOp(leftRefValue, rightPlanMs, op)
@@ -809,64 +809,64 @@ func (t *PushdownTranslator) mapCmpForDoubleSubquery(e SQLExpr, leftPlan PlanSta
 	return mapCmp, nil
 }
 
-func negate(op bson.M) bson.M {
-	if len(op) == 1 {
-		name, value := getSingleMapEntry(op)
-		if strings.HasPrefix(name, "$") {
-			switch name {
-			case bsonutil.OpOr:
-				return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNor, value))
-			case bsonutil.OpNor:
-				return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, value))
-			}
-		} else if innerOp, ok := value.(bson.M); ok {
-			if len(innerOp) == 1 {
-				innerName, innerValue := getSingleMapEntry(innerOp)
-				if strings.HasPrefix(innerName, "$") {
-					switch innerName {
-					case bsonutil.OpEq:
-						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, innerValue))))
-					case bsonutil.OpIn:
-						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNotIn, innerValue))))
-					case bsonutil.OpNeq:
-						return bsonutil.NewM(bsonutil.NewDocElem(name, innerValue))
-					case bsonutil.OpNotIn:
-						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpIn, innerValue))))
-					case bsonutil.OpRegex:
-						return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNotIn, bsonutil.NewArray(
-							innerValue,
-						)))))
-					case bsonutil.OpNot:
-						return bsonutil.NewM(bsonutil.NewDocElem(name, innerValue))
-					}
-
-					return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNot, bsonutil.NewM(bsonutil.NewDocElem(innerName, innerValue))))))
-				}
-			}
-		} else {
-			// Logical NOT evaluates to 1 if the operand is 0, to 0
-			// if the operand is nonzero, and NOT NULL returns NULL.
-			// See https://dev.mysql.com/doc/refman/5.7/en/logical-operators.html#operator_not
-			// for more.
-			translation := bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, value))))
-			if value != nil {
-				translation = bsonutil.NewM(
-					bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
-						translation,
-						bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNeq, nil)))),
-					)),
-				)
-
-			}
-			return translation
-		}
+func negate(op ast.Expr) ast.Expr {
+	switch t := op.(type) {
+	case *ast.Binary:
+		return negateBinary(t)
+	case *ast.Function:
+		return negateFunction(t)
 	}
 
-	// $not only works as a meta operator on a single operator
-	// so simulate $not using $nor
-	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpNor, bsonutil.NewArray(
-		op,
-	)))
+	return astutil.WrapInOp(bsonutil.OpNor, op)
+}
+
+func negateBinary(op *ast.Binary) ast.Expr {
+	switch op.Op {
+	case bsonutil.OpAnd:
+		return astutil.WrapInOp(bsonutil.OpNor, op)
+	case bsonutil.OpNor:
+		return ast.NewBinary(bsonutil.OpOr, op.Left, op.Right)
+	case bsonutil.OpOr:
+		return ast.NewBinary(bsonutil.OpNor, op.Left, op.Right)
+	case bsonutil.OpEq:
+		negation := ast.NewBinary(bsonutil.OpNeq, op.Left, op.Right)
+
+		// Negating equals may require adding a null-check:
+		// not (a = 1), for example, should become
+		// { $and: [{ a: { $ne: 1} }, { a: { $ne: null } }] }
+		if v, ok := op.Right.(*ast.Constant); ok && v.Value.Type != bsontype.Null {
+			negation = ast.NewBinary(bsonutil.OpAnd,
+				negation,
+				ast.NewBinary(bsonutil.OpNeq, op.Left, astutil.NullLiteral),
+			)
+		}
+		return negation
+	case bsonutil.OpGt:
+		return ast.NewBinary(bsonutil.OpLte, op.Left, op.Right)
+	case bsonutil.OpGte:
+		return ast.NewBinary(bsonutil.OpLt, op.Left, op.Right)
+	case bsonutil.OpLt:
+		return ast.NewBinary(bsonutil.OpGte, op.Left, op.Right)
+	case bsonutil.OpLte:
+		return ast.NewBinary(bsonutil.OpGt, op.Left, op.Right)
+	case bsonutil.OpNeq:
+		return ast.NewBinary(bsonutil.OpEq, op.Left, op.Right)
+	}
+
+	return op
+}
+
+func negateFunction(op *ast.Function) ast.Expr {
+	switch op.Name {
+	case bsonutil.OpOr:
+		return ast.NewFunction(bsonutil.OpNor, op.Arg)
+	case bsonutil.OpNor:
+		return ast.NewFunction(bsonutil.OpOr, op.Arg)
+	case bsonutil.OpAnd:
+		return astutil.WrapInOp(bsonutil.OpNor, op)
+	}
+
+	return op
 }
 
 // GetBinaryFromExpr attempts to convert e to a bson.Binary -
@@ -891,50 +891,36 @@ func GetBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
 	return bson.Binary{Kind: 0x03, Data: bytes}, true
 }
 
-func getSingleMapEntry(m bson.M) (string, interface{}) {
-	if len(m) > 1 {
-		panic("map has too many entries.")
-	}
-
-	for k, v := range m {
-		return k, v
-	}
-
-	panic("map has no entries!")
-}
-
 // getProjectedFieldName returns an interface to project the given field.
-func getProjectedFieldName(fieldName string, fieldType types.EvalType) interface{} {
-
+func getProjectedFieldName(fieldName string, fieldType types.EvalType) ast.Expr {
 	names := strings.Split(fieldName, ".")
 
 	if len(names) == 1 {
-		return "$" + fieldName
+		return ast.NewFieldRef(fieldName, nil)
 	}
 
 	value, err := strconv.Atoi(names[len(names)-1])
 	// special handling for legacy 2d array
 	if err == nil && fieldType == types.EvalArrNumeric {
 		fieldName = fieldName[0:strings.LastIndex(fieldName, ".")]
-		return bsonutil.NewM(bsonutil.NewDocElem("$arrayElemAt", bsonutil.NewArray(
-			"$"+fieldName,
-			value,
-		)))
+		return astutil.WrapInOp(bsonutil.OpArrElemAt,
+			ast.NewFieldRef(fieldName, nil),
+			astutil.Int64Value(int64(value)),
+		)
 	}
 
-	return "$" + fieldName
+	return ast.NewFieldRef(fieldName, nil)
 }
 
 // containsBSONType returns an expression that evaluates to true if types
 // contains the BSON type of v.
-func containsBSONType(v interface{}, types ...string) bson.M {
-
-	vType := bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpType, v))
-	checks := make([]interface{}, len(types))
+func containsBSONType(v ast.Expr, types ...string) *ast.Function {
+	vType := astutil.WrapInType(v)
+	checks := make([]ast.Expr, len(types))
 
 	for i, t := range types {
-		checks[i] = bsonutil.WrapInOp(bsonutil.OpEq, vType, t)
+		checks[i] = ast.NewBinary(bsonutil.OpEq, vType, astutil.StringValue(t))
 	}
 
-	return bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpOr, checks))
+	return astutil.WrapInOp(bsonutil.OpOr, checks...)
 }

@@ -68,7 +68,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
 		},
 		{
 			desc:           "simple select query (qualified table) correctly translated to pipeline",
@@ -77,7 +77,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
 		},
 		{
 			desc:           "simple select query (qualified table) correctly translated to pipeline",
@@ -86,7 +86,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$match":{"$expr":{"$and":[{"$lt":["$b","$c"]},{"$gt":["$b",null]},{"$gt":["$c",null]}]}}},{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			expectedOutput: `[{"$match": {"$expr": {"$and": [{"$lt": ["$b","$c"]},{"$gt": ["$b",null]},{"$gt": ["$c",null]}]}}},{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
 		},
 		{
 			desc:          "invalid schema parameter - non-drdl file",
@@ -113,7 +113,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         "../../testdata/resources/schema",
 			format:         testFormat,
-			expectedOutput: `[{"$project":{"test_DOT_foo_DOT_a":"$a","_id":0}}]`,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
 		},
 		{
 			desc:          "database doesn't exist in schema",
@@ -149,7 +149,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"_id\":0}},\n]",
+			expectedOutput: "[\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"_id\": {\"$numberInt\":\"0\"}}},\n]",
 		},
 		{
 			desc:           "format flag multiple stages",
@@ -158,7 +158,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$a\",\"$b\"]},{\"$gt\":[\"$a\",null]},{\"$gt\":[\"$b\",null]}]}}},\n\t{\"$group\":{\"_id\":{\"group_key_0\":\"$c\"},\"test_DOT_foo_DOT_a\":{\"$first\":\"$a\"},\"test_DOT_foo_DOT_b\":{\"$first\":\"$b\"}}},\n\t{\"$sort\":{\"test_DOT_foo_DOT_b\":-1}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\":\"$test_DOT_foo_DOT_b\",\"_id\":0}},\n]",
+			expectedOutput: "[\n\t{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$a\",\"$b\"]},{\"$gt\": [\"$a\",null]},{\"$gt\": [\"$b\",null]}]}}},\n\t{\"$group\": {\"_id\": {\"group_key_0\": \"$c\"},\"test_DOT_foo_DOT_a\": {\"$first\": \"$a\"},\"test_DOT_foo_DOT_b\": {\"$first\": \"$b\"}}},\n\t{\"$sort\": {\"test_DOT_foo_DOT_b\": {\"$numberInt\":\"-1\"}}},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\": \"$test_DOT_foo_DOT_b\",\"_id\": {\"$numberInt\":\"0\"}}},\n]",
 		},
 		{
 			desc:           "format flag, pipeline contains $lookup with pipeline field",
@@ -167,16 +167,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$lookup\":{\"as\":\"__joined_baz\",\"from\":\"baz\",\"let\":{\"local_table__a\":\"$a\"},\"pipeline\":[{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$$local_table__a\",\"$b\"]},{\"$gt\":[\"$$local_table__a\",null]},{\"$gt\":[\"$b\",null]}]}}}]}},\n\t{\"$unwind\":{\"path\":\"$__joined_baz\",\"preserveNullAndEmptyArrays\":false}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"test_DOT_baz_DOT_b\":\"$__joined_baz.b\",\"_id\":0}},\n]",
-		},
-		{
-			desc:           "format flag, pipeline contains $lookup with pipeline field",
-			query:          "select foo.a, baz.b from foo join baz where foo.a > baz.b",
-			dbName:         testDBName,
-			mongoVersion:   testMongoVersion4,
-			schema:         testSchema,
-			format:         "multiline",
-			expectedOutput: "[\n\t{\"$lookup\":{\"as\":\"__joined_baz\",\"from\":\"baz\",\"let\":{\"local_table__a\":\"$a\"},\"pipeline\":[{\"$match\":{\"$expr\":{\"$and\":[{\"$gt\":[\"$$local_table__a\",\"$b\"]},{\"$gt\":[\"$$local_table__a\",null]},{\"$gt\":[\"$b\",null]}]}}}]}},\n\t{\"$unwind\":{\"path\":\"$__joined_baz\",\"preserveNullAndEmptyArrays\":false}},\n\t{\"$project\":{\"test_DOT_foo_DOT_a\":\"$a\",\"test_DOT_baz_DOT_b\":\"$__joined_baz.b\",\"_id\":0}},\n]",
+			expectedOutput: "[\n\t{\"$lookup\": {\"from\": \"baz\",\"let\": {\"local_table__a\": \"$a\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$$local_table__a\",\"$b\"]},{\"$gt\": [\"$$local_table__a\",null]},{\"$gt\": [\"$b\",null]}]}}}],\"as\": \"__joined_baz\"}},\n\t{\"$unwind\": \"$__joined_baz\"},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"test_DOT_baz_DOT_b\": \"$__joined_baz.b\",\"_id\": {\"$numberInt\":\"0\"}}},\n]",
 		},
 		{
 			desc:           "explain flag, no formatting, fully pushed down",

@@ -3,14 +3,15 @@ package evaluator
 import (
 	"context"
 	"fmt"
-	"math"
 	"regexp"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
@@ -54,9 +55,9 @@ type SQLExpr interface {
 	ExprName() string
 	// ToAggregationPredicate translates this expression to the aggregation language
 	// to be evaluated as a predicate directly in a $match stage via $expr.
-	ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure)
+	ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure)
 	// ToAggregationLanguage translates a SQLExpr to a MongoDB aggregation expression.
-	ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure)
+	ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure)
 	// reconcile returns a transformed version of this SQLExpr that has wrapped
 	// its children in SQLConvertExprs to ensure that they are the correct
 	// types.
@@ -71,7 +72,7 @@ type ArithmeticOperator byte
 type MongoFilterExpr struct {
 	column SQLColumnExpr
 	expr   SQLExpr
-	query  bson.M
+	query  ast.Expr
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -125,20 +126,20 @@ func (e *MongoFilterExpr) String() string {
 // be used in an match expression. If MongoFilterExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original MongoFilterExpr.
-func (e *MongoFilterExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+func (e *MongoFilterExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	return e.query, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *MongoFilterExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *MongoFilterExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates MongoFilterExpr into something that can
 // be used in an aggregation pipeline. If MongoFilterExpr cannot be translated,
 // it will return nil and error.
-func (e *MongoFilterExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *MongoFilterExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newUntranslatableExprFailure(e)
 }
 
@@ -227,14 +228,14 @@ func (e *SQLAssignmentExpr) EvalType() types.EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLAssignmentExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLAssignmentExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLAssignmentExpr into something that can
 // be used in an aggregation pipeline. If SQLAssignmentExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLAssignmentExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLAssignmentExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newUntranslatableExprFailure(e)
 }
 
@@ -322,14 +323,14 @@ func (e *SQLBenchmarkExpr) EvalType() types.EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLBenchmarkExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLBenchmarkExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLBenchmarkExpr into something that can
 // be used in an aggregation pipeline. If SQLBenchmarkExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLBenchmarkExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLBenchmarkExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newUntranslatableExprFailure(e)
 }
 
@@ -455,16 +456,16 @@ func (e *SQLCaseExpr) String() string {
 // ToAggregationLanguage translates SQLCaseExpr into something that can
 // be used in an aggregation pipeline. If SQLCaseExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	elseValue, err := t.ToAggregationLanguage(e.elseValue)
 	if err != nil {
 		return nil, err
 	}
 
-	var conditions []interface{}
-	var thens []interface{}
-	for _, condition := range e.caseConditions {
-		var c interface{}
+	conditions := make([]ast.Expr, len(e.caseConditions))
+	thens := make([]ast.Expr, len(e.caseConditions))
+	for i, condition := range e.caseConditions {
+		var c ast.Expr
 		if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
 			newMatcher := NewSQLOrExpr(
 				matcher,
@@ -485,8 +486,8 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 			return nil, err
 		}
 
-		conditions = append(conditions, c)
-		thens = append(thens, then)
+		conditions[i] = c
+		thens[i] = then
 	}
 
 	if len(conditions) != len(thens) {
@@ -500,16 +501,15 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{},
 	cases := elseValue
 
 	for i := len(conditions) - 1; i >= 0; i-- {
-		cases = bsonutil.WrapInCond(thens[i], cases, conditions[i])
+		cases = astutil.WrapInCond(thens[i], cases, conditions[i])
 	}
 
 	return cases, nil
-
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLCaseExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLCaseExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
@@ -629,13 +629,12 @@ func (e SQLColumnExpr) String() string {
 // ToAggregationLanguage translates SQLColumnExpr into something that can
 // be used in an aggregation pipeline. If SQLColumnExpr cannot be translated,
 // it will return nil and error.
-func (e SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	if e.correlated {
-		cc := t.addCorrelatedSubqueryColumnFuture(&e)
-		return bsonutil.WrapInLiteral(cc), nil
+		return nil, newPushdownFailure(e.ExprName(), "cannot push down correlated subquery column")
 	}
 
-	name, ok := t.LookupFieldName(e.databaseName, e.tableName, e.columnName)
+	ref, ok := t.LookupFieldRef(e.databaseName, e.tableName, e.columnName)
 	if !ok {
 		return nil, newPushdownFailure(
 			e.ExprName(),
@@ -644,12 +643,16 @@ func (e SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}
 		)
 	}
 
-	return getProjectedFieldName(name, e.columnType.EvalType), nil
+	if fieldRef, isFieldRef := ref.(*ast.FieldRef); isFieldRef {
+		return getProjectedFieldName(fieldRef.Name, e.columnType.EvalType), nil
+	}
+
+	return ref, nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e SQLColumnExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e SQLColumnExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
@@ -657,42 +660,23 @@ func (e SQLColumnExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{
 // be used in an match expression. If SQLColumnExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLColumnExpr.
-func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	if e.correlated {
-		cc := t.addCorrelatedSubqueryColumnFuture(&e)
-		return bsonutil.WrapInLiteral(cc), nil
+		return nil, e
 	}
-	name, ok := t.LookupFieldName(e.databaseName, e.tableName, e.columnName)
+	ref, ok := t.LookupFieldRef(e.databaseName, e.tableName, e.columnName)
 	if !ok {
 		return nil, e
 	}
 
 	if e.EvalType() != types.EvalBoolean {
-		return bsonutil.NewM(
-			bsonutil.NewDocElem(name, bsonutil.NewM(
-				bsonutil.NewDocElem(bsonutil.OpNeq, nil),
-			)),
-		), e
+		return ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral), e
 	}
 
-	return bsonutil.NewM(
-		bsonutil.NewDocElem(bsonutil.OpAnd, bsonutil.NewArray(
-			bsonutil.NewM(
-				bsonutil.NewDocElem(name, bsonutil.NewM(
-					bsonutil.NewDocElem(bsonutil.OpNeq, false),
-				)),
-			),
-			bsonutil.NewM(
-				bsonutil.NewDocElem(name, bsonutil.NewM(
-					bsonutil.NewDocElem(bsonutil.OpNeq, nil),
-				)),
-			),
-			bsonutil.NewM(
-				bsonutil.NewDocElem(name, bsonutil.NewM(
-					bsonutil.NewDocElem(bsonutil.OpNeq, 0),
-				)),
-			),
-		)),
+	return astutil.WrapInOp(bsonutil.OpAnd,
+		ast.NewBinary(bsonutil.OpNeq, ref, astutil.FalseLiteral),
+		ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral),
+		ast.NewBinary(bsonutil.OpNeq, ref, astutil.ZeroInt32Literal),
 	), nil
 }
 
@@ -784,7 +768,7 @@ func (e *SQLConvertExpr) EvalType() types.EvalType {
 	return e.targetType
 }
 
-func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	if !t.versionAtLeast(4, 0, 0) {
 		return nil, newPushdownFailure(
 			e.ExprName(),
@@ -801,7 +785,7 @@ func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (interface{}, 
 	return converted, nil
 }
 
-func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	//
 	// The following type conversions are pushed down:
 	//
@@ -854,110 +838,71 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 		}
 
 	case types.EvalDatetime:
-		year := bsonutil.NewM(bsonutil.NewDocElem("$year", expr))
-		month := bsonutil.NewM(bsonutil.NewDocElem("$month", expr))
-		day := bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", expr))
-		hour := bsonutil.NewM(bsonutil.NewDocElem("$hour", expr))
-		minute := bsonutil.NewM(bsonutil.NewDocElem("$minute", expr))
-		second := bsonutil.NewM(bsonutil.NewDocElem("$second", expr))
-		millisecond := bsonutil.NewM(bsonutil.NewDocElem("$millisecond", expr))
+		year := ast.NewFunction(bsonutil.OpYear, expr)
+		month := ast.NewFunction(bsonutil.OpMonth, expr)
+		day := ast.NewFunction(bsonutil.OpDayOfMonth, expr)
+		hour := ast.NewFunction(bsonutil.OpHour, expr)
+		minute := ast.NewFunction(bsonutil.OpMinute, expr)
+		second := ast.NewFunction(bsonutil.OpSecond, expr)
+		millisecond := ast.NewFunction(bsonutil.OpMillisecond, expr)
 
 		switch toType {
 		case types.EvalDate:
-			asDate := bsonutil.NewM(bsonutil.NewDocElem("$dateFromParts", bsonutil.NewM(
-				bsonutil.NewDocElem("year", year),
-				bsonutil.NewDocElem("month", month),
-				bsonutil.NewDocElem("day", day),
-			)),
-			)
+			asDate := ast.NewFunction(bsonutil.OpDateFromParts, ast.NewDocument(
+				ast.NewDocumentElement("year", year),
+				ast.NewDocumentElement("month", month),
+				ast.NewDocumentElement("day", day),
+			))
 
 			return asDate, nil
 
 		case types.EvalInt32, types.EvalInt64, types.EvalUint32, types.EvalUint64:
-			asNum := bsonutil.NewM(
-				bsonutil.NewDocElem("$add", bsonutil.NewArray(
-					second,
-					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-						minute,
-						100,
-					))),
-					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-						hour,
-						10000,
-					))),
-					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-						day,
-						1000000,
-					))),
-					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-						month,
-						100000000,
-					))),
-					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-						year,
-						10000000000,
-					))),
-				)),
+			asNum := astutil.WrapInOp(bsonutil.OpAdd,
+				second,
+				ast.NewBinary(bsonutil.OpMultiply, minute, astutil.Int32Value(100)),
+				ast.NewBinary(bsonutil.OpMultiply, hour, astutil.Int32Value(10000)),
+				ast.NewBinary(bsonutil.OpMultiply, day, astutil.Int32Value(1000000)),
+				ast.NewBinary(bsonutil.OpMultiply, month, astutil.Int32Value(100000000)),
+				ast.NewBinary(bsonutil.OpMultiply, year, astutil.Int64Value(10000000000)),
 			)
 
 			return asNum, nil
 
 		case types.EvalDecimal128, types.EvalDouble:
-			asNum := bsonutil.NewM(bsonutil.NewDocElem("$add", bsonutil.NewArray(
-				bsonutil.NewM(bsonutil.NewDocElem("$divide", bsonutil.NewArray(
-					millisecond,
-					1000,
-				))),
+			asNum := astutil.WrapInOp(bsonutil.OpAdd,
+				ast.NewBinary(bsonutil.OpDivide, millisecond, astutil.Int32Value(1000)),
 				second,
-				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-					minute,
-					100,
-				))),
-				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-					hour,
-					10000,
-				))),
-				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-					day,
-					1000000,
-				))),
-				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-					month,
-					100000000,
-				))),
-				bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-					year,
-					10000000000,
-				))),
-			)),
+				ast.NewBinary(bsonutil.OpMultiply, minute, astutil.Int32Value(100)),
+				ast.NewBinary(bsonutil.OpMultiply, hour, astutil.Int32Value(10000)),
+				ast.NewBinary(bsonutil.OpMultiply, day, astutil.Int32Value(1000000)),
+				ast.NewBinary(bsonutil.OpMultiply, month, astutil.Int32Value(100000000)),
+				ast.NewBinary(bsonutil.OpMultiply, year, astutil.Int64Value(10000000000)),
 			)
 
 			return asNum, nil
 
 		case types.EvalString:
-			asString := bsonutil.NewM(bsonutil.NewDocElem("$dateToString", bsonutil.NewM(
-				bsonutil.NewDocElem("date", expr),
-				bsonutil.NewDocElem("format", "%Y-%m-%d %H:%M:%S.%L000"),
-			)),
-			)
+			asString := ast.NewFunction(bsonutil.OpDateToString, ast.NewDocument(
+				ast.NewDocumentElement("date", expr),
+				ast.NewDocumentElement("format", astutil.StringValue("%Y-%m-%d %H:%M:%S.%L000")),
+			))
 
 			return asString, nil
 
 		}
 
 	case types.EvalDate:
-		year := bsonutil.NewM(bsonutil.NewDocElem("$year", expr))
-		month := bsonutil.NewM(bsonutil.NewDocElem("$month", expr))
-		day := bsonutil.NewM(bsonutil.NewDocElem("$dayOfMonth", expr))
+		year := ast.NewFunction(bsonutil.OpYear, expr)
+		month := ast.NewFunction(bsonutil.OpMonth, expr)
+		day := ast.NewFunction(bsonutil.OpDayOfMonth, expr)
 
 		switch toType {
 		case types.EvalDatetime:
-			asDate := bsonutil.NewM(bsonutil.NewDocElem("$dateFromParts", bsonutil.NewM(
-				bsonutil.NewDocElem("year", year),
-				bsonutil.NewDocElem("month", month),
-				bsonutil.NewDocElem("day", day),
-			)),
-			)
+			asDate := ast.NewFunction(bsonutil.OpDateFromParts, ast.NewDocument(
+				ast.NewDocumentElement("year", year),
+				ast.NewDocumentElement("month", month),
+				ast.NewDocumentElement("day", day),
+			))
 
 			return asDate, nil
 
@@ -965,28 +910,19 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 			types.EvalUint32, types.EvalUint64,
 			types.EvalDecimal128, types.EvalDouble:
 
-			asNum := bsonutil.NewM(
-				bsonutil.NewDocElem("$add", bsonutil.NewArray(
-					day,
-					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-						month,
-						100,
-					))),
-					bsonutil.NewM(bsonutil.NewDocElem("$multiply", bsonutil.NewArray(
-						year,
-						10000,
-					))),
-				)),
+			asNum := astutil.WrapInOp(bsonutil.OpAdd,
+				day,
+				ast.NewBinary(bsonutil.OpMultiply, month, astutil.Int32Value(100)),
+				ast.NewBinary(bsonutil.OpMultiply, year, astutil.Int32Value(10000)),
 			)
 
 			return asNum, nil
 
 		case types.EvalString:
-			asString := bsonutil.NewM(bsonutil.NewDocElem("$dateToString", bsonutil.NewM(
-				bsonutil.NewDocElem("date", expr),
-				bsonutil.NewDocElem("format", "%Y-%m-%d"),
-			)),
-			)
+			asString := ast.NewFunction(bsonutil.OpDateToString, ast.NewDocument(
+				ast.NewDocumentElement("date", expr),
+				ast.NewDocumentElement("format", astutil.StringValue("%Y-%m-%d")),
+			))
 
 			return asString, nil
 
@@ -1014,7 +950,7 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (interface{}, Pus
 // ToAggregationLanguage translates SQLConvertExpr into something that can
 // be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
 // translated, so this function will always return nil and error.
-func (e *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	if e.targetType == types.EvalObjectID {
 		svexpr, ok := e.expr.(SQLValueExpr)
 		if !ok {
@@ -1046,7 +982,7 @@ func (e *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (interface
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLConvertExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLConvertExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
@@ -1183,14 +1119,14 @@ func (*SQLExistsExpr) EvalType() types.EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLExistsExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLExistsExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLExistsExpr into something that can
 // be used in an aggregation pipeline. If SQLExistsExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	subPlan := e.plan
 	subPlanMs, ok := subPlan.(*MongoSourceStage)
 	if !ok {
@@ -1211,9 +1147,10 @@ func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{
 		return nil, wrapExprErrWithPushdownFailure(e, err)
 	}
 
-	ne := bsonutil.WrapInBinOp(bsonutil.OpNeq, bsonutil.WrapInOp(bsonutil.OpSize, ref), 0)
-
-	return ne, nil
+	return ast.NewBinary(bsonutil.OpNeq,
+		astutil.ZeroInt32Literal,
+		ast.NewFunction(bsonutil.OpSize, ref),
+	), nil
 }
 
 // SQLLikeExpr evaluates to true if the left is 'like' the right.
@@ -1333,14 +1270,14 @@ func (e *SQLLikeExpr) String() string {
 // be used in an match expression. If SQLLikeExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLLikeExpr.
-func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
+func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	// we cannot do a like comparison on an ObjectID in mongodb.
 	if c, ok := e.left.(SQLColumnExpr); ok &&
 		c.columnType.MongoType == schema.MongoObjectID {
 		return nil, e
 	}
 
-	name, ok := t.getFieldName(e.left)
+	ref, ok := t.getFieldOrVariableRef(e.left)
 	if !ok {
 		return nil, e
 	}
@@ -1375,7 +1312,14 @@ func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
 		opts = ""
 	}
 
-	return bsonutil.NewM(bsonutil.NewDocElem(name, bsonutil.NewM(bsonutil.NewDocElem(bsonutil.OpRegex, bson.RegEx{Pattern: pattern, Options: opts})))), nil
+	name, ok := astutil.GetRefName(ref)
+	if !ok {
+		return nil, e
+	}
+
+	return ast.NewDocument(ast.NewDocumentElement(
+		name, astutil.WrapInRegex(pattern, opts),
+	)), nil
 }
 
 // evaluate performs evaluation given all values.SQLValues.
@@ -1455,14 +1399,14 @@ func (e *SQLLikeExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLLikeExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLLikeExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLLikeExpr into something that can
 // be used in an aggregation pipeline. If SQLLikeExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLLikeExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLLikeExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newUntranslatableExprFailure(e)
 }
 
@@ -1576,8 +1520,8 @@ func (e *SQLRegexExpr) String() string {
 // be used in an match expression. If SQLRegexExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLRegexExpr.
-func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) {
-	name, ok := t.getFieldName(e.operand)
+func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
+	ref, ok := t.getFieldOrVariableRef(e.operand)
 	if !ok {
 		return nil, e
 	}
@@ -1597,14 +1541,15 @@ func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (bson.M, SQLExpr) 
 	if err != nil {
 		return nil, e
 	}
-	return bsonutil.NewM(
-		bsonutil.NewDocElem(name, bsonutil.NewM(
-			bsonutil.NewDocElem(bsonutil.OpRegex, bson.RegEx{
-				Pattern: pattern.String(),
-				Options: "",
-			}),
-		)),
-	), nil
+
+	name, ok := astutil.GetRefName(ref)
+	if !ok {
+		return nil, e
+	}
+
+	return ast.NewDocument(ast.NewDocumentElement(
+		name, astutil.WrapInRegex(pattern.String(), ""),
+	)), nil
 }
 
 // EvalType returns the EvalType associated with SQLRegexExpr.
@@ -1614,14 +1559,14 @@ func (*SQLRegexExpr) EvalType() types.EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLRegexExpr into something that can
 // be used in an aggregation pipeline. If SQLRegexExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newUntranslatableExprFailure(e)
 }
 
@@ -1865,14 +1810,14 @@ func (*SQLSubqueryCmpExpr) EvalType() types.EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLSubqueryCmpExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryCmpExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	subPlanRight := e.rightPlan
 	subPlanMsRight, ok := subPlanRight.(*MongoSourceStage)
 	if !ok {
@@ -1916,7 +1861,7 @@ func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		panic("number of columns of subqueries do not match")
 	}
 
-	cmps := make([]interface{}, len(leftCols))
+	cmps := make([]ast.Expr, len(leftCols))
 
 	for i := range leftCols {
 		leftRef, err := lookupArrayRef(subPlanMsLeft, leftCols[i])
@@ -1929,15 +1874,15 @@ func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 			return nil, wrapExprErrWithPushdownFailure(e, err)
 		}
 
-		leftSize := bsonutil.WrapInOp(bsonutil.OpSize, leftRef)
-		rightSize := bsonutil.WrapInOp(bsonutil.OpSize, rightRef)
-		sizeCheck := bsonutil.WrapInBinOp(bsonutil.OpEq, leftSize, rightSize)
+		leftSize := ast.NewFunction(bsonutil.OpSize, leftRef)
+		rightSize := ast.NewFunction(bsonutil.OpSize, rightRef)
+		sizeCheck := ast.NewBinary(bsonutil.OpEq, leftSize, rightSize)
 
-		arrCmp := bsonutil.WrapInBinOp(cmpOp, leftRef, rightRef)
-		cmps[i] = bsonutil.WrapInBinOp(bsonutil.OpAnd, sizeCheck, arrCmp)
+		arrCmp := ast.NewBinary(cmpOp, leftRef, rightRef)
+		cmps[i] = ast.NewBinary(bsonutil.OpAnd, sizeCheck, arrCmp)
 	}
 
-	return bsonutil.WrapInOp(bsonutil.OpAnd, cmps...), nil
+	return astutil.WrapInOp(bsonutil.OpAnd, cmps...), nil
 }
 
 // SQLSubqueryAllExpr evaluates to true if the left subquery expression compares true to
@@ -2108,14 +2053,14 @@ func (*SQLSubqueryAllExpr) EvalType() types.EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLSubqueryAllExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryAllExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLSubqueryAllExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryAllExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	leftPlan := e.leftPlan
 	rightPlan := e.rightPlan
 
@@ -2124,7 +2069,7 @@ func (e *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bsonutil.WrapInOp(bsonutil.OpAllElementsTrue, mapCmp), nil
+	return astutil.WrapInOp(bsonutil.OpAllElementsTrue, mapCmp), nil
 }
 
 // SQLSubqueryAnyExpr evaluates to true if the left subquery expression compares true to
@@ -2303,14 +2248,14 @@ func (*SQLSubqueryAnyExpr) EvalType() types.EvalType {
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLSubqueryAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage translates SQLSubqueryAnyExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryAnyExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	leftPlan := e.leftPlan
 	rightPlan := e.rightPlan
 
@@ -2319,7 +2264,7 @@ func (e *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (inter
 		return nil, err
 	}
 
-	return bsonutil.WrapInOp(bsonutil.OpAnyElementTrue, mapCmp), nil
+	return astutil.WrapInOp(bsonutil.OpAnyElementTrue, mapCmp), nil
 }
 
 // SQLSubqueryExpr is a wrapper around a parser.SelectStatement representing a subquery
@@ -2372,7 +2317,7 @@ func (e *SQLSubqueryExpr) reconcile() (SQLExpr, error) {
 // ToAggregationLanguage translates SQLSubqueryExpr into something that can
 // be used in an aggregation pipeline. If SQLSubqueryExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	if e.correlated {
 		return nil, newPushdownFailure(
 			e.ExprName(),
@@ -2380,13 +2325,12 @@ func (e *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 		)
 	}
 
-	piece := t.addNonCorrelatedSubqueryFuture(e.plan)
-	return bsonutil.WrapInLiteral(piece), nil
+	return nil, newPushdownFailure(e.ExprName(), "cannot push down subquery")
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLSubqueryExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
@@ -2559,60 +2503,42 @@ func (e SQLValueExpr) ReplaceChild(i int, n Node) {
 	panicWithInvalidIndex(e.ExprName(), i, -1)
 }
 
-func (e SQLValueExpr) to34PlusAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	if e.Value.IsNull() {
-		return nil, nil
-	}
-	var ui uint64
+func (e SQLValueExpr) to34PlusAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	switch e.EvalType() {
 	// These types do not require $literal wrapping. We avoid it for the slight performance
 	// and readability benefit.
-	case types.EvalDate, types.EvalDatetime, types.EvalString:
-		return e.Value.Value(), nil
-	case types.EvalUint64:
-		ui = e.Value.Value().(uint64)
-		if ui > math.MaxInt64 {
-			return nil, newPushdownFailure("BaseSQLUint64", "greater than MaxInt64")
-		}
-		return bsonutil.WrapInLiteral(ui), nil
-	// ObjectID needs special handling, but also do not need to be wrapped in $literal.
-	case types.EvalObjectID:
-		return bson.ObjectIdHex(e.Value.String()), nil
-	// Decimal also needs special handling.
-	case types.EvalDecimal128:
-		d, err := t.translateDecimal(e.Value, e.ExprName())
+	case types.EvalDate, types.EvalDatetime, types.EvalString, types.EvalObjectID, types.EvalNull:
+		v, err := e.Value.BSONValue()
 		if err != nil {
-			return nil, err
+			return nil, newPushdownFailure(
+				e.ExprName(),
+				"failed to get value from SQLValue",
+				"error", fmt.Sprintf("%v", err),
+			)
 		}
-		return bsonutil.WrapInLiteral(d), nil
-	}
-	return bsonutil.WrapInLiteral(e.Value.Value()), nil
-}
 
-func (e SQLValueExpr) to32AggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
-	ret, err := e.to34PlusAggregationLanguage(t)
-	if err != nil {
-		return nil, err
+		return ast.NewUnknown(v), nil
 	}
-	// On server 3.2.0, everything needs to be wrapped in literal, even null, when
-	// used as the top level in a project specification. This call will wrap `ret`
-	// in {$literal: ret} if it is not already wrapped in $literal.
-	return bsonutil.WrapInLiteralIfNeeded(ret), nil
+	return t.getValue(e)
 }
 
 // ToAggregationLanguage translates SQLValueExpr into something that can
 // be used in an aggregation pipeline. If SQLValueExpr cannot be translated,
 // it will return nil and error.
-func (e SQLValueExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e SQLValueExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	if t.versionAtLeast(3, 4, 0) {
 		return e.to34PlusAggregationLanguage(t)
 	}
-	return e.to32AggregationLanguage(t)
+
+	// On server 3.2.0, everything needs to be wrapped in literal, even null, when
+	// used as the top level in a project specification. This call returns an
+	// ast.Constant, which is always unconditionally wrapped in $literal.
+	return t.getValue(e)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e SQLValueExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e SQLValueExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 
@@ -2713,7 +2639,7 @@ func (e *SQLVariableExpr) ReplaceChild(i int, n Node) {
 // ToAggregationLanguage translates SQLVariableExpr into something that can
 // be used in an aggregation pipeline. If SQLVariableExpr cannot be translated,
 // it will return nil and error.
-func (e *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	// e.Value can be nil: if this variable has never been set before.
 	if e.Value == nil {
 		return NewSQLValueExpr(values.NewSQLNull(values.VariableSQLValueKind)).ToAggregationLanguage(t)
@@ -2723,7 +2649,7 @@ func (e *SQLVariableExpr) ToAggregationLanguage(t *PushdownTranslator) (interfac
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (e *SQLVariableExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (e *SQLVariableExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return e.ToAggregationLanguage(t)
 }
 

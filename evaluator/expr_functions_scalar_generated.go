@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 )
@@ -53,11 +54,11 @@ func (f *absFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.absEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *absFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *absFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.absToAggregationLanguage(t, f.args)
 }
 
-func (f *absFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *absFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -135,11 +136,11 @@ func (f *acosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.acosEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *acosFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *acosFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.acosToAggregationLanguage(t, f.args)
 }
 
-func (f *acosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *acosFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -217,11 +218,11 @@ func (f *asciiFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.asciiEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *asciiFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *asciiFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *asciiFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *asciiFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -299,11 +300,11 @@ func (f *asinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.asinEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *asinFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *asinFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.asinToAggregationLanguage(t, f.args)
 }
 
-func (f *asinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *asinFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -381,11 +382,11 @@ func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	return f.atanSingleArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *atanSingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atanSingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *atanSingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atanSingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -463,11 +464,11 @@ func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	return f.atanDualArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *atanDualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atanDualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *atanDualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atanDualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -545,11 +546,11 @@ func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	return f.atan2SingleArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *atan2SingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atan2SingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *atan2SingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atan2SingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -627,11 +628,11 @@ func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	return f.atan2DualArgEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *atan2DualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atan2DualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *atan2DualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *atan2DualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -709,11 +710,11 @@ func (f *ceilFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.ceilEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *ceilFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *ceilFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ceilToAggregationLanguage(t, f.args)
 }
 
-func (f *ceilFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *ceilFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -791,11 +792,11 @@ func (f *charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.charEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *charFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *charFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *charFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *charFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -856,11 +857,11 @@ func (f *characterLengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig
 	return f.characterLengthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *characterLengthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *characterLengthFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.characterLengthToAggregationLanguage(t, f.args)
 }
 
-func (f *characterLengthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *characterLengthFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -938,11 +939,11 @@ func (f *concatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return f.concatEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *concatFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *concatFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.concatToAggregationLanguage(t, f.args)
 }
 
-func (f *concatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *concatFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1020,11 +1021,11 @@ func (f *concatWsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.concatWsEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *concatWsFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *concatWsFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.concatWsToAggregationLanguage(t, f.args)
 }
 
-func (f *concatWsFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *concatWsFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1085,11 +1086,11 @@ func (f *connectionIDFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	return f.connectionIDEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
-func (f *connectionIDFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *connectionIDFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *connectionIDFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *connectionIDFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1157,11 +1158,11 @@ func (f *convFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.convEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *convFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *convFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.convToAggregationLanguage(t, f.args)
 }
 
-func (f *convFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *convFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1239,11 +1240,11 @@ func (f *convertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.convertEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *convertFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *convertFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.convertToAggregationLanguage(t, f.args)
 }
 
-func (f *convertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *convertFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1317,11 +1318,11 @@ func (f *cosFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.cosEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *cosFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *cosFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.cosToAggregationLanguage(t, f.args)
 }
 
-func (f *cosFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *cosFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1399,11 +1400,11 @@ func (f *cotFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.cotEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *cotFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *cotFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.cotToAggregationLanguage(t, f.args)
 }
 
-func (f *cotFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *cotFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1481,11 +1482,11 @@ func (f *currentDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	return f.currentDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *currentDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *currentDateFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.currentDateToAggregationLanguage(t, f.args)
 }
 
-func (f *currentDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *currentDateFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1563,11 +1564,11 @@ func (f *currentTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	return f.currentTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *currentTimestampFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *currentTimestampFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.currentTimestampToAggregationLanguage(t, f.args)
 }
 
-func (f *currentTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *currentTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1645,11 +1646,11 @@ func (f *curtimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.curtimeEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *curtimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *curtimeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *curtimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *curtimeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1727,11 +1728,11 @@ func (f *databaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.databaseEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
-func (f *databaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *databaseFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *databaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *databaseFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1799,11 +1800,11 @@ func (f *dateAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.dateAddEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dateAddFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateAddFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dateAddToAggregationLanguage(t, f.args)
 }
 
-func (f *dateAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateAddFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1881,11 +1882,11 @@ func (f *dateDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.dateDiffEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dateDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dateDiffToAggregationLanguage(t, f.args)
 }
 
-func (f *dateDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -1963,11 +1964,11 @@ func (f *dateFormatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.dateFormatEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dateFormatFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateFormatFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dateFormatToAggregationLanguage(t, f.args)
 }
 
-func (f *dateFormatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateFormatFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2045,11 +2046,11 @@ func (f *dateSubFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.dateSubEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dateSubFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateSubFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dateSubToAggregationLanguage(t, f.args)
 }
 
-func (f *dateSubFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dateSubFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2127,11 +2128,11 @@ func (f *dayNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.dayNameEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dayNameFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayNameFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dayNameToAggregationLanguage(t, f.args)
 }
 
-func (f *dayNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayNameFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2209,11 +2210,11 @@ func (f *dayOfMonthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.dayOfMonthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dayOfMonthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayOfMonthFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dayOfMonthToAggregationLanguage(t, f.args)
 }
 
-func (f *dayOfMonthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayOfMonthFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2291,11 +2292,11 @@ func (f *dayOfWeekFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return f.dayOfWeekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dayOfWeekFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayOfWeekFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dayOfWeekToAggregationLanguage(t, f.args)
 }
 
-func (f *dayOfWeekFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayOfWeekFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2373,11 +2374,11 @@ func (f *dayOfYearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return f.dayOfYearEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *dayOfYearFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayOfYearFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.dayOfYearToAggregationLanguage(t, f.args)
 }
 
-func (f *dayOfYearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *dayOfYearFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2455,11 +2456,11 @@ func (f *degreesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.degreesEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *degreesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *degreesFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.degreesToAggregationLanguage(t, f.args)
 }
 
-func (f *degreesFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *degreesFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2537,11 +2538,11 @@ func (f *expFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.expEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *expFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *expFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.expToAggregationLanguage(t, f.args)
 }
 
-func (f *expFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *expFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2619,11 +2620,11 @@ func (f *extractFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.extractEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *extractFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *extractFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.extractToAggregationLanguage(t, f.args)
 }
 
-func (f *extractFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *extractFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2701,11 +2702,11 @@ func (f *floorFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.floorEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *floorFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *floorFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.floorToAggregationLanguage(t, f.args)
 }
 
-func (f *floorFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *floorFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2783,11 +2784,11 @@ func (f *fromDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.fromDaysEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *fromDaysFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *fromDaysFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.fromDaysToAggregationLanguage(t, f.args)
 }
 
-func (f *fromDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *fromDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2865,11 +2866,11 @@ func (f *fromUnixtimeToDatetimeFunc) Evaluate(ctx context.Context, cfg *Executio
 	return f.fromUnixtimeEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *fromUnixtimeToDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *fromUnixtimeToDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.fromUnixtimeToAggregationLanguage(t, f.args)
 }
 
-func (f *fromUnixtimeToDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *fromUnixtimeToDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -2947,11 +2948,11 @@ func (f *fromUnixtimeToFormattedDatetimeFunc) Evaluate(ctx context.Context, cfg 
 	return f.fromUnixtimeEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.fromUnixtimeToAggregationLanguage(t, f.args)
 }
 
-func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *fromUnixtimeToFormattedDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3029,11 +3030,11 @@ func (f *greatestFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.greatestEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *greatestFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *greatestFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.greatestToAggregationLanguage(t, f.args)
 }
 
-func (f *greatestFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *greatestFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3107,11 +3108,11 @@ func (f *hourFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.hourEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *hourFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *hourFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.hourToAggregationLanguage(t, f.args)
 }
 
-func (f *hourFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *hourFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3189,11 +3190,11 @@ func (f *insertFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return f.insertEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *insertFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *insertFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.insertToAggregationLanguage(t, f.args)
 }
 
-func (f *insertFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *insertFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3271,11 +3272,11 @@ func (f *instrFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.instrEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *instrFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *instrFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.instrToAggregationLanguage(t, f.args)
 }
 
-func (f *instrFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *instrFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3353,11 +3354,11 @@ func (f *lastDayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.lastDayEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *lastDayFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lastDayFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.lastDayToAggregationLanguage(t, f.args)
 }
 
-func (f *lastDayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lastDayFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3435,11 +3436,11 @@ func (f *lcaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.lcaseEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *lcaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lcaseFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.lcaseToAggregationLanguage(t, f.args)
 }
 
-func (f *lcaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lcaseFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3517,11 +3518,11 @@ func (f *leastFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.leastEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *leastFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *leastFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.leastToAggregationLanguage(t, f.args)
 }
 
-func (f *leastFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *leastFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3595,11 +3596,11 @@ func (f *leftFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.leftEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *leftFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *leftFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.leftToAggregationLanguage(t, f.args)
 }
 
-func (f *leftFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *leftFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3677,11 +3678,11 @@ func (f *lengthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return f.lengthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *lengthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lengthFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.lengthToAggregationLanguage(t, f.args)
 }
 
-func (f *lengthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lengthFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3759,11 +3760,11 @@ func (f *lnFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 	return f.lnEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *lnFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lnFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *lnFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lnFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3841,11 +3842,11 @@ func (f *locateFromBeginningFunc) Evaluate(ctx context.Context, cfg *ExecutionCo
 	return f.locateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *locateFromBeginningFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *locateFromBeginningFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.locateToAggregationLanguage(t, f.args)
 }
 
-func (f *locateFromBeginningFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *locateFromBeginningFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3906,11 +3907,11 @@ func (f *locateFromIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig
 	return f.locateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *locateFromIndexFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *locateFromIndexFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.locateToAggregationLanguage(t, f.args)
 }
 
-func (f *locateFromIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *locateFromIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -3971,11 +3972,11 @@ func (f *logNaturalFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.logEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *logNaturalFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *logNaturalFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.logToAggregationLanguage(t, f.args)
 }
 
-func (f *logNaturalFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *logNaturalFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4053,11 +4054,11 @@ func (f *logWithBaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	return f.logEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *logWithBaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *logWithBaseFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.logToAggregationLanguage(t, f.args)
 }
 
-func (f *logWithBaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *logWithBaseFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4135,11 +4136,11 @@ func (f *log10Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.log10Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *log10Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *log10Func) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.log10ToAggregationLanguage(t, f.args)
 }
 
-func (f *log10Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *log10Func) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4217,11 +4218,11 @@ func (f *log2Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.log2Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *log2Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *log2Func) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.log2ToAggregationLanguage(t, f.args)
 }
 
-func (f *log2Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *log2Func) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4299,11 +4300,11 @@ func (f *lpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.lpadEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *lpadFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lpadFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.lpadToAggregationLanguage(t, f.args)
 }
 
-func (f *lpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *lpadFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4381,11 +4382,11 @@ func (f *ltrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.ltrimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *ltrimFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *ltrimFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ltrimToAggregationLanguage(t, f.args)
 }
 
-func (f *ltrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *ltrimFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4463,11 +4464,11 @@ func (f *makeDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.makeDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *makeDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *makeDateFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.makeDateToAggregationLanguage(t, f.args)
 }
 
-func (f *makeDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *makeDateFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4545,11 +4546,11 @@ func (f *md5Func) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.md5Evaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *md5Func) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *md5Func) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *md5Func) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *md5Func) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4627,11 +4628,11 @@ func (f *microsecondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 	return f.microsecondEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *microsecondFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *microsecondFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.microsecondToAggregationLanguage(t, f.args)
 }
 
-func (f *microsecondFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *microsecondFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4709,11 +4710,11 @@ func (f *midFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.midEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *midFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *midFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.midToAggregationLanguage(t, f.args)
 }
 
-func (f *midFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *midFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4791,11 +4792,11 @@ func (f *minuteFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return f.minuteEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *minuteFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *minuteFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.minuteToAggregationLanguage(t, f.args)
 }
 
-func (f *minuteFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *minuteFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4873,11 +4874,11 @@ func (f *modFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.modEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *modFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *modFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.modToAggregationLanguage(t, f.args)
 }
 
-func (f *modFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *modFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -4955,11 +4956,11 @@ func (f *monthFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.monthEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *monthFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *monthFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.monthToAggregationLanguage(t, f.args)
 }
 
-func (f *monthFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *monthFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5037,11 +5038,11 @@ func (f *monthNameFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return f.monthNameEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *monthNameFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *monthNameFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.monthNameToAggregationLanguage(t, f.args)
 }
 
-func (f *monthNameFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *monthNameFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5119,11 +5120,11 @@ func (f *nopushdownFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.nopushdownEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *nopushdownFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *nopushdownFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *nopushdownFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *nopushdownFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5180,11 +5181,11 @@ func (f *piFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Executi
 	return f.piEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *piFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *piFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *piFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *piFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5262,11 +5263,11 @@ func (f *powFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.powEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *powFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *powFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.powToAggregationLanguage(t, f.args)
 }
 
-func (f *powFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *powFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5344,11 +5345,11 @@ func (f *quarterFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.quarterEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *quarterFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *quarterFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.quarterToAggregationLanguage(t, f.args)
 }
 
-func (f *quarterFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *quarterFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5426,11 +5427,11 @@ func (f *radiansFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.radiansEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *radiansFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *radiansFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.radiansToAggregationLanguage(t, f.args)
 }
 
-func (f *radiansFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *radiansFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5508,11 +5509,11 @@ func (f *randNoSeedFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.randEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
-func (f *randNoSeedFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *randNoSeedFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *randNoSeedFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *randNoSeedFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5573,11 +5574,11 @@ func (f *randSeededFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.randEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
-func (f *randSeededFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *randSeededFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *randSeededFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *randSeededFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5638,11 +5639,11 @@ func (f *repeatFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return f.repeatEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *repeatFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *repeatFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.repeatToAggregationLanguage(t, f.args)
 }
 
-func (f *repeatFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *repeatFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5720,11 +5721,11 @@ func (f *replaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.replaceEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *replaceFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *replaceFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.replaceToAggregationLanguage(t, f.args)
 }
 
-func (f *replaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *replaceFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5802,11 +5803,11 @@ func (f *reverseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.reverseEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *reverseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *reverseFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.reverseToAggregationLanguage(t, f.args)
 }
 
-func (f *reverseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *reverseFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5884,11 +5885,11 @@ func (f *rightFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.rightEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *rightFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *rightFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.rightToAggregationLanguage(t, f.args)
 }
 
-func (f *rightFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *rightFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -5966,11 +5967,11 @@ func (f *roundWithDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *Executio
 	return f.roundEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *roundWithDecimalPlacesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *roundWithDecimalPlacesFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.roundToAggregationLanguage(t, f.args)
 }
 
-func (f *roundWithDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *roundWithDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6048,11 +6049,11 @@ func (f *roundToZeroDecimalPlacesFunc) Evaluate(ctx context.Context, cfg *Execut
 	return f.roundEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *roundToZeroDecimalPlacesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *roundToZeroDecimalPlacesFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.roundToAggregationLanguage(t, f.args)
 }
 
-func (f *roundToZeroDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *roundToZeroDecimalPlacesFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6130,11 +6131,11 @@ func (f *rpadFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.rpadEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *rpadFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *rpadFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.rpadToAggregationLanguage(t, f.args)
 }
 
-func (f *rpadFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *rpadFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6212,11 +6213,11 @@ func (f *rtrimFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.rtrimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *rtrimFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *rtrimFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.rtrimToAggregationLanguage(t, f.args)
 }
 
-func (f *rtrimFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *rtrimFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6294,11 +6295,11 @@ func (f *secondFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return f.secondEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *secondFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *secondFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.secondToAggregationLanguage(t, f.args)
 }
 
-func (f *secondFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *secondFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6376,11 +6377,11 @@ func (f *signFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.signEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *signFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *signFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.signToAggregationLanguage(t, f.args)
 }
 
-func (f *signFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *signFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6458,11 +6459,11 @@ func (f *sinFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.sinEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *sinFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *sinFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.sinToAggregationLanguage(t, f.args)
 }
 
-func (f *sinFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *sinFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6540,11 +6541,11 @@ func (f *sleepFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.sleepEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
-func (f *sleepFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *sleepFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *sleepFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *sleepFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6612,11 +6613,11 @@ func (f *spaceFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.spaceEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *spaceFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *spaceFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.spaceToAggregationLanguage(t, f.args)
 }
 
-func (f *spaceFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *spaceFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6694,11 +6695,11 @@ func (f *sqrtFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.sqrtEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *sqrtFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *sqrtFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.sqrtToAggregationLanguage(t, f.args)
 }
 
-func (f *sqrtFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *sqrtFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6776,11 +6777,11 @@ func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return f.strToDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *strToDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *strToDateFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *strToDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *strToDateFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6858,11 +6859,11 @@ func (f *substringFromFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	return f.substringEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *substringFromFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *substringFromFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.substringToAggregationLanguage(t, f.args)
 }
 
-func (f *substringFromFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *substringFromFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -6940,11 +6941,11 @@ func (f *substringFromForFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	return f.substringEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *substringFromForFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *substringFromForFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.substringToAggregationLanguage(t, f.args)
 }
 
-func (f *substringFromForFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *substringFromForFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7022,11 +7023,11 @@ func (f *substringIndexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 	return f.substringIndexEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *substringIndexFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *substringIndexFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.substringIndexToAggregationLanguage(t, f.args)
 }
 
-func (f *substringIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *substringIndexFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7087,11 +7088,11 @@ func (f *tanFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execut
 	return f.tanEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *tanFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *tanFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.tanToAggregationLanguage(t, f.args)
 }
 
-func (f *tanFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *tanFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7169,11 +7170,11 @@ func (f *timeDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.timeDiffEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *timeDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timeDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *timeDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timeDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7251,11 +7252,11 @@ func (f *timeToSecFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return f.timeToSecEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *timeToSecFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timeToSecFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *timeToSecFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timeToSecFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7333,11 +7334,11 @@ func (f *timestampAddTimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	return f.timestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *timestampAddTimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timestampAddTimeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.timestampToAggregationLanguage(t, f.args)
 }
 
-func (f *timestampAddTimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timestampAddTimeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7415,11 +7416,11 @@ func (f *timestampAddFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	return f.timestampAddEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *timestampAddFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timestampAddFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.timestampAddToAggregationLanguage(t, f.args)
 }
 
-func (f *timestampAddFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timestampAddFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7497,11 +7498,11 @@ func (f *timestampDiffFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	return f.timestampDiffEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *timestampDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timestampDiffFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.timestampDiffToAggregationLanguage(t, f.args)
 }
 
-func (f *timestampDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *timestampDiffFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7579,11 +7580,11 @@ func (f *toDaysFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return f.toDaysEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *toDaysFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *toDaysFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.toDaysToAggregationLanguage(t, f.args)
 }
 
-func (f *toDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *toDaysFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7661,11 +7662,11 @@ func (f *toSecondsFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 	return f.toSecondsEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *toSecondsFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *toSecondsFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.toSecondsToAggregationLanguage(t, f.args)
 }
 
-func (f *toSecondsFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *toSecondsFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7743,11 +7744,11 @@ func (f *trimSpacesFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.trimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *trimSpacesFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *trimSpacesFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.trimToAggregationLanguage(t, f.args)
 }
 
-func (f *trimSpacesFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *trimSpacesFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7825,11 +7826,11 @@ func (f *trimStringFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st 
 	return f.trimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *trimStringFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *trimStringFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.trimToAggregationLanguage(t, f.args)
 }
 
-func (f *trimStringFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *trimStringFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7907,11 +7908,11 @@ func (f *trimStringFromSideFunc) Evaluate(ctx context.Context, cfg *ExecutionCon
 	return f.trimEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *trimStringFromSideFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *trimStringFromSideFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.trimToAggregationLanguage(t, f.args)
 }
 
-func (f *trimStringFromSideFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *trimStringFromSideFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -7989,11 +7990,11 @@ func (f *truncateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *E
 	return f.truncateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *truncateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *truncateFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.truncateToAggregationLanguage(t, f.args)
 }
 
-func (f *truncateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *truncateFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8071,11 +8072,11 @@ func (f *ucaseFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Exec
 	return f.ucaseEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *ucaseFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *ucaseFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ucaseToAggregationLanguage(t, f.args)
 }
 
-func (f *ucaseFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *ucaseFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8153,11 +8154,11 @@ func (f *unixTimestampZeroFunc) Evaluate(ctx context.Context, cfg *ExecutionConf
 	return f.unixTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *unixTimestampZeroFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *unixTimestampZeroFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.unixTimestampToAggregationLanguage(t, f.args)
 }
 
-func (f *unixTimestampZeroFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *unixTimestampZeroFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8235,11 +8236,11 @@ func (f *unixTimestampFromDatetimeFunc) Evaluate(ctx context.Context, cfg *Execu
 	return f.unixTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *unixTimestampFromDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *unixTimestampFromDatetimeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.unixTimestampToAggregationLanguage(t, f.args)
 }
 
-func (f *unixTimestampFromDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *unixTimestampFromDatetimeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8317,11 +8318,11 @@ func (f *userFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.userEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
-func (f *userFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *userFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *userFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *userFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8389,11 +8390,11 @@ func (f *utcDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.utcDateEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *utcDateFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *utcDateFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.utcDateToAggregationLanguage(t, f.args)
 }
 
-func (f *utcDateFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *utcDateFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8471,11 +8472,11 @@ func (f *utcTimestampFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	return f.utcTimestampEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *utcTimestampFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *utcTimestampFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.utcTimestampToAggregationLanguage(t, f.args)
 }
 
-func (f *utcTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *utcTimestampFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8553,11 +8554,11 @@ func (f *versionFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.versionEvaluateWithFullEvaluationState(ctx, cfg, st, args)
 }
 
-func (f *versionFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *versionFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
-func (f *versionFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *versionFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8625,11 +8626,11 @@ func (f *weekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *ExecutionCo
 	return f.weekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *weekWithDefaultModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *weekWithDefaultModeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.weekToAggregationLanguage(t, f.args)
 }
 
-func (f *weekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *weekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8707,11 +8708,11 @@ func (f *weekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 	return f.weekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *weekWithModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *weekWithModeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.weekToAggregationLanguage(t, f.args)
 }
 
-func (f *weekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *weekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8789,11 +8790,11 @@ func (f *weekdayFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 	return f.weekdayEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *weekdayFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *weekdayFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.weekdayToAggregationLanguage(t, f.args)
 }
 
-func (f *weekdayFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *weekdayFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8871,11 +8872,11 @@ func (f *yearFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 	return f.yearEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *yearFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *yearFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.yearToAggregationLanguage(t, f.args)
 }
 
-func (f *yearFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *yearFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -8953,11 +8954,11 @@ func (f *yearWeekWithDefaultModeFunc) Evaluate(ctx context.Context, cfg *Executi
 	return f.yearWeekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *yearWeekWithDefaultModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *yearWeekWithDefaultModeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.yearWeekToAggregationLanguage(t, f.args)
 }
 
-func (f *yearWeekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *yearWeekWithDefaultModeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
@@ -9035,11 +9036,11 @@ func (f *yearWeekWithModeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 	return f.yearWeekEvaluate(cfg.sqlValueKind, st.collation, args)
 }
 
-func (f *yearWeekWithModeFunc) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *yearWeekWithModeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.yearWeekToAggregationLanguage(t, f.args)
 }
 
-func (f *yearWeekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *yearWeekWithModeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 

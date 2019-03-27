@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongoast/ast"
+
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/option"
+
 	"github.com/shopspring/decimal"
 )
 
@@ -120,10 +123,10 @@ func floatingPointAggregationFunctionEvalType(e types.EvalType) types.EvalType {
 //      in: { $avg: { $cond: [$$aIsNull, 0, $a] } }
 //    }
 //  }
-func (t *PushdownTranslator) nullCheckAndWrapInAggOp(aggOp string, operand interface{}) bson.D {
+func (t *PushdownTranslator) nullCheckAndWrapInAggOp(aggOp string, operand ast.Expr) *ast.Function {
 	nullCheckedOperand := t.withNullCheckedColumnsScope(operand)
 	t.ClearColumnsToNullCheck()
-	return bsonutil.NewD(bsonutil.NewDocElem(aggOp, nullCheckedOperand))
+	return ast.NewFunction(aggOp, nullCheckedOperand)
 }
 
 // SQLAvgFunctionExpr computes average.
@@ -252,12 +255,12 @@ func (f *SQLAvgFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLAvgFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLAvgFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLAvgFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLAvgFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	// We cannot average date types.
 	dataType := f.exprs[0].EvalType()
 	if dataType == types.EvalDatetime || dataType == types.EvalDate {
@@ -373,30 +376,30 @@ func (f *SQLCountFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, err
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLCountFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLCountFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLCountFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLCountFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
 	if f.exprs[0] == NewSQLValueExpr(values.NewSQLVarchar(t.valueKind(), "")) {
-		return bsonutil.NewD(bsonutil.NewDocElem("$size", transExpr)), nil
+		return ast.NewFunction(bsonutil.OpSize, transExpr), nil
 	}
 
 	// The below ensure that nulls, undefined, and missing fields
 	// are not part of the count.
-	return bsonutil.WrapInOp(bsonutil.OpSum,
-		bsonutil.WrapInMap(
+	return astutil.WrapInOp(bsonutil.OpSum,
+		astutil.WrapInMap(
 			transExpr,
 			"i",
-			bsonutil.WrapInCond(
-				0,
-				1,
-				bsonutil.WrapInOp(bsonutil.OpLte, "$$i", nil),
+			astutil.WrapInCond(
+				astutil.ZeroInt32Literal,
+				astutil.OneInt32Literal,
+				astutil.WrapInOp(bsonutil.OpLte, ast.NewVariableRef("i"), astutil.NullLiteral),
 			),
 		),
 	), nil
@@ -435,58 +438,68 @@ func (f *SQLGroupConcatFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExp
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLGroupConcatFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLGroupConcatFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLGroupConcatFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLGroupConcatFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
 
-	maxlen := f.GroupConcatMaxLen
-	separator := f.Separator.Else(",")
+	maxlen := astutil.Int64Value(int64(f.GroupConcatMaxLen))
+	separator := astutil.StringValue(f.Separator.Else(","))
 
 	// The first time we add something to the list, we don't include a separator.
-	firstConcat := bsonutil.WrapInCond(nil,
-		"$$this",
-		bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
+	firstConcat := astutil.WrapInCond(
+		astutil.NullLiteral,
+		astutil.ThisVarRef,
+		ast.NewBinary(bsonutil.OpEq, astutil.ThisVarRef, astutil.NullLiteral),
 	)
 
 	// The default behavior for adding a new entry to the list is to precede the
 	// entry with a separator. We also check whether the length of the result string
 	// has already reached group_concat_max_len, in which case we stop adding entries
 	// to the result string.
-	defaultConcat := bsonutil.WrapInCond("$$value",
-		bsonutil.WrapInCond("$$value",
-			bsonutil.WrapInOp(bsonutil.OpConcat, "$$value", separator, "$$this"),
-			bsonutil.WrapInOp(bsonutil.OpGte,
-				bsonutil.NewD(bsonutil.NewDocElem("$strLenCP", "$$value")),
-				maxlen),
+	defaultConcat := astutil.WrapInCond(
+		astutil.ValueVarRef,
+		astutil.WrapInCond(
+			astutil.ValueVarRef,
+			astutil.WrapInOp(bsonutil.OpConcat, astutil.ValueVarRef, separator, astutil.ThisVarRef),
+			ast.NewBinary(bsonutil.OpGte,
+				ast.NewFunction(bsonutil.OpStrlenCP, astutil.ValueVarRef),
+				maxlen,
+			),
 		),
-		bsonutil.WrapInOp(bsonutil.OpEq, "$$this", nil),
+		ast.NewBinary(bsonutil.OpEq, astutil.ThisVarRef, astutil.NullLiteral),
 	)
 
-	result := bsonutil.WrapInReduce(transExpr,
-		nil,
-		bsonutil.WrapInCond(firstConcat,
+	result := astutil.WrapInReduce(
+		transExpr,
+		astutil.NullLiteral,
+		astutil.WrapInCond(
+			firstConcat,
 			defaultConcat,
-			bsonutil.WrapInOp(bsonutil.OpEq, "$$value", nil),
+			ast.NewBinary(bsonutil.OpEq, astutil.ValueVarRef, astutil.NullLiteral),
 		),
 	)
+
+	resultRef := ast.NewVariableRef("result")
+	assignment := []*ast.LetVariable{
+		ast.NewLetVariable("result", result),
+	}
 
 	// We must check whether the result is nil because $substr will translate a nil
 	// argument into an empty string.
-	truncateOrNil := bsonutil.WrapInCond(nil,
-		bsonutil.WrapInSubstr("$$result", 0, maxlen),
-		bsonutil.WrapInOp(bsonutil.OpEq, "$$result", nil),
+	truncateOrNil := astutil.WrapInCond(
+		astutil.NullLiteral,
+		astutil.WrapInOp(bsonutil.OpSubstr, resultRef, astutil.ZeroInt32Literal, maxlen),
+		ast.NewBinary(bsonutil.OpEq, resultRef, astutil.NullLiteral),
 	)
 
-	return bsonutil.WrapInLet(bsonutil.NewD(
-		bsonutil.NewDocElem("result", result)),
-		truncateOrNil), nil
+	return ast.NewLet(assignment, truncateOrNil), nil
 }
 
 // EvalType for SQLGroupConcatFunctionExpr always returns EvalString.
@@ -690,12 +703,12 @@ func (f *SQLMaxFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLMaxFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLMaxFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLMaxFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLMaxFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])
 	if err != nil || transExpr == nil {
 		return nil, err
@@ -794,12 +807,12 @@ func (f *SQLMinFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLMinFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLMinFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLMinFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLMinFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	transExpr, err := t.ToAggregationLanguage(f.exprs[0])
 	if err != nil || transExpr == nil {
 		return nil, err
@@ -933,12 +946,12 @@ func (f *SQLSumFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLSumFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLSumFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLSumFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLSumFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	// We cannot sum date types.
 	dataType := f.exprs[0].EvalType()
 	if dataType == types.EvalDatetime || dataType == types.EvalDate {
@@ -1101,12 +1114,12 @@ func (f *SQLStdDevFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, er
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLStdDevFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLStdDevFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLStdDevFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLStdDevFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	// We cannot stddev date types.
 	dataType := f.exprs[0].EvalType()
 	if dataType == types.EvalDatetime || dataType == types.EvalDate {
@@ -1270,12 +1283,12 @@ func (f *SQLStdDevSampleFunctionExpr) FoldConstants(cfg *OptimizerConfig) (SQLEx
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (f *SQLStdDevSampleFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLStdDevSampleFunctionExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return f.ToAggregationLanguage(t)
 }
 
 // ToAggregationLanguage generates aggregation language for the aggregation function.
-func (f *SQLStdDevSampleFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (interface{}, PushdownFailure) {
+func (f *SQLStdDevSampleFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	// We cannot stddev date types.
 	dataType := f.exprs[0].EvalType()
 	if dataType == types.EvalDatetime || dataType == types.EvalDate {

@@ -3,16 +3,16 @@ package catalog
 import (
 	"fmt"
 	"math"
-
-	"github.com/10gen/sqlproxy/evaluator/results"
-	"github.com/10gen/sqlproxy/evaluator/types"
-	"github.com/10gen/sqlproxy/mongodb"
-
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/10gen/mongoast/ast"
+
+	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/internal/astutil"
+	"github.com/10gen/sqlproxy/mongodb"
 )
 
 // addColumnToIndex takes a MongoDB index (which can be compound) and
@@ -114,43 +114,24 @@ func getKeyToParentTable(foreignKeys foreignKeyCandidates, depth int) *foreignKe
 // getUnwindPaths returns a list of unwind paths found in the aggregation pipeline
 // and a map of the associated mongoName to its path. For a given path, if either
 // the path or array index does not exist, neither is added to the returned values.
-func getUnwindPaths(pipeline []bson.D) ([]string, map[string]string) {
+func getUnwindPaths(pipeline *ast.Pipeline) ([]string, map[string]string) {
 	unwindPaths := []string{}
 	pathAliases := make(map[string]string)
-	for _, d := range pipeline {
-		unwindVal, ok := d.Map()["$unwind"]
+	for _, s := range pipeline.Stages {
+		unwind, ok := s.(*ast.UnwindStage)
 		if !ok {
 			continue
 		}
 
-		unwind, ok := unwindVal.(bson.D)
-		if !ok {
+		if unwind.Path == nil || unwind.IncludeArrayIndex == "" {
 			continue
 		}
 
-		path, ok := unwind.Map()["path"]
-		if !ok {
-			continue
-		}
-
-		pathAsString, ok := path.(string)
-		if !ok {
-			continue
-		}
-
-		arrayIndexNameVal, ok := unwind.Map()["includeArrayIndex"]
-		if !ok {
-			continue
-		}
-
-		arrayIndexNameStringVal, ok := arrayIndexNameVal.(string)
-		if !ok {
-			continue
-		}
+		pathAsString := astutil.FieldRefString(unwind.Path)
 
 		// only consider unwindPaths where there is a defined columns
 		unwindPaths = append(unwindPaths, pathAsString)
-		pathAliases[arrayIndexNameStringVal] = pathAsString
+		pathAliases[unwind.IncludeArrayIndex] = pathAsString
 
 	}
 	return unwindPaths, pathAliases

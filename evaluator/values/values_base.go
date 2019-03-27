@@ -8,14 +8,19 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/mongo-go-driver/bson"
+
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/schema"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/shopspring/decimal"
+
+	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // BaseSQLBool represents a boolean. BaseSQLBool should be treated as an
@@ -91,6 +96,14 @@ func (BaseSQLBool) EvalType() types.EvalType {
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLBool) Value() interface{} {
 	return s.val != 0
+}
+
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLBool) BSONValue() (bsoncore.Value, error) {
+	return bsoncore.Value{
+		Type: bsontype.Boolean,
+		Data: bsoncore.AppendBoolean(nil, s.val != 0),
+	}, nil
 }
 
 // SQLBool converts the BaseSQLBool receiver, s, to a SQLBool.
@@ -231,6 +244,14 @@ func (s BaseSQLDate) Value() interface{} {
 	return s.datetime
 }
 
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLDate) BSONValue() (bsoncore.Value, error) {
+	return bsoncore.Value{
+		Type: bsontype.DateTime,
+		Data: bsoncore.AppendDateTime(nil, s.datetime.UnixNano()/1000000),
+	}, nil
+}
+
 // SQLBool converts the BaseSQLDate receiver, s, to a SQLBool.
 func (s BaseSQLDate) SQLBool() SQLBool {
 	t := s.datetime
@@ -354,6 +375,18 @@ func (BaseSQLDecimal128) EvalType() types.EvalType {
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLDecimal128) Value() interface{} {
 	return s.val
+}
+
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLDecimal128) BSONValue() (bsoncore.Value, error) {
+	parsed, err := primitive.ParseDecimal128(s.String())
+	if err != nil {
+		return bsoncore.Value{}, fmt.Errorf("failed to Decimal128 from SQLValue string: %v", err)
+	}
+	return bsoncore.Value{
+		Type: bsontype.Decimal128,
+		Data: bsoncore.AppendDecimal128(nil, parsed),
+	}, nil
 }
 
 // SQLBool converts the BaseSQLDecimal128 receiver, s, to a SQLBool.
@@ -549,6 +582,14 @@ func (s BaseSQLFloat) Value() interface{} {
 	return s.val
 }
 
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLFloat) BSONValue() (bsoncore.Value, error) {
+	return bsoncore.Value{
+		Type: bsontype.Double,
+		Data: bsoncore.AppendDouble(nil, s.val),
+	}, nil
+}
+
 // BaseSQLInt64 represents a 64-bit integer value. BaseSQLInt64 should be
 // treated as an abstract type; it should never be used directly during query
 // evaluation, and instead should be embedded in other SQLValue implementers who
@@ -617,6 +658,14 @@ func (BaseSQLInt64) EvalType() types.EvalType {
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLInt64) Value() interface{} {
 	return s.val
+}
+
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLInt64) BSONValue() (bsoncore.Value, error) {
+	return bsoncore.Value{
+		Type: bsontype.Int64,
+		Data: bsoncore.AppendInt64(nil, s.val),
+	}, nil
 }
 
 // SQLBool converts the BaseSQLInt64 receiver, s, to a SQLBool.
@@ -757,6 +806,18 @@ func (BaseSQLObjectID) EvalType() types.EvalType {
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLObjectID) Value() interface{} {
 	return bson.ObjectIdHex(s.val)
+}
+
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLObjectID) BSONValue() (bsoncore.Value, error) {
+	oid, err := primitive.ObjectIDFromHex(s.val)
+	if err != nil {
+		return bsoncore.Value{}, fmt.Errorf("failed to parse ObjectID from SQLValue: %v", err)
+	}
+	return bsoncore.Value{
+		Type: bsontype.ObjectID,
+		Data: bsoncore.AppendObjectID(nil, oid),
+	}, nil
 }
 
 // SQLBool converts a BaseSQLObjectID to a SQLBool.
@@ -900,6 +961,14 @@ func (s BaseSQLTimestamp) Value() interface{} {
 	return s.datetime
 }
 
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLTimestamp) BSONValue() (bsoncore.Value, error) {
+	return bsoncore.Value{
+		Type: bsontype.DateTime,
+		Data: bsoncore.AppendDateTime(nil, s.datetime.UnixNano()/1000000),
+	}, nil
+}
+
 // SQLBool converts the BaseSQLTimestamp receiver, s, to a SQLBool.
 func (s BaseSQLTimestamp) SQLBool() SQLBool {
 	t := s.datetime
@@ -1020,6 +1089,17 @@ func (s BaseSQLUint64) EvalType() types.EvalType {
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLUint64) Value() interface{} {
 	return s.val
+}
+
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLUint64) BSONValue() (bsoncore.Value, error) {
+	if s.val > math.MaxInt64 {
+		return bsoncore.Value{}, fmt.Errorf("uint64 greater than MaxInt64")
+	}
+	return bsoncore.Value{
+		Type: bsontype.Int64,
+		Data: bsoncore.AppendInt64(nil, int64(s.val)),
+	}, nil
 }
 
 // WireProtocolEncode returns a byte slice that contains MySQL's wire-protocol
@@ -1198,6 +1278,14 @@ func (s BaseSQLVarchar) Value() interface{} {
 	return s.val
 }
 
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLVarchar) BSONValue() (bsoncore.Value, error) {
+	return bsoncore.Value{
+		Type: bsontype.String,
+		Data: bsoncore.AppendString(nil, s.val),
+	}, nil
+}
+
 // SQLBool converts the BaseSQLVarchar receiver, s, to a SQLBool.
 func (s BaseSQLVarchar) SQLBool() SQLBool {
 	// Note that we convert to Bool by converting to Int then to Bool,
@@ -1371,6 +1459,13 @@ func (BaseSQLNull) EvalType() types.EvalType {
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLNull) Value() interface{} {
 	return false
+}
+
+// BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
+func (s BaseSQLNull) BSONValue() (bsoncore.Value, error) {
+	return bsoncore.Value{
+		Type: bsontype.Null,
+	}, nil
 }
 
 // SQLBool converts the BaseSQLNull receiver, s, to a SQLBool.

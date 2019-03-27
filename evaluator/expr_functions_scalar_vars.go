@@ -10078,7 +10078,7 @@ var (
 	zeroDate, _ = time.ParseInLocation(shortTimeFormat, "0000-00-00", schema.DefaultLocale)
 )
 
-var stringToNum = map[string]int{
+var stringToNum = map[string]int32{
 	"0": 0,
 	"1": 1,
 	"2": 2,
@@ -10122,7 +10122,7 @@ var validNumbers = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "A
 	"K", "k", "L", "l", "M", "m", "N", "n", "O", "o", "P", "p", "Q", "q", "R", "r", "S", "s", "T",
 	"t", "U", "u", "V", "v", "W", "w", "X", "x", "Y", "y", "Z", "z"}
 
-var numToString = map[int]string{
+var numToString = map[int32]string{
 	0:  "0",
 	1:  "1",
 	2:  "2",

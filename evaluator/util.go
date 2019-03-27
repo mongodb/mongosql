@@ -1,17 +1,19 @@
 package evaluator
 
 import (
-	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"github.com/10gen/mongoast/ast"
+	astparser "github.com/10gen/mongoast/parser"
+
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
@@ -42,18 +44,6 @@ const (
 // so that the predicate always returns false.
 // We use this to generate pipelines with no results.
 const falsyPredicateField string = "falsyPredicateField"
-
-// mgoPreserveNullAndEmptyArrays is an argument to $unwind. We use this
-// constant to avoid possible mispellings.
-const mgoPreserveNullAndEmptyArrays string = "preserveNullAndEmptyArrays"
-
-// mgoPath is an argument to $unwind. We use this
-// constant to avoid possible mispellings.
-const mgoPath string = "path"
-
-// mgoIncludeArrayIndex is an argument to $unwind. We use this
-// constant to avoid possible mispellings.
-const mgoIncludeArrayIndex string = "includeArrayIndex"
 
 // These regexes are used to ensure we use valid field names when we're creating
 // user variables in $let var blocks. See documentation at:
@@ -257,8 +247,13 @@ func isCountOptimizable(sel *parser.Select, plan PlanStage) (*MongoSourceStage, 
 		return nil, false
 	}
 
+	docSlice, err := astutil.DeparsePipeline(mongoSource.pipeline)
+	if err != nil {
+		return nil, false
+	}
+
 	// Count(*) is not optimizable if aggregations change the cardinality of a collection.
-	if bsonutil.ContainsCardinalityAlteringStages(mongoSource.pipeline) {
+	if bsonutil.ContainsCardinalityAlteringStages(docSlice) {
 		return nil, false
 	}
 
@@ -313,7 +308,7 @@ func keysStringSet(set map[string]struct{}) []string {
 	return keys
 }
 
-func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
+func parseMongoFilter(left, right SQLExpr) (ast.Expr, error) {
 	if valExpr, ok := right.(SQLValueExpr); ok {
 		if _, isVarchar := valExpr.Value.(values.SQLVarchar); !isVarchar {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantUseOptionHere, left.String())
@@ -322,13 +317,7 @@ func parseMongoFilter(left, right SQLExpr) (bson.M, error) {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantUseOptionHere, left.String())
 	}
 
-	filter := bsonutil.NewM()
-	err := json.Unmarshal([]byte(right.String()), &filter)
-	if err != nil {
-		return nil, mysqlerrors.Newf(mysqlerrors.ErParseError, "parse mongo filter error: %s", err)
-	}
-
-	return filter, nil
+	return astparser.ParseMatchExprJSON(right.String())
 }
 
 // pathStartsWithAny returns true if any of the strings in prefixes is a
@@ -380,53 +369,88 @@ func sanitizeLetVarName(varName string) string {
 // toNullCheckedLetVarName sanitizes a variable name and appends "IsNull"
 // to the name (for use in $let-bindings).
 func toNullCheckedLetVarName(varName string) string {
-	return fmt.Sprintf("%sIsNull", sanitizeLetVarName(varName))
+	return fmt.Sprintf("%s_is_null", sanitizeLetVarName(varName))
 }
 
 // toNullCheckedLetVarRef returns the result of toNullCheckedVarName
 // prepended with "$$".
-func toNullCheckedLetVarRef(fieldName string) string {
-	return fmt.Sprintf("$$%s", toNullCheckedLetVarName(fieldName))
+func toNullCheckedLetVarRef(fieldName string) *ast.VariableRef {
+	return ast.NewVariableRef(toNullCheckedLetVarName(fieldName))
 }
 
 // ComputeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document
 // with a depth level at which we can abort early to reduce the cost of checking.
-func ComputeDocNestingDepthWithMaxDepth(doc interface{}, maxDepth uint32) uint32 {
-	var aux func(interface{}, uint32) uint32
-	aux = func(currDoc interface{}, depth uint32) uint32 {
+func ComputeDocNestingDepthWithMaxDepth(doc ast.Expr, maxDepth uint32) uint32 {
+	var aux func(ast.Expr, uint32) uint32
+	aux = func(current ast.Expr, depth uint32) uint32 {
 		if depth == MaxDepth {
 			return MaxDepth + 1
 		}
 		var maxChildDepth uint32
-		switch typedDoc := currDoc.(type) {
-		case []bson.D:
-			for _, doc := range typedDoc {
-				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
+		switch t := current.(type) {
+		case *ast.AggExpr:
+			// +1 for the expr because of the following nesting structure:
+			// {
+			//   $expr: <expr> (+1)
+			// }
+			return aux(t.Expr, depth+1)
+		case *ast.Array:
+			// +1 for each element because of the following nesting structure:
+			// [
+			//   <element>, (+1)
+			//   ...,
+			// ]
+			for _, e := range t.Elements {
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(e, depth+1))
 			}
 			return maxChildDepth
-		case []interface{}:
-			for _, doc := range typedDoc {
-				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
+		case *ast.Binary:
+			// +2 for each argument because of the following nesting structure:
+			//   {
+			//     <binop>: [ (+1)
+			//       left, (+2)
+			//       right,
+			//     ]
+			//   }
+			// Binary has an implicit array for its arguments.
+			maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(t.Left, depth+2))
+			maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(t.Right, depth+2))
+			return maxChildDepth
+		case *ast.Document:
+			// +1 for each element because of the following nesting structure:
+			// {
+			//   <name>: <expr>, (+1)
+			//   ...,
+			// }
+			for _, e := range t.Elements {
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(e.Expr, depth+1))
 			}
 			return maxChildDepth
-		case []bson.M:
-			for _, doc := range typedDoc {
-				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
-			}
-			return maxChildDepth
-		case bson.M:
-			for _, doc := range typedDoc {
-				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc, depth+1))
-			}
-			return maxChildDepth
-		case bson.D:
-			for _, doc := range typedDoc {
-				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(doc.Value, depth+1))
+		case *ast.Function:
+			// +1 for the argument because of the following nesting structure:
+			// {
+			//   <func>: <arg> (+1)
+			// }
+			return aux(t.Arg, depth+1)
+		case *ast.Let:
+			// +2 for "in" and +3 for "vars" because of the following nesting structure:
+			//   {
+			//     $let: { (+1)
+			//       vars: { (+2)
+			//         <var>: <expr>, (+3)
+			//         ...
+			//       },
+			//       in: { (+2)
+			//         ...
+			//       }
+			//     }
+			maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(t.Expr, depth+2))
+			for _, v := range t.Variables {
+				maxChildDepth = mathutil.MaxUint32(maxChildDepth, aux(v.Expr, depth+3))
 			}
 			return maxChildDepth
 		default:
 			return depth
-
 		}
 	}
 	return aux(doc, 0)
