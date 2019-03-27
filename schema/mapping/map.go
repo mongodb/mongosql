@@ -645,6 +645,8 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	path := ctx.path
 	if renamedPath, ok := ctx.mongoNames[ctx.table][path]; ok {
 		path = renamedPath
+	} else if renamedPath, ok := ctx.mongoNamePrefixes[ctx.table][path]; ok {
+		path = renamedPath
 	}
 
 	// If we have a conflict above or in the current context, we need to

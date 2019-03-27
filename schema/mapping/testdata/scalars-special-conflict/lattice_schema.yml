@@ -3,8 +3,17 @@ schema:
   tables:
   - table: scalars-special-conflict
     collection: scalars-special-conflict
-    pipeline: []
+    pipeline: [
+        {'$addFields':
+            {'a':      {'$cond': [{'$eq': [{'$type': '$a'}, 'object']}, null, '$a']}, 
+            'a_DOT_b': {'$cond': [{'$eq': [{'$type': '$a'}, 'object']}, '$a.b', null]}
+            }
+        }
+    ]
     columns:
+    - name: a
+      mongotype: float64
+      sqltype: float
     - name: geoArrayPoint
       mongotype: geo.2darray
       sqlname: geoArrayPoint
@@ -17,3 +26,21 @@ schema:
       mongotype: string
       sqlname: uuid4
       sqltype: varchar
+  - table: scalars-special-conflict_a_b_c_d
+    collection: scalars-special-conflict
+    pipeline: [
+        {'$addFields': {'a':       {'$cond': [{'$eq': [{'$type': '$a'}, 'object']}, null, '$a']},
+                        'a_DOT_b': {'$cond': [{'$eq': [{'$type': '$a'}, 'object']}, '$a.b', null]}
+                       }
+        }, 
+        {'$match': {'a_DOT_b.c.d':  {$ne: []}}},
+        {'$unwind': {'path': '$a_DOT_b.c.d', 'includeArrayIndex':  'a.b.c.d_idx', 'preserveNullAndEmptyArrays': true}}
+    ]
+    columns:
+    - sqlname: a.b.c.d
+      name: a_DOT_b.c.d
+      mongotype: float64
+      sqltype: float
+    - name: a.b.c.d_idx
+      mongotype: int
+      sqltype: int

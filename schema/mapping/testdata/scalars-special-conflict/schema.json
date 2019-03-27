@@ -45,6 +45,64 @@
                 "binData": 1,
                 "double": 1
             }
+        },
+        "a": {
+            "schemas": {
+                "double": {
+                    "bsonType": "double"
+                },
+                "object": {
+                    "bsonType" : "object",
+                    "properties": {
+                        "b": {
+                             "schemas": {
+                                  "object": {
+                                       "bsonType": "object",
+                                       "properties": {
+                                            "c": {
+                                                 "schemas": {
+                                                     "object": {
+                                                         "bsonType": "object",
+                                                         "properties": {
+                                                             "d": {
+                                                                 "schemas": {
+                                                                     "array" : {
+                                                                         "bsonType": "array",
+                                                                         "items": {
+                                                                             "schemas": {
+                                                                                 "double": {"bsonType": "double"}
+                                                                             },
+                                                                             "counts": {
+                                                                                 "double": 1
+                                                                             }
+                                                                         }
+                                                                     },
+                                                                     "counts": {
+                                                                        "array": 1
+                                                                     }
+                                                                 }
+                                                             }
+                                                         }
+                                                     }
+                                                 },
+                                                 "counts": {
+                                                     "object": 1
+                                                 }
+                                            }
+                                       }
+                                  }
+                             },
+                             "counts": {
+                                 "object": 1
+                             }
+                        }
+                    }
+                }
+            },
+            "counts": {
+                "double": 1,
+                "object": 1
+            }
         }
     }
 }

@@ -1155,6 +1155,12 @@
     - {"_id": 6, "a": 1, "b": "remorhaz"}
     - {"_id": 7, "a": [{"B": ["stirge", "tarrasque"], "X": "unicorn"}, {"A": "wight"}], "c": "zombie"}
 
+- db: "polymorphic_data_test"
+  collection: bi_2151
+  docs:
+      - {"_id": 0, "a" : { "b" : { "c" : [ { "d" : "hello" } ] } } }
+      - {"_id": 1, "a": null}
+
 - db: "use_test"
   collection: test1
   docs:

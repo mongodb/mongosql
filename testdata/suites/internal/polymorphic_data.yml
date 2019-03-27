@@ -406,3 +406,13 @@ testcases:
     expected_types: [int, varchar]
     id: select_all_unmappable_types
     sql: select * from all_unmappable_types
+
+  - db: polymorphic_data_test
+    description: show that we properly generate under conflict matches and unwinds
+    expected_names: [_id, a.b.c.d, a.b.c_idx]
+    expected_results:
+      - [0, 'hello', 0]
+      - [1, ~, ~]
+    expected_types: [int, varchar, int]
+    id: under_conflict_unwind
+    sql: select * from bi_2151_a_b_c
