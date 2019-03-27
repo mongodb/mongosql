@@ -209,6 +209,15 @@ func TestTranslateSQLQuery(t *testing.T) {
 			explain:        true,
 			expectedOutput: "[\n\t{\n\t\t\"ID\": 1,\n\t\t\"StageType\": \"ProjectStage\",\n\t\t\"Columns\": \"[{name: 'adddate(a, 1, day)', type: 'timestamp'}]\",\n\t\t\"Sources\": [\n\t\t\t2\n\t\t],\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": [\n\t\t\t{\n\t\t\t\t\"name\": \"SQLConvertExpr\",\n\t\t\t\t\"reason\": \"cannot push down mongosql-mode conversions to MongoDB < 4.0\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"ID\": 2,\n\t\t\"StageType\": \"MongoSourceStage\",\n\t\t\"Columns\": \"[{name: test.foo.'a', type: 'float'}]\",\n\t\t\"Sources\": null,\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": null\n\t}\n]",
 		},
+		{
+			desc:           "mongoVersion = latest",
+			query:          "select adddate(a, 1) from foo",
+			dbName:         testDBName,
+			mongoVersion:   "latest",
+			schema:         testSchema,
+			format:         testFormat,
+			expectedOutput: `[{"$project": {"adddate(Convert(test_DOT_foo_DOT_a, timestamp),1,day)": {"$let": {"vars": {"date": {"$convert": {"input": "$a","to": "date","onError": null,"onNull": null}}},"in": {"$cond": [{"$lte": ["$$date",null]},null,{"$add": ["$$date",{"$numberLong":"86400000"}]}]}}},"_id": {"$numberInt":"0"}}}]`,
+		},
 	}
 
 	for _, tcase := range tcases {

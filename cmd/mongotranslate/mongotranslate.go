@@ -10,7 +10,7 @@ import (
 
 const (
 	defaultDbName       = "test"
-	defaultMongoVersion = "4.0.0"
+	defaultMongoVersion = "latest"
 	defaultFormat       = "multiline"
 )
 

@@ -154,6 +154,11 @@ func loadSchema(path string) (*schema.Schema, error) {
 // getCatalog copies the schema into a Catalog and returns it.
 func getCatalog(mongoVersion string, relationalSchema *schema.Schema) (catalog.Catalog, error) {
 	gbl := variable.NewGlobalContainer(nil)
+	if mongoVersion == "latest" {
+		// set to an arbitrary large number so we don't have to update it every time we add features from a new MongoDB version
+		mongoVersion = "100.0.0"
+	}
+
 	gbl.SetSystemVariable(variable.MongoDBVersion,
 		values.NewSQLVarchar(values.VariableSQLValueKind, mongoVersion))
 	gbl.SetSystemVariable(variable.PolymorphicTypeConversionMode,

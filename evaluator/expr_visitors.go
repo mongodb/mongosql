@@ -279,7 +279,7 @@ func (v *explainVisitor) generateExplainRecord(stage PlanStage, curr int) *Expla
 			stageType = "UnionDistinct"
 		}
 	case *JoinStage:
-		stageType = string(typedN.kind)
+		stageType = "JoinStage (" + string(typedN.kind) + ")"
 	default:
 		if t := reflect.TypeOf(stage); t.Kind() == reflect.Ptr {
 			stageType = t.Elem().Name()

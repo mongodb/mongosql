@@ -1592,7 +1592,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 	// cannot use expressive lookup before 3.6
 	if !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 6, 0}) {
 		v.logger.Warnf(log.Dev, "cannot push down join stage to expressive lookup: expressive lookup not available")
-		v.addNewPushdownFailure(join, joinStageName, "cannot push down expressive lookup to MongoDB < 3.6")
+		v.addNewPushdownFailure(join, joinStageName, "cannot push down expressive $lookup to MongoDB < 3.6")
 		return join, nil
 	}
 
@@ -2902,8 +2902,7 @@ func (v *pushdownVisitor) canPushdownJoinKind(kind JoinKind) PushdownFailure {
 	case InnerJoin, LeftJoin, StraightJoin:
 		return nil
 	default:
-		v.logger.Warnf(log.Dev, "cannot push down %v", kind)
-		return newPushdownFailure(joinStageName, "join kind is not inner, left, or straight")
+		return newPushdownFailure(joinStageName, fmt.Sprintf("regular $lookup cannot push down join kind '%v' - join kind is not inner, left, or straight", kind))
 	}
 }
 
