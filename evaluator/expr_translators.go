@@ -145,23 +145,23 @@ type FieldRefLookup func(databaseName, tableName, columnName string) (ast.Ref, b
 
 // PushdownTranslator handles the state necessary to do pushdown translation.
 type PushdownTranslator struct {
-	LookupFieldRef     FieldRefLookup
-	Cfg                *PushdownConfig
-	columnsToNullCheck map[string]struct{}
-	subqueryCmpStages  []ast.Stage
+	LookupFieldRef       FieldRefLookup
+	Cfg                  *PushdownConfig
+	columnsToNullCheck   map[string]struct{}
+	subqueryLookupStages []ast.Stage
 }
 
 // NewPushdownTranslator returns a new PushdownTranslator.
 func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldRef FieldRefLookup) *PushdownTranslator {
 	return &PushdownTranslator{
-		Cfg:                cfg,
-		LookupFieldRef:     lookupFieldRef,
-		columnsToNullCheck: map[string]struct{}{},
-		subqueryCmpStages:  []ast.Stage{},
+		Cfg:                  cfg,
+		LookupFieldRef:       lookupFieldRef,
+		columnsToNullCheck:   map[string]struct{}{},
+		subqueryLookupStages: []ast.Stage{},
 	}
 }
 
-func (t *PushdownTranslator) addSubqueryCmpLookupStage(subPlanMs *MongoSourceStage) error {
+func (t *PushdownTranslator) addSubqueryLookupStage(subPlanMs *MongoSourceStage) error {
 	// cannot use expressive lookup before 3.6
 	if !t.versionAtLeast(3, 6, 0) {
 		return fmt.Errorf("cannot push down subquery comparison stage to " +
@@ -180,7 +180,7 @@ func (t *PushdownTranslator) addSubqueryCmpLookupStage(subPlanMs *MongoSourceSta
 		subPlanMs.pipeline,
 	)
 
-	t.subqueryCmpStages = append(t.subqueryCmpStages, lookup)
+	t.subqueryLookupStages = append(t.subqueryLookupStages, lookup)
 
 	return nil
 }
@@ -728,10 +728,10 @@ func constructMapCmp(left ast.Expr, array ast.Expr, cmpOp string) (*ast.Function
 // $allElementsTrue. This function is intended as a means of avoiding
 // duplication in SQLSubqueryCmpExpr toAggregationLanguage() implementations,
 // and performs the work of updating the pushdown translator's
-// subqueryCmpStages.
+// subqueryLookupStages.
 func (t *PushdownTranslator) boolConvertMapForCmpOp(left ast.Expr,
 	subPlanMs *MongoSourceStage, op string) (*ast.Function, error) {
-	err := t.addSubqueryCmpLookupStage(subPlanMs)
+	err := t.addSubqueryLookupStage(subPlanMs)
 	if err != nil {
 		return nil, err
 	}
@@ -763,7 +763,7 @@ func (t *PushdownTranslator) mapCmpForDoubleSubquery(e SQLExpr, leftPlan PlanSta
 		return nil, multiRowSubqueryPushdownFailure(e)
 	}
 
-	lookupStageAddErr := t.addSubqueryCmpLookupStage(leftPlanMs)
+	lookupStageAddErr := t.addSubqueryLookupStage(leftPlanMs)
 	if lookupStageAddErr != nil {
 		return nil, wrapExprErrWithPushdownFailure(e, lookupStageAddErr)
 	}

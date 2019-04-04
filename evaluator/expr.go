@@ -584,7 +584,6 @@ func (e SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *Exe
 			return values.ConvertTo(value, e.EvalType()), nil
 		}
 	}
-
 	for _, row := range st.correlatedRows {
 		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
 			return values.ConvertTo(value, e.EvalType()), nil
@@ -1133,7 +1132,7 @@ func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, 
 		return nil, innerSubqueryPushdownFailure(e)
 	}
 
-	err := t.addSubqueryCmpLookupStage(subPlanMs)
+	err := t.addSubqueryLookupStage(subPlanMs)
 	if err != nil {
 		return nil, wrapExprErrWithPushdownFailure(e, err)
 	}
@@ -1838,12 +1837,12 @@ func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.E
 		return nil, multiRowSubqueryPushdownFailure(e)
 	}
 
-	err := t.addSubqueryCmpLookupStage(subPlanMsRight)
+	err := t.addSubqueryLookupStage(subPlanMsRight)
 	if err != nil {
 		return nil, wrapExprErrWithPushdownFailure(e, err)
 	}
 
-	err = t.addSubqueryCmpLookupStage(subPlanMsLeft)
+	err = t.addSubqueryLookupStage(subPlanMsLeft)
 	if err != nil {
 		return nil, wrapExprErrWithPushdownFailure(e, err)
 	}
@@ -2325,7 +2324,60 @@ func (e *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr
 		)
 	}
 
-	return nil, newPushdownFailure(e.ExprName(), "cannot push down subquery")
+	ms, ok := e.plan.(*MongoSourceStage)
+	if !ok {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+
+	if ms.LimitRowCount != 1 {
+		return nil, multiRowSubqueryPushdownFailure(e)
+	}
+
+	if len(ms.Columns()) != 1 {
+		// This should have been caught during algebrization, so
+		// if we get here something has gone wrong.
+		panic("more than one column in subquery expression")
+	}
+
+	// add a $lookup to the pipeline
+	err := t.addSubqueryLookupStage(ms)
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	// given the conditions above, we know there is only one column
+	column := ms.mappingRegistry.columns[0]
+	fieldName, _ := ms.mappingRegistry.lookupFieldName(column.Database, column.Table, column.Name)
+
+	lookupAs := getSubqueryLookupField(ms.Collection(), ms.selectIDs)
+
+	// A SQLSubqueryExpr produces single row with a single field. To push down
+	// a SQLSubqueryExpr, we add a $lookup to the pipeline, which outputs an
+	// array containing a single document. That document has a field called
+	// <fieldName> which we looked up in ms.mappingRegistry.
+	//
+	// The $lookup looks like:
+	//     { $lookup: {
+	//         from: <ms.Collection()>,
+	//         let: {},
+	//         pipeline: [{ $limit: 1 }, { $project: { <fieldName>: <column_to_project> } }],
+	//         as: <lookupAs>,
+	//     }},
+	//
+	// so the output will look roughly like:
+	//     [{ <fieldName>: <value> }]
+	//
+	// Given this output, we must return an ast.Expr that references the
+	// <value> above: <lookupAs>[0].<fieldName>.
+	// In English: the field <fieldName> of the 0th element of <lookupAs>.
+	return ast.NewLet(
+		[]*ast.LetVariable{
+			ast.NewLetVariable("lookup_result",
+				ast.NewArrayIndexRef(astutil.ZeroInt32Literal, ast.NewFieldRef(lookupAs, nil)),
+			),
+		},
+		ast.NewFieldRef(fieldName, ast.NewVariableRef("lookup_result")),
+	), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language

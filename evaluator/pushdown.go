@@ -587,7 +587,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 		var matchBody ast.Expr
 		matchBody, localMatcher = t.TranslatePredicate(filter.matcher)
 		if matchBody != nil {
-			pipeline.Stages = append(pipeline.Stages, t.subqueryCmpStages...)
+			pipeline.Stages = append(pipeline.Stages, t.subqueryLookupStages...)
 			pipeline.Stages = append(pipeline.Stages, ast.NewMatchStage(matchBody))
 		}
 
@@ -618,7 +618,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 				}
 
 				predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, ms.mappingRegistry)
-				pipeline.Stages = append(pipeline.Stages, t.subqueryCmpStages...)
+				pipeline.Stages = append(pipeline.Stages, t.subqueryLookupStages...)
 				pipeline.Stages = append(pipeline.Stages,
 					predicateEvaluationStage,
 					ast.NewMatchStage(
@@ -809,7 +809,7 @@ func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldRef Fi
 		keyNameMapping[key] = uniqueKeyName
 	}
 
-	return ast.NewDocument(keyDocumentElements...), keyNameMapping, t.subqueryCmpStages, nil
+	return ast.NewDocument(keyDocumentElements...), keyNameMapping, t.subqueryLookupStages, nil
 }
 
 // translateGroupByAggregatesResult is just a holder for the results from the
@@ -1763,7 +1763,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 				return join, nil
 			}
 
-			matchPipeline = append(matchPipeline, t.subqueryCmpStages...)
+			matchPipeline = append(matchPipeline, t.subqueryLookupStages...)
 			matchPipeline = append(matchPipeline, ast.NewMatchStage(ast.NewAggExpr(translated)))
 		}
 	}
@@ -2245,16 +2245,19 @@ func (v *pushdownVisitor) visitOrderBy(orderBy *OrderByStage) (PlanStage, error)
 
 		var databaseName, tableName, columnName string
 
+		// MongoDB only allows sorting by a field, so pushing down a
+		// non-field requires it to be pre-calculated by a previous
+		// push down. If it has been pre-calculated, then it will
+		// exist in the mapping registry. Otherwise, it won't, and
+		// we'll need to push this down with a $project or $addFields.
 		switch typedE := term.expr.(type) {
 		case SQLColumnExpr:
 			databaseName, tableName, columnName = typedE.databaseName, typedE.tableName,
 				typedE.columnName
+		case *SQLSubqueryExpr:
+			// this saves us from putting a pretty-printed plan as a project key.
+			columnName = typedE.plan.Columns()[0].Name
 		default:
-			// MongoDB only allows sorting by a field, so pushing down a
-			// non-field requires it to be pre-calculated by a previous
-			// push down. If it has been pre-calculated, then it will
-			// exist in the mapping registry. Otherwise, it won't, and
-			// we'll need to push this down with a $project or $addFields.
 			columnName = typedE.String()
 		}
 
@@ -2283,6 +2286,9 @@ func (v *pushdownVisitor) visitOrderBy(orderBy *OrderByStage) (PlanStage, error)
 	}
 
 	pipeline := ast.NewPipeline(ms.pipeline.Stages...)
+	if t != nil {
+		pipeline.Stages = append(pipeline.Stages, t.subqueryLookupStages...)
+	}
 
 	if len(newFields) > 0 {
 		// NOTE: there is no reason to mess with the mapping registry
@@ -2499,7 +2505,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 	}
 
 	ms = ms.clone().(*MongoSourceStage)
-	ms.pipeline.Stages = append(ms.pipeline.Stages, t.subqueryCmpStages...)
+	ms.pipeline.Stages = append(ms.pipeline.Stages, t.subqueryLookupStages...)
 	ms.pipeline.Stages = append(ms.pipeline.Stages, ast.NewProjectStage(fieldsToProject...))
 	ms.mappingRegistry = fixedMappingRegistry
 

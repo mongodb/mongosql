@@ -438,6 +438,7 @@ func TestPushdownPlan(t *testing.T) {
 		{"subquery_cmp_expr_in_group_by", "select sum(a) from foo group by (98 in (select a from bar))"},
 		{"subquery_cmp_with_limit_invalidating_join_no_pushdown", "select a from foo where (select ex.a from (select * from bar limit 1) ex join bar m where ex.a = m.a) = ANY (select b from baz)"},
 		{"subquery_cmp_with_limit_invalidating_expressive_join_no_pushdown", "select a from foo where (select ex.a from (select * from bar limit 1) ex join bar) = ANY (select b from baz)"},
+		{"orderby_noncorrelated_subquery", "select a from foo order by (select a from foo limit 1)"},
 	}
 
 	// open the file with the cached test results

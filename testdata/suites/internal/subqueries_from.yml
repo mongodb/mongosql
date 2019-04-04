@@ -243,3 +243,14 @@ testcases:
     expected_types: [int, int, int]
     id: 'union_subquery'
     sql: select * from subqueries_from where (select * from subqueries_from limit 1) = (select * from subqueries_from limit 0 union select * from `subqueries_BI-982` limit 1);
+
+  - db: subqueries_from_test
+    description: BI-2144 regression test--no panic for correlated column expr
+    expected_names: [(select a)]
+    expected_results:
+      - [1]
+      - [2]
+      - [3]
+    expected_types: [int]
+    id: 'correlated_column_subquery'
+    sql: select (select a) from subqueries_from

@@ -589,7 +589,7 @@ const (
 
 func (node *ComparisonExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v %s", node.Left, node.Operator)
-	if node.SubqueryOperator != "" {
+	if node.SubqueryOperator != "" && node.SubqueryOperator != node.Operator {
 		buf.Fprintf(" %s", node.SubqueryOperator)
 	}
 	buf.Fprintf(" %v", node.Right)

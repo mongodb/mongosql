@@ -1690,10 +1690,7 @@ func (a *algebrizer) translateSubqueryExpr(expr *parser.Subquery) (*SQLSubqueryE
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErOperandColumns, 1)
 	}
 
-	return &SQLSubqueryExpr{
-		plan:       plan,
-		correlated: correlated,
-	}, nil
+	return NewSQLSubqueryExpr(correlated, false, plan), nil
 }
 
 func (a *algebrizer) translateExistsExpr(expr *parser.ExistsExpr) (*SQLExistsExpr, error) {

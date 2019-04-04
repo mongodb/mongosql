@@ -315,11 +315,7 @@ func (v *innerJoinOptimizer) visit(n Node) (Node, error) {
 		}
 
 		if plan != typedN.plan {
-			n = &SQLSubqueryExpr{
-				correlated: typedN.correlated,
-				plan:       plan.(PlanStage),
-				allowRows:  typedN.allowRows,
-			}
+			n = NewSQLSubqueryExpr(typedN.correlated, typedN.allowRows, plan.(PlanStage))
 		}
 		return n, nil
 
