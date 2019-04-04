@@ -238,7 +238,7 @@ func (t *PushdownTranslator) withNullCheckedColumnsScope(evaluation ast.Expr) as
 	i := 0
 	for columnName := range t.columnsToNullCheck {
 		assignments[i] = ast.NewLetVariable(
-			toNullCheckedLetVarName(columnName), astutil.WrapInNullCheck(ast.NewFieldRef(columnName, nil)))
+			toNullCheckedLetVarName(columnName), astutil.WrapInNullCheck(astutil.FieldRefFromFieldName(columnName)))
 		i++
 	}
 
@@ -591,7 +591,9 @@ func lookupArrayRef(subPlanMs *MongoSourceStage, col *results.Column) (*ast.Func
 	collName := subPlanMs.Collection()
 	lookupArray := ast.NewFieldRef(getSubqueryLookupField(collName, subPlanMs.selectIDs), nil)
 
-	in := astutil.WrapInIfNull(ast.NewVariableRef("this."+matchFieldName), astutil.NullLiteral)
+	ref := astutil.FieldRefFromFieldName(matchFieldName)
+	ref.Parent = ast.NewVariableRef("this")
+	in := astutil.WrapInIfNull(ref, astutil.NullLiteral)
 
 	return astutil.WrapInMap(lookupArray, "this", in), nil
 }
@@ -891,7 +893,7 @@ func GetBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
 	return bson.Binary{Kind: 0x03, Data: bytes}, true
 }
 
-// getProjectedFieldName returns an interface to project the given field.
+// getProjectedFieldName returns an ast.Expr to project the given field.
 func getProjectedFieldName(fieldName string, fieldType types.EvalType) ast.Expr {
 	names := strings.Split(fieldName, ".")
 
@@ -904,12 +906,12 @@ func getProjectedFieldName(fieldName string, fieldType types.EvalType) ast.Expr 
 	if err == nil && fieldType == types.EvalArrNumeric {
 		fieldName = fieldName[0:strings.LastIndex(fieldName, ".")]
 		return astutil.WrapInOp(bsonutil.OpArrElemAt,
-			ast.NewFieldRef(fieldName, nil),
+			astutil.FieldRefFromFieldName(fieldName),
 			astutil.Int64Value(int64(value)),
 		)
 	}
 
-	return ast.NewFieldRef(fieldName, nil)
+	return astutil.FieldRefFromFieldName(fieldName)
 }
 
 // containsBSONType returns an expression that evaluates to true if types

@@ -21,7 +21,7 @@ func ParseMatchExpr(doc bsoncore.Document) (ast.Expr, error) {
 		right, err = parseMatchExprElement(e)
 
 		if err != nil {
-			return nil, errors.Wrap(err, "failed parsing match expression")
+			return nil, err
 		}
 
 		if expr == nil {
@@ -180,13 +180,13 @@ func parseMatchFieldRef(s string) (ast.Expr, error) {
 	var expr ast.Expr = ast.NewFieldRef(parts[0], nil)
 	for _, part := range parts[1:] {
 		if len(part) == 0 {
-			return nil, errors.New("failed parsing field ref %s")
+			return nil, errors.New("invalid field ref")
 		}
 
 		if strings.HasPrefix(part, "$[") && strings.HasSuffix(part, "]") {
 			index, err := strconv.Atoi(part[2 : len(part)-1])
 			if err != nil {
-				return nil, errors.New("failed parsing field ref %s")
+				return nil, errors.Errorf("invalid array index %s", part[2:len(part)-1])
 			}
 
 			expr = ast.NewArrayIndexRef(

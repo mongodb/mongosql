@@ -10,14 +10,21 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-// ParseExpr parses an ast.Expr from a string.
+// ParseExpr parses an ast.Expr for a string, and panics if there is an
+// error while parsing.
 func ParseExpr(input string) ast.Expr {
-	v := parseJSON(input)
-	e, err := parser.ParseExpr(v)
+	e, err := ParseExprErr(input)
 	if err != nil {
 		panic(err)
 	}
 	return e
+}
+
+// ParseExprErr parses an ast.Expr from a string, but may also return an
+// error if there is an error while parsing.
+func ParseExprErr(input string) (ast.Expr, error) {
+	v := parseJSON(input)
+	return parser.ParseExpr(v)
 }
 
 // ParseMatchExpr parses an ast.Expr from a string.
@@ -67,6 +74,17 @@ func ParseStageErr(input string) (ast.Stage, error) {
 		panic("stages must be documents")
 	}
 	return parser.ParseStage(doc)
+}
+
+// ParseStageForError parses an ast.Stage from a string returning the error produced.
+func ParseStageForError(input string) error {
+	v := parseJSON(input)
+	doc, ok := v.DocumentOK()
+	if !ok {
+		panic("stages must be documents")
+	}
+	_, err := parser.ParseStage(doc)
+	return err
 }
 
 func parseJSON(input string) bsoncore.Value {

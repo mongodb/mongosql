@@ -5,7 +5,8 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
-	"github.com/10gen/mongoast/internal/parsertest"
+	"github.com/10gen/mongoast/parser"
+	"github.com/pkg/errors"
 
 	"github.com/google/go-cmp/cmp"
 )
@@ -14,10 +15,12 @@ func TestParseMatchExpr(t *testing.T) {
 	testCases := []struct {
 		input    string
 		expected ast.Expr
+		err      error
 	}{
 		{
 			`{}`,
 			ast.NewConstant(bsonutil.True),
+			nil,
 		},
 		{
 			`{"a": 1}`,
@@ -25,6 +28,12 @@ func TestParseMatchExpr(t *testing.T) {
 				ast.NewFieldRef("a", nil),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
+			nil,
+		},
+		{
+			`{"": 1}`,
+			nil,
+			errors.New("invalid match expression key"),
 		},
 		{
 			`{"a.b": 1}`,
@@ -32,6 +41,7 @@ func TestParseMatchExpr(t *testing.T) {
 				ast.NewFieldRef("b", ast.NewFieldRef("a", nil)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
+			nil,
 		},
 		{
 			`{"a.3": 1}`,
@@ -39,6 +49,7 @@ func TestParseMatchExpr(t *testing.T) {
 				ast.NewFieldOrArrayIndexRef(3, ast.NewFieldRef("a", nil)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
+			nil,
 		},
 		{
 			`{"a.3.b": 1}`,
@@ -46,6 +57,12 @@ func TestParseMatchExpr(t *testing.T) {
 				ast.NewFieldRef("b", ast.NewFieldOrArrayIndexRef(3, ast.NewFieldRef("a", nil))),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
+			nil,
+		},
+		{
+			`{".": 1}`,
+			nil,
+			errors.New("failed parsing . as a field ref: invalid field ref"),
 		},
 		{
 			`{"a.$[3].b": 1}`,
@@ -58,6 +75,12 @@ func TestParseMatchExpr(t *testing.T) {
 				),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
+			nil,
+		},
+		{
+			`{"a.$[xyz].b" : 1}`,
+			nil,
+			errors.New("failed parsing a.$[xyz].b as a field ref: invalid array index xyz"),
 		},
 		{
 			`{"a": {"$eq": 1}}`,
@@ -65,6 +88,7 @@ func TestParseMatchExpr(t *testing.T) {
 				ast.NewFieldRef("a", nil),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
+			nil,
 		},
 		{
 			`{"a": {"$eq": 1, "$gt": 3}}`,
@@ -78,6 +102,7 @@ func TestParseMatchExpr(t *testing.T) {
 					ast.NewConstant(bsonutil.Int32(3)),
 				),
 			),
+			nil,
 		},
 		{
 			`{"$and": [{"a": {"$eq": 1}}, {"a": {"$gt": 3}}]}`,
@@ -91,6 +116,17 @@ func TestParseMatchExpr(t *testing.T) {
 					ast.NewConstant(bsonutil.Int32(3)),
 				),
 			),
+			nil,
+		},
+		{
+			`{"$and": 1}`,
+			nil,
+			errors.New("$and should have an array value"),
+		},
+		{
+			`{"$and": [1, 2]}`,
+			nil,
+			errors.New("$and array elements must be documents"),
 		},
 		{
 			`{"$or": [{"a": 1}, {"b": 2}, {"c": 3}]}`,
@@ -110,6 +146,7 @@ func TestParseMatchExpr(t *testing.T) {
 					ast.NewConstant(bsonutil.Int32(3)),
 				),
 			),
+			nil,
 		},
 		{
 			`{"$nor": [{"a": 1}, {"b": 2}, {"c": 3}]}`,
@@ -129,6 +166,7 @@ func TestParseMatchExpr(t *testing.T) {
 					ast.NewConstant(bsonutil.Int32(3)),
 				),
 			),
+			nil,
 		},
 		{
 			`{"$expr": {"$eq": ["$a", 1]}}`,
@@ -138,6 +176,7 @@ func TestParseMatchExpr(t *testing.T) {
 					ast.NewConstant(bsonutil.Int32(1)),
 				),
 			),
+			nil,
 		},
 		{
 			`{"a": {"$in": [1, 2, 3]}}`,
@@ -152,6 +191,7 @@ func TestParseMatchExpr(t *testing.T) {
 					)),
 				),
 			),
+			nil,
 		},
 		{
 			`{"a": {"$eee": 1, "$gt": 3}}`,
@@ -168,6 +208,7 @@ func TestParseMatchExpr(t *testing.T) {
 					ast.NewConstant(bsonutil.Int32(3)),
 				),
 			),
+			nil,
 		},
 		{
 			`{"$eee": 1}`,
@@ -175,14 +216,23 @@ func TestParseMatchExpr(t *testing.T) {
 				"$eee",
 				ast.NewUnknown(bsonutil.Int32(1)),
 			),
+			nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
-			actual := parsertest.ParseMatchExpr(tc.input)
+			actual, err := parser.ParseMatchExprJSON(tc.input)
 
-			if !cmp.Equal(tc.expected, actual) {
+			if err != nil && tc.err == nil {
+				t.Fatalf("err should be nil, but was %v", err)
+			} else if err == nil && tc.err != nil {
+				t.Fatalf("err should not be nil, expected %v", tc.err)
+			} else if err != nil && tc.err != nil && err.Error() != tc.err.Error() {
+				t.Fatalf("expected error %q, but got %q", tc.err.Error(), err.Error())
+			}
+
+			if tc.err == nil && !cmp.Equal(tc.expected, actual) {
 				t.Fatalf("stages are not equal\n  %s", cmp.Diff(tc.expected, actual))
 			}
 		})

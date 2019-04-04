@@ -319,11 +319,24 @@ func (n *ProjectStage) ExcludeItems() map[string]struct{} {
 	m := make(map[string]struct{})
 	for _, i := range n.Items {
 		if epi, ok := i.(*ExcludeProjectItem); ok {
-			m[epi.FieldRef.Name] = struct{}{}
+			m[GetDottedFieldName(epi.FieldRef)] = struct{}{}
 		}
 	}
 
 	return m
+}
+
+// NonExcludeItems returns all the items that are not exclude items.
+func (n *ProjectStage) NonExcludeItems() []ProjectItem {
+	var result []ProjectItem
+	for _, i := range n.Items {
+		switch i.(type) {
+		case *ExcludeProjectItem:
+		default:
+			result = append(result, i)
+		}
+	}
+	return result
 }
 
 // IncludeItems returns all the items that should be included.

@@ -201,7 +201,7 @@ func (v *pushdownVisitor) buildAddFieldsOrProject(body []*ast.AddFieldsItem, pre
 					}
 				}
 
-				projectItems = append(projectItems, ast.NewIncludeProjectItem(ast.NewFieldRef(fieldName, nil)))
+				projectItems = append(projectItems, ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName(fieldName)))
 				projectedFields[fieldName] = struct{}{}
 			}
 		}
@@ -503,7 +503,7 @@ func (v *pushdownVisitor) extractPreUnwindMatch(mr *mappingRegistry, expr SQLExp
 			// is interesting. We know this won't fail because we've already done it for all
 			// combinations.
 			fieldName, _ := mr.lookupFieldName(databaseName, tableName, columnName)
-			return ast.NewFieldRef(strings.TrimPrefix(fieldName, unwoundPath+"."), nil), true
+			return astutil.FieldRefFromFieldName(strings.TrimPrefix(fieldName, unwoundPath+".")), true
 		}
 	}
 
@@ -623,7 +623,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 					predicateEvaluationStage,
 					ast.NewMatchStage(
 						ast.NewBinary(bsonutil.OpEq,
-							ast.NewFieldRef(fieldName, nil),
+							astutil.FieldRefFromFieldName(fieldName),
 							astutil.TrueLiteral,
 						),
 					),
@@ -724,6 +724,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 				mappedProjectedColumn.projectedColumn.Table,
 				mappedProjectedColumn.projectedColumn.Name,
 				sanitizeFieldName(mappedProjectedColumn.projectedColumn.String()),
+				false,
 			) {
 				mr.addColumn(mappedProjectedColumn.projectedColumn.Column)
 			}
@@ -755,6 +756,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 				mpc.projectedColumn.Table,
 				mpc.projectedColumn.Name,
 				fieldName,
+				false,
 			) {
 				mr.addColumn(mpc.projectedColumn.Column)
 			}
@@ -916,16 +918,15 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// the column. So project the field, and register the mapping.
 			v.groupItems = append(v.groupItems, ast.NewGroupItem(
 				sanitizeFieldName(typedN.String()),
-				ast.NewFunction(bsonutil.OpFirst, getProjectedFieldName(fieldRef.Name, typedN.EvalType())),
+				ast.NewFunction(bsonutil.OpFirst, getProjectedFieldName(astutil.FieldRefString(fieldRef), typedN.EvalType())),
 			))
-			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName,
-				typedN.columnName, sanitizeFieldName(typedN.String()))
+			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName, typedN.columnName, sanitizeFieldName(typedN.String()), false)
 		} else {
 			// The _id is added to the $group in translateGroupByKeys. We will only be here if the
 			// user has also projected the group key, in which we'll need this to look it up in
 			// translateGroupByProject under its name. Hence, all we need to do is register the
 			// mapping.
-			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName, typedN.columnName, groupID+"."+keyName)
+			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName, typedN.columnName, groupID+"."+keyName, false)
 		}
 		return typedN, nil
 	case SQLAggFunctionExpr:
@@ -1026,7 +1027,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				newGroupConcat.GroupConcatMaxLen = groupConcat.GroupConcatMaxLen
 			}
 
-			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName)
+			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName, false)
 		} else {
 			// Non-distinct aggregation functions are one-step aggregations that can be performed
 			// completely by the $group. Here, we simply build the correct aggregation function for
@@ -1062,7 +1063,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 			fieldName := sanitizeFieldName(typedN.String())
 			v.groupItems = append(v.groupItems, ast.NewGroupItem(fieldName, trans))
-			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName)
+			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, fieldName, false)
 
 			_, isSum := typedN.(*SQLSumFunctionExpr)
 			if isSum {
@@ -1077,8 +1078,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				}
 				countFieldName := sanitizeFieldName(typedN.String() + sumAggregateCountSuffix)
 				v.groupItems = append(v.groupItems, ast.NewGroupItem(countFieldName, getCountAggregation(countTrans)))
-				v.mappingRegistry.registerMapping(dbName, groupTempTable, countFieldName,
-					countFieldName)
+				v.mappingRegistry.registerMapping(dbName, groupTempTable, countFieldName, countFieldName, false)
 
 				newExpr = NewSQLCaseExpr(
 					NewSQLValueExpr(values.NewSQLNull(t.valueKind())),
@@ -1112,7 +1112,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			dbName := getDatabaseName(typedN)
 			newExpr := NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
 				typedN.EvalType(), schema.MongoNone)
-			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, groupID+"."+keyName)
+			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, groupID+"."+keyName, false)
 			return newExpr, nil
 		}
 
@@ -1219,8 +1219,6 @@ func (v *pushdownVisitor) getFixedLookupFieldRef(
 		return nil, false
 	}
 
-	var ref ast.Ref = ast.NewFieldRef(fieldName, nil)
-
 	// Inside a $filter and $map (which use the result of this function), columns with the
 	// asField prefix will have their prefix renamed. As such, we need to intercept this call
 	// and handle that translation early. For instance, if the asField is $b.child and the
@@ -1229,11 +1227,17 @@ func (v *pushdownVisitor) getFixedLookupFieldRef(
 	// end up renaming something we generate in unwinds like c_idx to this_idx... which is wrong
 	// We then also need the condition where fieldName == asField, since prefix will no longer
 	// catch it, since we have added the "."
-	if fieldName == asField || strings.HasPrefix(fieldName, asField+".") {
-		ref = ast.NewVariableRef(strings.Replace(fieldName, asField, "this", 1))
+	if strings.HasPrefix(fieldName, asField+".") {
+		ref := astutil.FieldRefFromFieldName(strings.TrimPrefix(fieldName, asField+"."))
+		ref.Parent = ast.NewVariableRef("this")
+		return ref, true
 	}
 
-	return ref, true
+	if fieldName == asField {
+		return ast.NewVariableRef("this"), true
+	}
+
+	return astutil.FieldRefFromFieldName(fieldName), true
 }
 
 // buildRemainingPredicateForLeftJoin will return 2 items; first a $project to
@@ -1264,7 +1268,7 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 
 	projectBody := make([]*ast.AddFieldsItem, 1)
 	var match *ast.MatchStage
-	dolAsField := ast.NewFieldRef(asField, nil)
+	dolAsField := astutil.FieldRefFromFieldName(asField)
 	if preserveIndex {
 		// This is interesting. First, we are going to create variable that marks every item in the
 		// array that should be excluded. Using that variable, we'll then create a condition. If we
@@ -1327,10 +1331,9 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 			),
 		))
 
-		predicateExclusionField := asField + "." + leftJoinExcludeFieldName
 		match = ast.NewMatchStage(
 			ast.NewBinary(bsonutil.OpNeq,
-				ast.NewFieldRef(predicateExclusionField, nil),
+				ast.NewFieldRef(leftJoinExcludeFieldName, astutil.FieldRefFromFieldName(asField)),
 				astutil.TrueLiteral,
 			),
 		)
@@ -1377,8 +1380,7 @@ func (v *pushdownVisitor) optimizeSelfJoinTables(msLocal, msForeign *MongoSource
 		for database, tables := range msForeign.mappingRegistry.fields {
 			for tableName, columns := range tables {
 				for columnName, fieldName := range columns {
-					newMappingRegistry.registerMapping(database, tableName, columnName,
-						fieldName)
+					newMappingRegistry.registerMapping(database, tableName, columnName, fieldName, false)
 				}
 			}
 		}
@@ -1739,15 +1741,9 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 			sanitized := sanitizeFieldName(field)
 			newField := v.uniqueFieldName("local_table__"+sanitized, foreignPipelineRegistry)
 			newField = v.uniqueLetVarName(newField)
-			localMappings = append(localMappings, ast.NewLookupLetItem(newField, ast.NewFieldRef(field, nil)))
+			localMappings = append(localMappings, ast.NewLookupLetItem(newField, astutil.FieldRefFromFieldName(field)))
 
-			newFieldMapped := "$" + newField
-			foreignPipelineRegistry.registerMapping(
-				col.databaseName,
-				col.tableName,
-				col.columnName,
-				newFieldMapped,
-			)
+			foreignPipelineRegistry.registerMapping(col.databaseName, col.tableName, col.columnName, newField, true)
 		}
 
 		// create the pushdown translator
@@ -1785,7 +1781,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		ast.NewPipeline(matchPipeline...),
 	)
 
-	unwind := ast.NewUnwindStage(ast.NewFieldRef(asField, nil), "", kind == LeftJoin)
+	unwind := ast.NewUnwindStage(astutil.FieldRefFromFieldName(asField), "", kind == LeftJoin)
 
 	pipeline.Stages = append(pipeline.Stages, lookup, unwind)
 
@@ -1808,8 +1804,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		for database, tables := range msForeign.mappingRegistry.fields {
 			for tableName, columns := range tables {
 				for columnName, fieldName := range columns {
-					newMappingRegistry.registerMapping(database, tableName, columnName,
-						asField+"."+fieldName)
+					newMappingRegistry.registerMapping(database, tableName, columnName, asField+"."+fieldName, false)
 				}
 			}
 		}
@@ -1975,9 +1970,9 @@ func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceSt
 			if _, ok := projectedFieldNames[fieldName]; !ok && !prefixPathPresent(fieldName) {
 				v.logger.Debugf(log.Dev, "augmenting local table with column '%v.%v'.'%v'",
 					c.Database, c.Table, c.Name)
-				project.Items = append(project.Items, ast.NewIncludeProjectItem(ast.NewFieldRef(fieldName, nil)))
+				project.Items = append(project.Items, ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName(fieldName)))
 				projectedFieldNames[fieldName] = struct{}{}
-				foreign.mappingRegistry.registerMapping(c.Database, c.Table, c.Name, fieldName)
+				foreign.mappingRegistry.registerMapping(c.Database, c.Table, c.Name, fieldName, false)
 			}
 		}
 
@@ -2142,8 +2137,8 @@ func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceSt
 					addFieldsBody = append(addFieldsBody, ast.NewAddFieldsItem(
 						uniqueDocCol,
 						buildLeftSelfJoinPKAddFieldBody(
-							ast.NewFieldRef(unwindSuffix[0].Path, nil),
-							ast.NewFieldRef(docCol, nil),
+							astutil.FieldRefFromFieldName(unwindSuffix[0].Path),
+							astutil.FieldRefFromFieldName(docCol),
 						),
 					))
 				}
@@ -2284,7 +2279,7 @@ func (v *pushdownVisitor) visitOrderBy(orderBy *OrderByStage) (PlanStage, error)
 			fieldName = v.uniqueFieldName(sanitizeFieldName(columnName), ms.mappingRegistry)
 			newFields[fieldName] = translated
 		}
-		sortItems[i] = ast.NewSortItem(ast.NewFieldRef(fieldName, nil), !term.ascending)
+		sortItems[i] = ast.NewSortItem(astutil.FieldRefFromFieldName(fieldName), !term.ascending)
 	}
 
 	pipeline := ast.NewPipeline(ms.pipeline.Stages...)
@@ -2374,8 +2369,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 			newMappingRegistry := newMappingRegistry()
 			newColumn := results.NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
 				types.EvalUint64, schema.MongoInt64, false)
-			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table,
-				newColumn.Name, newColumn.MappingRegistryName) {
+			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table, newColumn.Name, newColumn.MappingRegistryName, false) {
 				newMappingRegistry.addColumn(newColumn)
 			}
 
@@ -2428,8 +2422,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 
 			for _, refdCol := range refdCols {
 				refdCol.PrimaryKey = projectedColumn.PrimaryKey
-				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Database, refdCol.Table,
-					refdCol.Name)
+				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Database, refdCol.Table, refdCol.Name)
 				if !ok {
 					v.logger.Warnf(log.Dev, "cannot find referenced column %#v in registry",
 						refdCol)
@@ -2443,8 +2436,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 							getProjectedFieldName(fieldName, refdCol.EvalType)))
 					uniqueFields[safeFieldName] = struct{}{}
 				}
-				if fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table,
-					refdCol.Name, safeFieldName) {
+				if fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table, refdCol.Name, safeFieldName, false) {
 					fixedMappingRegistry.addColumn(refdCol)
 				}
 			}
@@ -2469,8 +2461,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				projectedColumn.MappingRegistryName = registryName
 			}
 
-			if fixedMappingRegistry.registerMapping(projectedColumn.Database, projectedColumn.Table,
-				registryName, safeFieldName) {
+			if fixedMappingRegistry.registerMapping(projectedColumn.Database, projectedColumn.Table, registryName, safeFieldName, false) {
 				fixedMappingRegistry.addColumn(projectedColumn.Column)
 			}
 
@@ -2545,7 +2536,7 @@ func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (Pl
 			return subquery, nil
 		}
 
-		if mr.registerMapping(column.Database, subquery.aliasName, column.Name, fieldName) {
+		if mr.registerMapping(column.Database, subquery.aliasName, column.Name, fieldName, false) {
 			newColumn := column.Clone()
 			newColumn.Table = subquery.aliasName
 			mr.addColumn(newColumn)
@@ -2598,7 +2589,7 @@ func (v *pushdownVisitor) projectAllColumns(mr *mappingRegistry, newFields map[s
 		if !ok {
 			panic("unable to find field mapping for column. This should never happen.")
 		}
-		projectItems[i] = ast.NewIncludeProjectItem(ast.NewFieldRef(fieldName, nil))
+		projectItems[i] = ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName(fieldName))
 	}
 	i := len(mr.columns)
 	for fieldName, expr := range newFields {
@@ -3100,8 +3091,8 @@ func createNullSafeLocalPipeline(msLocal *MongoSourceStage, localFieldName, asFi
 
 	projectItems[0] = ast.NewAssignProjectItem(asField, astutil.WrapInNullCheckedCond(
 		ast.NewArray(),
-		ast.NewFieldRef(asField, nil),
-		ast.NewFieldRef(localFieldName, nil),
+		astutil.FieldRefFromFieldName(asField),
+		astutil.FieldRefFromFieldName(localFieldName),
 	))
 
 	// Enumerate all the local fields.
@@ -3117,7 +3108,7 @@ func createNullSafeLocalPipeline(msLocal *MongoSourceStage, localFieldName, asFi
 			continue
 		}
 
-		projectItems = append(projectItems, ast.NewIncludeProjectItem(ast.NewFieldRef(fieldName, nil)))
+		projectItems = append(projectItems, ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName(fieldName)))
 	}
 
 	return ast.NewProjectStage(projectItems...)
@@ -3142,7 +3133,7 @@ func (v *pushdownVisitor) generateForeignUnwindPipeline(join *JoinStage, newMapp
 	// For left joins, preserve null and empty arrays to ensure
 	// that every local pipeline record gets returned.
 	idx := fmt.Sprintf("%v.%v", asField, foreignMapped.IncludeArrayIndex)
-	foreignUnwind := ast.NewUnwindStage(ast.NewFieldRef(foreignUnwindPath, nil), idx, join.kind == LeftJoin)
+	foreignUnwind := ast.NewUnwindStage(astutil.FieldRefFromFieldName(foreignUnwindPath), idx, join.kind == LeftJoin)
 
 	v.logger.Debugf(log.Dev, "consolidating foreign unwind into local pipeline")
 
@@ -3154,8 +3145,8 @@ func (v *pushdownVisitor) generateForeignUnwindPipeline(join *JoinStage, newMapp
 	// that don't meet the lookup criteria.
 	if lookupOnUnwindPath {
 		filter := ast.NewBinary(bsonutil.OpEq,
-			ast.NewFieldRef(fmt.Sprintf("%v.%v", asField, foreignFieldName), nil),
-			ast.NewFieldRef(localFieldName, nil),
+			astutil.FieldRefFromFieldName(fmt.Sprintf("%s.%s", asField, foreignFieldName)),
+			astutil.FieldRefFromFieldName(localFieldName),
 		)
 
 		fieldName := v.uniqueFieldName(projectPredicateFieldName, newMappingRegistry)
@@ -3163,7 +3154,7 @@ func (v *pushdownVisitor) generateForeignUnwindPipeline(join *JoinStage, newMapp
 		predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, newMappingRegistry)
 		stages = append(stages, predicateEvaluationStage)
 
-		var match ast.Expr = ast.NewBinary(bsonutil.OpEq, ast.NewFieldRef(fieldName, nil), astutil.TrueLiteral)
+		var match ast.Expr = ast.NewBinary(bsonutil.OpEq, astutil.FieldRefFromFieldName(fieldName), astutil.TrueLiteral)
 		if join.kind == LeftJoin {
 			// For left joins, we need to ensure we retain records from the
 			// left child - in case the unwound array was empty or null.
@@ -3212,7 +3203,7 @@ func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo 
 		// left hand document when the left hand field is null.
 		pipeline.Stages = append(pipeline.Stages, ast.NewMatchStage(
 			ast.NewBinary(bsonutil.OpNeq,
-				ast.NewFieldRef(localFieldName, nil),
+				astutil.FieldRefFromFieldName(localFieldName),
 				astutil.NullLiteral,
 			),
 		))
@@ -3225,7 +3216,7 @@ func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo 
 		pipeline.Stages = append(pipeline.Stages, createNullSafeLocalPipeline(msLocal, localFieldName, asField))
 	}
 
-	unwind := ast.NewUnwindStage(ast.NewFieldRef(asField, nil), "", join.kind == LeftJoin)
+	unwind := ast.NewUnwindStage(astutil.FieldRefFromFieldName(asField), "", join.kind == LeftJoin)
 
 	lookupOnUnwindPath := false
 	oldForeignIndex := ""

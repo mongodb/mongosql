@@ -27,7 +27,7 @@ func (n *VariableRef) exprNode()          {}
 // Ref is implemented by reference expressions in the AST.
 type Ref interface {
 	Expr
-	ref()
+	ref() //nolint:unused
 }
 
 func (n *ArrayIndexRef) ref()        {}

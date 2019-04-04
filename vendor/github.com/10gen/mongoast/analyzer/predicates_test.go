@@ -41,7 +41,6 @@ func TestSplitPredicates(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			expr := parsertest.ParseExpr(tc.input)
-
 			actual := analyzer.SplitPredicate(expr)
 			if !cmp.Equal(tc.expected, actual) {
 				t.Fatalf("predicate splits are not equal\n  %s", cmp.Diff(tc.expected, actual))

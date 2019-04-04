@@ -281,11 +281,11 @@ func TestDeparseStage(t *testing.T) {
 			),
 		},
 		{
-			`{"$project": { "a": 1, "b": 0 } }`,
+			`{"$project": { "a": 1, "b": 1 } }`,
 			bsonutil.DocumentFromElements(
 				"$project", bsonutil.DocumentFromElements(
 					"a", bsonutil.Int32(1),
-					"b", bsonutil.Int32(0),
+					"b", bsonutil.Int32(1),
 				),
 			),
 		},

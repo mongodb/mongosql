@@ -94,7 +94,7 @@ func TestReorder(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := optimizer.Reorder(tc.input)
+			actual := optimizer.RunPasses(nil, tc.input, optimizer.Reorder)
 
 			if !cmp.Equal(tc.expected, actual) {
 				t.Fatalf("pipelines are not equal\n  %s", cmp.Diff(tc.expected, actual))

@@ -90,10 +90,7 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 		newColumn.MappingRegistryName = ""
 
 		ms.mappingRegistry.addColumn(newColumn)
-		ms.mappingRegistry.registerMapping(ms.dbName,
-			ms.aliasNames[0],
-			c.Name,
-			c.MongoName)
+		ms.mappingRegistry.registerMapping(ms.dbName, ms.aliasNames[0], c.Name, c.MongoName, false)
 	}
 	return ms
 }
@@ -535,9 +532,13 @@ func (ms *MongoSourceStage) Collection() string {
 
 // mappingRegistry provides a way to get a field name from a table/column.
 type mappingRegistry struct {
-	columns    []*results.Column
-	fields     map[string]map[string]map[string]string
-	fieldNames map[string]struct{}
+	columns []*results.Column
+	fields  map[string]map[string]map[string]string
+
+	// fieldNames maps from field name to a bool
+	//   - true indicates the field name refers to a variable reference
+	//   - false indicates the field name refers to a field reference
+	fieldNames map[string]bool
 }
 
 func (mr *mappingRegistry) addColumn(column *results.Column) {
@@ -547,7 +548,7 @@ func (mr *mappingRegistry) addColumn(column *results.Column) {
 // newMappingRegistry returns an initialized registry.
 func newMappingRegistry() *mappingRegistry {
 	return &mappingRegistry{
-		fieldNames: make(map[string]struct{}),
+		fieldNames: make(map[string]bool),
 	}
 }
 
@@ -559,7 +560,7 @@ func (mr *mappingRegistry) copy() *mappingRegistry {
 		for db, tables := range mr.fields {
 			for tableName, columns := range tables {
 				for columnName, fieldName := range columns {
-					newMappingRegistry.registerMapping(db, tableName, columnName, fieldName)
+					newMappingRegistry.registerMapping(db, tableName, columnName, fieldName, mr.fieldNames[fieldName])
 				}
 			}
 		}
@@ -578,8 +579,7 @@ func (mr *mappingRegistry) merge(foreign *mappingRegistry, prefix string) *mappi
 		for database, tables := range foreign.fields {
 			for tableName, columns := range tables {
 				for columnName, fieldName := range columns {
-					newMappingRegistry.registerMapping(database, tableName, columnName,
-						prefix+"."+fieldName)
+					newMappingRegistry.registerMapping(database, tableName, columnName, prefix+"."+fieldName, false)
 				}
 			}
 		}
@@ -622,11 +622,14 @@ func (mr *mappingRegistry) lookupFieldRef(dbName, tableName, columnName string) 
 		return nil, false
 	}
 
-	return ast.NewFieldRef(fieldName, nil), true
+	if mr.fieldNames[fieldName] {
+		return ast.NewVariableRef(fieldName), true
+	}
+
+	return astutil.FieldRefFromFieldName(fieldName), true
 }
 
-func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) bool {
-
+func (mr *mappingRegistry) registerMapping(db, tbl, column, field string, isVariable bool) bool {
 	if mr.fields == nil {
 		mr.fields = make(map[string]map[string]map[string]string)
 	}
@@ -642,7 +645,7 @@ func (mr *mappingRegistry) registerMapping(db, tbl, column, field string) bool {
 		return false
 	}
 	mr.fields[db][tbl][column] = field
-	mr.fieldNames[field] = struct{}{}
+	mr.fieldNames[field] = isVariable
 	return true
 }
 

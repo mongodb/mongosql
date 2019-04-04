@@ -244,7 +244,6 @@ func TestDeparseExpr(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			expr := parsertest.ParseExpr(tc.input)
-
 			actual := parser.DeparseExpr(expr)
 
 			if !cmp.Equal(tc.expected, actual) {

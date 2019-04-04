@@ -109,46 +109,9 @@ func DeparseExpr(e ast.Expr) bsoncore.Value {
 	panic(fmt.Sprintf("unsupported expr %T", e))
 }
 
-func getDottedFieldName(e *ast.FieldRef) string {
-	flatten := func(n *ast.FieldRef) *ast.FieldRef {
-		name := n.Name
-		parent := n.Parent
-		for parent != nil {
-			parentFieldRef, ok := parent.(*ast.FieldRef)
-			if !ok {
-				break
-			}
-
-			name = parentFieldRef.Name + "." + name
-			parent = parentFieldRef.Parent
-		}
-
-		if name != n.Name {
-			return ast.NewFieldRef(name, parent)
-		}
-		return n
-	}
-
-	flattened := flatten(e)
-	if flattened.Parent != nil {
-		varRef, ok := flattened.Parent.(*ast.VariableRef)
-		if ok {
-			return "$" + varRef.Name + "." + flattened.Name
-		}
-	}
-
-	if flattened.Parent != nil {
-		// here would mean manual construction has done something bad. There is a
-		// way to translate this if we had to using $let, but no need as of right now.
-		panic("not currently supported")
-	}
-
-	return flattened.Name
-}
-
 func deparseFieldRef(e *ast.FieldRef) bsoncore.Value {
 	return bsoncore.Value{
 		Type: bsontype.String,
-		Data: bsoncore.AppendString(nil, "$"+getDottedFieldName(e)),
+		Data: bsoncore.AppendString(nil, "$"+ast.GetDottedFieldName(e)),
 	}
 }

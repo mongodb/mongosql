@@ -478,8 +478,8 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFields,
 			expectedBody: []*ast.AddFieldsItem{
-				ast.NewAddFieldsItem("c_DOT_a", ast.NewFieldRef("c.a", nil)),
-				ast.NewAddFieldsItem("c_DOT_d", ast.NewFieldRef("c.d", nil)),
+				ast.NewAddFieldsItem("c_DOT_a", astutil.FieldRefFromFieldName("c.a")),
+				ast.NewAddFieldsItem("c_DOT_d", astutil.FieldRefFromFieldName("c.d")),
 			},
 			expectedHasEmbedded: true},
 
@@ -488,8 +488,8 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFields,
 			expectedBody: []*ast.AddFieldsItem{
-				ast.NewAddFieldsItem("a_DOT_b0", ast.NewFieldRef("a.b", nil)),
-				ast.NewAddFieldsItem("a_DOT_c1", ast.NewFieldRef("a.c", nil)),
+				ast.NewAddFieldsItem("a_DOT_b0", astutil.FieldRefFromFieldName("a.b")),
+				ast.NewAddFieldsItem("a_DOT_c1", astutil.FieldRefFromFieldName("a.c")),
 			},
 			expectedHasEmbedded: true},
 
@@ -508,8 +508,8 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			expectedBody: []*ast.AddFieldsItem{
 				ast.NewAddFieldsItem("a", astutil.TrueLiteral),
 				ast.NewAddFieldsItem("b", astutil.TrueLiteral),
-				ast.NewAddFieldsItem("c_DOT_a", ast.NewFieldRef("c.a", nil)),
-				ast.NewAddFieldsItem("c_DOT_d", ast.NewFieldRef("c.d", nil)),
+				ast.NewAddFieldsItem("c_DOT_a", astutil.FieldRefFromFieldName("c.a")),
+				ast.NewAddFieldsItem("c_DOT_d", astutil.FieldRefFromFieldName("c.d")),
 			},
 			expectedHasEmbedded: true},
 
@@ -521,8 +521,8 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 				ast.NewAddFieldsItem("a_DOT_b", astutil.TrueLiteral),
 				ast.NewAddFieldsItem("a_DOT_c", astutil.TrueLiteral),
 				ast.NewAddFieldsItem("a_DOT_c0", astutil.TrueLiteral),
-				ast.NewAddFieldsItem("a_DOT_b0", ast.NewFieldRef("a.b", nil)),
-				ast.NewAddFieldsItem("a_DOT_c1", ast.NewFieldRef("a.c", nil)),
+				ast.NewAddFieldsItem("a_DOT_b0", astutil.FieldRefFromFieldName("a.b")),
+				ast.NewAddFieldsItem("a_DOT_c1", astutil.FieldRefFromFieldName("a.c")),
 				ast.NewAddFieldsItem("b", astutil.TrueLiteral),
 			},
 			expectedHasEmbedded: true},
@@ -535,10 +535,10 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			expectedFields: expectedNoConflictEmbeddedFieldsArr,
 			expectedBody: []*ast.AddFieldsItem{
 				ast.NewAddFieldsItem("c_DOT_a_DOT_1", astutil.WrapInOp(bsonutil.OpArrElemAt,
-					ast.NewFieldRef("c.a", nil),
+					astutil.FieldRefFromFieldName("c.a"),
 					astutil.Int64Value(1),
 				)),
-				ast.NewAddFieldsItem("c_DOT_d", ast.NewFieldRef("c.d", nil)),
+				ast.NewAddFieldsItem("c_DOT_d", astutil.FieldRefFromFieldName("c.d")),
 			},
 			expectedHasEmbedded: true},
 
@@ -551,8 +551,8 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 					ast.NewFieldRef("a_DOT_c", nil),
 					astutil.Int64Value(1),
 				)),
-				ast.NewAddFieldsItem("a_DOT_b0", ast.NewFieldRef("a.b", nil)),
-				ast.NewAddFieldsItem("a_DOT_c", ast.NewFieldRef("a.c", nil)),
+				ast.NewAddFieldsItem("a_DOT_b0", astutil.FieldRefFromFieldName("a.b")),
+				ast.NewAddFieldsItem("a_DOT_c", astutil.FieldRefFromFieldName("a.c")),
 			},
 			expectedHasEmbedded: true},
 	}

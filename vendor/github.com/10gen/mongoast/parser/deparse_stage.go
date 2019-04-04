@@ -123,9 +123,9 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 		for _, i := range tn.Items {
 			switch ti := i.(type) {
 			case *ast.IncludeProjectItem:
-				doc = bsoncore.AppendInt32Element(doc, getDottedFieldName(ti.FieldRef), 1)
+				doc = bsoncore.AppendInt32Element(doc, ast.GetDottedFieldName(ti.FieldRef), 1)
 			case *ast.ExcludeProjectItem:
-				doc = bsoncore.AppendInt32Element(doc, getDottedFieldName(ti.FieldRef), 0)
+				doc = bsoncore.AppendInt32Element(doc, ast.GetDottedFieldName(ti.FieldRef), 0)
 			case *ast.AssignProjectItem:
 				doc = bsonutil.AppendValueElement(doc, ti.Name, DeparseExpr(ti.Expr))
 			default:

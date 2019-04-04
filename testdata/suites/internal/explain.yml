@@ -152,7 +152,7 @@ testcases:
     exact_server_version: '3.6'
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match": {"a": {"$numberLong":"1"}}},{"$project": {"explain_test_DOT_set_1_DOT_a": "$a","_id": {"$numberInt":"0"}}}]', null, null]
+      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match": {"a": {"$eq": {"$numberLong":"1"}}}},{"$project": {"explain_test_DOT_set_1_DOT_a": "$a","_id": {"$numberInt":"0"}}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '14'
     pushdown_only: true

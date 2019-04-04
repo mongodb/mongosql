@@ -198,8 +198,15 @@ func (f *baseScalarFunctionExpr) concatWsToAggregationLanguage(t *PushdownTransl
 	for _, arg := range args[1:] {
 		switch a := arg.(type) {
 		case *ast.FieldRef:
-			columnsToNullCheck[a.Name] = struct{}{}
-			appendArgs(a, toNullCheckedLetVarRef(a.Name))
+			if astutil.AllParentsAreFieldRefs(a) {
+				columnName := astutil.FieldRefString(a)
+				columnsToNullCheck[columnName] = struct{}{}
+				appendArgs(a, toNullCheckedLetVarRef(columnName))
+			} else {
+				// for cases where a parent is an ast.VariableRef (which should not be
+				// null-checked at the top level).
+				appendArgs(a, astutil.WrapInNullCheck(a))
+			}
 		default:
 			appendArgs(arg, astutil.WrapInNullCheck(arg))
 		}
@@ -3569,11 +3576,11 @@ func minimizeLetAssignments(varNames []string, args []ast.Expr) ([]*ast.LetVaria
 func minimizeNullChecks(columnsToNullCheck map[string]struct{}, argsToNullCheck ...ast.Expr) ([]ast.Expr, bool) {
 	minimizedConds := make([]ast.Expr, 0, len(argsToNullCheck))
 	for _, arg := range argsToNullCheck {
-		switch t := arg.(type) {
+		switch a := arg.(type) {
 		case *ast.Constant:
 			// literals do not need to be included in the slice of
 			// conditions. Their values can be inspected here in Go:
-			if t.Value.Type == bsontype.Null {
+			if a.Value.Type == bsontype.Null {
 				// if an argument to null-check is a null literal, return
 				// true to indicate the provided conditions contained a
 				// literal null value.
@@ -3584,9 +3591,15 @@ func minimizeNullChecks(columnsToNullCheck map[string]struct{}, argsToNullCheck 
 			// columns that need to be null-checked are added to the map of
 			// columnsToNullCheck and the null-checked variable ref is
 			// included in the slice of conditions.
-			columnName := t.Name
-			columnsToNullCheck[columnName] = struct{}{}
-			minimizedConds = append(minimizedConds, toNullCheckedLetVarRef(columnName))
+			if astutil.AllParentsAreFieldRefs(a) {
+				columnName := astutil.FieldRefString(a)
+				columnsToNullCheck[columnName] = struct{}{}
+				minimizedConds = append(minimizedConds, toNullCheckedLetVarRef(columnName))
+			} else {
+				// for cases where a parent is an ast.VariableRef (which should not be
+				// null-checked at the top level).
+				minimizedConds = append(minimizedConds, astutil.WrapInNullCheck(a))
+			}
 
 		default:
 			// anything that is not a literal or column needs to be wrapped in
@@ -3610,11 +3623,21 @@ func wrapSingleArgFuncWithNullCheck(op string, expr SQLExpr, t *PushdownTranslat
 
 	switch a := arg.(type) {
 	case *ast.FieldRef:
-		t.ColumnsToNullCheck()[a.Name] = struct{}{}
+		var nullCheck ast.Expr
+		if astutil.AllParentsAreFieldRefs(a) {
+			columnName := astutil.FieldRefString(a)
+			t.ColumnsToNullCheck()[columnName] = struct{}{}
+			nullCheck = toNullCheckedLetVarRef(columnName)
+		} else {
+			// for cases where a parent is an ast.VariableRef (which should not be
+			// null-checked at the top level).
+			nullCheck = astutil.WrapInNullCheck(a)
+		}
+
 		return astutil.WrapInCond(
 			astutil.NullLiteral,
 			ast.NewFunction(op, arg),
-			toNullCheckedLetVarRef(a.Name),
+			nullCheck,
 		), nil
 	}
 

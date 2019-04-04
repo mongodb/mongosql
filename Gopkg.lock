@@ -38,7 +38,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e1f31cdceb8931ee031e9f3f30a8091f446346ef0585b8cfc081be3c96d4cf8a"
+  digest = "1:d6fad646872fee9a78bd9716ab359e0b8afcc2f8e9dfe833a26e4380389e1a73"
   name = "github.com/10gen/mongoast"
   packages = [
     "ast",
@@ -47,7 +47,7 @@
     "parser",
   ]
   pruneopts = ""
-  revision = "69b5422893f6fbb8d369d7e6e1b572ec24f32524"
+  revision = "b5ab168761bb6338efc8f8efffb78b5fcc9749e5"
 
 [[projects]]
   branch = "master"

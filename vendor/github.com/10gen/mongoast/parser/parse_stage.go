@@ -151,6 +151,10 @@ func parseAddFieldsStage(doc bsoncore.Document) (*ast.AddFieldsStage, error) {
 		items = append(items, ast.NewAddFieldsItem(e.Key(), expr))
 	}
 
+	if len(items) == 0 {
+		return nil, errors.New("$addFields specification must have at least one field")
+	}
+
 	return ast.NewAddFieldsStage(items...), nil
 }
 
@@ -224,7 +228,7 @@ func parseBucketAutoStage(doc bsoncore.Document) (*ast.BucketAutoStage, error) {
 			}
 			if buckets <= 0 {
 				return nil, errors.Errorf(
-					"$bucketAuto 'buckets field must be greater than 0, but found: %d",
+					"$bucketAuto 'buckets' field must be greater than 0, but found: %d",
 					buckets,
 				)
 			}
@@ -364,6 +368,10 @@ func parseFacetStage(doc bsoncore.Document) (*ast.FacetStage, error) {
 		}
 
 		items[i] = ast.NewFacetItem(e.Key(), pipeline)
+	}
+
+	if len(items) == 0 {
+		return nil, errors.New("the $facet specification must be a non-empty object")
 	}
 
 	return ast.NewFacetStage(items...), nil
@@ -527,7 +535,17 @@ func parseProjectStage(doc bsoncore.Document) (*ast.ProjectStage, error) {
 		return nil, errors.New("$project must have at least one field")
 	}
 
-	return ast.NewProjectStage(items...), nil
+	projectStage := ast.NewProjectStage(items...)
+	if len(projectStage.NonExcludeItems()) > 0 {
+		excludeItems := projectStage.ExcludeItems()
+		if len(excludeItems) > 1 {
+			return nil, fmt.Errorf("cannot exclude fields other than '_id' in an inclusion projection")
+		}
+		if _, ok := excludeItems["_id"]; !ok && len(excludeItems) != 0 {
+			return nil, fmt.Errorf("cannot exclude fields other than '_id' in an inclusion projection")
+		}
+	}
+	return projectStage, nil
 }
 
 func parseProjectStageItems(doc bsoncore.Document, prefix string) ([]ast.ProjectItem, error) {
@@ -608,7 +626,7 @@ func parseReplaceRootStage(doc bsoncore.Document) (*ast.ReplaceRootStage, error)
 			}
 		default:
 			return nil, errors.Errorf(
-				"unrecognized option to $replaceRoot stage: %s, only valid option is 'newRoot'",
+				"unrecognized option to $replaceRoot stage: '%s', only valid option is 'newRoot'",
 				e.Key(),
 			)
 		}
@@ -617,42 +635,50 @@ func parseReplaceRootStage(doc bsoncore.Document) (*ast.ReplaceRootStage, error)
 	if newRoot == nil {
 		return nil, errors.New("no newRoot specified for the $replaceRoot stage")
 	}
+	switch newRoot.(type) {
+	case *ast.FieldRef, *ast.Document:
+	default:
+		return nil, errors.New("'newRoot' expression must evaluate to an object")
+	}
 
 	return ast.NewReplaceRootStage(newRoot), nil
 }
 
 func parseSampleStage(doc bsoncore.Document) (*ast.SampleStage, error) {
-	count, err := parseSampleDoc(doc)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed parsing $sample stage")
-	}
+	var size *int64
 
-	return ast.NewSampleStage(count), nil
-}
-
-// ParseSampleDoc parses the document containing the sample size.
-func parseSampleDoc(doc bsoncore.Document) (int64, error) {
-	e, err := doc.IndexErr(0)
-	if err != nil {
-		return 0, errors.Wrap(err, "failed parsing sample document")
-	}
-
-	switch e.Key() {
-	case "size":
-		value, ok := bsonutil.AsInt64OK(e.Value())
-		if !ok {
-			return 0, errors.New("$sample stage must have a document containing size key with an integer as its only argument")
+	elems, _ := doc.Elements()
+	for _, e := range elems {
+		switch e.Key() {
+		case "size":
+			value, ok := bsonutil.AsInt64OK(e.Value())
+			if !ok {
+				return nil, errors.New("size argument to $sample must be a number")
+			}
+			if value < 0 {
+				return nil, errors.New("size argument to $sample must not be negative")
+			}
+			size = &value
+		default:
+			return nil, errors.Errorf("unrecognized option to $sample: %s", e.Key())
 		}
-		return value, nil
-	default:
-		return 0, errors.New("$sample stage does not have a document containing a size")
 	}
+
+	if size == nil {
+		return nil, errors.New("$sample stage must specify a size")
+	}
+
+	return ast.NewSampleStage(*size), nil
 }
 
 func parseSortStage(doc bsoncore.Document) (*ast.SortStage, error) {
 	items, err := parseSortItems(doc)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed parsing sort items")
+	}
+
+	if len(items) == 0 {
+		return nil, errors.New("$sort stage must have at least one sort key")
 	}
 
 	return ast.NewSortStage(items...), nil
@@ -694,21 +720,21 @@ func parseSortItems(doc bsoncore.Document) ([]*ast.SortItem, error) {
 			if f64 <= -1.0 && f64 > -2.0 {
 				descending = true
 			} else if f64 < 1.0 || f64 >= 2.0 {
-				return nil, errors.Wrap(err, "$sort key ordering must be 1 (for ascending) or -1 (for descending)")
+				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
 			}
 		case bsontype.Int32:
 			i32 := value.Int32()
 			if i32 == -1 {
 				descending = true
 			} else if i32 != 1 {
-				return nil, errors.Wrap(err, "$sort key ordering must be 1 (for ascending) or -1 (for descending)")
+				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
 			}
 		case bsontype.Int64:
 			i64 := value.Int64()
 			if i64 == -1 {
 				descending = true
 			} else if i64 != 1 {
-				return nil, errors.Wrap(err, "$sort key ordering must be 1 (for ascending) or -1 (for descending)")
+				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
 			}
 		default:
 			return nil, fmt.Errorf("$sort key ordering must be specified using a number")
@@ -747,20 +773,30 @@ func parseUnwind(v bsoncore.Value) (*ast.UnwindStage, error) {
 			case "includeArrayIndex":
 				includeArrayIndex, ok = e.Value().StringValueOK()
 				if !ok {
-					return nil, errors.Wrap(err, "includeArrayIndex must be a string")
+					return nil, errors.New("includeArrayIndex must be a string")
 				}
 			case "preserveNullAndEmptyArrays":
 				preserveNullAndEmptyArrays, ok = e.Value().BooleanOK()
 				if !ok {
-					return nil, errors.Wrap(err, "includeArrayIndex must be a boolean")
+					return nil, errors.New("preserveNullAndEmptyArrays must be a boolean")
 				}
 			}
 		}
+
+	default:
+		return nil, errors.Errorf(
+			"expected either a string or an object as specification for $unwind stage, got %v",
+			v.Type,
+		)
+	}
+
+	if path == nil {
+		return nil, errors.New("no path specified to $unwind stage")
 	}
 
 	fieldRef, ok := path.(*ast.FieldRef)
 	if !ok {
-		return nil, errors.Wrap(err, "unwind field path must be a field reference")
+		return nil, errors.New("unwind field path must be a field reference")
 	}
 
 	return ast.NewUnwindStage(fieldRef, includeArrayIndex, preserveNullAndEmptyArrays), nil

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
-	"strconv"
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/astprint"
@@ -16,6 +15,28 @@ var (
 	re1 = regexp.MustCompile(`"!!!`)
 	re2 = regexp.MustCompile(`!!!"`)
 )
+
+// AllParentsAreFieldRefs returns true if every parent along the
+// FieldRef path is also a FieldRef.
+func AllParentsAreFieldRefs(fr *ast.FieldRef) bool {
+	if fr == nil {
+		return false
+	}
+
+	for fr.Parent != nil {
+		// if the parent is an ast.FieldRef, continue by checking
+		// it's parent.
+		if parent, ok := fr.Parent.(*ast.FieldRef); ok {
+			fr = parent
+			continue
+		}
+
+		// if it is not an ast.FieldRef, return false
+		return false
+	}
+
+	return true
+}
 
 // DeepCopyPipeline performs a deep copy of the given ast.Pipeline.
 func DeepCopyPipeline(src *ast.Pipeline) *ast.Pipeline {
@@ -31,21 +52,20 @@ func DeepCopyPipeline(src *ast.Pipeline) *ast.Pipeline {
 
 // FieldRefString returns the string representation of the full path
 // for the provided ast.FieldRef. It returns an unquoted string with
-// no preceding "$".
+// no preceding "$" (or "$$" in the case that the parent was an
+// ast.VariableRef).
 func FieldRefString(fr *ast.FieldRef) string {
-	fullPath := astprint.String(fr)
-
-	unquoted, err := strconv.Unquote(fullPath)
-	if err != nil {
-		// There were no quotes.
-		unquoted = fullPath
+	if fr == nil {
+		return ""
 	}
 
-	if unquoted != "" && unquoted[0] == '$' {
-		return unquoted[1:]
+	fullPath := ast.GetDottedFieldName(fr)
+
+	if fullPath != "" && fullPath[0] == '$' {
+		return fullPath[1:]
 	}
 
-	return unquoted
+	return fullPath
 }
 
 // GetRefName returns the name of the ast.Ref if it is an ast.FieldRef
@@ -53,7 +73,7 @@ func FieldRefString(fr *ast.FieldRef) string {
 func GetRefName(ref ast.Ref) (string, bool) {
 	switch t := ref.(type) {
 	case *ast.FieldRef:
-		return t.Name, true
+		return FieldRefString(t), true
 	case *ast.VariableRef:
 		return t.Name, true
 	default:

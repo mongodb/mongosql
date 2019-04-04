@@ -17,6 +17,7 @@ func TestReferencedFieldNames_MatchExpr(t *testing.T) {
 	}{
 		{`{ "a": 1 }`, []string{"a"}, true},
 		{`{ "a": { "$eee": 7 } }`, []string{"a"}, false},
+		{`{ "a.1.2.b": { "$eee": 7 } }`, []string{"b"}, false},
 	}
 
 	for _, tc := range testCases {
@@ -53,7 +54,6 @@ func TestReferencedFieldNames_Expr(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			expr := parsertest.ParseExpr(tc.input)
-
 			actual, actualComplete := analyzer.ReferencedFieldNames(expr)
 			if !cmp.Equal(tc.expectedNames, actual) {
 				t.Fatalf("predicate splits are not equal\n  %s", cmp.Diff(tc.expectedNames, actual))
@@ -106,11 +106,96 @@ func TestReferencedFieldNames_Pipeline(t *testing.T) {
 		},
 		{
 			`[
-				{ "$match": { "a": 1 } },
-				{ "$project": { "e": "$b" } },
-				{ "$match": { "e": 1} }
-			]`,
+				        { "$match": { "a": 1 } },
+				        { "$project": { "e": "$b" } },
+				        { "$match": { "e": 1} }
+				     ]`,
 			[]string{"a", "b"},
+			true,
+		},
+		{
+			`[
+		                 { "$match": { "a": 1 } },
+		                 { "$project": { "e": { "$add": ["$b", "$c"] } } },
+		                 { "$match": { "e": 1} }
+		             ]`,
+			[]string{"a", "b", "c"},
+			true,
+		},
+		{
+			`[
+			             { "$match": { "a": 1 } },
+			             { "$addFields": { "e": { "$add": ["$b", "$c"] } } },
+			             { "$match": { "e": 1} }
+			         ]`,
+			[]string{"a", "b", "c"},
+			false,
+		},
+		{
+			`[
+						 { "$project": { "a": 1, "e": 1}},
+		                 { "$match": { "a": 1 } },
+		                 { "$match": { "e.y": 1} },
+		                 { "$match": { "e.y.z": 1} }
+		             ]`,
+			[]string{"a", "e"},
+			true,
+		},
+		{
+			`[
+                 { "$match": { "a": 1 } },
+                 { "$match": { "e.y": 1} },
+                 { "$match": { "e.y.z": 1} }
+             ]`,
+			[]string{"a", "e"},
+			false,
+		},
+		{
+			`[
+			             { "$match": { "a": 1 } },
+			             { "$project": { "e":  "$d" } },
+			             { "$match": { "e.y": 1} },
+			             { "$match": { "e.y.z": 1} }
+			         ]`,
+			[]string{"a", "d"},
+			true,
+		},
+		{
+			`[
+			         { "$replaceRoot": { "newRoot": "$a" } },
+			         { "$match": { "e.y": 1} },
+			         { "$match": { "e.y.z": 1} }
+		     ]`,
+			[]string{"a"},
+			true,
+		},
+		{
+			`[
+			         { "$replaceRoot": { "newRoot": {"e" : "$a"} } },
+			         { "$match": { "e.y": 1} },
+			         { "$match": { "e.y.z": 1} }
+		     ]`,
+			[]string{"a"},
+			true,
+		},
+		{
+			`[
+			         { "$replaceRoot": { "newRoot": {"e" : "$a"} } },
+			         { "$match": { "e.y": 1} },
+			         { "$replaceRoot": { "newRoot": {"e" : "$e"} } },
+			         { "$match": { "e.y.z": 1} }
+		     ]`,
+			[]string{"a"},
+			true,
+		},
+		{
+			`[
+			         { "$replaceRoot": { "newRoot": {"e" : "$a.1.2.3.b.1"} } },
+			         { "$match": { "e.y": 1} },
+			         { "$replaceRoot": { "newRoot": {"e" : "$e"} } },
+			         { "$match": { "e.y.z": 1} }
+		     ]`,
+			[]string{"a"},
 			true,
 		},
 	}
@@ -119,9 +204,9 @@ func TestReferencedFieldNames_Pipeline(t *testing.T) {
 		t.Run(tc.input, func(t *testing.T) {
 			expr := parsertest.ParsePipeline(tc.input)
 
-			actual, actualComplete := analyzer.ReferencedFieldNames(expr)
+			actual, actualComplete := analyzer.ReferencedFieldRoots(expr)
 			if !cmp.Equal(tc.expectedNames, actual) {
-				t.Fatalf("predicate splits are not equal\n  %s", cmp.Diff(tc.expectedNames, actual))
+				t.Fatalf("root name sets are not equal\n  %s", cmp.Diff(tc.expectedNames, actual))
 			}
 			if tc.expectedComplete != actualComplete {
 				t.Fatalf("expected complete to be %v, but was %v", tc.expectedComplete, actualComplete)

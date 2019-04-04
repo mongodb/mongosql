@@ -2,6 +2,7 @@ package astutil
 
 import (
 	"math"
+	"strings"
 
 	"github.com/10gen/mongoast/ast"
 
@@ -61,6 +62,28 @@ var factorial = []float64{
 	6227020800.0,
 	87178291200.0,
 	1307674368000.0,
+}
+
+// FieldRefFromFieldName creates an ast.FieldRef from a fieldName that
+// possibly includes "."s. Each name preceding a "." is the parent of
+// the following ref; for example:
+//   "c.b.a" becomes
+//   &ast.FieldRef{
+//     Name: "a",
+//     Parent: &ast.FieldRef{
+//               Name: "b",
+//               Parent: &ast.FieldRef{Name: "c", Parent: nil}
+//             }
+//   }
+func FieldRefFromFieldName(fieldName string) *ast.FieldRef {
+	parts := strings.Split(fieldName, ".")
+
+	var ref ast.Expr
+	for _, part := range parts {
+		ref = ast.NewFieldRef(part, ref)
+	}
+
+	return ref.(*ast.FieldRef)
 }
 
 // WrapInAcosComputation wraps the argument in an expression

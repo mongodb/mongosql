@@ -108,8 +108,8 @@ func TestComputeDocNestingDepth(t *testing.T) {
 							[]*ast.LetVariable{
 								ast.NewLetVariable("predicate", ast.NewLet( // 6 (vars are +3)
 									[]*ast.LetVariable{
-										ast.NewLetVariable("left", ast.NewFieldRef("a", nil)),               // 9 (vars are +3)
-										ast.NewLetVariable("right", ast.NewFieldRef("__joined_b.d.f", nil)), // 9 (vars are +3)
+										ast.NewLetVariable("left", ast.NewFieldRef("a", nil)),                        // 9 (vars are +3)
+										ast.NewLetVariable("right", astutil.FieldRefFromFieldName("__joined_b.d.f")), // 9 (vars are +3)
 									},
 									ast.NewFunction("$cond", // 8 (in is +2)
 										ast.NewArray( // 9

@@ -15,7 +15,24 @@ func ParseExpr(v bsoncore.Value) (ast.Expr, error) {
 	switch v.Type {
 	case bsontype.Array:
 		return parseArrayExpr(v.Array())
-	case bsontype.Boolean, bsontype.Double, bsontype.Decimal128, bsontype.Int32, bsontype.Int64, bsontype.Null:
+	case bsontype.Binary,
+		bsontype.Boolean,
+		bsontype.CodeWithScope,
+		bsontype.DBPointer,
+		bsontype.DateTime,
+		bsontype.Decimal128,
+		bsontype.Double,
+		bsontype.Int32,
+		bsontype.Int64,
+		bsontype.JavaScript,
+		bsontype.MinKey,
+		bsontype.MaxKey,
+		bsontype.Null,
+		bsontype.ObjectID,
+		bsontype.Regex,
+		bsontype.Symbol,
+		bsontype.Timestamp,
+		bsontype.Undefined:
 		return ast.NewConstant(v), nil
 	case bsontype.String:
 		s := v.StringValue()
@@ -111,7 +128,7 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 	case "$and", "$or":
 		arr, ok := v.ArrayOK()
 		if !ok {
-			return nil, errors.Errorf("%s requires an array with 2 elements", key)
+			return nil, errors.Errorf("%s requires an array", key)
 		}
 
 		values, _ := arr.Values()
@@ -159,7 +176,7 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 	default:
 		arg, err := ParseExpr(v)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed parsing first element of $arrayElemAt")
+			return nil, errors.Wrapf(err, "failed parsing first element of %s", key)
 		}
 
 		return ast.NewFunction(key, arg), nil
@@ -199,7 +216,7 @@ func parseBinaryExpr(op ast.BinaryOp, values []bsoncore.Value) (ast.Expr, error)
 func parseLetExpr(v bsoncore.Value) (ast.Expr, error) {
 	doc, ok := v.DocumentOK()
 	if !ok {
-		return nil, errors.New("$lookup requires a document")
+		return nil, errors.New("$let requires a document")
 	}
 
 	var varsValue bsoncore.Value

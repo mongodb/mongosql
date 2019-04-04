@@ -378,8 +378,15 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 			continue
 		case *ast.FieldRef:
 			ref = a
-			columnsToNullCheck[a.Name] = struct{}{}
-			nullChecks = append(nullChecks, toNullCheckedLetVarRef(a.Name))
+			if astutil.AllParentsAreFieldRefs(a) {
+				columnName := astutil.FieldRefString(a)
+				columnsToNullCheck[columnName] = struct{}{}
+				nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
+			} else {
+				// for cases where a parent is an ast.VariableRef (which should not be
+				// null-checked at the top level).
+				nullChecks = append(nullChecks, astutil.WrapInNullCheck(a))
+			}
 		default:
 			binding := fmt.Sprintf("expr%d", i)
 			ref = ast.NewVariableRef(binding)
@@ -2117,10 +2124,17 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, Pus
 			containsFalsyLiteral = containsFalsyLiteral || !values.Bool(children[i].(SQLValueExpr).Value)
 			containsLiteral = true
 		case *ast.FieldRef:
-			columnsToNullCheck[a.Name] = struct{}{}
+			if astutil.AllParentsAreFieldRefs(a) {
+				columnName := astutil.FieldRefString(a)
+				columnsToNullCheck[columnName] = struct{}{}
+				nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
+			} else {
+				// for cases where a parent is an ast.VariableRef (which should not be
+				// null-checked at the top level).
+				nullChecks = append(nullChecks, astutil.WrapInNullCheck(a))
+			}
 
 			ops = append(ops, a)
-			nullChecks = append(nullChecks, toNullCheckedLetVarRef(a.Name))
 			notChecks = append(notChecks, ast.NewFunction(bsonutil.OpNot, a))
 		default:
 			binding := fmt.Sprintf("expr%d", i)
@@ -2433,10 +2447,17 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 			valueIsFalsy := !values.Bool(children[i].(SQLValueExpr).Value)
 			initialValue = initialValue == valueIsFalsy
 		case *ast.FieldRef:
-			columnsToNullCheck[a.Name] = struct{}{}
+			if astutil.AllParentsAreFieldRefs(a) {
+				columnName := astutil.FieldRefString(a)
+				columnsToNullCheck[columnName] = struct{}{}
+				nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
+			} else {
+				// for cases where a parent is an ast.VariableRef (which should not be
+				// null-checked at the top level).
+				nullChecks = append(nullChecks, astutil.WrapInNullCheck(a))
+			}
 
 			ops = append(ops, a)
-			nullChecks = append(nullChecks, toNullCheckedLetVarRef(a.Name))
 		default:
 			binding := fmt.Sprintf("expr%d", i)
 			bindingRef := ast.NewVariableRef(binding)
