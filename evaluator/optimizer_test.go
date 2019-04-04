@@ -26,6 +26,8 @@ import (
 // MongoDB versions.
 func TestOptimizePartialPushdown(t *testing.T) {
 
+	bgCtx := context.Background()
+
 	type test struct {
 		name     string
 		sql      string
@@ -539,7 +541,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					req.Nil(err, "failed to optimize plan")
 
 					pCfg := createPushdownCfg(versionByStr[version])
-					pushedDown, err := PushdownPlan(pCfg, optimizedPlan)
+					pushedDown, err := PushdownPlan(bgCtx, pCfg, optimizedPlan)
 
 					var actualPlan PlanStage
 					if err != nil && !IsNonFatalPushdownError(err) {
@@ -749,6 +751,7 @@ schema:
 `)
 
 func TestPushdownSharding(t *testing.T) {
+	bgCtx := context.Background()
 	testSchema := MustLoadSchema(testSchema4)
 	testInfo := getMongoDBInfoWithShardedCollection(nil, testSchema, mongodb.AllPrivileges, "foo")
 	testVariables := CreateTestVariables(testInfo)
@@ -785,7 +788,7 @@ func TestPushdownSharding(t *testing.T) {
 				req.NoError(err)
 
 				pCfg := createPushdownCfg(version)
-				pushedDown, err := PushdownPlan(pCfg, optimized)
+				pushedDown, err := PushdownPlan(bgCtx, pCfg, optimized)
 
 				var actualPlan PlanStage
 				if err != nil && !IsNonFatalPushdownError(err) {

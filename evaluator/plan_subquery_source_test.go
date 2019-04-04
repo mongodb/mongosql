@@ -34,7 +34,7 @@ func TestSubquerySourceStage(t *testing.T) {
 		if optimize {
 			plan, err = OptimizePlan(context.Background(), oCfg, plan)
 			require.NoError(t, err)
-			plan, err = PushdownPlan(pCfg, plan)
+			plan, err = PushdownPlan(bgCtx, pCfg, plan)
 			require.False(t, err != nil && !IsNonFatalPushdownError(err))
 		}
 

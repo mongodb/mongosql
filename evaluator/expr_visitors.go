@@ -155,20 +155,13 @@ func (c *sqlColExprCollector) getJoinOnExpressions(ps PlanStage) {
 	}
 }
 
-func explainQuery(plan PlanStage, pCfg *PushdownConfig) ([]*ExplainRecord, error) {
+func explainQuery(plan PlanStage,
+	pushdownFailures map[PlanStage][]PushdownFailure) ([]*ExplainRecord, error) {
 
 	visitor := newExplainVisitor()
 	_, err := visitor.visit(plan)
 	if err != nil {
 		return nil, err
-	}
-
-	var pushdownFailures map[PlanStage][]PushdownFailure
-
-	_, err = PushdownPlan(pCfg, plan)
-	pde, ok := err.(PushdownError)
-	if err != nil && ok {
-		pushdownFailures = pde.Failures()
 	}
 
 	explain := []*ExplainRecord{}

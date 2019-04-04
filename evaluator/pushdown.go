@@ -1,11 +1,13 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"strings"
 
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/optimizer"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
@@ -58,7 +60,7 @@ func NewPushdownConfig(lg log.Logger, vars catalog.VariableContainer) *PushdownC
 // plan is not fully pushed down, a pushdownFailor will be returned, but
 // the returned plan is still valid. If any other kind of error occurs,
 // it will be returned along wth a nil plan.
-func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, PushdownError) {
+func PushdownPlan(ctx context.Context, cfg *PushdownConfig, p PlanStage) (PlanStage, PushdownError) {
 
 	if !cfg.shouldPushDown {
 		cfg.lg.Warnf(log.Admin, "pushdown is disabled, skipping translation")
@@ -72,6 +74,23 @@ func PushdownPlan(cfg *PushdownConfig, p PlanStage) (PlanStage, PushdownError) {
 		return nil, fatalPushdownError(err)
 	}
 	p = n.(PlanStage)
+
+	cfg.lg.Debugf(log.Admin,
+		"plan before pipeline optimization: \n%v",
+		PrettyPrintPlan(p),
+	)
+	pipelineOptimizationVisitor := newPipelineOptimizationVisitor(ctx)
+	n, err = pipelineOptimizationVisitor.visit(p)
+	if err != nil {
+		return nil, fatalPushdownError(err)
+	}
+
+	p = n.(PlanStage)
+
+	cfg.lg.Debugf(log.Admin,
+		"plan after pipeline optimization: \n%v",
+		PrettyPrintPlan(p),
+	)
 
 	if len(v.pushdownFailures) != 0 {
 		return p, nonFatalPushdownError(v.pushdownFailures)
@@ -211,7 +230,7 @@ func (v *pushdownVisitor) buildAddFieldsOrProject(body []*ast.AddFieldsItem, pre
 }
 
 func (v *pushdownVisitor) visit(n Node) (Node, error) {
-
+	originalN := n
 	switch typedN := n.(type) {
 	case *FilterStage:
 		v.columnTracker.add(typedN.matcher)
@@ -443,6 +462,15 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 		v.addNewPushdownFailure(typedN, unionStageName, "unions cannot be pushed down")
 	}
 
+	// Hack: if the node changed we need to remap the pushdownFailures,
+	// since that is keyed on a pointer value. At some point we should
+	// clean the pushdown visitor up to not produce new nodes, or
+	// key this map off something other than pointer values.
+	if p, ok := n.(PlanStage); ok && originalN != n {
+		if _, ok := v.pushdownFailures[p]; !ok {
+			v.pushdownFailures[p] = v.pushdownFailures[originalN.(PlanStage)]
+		}
+	}
 	return n, nil
 }
 
@@ -3307,4 +3335,22 @@ func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo 
 	ms.LimitRowCount = int(math.Max(-1.0, float64(msLocal.LimitRowCount*msForeign.LimitRowCount)))
 
 	return ms, nil
+}
+
+type pipelineOptimizationVisitor struct {
+	ctx context.Context
+}
+
+func newPipelineOptimizationVisitor(ctx context.Context) pipelineOptimizationVisitor {
+	return pipelineOptimizationVisitor{ctx: ctx}
+}
+
+func (v *pipelineOptimizationVisitor) visit(n Node) (Node, error) {
+
+	switch typedN := n.(type) {
+	case *MongoSourceStage:
+		typedN.pipeline = optimizer.Optimize(v.ctx, typedN.pipeline)
+		return n, nil
+	}
+	return walk(v, n)
 }

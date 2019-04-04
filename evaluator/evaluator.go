@@ -135,15 +135,20 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 	}
 	plan = optimized
 
-	pushedDown, err := PushdownPlan(qCfg.pCfg, plan)
+	pushedDown, err := PushdownPlan(ctx, qCfg.pCfg, plan)
 	if err != nil && !IsNonFatalPushdownError(err) {
 		return nil, err
 	}
 	plan = pushedDown
+	pde, ok := err.(PushdownError)
+	var pushdownFailures map[PlanStage][]PushdownFailure
+	if err != nil && ok {
+		pushdownFailures = pde.Failures()
+	}
 
-	explainPlan := NewExplainStage(plan, qCfg.pCfg, qCfg.eCfg)
+	explainPlan := NewExplainStage(plan, qCfg.eCfg, pushdownFailures)
 
-	stats, err := getPlanStats(plan, qCfg.pCfg)
+	stats, err := getPlanStats(plan, pushdownFailures)
 	if err != nil {
 		return nil, err
 	}
@@ -200,16 +205,21 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 	plan = optimized
 
 	// Step 4: Push Down
-	pushedDown, err := PushdownPlan(qCfg.pCfg, plan)
+	pushedDown, err := PushdownPlan(ctx, qCfg.pCfg, plan)
 	err = procutil.CheckForContextCancellationAndError(ctx, err)
 	if err != nil && !IsNonFatalPushdownError(err) {
 		return nil, err
 	}
 
 	plan = pushedDown
+	pde, ok := err.(PushdownError)
+	var pushdownFailures map[PlanStage][]PushdownFailure
+	if err != nil && ok {
+		pushdownFailures = pde.Failures()
+	}
 
 	// Step 5: Gather query plan statistics
-	stats, err := getPlanStats(plan, qCfg.pCfg)
+	stats, err := getPlanStats(plan, pushdownFailures)
 	if err != nil {
 		return nil, err
 	}

@@ -42,7 +42,7 @@ func TestProjectStage(t *testing.T) {
 		if optimize {
 			plan, err = OptimizePlan(context.Background(), oCfg, plan)
 			req.NoError(err)
-			plan, err = PushdownPlan(pCfg, plan)
+			plan, err = PushdownPlan(bgCtx, pCfg, plan)
 			req.False(err != nil && !IsNonFatalPushdownError(err))
 		}
 

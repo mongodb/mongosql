@@ -511,6 +511,7 @@ func TestPushdownPlan(t *testing.T) {
 }
 
 func optimizePlan(t *testing.T, version []uint8, sql string) string {
+	bgCtx := context.Background()
 	req := require.New(t)
 
 	testSchema := evaluator.MustLoadSchema(optimizerTestSchema)
@@ -539,7 +540,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	req.Nil(err, "failed to optimize plan")
 
 	pCfg := createPushdownCfg(version)
-	pushedDown, err := evaluator.PushdownPlan(pCfg, optimized)
+	pushedDown, err := evaluator.PushdownPlan(bgCtx, pCfg, optimized)
 	req.False(err != nil && !evaluator.IsNonFatalPushdownError(err))
 
 	var actual string

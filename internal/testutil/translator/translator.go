@@ -88,7 +88,7 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 		return nil, "", err
 	}
 
-	translated, err := evaluator.PushdownPlan(pushdownCfg, optimizedPlan)
+	translated, err := evaluator.PushdownPlan(ctx, pushdownCfg, optimizedPlan)
 	if err != nil && !evaluator.IsNonFatalPushdownError(err) {
 		return nil, "", err
 	}

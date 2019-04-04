@@ -113,10 +113,10 @@ func fast2Sum(a, b float64) (float64, float64) {
 	return s, t
 }
 
-func getPlanStats(plan PlanStage, pCfg *PushdownConfig) (*PlanStats, error) {
+func getPlanStats(plan PlanStage, pushdownFailures map[PlanStage][]PushdownFailure) (*PlanStats, error) {
 	pushedDown := IsFullyPushedDown(plan) == nil
 
-	explain, err := explainQuery(plan, pCfg)
+	explain, err := explainQuery(plan, pushdownFailures)
 	if err != nil {
 		return nil, err
 	}
