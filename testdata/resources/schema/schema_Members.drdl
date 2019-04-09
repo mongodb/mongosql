@@ -1,0 +1,95 @@
+schema:
+- db: UMV
+  tables:
+  - table: Members
+    collection: Members
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+  - table: Members_member_MemberAttributeValues_MemberAttributeValue
+    collection: Members
+    pipeline:
+    - $unwind:
+        includeArrayIndex: member.MemberAttributeValues.MemberAttributeValue_idx
+        path: $member.MemberAttributeValues.MemberAttributeValue
+        preserveNullAndEmptyArrays: false
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.Attribute
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.Attribute
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.AttributeCode
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.AttributeCode
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.ChangedDate
+      MongoType: date
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.ChangedDate
+      SqlType: timestamp
+    - Name: member.MemberAttributeValues.MemberAttributeValue.ChangeType
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.ChangeType
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.CustomValue
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.CustomValue
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.DefinedValue
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.DefinedValue
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.DefinedValueCode
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.DefinedValueCode
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.EDWID
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.EDWID
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.EndDate
+      MongoType: date
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.EndDate
+      SqlType: timestamp
+    - Name: member.MemberAttributeValues.MemberAttributeValue.IsChanged
+      MongoType: bool
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.IsChanged
+      SqlType: boolean
+    - Name: member.MemberAttributeValues.MemberAttributeValue.LastUpdatedUser
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.LastUpdatedUser
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.MemberAttributeValueCode
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.MemberAttributeValueCode
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.Source
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.Source
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.SourceID
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.SourceID
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.StartDate
+      MongoType: date
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.StartDate
+      SqlType: timestamp
+    - Name: member.MemberAttributeValues.MemberAttributeValue.Value
+      MongoType: string
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.Value
+      SqlType: varchar
+    - Name: member.MemberAttributeValues.MemberAttributeValue.Void
+      MongoType: bool
+      SqlName: member.MemberAttributeValues.MemberAttributeValue.Void
+      SqlType: boolean
+    - Name: member.MemberAttributeValues.MemberAttributeValue_idx
+      MongoType: int
+      SqlName: member.MemberAttributeValues.MemberAttributeValue_idx
+      SqlType: int

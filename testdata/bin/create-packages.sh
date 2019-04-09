@@ -8,7 +8,7 @@
     echo "creating release..."
 
     build_dir=$ARTIFACTS_DIR/build
-    cp $ARTIFACTS_DIR/bin/mongo{drdl,sqld} $build_dir
+    cp $ARTIFACTS_DIR/bin/mongo{drdl,sqld,translate} $build_dir
 
     cd $PROJECT_DIR
 
@@ -27,13 +27,14 @@
             --format zip \
             --transform $build_dir/mongosqld=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongosqld.exe \
             --transform $build_dir/mongodrdl=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongodrdl.exe \
+            --transform $build_dir/mongotranslate=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongotranslate.exe \
             --transform $build_dir/ssleay32.dll=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/ssleay32.dll \
             --transform $build_dir/libeay32.dll=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/libeay32.dll \
             --transform release/distsrc/README=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/README \
             --transform release/distsrc/THIRD-PARTY-NOTICES=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/THIRD-PARTY-NOTICES \
             --transform release/distsrc/example-mongosqld-config.yml=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/example-mongosqld-config.yml \
             --transform LICENSE=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/LICENSE LICENSE \
-            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES release/distsrc/example-mongosqld-config.yml $build_dir/mongosqld $build_dir/mongodrdl $build_dir/libeay32.dll $build_dir/ssleay32.dll
+            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES release/distsrc/example-mongosqld-config.yml $build_dir/mongosqld $build_dir/mongodrdl $build_dir/mongotranslate $build_dir/libeay32.dll $build_dir/ssleay32.dll
 
         # build the msi. Since this is windows only, we know powershell is installed.
         SEMVER=$(git describe --abbrev=0)
@@ -53,11 +54,12 @@
             --format tgz \
             --transform $build_dir/mongosqld=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongosqld \
             --transform $build_dir/mongodrdl=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongodrdl \
+            --transform $build_dir/mongotranslate=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongotranslate \
             --transform release/distsrc/README=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/README \
             --transform release/distsrc/THIRD-PARTY-NOTICES=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/THIRD-PARTY-NOTICES \
             --transform release/distsrc/example-mongosqld-config.yml=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/example-mongosqld-config.yml \
             --transform LICENSE=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/LICENSE LICENSE \
-            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES release/distsrc/example-mongosqld-config.yml $build_dir/mongosqld $build_dir/mongodrdl
+            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES release/distsrc/example-mongosqld-config.yml $build_dir/mongosqld $build_dir/mongodrdl $build_dir/mongotranslate
 
     fi
 

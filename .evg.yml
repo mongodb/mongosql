@@ -37,6 +37,14 @@ functions:
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/build-mongosqld.sh
 
+  "build mongotranslate":
+    command: shell.exec
+    type: test
+    params:
+      script: |
+          ${PREPARE_SHELL}
+          ${SCRIPT_DIR}/build-mongotranslate.sh
+
   "check source lint":
     command: shell.exec
     type: test
@@ -597,6 +605,16 @@ functions:
         bucket: mciuploads
         permissions: public-read
         display_name: mongodrdl
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/bin/mongotranslate
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/mongotranslate
+        content_type: application/octet-stream
+        bucket: mciuploads
+        permissions: public-read
+        display_name: mongotranslate
 
   "upload packages":
     - command: archive.targz_pack
@@ -970,6 +988,7 @@ tasks:
   commands:
     - func: "build mongosqld"
     - func: "build mongodrdl"
+    - func: "build mongotranslate"
     - func: "upload binaries"
     - func: "create packages"
     - func: "upload packages"

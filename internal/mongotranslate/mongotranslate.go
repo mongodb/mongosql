@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"strings"
 
@@ -18,12 +19,19 @@ import (
 	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
-// TranslateSQLQuery takes a sql query (as a string) and returns a MongoDB
-// aggregation pipeline as a string. This function also takes a dbName
-// that is used as the default database for unqualified tables in the query,
-// and a mongoVersion that is used as the MongoDB version for the aggregation
-// language.
-func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string, explain bool) (string, error) {
+// TranslateSQLQuery takes a sql query (as a string or from a file) and
+// returns a MongoDB aggregation pipeline as a string. This function also takes
+// a dbName that is used as the default database for unqualified tables in the query,
+// and a mongoVersion that is used as the MongoDB version for the aggregation language.
+func TranslateSQLQuery(sqlQuery, queryFile, dbName, mongoVersion, schemaPath, format string, explain bool) (string, error) {
+	if queryFile != "" {
+		query, err := ioutil.ReadFile(queryFile)
+		if err != nil {
+			return "", fmt.Errorf("Could not open file %v", queryFile)
+		}
+		sqlQuery = string(query)
+	}
+
 	// unconditionally prepend "explain" to the query. If the sqlQuery is
 	// unexplainable (for example, a command), an error will be returned.
 	sqlQuery = "explain " + sqlQuery

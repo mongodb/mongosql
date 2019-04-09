@@ -25,6 +25,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 	tcases := []struct {
 		desc           string
 		query          string
+		queryFile      string
 		dbName         string
 		mongoVersion   string
 		schema         string
@@ -218,23 +219,51 @@ func TestTranslateSQLQuery(t *testing.T) {
 			format:         testFormat,
 			expectedOutput: `[{"$project": {"adddate(Convert(test_DOT_foo_DOT_a, timestamp),1,day)": {"$let": {"vars": {"date": {"$convert": {"input": "$a","to": "date","onError": null,"onNull": null}}},"in": {"$cond": [{"$lte": ["$$date",null]},null,{"$add": ["$$date",{"$numberLong":"86400000"}]}]}}},"_id": {"$numberInt":"0"}}}]`,
 		},
+		{
+			desc:           "query file simple",
+			queryFile:      "testdata/simple.txt",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         testSchema,
+			format:         testFormat,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
+		},
+		{
+			desc:           "query file with backticks",
+			queryFile:      "testdata/backticks.txt",
+			dbName:         testDBName,
+			mongoVersion:   testMongoVersion4,
+			schema:         "../../testdata/resources/schema/schema_Members.drdl",
+			format:         testFormat,
+			expectedOutput: `[{"$match": {"$expr": {"$let": {"vars": {"member_MemberAttributeValues_MemberAttributeValue_EndDate_is_null": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.EndDate",null]},"member_MemberAttributeValues_MemberAttributeValue_StartDate_is_null": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.StartDate",null]},"member_MemberAttributeValues_MemberAttributeValue_Void_is_null": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.Void",null]}},"in": {"$let": {"vars": {"expr1": {"$let": {"vars": {"right": {"$date":{"$numberLong":"1284768000000"}}},"in": {"$cond": [{"$or": ["$$member_MemberAttributeValues_MemberAttributeValue_StartDate_is_null",{"$lte": ["$$right",null]}]},null,{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.StartDate","$$right"]}]}}},"expr2": {"$let": {"vars": {"right": {"$date":{"$numberLong":"1284768000000"}}},"in": {"$cond": [{"$or": ["$$member_MemberAttributeValues_MemberAttributeValue_EndDate_is_null",{"$lte": ["$$right",null]}]},null,{"$gte": ["$member.MemberAttributeValues.MemberAttributeValue.EndDate","$$right"]}]}}},"expr3": {"$cond": ["$$member_MemberAttributeValues_MemberAttributeValue_Void_is_null",null,{"$eq": ["$member.MemberAttributeValues.MemberAttributeValue.Void",{"$literal": false}]}]}},"in": {"$cond": [{"$or": [{"$eq": ["$$expr1",{"$numberInt":"0"}]},{"$eq": ["$$expr1",false]},{"$eq": ["$$expr2",{"$numberInt":"0"}]},{"$eq": ["$$expr2",false]},{"$eq": ["$$expr3",{"$numberInt":"0"}]},{"$eq": ["$$expr3",false]}]},false,{"$cond": [{"$or": [{"$lte": ["$$expr1",null]},{"$lte": ["$$expr2",null]},{"$lte": ["$$expr3",null]}]},null,true]}]}}}}}}},{"$project": {"UMV_DOT_M_DOT__id": "$_id","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Attribute": "$member.MemberAttributeValues.MemberAttributeValue.Attribute","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_AttributeCode": "$member.MemberAttributeValues.MemberAttributeValue.AttributeCode","case when (not UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue is NULL) then UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue when (not UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue is NULL) then UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue else NULL end": {"$cond": [{"$let": {"vars": {"op": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.CustomValue",null]}},"in": {"$cond": [{"$lte": ["$$op",null]},null,{"$not": "$$op"}]}}},"$member.MemberAttributeValues.MemberAttributeValue.CustomValue",{"$cond": [{"$let": {"vars": {"op": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.DefinedValue",null]}},"in": {"$cond": [{"$lte": ["$$op",null]},null,{"$not": "$$op"}]}}},"$member.MemberAttributeValues.MemberAttributeValue.DefinedValue",null]}]},"UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue": "$member.MemberAttributeValues.MemberAttributeValue.CustomValue","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue": "$member.MemberAttributeValues.MemberAttributeValue.DefinedValue","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_StartDate": "$member.MemberAttributeValues.MemberAttributeValue.StartDate","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_EndDate": "$member.MemberAttributeValues.MemberAttributeValue.EndDate","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_IsChanged": "$member.MemberAttributeValues.MemberAttributeValue.IsChanged","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_LastUpdatedUser": "$member.MemberAttributeValues.MemberAttributeValue.LastUpdatedUser","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Source": "$member.MemberAttributeValues.MemberAttributeValue.Source","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Void": "$member.MemberAttributeValues.MemberAttributeValue.Void","_id": {"$numberInt":"0"}}}]`,
+		},
+		{
+			desc:          "query file doesn't exist",
+			queryFile:     "hello_world.txt",
+			dbName:        testDBName,
+			mongoVersion:  testMongoVersion4,
+			schema:        testSchema,
+			format:        testFormat,
+			expectedError: "Could not open file hello_world.txt",
+		},
 	}
 
 	for _, tcase := range tcases {
-		actualOutput, err := TranslateSQLQuery(tcase.query, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format, tcase.explain)
+		t.Run(tcase.desc, func(t *testing.T) {
+			actualOutput, err := TranslateSQLQuery(tcase.query, tcase.queryFile, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format, tcase.explain)
 
-		if tcase.expectedError != "" {
-			if err == nil {
-				t.Errorf("%s: expected error, but no error was returned", tcase.desc)
-			} else if tcase.expectedError != err.Error() {
-				t.Errorf(`Error received does not match expected error. Expected "%v", got "%v".`, tcase.expectedError, err)
+			if tcase.expectedError != "" {
+				if err == nil {
+					t.Errorf("%s: expected error, but no error was returned", tcase.desc)
+				} else if tcase.expectedError != err.Error() {
+					t.Errorf(`Error received does not match expected error. Expected "%v", got "%v".`, tcase.expectedError, err)
+				}
+			} else {
+				if actualOutput != tcase.expectedOutput {
+					t.Fatalf("%s: actual output is not same as expected (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualOutput, tcase.expectedOutput)
+				}
 			}
-			continue
-		}
-
-		if actualOutput != tcase.expectedOutput {
-			t.Fatalf("%s: actual output is not same as expected (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualOutput, tcase.expectedOutput)
-		}
+		})
 	}
 }
 

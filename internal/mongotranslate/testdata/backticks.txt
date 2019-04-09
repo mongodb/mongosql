@@ -1,0 +1,20 @@
+select
+M._id
+,MA.`member.MemberAttributeValues.MemberAttributeValue.Attribute` Attribute
+, MA.`member.MemberAttributeValues.MemberAttributeValue.AttributeCode` AttributeCode
+,coalesce(MA.`member.MemberAttributeValues.MemberAttributeValue.CustomValue`,MA.`member.MemberAttributeValues.MemberAttributeValue.DefinedValue`) Value
+,MA.`member.MemberAttributeValues.MemberAttributeValue.CustomValue` CustomValue
+,MA.`member.MemberAttributeValues.MemberAttributeValue.DefinedValue` DefinedValue
+,MA.`member.MemberAttributeValues.MemberAttributeValue.StartDate` StartDate
+, MA.`member.MemberAttributeValues.MemberAttributeValue.EndDate` EndDate
+, MA.`member.MemberAttributeValues.MemberAttributeValue.IsChanged` IsChanged
+, MA.`member.MemberAttributeValues.MemberAttributeValue.LastUpdatedUser` LastUpdatedUser
+, MA.`member.MemberAttributeValues.MemberAttributeValue.Source` Source
+, MA.`member.MemberAttributeValues.MemberAttributeValue.Void` Void
+from umv.Members M
+join umv.Members_member_MemberAttributeValues_MemberAttributeValue MA on MA._id = M._id
+
+where 1=1
+ and
+'2010-09-18' between MA.`member.MemberAttributeValues.MemberAttributeValue.StartDate` and MA.`member.MemberAttributeValues.MemberAttributeValue.EndDate`
+and MA.`member.MemberAttributeValues.MemberAttributeValue.Void` = 0;
