@@ -105,3 +105,32 @@ func TestGetPathRootFromRef(t *testing.T) {
 		})
 	}
 }
+
+func TestGetVariableRefRootNameFromRef(t *testing.T) {
+	testCases := []struct {
+		path     string
+		expected string
+		isVar    bool
+	}{
+		{"$a", "", false},
+		{"$a.b", "", false},
+		{"$a.b.c", "", false},
+		{"$a.b.c.d", "", false},
+		{"$b.b.c.d", "", false},
+		{"$$a", "a", true},
+		{"$$a.b", "a", true},
+		{"$$a.b.c", "a", true},
+		{"$$a.b.c.d", "a", true},
+		{"$$b.b.c.d", "b", true},
+	}
+
+	for _, tc := range testCases {
+		callString := fmt.Sprintf("GetPathRootFromRef(%s)", tc.path)
+		t.Run(callString, func(t *testing.T) {
+			prefixes, _ := analyzer.GetVariableRefRootNameFromRef(testutil.StringToFieldRefOrVarRef(tc.path))
+			if !cmp.Equal(tc.expected, prefixes) {
+				t.Fatalf("expected and actual do not match:  %s", cmp.Diff(tc.expected, prefixes))
+			}
+		})
+	}
+}

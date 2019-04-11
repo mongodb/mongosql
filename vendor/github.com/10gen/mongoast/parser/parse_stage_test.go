@@ -146,6 +146,22 @@ func TestParseStage(t *testing.T) {
 			nil,
 		},
 		{
+			`{"$project": {"a": {"$numberLong": "1"}, "_id": {"$numberLong": "0"}}}`,
+			ast.NewProjectStage(
+				ast.NewIncludeProjectItem(ast.NewFieldRef("a", nil)),
+				ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+			),
+			nil,
+		},
+		{
+			`{"$project": {"a": {"$numberDecimal": "1"}, "_id": {"$numberDecimal": "0"}}}`,
+			ast.NewProjectStage(
+				ast.NewIncludeProjectItem(ast.NewFieldRef("a", nil)),
+				ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+			),
+			nil,
+		},
+		{
 			`{"$project": {"foo": {"a": 1, "b": 1}, "_id": 0}}`,
 			ast.NewProjectStage(
 				ast.NewIncludeProjectItem(ast.NewFieldRef("a", ast.NewFieldRef("foo", nil))),
@@ -190,6 +206,37 @@ func TestParseStage(t *testing.T) {
 			errors.New("$project must have at least one field"),
 		},
 		{
+			`{"$project": {"a": 1, "b": 0}}`,
+			nil,
+			errors.New("cannot exclude fields other than '_id' in an inclusion projection"),
+		},
+		{
+			`{"$project": {"a": 1, "_id": 0, "c": 0}}`,
+			nil,
+			errors.New("cannot exclude fields other than '_id' in an inclusion projection"),
+		},
+		{
+			`{"$project": {"a": 0, "_id": 0, "c": {"$add": [1, 3]}}}`,
+			nil,
+			errors.New("cannot exclude fields other than '_id' in an inclusion projection"),
+		},
+		{
+			`{"$project": {"a": 1, "_id": 0, "c": {"$add": [1, 3]}}}`,
+			ast.NewProjectStage(
+				ast.NewIncludeProjectItem(ast.NewFieldRef("a", nil)),
+				ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+				ast.NewAssignProjectItem(
+					"c", ast.NewFunction(
+						"$add", ast.NewArray(
+							ast.NewConstant(bsonutil.Int32(1)),
+							ast.NewConstant(bsonutil.Int32(3)),
+						),
+					),
+				),
+			),
+			nil,
+		},
+		{
 			`{"$skip": 10}`,
 			ast.NewSkipStage(10),
 			nil,
@@ -211,6 +258,22 @@ func TestParseStage(t *testing.T) {
 				ast.NewSortItem(ast.NewFieldRef("b", nil), false),
 				ast.NewSortItem(ast.NewFieldRef("c", nil), true),
 				ast.NewSortItem(ast.NewFieldRef("d", nil), false),
+			),
+			nil,
+		},
+		{
+			`{"$sort": {"a": {"$numberDecimal": "-1"}, "b": {"$numberDecimal": "1"}}}`,
+			ast.NewSortStage(
+				ast.NewSortItem(ast.NewFieldRef("a", nil), true),
+				ast.NewSortItem(ast.NewFieldRef("b", nil), false),
+			),
+			nil,
+		},
+		{
+			`{"$sort": {"a": {"$numberDecimal": "-1.3"}, "b": {"$numberDecimal": "1.9"}}}`,
+			ast.NewSortStage(
+				ast.NewSortItem(ast.NewFieldRef("a", nil), true),
+				ast.NewSortItem(ast.NewFieldRef("b", nil), false),
 			),
 			nil,
 		},
@@ -269,6 +332,21 @@ func TestParseStage(t *testing.T) {
 		},
 		{
 			`{"$sort": {"a": {"$numberLong": "2"}}}`,
+			nil,
+			errors.New("failed parsing sort items: $sort key ordering must be 1 (for ascending) or -1 (for descending)"),
+		},
+		{
+			`{"$sort": {"a": {"$numberDecimal": "-2"}}}`,
+			nil,
+			errors.New("failed parsing sort items: $sort key ordering must be 1 (for ascending) or -1 (for descending)"),
+		},
+		{
+			`{"$sort": {"a": {"$numberDecimal": "0"}}}`,
+			nil,
+			errors.New("failed parsing sort items: $sort key ordering must be 1 (for ascending) or -1 (for descending)"),
+		},
+		{
+			`{"$sort": {"a": {"$numberDecimal": "2"}}}`,
 			nil,
 			errors.New("failed parsing sort items: $sort key ordering must be 1 (for ascending) or -1 (for descending)"),
 		},
@@ -619,7 +697,12 @@ func TestParseStage(t *testing.T) {
 		{
 			`{"$replaceRoot": { "foo": 1 }}`,
 			nil,
-			errors.New("unrecognized option to $replaceRoot stage: foo, only valid option is 'newRoot'"),
+			errors.New("unrecognized option to $replaceRoot stage: 'foo', only valid option is 'newRoot'"),
+		},
+		{
+			`{"$replaceRoot": { "newRoot": 0 }}`,
+			nil,
+			errors.New("'newRoot' expression must evaluate to an object"),
 		},
 		{
 			`{"$replaceRoot": {}}`,
@@ -842,51 +925,6 @@ func TestParseStage(t *testing.T) {
 
 			if tc.err == nil && !cmp.Equal(tc.expected, actual) {
 				t.Fatalf("stages are not equal\n  %s", cmp.Diff(tc.expected, actual))
-			}
-		})
-	}
-}
-
-func TestParseStageError(t *testing.T) {
-	testCases := []struct {
-		input          string
-		expectedErrMsg string
-	}{
-		{
-			`{"$project": { "a": 1, "b": 0 }}`,
-			"cannot exclude fields other than '_id' in an inclusion projection",
-		},
-		{
-			`{"$project": { "a": 1, "_id": 0, "c": 0 }}`,
-			"cannot exclude fields other than '_id' in an inclusion projection",
-		},
-		{
-			`{"$project": { "a": 0, "_id": 0, "c": {"$add": [1, 3]} }}`,
-			"cannot exclude fields other than '_id' in an inclusion projection",
-		},
-		{
-			`{"$project": { "a": 1, "_id": 0, "c": {"$add": [1, 3]} }}`,
-			"",
-		},
-		{
-			`{"$replaceRoot": {"hello": 0}}`,
-			"unrecognized option to $replaceRoot stage: 'hello', only valid option is 'newRoot'",
-		},
-		{
-			`{"$replaceRoot": {"newRoot": 0}}`,
-			"'newRoot' expression must evaluate to an object",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.input, func(t *testing.T) {
-			err := parsertest.ParseStageForError(tc.input)
-
-			if tc.expectedErrMsg == "" && err == nil {
-				return
-			}
-			if !cmp.Equal(tc.expectedErrMsg, err.Error()) {
-				t.Fatalf("expected error: '%s', got '%s'", tc.expectedErrMsg, err.Error())
 			}
 		})
 	}

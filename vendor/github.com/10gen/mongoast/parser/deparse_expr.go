@@ -19,7 +19,6 @@ func DeparseExpr(e ast.Expr) bsoncore.Value {
 			values[i] = DeparseExpr(e)
 		}
 		return bsonutil.ArrayFromValues(values...)
-
 	case *ast.ArrayIndexRef:
 		var parent bsoncore.Value
 		var index bsoncore.Value

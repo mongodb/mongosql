@@ -18,6 +18,7 @@ var packages = []string{
 	"./normalizer",
 	"./optimizer",
 	"./parser",
+	"./util/decimalutil",
 }
 var registry = task.NewRegistry()
 

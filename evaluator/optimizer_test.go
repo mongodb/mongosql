@@ -228,7 +228,6 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				),
 				ast.NewPipeline(
 					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT__id", ast.NewFieldRef("_id", nil)),
 						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
 						ast.NewAssignProjectItem("test_DOT_bar_DOT_b", ast.NewFieldRef("b", nil)),
 					),
@@ -409,8 +408,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 							ast.NewBinary(bsonutil.OpEq, ast.NewFieldRef("b", nil), ast.NewArray()),
 						)),
 					),
-					ast.NewUnwindStage(ast.NewFieldRef("b", nil), "b_idx", true),
-					ast.NewUnwindStage(ast.NewFieldRef("c", nil), "c_idx", false),
+					ast.NewUnwindStage(ast.NewFieldRef("b", nil), "", true),
+					ast.NewUnwindStage(ast.NewFieldRef("c", nil), "", false),
 					ast.NewProjectStage(
 						ast.NewAssignProjectItem("test_DOT_b_DOT__id", ast.NewFieldRef("_id_0", nil)),
 						ast.NewAssignProjectItem("test_DOT_c_DOT__id", ast.NewFieldRef("_id", nil)),
@@ -418,9 +417,9 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					),
 				),
 				ast.NewPipeline(
-					ast.NewUnwindStage(ast.NewFieldRef("d", nil), "d_idx", false),
+					ast.NewUnwindStage(ast.NewFieldRef("d", nil), "", false),
 					ast.NewUnwindStage(ast.NewFieldRef("a", ast.NewFieldRef("d", nil)),
-						"d.a_idx", false,
+						"", false,
 					),
 					ast.NewProjectStage(
 						ast.NewAssignProjectItem("test_DOT_a_DOT__id", ast.NewFieldRef("_id", nil)),
@@ -854,26 +853,20 @@ func TestPushdownSharding(t *testing.T) {
 						ast.NewIncludeProjectItem(ast.NewFieldRef("c", nil)),
 						ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName("d.e")),
 						ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName("d.f")),
-						ast.NewIncludeProjectItem(ast.NewFieldRef("filter", nil)),
 						ast.NewIncludeProjectItem(ast.NewFieldRef("g", nil)),
 					),
 					ast.NewAddFieldsStage(
 						ast.NewAddFieldsItem("__joined_bar", astutil.WrapInFilter(
 							ast.NewFieldRef("__joined_bar", nil),
 							"this",
-							ast.NewLet(
-								[]*ast.LetVariable{
-									ast.NewLetVariable("d_f_is_null", astutil.WrapInNullCheck(astutil.FieldRefFromFieldName("d.f"))),
-								},
-								astutil.WrapInCond(
-									astutil.NullLiteral,
-									ast.NewBinary(bsonutil.OpEq,
-										ast.NewFieldRef("a", ast.NewVariableRef("this")),
-										astutil.FieldRefFromFieldName("d.f"),
-									),
-									astutil.WrapInNullCheck(ast.NewFieldRef("a", ast.NewVariableRef("this"))),
-									ast.NewVariableRef("d_f_is_null"),
+							astutil.WrapInNullCheckedCond(
+								astutil.NullLiteral,
+								ast.NewBinary(bsonutil.OpEq,
+									ast.NewFieldRef("a", ast.NewVariableRef("this")),
+									astutil.FieldRefFromFieldName("d.f"),
 								),
+								ast.NewFieldRef("a", ast.NewVariableRef("this")),
+								astutil.FieldRefFromFieldName("d.f"),
 							),
 						)),
 					),
@@ -936,21 +929,17 @@ func TestPushdownSharding(t *testing.T) {
 					ast.NewUnwindStage(ast.NewFieldRef("__joined_bar", nil), "", false),
 					ast.NewAddFieldsStage(
 						ast.NewAddFieldsItem("__predicate", ast.NewLet(
-							[]*ast.LetVariable{ast.NewLetVariable("predicate", ast.NewLet(
-								[]*ast.LetVariable{
-									ast.NewLetVariable("d_f_is_null", astutil.WrapInNullCheck(astutil.FieldRefFromFieldName("d.f"))),
-									ast.NewLetVariable("z_joined_bar_a_is_null", astutil.WrapInNullCheck(astutil.FieldRefFromFieldName("__joined_bar.a"))),
-								},
-								astutil.WrapInCond(
+							[]*ast.LetVariable{ast.NewLetVariable("predicate",
+								astutil.WrapInNullCheckedCond(
 									astutil.NullLiteral,
 									ast.NewBinary(bsonutil.OpEq,
 										astutil.FieldRefFromFieldName("__joined_bar.a"),
 										astutil.FieldRefFromFieldName("d.f"),
 									),
-									ast.NewVariableRef("z_joined_bar_a_is_null"),
-									ast.NewVariableRef("d_f_is_null"),
+									astutil.FieldRefFromFieldName("__joined_bar.a"),
+									astutil.FieldRefFromFieldName("d.f"),
 								),
-							))},
+							)},
 							astutil.WrapInOp(bsonutil.OpAnd,
 								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.FalseLiteral),
 								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.ZeroInt32Literal),

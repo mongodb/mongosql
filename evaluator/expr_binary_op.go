@@ -118,6 +118,45 @@ func (bn *sqlBinaryNode) toAggregationLanguageArgs(t *PushdownTranslator) (ast.E
 	return left, right, nil
 }
 
+// cmpOpToAggregationLanguage translates a binary comparison SQLExpr
+// into something that can be used in an aggregation pipeline.
+// This helper is specifically intended for use with =, <>, <, <=, >, and >=.
+// If the expression cannot be translated, it will return nil and error.
+func (bn *sqlBinaryNode) cmpOpToAggregationLanguage(t *PushdownTranslator, cmpOp string) (ast.Expr, PushdownFailure) {
+	left, right, err := bn.toAggregationLanguageArgs(t)
+	if err != nil {
+		return nil, err
+	}
+
+	leftRef, rightRef := ast.NewVariableRef("left"), ast.NewVariableRef("right")
+
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("left", left),
+		ast.NewLetVariable("right", right),
+	}
+
+	comparison := ast.NewBinary(ast.BinaryOp(cmpOp), leftRef, rightRef)
+	evaluation := astutil.WrapInNullCheckedCond(astutil.NullLiteral, comparison, leftRef, rightRef)
+
+	return ast.NewLet(assignments, evaluation), nil
+}
+
+// cmpOpToAggregationPredicate translates a binary operation expression to the aggregation
+// language to be used as a predicate in a $match stage via $expr. It is used by most comparison
+// operators and translates the operation into a conjunctive expression that not only compares the
+// left and right children, but also checks if they are null.
+func (bn *sqlBinaryNode) cmpOpToAggregationPredicate(t *PushdownTranslator, cmpOp string) (ast.Expr, PushdownFailure) {
+	left, right, err := bn.toAggregationLanguageArgs(t)
+	if err != nil {
+		return nil, err
+	}
+
+	return astutil.WrapInOp(bsonutil.OpAnd,
+		astutil.WrapInOp(cmpOp, left, right),
+		ast.NewBinary(bsonutil.OpGt, left, astutil.NullLiteral),
+		ast.NewBinary(bsonutil.OpGt, right, astutil.NullLiteral)), nil
+}
+
 // eatChildren attempts to recursively consume the left and right children of the
 // current node. Consumption consists of removal of the node and adoption of its
 // children. Consumption of a node will succeed only if the consumer and consumed
@@ -368,37 +407,29 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 
 	containsNullLiteral := false
 
-	columnsToNullCheck := t.ColumnsToNullCheck()
-
 	for i, arg := range args {
-		var ref ast.Expr
 		switch a := arg.(type) {
 		case *ast.Constant:
+			// The constant can be Truthy, Falsy, or Null. Falsy constants
+			// would be caught by constant folding and would result in the
+			// $and evaluating to false. If the constant is null, all we
+			// need to do is set the flag. If the constant is not null, it
+			// must be truthy; we do not need to assign it and null-check/
+			// falsy-check it, we can just continue.
 			containsNullLiteral = containsNullLiteral || a.Value.Type == bsontype.Null
-			continue
-		case *ast.FieldRef:
-			ref = a
-			if astutil.AllParentsAreFieldRefs(a) {
-				columnName := astutil.FieldRefString(a)
-				columnsToNullCheck[columnName] = struct{}{}
-				nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
-			} else {
-				// for cases where a parent is an ast.VariableRef (which should not be
-				// null-checked at the top level).
-				nullChecks = append(nullChecks, astutil.WrapInNullCheck(a))
-			}
+
 		default:
 			binding := fmt.Sprintf("expr%d", i)
-			ref = ast.NewVariableRef(binding)
+			ref := ast.NewVariableRef(binding)
 
-			assignments = append(assignments, ast.NewLetVariable(binding, a))
+			assignments = append(assignments, ast.NewLetVariable(binding, arg))
 			nullChecks = append(nullChecks, astutil.WrapInNullCheck(ref))
+			falsyChecks = append(falsyChecks,
+				ast.NewBinary(bsonutil.OpEq, ref, astutil.ZeroInt32Literal),
+				ast.NewBinary(bsonutil.OpEq, ref, astutil.FalseLiteral),
+			)
 		}
 
-		falsyChecks = append(falsyChecks,
-			ast.NewBinary(bsonutil.OpEq, ref, astutil.ZeroInt32Literal),
-			ast.NewBinary(bsonutil.OpEq, ref, astutil.FalseLiteral),
-		)
 	}
 
 	var evaluation ast.Expr
@@ -416,7 +447,7 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 		)
 	}
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -590,20 +621,25 @@ func (div *SQLDivideExpr) String() string {
 // be used in an aggregation pipeline. If SQLDivideExpr cannot be translated,
 // it will return nil and error.
 func (div *SQLDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	args, err := t.translateArgs([]SQLExpr{div.left, div.right})
+	left, right, err := div.toAggregationLanguageArgs(t)
 	if err != nil {
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"left", "right"}, args)
+	leftRef, rightRef := ast.NewVariableRef("left"), ast.NewVariableRef("right")
+
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("left", left),
+		ast.NewLetVariable("right", right),
+	}
 
 	evaluation := astutil.WrapInCond(
 		astutil.NullLiteral,
-		ast.NewBinary(bsonutil.OpDivide, args[0], args[1]),
-		ast.NewBinary(bsonutil.OpEq, args[1], astutil.ZeroInt32Literal),
+		ast.NewBinary(bsonutil.OpDivide, leftRef, rightRef),
+		ast.NewBinary(bsonutil.OpEq, rightRef, astutil.ZeroInt32Literal),
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -619,40 +655,6 @@ func (div *SQLDivideExpr) EvalType() types.EvalType {
 		return types.EvalDecimal128
 	}
 	return types.EvalDouble
-}
-
-// binaryOpToAggregationLanguage translates a binary comparison SQLExpr
-// into something that can be used in an aggregation pipeline.
-// This helper is specifically intended for use with =, <>, <, <=, >, and >=.
-// If the expression cannot be translated, it will return nil and error.
-func binaryOpToAggregationLanguage(leftExpr, rightExpr SQLExpr, cmpOp string, t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	args, err := t.translateArgs([]SQLExpr{leftExpr, rightExpr})
-	if err != nil {
-		return nil, err
-	}
-
-	assignments, args := minimizeLetAssignments([]string{"left", "right"}, args)
-
-	comparison := ast.NewBinary(ast.BinaryOp(cmpOp), args[0], args[1])
-	evaluation := wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, comparison, args...)
-
-	return wrapInLet(assignments, evaluation), nil
-}
-
-// binaryOpToAggregationPredicate translates a binary operation expression to the aggregation
-// language to be used as a predicate in a $match stage via $expr. It is used by most comparison
-// operators and translates the operation into a conjunctive expression that not only compares the
-// left and right children, but also checks if they are null.
-func binaryOpToAggregationPredicate(t *PushdownTranslator, node sqlBinaryNode, op string) (ast.Expr, PushdownFailure) {
-	left, right, err := node.toAggregationLanguageArgs(t)
-	if err != nil {
-		return nil, err
-	}
-
-	return astutil.WrapInOp(bsonutil.OpAnd,
-		astutil.WrapInOp(op, left, right),
-		ast.NewBinary(bsonutil.OpGt, left, astutil.NullLiteral),
-		ast.NewBinary(bsonutil.OpGt, right, astutil.NullLiteral)), nil
 }
 
 // SQLEqualsExpr evaluates to true if the left equals the right.
@@ -739,13 +741,13 @@ func (eq *SQLEqualsExpr) String() string {
 // be used in an aggregation pipeline. If SQLEqualsExpr cannot be translated,
 // it will return nil and error.
 func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationLanguage(eq.left, eq.right, bsonutil.OpEq, t)
+	return eq.cmpOpToAggregationLanguage(t, bsonutil.OpEq)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (eq *SQLEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationPredicate(t, eq.sqlBinaryNode, bsonutil.OpEq)
+	return eq.cmpOpToAggregationPredicate(t, bsonutil.OpEq)
 }
 
 // ToMatchLanguage translates SQLEqualsExpr into something that can
@@ -888,13 +890,13 @@ func (gt *SQLGreaterThanExpr) String() string {
 // be used in an aggregation pipeline. If SQLGreaterThanExpr cannot be translated,
 // it will return nil and error.
 func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationLanguage(gt.left, gt.right, bsonutil.OpGt, t)
+	return gt.cmpOpToAggregationLanguage(t, bsonutil.OpGt)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (gt *SQLGreaterThanExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationPredicate(t, gt.sqlBinaryNode, bsonutil.OpGt)
+	return gt.cmpOpToAggregationPredicate(t, bsonutil.OpGt)
 }
 
 // ToMatchLanguage translates SQLGreaterThanExpr into something that can
@@ -1002,13 +1004,13 @@ func (gte *SQLGreaterThanOrEqualExpr) String() string {
 // that can be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr
 // cannot be translated, it will return nil and error.
 func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationLanguage(gte.left, gte.right, bsonutil.OpGte, t)
+	return gte.cmpOpToAggregationLanguage(t, bsonutil.OpGte)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (gte *SQLGreaterThanOrEqualExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationPredicate(t, gte.sqlBinaryNode, bsonutil.OpGte)
+	return gte.cmpOpToAggregationPredicate(t, bsonutil.OpGte)
 }
 
 // ToMatchLanguage translates SQLGreaterThanOrEqualExpr into something that can
@@ -1109,20 +1111,25 @@ func (div *SQLIDivideExpr) String() string {
 // be used in an aggregation pipeline. If SQLIDivideExpr cannot be translated,
 // it will return nil and error.
 func (div *SQLIDivideExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	args, err := t.translateArgs([]SQLExpr{div.left, div.right})
+	left, right, err := div.toAggregationLanguageArgs(t)
 	if err != nil {
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"left", "right"}, args)
+	leftRef, rightRef := ast.NewVariableRef("left"), ast.NewVariableRef("right")
+
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("left", left),
+		ast.NewLetVariable("right", right),
+	}
 
 	evaluation := astutil.WrapInCond(
 		astutil.NullLiteral,
-		astutil.WrapInOp(bsonutil.OpTrunc, ast.NewBinary(bsonutil.OpDivide, args[0], args[1])),
-		ast.NewBinary(bsonutil.OpEq, args[1], astutil.ZeroInt32Literal),
+		astutil.WrapInOp(bsonutil.OpTrunc, ast.NewBinary(bsonutil.OpDivide, leftRef, rightRef)),
+		ast.NewBinary(bsonutil.OpEq, rightRef, astutil.ZeroInt32Literal),
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -1411,13 +1418,13 @@ func (lt *SQLLessThanExpr) String() string {
 // be used in an aggregation pipeline. If SQLLessThanExpr cannot be translated,
 // it will return nil and error.
 func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationLanguage(lt.left, lt.right, bsonutil.OpLt, t)
+	return lt.cmpOpToAggregationLanguage(t, bsonutil.OpLt)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (lt *SQLLessThanExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationPredicate(t, lt.sqlBinaryNode, bsonutil.OpLt)
+	return lt.cmpOpToAggregationPredicate(t, bsonutil.OpLt)
 }
 
 // ToMatchLanguage translates SQLLessThanExpr into something that can
@@ -1526,13 +1533,13 @@ func (lte *SQLLessThanOrEqualExpr) String() string {
 // be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
 // it will return nil and error.
 func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationLanguage(lte.left, lte.right, bsonutil.OpLte, t)
+	return lte.cmpOpToAggregationLanguage(t, bsonutil.OpLte)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (lte *SQLLessThanOrEqualExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationPredicate(t, lte.sqlBinaryNode, bsonutil.OpLte)
+	return lte.cmpOpToAggregationPredicate(t, bsonutil.OpLte)
 }
 
 // ToMatchLanguage translates SQLLessThanOrEqualExpr into something that can
@@ -1847,13 +1854,13 @@ func (neq *SQLNotEqualsExpr) String() string {
 // be used in an aggregation pipeline. If SQLNotEqualsExpr cannot be translated,
 // it will return nil and error.
 func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationLanguage(neq.left, neq.right, bsonutil.OpNeq, t)
+	return neq.cmpOpToAggregationLanguage(t, bsonutil.OpNeq)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (neq *SQLNotEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return binaryOpToAggregationPredicate(t, neq.sqlBinaryNode, bsonutil.OpNeq)
+	return neq.cmpOpToAggregationPredicate(t, bsonutil.OpNeq)
 }
 
 // ToMatchLanguage translates SQLNotEqualsExpr into something that can
@@ -2115,27 +2122,12 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, Pus
 	containsNullLiteral := false
 	containsFalsyLiteral := false
 
-	columnsToNullCheck := t.ColumnsToNullCheck()
-
 	for i, arg := range args {
 		switch a := arg.(type) {
 		case *ast.Constant:
 			containsNullLiteral = containsNullLiteral || a.Value.Type == bsontype.Null
 			containsFalsyLiteral = containsFalsyLiteral || !values.Bool(children[i].(SQLValueExpr).Value)
 			containsLiteral = true
-		case *ast.FieldRef:
-			if astutil.AllParentsAreFieldRefs(a) {
-				columnName := astutil.FieldRefString(a)
-				columnsToNullCheck[columnName] = struct{}{}
-				nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
-			} else {
-				// for cases where a parent is an ast.VariableRef (which should not be
-				// null-checked at the top level).
-				nullChecks = append(nullChecks, astutil.WrapInNullCheck(a))
-			}
-
-			ops = append(ops, a)
-			notChecks = append(notChecks, ast.NewFunction(bsonutil.OpNot, a))
 		default:
 			binding := fmt.Sprintf("expr%d", i)
 			bindingRef := ast.NewVariableRef(binding)
@@ -2176,7 +2168,7 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, Pus
 	// build the expression
 	evaluation := astutil.WrapInCond(astutil.NullLiteral, astutil.WrapInOp(bsonutil.OpOr, ops...), conds...)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -2435,8 +2427,6 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 
 	initialValue := false
 
-	columnsToNullCheck := t.ColumnsToNullCheck()
-
 	for i, arg := range args {
 		switch a := arg.(type) {
 		case *ast.Constant:
@@ -2446,18 +2436,6 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 
 			valueIsFalsy := !values.Bool(children[i].(SQLValueExpr).Value)
 			initialValue = initialValue == valueIsFalsy
-		case *ast.FieldRef:
-			if astutil.AllParentsAreFieldRefs(a) {
-				columnName := astutil.FieldRefString(a)
-				columnsToNullCheck[columnName] = struct{}{}
-				nullChecks = append(nullChecks, toNullCheckedLetVarRef(columnName))
-			} else {
-				// for cases where a parent is an ast.VariableRef (which should not be
-				// null-checked at the top level).
-				nullChecks = append(nullChecks, astutil.WrapInNullCheck(a))
-			}
-
-			ops = append(ops, a)
 		default:
 			binding := fmt.Sprintf("expr%d", i)
 			bindingRef := ast.NewVariableRef(binding)
@@ -2484,7 +2462,7 @@ func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 		nullChecks...,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language

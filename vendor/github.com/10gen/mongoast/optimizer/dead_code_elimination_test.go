@@ -1,6 +1,7 @@
 package optimizer_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/mongoast/internal/parsertest"
@@ -28,6 +29,17 @@ func TestDeadCodeElimination(t *testing.T) {
 			 ]`,
 		},
 		{
+			"inclusion projects use themselves",
+			`[
+				{"$project": {"a": "$foo"}},
+				{"$project": {"a": 1}}
+			]`,
+			`[
+				{"$project": {"a": "$foo"}},
+				{"$project": {"a": 1}}
+			]`,
+		},
+		{
 			"convert whole $project stage to exclude all live values",
 			`[
 				{"$project": {"a": "$c", "b": "$d"}},
@@ -37,6 +49,55 @@ func TestDeadCodeElimination(t *testing.T) {
 				{"$project": {"x": 0, "z": 0}},
 				{"$project": {"out": "$z", "out2": "$x"}}
 			 ]`,
+		},
+		{
+			"properly handle project with _id exclusion",
+			`[
+    			{"$project": {"_id": {"$numberInt":"0"},
+        					  "a": "$foo",
+        					  "b": "$bar"
+						  }},
+    			{"$project": {"a": "$a",
+                  			  "b": "$b"}},
+				{"$group": {"_id": {},
+                			"out_b": "$b"}}
+			]`,
+			// Note that the _id exclusion is moved to the end,
+			// that's fine.
+			`[
+    			{"$project": {
+        					  "b": "$bar",
+							  "_id": {"$numberInt":"0"}
+						  }},
+    			{"$project": {"b": "$b"}},
+				{"$group": {"_id": {},
+                			"out_b": "$b"}}
+			]`,
+		},
+		{
+			"do not change exclusion $projects",
+			`[
+				{"$project": {"a": 0, "b": 0}},
+				{"$project": {"out": "$z"}}
+			 ]`,
+			`[
+				{"$project": {"a": 0, "b": 0}},
+				{"$project": {"out": "$z"}}
+			 ]`,
+		},
+		{
+			"remove unnecessary $project stage",
+			`[
+				{"$collStats": {}},
+				{"$limit": {"$numberLong":"1"}},
+				{"$project": {"newField": {"$numberInt":"1"}}},
+				{"$project": {"4": {"$literal": {"$numberLong":"4"}}}}
+			]`,
+			`[
+				{"$collStats": {}},
+				{"$limit": {"$numberLong":"1"}},
+				{"$project": {"4": {"$literal": {"$numberLong":"4"}}}}
+			]`,
 		},
 		{
 			"delete unnecessary $addFields items",
@@ -296,13 +357,32 @@ func TestDeadCodeElimination(t *testing.T) {
 				{"$project": {"out": "$a"}}
 			 ]`,
 		},
+		{
+			"do not remove includeArrayIndex on subfield (bug fix)",
+			`[
+					{"$unwind": {"path": "$loc.b.c","includeArrayIndex": "loc.b.c_idx"}},
+					{"$match": {"loc.b.c_idx": {"$eq": {"$numberLong":"1"}}}},
+					{"$project": {"test_DOT_test4_loc_b_c_DOT__id": "$_id",
+						"test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c": "$loc.b.c",
+						"test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c_idx": "$loc.b.c_idx",
+						"_id": {"$numberInt":"0"}}}
+			]`,
+			`[
+					{"$unwind": {"path": "$loc.b.c","includeArrayIndex": "loc.b.c_idx"}},
+					{"$match": {"loc.b.c_idx": {"$eq": {"$numberLong":"1"}}}},
+					{"$project": {"test_DOT_test4_loc_b_c_DOT__id": "$_id",
+						"test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c": "$loc.b.c",
+						"test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c_idx": "$loc.b.c_idx",
+						"_id": {"$numberInt":"0"}}}
+			]`,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			in := parsertest.ParsePipeline(tc.input)
 			expected := parsertest.ParsePipeline(tc.expected)
-			actual := optimizer.RunPasses(nil, in, optimizer.DeadCodeElimination)
+			actual := optimizer.RunPasses(context.Background(), in, optimizer.DeadCodeElimination)
 
 			expectedStr := parser.DeparsePipeline(expected).String()
 			actualStr := parser.DeparsePipeline(actual).String()

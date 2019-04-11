@@ -104,21 +104,23 @@ func (not *SQLNotExpr) String() string {
 // be used in an aggregation pipeline. If SQLNotExpr cannot be translated,
 // it will return nil and error.
 func (not *SQLNotExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	args, err := t.translateArgs([]SQLExpr{not.expr})
+	arg, err := t.ToAggregationLanguage(not.expr)
 	if err != nil {
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"op"}, args)
+	argRef := ast.NewVariableRef("arg")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("arg", arg),
+	}
 
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
-		ast.NewFunction(bsonutil.OpNot, args[0]),
-		args[0],
+		ast.NewFunction(bsonutil.OpNot, argRef),
+		argRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
@@ -218,20 +220,23 @@ func (um *SQLUnaryMinusExpr) String() string {
 // be used in an aggregation pipeline. If SQLUnaryMinusExpr cannot be translated,
 // it will return nil and error.
 func (um *SQLUnaryMinusExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	args, err := t.translateArgs([]SQLExpr{um.expr})
+	arg, err := t.ToAggregationLanguage(um.expr)
 	if err != nil {
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"operand"}, args)
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	argRef := ast.NewVariableRef("arg")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("arg", arg),
+	}
+
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
-		ast.NewBinary(bsonutil.OpMultiply, astutil.Int32Value(-1), args[0]),
-		args[0],
+		ast.NewBinary(bsonutil.OpMultiply, astutil.Int32Value(-1), argRef),
+		argRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language

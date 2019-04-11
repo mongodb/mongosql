@@ -84,11 +84,14 @@ func DefinedFields(stage ast.Stage) []string {
 			panic("$replaceRoot must have a document as its argument")
 		}
 	case *ast.UnwindStage:
-		name := GetPathRootString(typedStage.Path.Name)
+		rootName, ok := GetPathRootFromRef(typedStage.Path)
+		if !ok {
+			panic("$unwind stage has path that is not rooted at a field")
+		}
 		if typedStage.IncludeArrayIndex != "" {
-			ret = []string{name, typedStage.IncludeArrayIndex}
+			ret = []string{rootName, GetPathRootString(typedStage.IncludeArrayIndex)}
 		} else {
-			ret = []string{name}
+			ret = []string{rootName}
 		}
 	}
 	return ret

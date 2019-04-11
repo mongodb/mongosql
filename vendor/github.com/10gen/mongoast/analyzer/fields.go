@@ -19,10 +19,10 @@ import (
 // For all intents and purposes, the boolean will always be
 // true for anything other than an *ast.Pipeline, for which it
 // can be false based on the stages present.
-func ReferencedFields(n ast.Node) ([]*ast.FieldRef, bool) {
+func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 	hasUnknown := false
 	complete := false
-	var result []*ast.FieldRef
+	var result []ast.Expr
 	// closedRoots are the roots of fields defined by the pipeline at stage x.
 	// It is always set after inspecting the children of the stage to correctly
 	// handle self-referential stages, e.g.: {$project: {a: {$add: ["$a", 1]}}}.
@@ -56,6 +56,8 @@ func ReferencedFields(n ast.Node) ([]*ast.FieldRef, bool) {
 		}
 
 		switch tn := n.(type) {
+		case *ast.ExcludeProjectItem:
+			return n
 		case *ast.ArrayIndexRef, *ast.FieldRef, *ast.FieldOrArrayIndexRef:
 			rootName, isField := GetPathRootFromRef(tn.(ast.Expr))
 			// If the root is a variable, we don't care.
@@ -66,7 +68,7 @@ func ReferencedFields(n ast.Node) ([]*ast.FieldRef, bool) {
 				// Only add the name if the name does not appear
 				// in closedFields, which contains the prefixes of
 				// every field defined by the pipeline before this stage.
-				result = append(result, tn.(*ast.FieldRef))
+				result = append(result, tn.(ast.Expr))
 			}
 		case *ast.Unknown:
 			hasUnknown = true
@@ -87,23 +89,6 @@ func ReferencedFields(n ast.Node) ([]*ast.FieldRef, bool) {
 
 	if _, ok := n.(*ast.Pipeline); !ok && !hasUnknown {
 		complete = true
-	}
-
-	return result, complete
-}
-
-// ReferencedFieldNames returns the unique set of field names
-// as collected from ReferencedFields.
-func ReferencedFieldNames(n ast.Node) ([]string, bool) {
-	fields, complete := ReferencedFields(n)
-
-	m := make(map[string]struct{})
-	var result []string
-	for _, ref := range fields {
-		if _, ok := m[ref.Name]; !ok {
-			result = append(result, ref.Name)
-			m[ref.Name] = struct{}{}
-		}
 	}
 
 	return result, complete

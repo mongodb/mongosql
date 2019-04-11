@@ -17,7 +17,7 @@ func IsFieldKiller(stage ast.Stage) bool {
 		*ast.ReplaceRootStage:
 		return true
 	case *ast.ProjectStage:
-		return len(typedStage.Items) != len(typedStage.ExcludeItems())
+		return !typedStage.IsExclusion()
 	default:
 		return false
 	}

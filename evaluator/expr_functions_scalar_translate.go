@@ -13,8 +13,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/schema"
-
-	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
 // FuncToAggregation for TO_DAYS has one issue wrt how TO_DAYS is supposed to perform:
@@ -80,16 +78,19 @@ func (f *baseScalarFunctionExpr) acosToAggregationLanguage(t *PushdownTranslator
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"input"}, args)
+	input := ast.NewVariableRef("input")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("input", args[0]),
+	}
 
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin x + acos x = pi/2
-	return wrapInLet(assignments,
+	return ast.NewLet(assignments,
 		astutil.WrapInCond(
 			astutil.NullLiteral,
-			astutil.WrapInAcosComputation(args[0]),
-			ast.NewBinary(bsonutil.OpLt, args[0], astutil.FloatValue(-1.0)),
-			ast.NewBinary(bsonutil.OpGt, args[0], astutil.FloatValue(1.0)),
+			astutil.WrapInAcosComputation(input),
+			ast.NewBinary(bsonutil.OpLt, input, astutil.FloatValue(-1.0)),
+			ast.NewBinary(bsonutil.OpGt, input, astutil.FloatValue(1.0)),
 		),
 	), nil
 }
@@ -106,20 +107,23 @@ func (f *baseScalarFunctionExpr) asinToAggregationLanguage(t *PushdownTranslator
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"input"}, args)
+	input := ast.NewVariableRef("input")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("input", args[0]),
+	}
 
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin(x) =  pi/2 - cos(x) via the identity:
 	// asin(x) + acos(x) = pi/2.
-	return wrapInLet(assignments,
+	return ast.NewLet(assignments,
 		astutil.WrapInCond(
 			astutil.NullLiteral,
 			ast.NewBinary(bsonutil.OpSubtract,
 				astutil.PiOverTwoLiteral,
-				astutil.WrapInAcosComputation(args[0]),
+				astutil.WrapInAcosComputation(input),
 			),
-			ast.NewBinary(bsonutil.OpLt, args[0], astutil.FloatValue(-1.0)),
-			ast.NewBinary(bsonutil.OpGt, args[0], astutil.FloatValue(1.0)),
+			ast.NewBinary(bsonutil.OpLt, input, astutil.FloatValue(-1.0)),
+			ast.NewBinary(bsonutil.OpGt, input, astutil.FloatValue(1.0)),
 		),
 	), nil
 }
@@ -184,32 +188,18 @@ func (f *baseScalarFunctionExpr) concatWsToAggregationLanguage(t *PushdownTransl
 		return nil, err
 	}
 
-	pushArgs := make([]ast.Expr, 0, len(args)*2)
+	sep := args[0]
+	args = args[1:]
 
-	appendArgs := func(v, cond ast.Expr) {
-		pushArgs = append(pushArgs,
-			astutil.WrapInCond(astutil.EmptyStringLiteral, v, cond),
-			astutil.WrapInCond(astutil.EmptyStringLiteral, args[0], cond),
-		)
-	}
+	pushArgs := make([]ast.Expr, len(args)*2)
 
-	columnsToNullCheck := t.ColumnsToNullCheck()
+	i := 0
+	for _, arg := range args {
+		pushArgs[i] = astutil.WrapInNullCheckedCond(astutil.EmptyStringLiteral, arg, arg)
+		i++
 
-	for _, arg := range args[1:] {
-		switch a := arg.(type) {
-		case *ast.FieldRef:
-			if astutil.AllParentsAreFieldRefs(a) {
-				columnName := astutil.FieldRefString(a)
-				columnsToNullCheck[columnName] = struct{}{}
-				appendArgs(a, toNullCheckedLetVarRef(columnName))
-			} else {
-				// for cases where a parent is an ast.VariableRef (which should not be
-				// null-checked at the top level).
-				appendArgs(a, astutil.WrapInNullCheck(a))
-			}
-		default:
-			appendArgs(arg, astutil.WrapInNullCheck(arg))
-		}
+		pushArgs[i] = astutil.WrapInNullCheckedCond(astutil.EmptyStringLiteral, sep, arg)
+		i++
 	}
 
 	return astutil.WrapInConcat(pushArgs[:len(pushArgs)-1]), nil
@@ -434,7 +424,7 @@ func (f *baseScalarFunctionExpr) convToAggregationLanguage(t *PushdownTranslator
 	// and checks to make sure the entered number is valid as well
 	// (invalid = numbers too big like 3 in binary or non-alphanumeric like /)
 	// Invalid characters returns an answer of 0, invalid bases return NULL
-	return wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, ast.NewLet(normalizedVars,
+	return astutil.WrapInNullCheckedCond(astutil.NullLiteral, ast.NewLet(normalizedVars,
 		ast.NewLet(indexOfDecimal,
 			ast.NewLet(eliminateDecimal,
 				astutil.WrapInCond(astutil.NullLiteral,
@@ -680,17 +670,18 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 		ms *= -1
 	}
 
-	assignments, dateArg := minimizeLetAssignments([]string{"date"}, []ast.Expr{date})
+	dateRef := ast.NewVariableRef("date")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("date", date),
+	}
 
-	date = dateArg[0]
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
-		astutil.WrapInOp(bsonutil.OpAdd, date, astutil.Int64Value(ms)),
-		date,
+		astutil.WrapInOp(bsonutil.OpAdd, dateRef, astutil.Int64Value(ms)),
+		dateRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) dateDiffToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -763,12 +754,11 @@ func (f *baseScalarFunctionExpr) dateDiffToAggregationLanguage(t *PushdownTransl
 	bound := astutil.WrapInCond(upper, lower, ast.NewBinary(bsonutil.OpGt, days, upper))
 
 	daysRef := ast.NewVariableRef("days")
-	letAssignment := []*ast.LetVariable{
+	assignments := []*ast.LetVariable{
 		ast.NewLetVariable("days", days),
 	}
 
-	letEvaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInCond(
 			bound,
@@ -779,7 +769,7 @@ func (f *baseScalarFunctionExpr) dateDiffToAggregationLanguage(t *PushdownTransl
 		date1, date2,
 	)
 
-	return ast.NewLet(letAssignment, letEvaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) dateFormatToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -804,19 +794,13 @@ func (f *baseScalarFunctionExpr) dateFormatToAggregationLanguage(t *PushdownTran
 	}
 	formatValue := formatValueExpr.Value
 
-	conds, containsNullLiteral := minimizeNullChecks(t.ColumnsToNullCheck(), date)
-
-	wrapped, ok := astutil.WrapInDateFormat(date, formatValue.String(), conds...)
+	wrapped, ok := astutil.WrapInDateFormat(date, formatValue.String())
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(dateFormat)",
 			"unable to push down format string",
 			"formatString", formatValue.String(),
 		)
-	}
-
-	if containsNullLiteral {
-		return astutil.NullLiteral, nil
 	}
 
 	return wrapped, nil
@@ -838,8 +822,7 @@ func (f *baseScalarFunctionExpr) dayNameToAggregationLanguage(t *PushdownTransla
 		return nil, err
 	}
 
-	return wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	return astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInOp(bsonutil.OpArrElemAt,
 			ast.NewArray(
@@ -995,8 +978,10 @@ func (f *baseScalarFunctionExpr) fromDaysToAggregationLanguage(t *PushdownTransl
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"n"}, args)
-	n := args[0]
+	nRef := ast.NewVariableRef("n")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("n", args[0]),
+	}
 
 	// This should return "0000-00-00" if the input is too large (> maxFromDays)
 	// or too low (< 366).
@@ -1004,23 +989,22 @@ func (f *baseScalarFunctionExpr) fromDaysToAggregationLanguage(t *PushdownTransl
 	body := ast.NewBinary(bsonutil.OpAdd,
 		astutil.DateConstant(dayOne),
 		ast.NewBinary(bsonutil.OpMultiply,
-			astutil.WrapInRound(n), astutil.FloatValue(millisecondsPerDay),
+			astutil.WrapInRound(nRef), astutil.FloatValue(millisecondsPerDay),
 		),
 	)
 
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInCond(
 			astutil.NullLiteral,
 			body,
-			ast.NewBinary(bsonutil.OpGt, n, astutil.Int32Value(maxFromDays)),
-			ast.NewBinary(bsonutil.OpLt, n, astutil.Int32Value(366)),
+			ast.NewBinary(bsonutil.OpGt, nRef, astutil.Int32Value(maxFromDays)),
+			ast.NewBinary(bsonutil.OpLt, nRef, astutil.Int32Value(366)),
 		),
-		args...,
+		nRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) fromUnixtimeToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1091,8 +1075,7 @@ func (f *baseScalarFunctionExpr) greatestToAggregationLanguage(t *PushdownTransl
 		return nil, err
 	}
 
-	return wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	return astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInOp(bsonutil.OpMax, args...),
 		args...,
@@ -1135,42 +1118,41 @@ func (f *baseScalarFunctionExpr) insertToAggregationLanguage(t *PushdownTranslat
 
 	args[2] = astutil.WrapInRound(args[2])
 
-	assignments, args := minimizeLetAssignments(
-		[]string{"str", "pos", "len", "newstr"},
-		args,
-	)
-
-	str := args[0]
-	pos := args[1]
-	length := args[2]
-	newstr := args[3]
+	strRef, posRef := ast.NewVariableRef("str"), ast.NewVariableRef("pos")
+	lengthRef, newstrRef := ast.NewVariableRef("len"), ast.NewVariableRef("newstr")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("str", args[0]),
+		ast.NewLetVariable("pos", args[1]),
+		ast.NewLetVariable("len", args[2]),
+		ast.NewLetVariable("newstr", args[3]),
+	}
 
 	totalLength := ast.NewVariableRef("totalLength")
 	totalLengthAssignment := []*ast.LetVariable{
-		ast.NewLetVariable("totalLength", ast.NewFunction(bsonutil.OpStrlenCP, str)),
+		ast.NewLetVariable("totalLength", ast.NewFunction(bsonutil.OpStrlenCP, strRef)),
 	}
 
 	prefix, suffix := ast.NewVariableRef("prefix"), ast.NewVariableRef("suffix")
 	ixAssignment := []*ast.LetVariable{
-		ast.NewLetVariable("prefix", astutil.WrapInOp(bsonutil.OpSubstr, str, astutil.ZeroInt32Literal, pos)),
-		ast.NewLetVariable("suffix", astutil.WrapInOp(bsonutil.OpSubstr, str, astutil.WrapInOp(bsonutil.OpAdd, pos, length), totalLength)),
+		ast.NewLetVariable("prefix", astutil.WrapInOp(bsonutil.OpSubstr, strRef, astutil.ZeroInt32Literal, posRef)),
+		ast.NewLetVariable("suffix", astutil.WrapInOp(bsonutil.OpSubstr, strRef, astutil.WrapInOp(bsonutil.OpAdd, posRef, lengthRef), totalLength)),
 	}
 
 	concatenation := ast.NewLet(ixAssignment,
-		astutil.WrapInOp(bsonutil.OpConcat, prefix, newstr, suffix),
+		astutil.WrapInOp(bsonutil.OpConcat, prefix, newstrRef, suffix),
 	)
 
 	posCheck := ast.NewLet(totalLengthAssignment,
-		astutil.WrapInCond(str,
+		astutil.WrapInCond(strRef,
 			concatenation,
-			ast.NewBinary(bsonutil.OpLt, pos, astutil.ZeroInt32Literal),
-			ast.NewBinary(bsonutil.OpGte, pos, totalLength),
+			ast.NewBinary(bsonutil.OpLt, posRef, astutil.ZeroInt32Literal),
+			ast.NewBinary(bsonutil.OpGte, posRef, totalLength),
 		),
 	)
 
-	evaluation := wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, posCheck, args...)
+	evaluation := astutil.WrapInNullCheckedCond(astutil.NullLiteral, posCheck, strRef, posRef, lengthRef, newstrRef)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) instrToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1193,24 +1175,25 @@ func (f *baseScalarFunctionExpr) instrToAggregationLanguage(t *PushdownTranslato
 		return nil, err
 	}
 
-	assignments, substrArg := minimizeLetAssignments([]string{"substr"}, args[1:])
 	str := args[0]
-	substr := substrArg[0]
+	substrRef := ast.NewVariableRef("substr")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("substr", args[1]),
+	}
 
 	// Mongo Aggregation Pipeline returns NULL if str is NULLish, like
 	// we'd want. substr being NULL, however, is an error in the pipeline,
 	// thus check substr for NULLisness.
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		ast.NewBinary(bsonutil.OpAdd,
 			astutil.OneInt32Literal,
-			astutil.WrapInOp(bsonutil.OpIndexOfCP, str, substr),
+			astutil.WrapInOp(bsonutil.OpIndexOfCP, str, substrRef),
 		),
-		substrArg[0],
+		substrRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) lastDayToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1317,8 +1300,7 @@ func (f *baseScalarFunctionExpr) leastToAggregationLanguage(t *PushdownTranslato
 		return nil, err
 	}
 
-	return wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	return astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInOp(bsonutil.OpMin, args...),
 		args...,
@@ -1344,14 +1326,17 @@ func (f *baseScalarFunctionExpr) leftToAggregationLanguage(t *PushdownTranslator
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"str", "length"}, args)
+	strRef, lengthRef := ast.NewVariableRef("str"), ast.NewVariableRef("len")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("str", args[0]),
+		ast.NewLetVariable("len", args[1]),
+	}
 
-	str := args[0]
-	subStrLength := astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, args[1], astutil.ZeroInt32Literal))
-	subStrOp := astutil.WrapInOp(bsonutil.OpSubstr, str, astutil.ZeroInt32Literal, subStrLength)
-	evaluation := wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, subStrOp, args...)
+	subStrLength := astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, lengthRef, astutil.ZeroInt32Literal))
+	subStrOp := astutil.WrapInOp(bsonutil.OpSubstr, strRef, astutil.ZeroInt32Literal, subStrLength)
+	evaluation := astutil.WrapInNullCheckedCond(astutil.NullLiteral, subStrOp, strRef, lengthRef)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) lengthToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1419,7 +1404,7 @@ func (f *baseScalarFunctionExpr) locateToAggregationLanguage(t *PushdownTranslat
 		)
 	}
 
-	return wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, locate, args[0], args[1]), nil
+	return astutil.WrapInNullCheckedCond(astutil.NullLiteral, locate, args[0], args[1]), nil
 }
 
 func (f *baseScalarFunctionExpr) log10ToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1509,7 +1494,7 @@ func (f *baseScalarFunctionExpr) ltrimToAggregationLanguage(t *PushdownTranslato
 		ast.NewBinary(bsonutil.OpEq, args[0], astutil.EmptyStringLiteral),
 	)
 
-	return wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, ltrimCond, args...), nil
+	return astutil.WrapInNullCheckedCond(astutil.NullLiteral, ltrimCond, args...), nil
 }
 
 func (f *baseScalarFunctionExpr) makeDateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1618,8 +1603,7 @@ func (f *baseScalarFunctionExpr) microsecondToAggregationLanguage(t *PushdownTra
 		return nil, err
 	}
 
-	return wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	return astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		ast.NewBinary(bsonutil.OpMultiply,
 			astutil.Int32Value(1000),
@@ -1678,8 +1662,7 @@ func (f *baseScalarFunctionExpr) monthNameToAggregationLanguage(t *PushdownTrans
 		return nil, err
 	}
 
-	return wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	return astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInOp(bsonutil.OpArrElemAt,
 			ast.NewArray(
@@ -1738,18 +1721,19 @@ func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator,
 
 	args[1] = astutil.WrapInRound(args[1])
 
-	assignments, args := minimizeLetAssignments([]string{"str", "length", "padStr"}, args)
-
-	str := args[0]
-	length := args[1]
-	padStr := args[2]
+	strRef, lenRef, padStrRef := ast.NewVariableRef("str"), ast.NewVariableRef("len"), ast.NewVariableRef("padStr")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("str", args[0]),
+		ast.NewLetVariable("len", args[1]),
+		ast.NewLetVariable("padStr", args[2]),
+	}
 
 	padLenRef, padStrLenRef := ast.NewVariableRef("padLen"), ast.NewVariableRef("padStrLen")
 	subAssignments := []*ast.LetVariable{
-		ast.NewLetVariable("padStrLen", ast.NewFunction(bsonutil.OpStrlenCP, padStr)),
+		ast.NewLetVariable("padStrLen", ast.NewFunction(bsonutil.OpStrlenCP, padStrRef)),
 		ast.NewLetVariable("padLen", ast.NewBinary(bsonutil.OpSubtract,
-			length,
-			ast.NewFunction(bsonutil.OpStrlenCP, str),
+			lenRef,
+			ast.NewFunction(bsonutil.OpStrlenCP, strRef),
 		)),
 	}
 
@@ -1757,7 +1741,7 @@ func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator,
 
 	// do we even need to add padding? only if the desired output
 	// length is > length of input string.
-	paddingCond := ast.NewBinary(bsonutil.OpLt, ast.NewFunction(bsonutil.OpStrlenCP, str), length)
+	paddingCond := ast.NewBinary(bsonutil.OpLt, ast.NewFunction(bsonutil.OpStrlenCP, strRef), lenRef)
 
 	// number of times we need to repeat the padding string to fill space
 	padStrRepeats := ast.NewFunction(bsonutil.OpCeil, ast.NewBinary(bsonutil.OpDivide, padLenRef, padStrLenRef))
@@ -1766,7 +1750,7 @@ func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator,
 	padParts := ast.NewDocument(
 		ast.NewDocumentElement(bsonutil.OpMap, ast.NewDocument(
 			ast.NewDocumentElement("input", astutil.WrapInOp(bsonutil.OpRange, astutil.ZeroInt32Literal, padStrRepeats)),
-			ast.NewDocumentElement("in", padStr),
+			ast.NewDocumentElement("in", padStrRef),
 		)),
 	)
 
@@ -1785,9 +1769,9 @@ func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator,
 	// or just take appropriate substring of input string
 	var concatted *ast.Function
 	if isLeftPad {
-		concatted = astutil.WrapInOp(bsonutil.OpConcat, fullPad, str)
+		concatted = astutil.WrapInOp(bsonutil.OpConcat, fullPad, strRef)
 	} else {
-		concatted = astutil.WrapInOp(bsonutil.OpConcat, str, fullPad)
+		concatted = astutil.WrapInOp(bsonutil.OpConcat, strRef, fullPad)
 	}
 
 	handleConcat := astutil.WrapInCond(
@@ -1798,7 +1782,7 @@ func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator,
 	// handle everything in the case that input length >=0
 	handleNonNegativeLength := astutil.WrapInCond(
 		handleConcat,
-		astutil.WrapInOp(bsonutil.OpSubstr, str, astutil.ZeroInt32Literal, length),
+		astutil.WrapInOp(bsonutil.OpSubstr, strRef, astutil.ZeroInt32Literal, lenRef),
 		paddingCond,
 	)
 
@@ -1806,17 +1790,16 @@ func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator,
 	negativeCheck := astutil.WrapInCond(
 		astutil.NullLiteral,
 		handleNonNegativeLength,
-		ast.NewBinary(bsonutil.OpLt, length, astutil.ZeroInt32Literal),
+		ast.NewBinary(bsonutil.OpLt, lenRef, astutil.ZeroInt32Literal),
 	)
 
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		ast.NewLet(subAssignments, negativeCheck),
-		args...,
+		strRef, lenRef, padStrRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) powToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1848,26 +1831,26 @@ func (f *baseScalarFunctionExpr) quarterToAggregationLanguage(t *PushdownTransla
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"date"}, args)
-
-	date := args[0]
+	dateRef := ast.NewVariableRef("date")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("date", args[0]),
+	}
 
 	one, two, three, four := astutil.OneInt32Literal, astutil.Int32Value(2), astutil.Int32Value(3), astutil.Int32Value(4)
 
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInOp(bsonutil.OpArrElemAt,
 			ast.NewArray(one, one, one, two, two, two, three, three, three, four, four, four),
 			ast.NewBinary(bsonutil.OpSubtract,
-				ast.NewFunction(bsonutil.OpMonth, date),
+				ast.NewFunction(bsonutil.OpMonth, dateRef),
 				astutil.OneInt32Literal,
 			),
 		),
-		args...,
+		dateRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) radiansToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1927,7 +1910,7 @@ func (f *baseScalarFunctionExpr) repeatToAggregationLanguage(t *PushdownTranslat
 		astutil.WrapInOp(bsonutil.OpConcat, astutil.ThisVarRef, astutil.ValueVarRef),
 	)
 
-	return wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, repeat, args...), nil
+	return astutil.WrapInNullCheckedCond(astutil.NullLiteral, repeat, args...), nil
 }
 
 func (f *baseScalarFunctionExpr) replaceToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1987,26 +1970,27 @@ func (f *baseScalarFunctionExpr) reverseToAggregationLanguage(t *PushdownTransla
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"str"}, args)
+	strRef := ast.NewVariableRef("str")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("str", args[0]),
+	}
 
-	str := args[0]
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInReduce(
-			astutil.WrapInOp(bsonutil.OpRange, astutil.ZeroInt32Literal, astutil.WrapInOp(bsonutil.OpStrlenCP, str)),
+			astutil.WrapInOp(bsonutil.OpRange, astutil.ZeroInt32Literal, astutil.WrapInOp(bsonutil.OpStrlenCP, strRef)),
 			astutil.EmptyStringLiteral,
 			astutil.WrapInOp(bsonutil.OpConcat,
 				astutil.WrapInOp(bsonutil.OpSubstr,
-					str, astutil.ThisVarRef, astutil.OneInt32Literal,
+					strRef, astutil.ThisVarRef, astutil.OneInt32Literal,
 				),
 				astutil.ValueVarRef,
 			),
 		),
-		args...,
+		strRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) rightToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -2028,20 +2012,23 @@ func (f *baseScalarFunctionExpr) rightToAggregationLanguage(t *PushdownTranslato
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"str", "length"}, args)
+	strRef, lenRef := ast.NewVariableRef("str"), ast.NewVariableRef("len")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("str", args[0]),
+		ast.NewLetVariable("len", args[1]),
+	}
 
-	str := args[0]
-	subStrLength := astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, args[1]))
-	strLength := ast.NewFunction(bsonutil.OpStrlenCP, str)
+	subStrLength := astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, lenRef))
+	strLength := ast.NewFunction(bsonutil.OpStrlenCP, strRef)
 
 	// start = max(0, strLen - subStrLen)
 	start := astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, ast.NewBinary(bsonutil.OpSubtract, strLength, subStrLength))
 
-	subStrOp := astutil.WrapInOp(bsonutil.OpSubstr, str, start, subStrLength)
+	subStrOp := astutil.WrapInOp(bsonutil.OpSubstr, strRef, start, subStrLength)
 
-	evaluation := wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, subStrOp, args...)
+	evaluation := astutil.WrapInNullCheckedCond(astutil.NullLiteral, subStrOp, strRef, lenRef)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) roundToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -2104,7 +2091,7 @@ func (f *baseScalarFunctionExpr) rtrimToAggregationLanguage(t *PushdownTranslato
 		astutil.WrapInOp(bsonutil.OpEq, args[0], astutil.EmptyStringLiteral),
 	)
 
-	return wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, rtrimCond, args...), nil
+	return astutil.WrapInNullCheckedCond(astutil.NullLiteral, rtrimCond, args...), nil
 }
 
 func (f *baseScalarFunctionExpr) secondToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -2130,8 +2117,7 @@ func (f *baseScalarFunctionExpr) signToAggregationLanguage(t *PushdownTranslator
 		return nil, err
 	}
 
-	return wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	return astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInCond(
 			astutil.ZeroInt32Literal,
@@ -2158,12 +2144,14 @@ func (f *baseScalarFunctionExpr) sinToAggregationLanguage(t *PushdownTranslator,
 		return nil, err
 	}
 
-	inputLetAssignment, args := minimizeLetAssignments([]string{"input"}, args)
-	input := args[0]
+	inputRef := ast.NewVariableRef("input")
+	inputLetAssignment := []*ast.LetVariable{
+		ast.NewLetVariable("input", args[0]),
+	}
 
 	absInput := ast.NewVariableRef("absInput")
 	absInputLetAssignment := []*ast.LetVariable{
-		ast.NewLetVariable("absInput", ast.NewFunction(bsonutil.OpAbs, input)),
+		ast.NewLetVariable("absInput", ast.NewFunction(bsonutil.OpAbs, inputRef)),
 	}
 
 	rem, phase := ast.NewVariableRef("rem"), ast.NewVariableRef("phase")
@@ -2215,12 +2203,12 @@ func (f *baseScalarFunctionExpr) sinToAggregationLanguage(t *PushdownTranslator,
 	)
 
 	// cos(-x) = cos(x), but sin(-x) = -sin(x), so if the original input is negative multiply by -1.
-	return wrapInLet(inputLetAssignment,
+	return ast.NewLet(inputLetAssignment,
 		ast.NewLet(absInputLetAssignment,
 			ast.NewLet(remPhaseAssignment,
 				astutil.WrapInCond(zeroCase,
 					ast.NewBinary(bsonutil.OpMultiply, astutil.FloatValue(-1.0), zeroCase),
-					ast.NewBinary(bsonutil.OpGte, input, astutil.ZeroInt32Literal),
+					ast.NewBinary(bsonutil.OpGte, inputRef, astutil.ZeroInt32Literal),
 				),
 			),
 		),
@@ -2247,21 +2235,23 @@ func (f *baseScalarFunctionExpr) spaceToAggregationLanguage(t *PushdownTranslato
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"n"}, args)
+	nRef := ast.NewVariableRef("n")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("n", args[0]),
+	}
 
-	n := astutil.WrapInRound(args[0])
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	n := astutil.WrapInRound(nRef)
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInReduce(
 			astutil.WrapInRange(astutil.ZeroInt32Literal, n, astutil.OneInt32Literal),
 			astutil.EmptyStringLiteral,
 			astutil.WrapInOp(bsonutil.OpConcat, astutil.ValueVarRef, astutil.StringValue(" ")),
 		),
-		args...,
+		nRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 func (f *baseScalarFunctionExpr) sqrtToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -2346,19 +2336,16 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 		return nil, err
 	}
 
-	strAssignment, strArg := minimizeLetAssignments([]string{"str"}, args[0:1])
-	strCond, strIsNull := minimizeNullChecks(t.ColumnsToNullCheck(), strArg[0])
-	if strIsNull {
-		return astutil.NullLiteral, nil
+	strRef := ast.NewVariableRef("str")
+	strAssignment := []*ast.LetVariable{
+		ast.NewLetVariable("str", args[0]),
 	}
 
-	str := strArg[0]
-	pos := ast.NewVariableRef("pos")
 	var length, strLen ast.Expr
 
 	// store the string's length since it is reused in multiple places.
 	strLenAssignment := make([]*ast.LetVariable, 0, 1)
-	switch sa := strArg[0].(type) {
+	switch sa := args[0].(type) {
 	case *ast.Constant:
 		strVal, isStr := sa.Value.StringValueOK()
 		if isStr {
@@ -2367,7 +2354,7 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 	default:
 		strLen = ast.NewVariableRef("strLen")
 		strLenAssignment = append(strLenAssignment,
-			ast.NewLetVariable("strLen", ast.NewFunction(bsonutil.OpStrlenCP, str)),
+			ast.NewLetVariable("strLen", ast.NewFunction(bsonutil.OpStrlenCP, strRef)),
 		)
 	}
 
@@ -2377,7 +2364,7 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 
 	roundedPosRef, roundedNegPosRef := ast.NewVariableRef("roundedPos"), ast.NewVariableRef("roundedNegPos")
 
-	// the position argument needs to be
+	// the position argument needs to be calculated
 	calculatedPos := ast.NewLet(
 		[]*ast.LetVariable{
 			ast.NewLetVariable("roundedPos", astutil.WrapInRound(args[1])),
@@ -2405,11 +2392,13 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 		),
 	)
 
+	posRef := ast.NewVariableRef("pos")
+
 	// if it is not literal or a column, the null-check can (and should) be on the binding
 	switch args[1].(type) {
 	case *ast.Constant, *ast.FieldRef:
 	default:
-		args[1] = pos
+		args[1] = posRef
 	}
 
 	subAssignments[0] = ast.NewLetVariable("pos", calculatedPos)
@@ -2419,30 +2408,25 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 		// if length is not provided, use the str length.
 		length = strLen
 	} else {
-		lengthAssignment, lengthArg := minimizeLetAssignments([]string{"length"}, args[2:])
-		subAssignments = append(subAssignments, lengthAssignment...)
-		length = astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, lengthArg[0]))
-		subCondArgs = append(subCondArgs, lengthArg[0])
+		lengthRef := ast.NewVariableRef("length")
+		subAssignments = append(subAssignments, ast.NewLetVariable("length", args[2]))
+		length = astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, lengthRef))
+		subCondArgs = append(subCondArgs, lengthRef)
 	}
 
-	subConds, containsNullLiteral := minimizeNullChecks(t.ColumnsToNullCheck(), subCondArgs...)
-	if containsNullLiteral {
-		return astutil.NullLiteral, nil
-	}
-
-	return wrapInLet(strAssignment,
-		astutil.WrapInCond(
+	return ast.NewLet(strAssignment,
+		astutil.WrapInNullCheckedCond(
 			astutil.NullLiteral,
-			wrapInLet(strLenAssignment,
-				wrapInLet(subAssignments,
-					astutil.WrapInCond(
+			ast.NewLet(strLenAssignment,
+				ast.NewLet(subAssignments,
+					astutil.WrapInNullCheckedCond(
 						astutil.NullLiteral,
-						astutil.WrapInOp(bsonutil.OpSubstr, str, pos, length),
-						subConds...,
+						astutil.WrapInOp(bsonutil.OpSubstr, strRef, posRef, length),
+						subCondArgs...,
 					),
 				),
 			),
-			strCond...,
+			strRef,
 		),
 	), nil
 }
@@ -2501,8 +2485,10 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 
 	// This is a very large and costly expression, make sure to bind it in
 	// a let (in the switch at the end of the function).
-	letAssignment, tsArg := minimizeLetAssignments([]string{"timestampArg"}, args[1:])
-	timestampArg := tsArg[0]
+	timestampArgRef := ast.NewVariableRef("timestampArg")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("timestampArg", args[1]),
+	}
 
 	// handleSimpleCase generates code for cases where we do not need to
 	// use $dateFromParts, we just round the interval if the round argument
@@ -2511,7 +2497,7 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 	handleSimpleCase := func(u string, round bool) *ast.Binary {
 		if round {
 			return ast.NewBinary(bsonutil.OpAdd,
-				timestampArg,
+				timestampArgRef,
 				ast.NewBinary(bsonutil.OpMultiply,
 					astutil.WrapInRound(interval),
 					astutil.FloatValue(toMilliseconds[u]),
@@ -2519,7 +2505,7 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 			)
 		}
 		return ast.NewBinary(bsonutil.OpAdd,
-			timestampArg,
+			timestampArgRef,
 			astutil.WrapInOp(bsonutil.OpMultiply,
 				interval,
 				astutil.FloatValue(toMilliseconds[u]),
@@ -2537,7 +2523,7 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 		// Quarter or Month.
 		sharedComputationRef := ast.NewVariableRef("sharedComputation")
 		newYearRef, newMonthRef := ast.NewVariableRef("newYear"), ast.NewVariableRef("newMonth")
-		dayExpr := ast.NewFunction(bsonutil.OpDayOfMonth, timestampArg)
+		dayExpr := ast.NewFunction(bsonutil.OpDayOfMonth, timestampArgRef)
 
 		thirty := astutil.Int32Value(30)
 
@@ -2562,7 +2548,7 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 				// }
 				// otherwise d is left unchanged as the day of the input timestamp.
 				astutil.WrapInSwitch(
-					ast.NewFunction(bsonutil.OpDayOfMonth, timestampArg),
+					ast.NewFunction(bsonutil.OpDayOfMonth, timestampArgRef),
 					astutil.WrapInEqCase(newMonthRef, astutil.Int32Value(2),
 						astutil.WrapInCond(
 							astutil.WrapInOp(bsonutil.OpMin, dayExpr, astutil.Int32Value(29)),
@@ -2579,10 +2565,10 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 					astutil.WrapInEqCase(newMonthRef, astutil.Int32Value(11),
 						astutil.WrapInOp(bsonutil.OpMin, dayExpr, thirty)),
 				)),
-			ast.NewDocumentElement("hour", ast.NewFunction(bsonutil.OpHour, timestampArg)),
-			ast.NewDocumentElement("minute", ast.NewFunction(bsonutil.OpMinute, timestampArg)),
-			ast.NewDocumentElement("second", ast.NewFunction(bsonutil.OpSecond, timestampArg)),
-			ast.NewDocumentElement("millisecond", ast.NewFunction(bsonutil.OpMillisecond, timestampArg)),
+			ast.NewDocumentElement("hour", ast.NewFunction(bsonutil.OpHour, timestampArgRef)),
+			ast.NewDocumentElement("minute", ast.NewFunction(bsonutil.OpMinute, timestampArgRef)),
+			ast.NewDocumentElement("second", ast.NewFunction(bsonutil.OpSecond, timestampArgRef)),
+			ast.NewDocumentElement("millisecond", ast.NewFunction(bsonutil.OpMillisecond, timestampArgRef)),
 		)
 
 		var sharedComputationLetAssignment []*ast.LetVariable
@@ -2597,14 +2583,14 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 			template = ast.NewDocument(
 				ast.NewDocumentElement("year", ast.NewBinary(bsonutil.OpAdd,
 					astutil.WrapInRound(interval),
-					ast.NewFunction(bsonutil.OpYear, timestampArg),
+					ast.NewFunction(bsonutil.OpYear, timestampArgRef),
 				)),
-				ast.NewDocumentElement("month", ast.NewFunction(bsonutil.OpMonth, timestampArg)),
-				ast.NewDocumentElement("day", ast.NewFunction(bsonutil.OpDayOfMonth, timestampArg)),
-				ast.NewDocumentElement("hour", ast.NewFunction(bsonutil.OpHour, timestampArg)),
-				ast.NewDocumentElement("minute", ast.NewFunction(bsonutil.OpMinute, timestampArg)),
-				ast.NewDocumentElement("second", ast.NewFunction(bsonutil.OpSecond, timestampArg)),
-				ast.NewDocumentElement("millisecond", ast.NewFunction(bsonutil.OpMillisecond, timestampArg)),
+				ast.NewDocumentElement("month", ast.NewFunction(bsonutil.OpMonth, timestampArgRef)),
+				ast.NewDocumentElement("day", ast.NewFunction(bsonutil.OpDayOfMonth, timestampArgRef)),
+				ast.NewDocumentElement("hour", ast.NewFunction(bsonutil.OpHour, timestampArgRef)),
+				ast.NewDocumentElement("minute", ast.NewFunction(bsonutil.OpMinute, timestampArgRef)),
+				ast.NewDocumentElement("second", ast.NewFunction(bsonutil.OpSecond, timestampArgRef)),
+				ast.NewDocumentElement("millisecond", ast.NewFunction(bsonutil.OpMillisecond, timestampArgRef)),
 			)
 			return ast.NewFunction(bsonutil.OpDateFromParts, template)
 
@@ -2615,7 +2601,7 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 			sharedComputationLetAssignment = []*ast.LetVariable{
 				ast.NewLetVariable("sharedComputation", ast.NewBinary(bsonutil.OpSubtract,
 					ast.NewBinary(bsonutil.OpAdd,
-						ast.NewFunction(bsonutil.OpMonth, timestampArg),
+						ast.NewFunction(bsonutil.OpMonth, timestampArgRef),
 						ast.NewBinary(bsonutil.OpMultiply,
 							astutil.WrapInRound(interval),
 							astutil.Int32Value(3),
@@ -2630,7 +2616,7 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 			sharedComputationLetAssignment = []*ast.LetVariable{
 				ast.NewLetVariable("sharedComputation", ast.NewBinary(bsonutil.OpSubtract,
 					ast.NewBinary(bsonutil.OpAdd,
-						ast.NewFunction(bsonutil.OpMonth, timestampArg),
+						ast.NewFunction(bsonutil.OpMonth, timestampArgRef),
 						astutil.WrapInRound(interval),
 					),
 					astutil.OneInt32Literal,
@@ -2641,7 +2627,7 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 		newYearMonthLetAssignment = []*ast.LetVariable{
 			// Year = Year + SharedComputation / 12, where / truncates.
 			ast.NewLetVariable("newYear", ast.NewBinary(bsonutil.OpAdd,
-				ast.NewFunction(bsonutil.OpYear, timestampArg),
+				ast.NewFunction(bsonutil.OpYear, timestampArgRef),
 				astutil.WrapInIntDiv(sharedComputationRef, astutil.Int32Value(12)),
 			)),
 
@@ -2661,14 +2647,14 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 	// ast.NewLet to bind $$timestampArg.
 	switch unit {
 	case Year, Month, Quarter:
-		return wrapInLet(letAssignment, handleDateFromPartsCase(unit)), nil
+		return ast.NewLet(assignments, handleDateFromPartsCase(unit)), nil
 	// It is wrong to round for Second, and rounding for Microsecond is
 	// just pointless since MongoDB supports only milliseconds, and will
 	// automatically round to the nearest millisecond for us.
 	case Second, Microsecond:
-		return wrapInLet(letAssignment, handleSimpleCase(unit, false)), nil
+		return ast.NewLet(assignments, handleSimpleCase(unit, false)), nil
 	default:
-		return wrapInLet(letAssignment, handleSimpleCase(unit, true)), nil
+		return ast.NewLet(assignments, handleSimpleCase(unit, true)), nil
 	}
 }
 
@@ -2696,8 +2682,11 @@ func (f *baseScalarFunctionExpr) timestampDiffToAggregationLanguage(t *PushdownT
 
 	// This is a very large and costly expression, make sure to bind it in
 	// a let (in the switch at the end of the function).
-	assignments, timestampArgs := minimizeLetAssignments([]string{"timestampArg1", "timestampArg2"}, args)
-	timestampArg1, timestampArg2 := timestampArgs[0], timestampArgs[1]
+	timestampArg1Ref, timestampArg2Ref := ast.NewVariableRef("timestampArg1"), ast.NewVariableRef("timestampArg2")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("timestampArg1", args[0]),
+		ast.NewLetVariable("timestampArg2", args[1]),
+	}
 
 	// handleSimpleCase generates code for cases where we do not need to
 	// use and date part access functions (like $dayOfMonth), we just
@@ -2705,7 +2694,7 @@ func (f *baseScalarFunctionExpr) timestampDiffToAggregationLanguage(t *PushdownT
 	// milliseconds corresponded to by 'u'.
 	handleSimpleCase := func(u string) ast.Expr {
 		return astutil.WrapInIntDiv(
-			ast.NewBinary(bsonutil.OpSubtract, timestampArg2, timestampArg1),
+			ast.NewBinary(bsonutil.OpSubtract, timestampArg2Ref, timestampArg1Ref),
 			astutil.FloatValue(toMilliseconds[u]),
 		)
 	}
@@ -2716,20 +2705,20 @@ func (f *baseScalarFunctionExpr) timestampDiffToAggregationLanguage(t *PushdownT
 		year1, year2 := ast.NewVariableRef("year1"), ast.NewVariableRef("year2")
 		month1, month2 := ast.NewVariableRef("month1"), ast.NewVariableRef("month2")
 		datePartsLetAssignment := []*ast.LetVariable{
-			ast.NewLetVariable("year1", ast.NewFunction(bsonutil.OpYear, timestampArg1)),
-			ast.NewLetVariable("month1", ast.NewFunction(bsonutil.OpMonth, timestampArg1)),
-			ast.NewLetVariable("day1", ast.NewFunction(bsonutil.OpDayOfMonth, timestampArg1)),
-			ast.NewLetVariable("hour1", ast.NewFunction(bsonutil.OpHour, timestampArg1)),
-			ast.NewLetVariable("minute1", ast.NewFunction(bsonutil.OpMinute, timestampArg1)),
-			ast.NewLetVariable("second1", ast.NewFunction(bsonutil.OpSecond, timestampArg1)),
-			ast.NewLetVariable("millisecond1", ast.NewFunction(bsonutil.OpMillisecond, timestampArg1)),
-			ast.NewLetVariable("year2", ast.NewFunction(bsonutil.OpYear, timestampArg2)),
-			ast.NewLetVariable("month2", ast.NewFunction(bsonutil.OpMonth, timestampArg2)),
-			ast.NewLetVariable("day2", ast.NewFunction(bsonutil.OpDayOfMonth, timestampArg2)),
-			ast.NewLetVariable("hour2", ast.NewFunction(bsonutil.OpHour, timestampArg2)),
-			ast.NewLetVariable("minute2", ast.NewFunction(bsonutil.OpMinute, timestampArg2)),
-			ast.NewLetVariable("second2", ast.NewFunction(bsonutil.OpSecond, timestampArg2)),
-			ast.NewLetVariable("millisecond2", ast.NewFunction(bsonutil.OpMillisecond, timestampArg2)),
+			ast.NewLetVariable("year1", ast.NewFunction(bsonutil.OpYear, timestampArg1Ref)),
+			ast.NewLetVariable("month1", ast.NewFunction(bsonutil.OpMonth, timestampArg1Ref)),
+			ast.NewLetVariable("day1", ast.NewFunction(bsonutil.OpDayOfMonth, timestampArg1Ref)),
+			ast.NewLetVariable("hour1", ast.NewFunction(bsonutil.OpHour, timestampArg1Ref)),
+			ast.NewLetVariable("minute1", ast.NewFunction(bsonutil.OpMinute, timestampArg1Ref)),
+			ast.NewLetVariable("second1", ast.NewFunction(bsonutil.OpSecond, timestampArg1Ref)),
+			ast.NewLetVariable("millisecond1", ast.NewFunction(bsonutil.OpMillisecond, timestampArg1Ref)),
+			ast.NewLetVariable("year2", ast.NewFunction(bsonutil.OpYear, timestampArg2Ref)),
+			ast.NewLetVariable("month2", ast.NewFunction(bsonutil.OpMonth, timestampArg2Ref)),
+			ast.NewLetVariable("day2", ast.NewFunction(bsonutil.OpDayOfMonth, timestampArg2Ref)),
+			ast.NewLetVariable("hour2", ast.NewFunction(bsonutil.OpHour, timestampArg2Ref)),
+			ast.NewLetVariable("minute2", ast.NewFunction(bsonutil.OpMinute, timestampArg2Ref)),
+			ast.NewLetVariable("second2", ast.NewFunction(bsonutil.OpSecond, timestampArg2Ref)),
+			ast.NewLetVariable("millisecond2", ast.NewFunction(bsonutil.OpMillisecond, timestampArg2Ref)),
 		}
 
 		var outputLetAssignment []*ast.LetVariable
@@ -2819,12 +2808,12 @@ func (f *baseScalarFunctionExpr) timestampDiffToAggregationLanguage(t *PushdownT
 		return retExpr
 	}
 
-	// wrapInLet to bind $$timestampArg1 and 2.
+	// ast.NewLet to bind $$timestampArg1 and 2.
 	switch unit {
 	case Year, Month, Quarter:
-		return wrapInLet(assignments, handleDatePartsCase(unit)), nil
+		return ast.NewLet(assignments, handleDatePartsCase(unit)), nil
 	default:
-		return wrapInLet(assignments, handleSimpleCase(unit)), nil
+		return ast.NewLet(assignments, handleSimpleCase(unit)), nil
 	}
 }
 
@@ -2848,8 +2837,10 @@ func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTrans
 		return nil, err
 	}
 
-	inputLet, args := minimizeLetAssignments([]string{"val"}, args)
-	val := args[0]
+	valRef := ast.NewVariableRef("val")
+	inputLet := []*ast.LetVariable{
+		ast.NewLetVariable("val", args[0]),
+	}
 
 	wrapInDateFromString := func(v ast.Expr) *ast.Function {
 		return ast.NewFunction(bsonutil.OpDateFromString,
@@ -2857,15 +2848,15 @@ func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTrans
 	}
 
 	// CASE 1: it's already a Mongo date, we just return it
-	isDateType := containsBSONType(val, "date")
-	dateBranch := astutil.WrapInCase(isDateType, val)
+	isDateType := containsBSONType(valRef, "date")
+	dateBranch := astutil.WrapInCase(isDateType, valRef)
 
 	// CASE 2: it's a number.
-	isNumber := containsBSONType(val, "int", "decimal", "long", "double")
+	isNumber := containsBSONType(valRef, "int", "decimal", "long", "double")
 
 	// evaluates to true if val positive and has <= X digits.
 	hasUpToXDigits := func(x float64) ast.Expr {
-		return astutil.WrapInInRange(val, 0, math.Pow(10, x))
+		return astutil.WrapInInRange(valRef, 0, math.Pow(10, x))
 	}
 
 	// This handles converting a number in YYMMDDHHMMSS format to YYYYMMDDHHMMSS.
@@ -2885,20 +2876,20 @@ func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTrans
 
 	// We interpret this as being format YYMMDD, multiply by hhmmssFactor for HHMMSS then pad.
 	ifSix := ast.NewBinary(bsonutil.OpAdd,
-		ast.NewBinary(bsonutil.OpMultiply, val, hhmmssFactor),
-		getPadding(ast.NewBinary(bsonutil.OpMultiply, val, hhmmssFactor)),
+		ast.NewBinary(bsonutil.OpMultiply, valRef, hhmmssFactor),
+		getPadding(ast.NewBinary(bsonutil.OpMultiply, valRef, hhmmssFactor)),
 	)
 	sixBranch := astutil.WrapInCase(hasUpToXDigits(6), ifSix)
 
 	// This number is YYYYMMDD, again, multiply by hhmmssFactor.
-	eightBranch := astutil.WrapInCase(hasUpToXDigits(8), ast.NewBinary(bsonutil.OpMultiply, val, hhmmssFactor))
+	eightBranch := astutil.WrapInCase(hasUpToXDigits(8), ast.NewBinary(bsonutil.OpMultiply, valRef, hhmmssFactor))
 
 	// If it's twelve digits, interpret as YYMMDDHHMMSS. Make sure to pad the number.
-	ifTwelve := astutil.WrapInOp(bsonutil.OpAdd, val, getPadding(val))
+	ifTwelve := astutil.WrapInOp(bsonutil.OpAdd, valRef, getPadding(valRef))
 	twelveBranch := astutil.WrapInCase(hasUpToXDigits(12), ifTwelve)
 
 	// if fourteen, YYYYMMDDHHMMSS, we can use as it as is.
-	fourteenBranch := astutil.WrapInCase(hasUpToXDigits(14), val)
+	fourteenBranch := astutil.WrapInCase(hasUpToXDigits(14), valRef)
 
 	// define "num", the input number normalized to 14 digits, in a "let"
 	numberVar := astutil.WrapInSwitch(astutil.NullLiteral, sixBranch, eightBranch, twelveBranch, fourteenBranch)
@@ -2996,7 +2987,7 @@ func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTrans
 	numberBranch := astutil.WrapInCase(isNumber, handleNumberToDate)
 
 	// CASE 3: it's a string
-	isString := containsBSONType(val, "string")
+	isString := containsBSONType(valRef, "string")
 
 	// First split on T, take first substring, then split that on " ", and
 	// take first substring. this gives us just the date part of the
@@ -3005,7 +2996,7 @@ func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTrans
 	trimmedDateString := astutil.WrapInOp(bsonutil.OpArrElemAt,
 		astutil.WrapInOp(bsonutil.OpSplit,
 			astutil.WrapInOp(bsonutil.OpArrElemAt,
-				astutil.WrapInOp(bsonutil.OpSplit, val, astutil.StringValue("T")),
+				astutil.WrapInOp(bsonutil.OpSplit, valRef, astutil.StringValue("T")),
 				astutil.ZeroInt32Literal),
 			astutil.StringValue(" ")),
 		astutil.ZeroInt32Literal)
@@ -3014,12 +3005,12 @@ func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTrans
 	// part. Replace with "" if we can not find a second element.
 	trimmedTimeString := astutil.WrapInIfNull(
 		astutil.WrapInOp(bsonutil.OpArrElemAt,
-			astutil.WrapInOp(bsonutil.OpSplit, val, astutil.StringValue("T")),
+			astutil.WrapInOp(bsonutil.OpSplit, valRef, astutil.StringValue("T")),
 			astutil.OneInt32Literal,
 		),
 		astutil.WrapInIfNull(
 			astutil.WrapInOp(bsonutil.OpArrElemAt,
-				astutil.WrapInOp(bsonutil.OpSplit, val, astutil.StringValue(" ")),
+				astutil.WrapInOp(bsonutil.OpSplit, valRef, astutil.StringValue(" ")),
 				astutil.OneInt32Literal,
 			),
 			astutil.EmptyStringLiteral,
@@ -3135,11 +3126,11 @@ func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTrans
 		astutil.WrapInCond(
 			astutil.NullLiteral,
 			outerLet,
-			ast.NewBinary(bsonutil.OpEq, astutil.ZeroInt32Literal, val),
+			ast.NewBinary(bsonutil.OpEq, astutil.ZeroInt32Literal, valRef),
 		),
 	)
 
-	return wrapInLet(inputLet, astutil.WrapInSwitch(astutil.NullLiteral, dateBranch, numberBranch, stringBranch)), nil
+	return ast.NewLet(inputLet, astutil.WrapInSwitch(astutil.NullLiteral, dateBranch, numberBranch, stringBranch)), nil
 }
 
 func (f *baseScalarFunctionExpr) toSecondsToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -3212,7 +3203,7 @@ func (f *baseScalarFunctionExpr) trimToAggregationLanguage(t *PushdownTranslator
 		ast.NewBinary(bsonutil.OpEq, args[0], astutil.EmptyStringLiteral),
 	)
 
-	return wrapInNullCheckedCond(t.ColumnsToNullCheck(), astutil.NullLiteral, trim, args...), nil
+	return astutil.WrapInNullCheckedCond(astutil.NullLiteral, trim, args...), nil
 }
 
 func (f *baseScalarFunctionExpr) truncateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -3288,7 +3279,7 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 	_, tzCompensation := now.Zone()
 
 	diffRef := ast.NewVariableRef("diff")
-	letAssignment := []*ast.LetVariable{
+	assignments := []*ast.LetVariable{
 		ast.NewLetVariable("diff", ast.NewFunction(bsonutil.OpTrunc,
 			ast.NewBinary(bsonutil.OpDivide,
 				ast.NewBinary(bsonutil.OpSubtract,
@@ -3300,13 +3291,13 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 		)),
 	}
 
-	letEvaluation := astutil.WrapInCond(
+	evaluation := astutil.WrapInCond(
 		diffRef,
 		astutil.FloatValue(0.0),
 		astutil.WrapInOp(bsonutil.OpGt, diffRef, astutil.ZeroInt32Literal),
 	)
 
-	return ast.NewLet(letAssignment, letEvaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 }
 
 // nolint: unparam
@@ -3356,18 +3347,20 @@ func (f *baseScalarFunctionExpr) weekdayToAggregationLanguage(t *PushdownTransla
 		return nil, err
 	}
 
-	assignments, args := minimizeLetAssignments([]string{"date"}, args)
+	dateRef := ast.NewVariableRef("date")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("date", args[0]),
+	}
 
 	seven := astutil.Int32Value(7)
 
-	evaluation := wrapInNullCheckedCond(
-		t.ColumnsToNullCheck(),
+	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		ast.NewBinary(bsonutil.OpMod,
 			ast.NewBinary(bsonutil.OpAdd,
 				ast.NewBinary(bsonutil.OpMod,
 					ast.NewBinary(bsonutil.OpSubtract,
-						ast.NewFunction(bsonutil.OpDayOfWeek, args[0]),
+						ast.NewFunction(bsonutil.OpDayOfWeek, dateRef),
 						astutil.Int32Value(2),
 					),
 					seven,
@@ -3376,10 +3369,10 @@ func (f *baseScalarFunctionExpr) weekdayToAggregationLanguage(t *PushdownTransla
 			),
 			seven,
 		),
-		args...,
+		dateRef,
 	)
 
-	return wrapInLet(assignments, evaluation), nil
+	return ast.NewLet(assignments, evaluation), nil
 
 }
 
@@ -3415,13 +3408,15 @@ func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTransl
 		return nil, err
 	}
 
-	inputAssignment, args := minimizeLetAssignments([]string{"date"}, args[0:1])
-	date := args[0]
+	dateRef := ast.NewVariableRef("date")
+	inputAssignment := []*ast.LetVariable{
+		ast.NewLetVariable("date", args[0]),
+	}
 
 	month, year := ast.NewVariableRef("month"), ast.NewVariableRef("year")
 	monthAssignment := []*ast.LetVariable{
-		ast.NewLetVariable("month", ast.NewFunction(bsonutil.OpMonth, date)),
-		ast.NewLetVariable("year", ast.NewFunction(bsonutil.OpYear, date)),
+		ast.NewLetVariable("month", ast.NewFunction(bsonutil.OpMonth, dateRef)),
+		ast.NewLetVariable("year", ast.NewFunction(bsonutil.OpYear, dateRef)),
 	}
 
 	var weekCalc ast.Expr
@@ -3432,16 +3427,16 @@ func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTransl
 
 	// First day of week: Sunday, with a Sunday in this year.
 	case 0, 2:
-		weekCalc = astutil.WrapInWeekCalculation(date, 2)
+		weekCalc = astutil.WrapInWeekCalculation(dateRef, 2)
 	// First day of weekCalc: Monday, with 4 days in this year.
 	case 1, 3:
-		weekCalc = astutil.WrapInWeekCalculation(date, 3)
+		weekCalc = astutil.WrapInWeekCalculation(dateRef, 3)
 	// First day of weekCalc: Sunday, with 4 days in this year.
 	case 4, 6:
-		weekCalc = astutil.WrapInWeekCalculation(date, 6)
+		weekCalc = astutil.WrapInWeekCalculation(dateRef, 6)
 	// First day of weekCalc: Monday, with a Monday in this year.
 	case 5, 7:
-		weekCalc = astutil.WrapInWeekCalculation(date, 7)
+		weekCalc = astutil.WrapInWeekCalculation(dateRef, 7)
 	}
 
 	week := ast.NewVariableRef("week")
@@ -3476,7 +3471,7 @@ func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTransl
 		)),
 	}
 
-	return wrapInLet(inputAssignment,
+	return ast.NewLet(inputAssignment,
 		ast.NewLet(monthAssignment,
 			ast.NewLet(weekAssignment,
 				ast.NewLet(newYearAssignment,
@@ -3505,163 +3500,13 @@ func (t *PushdownTranslator) translateArgs(exprs []SQLExpr) ([]ast.Expr, Pushdow
 	return args, nil
 }
 
-// minimizeLetAssignments iterates through a slice of arguments to be assigned in
-// a $let and "minimizes" them according to the following rules:
-//   - literals and columns are not assigned because their values can be used directly.
-//   - other values are assigned with their corresponding varName and their
-//   argument value is replaced with the assignment reference.
-//
-// For example,
-//   minimizeLetAssignments(
-//     []string{"left", "right"},
-//     []ast.Expr{*ast.FieldRef{Name: "a"}, *ast.Document{Elements: ...}}
-//   )
-// returns the following:
-//   (
-//     []bson.DocElem{bson.DocElem{"right", ...}},
-//     [][]ast.Expr{*ast.FieldRef{Name: "a"}, *ast.VariableRef{Name: "right"}}
-//   )
-// In this example, "$a" (a column) is not assigned to a variable since "$a" can be
-// used directly wherever that variable would have been used. The same is true for
-// literals.
-//
-// minimizeLetAssignments returns the slice of args because, as shown above, the
-// arguments can be manipulated.
-func minimizeLetAssignments(varNames []string, args []ast.Expr) ([]*ast.LetVariable, []ast.Expr) {
-	assignments := make([]*ast.LetVariable, 0, len(args))
-	newArgs := make([]ast.Expr, len(args))
-	for i, arg := range args {
-		switch arg.(type) {
-		case *ast.Constant, *ast.FieldRef:
-			// do nothing (this is the actual "minimization").
-			//   - literals and columns are not assigned because they can
-			//     be used directly.
-			newArgs[i] = arg
-
-		default:
-			// store anything that is not a literal or column in a let assignment.
-			assignments = append(assignments, ast.NewLetVariable(varNames[i], arg))
-
-			// update the argument to be the variable reference.
-			newArgs[i] = ast.NewVariableRef(varNames[i])
-		}
-	}
-
-	return assignments, newArgs
-}
-
-// minimizeNullChecks iterates through a slice of arguments to null-check and
-// "minimizes" them according to the following rules:
-//   - literals are not included in the returned slice of conditions.
-//       - if a null literal is encountered, this function returns an
-//       empty slice and true.
-//   - columns are not null-checked in-line, but instead are added to
-//   the map of columnsToNullCheck and a reference to the null-check
-//   is used.
-//   - other values are wrapped in a null-check.
-//
-// For example,
-//   minimizeNullChecks(
-//     ...,
-//     []ast.Expr{*ast.FieldRef{Name: "a"}, *ast.Document{Elements: ...}}
-//   )
-// returns the following:
-//   ([]ast.Expr{
-//   	*ast.VariableRef{Name: "a_is_null"},
-//   	ast.Binary{Op: "lte", left: ..., right: *ast.Constant(null)}
-//   }, false)
-//
-// minimizeNullChecks returns a slice of conditions (for use for WrapInCond)
-// and a bool indicating whether or not a literal null value was found.
-func minimizeNullChecks(columnsToNullCheck map[string]struct{}, argsToNullCheck ...ast.Expr) ([]ast.Expr, bool) {
-	minimizedConds := make([]ast.Expr, 0, len(argsToNullCheck))
-	for _, arg := range argsToNullCheck {
-		switch a := arg.(type) {
-		case *ast.Constant:
-			// literals do not need to be included in the slice of
-			// conditions. Their values can be inspected here in Go:
-			if a.Value.Type == bsontype.Null {
-				// if an argument to null-check is a null literal, return
-				// true to indicate the provided conditions contained a
-				// literal null value.
-				return []ast.Expr{}, true
-			}
-
-		case *ast.FieldRef:
-			// columns that need to be null-checked are added to the map of
-			// columnsToNullCheck and the null-checked variable ref is
-			// included in the slice of conditions.
-			if astutil.AllParentsAreFieldRefs(a) {
-				columnName := astutil.FieldRefString(a)
-				columnsToNullCheck[columnName] = struct{}{}
-				minimizedConds = append(minimizedConds, toNullCheckedLetVarRef(columnName))
-			} else {
-				// for cases where a parent is an ast.VariableRef (which should not be
-				// null-checked at the top level).
-				minimizedConds = append(minimizedConds, astutil.WrapInNullCheck(a))
-			}
-
-		default:
-			// anything that is not a literal or column needs to be wrapped in
-			// a null-check and that is included in the slice of conditions.
-			minimizedConds = append(minimizedConds, astutil.WrapInNullCheck(arg))
-		}
-	}
-
-	return minimizedConds, false
-}
-
 // wrapSingleArgFuncWithNullCheck returns a null checked version of the
 // argued function (operator and argument).
-// If the expr is a column, this function will add it to the PushdownTranslator
-// and will use the null-checked variable binding as the condition.
 func wrapSingleArgFuncWithNullCheck(op string, expr SQLExpr, t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	arg, err := t.ToAggregationLanguage(expr)
 	if err != nil {
 		return nil, err
 	}
 
-	switch a := arg.(type) {
-	case *ast.FieldRef:
-		var nullCheck ast.Expr
-		if astutil.AllParentsAreFieldRefs(a) {
-			columnName := astutil.FieldRefString(a)
-			t.ColumnsToNullCheck()[columnName] = struct{}{}
-			nullCheck = toNullCheckedLetVarRef(columnName)
-		} else {
-			// for cases where a parent is an ast.VariableRef (which should not be
-			// null-checked at the top level).
-			nullCheck = astutil.WrapInNullCheck(a)
-		}
-
-		return astutil.WrapInCond(
-			astutil.NullLiteral,
-			ast.NewFunction(op, arg),
-			nullCheck,
-		), nil
-	}
-
 	return astutil.WrapSingleArgFuncWithNullCheck(op, arg), nil
-}
-
-func wrapInNullCheckedCond(
-	columnsToNullCheck map[string]struct{},
-	truePart, falsePart ast.Expr,
-	argsToNullCheck ...ast.Expr,
-) ast.Expr {
-	conds, containsNullLiteral := minimizeNullChecks(columnsToNullCheck, argsToNullCheck...)
-	if containsNullLiteral {
-		return truePart
-	}
-
-	return astutil.WrapInCond(truePart, falsePart, conds...)
-}
-
-// wrapInLet returns a $let if there are assignments, and the evaluation otherwise
-func wrapInLet(assignments []*ast.LetVariable, evaluation ast.Expr) ast.Expr {
-	if len(assignments) == 0 {
-		return evaluation
-	}
-
-	return ast.NewLet(assignments, evaluation)
 }

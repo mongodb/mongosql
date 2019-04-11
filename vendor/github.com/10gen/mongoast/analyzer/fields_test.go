@@ -9,7 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestReferencedFieldNames_MatchExpr(t *testing.T) {
+func TestReferencedFieldRoots_MatchExpr(t *testing.T) {
 	testCases := []struct {
 		input            string
 		expectedNames    []string
@@ -17,14 +17,14 @@ func TestReferencedFieldNames_MatchExpr(t *testing.T) {
 	}{
 		{`{ "a": 1 }`, []string{"a"}, true},
 		{`{ "a": { "$eee": 7 } }`, []string{"a"}, false},
-		{`{ "a.1.2.b": { "$eee": 7 } }`, []string{"b"}, false},
+		{`{ "a.1.2.b": { "$eee": 7 } }`, []string{"a"}, false},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			expr := parsertest.ParseMatchExpr(tc.input)
 
-			actual, actualComplete := analyzer.ReferencedFieldNames(expr)
+			actual, actualComplete := analyzer.ReferencedFieldRoots(expr)
 			if !cmp.Equal(tc.expectedNames, actual) {
 				t.Fatalf("predicate splits are not equal\n  %s", cmp.Diff(tc.expectedNames, actual))
 			}
@@ -35,7 +35,7 @@ func TestReferencedFieldNames_MatchExpr(t *testing.T) {
 	}
 }
 
-func TestReferencedFieldNames_Expr(t *testing.T) {
+func TestReferencedFieldRoots_Expr(t *testing.T) {
 	testCases := []struct {
 		input            string
 		expectedNames    []string
@@ -54,7 +54,7 @@ func TestReferencedFieldNames_Expr(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.input, func(t *testing.T) {
 			expr := parsertest.ParseExpr(tc.input)
-			actual, actualComplete := analyzer.ReferencedFieldNames(expr)
+			actual, actualComplete := analyzer.ReferencedFieldRoots(expr)
 			if !cmp.Equal(tc.expectedNames, actual) {
 				t.Fatalf("predicate splits are not equal\n  %s", cmp.Diff(tc.expectedNames, actual))
 			}
@@ -65,7 +65,7 @@ func TestReferencedFieldNames_Expr(t *testing.T) {
 	}
 }
 
-func TestReferencedFieldNames_Stage(t *testing.T) {
+func TestReferencedFieldRoots_Stage(t *testing.T) {
 	testCases := []struct {
 		input            string
 		expectedNames    []string
@@ -73,6 +73,7 @@ func TestReferencedFieldNames_Stage(t *testing.T) {
 	}{
 		{`{ "$match": { "a": 1 } }`, []string{"a"}, true},
 		{`{ "$match": { "a": { "$eee": 7 } } }`, []string{"a"}, false},
+		{`{ "$project": { "a.b": 1 }}`, []string{"a"}, true},
 
 		// TODO: bug in the bson libraries json parser
 		//{`{ "$project": { "_id": 0, "a": 1, "b": "$b", "c": { "$gt": [1, "$d"] } } }`, []string{"a", "b", "d"}, true},
@@ -82,7 +83,7 @@ func TestReferencedFieldNames_Stage(t *testing.T) {
 		t.Run(tc.input, func(t *testing.T) {
 			expr := parsertest.ParseStage(tc.input)
 
-			actual, actualComplete := analyzer.ReferencedFieldNames(expr)
+			actual, actualComplete := analyzer.ReferencedFieldRoots(expr)
 			if !cmp.Equal(tc.expectedNames, actual) {
 				t.Fatalf("predicate splits are not equal\n  %s", cmp.Diff(tc.expectedNames, actual))
 			}
@@ -93,7 +94,7 @@ func TestReferencedFieldNames_Stage(t *testing.T) {
 	}
 }
 
-func TestReferencedFieldNames_Pipeline(t *testing.T) {
+func TestReferencedFieldRoots_Pipeline(t *testing.T) {
 	testCases := []struct {
 		input            string
 		expectedNames    []string

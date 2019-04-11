@@ -150,6 +150,16 @@ type Document struct {
 	Elements []*DocumentElement
 }
 
+// FieldsMap returns the Elements of a Document as a
+// map from string to Expr.
+func (n *Document) FieldsMap() map[string]Expr {
+	elements := make(map[string]Expr)
+	for _, e := range n.Elements {
+		elements[e.Name] = e.Expr
+	}
+	return elements
+}
+
 // NewFieldOrArrayIndexRef makes a FieldOrArrayIndexRef.
 func NewFieldOrArrayIndexRef(number int32, parent Expr) *FieldOrArrayIndexRef {
 	return &FieldOrArrayIndexRef{

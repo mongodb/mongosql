@@ -1,6 +1,7 @@
 package optimizer_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/mongoast/ast"
@@ -95,7 +96,7 @@ func TestSubpipelineOptimization(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := optimizer.RunPasses(nil, tc.input, optimizer.Reorder)
+			actual := optimizer.RunPasses(context.Background(), tc.input, optimizer.Reorder)
 
 			if !cmp.Equal(tc.expected, actual) {
 				t.Fatalf("pipelines are not equal\n  %s", cmp.Diff(tc.expected, actual))
@@ -132,13 +133,57 @@ func TestPassInclusion(t *testing.T) {
 				{"$sort": {"a": 1}}
 			 ]`,
 		},
+		{
+			"ensure optimizer runs PRE",
+			`[
+				{"$project":
+					{"a":
+					    {"$sub":
+						[
+							{"$add": [
+								{"$add": ["$c", "$d"]},
+								{"$add": ["$c", "$d"]},
+								{"$add": ["$c", "$d"]}
+								]
+							},
+							{"$add": [
+								{"$add": ["$c", "$d"]},
+								{"$add": ["$c", "$d"]},
+								{"$add": ["$c", "$d"]}
+								]
+							}
+						]
+						}
+					}
+				}
+			 ]`,
+			`[
+			  {"$project":
+			  	{"a":
+					{"$let":
+						{"vars": {"mongoast__deduplicated__expr__0": {"$add": ["$c","$d"]}},
+						 "in":
+						 	{"$let":
+								{"vars": {"mongoast__deduplicated__expr__1":
+										{"$add": ["$$mongoast__deduplicated__expr__0",
+													"$$mongoast__deduplicated__expr__0",
+													"$$mongoast__deduplicated__expr__0"]}},
+									"in": {"$sub": ["$$mongoast__deduplicated__expr__1","$$mongoast__deduplicated__expr__1"]}
+								}
+							}
+						}
+					}
+				}
+			 }
+			 ]`,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			in := parsertest.ParsePipeline(tc.input)
 			expected := parsertest.ParsePipeline(tc.expected)
-			actual := optimizer.Optimize(nil, in)
+			actual := optimizer.Optimize(context.Background(), in)
 
 			expectedStr := parser.DeparsePipeline(expected).String()
 			actualStr := parser.DeparsePipeline(actual).String()

@@ -3,7 +3,6 @@ package evaluator
 import (
 	"encoding/hex"
 	"fmt"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -147,7 +146,6 @@ type FieldRefLookup func(databaseName, tableName, columnName string) (ast.Ref, b
 type PushdownTranslator struct {
 	LookupFieldRef       FieldRefLookup
 	Cfg                  *PushdownConfig
-	columnsToNullCheck   map[string]struct{}
 	subqueryLookupStages []ast.Stage
 }
 
@@ -156,7 +154,6 @@ func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldRef FieldRefLookup) *
 	return &PushdownTranslator{
 		Cfg:                  cfg,
 		LookupFieldRef:       lookupFieldRef,
-		columnsToNullCheck:   map[string]struct{}{},
 		subqueryLookupStages: []ast.Stage{},
 	}
 }
@@ -194,17 +191,6 @@ func (t *PushdownTranslator) versionAtLeast(major, minor, patch uint8) bool {
 	return procutil.VersionAtLeast(t.Cfg.mongoDBVersion, []uint8{major, minor, patch})
 }
 
-// ClearColumnsToNullCheck clears this translator's collection of columns
-// to null-check.
-func (t *PushdownTranslator) ClearColumnsToNullCheck() {
-	t.columnsToNullCheck = map[string]struct{}{}
-}
-
-// ColumnsToNullCheck returns the columnsToNullCheck map.
-func (t *PushdownTranslator) ColumnsToNullCheck() map[string]struct{} {
-	return t.columnsToNullCheck
-}
-
 // ToAggregationLanguage translates the provided SQLExpr into something that can
 // be used in an aggregation pipeline. If the provided SQLExpr cannot be
 // translated, the second return value will be an error.
@@ -231,36 +217,12 @@ func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (ast.Expr, SQLExpr) {
 	return nil, e
 }
 
-// withNullCheckedColumnsScope wraps the argument in a $let with the
-// variable bindings for this translator's columns to null-check (if any exist).
-func (t *PushdownTranslator) withNullCheckedColumnsScope(evaluation ast.Expr) ast.Expr {
-	assignments := make([]*ast.LetVariable, len(t.columnsToNullCheck))
-	i := 0
-	for columnName := range t.columnsToNullCheck {
-		assignments[i] = ast.NewLetVariable(
-			toNullCheckedLetVarName(columnName), astutil.WrapInNullCheck(astutil.FieldRefFromFieldName(columnName)))
-		i++
-	}
-
-	// Sort the assignments so the order of let variables is deterministic.
-	// This is useful for testing.
-	sort.Slice(assignments, func(i, j int) bool {
-		return assignments[i].Name < assignments[j].Name
-	})
-
-	return wrapInLet(assignments, evaluation)
-}
-
 // TranslateExpr is a wrapper around ToAggregationLanguage that will fail to
 // translate the expr if the resulting aggregation exceeds the maximum allowed
 // nesting depth for BSON documents.
 func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (ast.Expr, PushdownFailure) {
 	doc, err, _ := t.translateExprWithDepth(e)
-	if err != nil {
-		return doc, err
-	}
-
-	return t.withNullCheckedColumnsScope(doc), nil
+	return doc, err
 }
 
 // nolint: unparam
@@ -290,11 +252,7 @@ func (t *PushdownTranslator) translateExprWithDepth(e SQLExpr) (ast.Expr, Pushdo
 // allowed nesting depth for BSON documents.
 func (t *PushdownTranslator) TranslateAggPredicate(e SQLExpr) (ast.Expr, PushdownFailure) {
 	doc, err, _ := t.translateAggPredicateWithDepth(e)
-	if err != nil {
-		return doc, err
-	}
-
-	return t.withNullCheckedColumnsScope(doc), nil
+	return doc, err
 }
 
 func (t *PushdownTranslator) translateAggPredicateWithDepth(e SQLExpr) (ast.Expr, PushdownFailure, uint32) {

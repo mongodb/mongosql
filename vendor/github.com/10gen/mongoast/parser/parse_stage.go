@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
+	"github.com/10gen/mongoast/util/decimalutil"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -565,6 +566,8 @@ func parseProjectStageItems(doc bsoncore.Document, prefix string) ([]ast.Project
 			switch value.Type {
 			case bsontype.Boolean:
 				exclude = !value.Boolean()
+			case bsontype.Decimal128:
+				exclude = decimalutil.IsZero(decimalutil.FromPrimitive(value.Decimal128()))
 			case bsontype.Double:
 				exclude = value.Double() == 0.0
 			case bsontype.Int32:
@@ -626,7 +629,7 @@ func parseReplaceRootStage(doc bsoncore.Document) (*ast.ReplaceRootStage, error)
 			}
 		default:
 			return nil, errors.Errorf(
-				"unrecognized option to $replaceRoot stage: '%s', only valid option is 'newRoot'",
+				"unrecognized option to $replaceRoot stage: %s, only valid option is 'newRoot'",
 				e.Key(),
 			)
 		}
@@ -704,6 +707,10 @@ func parseSortMergeStage(doc bsoncore.Document) (*ast.SortedMergeStage, error) {
 
 func parseSortItems(doc bsoncore.Document) ([]*ast.SortItem, error) {
 
+	compareDecimal := func(x decimalutil.Decimal128, y int32) int {
+		return decimalutil.Compare(x, decimalutil.FromInt32(y))
+	}
+
 	elems, _ := doc.Elements()
 	items := make([]*ast.SortItem, len(elems))
 	for i, e := range elems {
@@ -715,6 +722,13 @@ func parseSortItems(doc bsoncore.Document) ([]*ast.SortItem, error) {
 		descending := false
 		value := e.Value()
 		switch value.Type {
+		case bsontype.Decimal128:
+			d128 := decimalutil.FromPrimitive(value.Decimal128())
+			if compareDecimal(d128, -1) <= 0 && compareDecimal(d128, -2) > 0 {
+				descending = true
+			} else if compareDecimal(d128, 1) < 0 || compareDecimal(d128, 2) >= 0 {
+				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
+			}
 		case bsontype.Double:
 			f64 := value.Double()
 			if f64 <= -1.0 && f64 > -2.0 {

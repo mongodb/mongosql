@@ -1,6 +1,7 @@
 package optimizer_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/mongoast/ast"
@@ -94,7 +95,7 @@ func TestReorder(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			actual := optimizer.RunPasses(nil, tc.input, optimizer.Reorder)
+			actual := optimizer.RunPasses(context.Background(), tc.input, optimizer.Reorder)
 
 			if !cmp.Equal(tc.expected, actual) {
 				t.Fatalf("pipelines are not equal\n  %s", cmp.Diff(tc.expected, actual))

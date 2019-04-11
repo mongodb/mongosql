@@ -314,6 +314,18 @@ type ProjectStage struct {
 	Items []ProjectItem
 }
 
+// IsExclusion returns true if this project is an exclusion.
+func (n *ProjectStage) IsExclusion() bool {
+	for _, i := range n.Items {
+		if epi, ok := i.(*ExcludeProjectItem); ok {
+			if GetDottedFieldName(epi.FieldRef) != "_id" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // ExcludeItems returns all the items that should be excluded.
 func (n *ProjectStage) ExcludeItems() map[string]struct{} {
 	m := make(map[string]struct{})

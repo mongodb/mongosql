@@ -1,44 +1,11 @@
 package optimizer
 
 import (
-	"sort"
-
 	"github.com/10gen/mongoast/analyzer"
 	"github.com/10gen/mongoast/ast"
 )
 
-func mkStringSet(strs []string) map[string]struct{} {
-	ret := make(map[string]struct{}, len(strs))
-	for _, str := range strs {
-		ret[str] = struct{}{}
-	}
-	return ret
-}
-
-func replaceStringSet(set map[string]struct{}, strs []string) map[string]struct{} {
-	// This might be slightly less efficient than just replacing the whole map,
-	// but this avoids the need to keep liveFields as a pointer to a map.
-	for k := range set {
-		delete(set, k)
-	}
-	return appendToStringSet(set, strs)
-}
-
-func appendToStringSet(set map[string]struct{}, strs []string) map[string]struct{} {
-	for _, str := range strs {
-		set[str] = struct{}{}
-	}
-	return set
-}
-
-func sortedFields(set map[string]struct{}) []string {
-	ret := make([]string, 0, len(set))
-	for str := range set {
-		ret = append(ret, str)
-	}
-	sort.Strings(ret)
-	return ret
-}
+var idRef = ast.NewFieldRef("_id", nil)
 
 // DeadCodeElimination removes dead code.
 func DeadCodeElimination(pipeline *ast.Pipeline) *ast.Pipeline {
@@ -157,8 +124,15 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 	// of the if cases above.
 	case *ast.ProjectStage:
 		if keepCount == 0 {
+			// If this is an exclusion $project, just keep it as is.
+			if typedStage.IsExclusion() {
+				return true
+			}
 			// Since we aren't keeping anything, we need to make a $project stage that
-			// kills all the currently live values.
+			// kills all the currently live values. UNLESS there are no live values.
+			if len(liveFields) == 0 {
+				return false
+			}
 			excludes := make([]ast.ProjectItem, len(liveFields))
 			for i, fieldName := range sortedFields(liveFields) {
 				excludes[i] = ast.NewExcludeProjectItem(ast.NewFieldRef(fieldName, nil))
@@ -171,11 +145,24 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 			replaceStringSet(liveFields, []string{})
 			return true
 		}
-		newItems := make([]ast.ProjectItem, 0, keepCount)
+		var newItems []ast.ProjectItem
+		// Technically this has to be 1 or 0 at this point, since we are keeping
+		// any inclusions, any other $project would be malformed and caught
+		// as invalid by the parser.
+		hasIDExclude := len(typedStage.ExcludeItems()) == 1
+		if hasIDExclude {
+			newItems = make([]ast.ProjectItem, 0, keepCount+1)
+		} else {
+			newItems = make([]ast.ProjectItem, 0, keepCount)
+		}
+		nonExcludeItems := typedStage.NonExcludeItems()
 		for i, keep := range keepIndices {
 			if keep {
-				newItems = append(newItems, typedStage.Items[i])
+				newItems = append(newItems, nonExcludeItems[i])
 			}
+		}
+		if hasIDExclude {
+			newItems = append(newItems, ast.NewExcludeProjectItem(idRef))
 		}
 		typedStage.Items = newItems
 	case *ast.ReplaceRootStage:

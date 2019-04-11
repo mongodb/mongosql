@@ -228,9 +228,7 @@ func WrapInCosPowerSeries(expr ast.Expr) *ast.Let {
 // WrapInDateFormat wraps an Aggregation Expression that evaluates to a date
 // in a date_format expression that will use '$dateFromString' to format
 // a date to a string.
-// The conditions on which to return nil may be provided; otherwise the date will
-// be wrapped in a null-check.
-func WrapInDateFormat(date ast.Expr, mysqlFormat string, conds ...ast.Expr) (ast.Expr, bool) {
+func WrapInDateFormat(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
 	var format string
 	for i := 0; i < len(mysqlFormat); i++ {
 		if mysqlFormat[i] == '%' {
@@ -273,14 +271,12 @@ func WrapInDateFormat(date ast.Expr, mysqlFormat string, conds ...ast.Expr) (ast
 
 	if val, ok := date.(*ast.Constant); ok && val.Value.Type == bsontype.Null {
 		return nil, true
-	} else if len(conds) == 0 {
-		conds = append(conds, WrapInNullCheck(date))
 	}
 
-	return WrapInCond(
+	return WrapInNullCheckedCond(
 		NullLiteral,
 		WrapInDateToString(date, format),
-		conds...,
+		date,
 	), true
 }
 
@@ -472,11 +468,13 @@ func WrapInNullCheckedCond(truePart, falsePart ast.Expr, conds ...ast.Expr) ast.
 	var condition ast.Expr
 	newConds := make([]ast.Expr, 0, len(conds))
 	for _, cond := range conds {
-		if value, ok := cond.(*ast.Constant); !ok {
-			newConds = append(newConds, WrapInNullCheck(cond))
-		} else if value.Value.Type == bsontype.Null {
+		unknown, isUnknown := cond.(*ast.Unknown)
+		constant, isConstant := cond.(*ast.Constant)
+		if (isUnknown && unknown.Value.Type == bsontype.Null) ||
+			(isConstant && constant.Value.Type == bsontype.Null) {
 			return truePart
 		}
+		newConds = append(newConds, WrapInNullCheck(cond))
 	}
 	switch len(newConds) {
 	case 0:

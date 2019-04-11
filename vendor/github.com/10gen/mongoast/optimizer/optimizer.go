@@ -15,20 +15,23 @@ func Optimize(ctx context.Context, pipeline *ast.Pipeline) *ast.Pipeline {
 		DeadCodeElimination,
 		Reorder,
 		DeadCodeElimination,
+		LetMinimization,
+		LetMerging,
+		PartialRedundancyElimination,
+		LetMinimization,
+		LetMerging,
 	)
 }
 
 // RunPasses runs optimization passes, in order, on a pipeline (and all of its subpipelines.
 func RunPasses(ctx context.Context, pipeline *ast.Pipeline, opts ...Optimization) *ast.Pipeline {
 	checkCancel := func() bool {
-		if ctx != nil {
-			select {
-			case <-ctx.Done():
-				return true
-			default:
-			}
+		select {
+		case <-ctx.Done():
+			return true
+		default:
+			return false
 		}
-		return false
 	}
 
 	for _, opt := range opts {

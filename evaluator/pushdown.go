@@ -2515,7 +2515,6 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				},
 			)
 		}
-		t.ClearColumnsToNullCheck()
 	}
 
 	if len(fieldsToProject) == 0 {

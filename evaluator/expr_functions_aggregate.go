@@ -97,38 +97,6 @@ func floatingPointAggregationFunctionEvalType(e types.EvalType) types.EvalType {
 	return types.EvalDouble
 }
 
-// nullCheckAndWrapInAggOp returns a document for the provided aggregation function
-// with the operand wrapped in a null-check $let binding (if one is needed). It also clears
-// the PushdownTranslator's column references.
-//
-// In general, columns that need to be null-checked anywhere in a pipeline are null-checked
-// in an outer $let binding. The $group stage has the following prototype form:
-//   { $group: { _id: <expr>, <field1>: { <accumulator>: <expr> }, ... } }
-// The <exprs> may be wrapped in $let, but the outer <accumulators> cannot.
-// This function is used for this situation: the operand of the accumulator (<expr>) is
-// wrapped in the $let instead of the entire accumulator.
-//
-// For example, nullCheckAndWrapInAggOp("$avg", { $cond: [$$aIsNull, 0, $a] }, t) produces:
-//   {
-//     $avg: {
-//       $let: {
-//         vars: { aIsNull: { $lte: [$a, null] } },
-//         in: { $cond: [$$aIsNull, 0, $a] }
-//       }
-//   }
-// as opposed to the INVALID translation:
-//  {
-//    $let: {
-//      vars: { aIsNull: { $lte: [$a, null] } },
-//      in: { $avg: { $cond: [$$aIsNull, 0, $a] } }
-//    }
-//  }
-func (t *PushdownTranslator) nullCheckAndWrapInAggOp(aggOp string, operand ast.Expr) *ast.Function {
-	nullCheckedOperand := t.withNullCheckedColumnsScope(operand)
-	t.ClearColumnsToNullCheck()
-	return ast.NewFunction(aggOp, nullCheckedOperand)
-}
-
 // SQLAvgFunctionExpr computes average.
 type SQLAvgFunctionExpr struct {
 	baseAggFunctionExpr
@@ -270,7 +238,7 @@ func (f *SQLAvgFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.E
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return t.nullCheckAndWrapInAggOp(bsonutil.OpAvg, transExpr), nil
+	return ast.NewFunction(bsonutil.OpAvg, transExpr), nil
 }
 
 // SQLCountFunctionExpr counts.
@@ -714,7 +682,7 @@ func (f *SQLMaxFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.E
 		return nil, err
 	}
 
-	return t.nullCheckAndWrapInAggOp(bsonutil.OpMax, transExpr), nil
+	return ast.NewFunction(bsonutil.OpMax, transExpr), nil
 }
 
 // SQLMinFunctionExpr is a function that finds the minimal element.
@@ -818,7 +786,7 @@ func (f *SQLMinFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.E
 		return nil, err
 	}
 
-	return t.nullCheckAndWrapInAggOp(bsonutil.OpMin, transExpr), nil
+	return ast.NewFunction(bsonutil.OpMin, transExpr), nil
 }
 
 // SQLSumFunctionExpr computes the summation of elements.
@@ -961,7 +929,7 @@ func (f *SQLSumFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.E
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return t.nullCheckAndWrapInAggOp(bsonutil.OpSum, transExpr), nil
+	return ast.NewFunction(bsonutil.OpSum, transExpr), nil
 }
 
 // SQLStdDevFunctionExpr computes a normal standard distribution for a population.
@@ -1129,7 +1097,7 @@ func (f *SQLStdDevFunctionExpr) ToAggregationLanguage(t *PushdownTranslator) (as
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return t.nullCheckAndWrapInAggOp(bsonutil.OpStdDevPop, transExpr), nil
+	return ast.NewFunction(bsonutil.OpStdDevPop, transExpr), nil
 }
 
 // SQLStdDevSampleFunctionExpr computes standard deviation of a sample.
@@ -1298,5 +1266,5 @@ func (f *SQLStdDevSampleFunctionExpr) ToAggregationLanguage(t *PushdownTranslato
 	if err != nil || transExpr == nil {
 		return nil, err
 	}
-	return t.nullCheckAndWrapInAggOp(bsonutil.OpStdDevSamp, transExpr), nil
+	return ast.NewFunction(bsonutil.OpStdDevSamp, transExpr), nil
 }

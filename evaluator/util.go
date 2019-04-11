@@ -366,18 +366,6 @@ func sanitizeLetVarName(varName string) string {
 	return varName
 }
 
-// toNullCheckedLetVarName sanitizes a variable name and appends "IsNull"
-// to the name (for use in $let-bindings).
-func toNullCheckedLetVarName(varName string) string {
-	return fmt.Sprintf("%s_is_null", sanitizeLetVarName(varName))
-}
-
-// toNullCheckedLetVarRef returns the result of toNullCheckedVarName
-// prepended with "$$".
-func toNullCheckedLetVarRef(fieldName string) *ast.VariableRef {
-	return ast.NewVariableRef(toNullCheckedLetVarName(fieldName))
-}
-
 // ComputeDocNestingDepthWithMaxDepth computes the maximum nesting depth of a document
 // with a depth level at which we can abort early to reduce the cost of checking.
 func ComputeDocNestingDepthWithMaxDepth(doc ast.Expr, maxDepth uint32) uint32 {

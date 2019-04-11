@@ -85,3 +85,32 @@ func GetPathRootFromRef(field ast.Expr) (string, bool) {
 		}
 	}
 }
+
+// GetVariableRefRootNameFromRef gets the variable root for a path, e.g., $$a.b.c,
+// the root is a. Returns true if the root is a variable, and false if it is not.
+func GetVariableRefRootNameFromRef(field ast.Expr) (string, bool) {
+	var cur ast.Expr = field
+	for {
+		switch typedExpr := cur.(type) {
+		case (*ast.FieldRef):
+			if typedExpr.Parent == nil {
+				return "", false
+			}
+			cur = typedExpr.Parent
+		case (*ast.FieldOrArrayIndexRef):
+			if typedExpr.Parent == nil {
+				return "", false
+			}
+			cur = typedExpr.Parent
+		case (*ast.ArrayIndexRef):
+			if typedExpr.Parent == nil {
+				return "", false
+			}
+			cur = typedExpr.Parent
+		case (*ast.VariableRef):
+			return typedExpr.Name, true
+		default:
+			return "", false
+		}
+	}
+}
