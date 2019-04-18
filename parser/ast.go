@@ -234,7 +234,7 @@ func (node *DropTable) Format(buf *TrackedBuffer) {
 		buf.Fprintf("if exists ")
 	}
 	node.Name.Format(buf)
-	buf.Fprintf(node.Opt.Map(prependSpace).Else(""))
+	buf.Fprintf("%s", node.Opt.Map(prependSpace).Else(""))
 }
 
 // Comments represents a list of comments.
@@ -277,8 +277,8 @@ type StarExpr struct {
 }
 
 func (node *StarExpr) Format(buf *TrackedBuffer) {
-	buf.Fprintf(node.DatabaseName.Map(appendDot).Else(""))
-	buf.Fprintf(node.TableName.Map(appendDot).Else(""))
+	buf.Fprintf("%s", node.DatabaseName.Map(appendDot).Else(""))
+	buf.Fprintf("%s", node.TableName.Map(appendDot).Else(""))
 	buf.Fprintf("*")
 }
 
@@ -309,7 +309,7 @@ var escape option.StringMapFunc = func(s string) string {
 
 func (node *NonStarExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v", node.Expr)
-	buf.Fprintf(node.As.Map(prependAs).Else(""))
+	buf.Fprintf("%s", node.As.Map(prependAs).Else(""))
 }
 
 // Columns represents an insert column list.
@@ -369,7 +369,7 @@ type AliasedTableExpr struct {
 
 func (node *AliasedTableExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v", node.Expr)
-	buf.Fprintf(node.As.Map(prependAs).Else(""))
+	buf.Fprintf("%s", node.As.Map(prependAs).Else(""))
 	if node.Hints != nil {
 		// Hint node provides the space padding.
 		buf.Fprintf("%v", node.Hints)
@@ -394,8 +394,8 @@ type TableName struct {
 }
 
 func (node *TableName) Format(buf *TrackedBuffer) {
-	buf.Fprintf(node.Qualifier.Map(escape).Map(appendDot).Else(""))
-	buf.Fprintf(escape(node.Name))
+	buf.Fprintf("%s", node.Qualifier.Map(escape).Map(appendDot).Else(""))
+	buf.Fprintf("%s", escape(node.Name))
 }
 
 // ParenTableExpr represents a parenthesized TableExpr.
@@ -751,9 +751,9 @@ type ColName struct {
 }
 
 func (node *ColName) Format(buf *TrackedBuffer) {
-	buf.Fprintf(node.Database.Map(escape).Map(appendDot).Else(""))
-	buf.Fprintf(node.Qualifier.Map(escape).Map(appendDot).Else(""))
-	buf.Fprintf(escape(node.Name))
+	buf.Fprintf("%s", node.Database.Map(escape).Map(appendDot).Else(""))
+	buf.Fprintf("%s", node.Qualifier.Map(escape).Map(appendDot).Else(""))
+	buf.Fprintf("%s", escape(node.Name))
 }
 
 // Tuple represents a tuple. It can be ValTuple, Subquery.

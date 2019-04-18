@@ -25,9 +25,7 @@ func NewRewriterConfig(lg log.Logger, rewriteDistinctAsGroup bool) *RewriterConf
 // RewriteQuery performs any syntactic rewrites. It will return an error,
 // if one of the syntactic rewrites raises an error.
 func RewriteQuery(cfg *RewriterConfig, stmt parser.Statement) (parser.Statement, error) {
-	/* BI-2000: re-enable
 	oldStmtString := parser.String(stmt)
-	*/
 
 	// Add explicit aliases for columns without them, so that the column headers
 	// don't get changed by any of the following rewrites.
@@ -46,7 +44,6 @@ func RewriteQuery(cfg *RewriterConfig, stmt parser.Statement) (parser.Statement,
 		stmt = parser.RewriteDistinct(stmt)
 	}
 
-	/* BI-2000: re-enable
 	// We check the queries for string equality to tell if a rewrite occurs. The
 	// reason for this is the rewrites might happen under the root, as is the
 	// case of unions.
@@ -54,7 +51,6 @@ func RewriteQuery(cfg *RewriterConfig, stmt parser.Statement) (parser.Statement,
 	if oldStmtString != newStmtString {
 		cfg.lg.Debugf(log.Admin, "rewritten query: `%s`", newStmtString)
 	}
-	*/
 
 	return stmt, nil
 }
