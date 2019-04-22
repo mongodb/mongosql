@@ -78,6 +78,10 @@ func (ss *SaslServer) Next(challenge []byte) ([]byte, error) {
 		status := C.mongosql_gssapi_server_negotiate(&ss.gss, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
 		case C.GSSAPI_OK:
+			if ss.gss.has_delegated_client_cred == 0 {
+				return nil, fmt.Errorf("client did not provide a delegated credential")
+			}
+
 			ss.state = ContextComplete
 		case C.GSSAPI_CONTINUE:
 		default:
