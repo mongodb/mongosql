@@ -1525,6 +1525,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-kill-queries-admin-user
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-kill-queries-3.2
   tags: ["test", "config"]
 

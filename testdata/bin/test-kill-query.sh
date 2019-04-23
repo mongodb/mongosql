@@ -43,7 +43,7 @@ run_test() {
 
     # The first line of output should be the connection ID we want to kill
     # Run the query as user 1.
-    MYSQL_PWD=$USER1_PWD mysql $CLIENT_ARGS --disable-column-names --unbuffered -e "select connection_id(); $targetQuery" > $outFile 2>&1 &
+    MYSQL_PWD=$user1Pwd mysql $user1ClientArgs --disable-column-names --unbuffered -e "select connection_id(); $targetQuery" > $outFile 2>&1 &
     pid=$!
 
     echo "forked query for job $j pid: $pid"
@@ -75,35 +75,46 @@ run_test() {
         killQuery="kill query $connId"
     fi
 
-    # If this test was run with two different users, the second user should not be able to kill the first's query.
-    if [ "$CLIENT_ARGS" != "$OTHER_CLIENT_ARGS" ]; then
+    # Determine the expected exit code for the kill command issued by user 2.
+    if [ -z "$EXPECTED_KILL_CODE" ]; then
+        # Expect exit code 1 if one is not provided
+        expectedKillCode="1"
+    else
+        expectedKillCode="$EXPECTED_KILL_CODE"
+    fi
 
+    startTime=$(date +%s)
+
+    # If this test was run with two different users, the second user should attempt
+    # to kill the query. The second user should only be able to kill the query if
+    # it is an admin user.
+    if [ "$CLIENT_ARGS" != "$OTHER_CLIENT_ARGS" ]; then
         echo "Attempting to kill query $j with user 2. Command: '$killQuery'"
         # Attempt to kill the query with user 2
-        killResult=$(MYSQL_PWD=$MONGO_OTHER_USER_PWD mysql $OTHER_CLIENT_ARGS -e "$killQuery" 2>&1)
+        killResult=$(MYSQL_PWD=$user2Pwd mysql $user2ClientArgs -e "$killQuery" 2>&1)
         killCode=$?
 
-        echo "kill result for user 2: $killResult"
-        if [ "$killCode" != "1" ]; then
+        if [ "$killCode" != "$expectedKillCode" ]; then
             echo "mysql kill command '$killQuery' exited with code $killCode run as user 2. output: $killResult"
             echo "target query output: $outFile"
             exit 1
         fi
     fi
 
-    echo "Attempting to kill query $j with user 1. Command: '$killQuery'"
+    # If we do not expect user 2 to successfully kill the query, then user 1 should do it.
+    if [ "$KILLING_USER" != "2" ]; then
+        echo "Attempting to kill query $j with user 1. Command: '$killQuery'"
+        # Kill the query with user 1
+        killResult=$(MYSQL_PWD=$user1Pwd mysql $user1ClientArgs -e "$killQuery" 2>&1)
+        killCode=$?
 
-    startTime=$(date +%s)
-    # Kill the query with user 1
-    killResult=$(MYSQL_PWD=$USER1_PWD mysql $CLIENT_ARGS -e "$killQuery" 2>&1)
-    killCode=$?
-    # If the the kill query failed but the exit code of the target query is 0, it completed successfully earlier than expected
-    if [ "$killCode" != "0" ]; then
-        echo "mysql kill command '$killQuery' exited with code $killCode. output: $killResult"
-        echo "target query output: $outFile"
-        exit 1
+        # If the the kill query failed but the exit code of the target query is 0, it completed successfully earlier than expected
+        if [ "$killCode" != "0" ]; then
+            echo "mysql kill command '$killQuery' exited with code $killCode. output: $killResult"
+            echo "target query output: $outFile"
+            exit 1
+        fi
     fi
-
 
     # Wait for the target query to finish.
     echo "waiting for target query $j pid: $pid to exit"
@@ -115,7 +126,7 @@ run_test() {
     killTime=$((endTime-startTime))
 
     # If the exit code is 0, then the query completed too early
-    # The maximum acceptable time is 120 seconds to improve test reliablility.
+    # The maximum acceptable time is 120 seconds to improve test reliability.
     if [ $killTime -gt 120 ] && [ "$code" != "0" ]; then
         echo "query $j took too long to kill: $killTime seconds"
         exit 1
@@ -153,7 +164,7 @@ run_test() {
     shard1Uri=
     shard2Uri=
     mongoBin=$ARTIFACTS_DIR/mongodb/bin/mongo
-    # In our current test configuration, we know we only run with two shards  
+    # In our current test configuration, we know we only run with two shards
     if [ "$TOPOLOGY" == "sharded_cluster" ]; then
         get_shard_uri 0
         shard1Uri="$uri"
@@ -165,14 +176,35 @@ run_test() {
 
     cmd="$(echo "$QUERY" | sed 's/,,/;/g')"
 
-    USER1_PWD=$MYSQL_PWD
+    # If we indicate the users should be swapped, then swap them.
+    # This is used exclusively so that an admin user can be defined as
+    # "user 1" initially (for the purposes of creating the second, non
+    # admin user) and then be switched with the non-admin user. When
+    # the test is run, the non-admin user will issue the query, and the
+    # admin user will attempt to kill it. Admin users can kill any
+    # queries so the kill will be successful.
+    if [ "$SWAP_USERS" == "true" ]; then
+        echo "swapping users"
+        user1Pwd="$MONGO_OTHER_USER_PWD"
+        user1ClientArgs="$OTHER_CLIENT_ARGS"
+        user2Pwd="$MYSQL_PWD"
+        user2ClientArgs="$CLIENT_ARGS"
+    else
+        # If we do not indicate that the users should be swapped, then
+        # assign the users as expected.
+        user1Pwd="$MYSQL_PWD"
+        user1ClientArgs="$CLIENT_ARGS"
+        user2Pwd="$MONGO_OTHER_USER_PWD"
+        user2ClientArgs="$OTHER_CLIENT_ARGS"
+    fi
 
     if [ -z $ITERATIONS ]; then
-        ITERATIONS=10
+        ITERATIONS=5
     fi
     if [ -z $PROCS ]; then
-        PROCS=10
+        PROCS=5
     fi
+
     # Allow this test to be repeated multiple times
     for ((i=0;i<$ITERATIONS;i++)); do
 
