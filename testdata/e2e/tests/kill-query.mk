@@ -20,6 +20,29 @@ test-kill-queries-auth: test-kill-queries
 test-kill-queries-wrong-user: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require,mongo/other-user/read-tableau
 test-kill-queries-wrong-user: test-kill-queries
 
+# Test that killing any queries as an admin does work.
+#
+# The INFRASTRUCTURE_CONFIG sets an admin user (mongo/auth) as "user 1"
+# and a non-admin user (mongo/other-user/read-tableau) as "user 2". This is
+# necessary so the non-admin user can be created by the admin. In this test
+# the users need to be swapped so that the non-admin issues the queries and
+# the admin issues the kills (successfully).
+# The test-kill-query.sh script has default values for all of the variables
+# defined below; in this test they are set for the following reasons:
+# EXPECTED_KILL_CODE - The expected exit code of the kill commmand issued by
+#                      "user 2" (the admin) is 0 (success).
+# SWAP_USERS         - The users need to be swapped after they are created.
+# KILLING_USER       - The user to issue the "kill" is "user 2" (which will be
+#                      the admin user since the users are swapped).
+# PROCS              - Run only 1 process per iteration for this test,
+#                      otherwise the results are flaky.
+test-kill-queries-admin-user: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require,mongo/other-user/read-tableau
+test-kill-queries-admin-user: EXPECTED_KILL_CODE := "0"
+test-kill-queries-admin-user: SWAP_USERS := "true"
+test-kill-queries-admin-user: KILLING_USER := "2"
+test-kill-queries-admin-user: PROCS := 1
+test-kill-queries-admin-user: test-kill-queries
+
 # Test killing queries in 3.2, 3.4, 3.6, 4.0, and latest
 test-kill-queries-3.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.2
 test-kill-queries-3.2: test-kill-queries
@@ -54,10 +77,8 @@ _create-test-user: $(INFRASTRUCTURE_CONFIG) := $(INFRASTRUCTURE_CONFIG),mongo/au
 _create-test-user:
 	$(ENV) MECHANISM="$(MECHANISM)" testdata/bin/create-user.sh
 
-_test-kill: ITERATIONS := 5
-_test-kill: PROCS := 5
 _test-kill:
-	$(ENV) QUERY="select sleep(60)" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="false" testdata/bin/test-kill-query.sh
-	$(ENV) QUERY="select sleep(60)" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="true" testdata/bin/test-kill-query.sh
-	$(ENV) QUERY="select a._id,b.airport_code from tableau.flights201406 as a inner join tableau.attendees as b on a.origin_airport_code = b.airport_code" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="false" testdata/bin/test-kill-query.sh
-	$(ENV) QUERY="select a._id,b.airport_code from tableau.flights201406 as a inner join tableau.attendees as b on a.origin_airport_code = b.airport_code" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="true" testdata/bin/test-kill-query.sh
+	$(ENV) QUERY="select sleep(60)" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="false" EXPECTED_KILL_CODE=$(EXPECTED_KILL_CODE) SWAP_USERS=$(SWAP_USERS) KILLING_USER=$(KILLING_USER) testdata/bin/test-kill-query.sh
+	$(ENV) QUERY="select sleep(60)" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="true" EXPECTED_KILL_CODE=$(EXPECTED_KILL_CODE) SWAP_USERS=$(SWAP_USERS) KILLING_USER=$(KILLING_USER) testdata/bin/test-kill-query.sh
+	$(ENV) QUERY="select a._id,b.airport_code from tableau.flights201406 as a inner join tableau.attendees as b on a.origin_airport_code = b.airport_code" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="false" EXPECTED_KILL_CODE=$(EXPECTED_KILL_CODE) SWAP_USERS=$(SWAP_USERS) KILLING_USER=$(KILLING_USER) testdata/bin/test-kill-query.sh
+	$(ENV) QUERY="select a._id,b.airport_code from tableau.flights201406 as a inner join tableau.attendees as b on a.origin_airport_code = b.airport_code" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_ERROR="ERROR 1317 (70100) at line 1: Query execution was interrupted" KILL_CONN="true" EXPECTED_KILL_CODE=$(EXPECTED_KILL_CODE) SWAP_USERS=$(SWAP_USERS) KILLING_USER=$(KILLING_USER) testdata/bin/test-kill-query.sh
