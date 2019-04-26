@@ -126,6 +126,7 @@ include $(E2E_TEST_DIR)/alter.mk
 include $(E2E_TEST_DIR)/auth.mk
 include $(E2E_TEST_DIR)/cleartext-auth.mk
 include $(E2E_TEST_DIR)/gssapi.mk
+include $(E2E_TEST_DIR)/inter-project-dependencies.mk
 include $(E2E_TEST_DIR)/kill-query.mk
 include $(E2E_TEST_DIR)/log-newlines.mk
 include $(E2E_TEST_DIR)/log-rotation.mk
