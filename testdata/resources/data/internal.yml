@@ -1166,6 +1166,11 @@
   docs:
     - {"a": 1}
 
+- db: "use_test"
+  collection: foo
+  docs:
+    - {"a": 1}
+
 - db: "use_test2"
   collection: test2
   docs:
