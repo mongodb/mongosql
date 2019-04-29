@@ -1435,7 +1435,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_date
-    skip: true
     sql: select value, convert(value, DATE) as converted from string
     variables: {type_conversion_mode: mongosql}
 
@@ -1502,7 +1501,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_date_func
-    skip: true
     sql: select value, date(value) as converted from string
     variables: {type_conversion_mode: mongosql}
 
@@ -1536,7 +1534,7 @@ testcases:
       - [' 5:05 ', null]
       - ['5:05pm', null]
       - ['17:05', null]
-      - ['10/10/11', '2011-10-10 00:00:00']
+      - ['10/10/11', '2011-10-10 00:00:00'] # MM/DD/YY
       - ['10/10/11T11:10:23', '2011-10-10 11:10:23']
       - ['10/10/11 11:10:23', '2011-10-10 11:10:23']
       - ['20101011111023', '2010-10-11 11:10:23']
@@ -1569,7 +1567,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_datetime
-    skip: true
     sql: select value, convert(value, DATETIME) as converted from string
     variables: {type_conversion_mode: mongosql}
 
@@ -1636,7 +1633,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: varchar_to_datetime_func
-    skip: true
     sql: select value, timestamp(value) as converted from string
     variables: {type_conversion_mode: mongosql}
 
