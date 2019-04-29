@@ -3,6 +3,7 @@ package values
 import (
 	"fmt"
 	"math"
+	"regexp"
 	"strings"
 	"time"
 
@@ -15,6 +16,18 @@ import (
 const (
 	maxDateParts     = 8
 	twoDigitPartYear = 70
+)
+
+var (
+	// slashDelimitedDDMMYYYYDateFormat matches DD/MM/YYYY date formats.
+	// It is used for evaluating dates in mongosql conversion mode. See
+	// ParseDateTimeMongo below for more details.
+	slashDelimitedDDMMYYYYDateFormat = regexp.MustCompile(`^(\d{1,2}/\d{1,2}/\d{1,4})`)
+
+	// validTimeFormat matches valid time parts at the end of a timestamp.
+	// It is used for evaluating dates in mongosql conversion mode. See
+	// ParseDateTimeMongo below for more details.
+	validTimeFormat = regexp.MustCompile(`((\s|T)\d{1,2}[.:]\d{1,2}([.:]\d{1,2}(\.\d{0,7})?)?Z?)$`)
 )
 
 // CompareTo compares a SQLValue to another SQLValue. It returns -1 if left
@@ -358,4 +371,140 @@ func StrToDateTime(s string, full bool) (time.Time, int, bool) {
 			schema.DefaultLocale),
 		date[hourIdx],
 		true
+}
+
+// ParseDateTimeMongo parses a DateTime same as ParseDateTime above, except
+// it handles special cases where mongo's behavior diverges from mysql.
+// 1) - 10/11/12 is parsed as 2010-11-12 by mysql and 2012-10-11 by mongo,
+//    - 10/11/2012 is invalid in mysql but is parsed as 2012-10-11 by mongo,
+//    - 2012/10/11 is parsed as 2012-10-11 by both mysql and mongo.
+//    Given those cases, the regular expression used in the function only
+//    checks for the format [M]M/[D]D/[YYY]Y (1 or 2 character month/day,
+//    and 1 to 4 character year).
+// 2) The only valid separators in mongo are "/" and "-" and they must be
+//    consistent (i.e. 10-11-12 or 10/11/12, but not 10-11/12); in mysql,
+//    many more separators are tolerated and they can be mixed. This is only
+//    enforced if separators are present.
+// 3) If the time parts are present (after a space or T separating them from
+//    the date), they must be properly formatted as HH:MM:SS[Z] in mongo.
+//    In mysql, if a string is converted to a date (not a timestamp), the
+//    time parts are ignored even if they are malformed.
+func ParseDateTimeMongo(s string) (time.Time, int, bool) {
+	s = strings.TrimSpace(s)
+
+	sLen := len(s)
+
+	// Case 1: if the string matches the special case slashed date, we
+	// rearrange the pieces so that MM/DD/YYYY becomes YYYY-MM-DD.
+	if slashDelimitedDDMMYYYYDateFormat.MatchString(s) {
+		var month, day, year string
+		pos := 0
+
+		// get the month
+		for ; s[pos] != '/'; pos++ {
+		}
+		month = s[0:pos]
+		pos++
+
+		// get the day
+		start := pos
+		for ; s[pos] != '/'; pos++ {
+		}
+		day = s[start:pos]
+		pos++
+
+		// get the year
+		// Cases to consider:
+		//   - 10/11/12            => 12
+		//   - 10/11/2012          => 2012
+		//   - 10/11/12 01:02:03   => 12
+		//   - 10/11/12T01:02:03   => 12
+		//   - 10/11/2012 01:02:03 => 2012
+		//   - 10/11/2012T01:02:03 => 2012
+		// The year can be no longer than 4 characters. If we encounter the
+		// end of the string, a space, or a 'T' before scanning 4 characters
+		// then that terminates the year.
+		start = pos
+		for i := 0; pos < sLen && s[pos] != ' ' && s[pos] != 'T' && i < 4; i++ {
+			pos++
+		}
+		year = s[start:pos]
+
+		// reassemble as YYYY-MM-DD...
+		s = year + "-" + month + "-" + day + s[pos:]
+	}
+
+	// Case 2: if there are separators, they must be
+	// either '-' or '/' and they must be consistent.
+	pos := 0
+
+	// First, move past the year. It can be no longer than 4 characters.
+	// If we encounter the end of the string or a non-digit before scanning
+	// 4 characters, then that terminates the year.
+	for ; pos < sLen && strutil.IsDigit(s[pos]) && pos < 4; pos++ {
+	}
+
+	// If we reach the end of the string or there are 5 consecutive digits,
+	// we know there are no separators (which may be valid!). We delegate
+	// parsing to StrToDateTime.
+	if pos == sLen || (pos == 4 && strutil.IsDigit(s[pos])) {
+		// If there are no separators, the string must be at
+		// least 8 characters long to be valid in mongo.
+		if sLen < 8 {
+			return time.Time{}, 0, false
+		}
+		return StrToDateTime(s, false)
+	}
+
+	// At this point, we know
+	//   1) pos < sLen, and
+	//   2) s[pos] is not a digit.
+	// This implies that s[pos] must be a separator.
+	sep := s[pos]
+	if sep != '-' && sep != '/' {
+		// Anything other than '-' and '/' are invalid in mongo.
+		return time.Time{}, 0, false
+	}
+
+	// move past the separator
+	pos++
+
+	// Next, move past the month. It can be no longer than 2 characters. Same
+	// as above, if we encounter the end of the string or a non-digit before
+	// scanning 2 characters, then that terminates the month.
+	for i := 0; pos < sLen && strutil.IsDigit(s[pos]) && i < 2; i++ {
+		pos++
+	}
+
+	// If we reach the end of the string or s[pos] is a separator but not the
+	// same one as before, this is immediately known to be invalid.
+	if pos == sLen || (!strutil.IsDigit(s[pos]) && s[pos] != sep) {
+		return time.Time{}, 0, false
+	}
+
+	// move past the separator
+	pos++
+
+	// Case 3: If the time parts are present, they must be formatted
+	// as HH:MM:SS[Z]. At this point, we know the date is formatted
+	// with some separators, so we can correctly enforce that the
+	// time is also formatted as expected.
+
+	// Now, move past the day. It can be no longer than 2 characters. Same
+	// as above, if we encounter the end of the string or a non-digit before
+	// scanning 2 characters, then that terminates the month.
+	for i := 0; pos < sLen && strutil.IsDigit(s[pos]) && i < 2; i++ {
+		pos++
+	}
+
+	// If we did not reach the end of the string after scanning the day part,
+	// then the rest of the date string must end with a validly formatted
+	// time portion. If it does not, this string is invalid.
+	if pos < sLen && !validTimeFormat.MatchString(s) {
+		return time.Time{}, 0, false
+	}
+
+	// At this point, we have handled the special mongo cases, so
+	// now we delegate the actual parsing to StrToDateTime.
+	return StrToDateTime(s, false)
 }

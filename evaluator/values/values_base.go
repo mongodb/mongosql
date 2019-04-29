@@ -1295,7 +1295,7 @@ func (s BaseSQLVarchar) SQLBool() SQLBool {
 
 // SQLDate converts the BaseSQLVarchar receiver, s, to a SQLDate.
 func (s BaseSQLVarchar) SQLDate() SQLDate {
-	t, _, ok := ParseDateTime(strings.TrimSpace(s.val))
+	t, _, ok := ParseDateTimeMongo(strings.TrimSpace(s.val))
 	if !ok {
 		return NewSQLNull(s.kind)
 	}
@@ -1342,7 +1342,7 @@ func (s BaseSQLVarchar) SQLObjectID() SQLObjectID {
 
 // SQLTimestamp converts the BaseSQLVarchar receiver, s, to a SQLTimestamp.
 func (s BaseSQLVarchar) SQLTimestamp() SQLTimestamp {
-	t, _, ok := ParseDateTime(strings.TrimSpace(s.val))
+	t, _, ok := ParseDateTimeMongo(strings.TrimSpace(s.val))
 	if !ok {
 		return NewSQLNull(s.kind)
 	}
