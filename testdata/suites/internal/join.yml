@@ -2292,6 +2292,17 @@ testcases:
     sql: select a._id from join_1 a left join join_1 b on a._id=b._id
 
   - db: join_test
+    description: BI-2171 Natural left join with nested documents
+    expected_names: [_id, a.b, a.c, x.y, x.z]
+    expected_results:
+      - [0, 1, 1, 3, 3]
+      - [1, 2, 2, 4, 4]
+      - [20, 3, null, null, null]
+    expected_types: [int, int, int, int, int]
+    id: natural_left_join_with_nested_documents
+    sql: select * from join_nested_docs_1 natural left join join_nested_docs_2
+
+  - db: join_test
     description: Ensure join criteria doesn't match on null
     expected_names: [b, b]
     expected_results: []

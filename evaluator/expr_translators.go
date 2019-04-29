@@ -549,8 +549,7 @@ func lookupArrayRef(subPlanMs *MongoSourceStage, col *results.Column) (*ast.Func
 	collName := subPlanMs.Collection()
 	lookupArray := ast.NewFieldRef(getSubqueryLookupField(collName, subPlanMs.selectIDs), nil)
 
-	ref := astutil.FieldRefFromFieldName(matchFieldName)
-	ref.Parent = ast.NewVariableRef("this")
+	ref := astutil.FieldRefFromFieldNameWithParent(matchFieldName, ast.NewVariableRef("this"))
 	in := astutil.WrapInIfNull(ref, astutil.NullLiteral)
 
 	return astutil.WrapInMap(lookupArray, "this", in), nil
