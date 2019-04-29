@@ -65,9 +65,18 @@ var factorial = []float64{
 }
 
 // FieldRefFromFieldName creates an ast.FieldRef from a fieldName that
-// possibly includes "."s. Each name preceding a "." is the parent of
-// the following ref; for example:
-//   "c.b.a" becomes
+// possibly includes "."s. See FieldRefFromFieldNameWithParent for more
+// details and examples.
+func FieldRefFromFieldName(fieldName string) *ast.FieldRef {
+	return FieldRefFromFieldNameWithParent(fieldName, nil)
+}
+
+// FieldRefFromFieldNameWithParent creates an ast.FieldRef from a fieldName
+// that possibly includes "."s. Each name preceding a "." is the parent of
+// the following ref; the top-level parent (which is most deeply nested) is
+// provided as an argument to this function. It can be nil.
+// For example:
+//   FieldRefFromFieldNameWithParent("c.b.a", nil) returns
 //   &ast.FieldRef{
 //     Name: "a",
 //     Parent: &ast.FieldRef{
@@ -75,10 +84,21 @@ var factorial = []float64{
 //               Parent: &ast.FieldRef{Name: "c", Parent: nil}
 //             }
 //   }
-func FieldRefFromFieldName(fieldName string) *ast.FieldRef {
+//
+// and
+//
+//   FieldRefFromFieldNameWithParent("b.a", ast.NewVariableRef("this") returns
+//   &ast.FieldRef{
+//     Name: "a",
+//     Parent: &ast.FieldRef{
+//               Name: "b",
+//               Parent: &ast.VariableRef{Name: "this"}
+//             }
+//   }
+func FieldRefFromFieldNameWithParent(fieldName string, parent ast.Expr) *ast.FieldRef {
 	parts := strings.Split(fieldName, ".")
 
-	var ref ast.Expr
+	ref := parent
 	for _, part := range parts {
 		ref = ast.NewFieldRef(part, ref)
 	}

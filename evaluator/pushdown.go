@@ -1256,8 +1256,7 @@ func (v *pushdownVisitor) getFixedLookupFieldRef(
 	// We then also need the condition where fieldName == asField, since prefix will no longer
 	// catch it, since we have added the "."
 	if strings.HasPrefix(fieldName, asField+".") {
-		ref := astutil.FieldRefFromFieldName(strings.TrimPrefix(fieldName, asField+"."))
-		ref.Parent = ast.NewVariableRef("this")
+		ref := astutil.FieldRefFromFieldNameWithParent(strings.TrimPrefix(fieldName, asField+"."), ast.NewVariableRef("this"))
 		return ref, true
 	}
 
