@@ -3,6 +3,7 @@ package translator
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
@@ -31,6 +32,7 @@ type Translator struct {
 // schema stored in the sampleSource database.
 func NewTranslator(ctx context.Context, cfg *config.Schema, s *mongodb.SessionProvider) (*Translator, error) {
 	lgr := log.GlobalLogger()
+	log.SetOutputWriter(ioutil.Discard)
 
 	session, err := s.AuthenticatedAdminSession(context.Background())
 	if err != nil {

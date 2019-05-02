@@ -44,6 +44,7 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer session.Close()
 
 	namespaces := s.cfg.Namespaces()
 
