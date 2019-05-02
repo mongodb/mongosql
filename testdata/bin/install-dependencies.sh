@@ -24,7 +24,12 @@
     esac
 
     cd $ARTIFACTS_DIR
-    curl -O $url
+    curl -O $url \
+         --silent \
+         --fail \
+         --max-time 60 \
+         --retry 5 \
+         --retry-delay 0
 
     if [ "$PUSH_NAME" = "win32" ]; then
         unzip mysql*.zip
