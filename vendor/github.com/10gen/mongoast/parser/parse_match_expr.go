@@ -1,9 +1,6 @@
 package parser
 
 import (
-	"strconv"
-	"strings"
-
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
 	"github.com/pkg/errors"
@@ -113,7 +110,7 @@ func parseNonFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 }
 
 func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
-	left, err := parseMatchFieldRef(e.Key())
+	left, err := ParseFieldRef(e.Key())
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed parsing %s as a field ref", e.Key())
 	}
@@ -173,34 +170,4 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 	}
 
 	return result, nil
-}
-
-func parseMatchFieldRef(s string) (ast.Expr, error) {
-	parts := strings.Split(s, ".")
-	var expr ast.Expr = ast.NewFieldRef(parts[0], nil)
-	for _, part := range parts[1:] {
-		if len(part) == 0 {
-			return nil, errors.New("invalid field ref")
-		}
-
-		if strings.HasPrefix(part, "$[") && strings.HasSuffix(part, "]") {
-			index, err := strconv.Atoi(part[2 : len(part)-1])
-			if err != nil {
-				return nil, errors.Errorf("invalid array index %s", part[2:len(part)-1])
-			}
-
-			expr = ast.NewArrayIndexRef(
-				ast.NewConstant(bsonutil.Int32(int32(index))),
-				expr,
-			)
-		} else {
-			index, err := strconv.Atoi(part)
-			if err != nil {
-				expr = ast.NewFieldRef(part, expr)
-			} else {
-				expr = ast.NewFieldOrArrayIndexRef(int32(index), expr)
-			}
-		}
-	}
-	return expr, nil
 }

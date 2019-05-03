@@ -21,9 +21,8 @@ func TestDeparseStage(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$addFields", bsonutil.DocumentFromElements(
 					"a", bsonutil.String("$foo"),
-					"b", bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					"b",
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -53,9 +52,8 @@ func TestDeparseStage(t *testing.T) {
 					"default", bsonutil.Int32(-1),
 					"output", bsonutil.DocumentFromElements(
 						"count", bsonutil.DocumentFromElements(
-							"$sum", bsonutil.DocumentFromElements(
-								"$literal", bsonutil.Int32(1),
-							),
+							"$sum",
+							bsonutil.Int32(1),
 						),
 						"total", bsonutil.DocumentFromElements(
 							"$sum", bsonutil.String("$a"),
@@ -81,9 +79,8 @@ func TestDeparseStage(t *testing.T) {
 					"buckets", bsonutil.Int64(2),
 					"output", bsonutil.DocumentFromElements(
 						"count", bsonutil.DocumentFromElements(
-							"$sum", bsonutil.DocumentFromElements(
-								"$literal", bsonutil.Int32(1),
-							),
+							"$sum",
+							bsonutil.Int32(1),
 						),
 						"total", bsonutil.DocumentFromElements(
 							"$sum", bsonutil.String("$a"),
@@ -182,7 +179,8 @@ func TestDeparseStage(t *testing.T) {
 			`{"$group": {"_id": 1, "a": {"$sum": "$a"}}}`,
 			bsonutil.DocumentFromElements(
 				"$group", bsonutil.DocumentFromElements(
-					"_id", bsonutil.DocumentFromElements(
+					"_id",
+					bsonutil.DocumentFromElements(
 						"$literal", bsonutil.Int32(1),
 					),
 					"a", bsonutil.DocumentFromElements(
@@ -362,17 +360,11 @@ func TestDeparseStage(t *testing.T) {
 						"if", bsonutil.DocumentFromElements(
 							"$eq", bsonutil.ArrayFromValues(
 								bsonutil.String("$a"),
-								bsonutil.DocumentFromElements(
-									"$literal", bsonutil.Int32(5),
-								),
+								bsonutil.Int32(5),
 							),
 						),
-						"then", bsonutil.DocumentFromElements(
-							"$literal", bsonutil.Int32(1),
-						),
-						"else", bsonutil.DocumentFromElements(
-							"$literal", bsonutil.Int32(0),
-						),
+						"then", bsonutil.Int32(1),
+						"else", bsonutil.Int32(0),
 					),
 				),
 			),

@@ -2,7 +2,9 @@ package optimizer
 
 import (
 	"fmt"
+
 	"github.com/10gen/mongoast/analyzer"
+	"github.com/10gen/mongoast/internal/stringutil"
 
 	"github.com/10gen/mongoast/ast"
 
@@ -32,10 +34,10 @@ func mergeLets(let *ast.Let) ast.Expr {
 	// Collect variables in the current Let in a map for easy lookup.
 	// newVariables is necessary to maintain deterministic order of variables.
 	newVariables := make([]*ast.LetVariable, len(let.Variables))
-	variables := make(map[string]struct{})
+	variables := stringutil.NewStringSet()
 	for i, letVar := range let.Variables {
 		newVariables[i] = letVar
-		variables[letVar.Name] = struct{}{}
+		variables.Add(letVar.Name)
 	}
 
 	// merge is the visit function that finds directly nested Lets
@@ -61,7 +63,7 @@ func mergeLets(let *ast.Let) ast.Expr {
 
 			for _, letVar := range typedN.Variables {
 				// do not merge shadowed variables
-				if _, isShadow := variables[letVar.Name]; isShadow {
+				if variables.Contains(letVar.Name) {
 					newNestedVariables = append(newNestedVariables, letVar)
 					continue
 				}
@@ -76,7 +78,7 @@ func mergeLets(let *ast.Let) ast.Expr {
 
 					switch typedN := n.(type) {
 					case *ast.VariableRef:
-						if _, ok := variables[typedN.Name]; ok {
+						if variables.Contains(typedN.Name) {
 							isDependent = true
 						}
 					}
@@ -89,7 +91,7 @@ func mergeLets(let *ast.Let) ast.Expr {
 				} else {
 					// merge the independent nested variable
 					// into the current set of variables.
-					variables[letVar.Name] = struct{}{}
+					variables.Add(letVar.Name)
 					newVariables = append(newVariables, letVar)
 				}
 			}
@@ -110,12 +112,12 @@ func mergeLets(let *ast.Let) ast.Expr {
 				// In case a Let is nested in a $reduce function, temporarily
 				// add the $$this and $$value variables to the variable set
 				// if they do not already exist.
-				if _, hasThis := variables["this"]; !hasThis {
-					variables["this"] = struct{}{}
+				if !variables.Contains("this") {
+					variables.Add("this")
 					varsToRemove = append(varsToRemove, "this")
 				}
-				if _, hasValue := variables["value"]; !hasValue {
-					variables["value"] = struct{}{}
+				if !variables.Contains("value") {
+					variables.Add("value")
 					varsToRemove = append(varsToRemove, "value")
 				}
 			case "$map", "$filter":
@@ -123,8 +125,8 @@ func mergeLets(let *ast.Let) ast.Expr {
 				// temporarily add the "as" field variable to the variable
 				// set if it does not already exist.
 				asField := getAsField(typedN)
-				if _, hasAs := variables[asField]; !hasAs {
-					variables[asField] = struct{}{}
+				if !variables.Contains(asField) {
+					variables.Add(asField)
 					varsToRemove = append(varsToRemove, asField)
 				}
 			}
@@ -134,7 +136,7 @@ func mergeLets(let *ast.Let) ast.Expr {
 
 			// remove any newly added variables
 			for _, varToRemove := range varsToRemove {
-				delete(variables, varToRemove)
+				variables.Remove(varToRemove)
 			}
 
 			return n

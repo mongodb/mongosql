@@ -1,0 +1,1064 @@
+[
+  {
+    "name": "delete unnecessary $project items",
+    "input": [
+      {
+        "$project": {
+          "a": "$c",
+          "b": "$d"
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": "$c"
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "inclusion $projects use themselves",
+    "input": [
+      {
+        "$project": {
+          "a": "$foo"
+        }
+      },
+      {
+        "$project": {
+          "a": 1
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": "$foo"
+        }
+      },
+      {
+        "$project": {
+          "a": 1
+        }
+      }
+    ]
+  },
+  {
+    "name": "convert whole $project stages to exclude all live values",
+    "input": [
+      {
+        "$project": {
+          "a": "$c",
+          "b": "$d"
+        }
+      },
+      {
+        "$project": {
+          "out": "$z",
+          "out2": "$x"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "x": 0,
+          "z": 0
+        }
+      },
+      {
+        "$project": {
+          "out": "$z",
+          "out2": "$x"
+        }
+      }
+    ]
+  },
+  {
+    "name": "properly handle $project with _id exclusion",
+    "input": [
+      {
+        "$project": {
+          "_id": { "$numberInt": "0" },
+          "a": "$foo",
+          "b": "$bar"
+        }
+      },
+      {
+        "$project": {
+          "a": "$a",
+          "b": "$b"
+        }
+      },
+      {
+        "$group": {
+          "_id": {},
+          "out_b": "$b"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "b": "$bar",
+          "_id": { "$numberInt": "0" }
+        }
+      },
+      {
+        "$project": {
+          "b": "$b"
+        }
+      },
+      {
+        "$group": {
+          "_id": {},
+          "out_b": "$b"
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not change exclusion $projects",
+    "input": [
+      {
+        "$project": {
+          "a": 0,
+          "b": 0
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": 0,
+          "b": 0
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "remove unnecessary $project stage",
+    "input": [
+      {
+        "$collStats": {}
+      },
+      {
+        "$limit": { "$numberLong": "1" }
+      },
+      {
+        "$project": {
+          "newField": { "$numberInt": "1" }
+        }
+      },
+      {
+        "$project": {
+          "4": { "$literal": { "$numberLong": "4" } }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$collStats": {}
+      },
+      {
+        "$limit": { "$numberLong": "1" }
+      },
+      {
+        "$project": {
+          "4": { "$literal": { "$numberLong": "4" } }
+        }
+      }
+    ]
+  },
+  {
+    "name": "delete unnecessary $addFields items",
+    "input": [
+      {
+        "$addFields": {
+          "a": { "$add": ["$a", "$b"] },
+          "b": "$d"
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$addFields": {
+          "a": { "$add": ["$a", "$b"] }
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "delete more unnecessary $addFields items",
+    "input": [
+      {
+        "$addFields": {
+          "a": { "$add": ["$a", "$b"] },
+          "b": "$d",
+          "c": 1
+        }
+      },
+      {
+        "$project": {
+          "out": "$b"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$addFields": {
+          "b": "$d"
+        }
+      },
+      {
+        "$project": {
+          "out": "$b"
+        }
+      }
+    ]
+  },
+  {
+    "name": "delete whole unnecessary $addFields stage",
+    "input": [
+      {
+        "$addFields": {
+          "a": { "$add": ["$a", "$b"] },
+          "b": "$d",
+          "c": 1
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not add refs for stages that will be removed",
+    "input": [
+      {
+        "$addFields": {
+          "a": 42
+        }
+      },
+      {
+        "$addFields": {
+          "a": { "$add": ["$a", "$b"] },
+          "b": "$d",
+          "c": 1
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "preserve $unwind and deps",
+    "input": [
+      {
+        "$addFields": {
+          "u": "$z",
+          "c": "$q"
+        }
+      },
+      {
+        "$unwind": "$u"
+      },
+      {
+        "$addFields": {
+          "a": { "$add": ["$a", "$b"] },
+          "b": "$d",
+          "c": 1
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$addFields": {
+          "u": "$z"
+        }
+      },
+      {
+        "$unwind": "$u"
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "preserve $group and deps",
+    "input": [
+      {
+        "$addFields": {
+          "u": "$z",
+          "c": "$q"
+        }
+      },
+      {
+        "$group": {
+          "_id": "$u",
+          "z": { "$sum": "$u" },
+          "x": { "$sum": 1 }
+        }
+      },
+      {
+        "$addFields": {
+          "a": { "$add": ["$a", "$z"] },
+          "b": "$d",
+          "c": 1
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      },
+      {
+        "$match": {
+          "out": 42
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$addFields": {
+          "u": "$z"
+        }
+      },
+      {
+        "$group": {
+          "_id": "$u",
+          "z": { "$sum": "$u" }
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      },
+      {
+        "$match": {
+          "out": 42
+        }
+      }
+    ]
+  },
+  {
+    "name": "delete whole unnecessary $lookup stage",
+    "input": [
+      {
+        "$lookup": {
+          "from": "foo",
+          "as": "bar",
+          "foreignField": "baz",
+          "localField": "baz"
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "keep $lookup due to implicit $unwind dependency, but remove unnecessary $unwind index",
+    "input": [
+      {
+        "$lookup": {
+          "from": "foo",
+          "as": "bar",
+          "foreignField": "baz",
+          "localField": "baz"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$bar",
+          "includeArrayIndex": "bar_idx"
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "foo",
+          "as": "bar",
+          "foreignField": "baz",
+          "localField": "baz"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$bar"
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not remove $sort stage",
+    "input": [
+      {
+        "$addFields": {
+          "drop": null
+        }
+      },
+      {
+        "$lookup": {
+          "from": "foo",
+          "as": "bar",
+          "foreignField": "baz",
+          "localField": "baz"
+        }
+      },
+      {
+        "$sort": {
+          "bar": 1
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "foo",
+          "as": "bar",
+          "foreignField": "baz",
+          "localField": "baz"
+        }
+      },
+      {
+        "$sort": {
+          "bar": 1
+        }
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not remove $sortByCount stage",
+    "input": [
+      {
+        "$addFields": {
+          "drop": null
+        }
+      },
+      {
+        "$lookup": {
+          "from": "foo",
+          "as": "bar",
+          "foreignField": "baz",
+          "localField": "baz"
+        }
+      },
+      {
+        "$sortByCount": "$bar"
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "foo",
+          "as": "bar",
+          "foreignField": "baz",
+          "localField": "baz"
+        }
+      },
+      {
+        "$sortByCount": "$bar"
+      },
+      {
+        "$project": {
+          "out": "$z"
+        }
+      }
+    ]
+  },
+  {
+    "name": "remove unnecessary $replaceRoot fields",
+    "input": [
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "b": "$c",
+            "a": "$d",
+            "e": "$f"
+          }
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "a": "$d"
+          }
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "cannot remove anything when $replaceRoot newRoot is a field",
+    "input": [
+      {
+        "$replaceRoot": {
+          "newRoot": "$b"
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$replaceRoot": {
+          "newRoot": "$b"
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "$replaceRoot is a field killer",
+    "input": [
+      {
+        "$project": {
+          "drop": null,
+          "b": 1
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": "$b"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "b": 1
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": "$b"
+        }
+      }
+    ]
+  },
+  {
+    "name": "field killers should actually kill live fields (those two c's are different)",
+    "input": [
+      {
+        "$project": {
+          "c": 1,
+          "b": 1
+        }
+      },
+      {
+        "$project": {
+          "drop": null,
+          "b": 1
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": "$b"
+        }
+      },
+      {
+        "$project": {
+          "c": 1
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "b": 1
+        }
+      },
+      {
+        "$project": {
+          "b": 1
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": "$b"
+        }
+      },
+      {
+        "$project": {
+          "c": 1
+        }
+      }
+    ]
+  },
+  {
+    "name": "remove unnecessary $bucket output defs",
+    "input": [
+      {
+        "$bucket": {
+          "groupBy": "$_id",
+          "boundaries": [0, 5, 10],
+          "output": {
+            "b": { "$sum": "$c" },
+            "a": { "$sum": "$d" },
+            "e": { "$sum": "$f" }
+          }
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$bucket": {
+          "groupBy": "$_id",
+          "boundaries": [0, 5, 10],
+          "output": {
+            "a": { "$sum": "$d"}
+          }
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "remove unnecessary $bucketAuto output defs",
+    "input": [
+      {
+        "$bucketAuto": {
+          "groupBy": "$_id",
+          "buckets": 5,
+          "output": {
+            "b": { "$sum": "$c" },
+            "a": { "$sum": "$d" },
+            "e": { "$sum": "$f" }
+          }
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$bucketAuto": {
+          "groupBy": "$_id",
+          "buckets": 5,
+          "output": {
+            "a": { "$sum": "$d" }
+          }
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "$bucket is a field killer",
+    "input": [
+      {
+        "$addFields": {
+          "drop": null
+        }
+      },
+      {
+        "$bucket": {
+          "groupBy": "$_id",
+          "boundaries": [0, 5, 10],
+          "output": {
+            "b": "$c",
+            "a": "$d",
+            "e": "$f"
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$bucket": {
+          "groupBy": "$_id",
+          "boundaries": [0, 5, 10],
+          "output": {
+            "b": "$c",
+            "a": "$d",
+            "e": "$f"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "$bucketAuto is a field killer",
+    "input": [
+      {
+        "$addFields": {
+          "drop": null
+        }
+      },
+      {
+        "$bucketAuto": {
+          "groupBy": "$_id",
+          "buckets": 5,
+          "output": {
+            "b": "$c",
+            "a": "$d",
+            "e": "$f"
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$bucketAuto": {
+          "groupBy": "$_id",
+          "buckets": 5,
+          "output": {
+            "b": "$c",
+            "a": "$d",
+            "e": "$f"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "remove unnecessary $facet output defs",
+    "input": [
+      {
+        "$addFields": {
+          "c": 42,
+          "drop": null
+        }
+      },
+      {
+        "$facet": {
+          "a": [
+            {
+              "$match": {
+                "c": 42
+              }
+            }
+          ],
+          "b": []
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$addFields": {
+          "c": 42
+        }
+      },
+      {
+        "$facet": {
+          "a": [
+            {
+              "$match": {
+                "c": 42
+              }
+            }
+          ]
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "$facet is a field killer",
+    "input": [
+      {
+        "$addFields": {
+          "drop": null
+        }
+      },
+      {
+        "$facet": {
+          "a": [],
+          "b": []
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$facet": {
+          "a": [],
+          "b": []
+        }
+      }
+    ]
+  },
+  {
+    "name": "remove unnecessary field defs in $facet sub pipeline",
+    "input": [
+      {
+        "$addFields": {
+          "c": 42,
+          "drop": null
+        }
+      },
+      {
+        "$facet": {
+          "a": [
+            {
+              "$match": {
+                "c": 42
+              }
+            },
+            {
+              "$addFields": {
+                "$dropMe2": null
+              }
+            },
+            {
+              "$project": {
+                "c": 1
+              }
+            }
+          ],
+          "b": []
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$addFields": {
+          "c": 42
+        }
+      },
+      {
+        "$facet": {
+          "a": [
+            {
+              "$match": {
+                "c": 42
+              }
+            },
+            {
+              "$project": {
+                "c": 1
+              }
+            }
+          ]
+        }
+      },
+      {
+        "$project": {
+          "out": "$a"
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not remove includeArrayIndex on subfield (bug fix)",
+    "input": [
+      {
+        "$unwind": {
+          "path": "$loc.b.c",
+          "includeArrayIndex": "loc.b.c_idx"
+        }
+      },
+      {
+        "$match": {
+          "loc.b.c_idx": {
+            "$eq": { "$numberLong": "1" }
+          }
+        }
+      },
+      {
+        "$project": {
+          "test_DOT_test4_loc_b_c_DOT__id": "$_id",
+          "test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c": "$loc.b.c",
+          "test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c_idx": "$loc.b.c_idx",
+          "_id": { "$numberInt": "0" }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$unwind": {
+          "path": "$loc.b.c",
+          "includeArrayIndex": "loc.b.c_idx"
+        }
+      },
+      {
+        "$match": {
+          "loc.b.c_idx": {
+            "$eq": { "$numberLong": "1" }
+          }
+        }
+      },
+      {
+        "$project": {
+          "test_DOT_test4_loc_b_c_DOT__id": "$_id",
+          "test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c": "$loc.b.c",
+          "test_DOT_test4_loc_b_c_DOT_loc_DOT_b_DOT_c_idx": "$loc.b.c_idx",
+          "_id": { "$numberInt": "0" }
+        }
+      }
+    ]
+  },
+  {
+    "name": "$unwind test",
+    "input": [
+      {
+        "$unwind": {
+          "path": "$a",
+          "preserveNullAndEmptyArrays": true,
+          "includeArrayIndex": "a_idx"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$unwind": {
+          "path": "$a",
+          "preserveNullAndEmptyArrays": true,
+          "includeArrayIndex": "a_idx"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0
+        }
+      }
+    ]
+  }
+]

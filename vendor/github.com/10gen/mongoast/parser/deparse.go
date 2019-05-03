@@ -16,3 +16,16 @@ func DeparsePipeline(pipeline *ast.Pipeline) bsoncore.Value {
 
 	return bsonutil.ArrayFromValues(values...)
 }
+
+// DeparseNode can deparse any node.
+func DeparseNode(n ast.Node) bsoncore.Value {
+	switch tn := n.(type) {
+	case *ast.Pipeline:
+		return DeparsePipeline(tn)
+	case ast.Stage:
+		return DeparseStage(tn)
+	case ast.Expr:
+		return DeparseExpr(tn)
+	}
+	panic("unreachable")
+}

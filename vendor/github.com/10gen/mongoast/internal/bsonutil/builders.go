@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -12,6 +13,29 @@ import (
 func AppendValueElement(dst []byte, key string, value bsoncore.Value) []byte {
 	dst = bsoncore.AppendHeader(dst, value.Type, key)
 	return append(dst, value.Data...)
+}
+
+// MakeDoc makes a bsoncore.Document by taking elements in pairs,
+// the first being the element name and the second the value.
+func MakeDoc(elems ...interface{}) bsoncore.Document {
+	if len(elems)%2 != 0 {
+		panic("must have an even number of elems")
+	}
+
+	d := primitive.D{}
+	for i := 0; i < len(elems); i += 2 {
+		d = append(d, primitive.E{
+			Key:   elems[i].(string),
+			Value: elems[i+1],
+		})
+	}
+
+	doc, err := bson.Marshal(d)
+	if err != nil {
+		panic(err)
+	}
+
+	return doc
 }
 
 func Array(v bsoncore.Document) bsoncore.Value {
@@ -116,6 +140,13 @@ func Double(v float64) bsoncore.Value {
 	}
 }
 
+func EmptyArray() bsoncore.Value {
+	_, arr := bsoncore.AppendArrayStart(nil)
+	arr, _ = bsoncore.AppendArrayEnd(arr, 0)
+
+	return Array(arr)
+}
+
 func EmptyDocument() bsoncore.Value {
 	_, doc := bsoncore.AppendDocumentStart(nil)
 	doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
@@ -167,6 +198,14 @@ func ObjectID(v primitive.ObjectID) bsoncore.Value {
 		Type: bsontype.ObjectID,
 		Data: bsoncore.AppendObjectID(nil, v),
 	}
+}
+
+func ObjectIDFromHex(hex string) bsoncore.Value {
+	v, err := primitive.ObjectIDFromHex(hex)
+	if err != nil {
+		panic(fmt.Sprintf("invalid ObjectID string: %v", err))
+	}
+	return ObjectID(v)
 }
 
 func Regex(pattern, options string) bsoncore.Value {

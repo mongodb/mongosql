@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/10gen/mongoast/ast"
-	"github.com/10gen/mongoast/internal/parsertest"
+	"github.com/10gen/mongoast/internal/testutil"
 	"github.com/10gen/mongoast/optimizer"
 	"github.com/10gen/mongoast/parser"
 
@@ -106,83 +106,18 @@ func TestSubpipelineOptimization(t *testing.T) {
 }
 
 func TestPassInclusion(t *testing.T) {
-	testCases := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			"ensure optimizer runs DCE",
-			`[
-				{"$project": {"a": "$c", "b": "$d"}},
-				{"$project": {"out": "$a"}}
-			 ]`,
-			`[
-				{"$project": {"a": "$c"}},
-				{"$project": {"out": "$a"}}
-			 ]`,
-		},
-		{
-			"ensure optimizer runs Reorder Pass",
-			`[
-				{"$sort": {"a": 1}},
-				{"$match": {"a": 1}}
-			 ]`,
-			`[
-				{"$match": {"a": 1}},
-				{"$sort": {"a": 1}}
-			 ]`,
-		},
-		{
-			"ensure optimizer runs PRE",
-			`[
-				{"$project":
-					{"a":
-					    {"$sub":
-						[
-							{"$add": [
-								{"$add": ["$c", "$d"]},
-								{"$add": ["$c", "$d"]},
-								{"$add": ["$c", "$d"]}
-								]
-							},
-							{"$add": [
-								{"$add": ["$c", "$d"]},
-								{"$add": ["$c", "$d"]},
-								{"$add": ["$c", "$d"]}
-								]
-							}
-						]
-						}
-					}
-				}
-			 ]`,
-			`[
-			  {"$project":
-			  	{"a":
-					{"$let":
-						{"vars": {"mongoast__deduplicated__expr__0": {"$add": ["$c","$d"]}},
-						 "in":
-						 	{"$let":
-								{"vars": {"mongoast__deduplicated__expr__1":
-										{"$add": ["$$mongoast__deduplicated__expr__0",
-													"$$mongoast__deduplicated__expr__0",
-													"$$mongoast__deduplicated__expr__0"]}},
-									"in": {"$sub": ["$$mongoast__deduplicated__expr__1","$$mongoast__deduplicated__expr__1"]}
-								}
-							}
-						}
-					}
-				}
-			 }
-			 ]`,
-		},
-	}
+	testCases := testutil.LoadTestCases("pass_inclusion.json")
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			in := parsertest.ParsePipeline(tc.input)
-			expected := parsertest.ParsePipeline(tc.expected)
+		t.Run(tc.Name, func(t *testing.T) {
+			in, err := parser.ParsePipeline(tc.Input)
+			if err != nil {
+				t.Fatalf("Failed to parse input pipeline: %v", err)
+			}
+			expected, err := parser.ParsePipeline(tc.Expected)
+			if err != nil {
+				t.Fatalf("Failed to parse expected pipeline: %v", err)
+			}
 			actual := optimizer.Optimize(context.Background(), in)
 
 			expectedStr := parser.DeparsePipeline(expected).String()

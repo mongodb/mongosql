@@ -14,11 +14,12 @@ var packages = []string{
 	"./analyzer",
 	"./ast",
 	"./astprint",
+	"./eval",
 	"./internal/bsonutil",
+	"./internal/decimalutil",
 	"./normalizer",
 	"./optimizer",
 	"./parser",
-	"./util/decimalutil",
 }
 var registry = task.NewRegistry()
 
@@ -69,7 +70,7 @@ func init() {
 	// Test
 	registry.Declare("test").Description("runs all tests").DependsOn("test-unit")
 	registry.Declare("test-unit").Description("runs unit tests").Do(func(ctx *task.Context) error {
-		args := []string{"test"}
+		args := []string{"test", "-count=1"}
 		if ctx.Verbose {
 			args = append(args, "-v")
 		}

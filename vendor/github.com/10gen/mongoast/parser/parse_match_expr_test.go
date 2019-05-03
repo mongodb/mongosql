@@ -65,24 +65,6 @@ func TestParseMatchExpr(t *testing.T) {
 			errors.New("failed parsing . as a field ref: invalid field ref"),
 		},
 		{
-			`{"a.$[3].b": 1}`,
-			ast.NewBinary(ast.Equals,
-				ast.NewFieldRef(
-					"b", ast.NewArrayIndexRef(
-						ast.NewConstant(bsonutil.Int32(3)),
-						ast.NewFieldRef("a", nil),
-					),
-				),
-				ast.NewConstant(bsonutil.Int32(1)),
-			),
-			nil,
-		},
-		{
-			`{"a.$[xyz].b" : 1}`,
-			nil,
-			errors.New("failed parsing a.$[xyz].b as a field ref: invalid array index xyz"),
-		},
-		{
 			`{"a": {"$eq": 1}}`,
 			ast.NewBinary(ast.Equals,
 				ast.NewFieldRef("a", nil),

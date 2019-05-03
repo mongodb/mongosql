@@ -69,7 +69,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": NumberInt("0")}}]`,
 		},
 		{
 			desc:           "simple select query (qualified table) correctly translated to pipeline",
@@ -78,7 +78,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": NumberInt("0")}}]`,
 		},
 		{
 			desc:           "simple select query (qualified table) correctly translated to pipeline",
@@ -87,7 +87,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$match": {"$expr": {"$and": [{"$lt": ["$b","$c"]},{"$gt": ["$b",null]},{"$gt": ["$c",null]}]}}},{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
+			expectedOutput: `[{"$match": {"$expr": {"$and": [{"$lt": ["$b","$c"]},{"$gt": ["$b",null]},{"$gt": ["$c",null]}]}}},{"$project": {"test_DOT_foo_DOT_a": "$a","_id": NumberInt("0")}}]`,
 		},
 		{
 			desc:          "invalid schema parameter - non-drdl file",
@@ -114,7 +114,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         "../../testdata/resources/schema",
 			format:         testFormat,
-			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": NumberInt("0")}}]`,
 		},
 		{
 			desc:          "database doesn't exist in schema",
@@ -150,7 +150,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"_id\": {\"$numberInt\":\"0\"}}},\n]",
+			expectedOutput: "[\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"_id\": NumberInt(\"0\")}},\n]",
 		},
 		{
 			desc:           "format flag multiple stages",
@@ -159,7 +159,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$a\",\"$b\"]},{\"$gt\": [\"$a\",null]},{\"$gt\": [\"$b\",null]}]}}},\n\t{\"$group\": {\"_id\": {\"group_key_0\": \"$c\"},\"test_DOT_foo_DOT_a\": {\"$first\": \"$a\"},\"test_DOT_foo_DOT_b\": {\"$first\": \"$b\"}}},\n\t{\"$sort\": {\"test_DOT_foo_DOT_b\": {\"$numberInt\":\"-1\"}}},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\": \"$test_DOT_foo_DOT_b\",\"_id\": {\"$numberInt\":\"0\"}}},\n]",
+			expectedOutput: "[\n\t{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$a\",\"$b\"]},{\"$gt\": [\"$a\",null]},{\"$gt\": [\"$b\",null]}]}}},\n\t{\"$group\": {\"_id\": {\"group_key_0\": \"$c\"},\"test_DOT_foo_DOT_a\": {\"$first\": \"$a\"},\"test_DOT_foo_DOT_b\": {\"$first\": \"$b\"}}},\n\t{\"$sort\": {\"test_DOT_foo_DOT_b\": NumberInt(\"-1\")}},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\": \"$test_DOT_foo_DOT_b\",\"_id\": NumberInt(\"0\")}},\n]",
 		},
 		{
 			desc:           "format flag, pipeline contains $lookup with pipeline field",
@@ -168,7 +168,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$lookup\": {\"from\": \"baz\",\"let\": {\"local_table__a\": \"$a\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$$local_table__a\",\"$b\"]},{\"$gt\": [\"$$local_table__a\",null]},{\"$gt\": [\"$b\",null]}]}}}],\"as\": \"__joined_baz\"}},\n\t{\"$unwind\": \"$__joined_baz\"},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"test_DOT_baz_DOT_b\": \"$__joined_baz.b\",\"_id\": {\"$numberInt\":\"0\"}}},\n]",
+			expectedOutput: "[\n\t{\"$lookup\": {\"from\": \"baz\",\"let\": {\"local_table__a\": \"$a\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$$local_table__a\",\"$b\"]},{\"$gt\": [\"$$local_table__a\",null]},{\"$gt\": [\"$b\",null]}]}}}],\"as\": \"__joined_baz\"}},\n\t{\"$unwind\": \"$__joined_baz\"},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"test_DOT_baz_DOT_b\": \"$__joined_baz.b\",\"_id\": NumberInt(\"0\")}},\n]",
 		},
 		{
 			desc:           "explain flag, no formatting, fully pushed down",
@@ -217,7 +217,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   "latest",
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$project": {"adddate(Convert(test_DOT_foo_DOT_a, timestamp),1,day)": {"$let": {"vars": {"date": {"$convert": {"input": "$a","to": "date","onError": null,"onNull": null}}},"in": {"$cond": [{"$lte": ["$$date",null]},null,{"$add": ["$$date",{"$numberLong":"86400000"}]}]}}},"_id": {"$numberInt":"0"}}}]`,
+			expectedOutput: `[{"$project": {"adddate(Convert(test_DOT_foo_DOT_a, timestamp),1,day)": {"$let": {"vars": {"date": {"$convert": {"input": "$a","to": "date","onError": null,"onNull": null}}},"in": {"$cond": [{"$lte": ["$$date",null]},null,{"$add": ["$$date",NumberLong("86400000")]}]}}},"_id": NumberInt("0")}}]`,
 		},
 		{
 			desc:           "query file simple",
@@ -226,7 +226,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         testFormat,
-			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": {"$numberInt":"0"}}}]`,
+			expectedOutput: `[{"$project": {"test_DOT_foo_DOT_a": "$a","_id": NumberInt("0")}}]`,
 		},
 		{
 			desc:           "query file with backticks",
@@ -235,7 +235,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         "../../testdata/resources/schema/schema_Members.drdl",
 			format:         testFormat,
-			expectedOutput: `[{"$match": {"$expr": {"$let": {"vars": {"expr1": {"$cond": [{"$or": [{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.StartDate",null]},{"$lte": [{"$date":{"$numberLong":"1284768000000"}},null]}]},null,{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.StartDate",{"$date":{"$numberLong":"1284768000000"}}]}]},"expr2": {"$cond": [{"$or": [{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.EndDate",null]},{"$lte": [{"$date":{"$numberLong":"1284768000000"}},null]}]},null,{"$gte": ["$member.MemberAttributeValues.MemberAttributeValue.EndDate",{"$date":{"$numberLong":"1284768000000"}}]}]},"expr3": {"$cond": [{"$or": [{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.Void",null]},{"$lte": [{"$literal": false},null]}]},null,{"$eq": ["$member.MemberAttributeValues.MemberAttributeValue.Void",{"$literal": false}]}]}},"in": {"$cond": [{"$or": [{"$eq": ["$$expr1",{"$numberInt":"0"}]},{"$eq": ["$$expr1",false]},{"$eq": ["$$expr2",{"$numberInt":"0"}]},{"$eq": ["$$expr2",false]},{"$eq": ["$$expr3",{"$numberInt":"0"}]},{"$eq": ["$$expr3",false]}]},false,{"$cond": [{"$or": [{"$lte": ["$$expr1",null]},{"$lte": ["$$expr2",null]},{"$lte": ["$$expr3",null]}]},null,true]}]}}}}},{"$project": {"UMV_DOT_M_DOT__id": "$_id","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Attribute": "$member.MemberAttributeValues.MemberAttributeValue.Attribute","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_AttributeCode": "$member.MemberAttributeValues.MemberAttributeValue.AttributeCode","case when (not UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue is NULL) then UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue when (not UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue is NULL) then UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue else NULL end": {"$cond": [{"$let": {"vars": {"arg": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.CustomValue",null]}},"in": {"$cond": [{"$lte": ["$$arg",null]},null,{"$not": "$$arg"}]}}},"$member.MemberAttributeValues.MemberAttributeValue.CustomValue",{"$cond": [{"$let": {"vars": {"arg": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.DefinedValue",null]}},"in": {"$cond": [{"$lte": ["$$arg",null]},null,{"$not": "$$arg"}]}}},"$member.MemberAttributeValues.MemberAttributeValue.DefinedValue",null]}]},"UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue": "$member.MemberAttributeValues.MemberAttributeValue.CustomValue","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue": "$member.MemberAttributeValues.MemberAttributeValue.DefinedValue","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_StartDate": "$member.MemberAttributeValues.MemberAttributeValue.StartDate","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_EndDate": "$member.MemberAttributeValues.MemberAttributeValue.EndDate","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_IsChanged": "$member.MemberAttributeValues.MemberAttributeValue.IsChanged","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_LastUpdatedUser": "$member.MemberAttributeValues.MemberAttributeValue.LastUpdatedUser","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Source": "$member.MemberAttributeValues.MemberAttributeValue.Source","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Void": "$member.MemberAttributeValues.MemberAttributeValue.Void","_id": {"$numberInt":"0"}}}]`,
+			expectedOutput: `[{"$match": {"$expr": {"$let": {"vars": {"expr1": {"$cond": [{"$or": [{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.StartDate",null]},{"$lte": [ISODate("2010-09-18T00:00:00"),null]}]},null,{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.StartDate",ISODate("2010-09-18T00:00:00")]}]},"expr2": {"$cond": [{"$or": [{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.EndDate",null]},{"$lte": [ISODate("2010-09-18T00:00:00"),null]}]},null,{"$gte": ["$member.MemberAttributeValues.MemberAttributeValue.EndDate",ISODate("2010-09-18T00:00:00")]}]},"expr3": {"$cond": [{"$or": [{"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.Void",null]},{"$lte": [false,null]}]},null,{"$eq": ["$member.MemberAttributeValues.MemberAttributeValue.Void",false]}]}},"in": {"$cond": [{"$or": [{"$eq": ["$$expr1",NumberInt("0")]},{"$eq": ["$$expr1",false]},{"$eq": ["$$expr2",NumberInt("0")]},{"$eq": ["$$expr2",false]},{"$eq": ["$$expr3",NumberInt("0")]},{"$eq": ["$$expr3",false]}]},false,{"$cond": [{"$or": [{"$lte": ["$$expr1",null]},{"$lte": ["$$expr2",null]},{"$lte": ["$$expr3",null]}]},null,true]}]}}}}},{"$project": {"UMV_DOT_M_DOT__id": "$_id","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Attribute": "$member.MemberAttributeValues.MemberAttributeValue.Attribute","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_AttributeCode": "$member.MemberAttributeValues.MemberAttributeValue.AttributeCode","case when (not UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue is NULL) then UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue when (not UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue is NULL) then UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue else NULL end": {"$cond": [{"$let": {"vars": {"arg": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.CustomValue",null]}},"in": {"$cond": [{"$lte": ["$$arg",null]},null,{"$not": "$$arg"}]}}},"$member.MemberAttributeValues.MemberAttributeValue.CustomValue",{"$cond": [{"$let": {"vars": {"arg": {"$lte": ["$member.MemberAttributeValues.MemberAttributeValue.DefinedValue",null]}},"in": {"$cond": [{"$lte": ["$$arg",null]},null,{"$not": "$$arg"}]}}},"$member.MemberAttributeValues.MemberAttributeValue.DefinedValue",null]}]},"UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_CustomValue": "$member.MemberAttributeValues.MemberAttributeValue.CustomValue","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_DefinedValue": "$member.MemberAttributeValues.MemberAttributeValue.DefinedValue","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_StartDate": "$member.MemberAttributeValues.MemberAttributeValue.StartDate","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_EndDate": "$member.MemberAttributeValues.MemberAttributeValue.EndDate","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_IsChanged": "$member.MemberAttributeValues.MemberAttributeValue.IsChanged","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_LastUpdatedUser": "$member.MemberAttributeValues.MemberAttributeValue.LastUpdatedUser","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Source": "$member.MemberAttributeValues.MemberAttributeValue.Source","UMV_DOT_MA_DOT_member_DOT_MemberAttributeValues_DOT_MemberAttributeValue_DOT_Void": "$member.MemberAttributeValues.MemberAttributeValue.Void","_id": NumberInt("0")}}]`,
 		},
 		{
 			desc:          "query file doesn't exist",

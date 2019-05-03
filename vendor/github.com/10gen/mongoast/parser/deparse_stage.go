@@ -90,7 +90,11 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 		return makeDocStage("$facet", doc)
 	case *ast.GroupStage:
 		_, doc := bsoncore.AppendDocumentStart(nil)
-		doc = bsonutil.AppendValueElement(doc, "_id", DeparseExpr(tn.By))
+		// We need $literal on the _id part of $group stages because
+		// that is an error case for the server: $group does not support inclusion-style
+		// expressions.
+		// It isn't clear why this is the case, and is probably an error we should remove.
+		doc = bsonutil.AppendValueElement(doc, "_id", DeparseExpr(tn.By, true))
 		for _, i := range tn.Items {
 			doc = bsonutil.AppendValueElement(doc, i.Name, DeparseExpr(i.Expr))
 		}
@@ -127,7 +131,10 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 			case *ast.ExcludeProjectItem:
 				doc = bsoncore.AppendInt32Element(doc, ast.GetDottedFieldName(ti.FieldRef), 0)
 			case *ast.AssignProjectItem:
-				doc = bsonutil.AppendValueElement(doc, ti.Name, DeparseExpr(ti.Expr))
+				// The true here ensures us that any constants will be wrapped in $literal, which
+				// is necessary (at the top level) for mongo server 3.4+, and needed for all
+				// constants at any level in versions 3.2-.
+				doc = bsonutil.AppendValueElement(doc, ti.Name, DeparseExpr(ti.Expr, true))
 			default:
 				panic(fmt.Sprintf("unsupported project item %T", i))
 			}
