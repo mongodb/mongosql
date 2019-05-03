@@ -86,6 +86,7 @@ type BinaryOp string
 // constants for the possible binary operations.
 const (
 	And                 BinaryOp = BinaryOp("$and")
+	Compare             BinaryOp = BinaryOp("$cmp")
 	Equals              BinaryOp = BinaryOp("$eq")
 	GreaterThan         BinaryOp = BinaryOp("$gt")
 	GreaterThanOrEquals BinaryOp = BinaryOp("$gte")
@@ -120,6 +121,7 @@ type Binary struct {
 }
 
 // NewConstant makes a Constant.
+// hasLiteral is optional in order to not break the previous interface.
 func NewConstant(value bsoncore.Value) *Constant {
 	return &Constant{Value: value}
 }

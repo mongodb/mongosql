@@ -697,7 +697,7 @@ func TestParseStage(t *testing.T) {
 		{
 			`{"$replaceRoot": { "foo": 1 }}`,
 			nil,
-			errors.New("unrecognized option to $replaceRoot stage: 'foo', only valid option is 'newRoot'"),
+			errors.New("unrecognized option to $replaceRoot stage: foo, only valid option is 'newRoot'"),
 		},
 		{
 			`{"$replaceRoot": { "newRoot": 0 }}`,

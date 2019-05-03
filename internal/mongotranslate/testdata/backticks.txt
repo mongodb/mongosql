@@ -16,5 +16,5 @@ join umv.Members_member_MemberAttributeValues_MemberAttributeValue MA on MA._id 
 
 where 1=1
  and
-'2010-09-18' between MA.`member.MemberAttributeValues.MemberAttributeValue.StartDate` and MA.`member.MemberAttributeValues.MemberAttributeValue.EndDate`
+'2010-09-18T00:00:00' between MA.`member.MemberAttributeValues.MemberAttributeValue.StartDate` and MA.`member.MemberAttributeValues.MemberAttributeValue.EndDate`
 and MA.`member.MemberAttributeValues.MemberAttributeValue.Void` = 0;

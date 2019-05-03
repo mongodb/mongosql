@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
 	"github.com/10gen/mongoast/internal/parsertest"
+	"github.com/10gen/mongoast/parser"
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -133,8 +134,7 @@ func TestParseExpr(t *testing.T) {
 		{
 			`{"$dbPointer": {"$ref": "foo", "$id": {"$oid": "123456789012345678901234"}}}`,
 			ast.NewConstant(
-				bsonutil.DBPointer("foo", parseObjectID("123456789012345678901234")),
-			),
+				bsonutil.DBPointer("foo", parseObjectID("123456789012345678901234"))),
 			nil,
 		},
 		{
@@ -182,6 +182,32 @@ func TestParseExpr(t *testing.T) {
 		{
 			`"$a.b.c"`,
 			ast.NewFieldRef("c", ast.NewFieldRef("b", ast.NewFieldRef("a", nil))),
+			nil,
+		},
+		// FieldOrArrayIndexRef
+		{
+			`"$a.1"`,
+			ast.NewFieldOrArrayIndexRef(
+				1, ast.NewFieldRef("a", nil),
+			),
+			nil,
+		},
+		{
+			`"$a.1.2"`,
+			ast.NewFieldOrArrayIndexRef(
+				2, ast.NewFieldOrArrayIndexRef(
+					1, ast.NewFieldRef("a", nil),
+				),
+			),
+			nil,
+		},
+		{
+			`"$a.1.b"`,
+			ast.NewFieldRef(
+				"b", ast.NewFieldOrArrayIndexRef(
+					1, ast.NewFieldRef("a", nil),
+				),
+			),
 			nil,
 		},
 		// Logical
@@ -325,6 +351,15 @@ func TestParseExpr(t *testing.T) {
 				ast.NotEquals,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewDocument(),
+			),
+			nil,
+		},
+		{
+			`{ "$cmp": [1, 2] }`,
+			ast.NewBinary(
+				ast.Compare,
+				ast.NewConstant(bsonutil.Int32(1)),
+				ast.NewConstant(bsonutil.Int32(2)),
 			),
 			nil,
 		},
@@ -516,6 +551,67 @@ func TestParseExpr(t *testing.T) {
 
 			if tc.err == nil && !cmp.Equal(tc.expected, actual) {
 				t.Fatalf("pipelines are not equal\n  %s", cmp.Diff(tc.expected, actual))
+			}
+		})
+	}
+}
+
+func TestParseFieldRef(t *testing.T) {
+	testCases := []struct {
+		input    string
+		expected ast.Expr
+	}{
+		{
+			"a",
+			ast.NewFieldRef("a", nil),
+		},
+		{
+			"a.b",
+			ast.NewFieldRef(
+				"b", ast.NewFieldRef("a", nil),
+			),
+		},
+		{
+			"a.b.c",
+			ast.NewFieldRef(
+				"c", ast.NewFieldRef(
+					"b", ast.NewFieldRef("a", nil),
+				),
+			),
+		},
+		{
+			"a.1",
+			ast.NewFieldOrArrayIndexRef(
+				1, ast.NewFieldRef("a", nil),
+			),
+		},
+		{
+			"a.1.2",
+			ast.NewFieldOrArrayIndexRef(
+				2, ast.NewFieldOrArrayIndexRef(
+					1, ast.NewFieldRef("a", nil),
+				),
+			),
+		},
+		{
+			"a.1.b",
+			ast.NewFieldRef(
+				"b", ast.NewFieldOrArrayIndexRef(
+					1, ast.NewFieldRef("a", nil),
+				),
+			),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.input, func(t *testing.T) {
+			actual, err := parser.ParseFieldRef(tc.input)
+			if err != nil {
+				t.Fatalf("expected no err, but got %v", err)
+			}
+
+			if !cmp.Equal(tc.expected, actual) {
+				t.Fatalf("field references are not equals\n  %s", cmp.Diff(tc.expected, actual))
 			}
 		})
 	}

@@ -2,6 +2,7 @@ package analyzer
 
 import (
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/internal/stringutil"
 )
 
 // ReferencedFields returns all the fields referenced in
@@ -27,7 +28,7 @@ func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 	// It is always set after inspecting the children of the stage to correctly
 	// handle self-referential stages, e.g.: {$project: {a: {$add: ["$a", 1]}}}.
 	// By root we mean, in the case of {$project: {a.b: {$add: ["$a", 1]}}}.
-	closedRoots := make(map[string]struct{})
+	closedRoots := stringutil.NewStringSet()
 	_, _ = ast.Visit(n, func(v ast.Visitor, n ast.Node) ast.Node {
 		if complete {
 			return n
@@ -64,7 +65,7 @@ func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 			if !isField {
 				return n
 			}
-			if _, ok := closedRoots[rootName]; !ok {
+			if !closedRoots.Contains(rootName) {
 				// Only add the name if the name does not appear
 				// in closedFields, which contains the prefixes of
 				// every field defined by the pipeline before this stage.
@@ -79,7 +80,7 @@ func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 		switch tn := n.(type) {
 		case ast.Stage:
 			for _, rootName := range DefinedFields(tn) {
-				closedRoots[rootName] = struct{}{}
+				closedRoots.Add(rootName)
 			}
 			complete = IsFieldKiller(tn)
 		}
@@ -99,13 +100,13 @@ func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 func ReferencedFieldRoots(n ast.Node) ([]string, bool) {
 	fields, complete := ReferencedFields(n)
 
-	m := make(map[string]struct{})
+	m := stringutil.NewStringSet()
 	var result []string
 	for _, ref := range fields {
 		rootName, _ := GetPathRootFromRef(ref)
-		if _, ok := m[rootName]; !ok {
+		if !m.Contains(rootName) {
 			result = append(result, rootName)
-			m[rootName] = struct{}{}
+			m.Add(rootName)
 		}
 	}
 

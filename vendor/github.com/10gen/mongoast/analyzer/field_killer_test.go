@@ -39,7 +39,7 @@ func TestFieldKiller(t *testing.T) {
 			true},
 		{`{"$collStats": {}}`, true},
 		{`{"$count": "foo"}`, true},
-		{`{"$facet": 
+		{`{"$facet":
 
 			{
 				"categorizedByTags": [
@@ -56,14 +56,20 @@ func TestFieldKiller(t *testing.T) {
         }}`, true},
 		{`{"$lookup" : {"from": "bar", "localField": "foo", "foreignField": "foo", "as": "bazz"}}`,
 			false},
-		{`{"$project":	{ "a": 1, "b": "$b", "c" : { "$add": ["$c", 1] } } }`,
+		{`{"$project": { "a": 1, "b": "$b", "c" : { "$add": ["$c", 1] } } }`,
 			true},
-		{`{"$project":	{ "a.b": 1, "b": "$b", "c" : { "$add": ["$c", 1] } } }`,
+		{`{"$project": { "a.b": 1, "b": "$b", "c" : { "$add": ["$c", 1] } } }`,
 			true},
-		{`{"$project":	{ "a.b": 0, "b": 0, "c" : 0 }}`,
+		{`{"$project": { "a.b": 0, "b": 0, "c" : 0 }}`,
 			false},
+		{`{"$project": { "_id": 0 }}`,
+			false},
+		{`{"$project": { "a": 1, "_id": 0 }}`,
+			true},
+		{`{"$project": { "a": "$b", "_id": 0 }}`,
+			true},
 		{`{"$replaceRoot": {"newRoot": "$a"}}`, true},
-		{`{"$replaceRoot":	{"newRoot" : { "a": 1, "b": "$b", "c" : { "$add": ["$c", 1] } } } }`,
+		{`{"$replaceRoot": {"newRoot" : { "a": 1, "b": "$b", "c" : { "$add": ["$c", 1] } } } }`,
 			true},
 		{`{"$unwind": "$x"}`, false},
 		{`{"$unwind": {"path": "$x", "includeArrayIndex": "x_idx"}}`, false},

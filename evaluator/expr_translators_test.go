@@ -698,7 +698,7 @@ func TestTranslateCurrentDateExpr(t *testing.T) {
 		if asString {
 			return fmt.Sprintf(`"%s-%s-%s"`, yearStr, monthStr, dayStr)
 		}
-		return fmt.Sprintf(`{"$literal": {"$numberLong":"%s%s%s"}}`, yearStr, monthStr, dayStr)
+		return fmt.Sprintf(`{"$numberLong":"%s%s%s"}`, yearStr, monthStr, dayStr)
 	}
 
 	tests := []test{
@@ -827,11 +827,11 @@ func TestTranslateSQLValue(t *testing.T) {
 
 	datetime, _ := time.Parse("2006 Jan 02 15:04:05", "2012 Dec 07 12:15:30.918273645")
 	tests := []test{
-		{"SQLTrue", values.NewSQLBool(values.MySQLValueKind, true), `{"$literal": true}`},
-		{"SQLFalse", values.NewSQLBool(values.MySQLValueKind, false), `{"$literal": false}`},
-		{"SQLFloat", values.NewSQLFloat(values.MySQLValueKind, 1.1), `{"$literal": {"$numberDouble":"1.1"}}`},
-		{"SQLInt", values.NewSQLInt64(values.MySQLValueKind, 11), `{"$literal": {"$numberLong":"11"}}`},
-		{"SQLUint", values.NewSQLUint64(values.MySQLValueKind, 32), `{"$literal": {"$numberLong":"32"}}`},
+		{"SQLTrue", values.NewSQLBool(values.MySQLValueKind, true), `true`},
+		{"SQLFalse", values.NewSQLBool(values.MySQLValueKind, false), `false`},
+		{"SQLFloat", values.NewSQLFloat(values.MySQLValueKind, 1.1), `{"$numberDouble":"1.1"}`},
+		{"SQLInt", values.NewSQLInt64(values.MySQLValueKind, 11), `{"$numberLong":"11"}`},
+		{"SQLUint", values.NewSQLUint64(values.MySQLValueKind, 32), `{"$numberLong":"32"}`},
 		{"SQLVarchar", values.NewSQLVarchar(values.MySQLValueKind, "vc"),
 			`"vc"`},
 		{"SQLNull", values.NewSQLNull(values.MySQLValueKind),

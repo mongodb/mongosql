@@ -7,9 +7,14 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/parser"
-
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
+
+// Print prints the node to the writer.
+func Print(w io.Writer, n ast.Node) {
+	v := parser.DeparseNode(n)
+
+	fmt.Fprint(w, v.String())
+}
 
 // String prints the node to a string.
 func String(n ast.Node) string {
@@ -18,17 +23,21 @@ func String(n ast.Node) string {
 	return buf.String()
 }
 
-// Print prints the node to the writer.
-func Print(w io.Writer, n ast.Node) {
-	var v bsoncore.Value
+// ShellPrint prints the node as a string that is Mongo Shell pasteable.
+func ShellPrint(w io.Writer, n ast.Node) {
 	switch tn := n.(type) {
 	case *ast.Pipeline:
-		v = parser.DeparsePipeline(tn)
+		ShellPrintPipeline(w, tn, true)
 	case ast.Stage:
-		v = parser.DeparseStage(tn)
+		ShellPrintStage(w, tn)
 	case ast.Expr:
-		v = parser.DeparseExpr(tn)
+		ShellPrintExpr(w, tn)
 	}
+}
 
-	fmt.Fprint(w, v.String())
+// ShellString prints the node as a string that is Mongo Shell pasteable.
+func ShellString(n ast.Node) string {
+	var buf bytes.Buffer
+	ShellPrint(&buf, n)
+	return buf.String()
 }

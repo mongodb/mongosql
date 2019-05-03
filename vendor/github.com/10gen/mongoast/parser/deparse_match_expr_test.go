@@ -46,14 +46,6 @@ func TestDeparseMatchExpr(t *testing.T) {
 				),
 			),
 		},
-		{
-			`{"a.$[2]": 1}`,
-			bsonutil.DocumentFromElements(
-				"a.2", bsonutil.DocumentFromElements(
-					"$eq", bsonutil.Int32(1),
-				),
-			),
-		},
 		// Document
 		{
 			`{"a": { "b": 1 } }`,
@@ -239,9 +231,7 @@ func TestDeparseMatchExpr(t *testing.T) {
 				"$expr", bsonutil.DocumentFromElements(
 					"$eq", bsonutil.ArrayFromValues(
 						bsonutil.String("$a"),
-						bsonutil.DocumentFromElements(
-							"$literal", bsonutil.Int32(1),
-						),
+						bsonutil.Int32(1),
 					),
 				),
 			),

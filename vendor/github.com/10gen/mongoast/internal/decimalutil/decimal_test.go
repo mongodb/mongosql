@@ -5,7 +5,7 @@ import (
 	"math"
 	"testing"
 
-	"github.com/10gen/mongoast/util/decimalutil"
+	"github.com/10gen/mongoast/internal/decimalutil"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

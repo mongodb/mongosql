@@ -3,6 +3,7 @@ package optimizer
 import (
 	"github.com/10gen/mongoast/analyzer"
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/internal/stringutil"
 )
 
 var idRef = ast.NewFieldRef("_id", nil)
@@ -12,7 +13,7 @@ func DeadCodeElimination(pipeline *ast.Pipeline) *ast.Pipeline {
 	// Indices of the stages to keep.
 	keepIndices := make([]bool, len(pipeline.Stages))
 	keepCount := 0
-	var liveFields map[string]struct{}
+	liveFields := stringutil.NewStringSet()
 	i := len(pipeline.Stages) - 1
 	// Find the last field killing stage.
 	for ; i >= 0; i-- {
@@ -20,7 +21,7 @@ func DeadCodeElimination(pipeline *ast.Pipeline) *ast.Pipeline {
 		keepCount++
 		if analyzer.IsFieldKiller(pipeline.Stages[i]) {
 			keepList, _ := analyzer.ReferencedFieldRoots(pipeline.Stages[i])
-			liveFields = mkStringSet(keepList)
+			liveFields.AddSlice(keepList)
 			i--
 			break
 		}
@@ -41,7 +42,7 @@ func DeadCodeElimination(pipeline *ast.Pipeline) *ast.Pipeline {
 		// Any sort stage must be kept, and any field it depends on must be kept.
 		if analyzer.IsSortStage(pipeline.Stages[i]) {
 			refs, _ := analyzer.ReferencedFieldRoots(pipeline.Stages[i])
-			appendToStringSet(liveFields, refs)
+			liveFields.AddSlice(refs)
 			setKeep(i)
 			continue
 		}
@@ -72,7 +73,7 @@ func DeadCodeElimination(pipeline *ast.Pipeline) *ast.Pipeline {
 
 // removeDeadDefinitions removes dead definitions from stages and returns a bool
 // value where true means keep the stage, and false means remove the stage.
-func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[string]struct{}) bool {
+func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields *stringutil.StringSet) bool {
 	// TODO: It would also be nice if all stages that define values just had
 	// "DefinitionItems" instead of AddFields vs GroupItem vs FacetItem, etc.
 	definitions := analyzer.DefinedFields(stage)
@@ -82,7 +83,7 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 	// I do think that perhaps Definitions and RemoveDefinition should be added
 	// to the ast interface, but that can be done in the future.
 	for i, def := range definitions {
-		if _, ok := liveFields[def]; ok {
+		if liveFields.Contains(def) {
 			keepIndices[i] = true
 			keepCount++
 		}
@@ -93,10 +94,9 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 		// If this stage is a FieldKiller, it kills previous live values
 		// (previous is backwards, recall: we start from the end).
 		if analyzer.IsFieldKiller(stage) {
-			replaceStringSet(liveFields, refs)
-		} else {
-			appendToStringSet(liveFields, refs)
+			liveFields.RemoveAll()
 		}
+		liveFields.AddSlice(refs)
 		return true
 	}
 	switch typedStage := stage.(type) {
@@ -130,11 +130,11 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 			}
 			// Since we aren't keeping anything, we need to make a $project stage that
 			// kills all the currently live values. UNLESS there are no live values.
-			if len(liveFields) == 0 {
+			if liveFields.Len() == 0 {
 				return false
 			}
-			excludes := make([]ast.ProjectItem, len(liveFields))
-			for i, fieldName := range sortedFields(liveFields) {
+			excludes := make([]ast.ProjectItem, liveFields.Len())
+			for i, fieldName := range liveFields.SortedSlice() {
 				excludes[i] = ast.NewExcludeProjectItem(ast.NewFieldRef(fieldName, nil))
 			}
 			typedStage.Items = excludes
@@ -142,7 +142,7 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 			// (previous is backwards, recall: we start from the end).
 			// Note, if this actually happens this pipeline generates empty
 			// documents, but it's best to be correct.
-			replaceStringSet(liveFields, []string{})
+			liveFields.RemoveAll()
 			return true
 		}
 		var newItems []ast.ProjectItem
@@ -171,7 +171,7 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 			// (previous is backwards, recall: we start from the end).
 			// Note, if this actually happens this pipeline generates empty
 			// documents, but it's best to be correct.
-			replaceStringSet(liveFields, []string{})
+			liveFields.RemoveAll()
 			// If we remove a $replaceRoot stage it can technically cause issues since it
 			// should kill everything not included, instead we modify the $replaceRoot to be
 			// {$replaceRoot: {newRoot:_{}}}, to at least make the pipeline more efficient.
@@ -194,10 +194,9 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 	if analyzer.IsFieldKiller(stage) {
 		// If this stage is a FieldKiller, it kills previous live values
 		// (previous is backwards, recall: we start from the end).
-		replaceStringSet(liveFields, refs)
-	} else {
-		appendToStringSet(liveFields, refs)
+		liveFields.RemoveAll()
 	}
+	liveFields.AddSlice(refs)
 	return true
 }
 
@@ -205,15 +204,14 @@ func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields map[st
 // altering stages. Since we never want to remove these stages, there is no need to return a bool.
 func removeDeadDefinitionsFromCardinalityAlteringStagesAndUpdateLiveFields(
 	stage ast.Stage,
-	liveFields map[string]struct{}) {
+	liveFields *stringutil.StringSet) {
 	defer func() {
 		// We always want to add any remaining references after removing definitions.
 		refs, _ := analyzer.ReferencedFieldRoots(stage)
 		if analyzer.IsFieldKiller(stage) {
-			replaceStringSet(liveFields, refs)
-		} else {
-			appendToStringSet(liveFields, refs)
+			liveFields.RemoveAll()
 		}
+		liveFields.AddSlice(refs)
 	}()
 	definitions := analyzer.DefinedFields(stage)
 	// Indices of the definitions to keep.
@@ -222,7 +220,7 @@ func removeDeadDefinitionsFromCardinalityAlteringStagesAndUpdateLiveFields(
 	// I do think that perhaps Definitions and RemoveDefinition should be added
 	// to the ast interface, but that can be done in the future.
 	for i, def := range definitions {
-		if _, ok := liveFields[def]; ok {
+		if liveFields.Contains(def) {
 			keepIndices[i] = true
 			keepCount++
 		}

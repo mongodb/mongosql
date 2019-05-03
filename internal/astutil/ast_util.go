@@ -94,7 +94,7 @@ func PipelineJSON(pipeline *ast.Pipeline, depth int, newline bool) ([]byte, erro
 
 	for i, s := range pipeline.Stages {
 		PrintTabs(&buf, depth)
-		buf.WriteString(astprint.String(s))
+		buf.WriteString(astprint.ShellString(s))
 		if i != n-1 {
 			if newline {
 				buf.WriteString(",\n")

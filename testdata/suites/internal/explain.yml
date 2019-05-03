@@ -86,7 +86,7 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: explain_test.set_1.''_id'', type: ''int''}, {name: explain_test.set_1.''a'', type: ''int''}, {name: explain_test.set_1.''ab'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$project": {"explain_test_DOT_set_1_DOT__id": "$_id","explain_test_DOT_set_1_DOT_a": "$a","explain_test_DOT_set_1_DOT_ab": "$ab","_id": {"$numberInt":"0"}}}]', null, null]
+      - [1, MongoSourceStage, '[{name: explain_test.set_1.''_id'', type: ''int''}, {name: explain_test.set_1.''a'', type: ''int''}, {name: explain_test.set_1.''ab'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$project": {"explain_test_DOT_set_1_DOT__id": "$_id","explain_test_DOT_set_1_DOT_a": "$a","explain_test_DOT_set_1_DOT_ab": "$ab","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '7'
     pushdown_only: true
@@ -111,7 +111,7 @@ testcases:
     exact_server_version: '4.1'
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: join_test.join_1.''_id'', type: ''int''}, {name: join_test.join_1.''a'', type: ''int''}]', null, join_test, '[join_1, join_2]', '[join_1, join_2]', '[join_1, join_2]', '[{"$lookup": {"from": "join_2","localField": "_id","foreignField": "_id","as": "__joined_join_2"}},{"$project": {"__joined_join_2": {"$cond": [{"$lte": ["$_id",null]},[],"$__joined_join_2"]},"_id": {"$numberInt":"1"},"a": {"$numberInt":"1"}}},{"$unwind": {"path": "$__joined_join_2","preserveNullAndEmptyArrays": true}},{"$project": {"join_test_DOT_join_1_DOT__id": "$_id","join_test_DOT_join_1_DOT_a": "$a","_id": {"$numberInt":"0"}}}]', null, null]
+      - [1, MongoSourceStage, '[{name: join_test.join_1.''_id'', type: ''int''}, {name: join_test.join_1.''a'', type: ''int''}]', null, join_test, '[join_1, join_2]', '[join_1, join_2]', '[join_1, join_2]', '[{"$lookup": {"from": "join_2","localField": "_id","foreignField": "_id","as": "__joined_join_2"}},{"$project": {"__joined_join_2": {"$cond": [{"$lte": ["$_id",null]},[],"$__joined_join_2"]},"_id": NumberInt("1"),"a": NumberInt("1")}},{"$unwind": {"path": "$__joined_join_2","preserveNullAndEmptyArrays": true}},{"$project": {"join_test_DOT_join_1_DOT__id": "$_id","join_test_DOT_join_1_DOT_a": "$a","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '9'
     pushdown_only: true
@@ -121,7 +121,7 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match": {"a": {"$eq": {"$numberLong":"3"}}}},{"$project": {"explain_test_DOT_set_1_DOT_a": "$a","_id": {"$numberInt":"0"}}}]', null, null]
+      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match": {"a": {"$eq": NumberLong("3")}}},{"$project": {"explain_test_DOT_set_1_DOT_a": "$a","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '10'
     pushdown_only: true
@@ -131,7 +131,7 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: join_test.join_1.''a'', type: ''int''}, {name: join_test.join_2.''c'', type: ''int''}]', null, join_test, '[join_1, join_2]', '[join_1, join_2]', '[join_1, join_2]', '[{"$match": {"a": {"$ne": null}}},{"$lookup": {"from": "join_2","localField": "a","foreignField": "d","as": "__joined_join_2"}},{"$unwind": "$__joined_join_2"},{"$project": {"join_test_DOT_join_1_DOT_a": "$a","join_test_DOT_join_2_DOT_c": "$__joined_join_2.c","_id": {"$numberInt":"0"}}}]', null, null]
+      - [1, MongoSourceStage, '[{name: join_test.join_1.''a'', type: ''int''}, {name: join_test.join_2.''c'', type: ''int''}]', null, join_test, '[join_1, join_2]', '[join_1, join_2]', '[join_1, join_2]', '[{"$match": {"a": {"$ne": null}}},{"$lookup": {"from": "join_2","localField": "a","foreignField": "d","as": "__joined_join_2"}},{"$unwind": "$__joined_join_2"},{"$project": {"join_test_DOT_join_1_DOT_a": "$a","join_test_DOT_join_2_DOT_c": "$__joined_join_2.c","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '12'
     pushdown_only: true
@@ -141,7 +141,7 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: join_test.join_1.''a'', type: ''int''}, {name: join_test.bar.''d'', type: ''int''}]', null, join_test, '[join_2, join_1]', '[bar, join_1]', '[join_2, join_1]', '[{"$match": {"d": {"$eq": {"$numberLong":"1"}}}},{"$project": {"join_test_DOT_join_2_DOT_c": "$c","join_test_DOT_join_2_DOT_d": "$d"}},{"$match": {"join_test_DOT_join_2_DOT_c": {"$eq": {"$numberLong":"10"}}}},{"$match": {"join_test_DOT_join_2_DOT_d": {"$ne": null}}},{"$lookup": {"from": "join_1","localField": "join_test_DOT_join_2_DOT_d","foreignField": "a","as": "__joined_join_1"}},{"$unwind": "$__joined_join_1"},{"$project": {"join_test_DOT_join_1_DOT_a": "$__joined_join_1.a","join_test_DOT_bar_DOT_d": "$join_test_DOT_join_2_DOT_d","_id": {"$numberInt":"0"}}}]', null, null]
+      - [1, MongoSourceStage, '[{name: join_test.join_1.''a'', type: ''int''}, {name: join_test.bar.''d'', type: ''int''}]', null, join_test, '[join_2, join_1]', '[bar, join_1]', '[join_2, join_1]', '[{"$match": {"d": {"$eq": NumberLong("1")}}},{"$project": {"join_test_DOT_join_2_DOT_c": "$c","join_test_DOT_join_2_DOT_d": "$d"}},{"$match": {"join_test_DOT_join_2_DOT_c": {"$eq": NumberLong("10")}}},{"$match": {"join_test_DOT_join_2_DOT_d": {"$ne": null}}},{"$lookup": {"from": "join_1","localField": "join_test_DOT_join_2_DOT_d","foreignField": "a","as": "__joined_join_1"}},{"$unwind": "$__joined_join_1"},{"$project": {"join_test_DOT_join_1_DOT_a": "$__joined_join_1.a","join_test_DOT_bar_DOT_d": "$join_test_DOT_join_2_DOT_d","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '13'
     pushdown_only: true
@@ -152,7 +152,7 @@ testcases:
     exact_server_version: '3.6'
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match": {"a": {"$eq": {"$numberLong":"1"}}}},{"$project": {"explain_test_DOT_set_1_DOT_a": "$a","_id": {"$numberInt":"0"}}}]', null, null]
+      - [1, MongoSourceStage, '[{name: explain_test.set_1.''a'', type: ''int''}]', null, explain_test, '[set_1]', '[set_1]', '[set_1]', '[{"$match": {"a": {"$eq": NumberLong("1")}}},{"$project": {"explain_test_DOT_set_1_DOT_a": "$a","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '14'
     pushdown_only: true
@@ -164,7 +164,7 @@ testcases:
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
       - [1, ProjectStage, '[{name: ''b+2'', type: ''float''}]', '[2]', null, null, null, null, null, null, '{"pushdown_errors":[{"name":"SQLConvertExpr","reason":"cannot push down mysql-mode conversion from type ''string''"}]}']
-      - [2, MongoSourceStage, '[{name: functions_test.scalar.''b'', type: ''varchar''}]', null, functions_test, '[scalar]', '[scalar]', '[scalar]', '[{"$project": {"b": "$b","_id": {"$numberInt":"0"}}}]', null, null]
+      - [2, MongoSourceStage, '[{name: functions_test.scalar.''b'', type: ''varchar''}]', null, functions_test, '[scalar]', '[scalar]', '[scalar]', '[{"$project": {"b": "$b","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '15'
     pushdown_only: true

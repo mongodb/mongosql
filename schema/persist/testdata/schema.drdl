@@ -4,7 +4,7 @@ schema:
       - table: tbl_one
         collection: col_one
         pipeline:
-          - { $match: { a: { $eq: {"$numberInt":"1"} } } }
+          - { $match: { a: { $eq: 1} } }
         columns:
           - Name: a
             MongoType: int

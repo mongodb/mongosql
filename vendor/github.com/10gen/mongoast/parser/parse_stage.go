@@ -5,7 +5,7 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
-	"github.com/10gen/mongoast/util/decimalutil"
+	"github.com/10gen/mongoast/internal/decimalutil"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -557,7 +557,7 @@ func parseProjectStageItems(doc bsoncore.Document, prefix string) ([]ast.Project
 		fullKey := prefix + e.Key()
 		value := e.Value()
 		if value.IsNumber() || value.Type == bsontype.Boolean {
-			expr, err := parseFieldRef(fullKey)
+			fieldRef, err := ParseFieldRef(fullKey)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed parsing project field ref %s", fullKey)
 			}
@@ -577,9 +577,9 @@ func parseProjectStageItems(doc bsoncore.Document, prefix string) ([]ast.Project
 			}
 
 			if exclude {
-				items = append(items, ast.NewExcludeProjectItem(expr.(*ast.FieldRef)))
+				items = append(items, ast.NewExcludeProjectItem(fieldRef.(*ast.FieldRef)))
 			} else {
-				items = append(items, ast.NewIncludeProjectItem(expr.(*ast.FieldRef)))
+				items = append(items, ast.NewIncludeProjectItem(fieldRef.(*ast.FieldRef)))
 			}
 		} else {
 			if isNestedDoc(value) {
@@ -714,7 +714,7 @@ func parseSortItems(doc bsoncore.Document) ([]*ast.SortItem, error) {
 	elems, _ := doc.Elements()
 	items := make([]*ast.SortItem, len(elems))
 	for i, e := range elems {
-		expr, err := parseMatchFieldRef(e.Key())
+		expr, err := ParseFieldRef(e.Key())
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed parsing sort field ref %s", e.Key())
 		}

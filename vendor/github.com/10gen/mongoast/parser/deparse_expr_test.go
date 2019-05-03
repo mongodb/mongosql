@@ -29,6 +29,65 @@ func TestDeparseExpr(t *testing.T) {
 			`"$$a.b.c"`,
 			bsonutil.String("$$a.b.c"),
 		},
+		// Literal
+		{
+			// $literal should be removed outside of $project contexts.
+			`{"$literal": "hello"}`,
+			bsonutil.String("hello"),
+		},
+		{
+			// $literal should NOT be removed in ANY context because this will
+			// become a field reference.
+			`{"$literal": "$hello"}`,
+			bsonutil.DocumentFromElements(
+				"$literal",
+				bsonutil.String("$hello"),
+			),
+		},
+		{
+			// $literal should NOT be removed in ANY context because this will
+			// become a variable reference.
+			`{"$literal": "$$hello"}`,
+			bsonutil.DocumentFromElements(
+				"$literal",
+				bsonutil.String("$$hello"),
+			),
+		},
+		{
+			// $literal should be removed outside of $project contexts.
+			`{"$literal": 1}`,
+			bsonutil.Int32(1),
+		},
+		{
+			// $literal should NOT be removed in ANY context because Documents
+			// could contain function applications the user does not want to occur.
+			`{"$literal": {"$add": [1, 2]}}`,
+			bsonutil.DocumentFromElements(
+				"$literal",
+				bsonutil.DocumentFromElements("$add",
+					bsonutil.ArrayFromValues(
+						bsonutil.Int32(1),
+						bsonutil.Int32(2),
+					),
+				),
+			),
+		},
+		{
+			// $literal should NOT be removed in ANY context because Arrays
+			// could contain function applications the user does not want to occur.
+			`{"$literal": [5, {"$add": [1, 2]}]}`,
+			bsonutil.DocumentFromElements(
+				"$literal",
+				bsonutil.ArrayFromValues(bsonutil.Int32(5),
+					bsonutil.DocumentFromElements("$add",
+						bsonutil.ArrayFromValues(
+							bsonutil.Int32(1),
+							bsonutil.Int32(2),
+						),
+					),
+				),
+			),
+		},
 		// Fields
 		{
 			`"$a"`,
@@ -43,9 +102,7 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$arrayElemAt", bsonutil.ArrayFromValues(
 					bsonutil.String("$a"),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(2),
-					),
+					bsonutil.Int32(2),
 				),
 			),
 		},
@@ -62,10 +119,8 @@ func TestDeparseExpr(t *testing.T) {
 		{
 			`{"a": 1 }`,
 			bsonutil.DocumentFromElements(
-				"a", bsonutil.DocumentFromElements(
-					"$literal",
-					bsonutil.Int32(1),
-				),
+				"a",
+				bsonutil.Int32(1),
 			),
 		},
 		// Logical
@@ -73,12 +128,8 @@ func TestDeparseExpr(t *testing.T) {
 			`{"$and": [1, 2]}`,
 			bsonutil.DocumentFromElements(
 				"$and", bsonutil.ArrayFromValues(
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(2),
-					),
+					bsonutil.Int32(1),
+					bsonutil.Int32(2),
 				),
 			),
 		},
@@ -86,12 +137,8 @@ func TestDeparseExpr(t *testing.T) {
 			`{"$or": [1, 2]}`,
 			bsonutil.DocumentFromElements(
 				"$or", bsonutil.ArrayFromValues(
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(2),
-					),
+					bsonutil.Int32(1),
+					bsonutil.Int32(2),
 				),
 			),
 		},
@@ -101,9 +148,7 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$eq", bsonutil.ArrayFromValues(
 					bsonutil.String("$a"),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -112,9 +157,7 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$gt", bsonutil.ArrayFromValues(
 					bsonutil.String("$a"),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -123,9 +166,7 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$gte", bsonutil.ArrayFromValues(
 					bsonutil.String("$a"),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -134,9 +175,7 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$lt", bsonutil.ArrayFromValues(
 					bsonutil.String("$a"),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -145,9 +184,7 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$lte", bsonutil.ArrayFromValues(
 					bsonutil.String("$a"),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -156,9 +193,16 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$ne", bsonutil.ArrayFromValues(
 					bsonutil.String("$a"),
-					bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					bsonutil.Int32(1),
+				),
+			),
+		},
+		{
+			`{"$cmp": ["$a", 1]}`,
+			bsonutil.DocumentFromElements(
+				"$cmp", bsonutil.ArrayFromValues(
+					bsonutil.String("$a"),
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -175,9 +219,7 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$let", bsonutil.DocumentFromElements(
 					"vars", bsonutil.DocumentFromElements(
-						"a", bsonutil.DocumentFromElements(
-							"$literal", bsonutil.Int32(1),
-						),
+						"a", bsonutil.Int32(1),
 						"b", bsonutil.String("$x"),
 					),
 					"in", bsonutil.DocumentFromElements(
@@ -197,17 +239,13 @@ func TestDeparseExpr(t *testing.T) {
 					"if", bsonutil.DocumentFromElements(
 						"$eq", bsonutil.ArrayFromValues(
 							bsonutil.String("$a"),
-							bsonutil.DocumentFromElements(
-								"$literal", bsonutil.Int32(5),
-							),
+							bsonutil.Int32(5),
 						),
 					),
-					"then", bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
-					"else", bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(0),
-					),
+					"then",
+					bsonutil.Int32(1),
+					"else",
+					bsonutil.Int32(0),
 				),
 			),
 		},
@@ -216,9 +254,8 @@ func TestDeparseExpr(t *testing.T) {
 			`{"a": { "$eee": 1}}`,
 			bsonutil.DocumentFromElements(
 				"a", bsonutil.DocumentFromElements(
-					"$eee", bsonutil.DocumentFromElements(
-						"$literal", bsonutil.Int32(1),
-					),
+					"$eee",
+					bsonutil.Int32(1),
 				),
 			),
 		},
@@ -227,14 +264,12 @@ func TestDeparseExpr(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$eee", bsonutil.ArrayFromValues(
 					bsonutil.DocumentFromElements(
-						"a", bsonutil.DocumentFromElements(
-							"$literal", bsonutil.Int32(1),
-						),
+						"a",
+						bsonutil.Int32(1),
 					),
 					bsonutil.DocumentFromElements(
-						"b", bsonutil.DocumentFromElements(
-							"$literal", bsonutil.Int32(2),
-						),
+						"b",
+						bsonutil.Int32(2),
 					),
 				),
 			),

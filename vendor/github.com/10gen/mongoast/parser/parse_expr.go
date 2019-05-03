@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/10gen/mongoast/ast"
@@ -39,7 +40,7 @@ func ParseExpr(v bsoncore.Value) (ast.Expr, error) {
 		if strings.HasPrefix(s, "$$") {
 			return parseVariableRef(s[2:])
 		} else if strings.HasPrefix(s, "$") {
-			return parseFieldRef(s[1:])
+			return ParseFieldRef(s[1:])
 		}
 
 		return ast.NewConstant(v), nil
@@ -105,11 +106,19 @@ func parseDocumentExpr(doc bsoncore.Document) (ast.Expr, error) {
 	return ast.NewDocument(documentElements...), nil
 }
 
-func parseFieldRef(s string) (ast.Expr, error) {
+func ParseFieldRef(s string) (ast.Expr, error) {
 	parts := strings.Split(s, ".")
-	expr := ast.NewFieldRef(parts[0], nil)
+	var expr ast.Expr = ast.NewFieldRef(parts[0], nil)
 	for _, part := range parts[1:] {
-		expr = ast.NewFieldRef(part, expr)
+		if len(part) == 0 {
+			return nil, errors.New("invalid field ref")
+		}
+		index, err := strconv.Atoi(part)
+		if err != nil {
+			expr = ast.NewFieldRef(part, expr)
+		} else {
+			expr = ast.NewFieldOrArrayIndexRef(int32(index), expr)
+		}
 	}
 	return expr, nil
 }
@@ -155,7 +164,7 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 			return nil, errors.Wrap(err, "failed parsing second element of $arrayElemAt")
 		}
 		return ast.NewArrayIndexRef(index, parent), nil
-	case "$eq", "$gt", "$gte", "$lt", "$lte", "$ne":
+	case "$cmp", "$eq", "$gt", "$gte", "$lt", "$lte", "$ne":
 		arr, ok := v.ArrayOK()
 		if !ok {
 			return nil, errors.Errorf("%s requires an array with 2 elements", key)

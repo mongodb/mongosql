@@ -1,0 +1,999 @@
+[
+  {
+    "name": "do not merge dependent lets",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v2": "$$v1"
+                  },
+                  "in": "$$v2"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v2": "$$v1"
+                  },
+                  "in": "$$v2"
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge independent shadowed variables",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v1": "$y",
+                    "v2": "$$v1"
+                  },
+                  "in": { "$add": ["$$v1", "$$v2"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v1": "$y",
+                    "v2": "$$v1"
+                  },
+                  "in": { "$add": ["$$v1", "$$v2"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "merge independent lets",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v2": "$y"
+                  },
+                  "in": { "$add": ["$$v1", "$$v2"] }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v2": "$y"
+              },
+              "in": { "$add": ["$$v1", "$$v2"] }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "merge multiple nested lets that are not direct descendents of an outer let",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$let": {
+                      "vars": {
+                        "v2": "$y"
+                      },
+                      "in": {
+                        "$add": ["$$v1", "$$v2"]
+                      }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "v3": "$z"
+                      },
+                      "in": {
+                        "$add": ["$$v1", "$$v2"]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v2": "$y",
+                "v3": "$z"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$add": ["$$v1", "$$v2"]
+                  },
+                  {
+                    "$add": ["$$v1", "$$v2"]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "fully merge multiple levels of independent lets",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v2": "$y"
+                  },
+                  "in": {
+                    "$let": {
+                      "vars": {
+                        "v3": "$z",
+                        "v4": "$n"
+                      },
+                      "in": {
+                        "$let": {
+                          "vars": {
+                            "v5": "$m"
+                          },
+                          "in": {
+                            "$add": ["$$v1", "$$v2", "$$v3", "$$v4", "$$v5"]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v2": "$y",
+                "v3": "$z",
+                "v4": "$n",
+                "v5": "$m"
+              },
+              "in": {
+                "$add": ["$$v1", "$$v2", "$$v3", "$$v4", "$$v5"]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "partially merge multiple levels of semi-dependent lets",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v2": "$y"
+                  },
+                  "in": {
+                    "$let": {
+                      "vars": {
+                        "v3": "$$v1",
+                        "v4": "$n"
+                      },
+                      "in": {
+                        "$let": {
+                          "vars": {
+                            "v5": "$$v2",
+                            "v6": "$$v3"
+                          },
+                          "in": {
+                            "$add": ["$$v1", "$$v2", "$$v3", "$$v4", "$$v5", "$$v6"]
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v2": "$y",
+                "v4": "$n"
+              },
+              "in": {
+                "$let": {
+                  "vars": {
+                    "v3": "$$v1",
+                    "v5": "$$v2"
+                  },
+                  "in": {
+                    "$let": {
+                      "vars": {
+                        "v6": "$$v3"
+                      },
+                      "in": {
+                        "$add": ["$$v1", "$$v2", "$$v3", "$$v4", "$$v5", "$$v6"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge let variables in $map that references the as variable",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$map": {
+                  "input": [1, 2, 3],
+                  "as": "var",
+                  "in": {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$add": ["$$var", 2] },
+                        "v3": "$y"
+                      },
+                      "in": { "$add": ["$$v1", "$$v2", "$$v3"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v3": "$y"
+              },
+              "in": {
+                "$map": {
+                  "input": [1, 2, 3],
+                  "as": "var",
+                  "in": {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$add": ["$$var", 2] }
+                      },
+                      "in": { "$add": ["$$v1", "$$v2", "$$v3"] }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge let variables nested in $filter that references the as variable",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$filter": {
+                  "input": [1, 2, 3],
+                  "as": "var",
+                  "cond": {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$add": ["$$var", 2] },
+                        "v3": "$y"
+                      },
+                      "in": {
+                        "$eq": [
+                          { "$add": ["$$v1", "$$v2"] },
+                          "$$v3"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v3": "$y"
+              },
+              "in": {
+                "$filter": {
+                  "input": [1, 2, 3],
+                  "as": "var",
+                  "cond": {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$add": ["$$var", 2] }
+                      },
+                      "in": {
+                        "$eq": [
+                          { "$add": ["$$v1", "$$v2"] },
+                          "$$v3"
+                        ]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge let variables nested in $reduce that reference $$this or $$value",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$reduce": {
+                  "input": [1, 2, 3],
+                  "initialValue": 0,
+                  "in": {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$add": ["$$this", 2] },
+                        "v3": "$y",
+                        "v4": { "$add": ["$$value", 2] }
+                      },
+                      "in": {
+                        "$add": ["$$v1", "$$v2", "$$v3", "$$v4"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v3": "$y"
+              },
+              "in": {
+                "$reduce": {
+                  "input": [1, 2, 3],
+                  "initialValue": 0,
+                  "in": {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$add": ["$$this", 2] },
+                        "v4": { "$add": ["$$value", 2] }
+                      },
+                      "in": {
+                        "$add": ["$$v1", "$$v2", "$$v3", "$$v4"]
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge let bindings named using the as field from a sibling $map where the name shadows an outer variable",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$map": {
+                      "input": [1, 2, 3],
+                      "as": "v1",
+                      "in": { "$add": ["$$v1", "$$v1"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "v1": "$y"
+                      },
+                      "in": { "$add": ["$$v1", "$$v1"] }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$map": {
+                      "input": [1, 2, 3],
+                      "as": "v1",
+                      "in": { "$add": ["$$v1", "$$v1"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "v1": "$y"
+                      },
+                      "in": { "$add": ["$$v1", "$$v1"] }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge let bindings named using the as field from a sibling $filter where the name shadows an outer variable",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$concatArrays": [
+                  {
+                    "$filter": {
+                      "input": [1, 2, 3],
+                      "as": "v1",
+                      "cond": { "$eq": ["$$v1", "$$v1"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "v1": "$y"
+                      },
+                      "in": ["$$v1", "$$v1"]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$concatArrays": [
+                  {
+                    "$filter": {
+                      "input": [1, 2, 3],
+                      "as": "v1",
+                      "cond": { "$eq": ["$$v1", "$$v1"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "v1": "$y"
+                      },
+                      "in": ["$$v1", "$$v1"]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge let bindings named this and value from let expression that is a sibling of a $reduce where the names shadow outer variables",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "this": "$x",
+                "value": "$y"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$reduce": {
+                      "input": [1, 2, 3],
+                      "initialValue": 0,
+                      "in": { "$add": ["$$this", "$$value"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "this": "$n",
+                        "value": "$m"
+                      },
+                      "in": { "$add": ["$$this", "$$value"] }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "this": "$x",
+                "value": "$y"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$reduce": {
+                      "input": [1, 2, 3],
+                      "initialValue": 0,
+                      "in": { "$add": ["$$this", "$$value"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "this": "$n",
+                        "value": "$m"
+                      },
+                      "in": { "$add": ["$$this", "$$value" ]}
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "merge let bindings named using the as field from a sibling $map",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$map": {
+                      "input": [1, 2, 3],
+                      "as": "v2",
+                      "in": { "$add": ["$$v1", "$$v2"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "v2": "$y"
+                      },
+                      "in": { "$add": ["$$v1", "$$v2"] }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v2": "$y"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$map": {
+                      "input": [1, 2, 3],
+                      "as": "v2",
+                      "in": { "$add": ["$$v1", "$$v2"] }
+                    }
+                  },
+                  {
+                    "$add": ["$$v1", "$$v2"]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "merge let bindings named using the as field from a sibling $filter",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$concatArrays": [
+                  {
+                    "$filter": {
+                      "input": [1, 2, 3],
+                      "as": "v2",
+                      "cond": { "$eq": ["$$v1", "$$v2"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "v2": "$y"
+                      },
+                      "in": ["$$v1", "$$v2"]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "v2": "$y"
+              },
+              "in": {
+                "$concatArrays": [
+                  {
+                    "$filter": {
+                      "input": [1, 2, 3],
+                      "as": "v2",
+                      "cond": { "$eq": ["$$v1", "$$v2"] }
+                    }
+                  },
+                  ["$$v1", "$$v2"]
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "merge let bindings named this and value from let expression that is a sibling of a $reduce",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$reduce": {
+                      "input": [1, 2, 3],
+                      "initialValue": 0,
+                      "in": { "$add": ["$$v1", "$$this", "$$value"] }
+                    }
+                  },
+                  {
+                    "$let": {
+                      "vars": {
+                        "this": "$y",
+                        "value": "$z"
+                      },
+                      "in": {
+                        "$add": ["$$v1", "$$this", "$$value"]
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x",
+                "this": "$y",
+                "value": "$z"
+              },
+              "in": {
+                "$add": [
+                  {
+                    "$reduce": {
+                      "input": [1, 2, 3],
+                      "initialValue": 0,
+                      "in": {
+                        "$add": ["$$v1", "$$this", "$$value"]
+                      }
+                    }
+                  },
+                  {
+                    "$add": ["$$v1", "$$this", "$$value"]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do nothing if there are no let expressions",
+    "input": [
+      {
+        "$project": {
+          "a": { "$add": ["$x", "$y"] }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": { "$add": ["$x", "$y"] }
+        }
+      }
+    ]
+  },
+  {
+    "name": "do not merge independent let bindings nested in lazy expressions",
+    "input": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$cond": [
+                  { "$lte": ["$y", null] },
+                  null,
+                  {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$strLenCP": "$y" }
+                      },
+                      "in": { "$add": ["$$v1", "$$v2"] }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a": {
+            "$let": {
+              "vars": {
+                "v1": "$x"
+              },
+              "in": {
+                "$cond": [
+                  { "$lte": ["$y", null] },
+                  null,
+                  {
+                    "$let": {
+                      "vars": {
+                        "v2": { "$strLenCP": "$y" }
+                      },
+                      "in": { "$add": ["$$v1", "$$v2"] }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+]
