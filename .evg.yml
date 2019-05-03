@@ -1917,7 +1917,7 @@ axes:
     variables:
       _variant: amazon
     run_on:
-    - linux-64-amzn-test
+    - amazon1-2018-test
   - id: rhel62
     display_name: RHEL 6.2
     variables:
@@ -2051,7 +2051,7 @@ buildvariants:
         - name: module-tests
         - name: compile
         - name: sign
-          run_on: linux-64-amzn-benchmark
+          run_on: amazon1-2018-test
       set:
         tags: ["packager"]
 
@@ -2062,7 +2062,7 @@ buildvariants:
     - ".test !.config !.oneoff-task"
     - name: compile
     - name: sign
-      run_on: ["linux-64-amzn-benchmark"]
+      run_on: amazon1-2018-test
   matrix_spec:
     os_single_variant: "*"
 
@@ -2176,7 +2176,7 @@ buildvariants:
   expansions:
     _variant: amazon
   run_on:
-  - linux-64-amzn-build
+  - amazon1-2018-test
   tasks:
     - name: ".code-quality"
 
@@ -2185,6 +2185,6 @@ buildvariants:
   expansions:
     _variant: amazon
   run_on:
-  - linux-64-amzn-benchmark
+  - amazon1-2018-test
   tasks:
   - name: release
