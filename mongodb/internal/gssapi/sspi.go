@@ -25,7 +25,7 @@ func initSSPI() {
 }
 
 // NewServer creates a new SaslServer.
-func NewServer(serviceName, hostname string) *SaslServer {
+func NewServer(serviceName, hostname string, _ bool) *SaslServer {
 	spn := fmt.Sprintf("%s@%s", serviceName, hostname)
 	return &SaslServer{
 		servicePrincipalName: spn,

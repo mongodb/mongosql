@@ -539,8 +539,9 @@ type Security struct {
 
 // SecurityGSSAPI holds configuration for hosting GSSAPI authentication.
 type SecurityGSSAPI struct {
-	Hostname    string
-	ServiceName string `config:"serviceName"`
+	ConstrainedDelegation bool `config:"constrainedDelegation"`
+	Hostname              string
+	ServiceName           string `config:"serviceName"`
 }
 
 // MongoDB holds configuration for connecting to MongoDB.

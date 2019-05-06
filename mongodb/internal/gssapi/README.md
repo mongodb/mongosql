@@ -4,7 +4,7 @@
 
 [GSSAPI][gssapi] is a meta-protocol that is mainly used to wrap the kerberos protocol. MongoDB and, by extension, MongoSQL, utilize SASL which is also a meta-protocol. In effect, the SASL meta-protocol is wrapping the GSSAPI meta-protocol which is wrapping the Kerberos protocol. This is the [GSSAPI SASL Mechanism][gssapi-sasl].
 
-Overall, SASL works by (a) beginning a conversation and (b) continuing that conversatiom until the server and client agree it is completed.
+Overall, SASL works by (a) beginning a conversation and (b) continuing that conversation until the server and client agree it is completed.
 
 GSSAPI works in largely the same way. A conversation is begun by initializing a security context. Sometimes this takes more than one round trip. Once that has been completed, then everything is secure. However, SASL imposes an additional roundtrip on the GSSAPI protocol which carries with it information about the username of the client and message confidentiality/integrity settings. MongoDB does not support any of these, so we send the username and bytes indicating not confidentiality or integrity. These messages are sent using Encrypt/Wrap and Decrypt/Unwrap depending on the implementation. The wrapper classes, discussed below, distill all this into a common API such that the different implementations look remarkably similar.
 

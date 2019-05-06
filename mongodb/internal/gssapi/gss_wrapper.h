@@ -30,6 +30,8 @@ typedef struct {
     gss_cred_id_t cred;
     gss_ctx_id_t ctx;
 
+    int has_delegated_client_cred;
+
     gss_cred_id_t delegated_client_cred;
 
     OM_uint32 maj_stat;
@@ -66,7 +68,7 @@ int mongosql_gssapi_client_wrap_msg(
     void* input,
     size_t input_length,
     void** output,
-    size_t* output_length 
+    size_t* output_length
 );
 
 int mongosql_gssapi_client_destroy(
@@ -75,7 +77,8 @@ int mongosql_gssapi_client_destroy(
 
 int mongosql_gssapi_server_init(
     mongosql_gssapi_server_state *server,
-    char* username
+    char* username,
+	int use_constrained_delegation
 );
 
 int mongosql_gssapi_server_negotiate(
@@ -83,7 +86,7 @@ int mongosql_gssapi_server_negotiate(
     void* input,
     size_t input_length,
     void** output,
-    size_t* output_length 
+    size_t* output_length
 );
 
 int mongosql_gssapi_server_wrap_msg(
