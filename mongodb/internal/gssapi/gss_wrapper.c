@@ -401,7 +401,8 @@ int mongosql_gssapi_client_destroy(
 
 int mongosql_gssapi_server_init(
     mongosql_gssapi_server_state *server,
-    char* username
+    char* username,
+    int use_constrained_delegation
 )
 {
     server->cred = GSS_C_NO_CREDENTIAL;
@@ -420,12 +421,16 @@ int mongosql_gssapi_server_init(
         return GSSAPI_ERROR;
     }
 
+    gss_cred_usage_t cred_usage_flag = GSS_C_ACCEPT;
+    if (use_constrained_delegation) {
+        cred_usage_flag = GSS_C_BOTH;
+    }
     server->maj_stat = gss_acquire_cred(
         &server->min_stat,  // minor_status
         spn,                // desired_name
         GSS_C_INDEFINITE,   // time_req
         GSS_C_NO_OID_SET,   // desired_mech
-        GSS_C_BOTH,         // cred_usage
+        cred_usage_flag,    // cred_usage
         &server->cred,      // output_cred_handle
         NULL,               // actual_mechs
         NULL                // time_rec
@@ -507,6 +512,10 @@ int mongosql_gssapi_server_negotiate(
 
     if (server->maj_stat == GSS_S_CONTINUE_NEEDED) {
         return GSSAPI_CONTINUE;
+    }
+
+    if (ret_flags & GSS_C_DELEG_FLAG) {
+        server->has_delegated_client_cred = 1;
     }
 
     return GSSAPI_OK;

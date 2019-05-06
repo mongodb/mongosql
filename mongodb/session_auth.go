@@ -76,9 +76,10 @@ type SaslConversation struct {
 // SaslSessionAuthenticator authenticates a session using
 // the sasl protocol.
 type SaslSessionAuthenticator struct {
-	Source    string
-	Username  string
-	Mechanism string
+	Source                string
+	Username              string
+	Mechanism             string
+	ConstrainedDelegation bool
 
 	Callback func(convos []*SaslConversation) error
 
@@ -197,6 +198,8 @@ type GssapiSessionAuthenticator struct {
 	HostAddr        string
 
 	RemoteServiceName string
+
+	ConstrainedDelegation bool
 }
 
 func (a *GssapiSessionAuthenticator) source() string {

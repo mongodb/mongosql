@@ -238,18 +238,19 @@ type options struct {
 
 // nolint: lll
 type clientConnectionOptions struct {
-	Addr                 *string `long:"addr" description:"comma separated list of ip addresses to listen on ('localhost' by default)"`
-	Auth                 *bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
-	DefaultAuthMechanism *string `long:"defaultAuthMechanism" description:"the default authentication mechanism ('SCRAM-SHA-1' by default)"`
-	DefaultAuthSource    *string `long:"defaultAuthSource" description:"the default authentication source ('admin' by default)"`
-	GSSAPIHostname       *string `long:"gssapiHostname" description:"the hostname to use when hosting using GSSAPI/Kerberos (server's first bind ip address by default)"`
-	GSSAPIServiceName    *string `long:"gssapiServiceName" description:"the service name to use when hosting using GSSAPI/Kerberos ('mongosql' by default)"`
-	MinimumTLSVersion    *string `long:"minimumTLSVersion" description:"the minimum TLS protocol version accepted by the BI Connector from the client" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2"`
-	SSLAllowInvalidCerts *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
-	SSLCAFile            *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
-	SSLMode              *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
-	SSLPEMKeyFile        *string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
-	SSLPEMKeyPassword    *string `long:"sslPEMKeyPassword" description:"password to decrypt private key in --sslPEMKeyFile"`
+	Addr                        *string `long:"addr" description:"comma separated list of ip addresses to listen on ('localhost' by default)"`
+	Auth                        *bool   `long:"auth" description:"use authentication/authorization ('sslPEMKeyFile' is required when using auth)"`
+	DefaultAuthMechanism        *string `long:"defaultAuthMechanism" description:"the default authentication mechanism ('SCRAM-SHA-1' by default)"`
+	DefaultAuthSource           *string `long:"defaultAuthSource" description:"the default authentication source ('admin' by default)"`
+	GSSAPIHostname              *string `long:"gssapiHostname" description:"the hostname to use when hosting using GSSAPI/Kerberos (server's first bind ip address by default)"`
+	GSSAPIServiceName           *string `long:"gssapiServiceName" description:"the service name to use when hosting using GSSAPI/Kerberos ('mongosql' by default)"`
+	GSSAPIConstrainedDelegation *bool   `long:"gssapiConstrainedDelegation" description:"use proxy credentials for kerberos auth, enabling constrained delegation (requires mongosqld service credentials in client keytab)"`
+	MinimumTLSVersion           *string `long:"minimumTLSVersion" description:"the minimum TLS protocol version accepted by the BI Connector from the client" choice:"TLS1_0" choice:"TLS1_1" choice:"TLS1_2"`
+	SSLAllowInvalidCerts        *bool   `long:"sslAllowInvalidCertificates" description:"don't require the certificate presented by the client to be valid"`
+	SSLCAFile                   *string `long:"sslCAFile" description:"path to a CA certificate file to use for authenticating client certificate"`
+	SSLMode                     *string `long:"sslMode" description:"set the SSL operation mode" choice:"disabled" choice:"allowSSL" choice:"requireSSL"`
+	SSLPEMKeyFile               *string `long:"sslPEMKeyFile" description:"path to a file containing the certificate and private key establishing a connection with a client"`
+	SSLPEMKeyPassword           *string `long:"sslPEMKeyPassword" description:"password to decrypt private key in --sslPEMKeyFile"`
 }
 
 func (o *clientConnectionOptions) name() string {
@@ -271,6 +272,9 @@ func (o *clientConnectionOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.GSSAPIServiceName) {
 		cfg.Security.GSSAPI.ServiceName = *o.GSSAPIServiceName
+	}
+	if o.GSSAPIConstrainedDelegation != nil {
+		cfg.Security.GSSAPI.ConstrainedDelegation = *o.GSSAPIConstrainedDelegation
 	}
 	if !isEmptyOrUnset(o.Addr) {
 		addrs := strings.Split(*o.Addr, ",")

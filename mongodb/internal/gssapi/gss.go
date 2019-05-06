@@ -17,10 +17,11 @@ import (
 )
 
 // NewServer creates a new SaslServer.
-func NewServer(serviceName, hostname string) *SaslServer {
+func NewServer(serviceName, hostname string, constrainedDelegation bool) *SaslServer {
 	spn := fmt.Sprintf("%s@%s", serviceName, hostname)
 	return &SaslServer{
-		servicePrincipalName: spn,
+		servicePrincipalName:  spn,
+		constrainedDelegation: constrainedDelegation,
 	}
 }
 
@@ -40,6 +41,8 @@ type SaslServer struct {
 
 	gss   C.mongosql_gssapi_server_state
 	state saslState
+
+	constrainedDelegation bool
 }
 
 // Close closes the SASL Server.
@@ -52,7 +55,12 @@ func (ss *SaslServer) Start() error {
 	cusername := C.CString(ss.servicePrincipalName)
 	defer C.free(unsafe.Pointer(cusername))
 
-	status := C.mongosql_gssapi_server_init(&ss.gss, cusername)
+	constrainedDelegationInt := C.int(0)
+	if ss.constrainedDelegation {
+		constrainedDelegationInt = C.int(1)
+	}
+
+	status := C.mongosql_gssapi_server_init(&ss.gss, cusername, constrainedDelegationInt)
 	if status != C.GSSAPI_OK {
 		return ss.getError("unable to initialize server")
 	}
@@ -78,6 +86,9 @@ func (ss *SaslServer) Next(challenge []byte) ([]byte, error) {
 		status := C.mongosql_gssapi_server_negotiate(&ss.gss, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
 		case C.GSSAPI_OK:
+			if !ss.constrainedDelegation && ss.gss.has_delegated_client_cred == 0 {
+				return nil, fmt.Errorf("client did not provide a delegated credential")
+			}
 			ss.state = ContextComplete
 		case C.GSSAPI_CONTINUE:
 		default:

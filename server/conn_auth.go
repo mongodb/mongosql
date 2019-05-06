@@ -212,7 +212,8 @@ func (c *conn) authMongoSQLAuthGSSAPI(ctx context.Context) error {
 		HostServiceName: c.server.cfg.Security.GSSAPI.ServiceName,
 		HostAddr:        hostname,
 
-		RemoteServiceName: c.server.cfg.MongoDB.Net.Auth.GSSAPIServiceName,
+		RemoteServiceName:     c.server.cfg.MongoDB.Net.Auth.GSSAPIServiceName,
+		ConstrainedDelegation: c.constrainedDelegation,
 	}
 
 	return c.session.Login(ctx, &authenticator)

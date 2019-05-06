@@ -18,7 +18,7 @@ func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Conn
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	server := gssapi.NewServer(a.HostServiceName, getHostname(a.HostAddr))
+	server := gssapi.NewServer(a.HostServiceName, getHostname(a.HostAddr), a.ConstrainedDelegation)
 	defer server.Close()
 
 	err := server.Start()

@@ -77,6 +77,7 @@ type conn struct {
 	clientRequestedAuthPluginName string
 	clientAuthResponse            []byte
 	clientConnectAttributes       []clientConnectionAttribute
+	constrainedDelegation         bool
 
 	stmts map[uint32]*stmt
 
@@ -147,6 +148,7 @@ func newConn(ctx context.Context, cancelConnCtx context.CancelFunc, s *Server, c
 			ClientPluginAuthLenencClientData
 		newConn.authPluginName = mongosqlAuthClientAuthPluginName
 		newConn.authPluginData = []byte{1, 0} // version 1.0 of the mongosql_auth plugin
+		newConn.constrainedDelegation = s.cfg.Security.GSSAPI.ConstrainedDelegation
 	} else {
 		buf, err := randomBuf(20)
 		if err != nil {
