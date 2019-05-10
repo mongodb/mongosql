@@ -2583,6 +2583,7 @@ func TestEvaluates(t *testing.T) {
 					"a",
 					EvalInt64,
 					schema.MongoInt,
+					false,
 				)
 				result, err := subject.Evaluate(bgCtx, execCfg, execState)
 				req.Nil(err, "unable to evalute sql expression")
@@ -2601,6 +2602,7 @@ func TestEvaluates(t *testing.T) {
 					"c",
 					EvalInt64,
 					schema.MongoInt,
+					false,
 				)
 				result, err := subject.Evaluate(bgCtx, execCfg, execState)
 				req.Nil(err, "unable to evalute sql expression")
@@ -2615,6 +2617,7 @@ func TestEvaluates(t *testing.T) {
 					"no_existy",
 					EvalInt64,
 					schema.MongoInt,
+					false,
 				)
 				didPanic := assert.PanicsWithValue(t,
 					"cannot find column \"test.bar.no_existy\"",

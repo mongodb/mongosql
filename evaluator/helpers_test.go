@@ -112,14 +112,18 @@ func createAllProjectedColumnsFromSource(selectID int, source evaluator.PlanStag
 			continue
 		}
 		results = append(results, createProjectedColumnFromColumn(
-			selectID, c, projectedTableName, c.Name))
+			selectID, c, projectedTableName, c.Name, false))
 	}
 
 	return results
 }
 
-func createProjectedColumnFromColumn(newSelectID int, column *results.Column, projectedTableName,
-	projectedColumnName string) evaluator.ProjectedColumn {
+func createProjectedColumnFromColumn(
+	newSelectID int,
+	column *results.Column,
+	projectedTableName, projectedColumnName string,
+	correlated bool,
+) evaluator.ProjectedColumn {
 	return evaluator.ProjectedColumn{
 		Column: &results.Column{
 			SelectID:      newSelectID,
@@ -138,34 +142,30 @@ func createProjectedColumnFromColumn(newSelectID int, column *results.Column, pr
 			MongoName:  column.MongoName,
 		},
 		Expr: evaluator.NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
-			column.Name, column.EvalType, column.MongoType),
+			column.Name, column.EvalType, column.MongoType, correlated),
 	}
 }
 
-func createProjectedColumn(selectID int, source evaluator.PlanStage, sourceTableName,
-	sourceColumnName, projectedTableName, projectedColumnName string) evaluator.ProjectedColumn {
+func createProjectedColumn(selectID int, source evaluator.PlanStage, sourceTableName, sourceColumnName, projectedTableName, projectedColumnName string, correlated bool) evaluator.ProjectedColumn {
 	for _, c := range source.Columns() {
 		if c.MongoType == schema.MongoFilter {
 			continue
 		}
 		if c.Table == sourceTableName && c.Name == sourceColumnName {
-			return createProjectedColumnFromColumn(selectID, c, projectedTableName,
-				projectedColumnName)
+			return createProjectedColumnFromColumn(selectID, c, projectedTableName, projectedColumnName, correlated)
 		}
 	}
 
 	panic(fmt.Sprintf("no column found with the name %q", sourceColumnName))
 }
 
-func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName,
-	columnName string) evaluator.SQLColumnExpr {
+func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName, columnName string, correlated bool) evaluator.SQLColumnExpr {
 	for _, c := range source.Columns() {
 		if c.MongoType == schema.MongoFilter {
 			continue
 		}
 		if c.Table == tableName && c.Name == columnName {
-			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.EvalType,
-				c.MongoType)
+			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.EvalType, c.MongoType, correlated)
 		}
 	}
 

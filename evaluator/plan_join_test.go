@@ -85,6 +85,7 @@ func TestJoinPlanStage(t *testing.T) {
 			"orderid",
 			EvalInt64,
 			schema.MongoInt,
+			false,
 		),
 		NewSQLColumnExpr(
 			1,
@@ -93,6 +94,7 @@ func TestJoinPlanStage(t *testing.T) {
 			"orderid",
 			EvalInt64,
 			schema.MongoInt,
+			false,
 		),
 	)
 

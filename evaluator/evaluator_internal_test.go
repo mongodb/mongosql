@@ -760,7 +760,7 @@ func TestReconcile(t *testing.T) {
 	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
 	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
 
-	boolColVal := NewSQLColumnExpr(0, "", "", "", types.EvalBoolean, schema.MongoBool)
+	boolColVal := NewSQLColumnExpr(0, "", "", "", types.EvalBoolean, schema.MongoBool, false)
 
 	allVals := []SQLExpr{intVal, uintVal, floatVal, decimalVal, boolVal, strVal, dateVal, datetimeVal}
 	allTypes := []types.EvalType{types.EvalInt64, types.EvalUint64, types.EvalDouble, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime}

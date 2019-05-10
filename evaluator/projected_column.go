@@ -78,7 +78,7 @@ func columnsToProjectedColumns(cs results.Columns) ProjectedColumns {
 	for _, c := range cs {
 		projectedColumn := ProjectedColumn{
 			Expr: NewSQLColumnExpr(c.SelectID, c.Database,
-				c.Table, c.Name, c.EvalType, c.MongoType),
+				c.Table, c.Name, c.EvalType, c.MongoType, false),
 			Column: c.Clone(),
 		}
 		projectedColumns = append(projectedColumns, projectedColumn)

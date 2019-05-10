@@ -85,14 +85,18 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 		// any that weren't already a column have now been computed.
 		projectedColumns = ProjectedColumns{}
 		for i, pc := range b.project {
-			newExpr := NewSQLColumnExpr(
-				b.selectID,
-				projectedKeys[i].Database,
-				projectedKeys[i].Table,
-				projectedKeys[i].Name,
-				projectedKeys[i].EvalType,
-				projectedKeys[i].MongoType,
-			)
+			newExpr, ok := pc.Expr.(SQLColumnExpr)
+			if !ok {
+				newExpr = NewSQLColumnExpr(
+					b.selectID,
+					projectedKeys[i].Database,
+					projectedKeys[i].Table,
+					projectedKeys[i].Name,
+					projectedKeys[i].EvalType,
+					projectedKeys[i].MongoType,
+					false,
+				)
+			}
 
 			pc.Column.PrimaryKey = projectedKeys[i].PrimaryKey
 			projectedColumns = append(projectedColumns, ProjectedColumn{
@@ -221,11 +225,10 @@ func (b *queryPlanBuilder) includeFrom(p PlanStage) error {
 		}
 	}
 	b.exprCollector.getJoinOnExpressions(p)
-	var exprs []SQLExpr
-	for _, e := range b.exprCollector.referencedColumns.exprs {
-		exprs = append(exprs, e)
+	b.join = make([]SQLExpr, len(b.exprCollector.referencedColumns.exprs))
+	for i, e := range b.exprCollector.referencedColumns.exprs {
+		b.join[i] = e
 	}
-	b.join = exprs
 	return nil
 }
 

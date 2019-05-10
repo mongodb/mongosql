@@ -152,7 +152,7 @@ func (t *columnTracker) visit(n Node) (Node, error) {
 	case SQLColumnExpr:
 		selectIDMap, ok := t.selectIDs[typedN.selectID]
 		if !ok && !t.removeMode {
-			selectIDMap = newSQLColumnExprCounter()
+			selectIDMap = newSQLColumnExprCounter(typedN.selectID)
 			t.selectIDs[typedN.selectID] = selectIDMap
 		}
 
