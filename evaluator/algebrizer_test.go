@@ -200,21 +200,29 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName,
 				"CHARACTER_SET_NAME",
 				subqueryAliasName,
-				"Charset"),
+				"Charset",
+				false),
 			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"DESCRIPTION",
 				subqueryAliasName,
-				"Description"),
+				"Description",
+				false),
 			createProjectedColumn(2,
 				source,
 				subqueryAliasName,
 				"DEFAULT_COLLATE_NAME",
 				subqueryAliasName,
-				"Default collation"),
+				"Default collation",
+				false),
 			createProjectedColumn(4,
-				source, subqueryAliasName, "MAXLEN", subqueryAliasName, "Maxlen"),
+				source,
+				subqueryAliasName,
+				"MAXLEN",
+				subqueryAliasName,
+				"Maxlen",
+				false),
 		),
 		2,
 		isDBName,
@@ -230,7 +238,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					createSQLColumnExprFromSource(
 						subquery,
 						subqueryAliasName,
-						"Charset"), true),
+						"Charset",
+						false), true),
 			)
 		}}, {
 
@@ -243,7 +252,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 						createSQLColumnExprFromSource(
 							subquery,
 							subqueryAliasName,
-							"Charset"),
+							"Charset",
+							false),
 						evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 						evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 						false,
@@ -253,7 +263,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					createSQLColumnExprFromSource(
 						subquery,
 						subqueryAliasName,
-						"Charset"),
+						"Charset",
+						false),
 					true),
 			)
 		}}, {
@@ -266,14 +277,16 @@ func TestAlgebrizeQuery(t *testing.T) {
 						createSQLColumnExprFromSource(
 							subquery,
 							subqueryAliasName,
-							"Charset"),
+							"Charset",
+							false),
 						evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n"))),
 				),
 				evaluator.NewOrderByTerm(
 					createSQLColumnExprFromSource(
 						subquery,
 						subqueryAliasName,
-						"Charset"),
+						"Charset",
+						false),
 					true),
 			)
 		}},
@@ -296,42 +309,48 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName,
 				"COLLATION_NAME",
 				subqueryAliasName,
-				"Collation"),
+				"Collation",
+				false),
 
 			createProjectedColumn(2,
 				source,
 				subqueryAliasName,
 				"CHARACTER_SET_NAME",
 				subqueryAliasName,
-				"Charset"),
+				"Charset",
+				false),
 
 			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"ID",
 				subqueryAliasName,
-				"Id"),
+				"Id",
+				false),
 
 			createProjectedColumn(4,
 				source,
 				subqueryAliasName,
 				"IS_DEFAULT",
 				subqueryAliasName,
-				"Default"),
+				"Default",
+				false),
 
 			createProjectedColumn(5,
 				source,
 				subqueryAliasName,
 				"IS_COMPILED",
 				subqueryAliasName,
-				"Compiled"),
+				"Compiled",
+				false),
 
 			createProjectedColumn(6,
 				source,
 				subqueryAliasName,
 				"SORTLEN",
 				subqueryAliasName,
-				"Sortlen"),
+				"Sortlen",
+				false),
 		),
 		2,
 		isDBName,
@@ -345,7 +364,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subquery,
 				evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery,
 					subqueryAliasName,
-					"Collation"),
+					"Collation",
+					false),
 					true),
 			)
 		}}, {
@@ -357,7 +377,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 					subquery,
 					evaluator.NewSQLLikeExpr(createSQLColumnExprFromSource(subquery,
 						subqueryAliasName,
-						"Collation"),
+						"Collation",
+						false),
 						evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 						evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 						false,
@@ -366,7 +387,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 				evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery,
 					subqueryAliasName,
-					"Collation"),
+					"Collation",
+					false),
 					true),
 			)
 		}}, {
@@ -378,13 +400,15 @@ func TestAlgebrizeQuery(t *testing.T) {
 					subquery,
 					evaluator.NewSQLEqualsExpr(createSQLColumnExprFromSource(subquery,
 						subqueryAliasName,
-						"Collation"),
+						"Collation",
+						false),
 						evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n"))),
 				),
 
 				evaluator.NewOrderByTerm(createSQLColumnExprFromSource(subquery,
 					subqueryAliasName,
-					"Collation"),
+					"Collation",
+					false),
 					true),
 			)
 		}},
@@ -410,55 +434,64 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName,
 				"COLUMN_NAME",
 				subqueryAliasName,
-				"Field"),
+				"Field",
+				false),
 			createProjectedColumn(16,
 				source,
 				subqueryAliasName,
 				"COLUMN_TYPE",
 				subqueryAliasName,
-				"Type"),
+				"Type",
+				false),
 			createProjectedColumn(7,
 				source,
 				subqueryAliasName,
 				"IS_NULLABLE",
 				subqueryAliasName,
-				"Null"),
+				"Null",
+				false),
 			createProjectedColumn(17,
 				source,
 				subqueryAliasName,
 				"COLUMN_KEY",
 				subqueryAliasName,
-				"Key"),
+				"Key",
+				false),
 			createProjectedColumn(6,
 				source,
 				subqueryAliasName,
 				"COLUMN_DEFAULT",
 				subqueryAliasName,
-				"Default"),
+				"Default",
+				false),
 			createProjectedColumn(18,
 				source,
 				subqueryAliasName,
 				"EXTRA",
 				subqueryAliasName,
-				"Extra"),
+				"Extra",
+				false),
 			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"TABLE_NAME",
 				subqueryAliasName,
-				"TABLE_NAME"),
+				"TABLE_NAME",
+				false),
 			createProjectedColumn(2,
 				source,
 				subqueryAliasName,
 				"TABLE_SCHEMA",
 				subqueryAliasName,
-				"TABLE_SCHEMA"),
+				"TABLE_SCHEMA",
+				false),
 			createProjectedColumn(5,
 				source,
 				subqueryAliasName,
 				"ORDINAL_POSITION",
 				subqueryAliasName,
-				"ORDINAL_POSITION"),
+				"ORDINAL_POSITION",
+				false),
 		),
 		2,
 		isDBName,
@@ -467,17 +500,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 	)
 	commonProjectedColumns := []evaluator.ProjectedColumn{
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Field", subqueryAliasName, "Field"),
+			subqueryAliasName, "Field", subqueryAliasName, "Field", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Type", subqueryAliasName, "Type"),
+			subqueryAliasName, "Type", subqueryAliasName, "Type", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Null", subqueryAliasName, "Null"),
+			subqueryAliasName, "Null", subqueryAliasName, "Null", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Key", subqueryAliasName, "Key"),
+			subqueryAliasName, "Key", subqueryAliasName, "Key", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Default", subqueryAliasName, "Default"),
+			subqueryAliasName, "Default", subqueryAliasName, "Default", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Extra", subqueryAliasName, "Extra"),
+			subqueryAliasName, "Extra", subqueryAliasName, "Extra", false),
 	}
 	genPlainColumnTests := func(fromTemplateArg string) []planTest {
 		return []planTest{{
@@ -492,13 +525,15 @@ func TestAlgebrizeQuery(t *testing.T) {
 									createSQLColumnExprFromSource(
 										subquery,
 										subqueryAliasName,
-										"TABLE_NAME"),
+										"TABLE_NAME",
+										false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "foo"))),
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(
 										subquery,
 										subqueryAliasName,
-										"TABLE_SCHEMA"),
+										"TABLE_SCHEMA",
+										false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, defaultDbName))),
 							),
 						),
@@ -506,7 +541,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createSQLColumnExprFromSource(
 								subquery,
 								subqueryAliasName,
-								"ORDINAL_POSITION"),
+								"ORDINAL_POSITION",
+								false),
 							true),
 					),
 					commonProjectedColumns...,
@@ -525,21 +561,25 @@ func TestAlgebrizeQuery(t *testing.T) {
 										createSQLColumnExprFromSource(
 											subquery,
 											subqueryAliasName,
-											"TABLE_NAME"),
+											"TABLE_NAME",
+											false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "foo")),
 									),
 									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(
 											subquery,
 											subqueryAliasName,
-											"TABLE_SCHEMA"),
+											"TABLE_SCHEMA",
+											false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, defaultDbName)),
 									),
 								),
 								evaluator.NewSQLLikeExpr(
 									createSQLColumnExprFromSource(
 										subquery,
-										subqueryAliasName, "Field"),
+										subqueryAliasName,
+										"Field",
+										false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 									false,
@@ -547,9 +587,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 							),
 						),
 						evaluator.NewOrderByTerm(
-							createSQLColumnExprFromSource(subquery,
+							createSQLColumnExprFromSource(
+								subquery,
 								subqueryAliasName,
-								"ORDINAL_POSITION"),
+								"ORDINAL_POSITION",
+								false),
 							true,
 						),
 					),
@@ -568,14 +610,16 @@ func TestAlgebrizeQuery(t *testing.T) {
 										createSQLColumnExprFromSource(
 											subquery,
 											subqueryAliasName,
-											"TABLE_NAME"),
+											"TABLE_NAME",
+											false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "foo")),
 									),
 									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(
 											subquery,
 											subqueryAliasName,
-											"TABLE_SCHEMA"),
+											"TABLE_SCHEMA",
+											false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, defaultDbName)),
 									),
 								),
@@ -583,7 +627,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 									createSQLColumnExprFromSource(
 										subquery,
 										subqueryAliasName,
-										"Field"),
+										"Field",
+										false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 								),
 							),
@@ -592,7 +637,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 							createSQLColumnExprFromSource(
 								subquery,
 								subqueryAliasName,
-								"ORDINAL_POSITION"),
+								"ORDINAL_POSITION",
+								false),
 							true,
 						),
 					),
@@ -622,73 +668,85 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subqueryAliasName,
 				"COLUMN_NAME",
 				subqueryAliasName,
-				"Field"),
+				"Field",
+				false),
 			createProjectedColumn(16,
 				source,
 				subqueryAliasName,
 				"COLUMN_TYPE",
 				subqueryAliasName,
-				"Type"),
+				"Type",
+				false),
 			createProjectedColumn(15,
 				source,
 				subqueryAliasName,
 				"COLLATION_NAME",
 				subqueryAliasName,
-				"Collation"),
+				"Collation",
+				false),
 			createProjectedColumn(7,
 				source,
 				subqueryAliasName,
 				"IS_NULLABLE",
 				subqueryAliasName,
-				"Null"),
+				"Null",
+				false),
 			createProjectedColumn(17,
 				source,
 				subqueryAliasName,
 				"COLUMN_KEY",
 				subqueryAliasName,
-				"Key"),
+				"Key",
+				false),
 			createProjectedColumn(6,
 				source,
 				subqueryAliasName,
 				"COLUMN_DEFAULT",
 				subqueryAliasName,
-				"Default"),
+				"Default",
+				false),
 			createProjectedColumn(18,
 				source,
 				subqueryAliasName,
 				"EXTRA",
 				subqueryAliasName,
-				"Extra"),
+				"Extra",
+				false),
 			createProjectedColumn(19,
 				source,
 				subqueryAliasName,
 				"PRIVILEGES",
 				subqueryAliasName,
-				"Privileges"),
+				"Privileges",
+				false),
 			createProjectedColumn(20,
 				source,
 				subqueryAliasName,
 				"COLUMN_COMMENT",
 				subqueryAliasName,
-				"Comment"),
+				"Comment",
+				false),
 			createProjectedColumn(3,
 				source,
 				subqueryAliasName,
 				"TABLE_NAME",
 				subqueryAliasName,
-				"TABLE_NAME"),
+				"TABLE_NAME",
+				false),
 			createProjectedColumn(2,
 				source,
 				subqueryAliasName,
 				"TABLE_SCHEMA",
 				subqueryAliasName,
-				"TABLE_SCHEMA"),
+				"TABLE_SCHEMA",
+				false),
 			createProjectedColumn(5,
 				source,
 				subqueryAliasName,
 				"ORDINAL_POSITION",
 				subqueryAliasName,
-				"ORDINAL_POSITION"),
+				"ORDINAL_POSITION",
+				false),
 		),
 		2,
 		isDBName,
@@ -697,23 +755,23 @@ func TestAlgebrizeQuery(t *testing.T) {
 	)
 	commonProjectedColumns = []evaluator.ProjectedColumn{
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Field", subqueryAliasName, "Field"),
+			subqueryAliasName, "Field", subqueryAliasName, "Field", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Type", subqueryAliasName, "Type"),
+			subqueryAliasName, "Type", subqueryAliasName, "Type", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Collation", subqueryAliasName, "Collation"),
+			subqueryAliasName, "Collation", subqueryAliasName, "Collation", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Null", subqueryAliasName, "Null"),
+			subqueryAliasName, "Null", subqueryAliasName, "Null", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Key", subqueryAliasName, "Key"),
+			subqueryAliasName, "Key", subqueryAliasName, "Key", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Default", subqueryAliasName, "Default"),
+			subqueryAliasName, "Default", subqueryAliasName, "Default", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Extra", subqueryAliasName, "Extra"),
+			subqueryAliasName, "Extra", subqueryAliasName, "Extra", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Privileges", subqueryAliasName, "Privileges"),
+			subqueryAliasName, "Privileges", subqueryAliasName, "Privileges", false),
 		createProjectedColumn(1, subquery,
-			subqueryAliasName, "Comment", subqueryAliasName, "Comment"),
+			subqueryAliasName, "Comment", subqueryAliasName, "Comment", false),
 	}
 	genFullColumnTests := func(fromTemplateArg string) []planTest {
 		return []planTest{{
@@ -726,19 +784,25 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewSQLAndExpr(
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, "TABLE_NAME"),
+										subqueryAliasName,
+										"TABLE_NAME",
+										false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "foo")),
 								),
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, "TABLE_SCHEMA"),
+										subqueryAliasName,
+										"TABLE_SCHEMA",
+										false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, defaultDbName)),
 								),
 							),
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, "ORDINAL_POSITION"),
+								subqueryAliasName,
+								"ORDINAL_POSITION",
+								false),
 							true,
 						),
 					),
@@ -755,18 +819,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 								evaluator.NewSQLAndExpr(
 									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(subquery,
-											subqueryAliasName, "TABLE_NAME"),
+											subqueryAliasName, "TABLE_NAME", false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "foo")),
 									),
 									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(subquery,
-											subqueryAliasName, "TABLE_SCHEMA"),
+											subqueryAliasName, "TABLE_SCHEMA", false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, defaultDbName)),
 									),
 								),
 								evaluator.NewSQLLikeExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, "Field"),
+										subqueryAliasName, "Field", false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 									false,
@@ -775,7 +839,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, "ORDINAL_POSITION"),
+								subqueryAliasName, "ORDINAL_POSITION", false),
 							true,
 						),
 					),
@@ -792,24 +856,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 								evaluator.NewSQLAndExpr(
 									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(subquery,
-											subqueryAliasName, "TABLE_NAME"),
+											subqueryAliasName, "TABLE_NAME", false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "foo")),
 									),
 									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(subquery,
-											subqueryAliasName, "TABLE_SCHEMA"),
+											subqueryAliasName, "TABLE_SCHEMA", false),
 										evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, defaultDbName)),
 									),
 								),
 								evaluator.NewSQLEqualsExpr(createSQLColumnExprFromSource(subquery,
-									subqueryAliasName, "Field"),
+									subqueryAliasName, "Field", false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 								),
 							),
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, "ORDINAL_POSITION"),
+								subqueryAliasName, "ORDINAL_POSITION", false),
 							true,
 						),
 					),
@@ -973,7 +1037,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		evaluator.NewProjectStage(
 			source,
 			createProjectedColumn(2, source,
-				subqueryAliasName, "SCHEMA_NAME", subqueryAliasName, "Database"),
+				subqueryAliasName, "SCHEMA_NAME", subqueryAliasName, "Database", false),
 		),
 		2,
 		isDBName,
@@ -988,7 +1052,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					subquery,
 					evaluator.NewOrderByTerm(
 						createSQLColumnExprFromSource(
-							subquery, subqueryAliasName, "Database"),
+							subquery, subqueryAliasName, "Database", false),
 						true,
 					),
 				)
@@ -999,14 +1063,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewFilterStage(
 						subquery,
 						evaluator.NewSQLLikeExpr(
-							createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+							createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database", false),
 							evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 							evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 							false,
 						),
 					),
 					evaluator.NewOrderByTerm(
-						createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+						createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database", false),
 						true,
 					),
 				)
@@ -1017,12 +1081,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewFilterStage(
 						subquery,
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+							createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database", false),
 							evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 						),
 					),
 					evaluator.NewOrderByTerm(
-						createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database"),
+						createSQLColumnExprFromSource(subquery, subqueryAliasName, "Database", false),
 						true,
 					),
 				)
@@ -1062,9 +1126,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewProjectStage(
 					varSource,
 					createProjectedColumn(1, varSource, actualTableName, "VARIABLE_NAME",
-						actualTableName, "Variable_name"),
+						actualTableName, "Variable_name", false),
 					createProjectedColumn(2, varSource, actualTableName, "VARIABLE_VALUE",
-						actualTableName, "Value"),
+						actualTableName, "Value", false),
 				),
 				2,
 				isDBName,
@@ -1080,7 +1144,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						varSubquery,
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(varSubquery,
-								subqueryAliasName, "Variable_name"),
+								subqueryAliasName, "Variable_name", false),
 							true,
 						),
 					)
@@ -1092,7 +1156,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							varSubquery,
 							evaluator.NewSQLLikeExpr(
 								createSQLColumnExprFromSource(varSubquery,
-									subqueryAliasName, "Variable_name"),
+									subqueryAliasName, "Variable_name", false),
 								evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 								evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 								false,
@@ -1100,7 +1164,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(varSubquery,
-								subqueryAliasName, "Variable_name"),
+								subqueryAliasName, "Variable_name", false),
 							true,
 						),
 					)
@@ -1112,13 +1176,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 							varSubquery,
 							evaluator.NewSQLEqualsExpr(
 								createSQLColumnExprFromSource(varSubquery,
-									subqueryAliasName, "Variable_name"),
+									subqueryAliasName, "Variable_name", false),
 								evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 							),
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(varSubquery,
-								subqueryAliasName, "Variable_name"),
+								subqueryAliasName, "Variable_name", false),
 							true,
 						),
 					)
@@ -1140,9 +1204,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 		evaluator.NewProjectStage(
 			source,
 			createProjectedColumn(3, source, subqueryAliasName, "TABLE_NAME",
-				subqueryAliasName, columnName),
+				subqueryAliasName, columnName, false),
 			createProjectedColumn(2, source, subqueryAliasName, "TABLE_SCHEMA",
-				subqueryAliasName, "TABLE_SCHEMA"),
+				subqueryAliasName, "TABLE_SCHEMA", false),
 		),
 		2,
 		isDBName,
@@ -1159,18 +1223,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 							subquery,
 							evaluator.NewSQLEqualsExpr(
 								createSQLColumnExprFromSource(subquery,
-									subqueryAliasName, "TABLE_SCHEMA"),
+									subqueryAliasName, "TABLE_SCHEMA", false),
 								evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "test")),
 							),
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, columnName),
+								subqueryAliasName, columnName, false),
 							true,
 						),
 					),
-					createProjectedColumn(1, subquery, subqueryAliasName,
-						columnName, subqueryAliasName, columnName),
+					createProjectedColumn(1, subquery,
+						subqueryAliasName, columnName, subqueryAliasName, columnName, false),
 				)
 			}}, {
 			fmt.Sprintf("show tables%s like 'n'", from),
@@ -1182,12 +1246,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewSQLAndExpr(
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, "TABLE_SCHEMA"),
+										subqueryAliasName, "TABLE_SCHEMA", false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "test")),
 								),
 								evaluator.NewSQLLikeExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, columnName),
+										subqueryAliasName, columnName, false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 									false,
@@ -1196,12 +1260,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, columnName),
+								subqueryAliasName, columnName, false),
 							true,
 						),
 					),
 					createProjectedColumn(1, subquery, subqueryAliasName, columnName,
-						subqueryAliasName, columnName),
+						subqueryAliasName, columnName, false),
 				)
 			}}, {
 			fmt.Sprintf("show tables%s where `%s` = 'n'", from, columnName),
@@ -1213,24 +1277,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewSQLAndExpr(
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, "TABLE_SCHEMA"),
+										subqueryAliasName, "TABLE_SCHEMA", false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "test")),
 								),
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, columnName),
+										subqueryAliasName, columnName, false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 								),
 							),
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, columnName),
+								subqueryAliasName, columnName, false),
 							true,
 						),
 					),
 					createProjectedColumn(1, subquery, subqueryAliasName,
-						columnName, subqueryAliasName, columnName),
+						columnName, subqueryAliasName, columnName, false),
 				)
 			}},
 		}
@@ -1243,11 +1307,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 		evaluator.NewProjectStage(
 			source,
 			createProjectedColumn(3, source,
-				subqueryAliasName, "TABLE_NAME", subqueryAliasName, columnName),
+				subqueryAliasName, "TABLE_NAME", subqueryAliasName, columnName, false),
 			createProjectedColumn(4, source,
-				subqueryAliasName, "TABLE_TYPE", subqueryAliasName, "Table_type"),
+				subqueryAliasName, "TABLE_TYPE", subqueryAliasName, "Table_type", false),
 			createProjectedColumn(2, source,
-				subqueryAliasName, "TABLE_SCHEMA", subqueryAliasName, "TABLE_SCHEMA"),
+				subqueryAliasName, "TABLE_SCHEMA", subqueryAliasName, "TABLE_SCHEMA", false),
 		),
 		2,
 		isDBName,
@@ -1265,20 +1329,20 @@ func TestAlgebrizeQuery(t *testing.T) {
 							subquery,
 							evaluator.NewSQLEqualsExpr(
 								createSQLColumnExprFromSource(subquery,
-									subqueryAliasName, "TABLE_SCHEMA"),
+									subqueryAliasName, "TABLE_SCHEMA", false),
 								evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "test")),
 							),
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, columnName),
+								subqueryAliasName, columnName, false),
 							true,
 						),
 					),
 					createProjectedColumn(1, subquery,
-						subqueryAliasName, columnName, subqueryAliasName, columnName),
+						subqueryAliasName, columnName, subqueryAliasName, columnName, false),
 					createProjectedColumn(1, subquery,
-						subqueryAliasName, "Table_type", subqueryAliasName, "Table_type"),
+						subqueryAliasName, "Table_type", subqueryAliasName, "Table_type", false),
 				)
 			}}, {
 			fmt.Sprintf("show full tables%s like 'n'", from),
@@ -1290,12 +1354,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewSQLAndExpr(
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, "TABLE_SCHEMA"),
+										subqueryAliasName, "TABLE_SCHEMA", false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "test")),
 								),
 								evaluator.NewSQLLikeExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, columnName),
+										subqueryAliasName, columnName, false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "\\")),
 									false,
@@ -1304,14 +1368,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, columnName),
+								subqueryAliasName, columnName, false),
 							true,
 						),
 					),
 					createProjectedColumn(1, subquery,
-						subqueryAliasName, columnName, subqueryAliasName, columnName),
+						subqueryAliasName, columnName, subqueryAliasName, columnName, false),
 					createProjectedColumn(1, subquery,
-						subqueryAliasName, "Table_type", subqueryAliasName, "Table_type"),
+						subqueryAliasName, "Table_type", subqueryAliasName, "Table_type", false),
 				)
 			}}, {
 			fmt.Sprintf("show full tables%s where `%s` = 'n'", from, columnName),
@@ -1323,26 +1387,26 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.NewSQLAndExpr(
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, "TABLE_SCHEMA"),
+										subqueryAliasName, "TABLE_SCHEMA", false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "test")),
 								),
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(subquery,
-										subqueryAliasName, columnName),
+										subqueryAliasName, columnName, false),
 									evaluator.NewSQLValueExpr(values.NewSQLVarchar(valKind, "n")),
 								),
 							),
 						),
 						evaluator.NewOrderByTerm(
 							createSQLColumnExprFromSource(subquery,
-								subqueryAliasName, columnName),
+								subqueryAliasName, columnName, false),
 							true,
 						),
 					),
 					createProjectedColumn(1, subquery,
-						subqueryAliasName, columnName, subqueryAliasName, columnName),
+						subqueryAliasName, columnName, subqueryAliasName, columnName, false),
 					createProjectedColumn(1, subquery,
-						subqueryAliasName, "Table_type", subqueryAliasName, "Table_type"),
+						subqueryAliasName, "Table_type", subqueryAliasName, "Table_type", false),
 				)
 			}},
 		}
@@ -1409,7 +1473,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(2)",
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(2)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}},
 	}
@@ -1422,31 +1486,31 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			barSource := createMongoSource(1, "bar", "bar")
 			barProject := evaluator.NewProjectStage(barSource,
-				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d", false),
 			)
 			union := evaluator.NewUnionStage(evaluator.UnionDistinct, barProject, barProject)
 			groupBy := evaluator.NewGroupByStage(union,
 				[]evaluator.SQLExpr{
-					createSQLColumnExprFromSource(union, "bar", "_id"),
-					createSQLColumnExprFromSource(union, "bar", "a"),
-					createSQLColumnExprFromSource(union, "bar", "b"),
-					createSQLColumnExprFromSource(union, "bar", "d"),
+					createSQLColumnExprFromSource(union, "bar", "_id", false),
+					createSQLColumnExprFromSource(union, "bar", "a", false),
+					createSQLColumnExprFromSource(union, "bar", "b", false),
+					createSQLColumnExprFromSource(union, "bar", "d", false),
 				},
 				[]evaluator.ProjectedColumn{
-					createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
-					createProjectedColumn(1, union, "bar", "a", "bar", "a"),
-					createProjectedColumn(1, union, "bar", "b", "bar", "b"),
-					createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+					createProjectedColumn(1, union, "bar", "_id", "bar", "_id", false),
+					createProjectedColumn(1, union, "bar", "a", "bar", "a", false),
+					createProjectedColumn(1, union, "bar", "b", "bar", "b", false),
+					createProjectedColumn(1, union, "bar", "d", "bar", "d", false),
 				},
 			)
 			ret := evaluator.NewProjectStage(groupBy,
-				createProjectedColumn(1, groupBy, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, groupBy, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, groupBy, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, groupBy, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, groupBy, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, groupBy, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, groupBy, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, groupBy, "bar", "d", "bar", "d", false),
 			)
 			return ret
 		}}, {
@@ -1454,52 +1518,52 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			barSource := createMongoSource(1, "bar", "bar")
 			barProject := evaluator.NewProjectStage(barSource,
-				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d", false),
 			)
 			union1 := evaluator.NewUnionStage(evaluator.UnionDistinct, barProject, barProject)
 			groupBy1 := evaluator.NewGroupByStage(union1,
 				[]evaluator.SQLExpr{
-					createSQLColumnExprFromSource(union1, "bar", "_id"),
-					createSQLColumnExprFromSource(union1, "bar", "a"),
-					createSQLColumnExprFromSource(union1, "bar", "b"),
-					createSQLColumnExprFromSource(union1, "bar", "d"),
+					createSQLColumnExprFromSource(union1, "bar", "_id", false),
+					createSQLColumnExprFromSource(union1, "bar", "a", false),
+					createSQLColumnExprFromSource(union1, "bar", "b", false),
+					createSQLColumnExprFromSource(union1, "bar", "d", false),
 				},
 				[]evaluator.ProjectedColumn{
-					createProjectedColumn(1, union1, "bar", "_id", "bar", "_id"),
-					createProjectedColumn(1, union1, "bar", "a", "bar", "a"),
-					createProjectedColumn(1, union1, "bar", "b", "bar", "b"),
-					createProjectedColumn(1, union1, "bar", "d", "bar", "d"),
+					createProjectedColumn(1, union1, "bar", "_id", "bar", "_id", false),
+					createProjectedColumn(1, union1, "bar", "a", "bar", "a", false),
+					createProjectedColumn(1, union1, "bar", "b", "bar", "b", false),
+					createProjectedColumn(1, union1, "bar", "d", "bar", "d", false),
 				},
 			)
 			project1 := evaluator.NewProjectStage(groupBy1,
-				createProjectedColumn(1, groupBy1, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, groupBy1, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, groupBy1, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, groupBy1, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, groupBy1, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, groupBy1, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, groupBy1, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, groupBy1, "bar", "d", "bar", "d", false),
 			)
 			union := evaluator.NewUnionStage(evaluator.UnionDistinct, project1, barProject)
 			groupBy := evaluator.NewGroupByStage(union,
 				[]evaluator.SQLExpr{
-					createSQLColumnExprFromSource(union, "bar", "_id"),
-					createSQLColumnExprFromSource(union, "bar", "a"),
-					createSQLColumnExprFromSource(union, "bar", "b"),
-					createSQLColumnExprFromSource(union, "bar", "d"),
+					createSQLColumnExprFromSource(union, "bar", "_id", false),
+					createSQLColumnExprFromSource(union, "bar", "a", false),
+					createSQLColumnExprFromSource(union, "bar", "b", false),
+					createSQLColumnExprFromSource(union, "bar", "d", false),
 				},
 				[]evaluator.ProjectedColumn{
-					createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
-					createProjectedColumn(1, union, "bar", "a", "bar", "a"),
-					createProjectedColumn(1, union, "bar", "b", "bar", "b"),
-					createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+					createProjectedColumn(1, union, "bar", "_id", "bar", "_id", false),
+					createProjectedColumn(1, union, "bar", "a", "bar", "a", false),
+					createProjectedColumn(1, union, "bar", "b", "bar", "b", false),
+					createProjectedColumn(1, union, "bar", "d", "bar", "d", false),
 				},
 			)
 			ret := evaluator.NewProjectStage(groupBy,
-				createProjectedColumn(1, groupBy, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, groupBy, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, groupBy, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, groupBy, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, groupBy, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, groupBy, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, groupBy, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, groupBy, "bar", "d", "bar", "d", false),
 			)
 			return ret
 		}}, {
@@ -1507,17 +1571,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			barSource := createMongoSource(1, "bar", "bar")
 			barProject := evaluator.NewProjectStage(barSource,
-				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d", false),
 			)
 			union := evaluator.NewUnionStage(evaluator.UnionAll, barProject, barProject)
 			ret := evaluator.NewProjectStage(union,
-				createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, union, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, union, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, union, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, union, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, union, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, union, "bar", "d", "bar", "d", false),
 			)
 			return ret
 		}}, {
@@ -1525,24 +1589,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			barSource := createMongoSource(1, "bar", "bar")
 			barProject := evaluator.NewProjectStage(barSource,
-				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, barSource, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, barSource, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, barSource, "bar", "d", "bar", "d", false),
 			)
 			union1 := evaluator.NewUnionStage(evaluator.UnionAll, barProject, barProject)
 			project1 := evaluator.NewProjectStage(union1,
-				createProjectedColumn(1, union1, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, union1, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, union1, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, union1, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, union1, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, union1, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, union1, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, union1, "bar", "d", "bar", "d", false),
 			)
 			union := evaluator.NewUnionStage(evaluator.UnionAll, project1, barProject)
 			ret := evaluator.NewProjectStage(union,
-				createProjectedColumn(1, union, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, union, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, union, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, union, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, union, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, union, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, union, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, union, "bar", "d", "bar", "d", false),
 			)
 			return ret
 		}},
@@ -1556,7 +1620,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			subquery := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(
 					source,
-					createProjectedColumn(2, source, "foo", "a", "foo", "a"),
+					createProjectedColumn(2, source, "foo", "a", "foo", "a", false),
 				),
 				2,
 				"test",
@@ -1564,7 +1628,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				true,
 			)
 			return evaluator.NewProjectStage(subquery,
-				createProjectedColumn(2, subquery, "cte1", "a", "cte1", "a"))
+				createProjectedColumn(2, subquery, "cte1", "a", "cte1", "a", false))
 		}}, {
 		"with cte1 as (select a from foo) select a from cte1 UNION ALL select a from cte1",
 		func() evaluator.PlanStage {
@@ -1572,7 +1636,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			subquery := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(
 					source,
-					createProjectedColumn(2, source, "foo", "a", "foo", "a"),
+					createProjectedColumn(2, source, "foo", "a", "foo", "a", false),
 				),
 				2,
 				"test",
@@ -1580,10 +1644,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 				true,
 			)
 			branch := evaluator.NewProjectStage(subquery,
-				createProjectedColumn(2, subquery, "cte1", "a", "cte1", "a"))
+				createProjectedColumn(2, subquery, "cte1", "a", "cte1", "a", false))
 			union := evaluator.NewUnionStage(evaluator.UnionAll, branch, branch)
 			ret := evaluator.NewProjectStage(union, createProjectedColumn(2, union,
-				"cte1", "a", "cte1", "a"))
+				"cte1", "a", "cte1", "a", false))
 			return ret
 		}},
 	}
@@ -1598,7 +1662,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			subquery := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(
 					source,
-					createProjectedColumn(2, source, "foo", "a", "foo", "a"),
+					createProjectedColumn(2, source, "foo", "a", "foo", "a", false),
 				),
 				2,
 				"test",
@@ -1606,25 +1670,25 @@ func TestAlgebrizeQuery(t *testing.T) {
 				false,
 			)
 			return evaluator.NewProjectStage(subquery,
-				createProjectedColumn(2, subquery, "f", "a", "f", "a"))
+				createProjectedColumn(2, subquery, "f", "a", "f", "a", false))
 		}}, {
 
 		"select f.a from (select a from foo) f",
 		func() evaluator.PlanStage {
 			source := createMongoSource(2, "foo", "foo")
 			subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source,
-				createProjectedColumn(2, source, "foo", "a", "foo", "a")), 2, "test", "f", false)
+				createProjectedColumn(2, source, "foo", "a", "foo", "a", false)), 2, "test", "f", false)
 			return evaluator.NewProjectStage(subquery,
-				createProjectedColumn(2, subquery, "f", "a", "f", "a"))
+				createProjectedColumn(2, subquery, "f", "a", "f", "a", false))
 		}}, {
 
 		"select f.a from (select test.a from foo test) f",
 		func() evaluator.PlanStage {
 			source := createMongoSource(2, "foo", "test")
 			subquery := evaluator.NewSubquerySourceStage(evaluator.NewProjectStage(source,
-				createProjectedColumn(2, source, "test", "a", "test", "a")), 2, "test", "f", false)
+				createProjectedColumn(2, source, "test", "a", "test", "a", false)), 2, "test", "f", false)
 			return evaluator.NewProjectStage(subquery,
-				createProjectedColumn(2, subquery, "f", "a", "f", "a"))
+				createProjectedColumn(2, subquery, "f", "a", "f", "a", false))
 		}},
 	}
 	runTestsAsSubtest("Select From Subqueries (Plan)", selectFromSubqueriesPlanTests)
@@ -1649,10 +1713,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 				source := createMongoSource(2, "foo", "foo")
 				subquery := evaluator.NewSubquerySourceStage(
 					evaluator.NewProjectStage(source,
-						createProjectedColumn(2, source, "foo", "a", "foo", "a")),
+						createProjectedColumn(2, source, "foo", "a", "foo", "a", false)),
 					2, "test", "g", false)
 				return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
-					createProjectedColumn(2, subquery, "g", "a", "g", "a"))
+					createProjectedColumn(2, subquery, "g", "a", "g", "a", false))
 			}},
 		{
 			"select fast.a from (select a from foo) fast",
@@ -1673,10 +1737,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 				source := createMongoSource(2, "foo", "foo")
 				subquery := evaluator.NewSubquerySourceStage(
 					evaluator.NewProjectStage(source,
-						createProjectedColumn(2, source, "foo", "a", "foo", "a")),
+						createProjectedColumn(2, source, "foo", "a", "foo", "a", false)),
 					2, "test", "fast", false)
 				return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
-					createProjectedColumn(2, subquery, "fast", "a", "fast", "a"))
+					createProjectedColumn(2, subquery, "fast", "a", "fast", "a", false))
 			}},
 		{
 			"select safe.a from (select a from foo) safe",
@@ -1695,7 +1759,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			},
 			func() evaluator.PlanStage {
 				source := createMongoSource(2, "foo", "foo")
-				projectedCol := createProjectedColumn(2, source, "foo", "a", "foo", "a")
+				projectedCol := createProjectedColumn(2, source, "foo", "a", "foo", "a", false)
 				projectedCol.Expr = evaluator.NewSQLConvertExpr(projectedCol.Expr,
 					types.EvalInt64)
 				projectedCol.MongoType = ""
@@ -1705,7 +1769,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				subquery := evaluator.NewSubquerySourceStage(
 					evaluator.NewProjectStage(source, projectedCol),
 					2, "test", "safe", false)
-				outterProjectedCol := createProjectedColumn(1, subquery, "safe", "a", "", "a")
+				outterProjectedCol := createProjectedColumn(1, subquery, "safe", "a", "", "a", false)
 				outterProjectedCol.Expr = evaluator.NewSQLConvertExpr(outterProjectedCol.Expr,
 					types.EvalInt64)
 				return evaluator.NewProjectStage(evaluator.NewLimitStage(subquery, 0, 5),
@@ -1723,8 +1787,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, fooSource,
 				barSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "foo", "a", "foo", "a"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, join, "foo", "a", "foo", "a", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1735,8 +1799,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, fooSource,
 				barSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "f", "a", "f", "a"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, join, "f", "a", "f", "a", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1747,8 +1811,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, fooSource,
 				barSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "f", "a", "f", "a"),
-				createProjectedColumn(1, join, "b", "a", "b", "a"),
+				createProjectedColumn(1, join, "f", "a", "f", "a", false),
+				createProjectedColumn(1, join, "b", "a", "b", "a", false),
 			)
 		}}, {
 
@@ -1759,13 +1823,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, fooSource,
 				barSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(fooSource, "foo", "b"),
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
+					createSQLColumnExprFromSource(fooSource, "foo", "b", false),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "foo", "a", "foo", "a"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, join, "foo", "a", "foo", "a", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1776,13 +1840,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, fooSource,
 				barSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(fooSource, "foo", "b"),
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
+					createSQLColumnExprFromSource(fooSource, "foo", "b", false),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "foo", "a", "foo", "a"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, join, "foo", "a", "foo", "a", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1793,13 +1857,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.LeftJoin, fooSource,
 				barSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(fooSource, "foo", "b"),
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
+					createSQLColumnExprFromSource(fooSource, "foo", "b", false),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "foo", "a", "foo", "a"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, join, "foo", "a", "foo", "a", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1810,13 +1874,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(parser.AST_RIGHT_JOIN, fooSource,
 				barSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(fooSource, "foo", "b"),
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
+					createSQLColumnExprFromSource(fooSource, "foo", "b", false),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "foo", "a", "foo", "a"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, join, "foo", "a", "foo", "a", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1827,13 +1891,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource,
 				barSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(fooSource, "foo", "b"),
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
+					createSQLColumnExprFromSource(fooSource, "foo", "b", false),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "foo", "a", "foo", "a"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, join, "foo", "a", "foo", "a", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1847,24 +1911,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 				barSource,
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(fooSource, "foo", "a"),
-						createSQLColumnExprFromSource(barSource, "bar", "a"),
+						createSQLColumnExprFromSource(fooSource, "foo", "a", false),
+						createSQLColumnExprFromSource(barSource, "bar", "a", false),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(fooSource, "foo", "e"),
-						createSQLColumnExprFromSource(barSource, "bar", "d"),
+						createSQLColumnExprFromSource(fooSource, "foo", "e", false),
+						createSQLColumnExprFromSource(barSource, "bar", "d", false),
 					),
 				),
 			)
 			secondJoin := evaluator.NewJoinStage(evaluator.InnerJoin, firstJoin, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "b"),
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
+					createSQLColumnExprFromSource(bazSource, "baz", "b", false),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(secondJoin,
-				createProjectedColumn(1, secondJoin, "foo", "a", "foo", "a"),
-				createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a"),
+				createProjectedColumn(1, secondJoin, "foo", "a", "foo", "a", false),
+				createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a", false),
 			)
 		}}, {
 
@@ -1875,13 +1939,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.InnerJoin,
 				barSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
-					createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
 			)
 		}}, {
 
@@ -1893,18 +1957,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 				barSource, bazSource,
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "a"),
-						createSQLColumnExprFromSource(bazSource, "baz", "a"),
+						createSQLColumnExprFromSource(barSource, "bar", "a", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
 			)
 		}}, {
 
@@ -1918,19 +1982,19 @@ func TestAlgebrizeQuery(t *testing.T) {
 			secondJoin := evaluator.NewJoinStage(evaluator.InnerJoin, firstJoin, fooSource,
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "a"),
-						createSQLColumnExprFromSource(fooSource, "foo", "a"),
+						createSQLColumnExprFromSource(barSource, "bar", "a", false),
+						createSQLColumnExprFromSource(fooSource, "foo", "a", false),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(buzzSource, "buzz", "c"),
-						createSQLColumnExprFromSource(fooSource, "foo", "c"),
+						createSQLColumnExprFromSource(buzzSource, "buzz", "c", false),
+						createSQLColumnExprFromSource(fooSource, "foo", "c", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(secondJoin,
-				createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, secondJoin, "buzz", "d", "buzz", "d"),
-				createProjectedColumn(1, secondJoin, "foo", "c", "foo", "c"),
+				createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, secondJoin, "buzz", "d", "buzz", "d", false),
+				createProjectedColumn(1, secondJoin, "foo", "c", "foo", "c", false),
 			)
 		}}, {
 
@@ -1941,20 +2005,20 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(1, "buzz", "buzz")
 			firstJoin := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, fooSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "a"),
-					createSQLColumnExprFromSource(fooSource, "foo", "a"),
+					createSQLColumnExprFromSource(barSource, "bar", "a", false),
+					createSQLColumnExprFromSource(fooSource, "foo", "a", false),
 				),
 			)
 			secondJoin := evaluator.NewJoinStage(evaluator.InnerJoin, firstJoin, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(fooSource, "foo", "c"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "c"),
+					createSQLColumnExprFromSource(fooSource, "foo", "c", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "c", false),
 				),
 			)
 			return evaluator.NewProjectStage(secondJoin,
-				createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, secondJoin, "buzz", "d", "buzz", "d"),
-				createProjectedColumn(1, secondJoin, "foo", "c", "foo", "c"),
+				createProjectedColumn(1, secondJoin, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, secondJoin, "buzz", "d", "buzz", "d", false),
+				createProjectedColumn(1, secondJoin, "foo", "c", "foo", "c", false),
 			)
 		}}, {
 
@@ -1965,18 +2029,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, bazSource,
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "a"),
-						createSQLColumnExprFromSource(bazSource, "baz", "a"),
+						createSQLColumnExprFromSource(barSource, "bar", "a", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
 			)
 		}}, {
 
@@ -1987,18 +2051,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, bazSource,
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "a"),
-						createSQLColumnExprFromSource(bazSource, "baz", "a"),
+						createSQLColumnExprFromSource(barSource, "bar", "a", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
 			)
 		}}, {
 
@@ -2009,13 +2073,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.InnerJoin,
 				barSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
-					createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
 			)
 		}}, {
 
@@ -2026,8 +2090,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.CrossJoin,
 				barSource, bazSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
 			)
 		}}, {
 
@@ -2039,25 +2103,25 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(2, "foo", "foo")
 			subJoin := evaluator.NewJoinStage(evaluator.InnerJoin, bazSource, fooSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "a"),
-					createSQLColumnExprFromSource(fooSource, "foo", "a"),
+					createSQLColumnExprFromSource(bazSource, "baz", "a", false),
+					createSQLColumnExprFromSource(fooSource, "foo", "a", false),
 				),
 			)
 			bizSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(subJoin,
-					createProjectedColumn(2, subJoin, "baz", "b", "baz", "b"),
-					createProjectedColumn(2, subJoin, "foo", "c", "foo", "c"),
+					createProjectedColumn(2, subJoin, "baz", "b", "baz", "b", false),
+					createProjectedColumn(2, subJoin, "foo", "c", "foo", "c", false),
 				), 2, "test", "biz", false)
 			join := evaluator.NewJoinStage(evaluator.InnerJoin,
 				barSource, bizSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
-					createSQLColumnExprFromSource(bizSource, "biz", "b"),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
+					createSQLColumnExprFromSource(bizSource, "biz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(2, join, "biz", "b", "biz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(2, join, "biz", "b", "biz", "b", false),
 			)
 		}}, {
 
@@ -2069,24 +2133,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(2, "foo", "foo")
 			subJoin := evaluator.NewJoinStage(evaluator.InnerJoin, bazSource, fooSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "a"),
-					createSQLColumnExprFromSource(fooSource, "foo", "a"),
+					createSQLColumnExprFromSource(bazSource, "baz", "a", false),
+					createSQLColumnExprFromSource(fooSource, "foo", "a", false),
 				),
 			)
 			bizSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(subJoin,
-					createProjectedColumn(2, subJoin, "baz", "b", "baz", "b"),
-					createProjectedColumn(2, subJoin, "foo", "c", "foo", "c"),
+					createProjectedColumn(2, subJoin, "baz", "b", "baz", "b", false),
+					createProjectedColumn(2, subJoin, "foo", "c", "foo", "c", false),
 				), 2, "test", "biz", false)
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, bizSource, barSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bizSource, "biz", "b"),
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
+					createSQLColumnExprFromSource(bizSource, "biz", "b", false),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(2, join, "biz", "b", "biz", "b"),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(2, join, "biz", "b", "biz", "b", false),
 			)
 		}}, {
 
@@ -2098,7 +2162,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			bizSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(
 					barSource,
-					createProjectedColumn(2, barSource, "bar", "b", "bar", "b"),
+					createProjectedColumn(2, barSource, "bar", "b", "bar", "b", false),
 				),
 				2,
 				"test",
@@ -2108,7 +2172,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fizSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(
 					fooSource,
-					createProjectedColumn(3, fooSource, "foo", "b", "foo", "b"),
+					createProjectedColumn(3, fooSource, "foo", "b", "foo", "b", false),
 				),
 				3,
 				"test",
@@ -2117,12 +2181,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			)
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, bizSource, fizSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bizSource, "biz", "b"),
-					createSQLColumnExprFromSource(fizSource, "fiz", "b"),
+					createSQLColumnExprFromSource(bizSource, "biz", "b", false),
+					createSQLColumnExprFromSource(fizSource, "fiz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(3, join, "fiz", "b", "fiz", "b"))
+				createProjectedColumn(3, join, "fiz", "b", "fiz", "b", false))
 		}}, {
 
 		"select * from bar join baz using (b)",
@@ -2131,17 +2195,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 			bazSource := createMongoSource(1, "baz", "baz")
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
-					createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "bar", "d", "bar", "d"),
-				createProjectedColumn(1, join, "baz", "_id", "baz", "_id"),
-				createProjectedColumn(1, join, "baz", "a", "baz", "a"),
+				createProjectedColumn(1, join, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, join, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "bar", "d", "bar", "d", false),
+				createProjectedColumn(1, join, "baz", "_id", "baz", "_id", false),
+				createProjectedColumn(1, join, "baz", "a", "baz", "a", false),
 			)
 		}}, {
 
@@ -2152,21 +2216,21 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, bazSource,
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "_id"),
-						createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+						createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, join, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "bar", "d", "bar", "d"),
-				createProjectedColumn(1, join, "baz", "a", "baz", "a"))
+				createProjectedColumn(1, join, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, join, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "bar", "d", "bar", "d", false),
+				createProjectedColumn(1, join, "baz", "a", "baz", "a", false))
 		}}, {
 
 		"select * from bar right join baz using (b)",
@@ -2175,17 +2239,17 @@ func TestAlgebrizeQuery(t *testing.T) {
 			bazSource := createMongoSource(1, "baz", "baz")
 			join := evaluator.NewJoinStage(evaluator.RightJoin, barSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
-					createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
-				createProjectedColumn(1, join, "baz", "_id", "baz", "_id"),
-				createProjectedColumn(1, join, "baz", "a", "baz", "a"),
-				createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "bar", "d", "bar", "d"),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
+				createProjectedColumn(1, join, "baz", "_id", "baz", "_id", false),
+				createProjectedColumn(1, join, "baz", "a", "baz", "a", false),
+				createProjectedColumn(1, join, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "bar", "d", "bar", "d", false),
 			)
 		}}, {
 
@@ -2195,18 +2259,18 @@ func TestAlgebrizeQuery(t *testing.T) {
 			bazSource := createMongoSource(1, "baz", "baz")
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
-					createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "_id", "bar", "_id"),
-				createProjectedColumn(1, join, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, join, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, join, "bar", "d", "bar", "d"),
-				createProjectedColumn(1, join, "baz", "_id", "baz", "_id"),
-				createProjectedColumn(1, join, "baz", "a", "baz", "a"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"),
+				createProjectedColumn(1, join, "bar", "_id", "bar", "_id", false),
+				createProjectedColumn(1, join, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, join, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, join, "bar", "d", "bar", "d", false),
+				createProjectedColumn(1, join, "baz", "_id", "baz", "_id", false),
+				createProjectedColumn(1, join, "baz", "a", "baz", "a", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false),
 			)
 		}}, {
 
@@ -2216,13 +2280,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			bazSource := createMongoSource(1, "baz", "baz")
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(barSource, "bar", "b"),
-					createSQLColumnExprFromSource(bazSource, "baz", "b"),
+					createSQLColumnExprFromSource(barSource, "bar", "b", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, join, "bar", "b", "bar", "b"),
-				createProjectedColumn(1, join, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, join, "bar", "b", "bar", "b", false),
+				createProjectedColumn(1, join, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select * from buzz join (baz join bar using (_id)) using (d)",
@@ -2232,25 +2296,25 @@ func TestAlgebrizeQuery(t *testing.T) {
 			bazSource := createMongoSource(1, "baz", "baz")
 			join1 := evaluator.NewJoinStage(evaluator.InnerJoin, bazSource, barSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(barSource, "bar", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(barSource, "bar", "_id", false),
 				),
 			)
 			join2 := evaluator.NewJoinStage(evaluator.InnerJoin, buzzSource, join1,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
-					createSQLColumnExprFromSource(barSource, "bar", "d"),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "d", false),
+					createSQLColumnExprFromSource(barSource, "bar", "d", false),
 				),
 			)
 			return evaluator.NewProjectStage(join2,
-				createProjectedColumn(1, buzzSource, "buzz", "d", "buzz", "d"),
-				createProjectedColumn(1, buzzSource, "buzz", "_id", "buzz", "_id"),
-				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"),
-				createProjectedColumn(1, bazSource, "baz", "_id", "baz", "_id"),
-				createProjectedColumn(1, bazSource, "baz", "a", "baz", "a"),
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"),
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"),
-				createProjectedColumn(1, barSource, "bar", "b", "bar", "b"),
+				createProjectedColumn(1, buzzSource, "buzz", "d", "buzz", "d", false),
+				createProjectedColumn(1, buzzSource, "buzz", "_id", "buzz", "_id", false),
+				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c", false),
+				createProjectedColumn(1, bazSource, "baz", "_id", "baz", "_id", false),
+				createProjectedColumn(1, bazSource, "baz", "a", "baz", "a", false),
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false),
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false),
+				createProjectedColumn(1, barSource, "bar", "b", "bar", "b", false),
 			)
 		}}, {
 
@@ -2262,22 +2326,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLAndExpr(
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "_id"),
-							createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 						),
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "a"),
-							createSQLColumnExprFromSource(bazSource, "baz", "a"),
+							createSQLColumnExprFromSource(barSource, "bar", "a", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 						),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false))
 		}}, {
 
 		"select buzz.c from buzz join bar natural join baz",
@@ -2289,24 +2353,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLAndExpr(
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "_id"),
-							createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 						),
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "a"),
-							createSQLColumnExprFromSource(bazSource, "baz", "a"),
+							createSQLColumnExprFromSource(barSource, "bar", "a", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 						),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			join := evaluator.NewJoinStage(evaluator.CrossJoin,
 				buzzSource, naturalJoin, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"))
+				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c", false))
 		}}, {
 
 		"select buzz.c from bar join buzz natural join baz",
@@ -2317,14 +2381,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 			naturalJoin := evaluator.NewJoinStage(evaluator.InnerJoin,
 				buzzSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 				),
 			)
 			join := evaluator.NewJoinStage(evaluator.CrossJoin,
 				barSource, naturalJoin, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"))
+				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c", false))
 		}}, {
 
 		"select bar.a from bar natural join buzz natural join baz",
@@ -2335,8 +2399,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 
 			njoin1 := evaluator.NewJoinStage(evaluator.InnerJoin, buzzSource, bazSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 				),
 			)
 			njoin2 := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, njoin1,
@@ -2344,27 +2408,27 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewSQLAndExpr(
 						evaluator.NewSQLAndExpr(
 							evaluator.NewSQLEqualsExpr(
-								createSQLColumnExprFromSource(barSource, "bar", "_id"),
-								createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+								createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+								createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 							),
 							evaluator.NewSQLEqualsExpr(
-								createSQLColumnExprFromSource(barSource, "bar", "a"),
-								createSQLColumnExprFromSource(bazSource, "baz", "a"),
+								createSQLColumnExprFromSource(barSource, "bar", "a", false),
+								createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 							),
 						),
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "b"),
-							createSQLColumnExprFromSource(bazSource, "baz", "b"),
+							createSQLColumnExprFromSource(barSource, "bar", "b", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 						),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "d"),
-						createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+						createSQLColumnExprFromSource(barSource, "bar", "d", false),
+						createSQLColumnExprFromSource(buzzSource, "buzz", "d", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(njoin2,
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false))
 		}}, {
 
 		"select baz.a from (select c from buzz) as buzzc natural join baz",
@@ -2373,12 +2437,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(2, "buzz", "buzz")
 			buzzcSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(buzzSource,
-					createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c")),
+					createProjectedColumn(2, buzzSource, "buzz", "c", "buzz", "c", false)),
 				2, "test", "buzzc", false)
 			join := evaluator.NewJoinStage(evaluator.CrossJoin,
 				buzzcSource, bazSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
-			return evaluator.NewProjectStage(join, createProjectedColumn(1,
-				bazSource, "baz", "a", "baz", "a"))
+			return evaluator.NewProjectStage(join, createProjectedColumn(1, bazSource, "baz", "a", "baz", "a", false))
 		}}, {
 
 		"select buzz.c from bar join buzz using (_id, d) natural join baz",
@@ -2389,12 +2452,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			usingJoin := evaluator.NewJoinStage(evaluator.InnerJoin, barSource, buzzSource,
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "_id"),
-						createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+						createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+						createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "d"),
-						createSQLColumnExprFromSource(buzzSource, "buzz", "d"),
+						createSQLColumnExprFromSource(barSource, "bar", "d", false),
+						createSQLColumnExprFromSource(buzzSource, "buzz", "d", false),
 					),
 				),
 			)
@@ -2402,22 +2465,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLAndExpr(
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "_id"),
-							createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 						),
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "a"),
-							createSQLColumnExprFromSource(bazSource, "baz", "a"),
+							createSQLColumnExprFromSource(barSource, "bar", "a", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 						),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(naturalJoin,
-				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c"))
+				createProjectedColumn(1, buzzSource, "buzz", "c", "buzz", "c", false))
 		}}, {
 
 		"select baz.b from baz natural left join buzz",
@@ -2426,12 +2489,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(1, "buzz", "buzz")
 			join := evaluator.NewJoinStage(evaluator.LeftJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from baz natural right join buzz",
@@ -2440,12 +2503,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(1, "buzz", "buzz")
 			join := evaluator.NewJoinStage(evaluator.RightJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from baz natural left outer join buzz",
@@ -2454,12 +2517,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(1, "buzz", "buzz")
 			join := evaluator.NewJoinStage(evaluator.LeftJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from baz natural right outer join buzz",
@@ -2468,12 +2531,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(1, "buzz", "buzz")
 			join := evaluator.NewJoinStage(evaluator.RightJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from foo join baz natural right join buzz",
@@ -2483,8 +2546,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(1, "foo", "foo")
 			njoin := evaluator.NewJoinStage(evaluator.RightJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			join := evaluator.NewJoinStage(
@@ -2492,7 +2555,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from baz natural right join buzz join foo",
@@ -2502,8 +2565,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(1, "foo", "foo")
 			njoin := evaluator.NewJoinStage(evaluator.RightJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			join := evaluator.NewJoinStage(
@@ -2511,7 +2574,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from foo join baz natural left join buzz",
@@ -2521,8 +2584,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(1, "foo", "foo")
 			njoin := evaluator.NewJoinStage(evaluator.LeftJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			join := evaluator.NewJoinStage(
@@ -2530,7 +2593,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from baz natural left join buzz join foo",
@@ -2540,14 +2603,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(1, "foo", "foo")
 			njoin := evaluator.NewJoinStage(evaluator.LeftJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, njoin,
 				fooSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from (select c from buzz) as buzzc natural left join baz",
@@ -2557,11 +2620,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzcSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(buzzSource,
 					createProjectedColumn(2, buzzSource,
-						"buzz", "c", "buzz", "c")), 2, "test", "buzzc", false)
+						"buzz", "c", "buzz", "c", false)), 2, "test", "buzzc", false)
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, buzzcSource,
 				bazSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select baz.b from (select c from buzz) as buzzc natural right join baz",
@@ -2571,11 +2634,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzcSource := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(buzzSource,
 					createProjectedColumn(2, buzzSource,
-						"buzz", "c", "buzz", "c")), 2, "test", "buzzc", false)
+						"buzz", "c", "buzz", "c", false)), 2, "test", "buzzc", false)
 			join := evaluator.NewJoinStage(evaluator.CrossJoin, buzzcSource,
 				bazSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}},
 	}
 
@@ -2604,7 +2667,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			columns := append(
 				evaluator.ProjectedColumns{
-					createProjectedColumn(1, source, "foo", "a", "foo", "a")},
+					createProjectedColumn(1, source, "foo", "a", "foo", "a", false)},
 				createAllProjectedColumnsFromSource(1, source, "foo")...)
 			return evaluator.NewProjectStage(source, columns...)
 		}}, {
@@ -2613,7 +2676,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			columns := append(
 				createAllProjectedColumnsFromSource(1, source, "foo"),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"))
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false))
 			return evaluator.NewProjectStage(source, columns...)
 		}}, {
 
@@ -2621,7 +2684,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "f")
 			columns := append(
 				evaluator.ProjectedColumns{
-					createProjectedColumn(1, source, "f", "a", "f", "a")},
+					createProjectedColumn(1, source, "f", "a", "f", "a", false)},
 				createAllProjectedColumnsFromSource(1, source, "f")...)
 			return evaluator.NewProjectStage(source, columns...)
 		}}, {
@@ -2655,28 +2718,28 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(source,
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"))
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false))
 		}}, {
 
 		"select a from foo f",
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "f")
 			return evaluator.NewProjectStage(source,
-				createProjectedColumn(1, source, "f", "a", "f", "a"))
+				createProjectedColumn(1, source, "f", "a", "f", "a", false))
 		}}, {
 
 		"select f.a from foo f",
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "f")
 			return evaluator.NewProjectStage(source,
-				createProjectedColumn(1, source, "f", "a", "f", "a"))
+				createProjectedColumn(1, source, "f", "a", "f", "a", false))
 		}}, {
 
 		"select a as b from foo",
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(source,
-				createProjectedColumn(1, source, "foo", "a", "foo", "b"))
+				createProjectedColumn(1, source, "foo", "a", "foo", "b", false))
 		}}, {
 
 		"select a + 2 from foo",
@@ -2687,7 +2750,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewSQLAddExpr(
 						evaluator.NewSQLColumnExpr(1,
 							defaultDbName, "foo", "a",
-							types.EvalInt64, schema.MongoInt),
+							types.EvalInt64, schema.MongoInt, false),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2)),
 					),
 				),
@@ -2700,7 +2763,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "b",
 					evaluator.NewSQLAddExpr(
 						evaluator.NewSQLColumnExpr(1,
-							defaultDbName, "foo", "a", types.EvalInt64, schema.MongoInt),
+							defaultDbName, "foo", "a", types.EvalInt64, schema.MongoInt, false),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 2)),
 					),
 				),
@@ -2714,7 +2777,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewSQLBenchmarkExpr(
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 1)),
 						evaluator.NewSQLColumnExpr(1,
-							defaultDbName, "foo", "a", types.EvalInt64, schema.MongoInt),
+							defaultDbName, "foo", "a", types.EvalInt64, schema.MongoInt, false),
 					),
 				),
 			)
@@ -2729,13 +2792,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(1, "foo", "foo")
 			barSource := createMongoSource(2, "bar", "bar")
 			return evaluator.NewProjectStage(fooSource,
-				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", false),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "(select a from bar)",
 					evaluator.NewSQLSubqueryExpr(
 						false,
 						false,
 						evaluator.NewProjectStage(barSource,
-							createProjectedColumn(2, barSource, "bar", "a", "bar", "a")),
+							createProjectedColumn(2, barSource, "bar", "a", "bar", "a", false)),
 					),
 				),
 			)
@@ -2746,13 +2809,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			fooSource := createMongoSource(1, "foo", "foo")
 			barSource := createMongoSource(2, "bar", "bar")
 			return evaluator.NewProjectStage(fooSource,
-				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", false),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "b",
 					evaluator.NewSQLSubqueryExpr(
 						false,
 						false,
 						evaluator.NewProjectStage(barSource,
-							createProjectedColumn(2, barSource, "bar", "a", "bar", "a")),
+							createProjectedColumn(2, barSource, "bar", "a", "bar", "a", false)),
 					),
 				),
 			)
@@ -2766,13 +2829,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.CrossJoin,
 				foo2Source, barSource, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(foo1Source,
-				createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a", false),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "(select foo.a from foo, bar)",
 					evaluator.NewSQLSubqueryExpr(
 						false,
 						false,
 						evaluator.NewProjectStage(join,
-							createProjectedColumn(2, join, "foo", "a", "foo", "a")),
+							createProjectedColumn(2, join, "foo", "a", "foo", "a", false)),
 					),
 				),
 			)
@@ -2804,13 +2867,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 			barSource := createMongoSource(2, "bar", "bar")
 			return evaluator.NewProjectStage(
 				fooSource,
-				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", false),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "(select foo.a from bar)",
 					evaluator.NewSQLSubqueryExpr(
 						true,
 						false,
 						evaluator.NewProjectStage(barSource,
-							createProjectedColumn(1, fooSource, "foo", "a", "foo", "a")),
+							createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", true)),
 					),
 				),
 			)
@@ -2824,8 +2887,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			subqueryAliasName := "t0"
 
 			matcher := evaluator.NewSQLEqualsExpr(
-				createSQLColumnExprFromSource(b1Source, "b1", "a"),
-				createSQLColumnExprFromSource(b2Source, "b2", "b"),
+				createSQLColumnExprFromSource(b1Source, "b1", "a", false),
+				createSQLColumnExprFromSource(b2Source, "b2", "b", false),
 			)
 
 			join := evaluator.NewJoinStage(evaluator.InnerJoin, b1Source, b2Source, matcher)
@@ -2833,20 +2896,20 @@ func TestAlgebrizeQuery(t *testing.T) {
 			innerGroup := evaluator.NewGroupByStage(
 				join,
 				[]evaluator.SQLExpr{
-					createSQLColumnExprFromSource(join, "b2", "d"),
-					createSQLColumnExprFromSource(join, "b2", "b"),
+					createSQLColumnExprFromSource(join, "b2", "d", false),
+					createSQLColumnExprFromSource(join, "b2", "b", false),
 				},
 				evaluator.ProjectedColumns{
-					createProjectedColumn(2, join, "b2", "b", "b2", "b"),
-					createProjectedColumn(2, join, "b2", "d", "b2", "d"),
+					createProjectedColumn(2, join, "b2", "b", "b2", "b", false),
+					createProjectedColumn(2, join, "b2", "d", "b2", "d", false),
 				},
 			)
 
 			subquery := evaluator.NewSubquerySourceStage(
 				evaluator.NewProjectStage(
 					innerGroup,
-					createProjectedColumn(2, join, "b2", "d", "b2", "d"),
-					createProjectedColumn(2, join, "b2", "b", "b2", "b"),
+					createProjectedColumn(2, join, "b2", "d", "b2", "d", false),
+					createProjectedColumn(2, join, "b2", "b", "b2", "b", false),
 				),
 				2,
 				"test",
@@ -2859,9 +2922,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 				nil,
 				evaluator.ProjectedColumns{
 					createProjectedColumn(2, subquery,
-						subqueryAliasName, "d", subqueryAliasName, "d"),
+						subqueryAliasName, "d", subqueryAliasName, "d", false),
 					createProjectedColumn(2, subquery,
-						subqueryAliasName, "b", subqueryAliasName, "b"),
+						subqueryAliasName, "b", subqueryAliasName, "b", false),
 					evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(1)",
 						evaluator.NewSQLAggregationFunctionExpr(
 							"sum",
@@ -2876,7 +2939,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				outerGroup,
 				evaluator.NewSQLGreaterThanExpr(
 					evaluator.NewSQLColumnExpr(1, "", "", "sum(1)",
-						types.EvalDouble, schema.MongoNone),
+						types.EvalDouble, schema.MongoNone, false),
 					evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 0)),
 				),
 			)
@@ -2884,9 +2947,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			project := evaluator.NewProjectStage(
 				filter,
 				createProjectedColumn(1, subquery,
-					subqueryAliasName, "d", subqueryAliasName, "d"),
+					subqueryAliasName, "d", subqueryAliasName, "d", false),
 				createProjectedColumn(1, subquery,
-					subqueryAliasName, "b", subqueryAliasName, "b"),
+					subqueryAliasName, "b", subqueryAliasName, "b", false),
 			)
 
 			return project
@@ -2902,8 +2965,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a",
-						types.EvalInt64, schema.MongoInt)),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+						types.EvalInt64, schema.MongoInt, false)),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -2912,7 +2975,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(source, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, false))),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -2921,7 +2984,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewFilterStage(source, evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true))),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -2932,11 +2995,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLEqualsExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "g",
-							types.EvalBoolean, schema.MongoBool),
+							types.EvalBoolean, schema.MongoBool, false),
 						evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)),
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -2947,11 +3010,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLGreaterThanExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "a",
-							types.EvalInt64, schema.MongoInt),
+							types.EvalInt64, schema.MongoInt, false),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 10)),
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -2962,11 +3025,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(source,
 					evaluator.NewSQLGreaterThanExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "foo", "b",
-							types.EvalInt64, schema.MongoInt),
+							types.EvalInt64, schema.MongoInt, false),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 10)),
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "b"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "b", false),
 			)
 		}},
 	}
@@ -2986,24 +3049,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 						true, true,
 						evaluator.NewProjectStage(
 							dualSource,
-							createProjectedColumn(1, fooSource, "foo", "b", "foo", "b"),
+							createProjectedColumn(1, fooSource, "foo", "b", "foo", "b", true),
 						),
 						evaluator.NewProjectStage(
 							evaluator.NewFilterStage(
 								barSource,
 								evaluator.NewSQLEqualsExpr(
 									createSQLColumnExprFromSource(
-										fooSource, "foo", "a"),
+										fooSource, "foo", "a", true),
 									createSQLColumnExprFromSource(
-										barSource, "bar", "a"),
+										barSource, "bar", "a", false),
 								),
 							),
-							createProjectedColumn(3, barSource, "bar", "b", "bar", "b"),
+							createProjectedColumn(3, barSource, "bar", "b", "bar", "b", false),
 						),
 						"=",
 					),
 				),
-				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3021,7 +3084,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						true, true,
 						evaluator.NewProjectStage(
 							dualSource,
-							createProjectedColumn(1, fooSource, "f", "b", "f", "b"),
+							createProjectedColumn(1, fooSource, "f", "b", "f", "b", true),
 						),
 						evaluator.NewProjectStage(
 							evaluator.NewFilterStage(
@@ -3033,9 +3096,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 											foo4Source,
 											evaluator.NewSQLEqualsExpr(
 												createSQLColumnExprFromSource(
-													fooSource, "f", "a"),
+													fooSource, "f", "a", true),
 												createSQLColumnExprFromSource(
-													foo4Source, "foo", "a"),
+													foo4Source, "foo", "a", false),
 											),
 										),
 										evaluator.CreateProjectedColumnFromSQLExpr(4,
@@ -3043,12 +3106,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 									),
 								),
 							),
-							createProjectedColumn(3, barSource, "bar", "b", "bar", "b"),
+							createProjectedColumn(3, barSource, "bar", "b", "bar", "b", false),
 						),
 						"=",
 					),
 				),
-				createProjectedColumn(1, fooSource, "f", "a", "f", "a"),
+				createProjectedColumn(1, fooSource, "f", "a", "f", "a", false),
 			)
 		}}, {
 
@@ -3066,7 +3129,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						true, false,
 						evaluator.NewProjectStage(
 							dualSource,
-							createProjectedColumn(1, fooSource, "foo", "b", "foo", "b"),
+							createProjectedColumn(1, fooSource, "foo", "b", "foo", "b", true),
 						),
 						evaluator.NewProjectStage(
 							evaluator.NewFilterStage(
@@ -3078,9 +3141,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 											foo3Source,
 											evaluator.NewSQLEqualsExpr(
 												createSQLColumnExprFromSource(
-													barSource, "bar", "a"),
+													barSource, "bar", "a", true),
 												createSQLColumnExprFromSource(
-													foo3Source, "foo", "a"),
+													foo3Source, "foo", "a", false),
 											),
 										),
 										evaluator.CreateProjectedColumnFromSQLExpr(4,
@@ -3088,12 +3151,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 									),
 								),
 							),
-							createProjectedColumn(3, barSource, "bar", "b", "bar", "b"),
+							createProjectedColumn(3, barSource, "bar", "b", "bar", "b", false),
 						),
 						"=",
 					),
 				),
-				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", false),
 			)
 		}},
 	}
@@ -3113,14 +3176,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 								"sum",
 								false,
 								[]evaluator.SQLExpr{
-									createSQLColumnExprFromSource(source, "foo", "a")},
+									createSQLColumnExprFromSource(source, "foo", "a", false)},
 							),
 						),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}}, {
 
@@ -3129,20 +3192,20 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewGroupByStage(source,
-					[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+					[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b", false)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 							evaluator.NewSQLAggregationFunctionExpr(
 								"sum",
 								false,
 								[]evaluator.SQLExpr{
-									createSQLColumnExprFromSource(source, "foo", "a")},
+									createSQLColumnExprFromSource(source, "foo", "a", false)},
 							)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}}, {
 
@@ -3151,22 +3214,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewGroupByStage(source,
-					[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+					[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b", false)},
 					evaluator.ProjectedColumns{
-						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+						createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 							evaluator.NewSQLAggregationFunctionExpr(
 								"sum",
 								false,
 								[]evaluator.SQLExpr{
-									createSQLColumnExprFromSource(source, "foo", "a")},
+									createSQLColumnExprFromSource(source, "foo", "a", false)},
 							)),
 					},
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}}, {
 
@@ -3176,24 +3239,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewOrderByStage(
 					evaluator.NewGroupByStage(source,
-						[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+						[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b", false)},
 						evaluator.ProjectedColumns{
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 								evaluator.NewSQLAggregationFunctionExpr(
 									"sum",
 									false,
 									[]evaluator.SQLExpr{
-										createSQLColumnExprFromSource(source, "foo", "a")},
+										createSQLColumnExprFromSource(source, "foo", "a", false)},
 								)),
 						},
 					),
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-							types.EvalDouble, schema.MongoNone), true),
+							types.EvalDouble, schema.MongoNone, false), true),
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}}, {
 
@@ -3203,24 +3266,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewOrderByStage(
 					evaluator.NewGroupByStage(source,
-						[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b")},
+						[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "b", false)},
 						evaluator.ProjectedColumns{
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 								evaluator.NewSQLAggregationFunctionExpr(
 									"sum",
 									false,
 									[]evaluator.SQLExpr{
-										createSQLColumnExprFromSource(source, "foo", "a")},
+										createSQLColumnExprFromSource(source, "foo", "a", false)},
 								)),
 						},
 					),
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-							types.EvalDouble, schema.MongoNone), true),
+							types.EvalDouble, schema.MongoNone, false), true),
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum_a",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}}, {
 
@@ -3231,15 +3294,15 @@ func TestAlgebrizeQuery(t *testing.T) {
 			return evaluator.NewProjectStage(
 				evaluator.NewOrderByStage(
 					evaluator.NewGroupByStage(foo1Source,
-						[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b")},
+						[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "f", "b", false)},
 						evaluator.ProjectedColumns{
-							createProjectedColumn(1, foo1Source, "f", "b", "f", "b"),
+							createProjectedColumn(1, foo1Source, "f", "b", "f", "b", false),
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.f.a)",
 								evaluator.NewSQLAggregationFunctionExpr(
 									"sum",
 									false,
 									[]evaluator.SQLExpr{
-										createSQLColumnExprFromSource(foo1Source, "f", "a")},
+										createSQLColumnExprFromSource(foo1Source, "f", "a", false)},
 								)),
 						},
 					),
@@ -3252,12 +3315,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 									foo2Source,
 									evaluator.NewSQLEqualsExpr(
 										createSQLColumnExprFromSource(
-											foo1Source, "f", "b"),
+											foo1Source, "f", "b", true),
 										createSQLColumnExprFromSource(
-											foo2Source, "foo", "b"),
+											foo2Source, "foo", "b", false),
 									),
 								),
-								createProjectedColumn(2, foo2Source, "foo", "c", "foo", "c"),
+								createProjectedColumn(2, foo2Source, "foo", "c", "foo", "c", false),
 							),
 						),
 						true,
@@ -3265,7 +3328,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.f.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}}, {
 
@@ -3275,14 +3338,14 @@ func TestAlgebrizeQuery(t *testing.T) {
 			foo2Source := createMongoSource(2, "foo", "f")
 			return evaluator.NewProjectStage(
 				evaluator.NewGroupByStage(foo1Source,
-					[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+					[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b", false)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 							evaluator.NewSQLAggregationFunctionExpr(
 								"sum",
 								false,
 								[]evaluator.SQLExpr{
-									createSQLColumnExprFromSource(foo1Source, "foo", "a")},
+									createSQLColumnExprFromSource(foo1Source, "foo", "a", false)},
 							)),
 					},
 				),
@@ -3294,7 +3357,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							foo2Source,
 							evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(foo.a)",
 								evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-									types.EvalDouble, schema.MongoNone)),
+									types.EvalDouble, schema.MongoNone, true)),
 						),
 					),
 				),
@@ -3307,9 +3370,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			foo2Source := createMongoSource(2, "foo", "f")
 			return evaluator.NewProjectStage(
 				evaluator.NewGroupByStage(foo1Source,
-					[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b")},
+					[]evaluator.SQLExpr{createSQLColumnExprFromSource(foo1Source, "foo", "b", false)},
 					evaluator.ProjectedColumns{
-						createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a"),
+						createProjectedColumn(1, foo1Source, "foo", "a", "foo", "a", false),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1,
@@ -3330,9 +3393,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 											[]evaluator.SQLExpr{
 												evaluator.NewSQLAddExpr(
 													createSQLColumnExprFromSource(
-														foo2Source, "f", "a"),
+														foo2Source, "f", "a", false),
 													createSQLColumnExprFromSource(
-														foo1Source, "foo", "a"),
+														foo1Source, "foo", "a", true),
 												)},
 										)),
 								},
@@ -3340,7 +3403,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 							evaluator.CreateProjectedColumnFromSQLExpr(2, "sum(f.a+foo.a)",
 								evaluator.NewSQLColumnExpr(2, defaultDbName, "",
 									"sum(test.f.a+test.foo.a)",
-									types.EvalDouble, schema.MongoNone)),
+									types.EvalDouble, schema.MongoNone, false)),
 						),
 					),
 				),
@@ -3358,26 +3421,26 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewFilterStage(
 					evaluator.NewGroupByStage(source,
 						[]evaluator.SQLExpr{
-							createSQLColumnExprFromSource(source, "foo", "b")},
+							createSQLColumnExprFromSource(source, "foo", "b", false)},
 						evaluator.ProjectedColumns{
-							createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+							createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 							evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 								evaluator.NewSQLAggregationFunctionExpr(
 									"sum",
 									false,
 									[]evaluator.SQLExpr{
 										createSQLColumnExprFromSource(
-											source, "foo", "a")},
+											source, "foo", "a", false)},
 								)),
 						},
 					),
 					evaluator.NewSQLGreaterThanExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-							types.EvalDouble, schema.MongoNone),
+							types.EvalDouble, schema.MongoNone, false),
 						evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 10)),
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3397,7 +3460,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						),
 					),
 				),
-				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", false),
 			)
 		}},
 	}
@@ -3410,12 +3473,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewGroupByStage(source,
-					[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a")},
+					[]evaluator.SQLExpr{createSQLColumnExprFromSource(source, "foo", "a", false)},
 					evaluator.ProjectedColumns{
-						createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+						createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 					},
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3433,21 +3496,21 @@ func TestAlgebrizeQuery(t *testing.T) {
 									false,
 									[]evaluator.SQLExpr{
 										createSQLColumnExprFromSource(
-											source, "foo", "a")},
+											source, "foo", "a", false)},
 								)),
 						},
 					),
 					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, defaultDbName, "",
-						"sum(test.foo.a)", types.EvalDouble, schema.MongoNone)},
+						"sum(test.foo.a)", types.EvalDouble, schema.MongoNone, false)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 							evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-								types.EvalDouble, schema.MongoNone)),
+								types.EvalDouble, schema.MongoNone, false)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}}, {
 
@@ -3466,28 +3529,28 @@ func TestAlgebrizeQuery(t *testing.T) {
 										false,
 										[]evaluator.SQLExpr{
 											createSQLColumnExprFromSource(
-												source, "foo", "a")},
+												source, "foo", "a", false)},
 									)),
 							},
 						),
 						evaluator.NewSQLGreaterThanExpr(
 							evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-								types.EvalDouble, schema.MongoNone),
+								types.EvalDouble, schema.MongoNone, false),
 							evaluator.NewSQLValueExpr(values.NewSQLInt64(valKind, 20)),
 						),
 					),
 					[]evaluator.SQLExpr{evaluator.NewSQLColumnExpr(1, defaultDbName, "",
-						"sum(test.foo.a)", types.EvalDouble, schema.MongoNone)},
+						"sum(test.foo.a)", types.EvalDouble, schema.MongoNone, false)},
 					evaluator.ProjectedColumns{
 						evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(test.foo.a)",
 							evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
 								types.EvalDouble,
-								schema.MongoNone)),
+								schema.MongoNone, false)),
 					},
 				),
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "sum(a)",
 					evaluator.NewSQLColumnExpr(1, defaultDbName, "", "sum(test.foo.a)",
-						types.EvalDouble, schema.MongoNone)),
+						types.EvalDouble, schema.MongoNone, false)),
 			)
 		}},
 	}
@@ -3502,7 +3565,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource, barSource,
 				evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join, createProjectedColumn(1, join, "foo",
-				"a", "foo", "a"))
+				"a", "foo", "a", false))
 		}}, {
 
 		"select straight_join foo.a from foo cross join bar",
@@ -3512,7 +3575,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource, barSource,
 				evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join, createProjectedColumn(1, join, "foo",
-				"a", "foo", "a"))
+				"a", "foo", "a", false))
 		}}, {
 
 		"select straight_join foo.a from foo, bar",
@@ -3522,7 +3585,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			join := evaluator.NewJoinStage(evaluator.StraightJoin, fooSource, barSource,
 				evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join, createProjectedColumn(1, join, "foo",
-				"a", "foo", "a"))
+				"a", "foo", "a", false))
 		}}, {
 
 		"select straight_join bar.a from bar natural join baz",
@@ -3533,22 +3596,22 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLAndExpr(
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "_id"),
-							createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 						),
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "a"),
-							createSQLColumnExprFromSource(bazSource, "baz", "a"),
+							createSQLColumnExprFromSource(barSource, "bar", "a", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 						),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false))
 		}}, {
 
 		"select straight_join bar.a from foo join buzz cross join bar natural join baz",
@@ -3563,24 +3626,24 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewSQLAndExpr(
 					evaluator.NewSQLAndExpr(
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "_id"),
-							createSQLColumnExprFromSource(bazSource, "baz", "_id"),
+							createSQLColumnExprFromSource(barSource, "bar", "_id", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
 						),
 						evaluator.NewSQLEqualsExpr(
-							createSQLColumnExprFromSource(barSource, "bar", "a"),
-							createSQLColumnExprFromSource(bazSource, "baz", "a"),
+							createSQLColumnExprFromSource(barSource, "bar", "a", false),
+							createSQLColumnExprFromSource(bazSource, "baz", "a", false),
 						),
 					),
 					evaluator.NewSQLEqualsExpr(
-						createSQLColumnExprFromSource(barSource, "bar", "b"),
-						createSQLColumnExprFromSource(bazSource, "baz", "b"),
+						createSQLColumnExprFromSource(barSource, "bar", "b", false),
+						createSQLColumnExprFromSource(bazSource, "baz", "b", false),
 					),
 				),
 			)
 			join3 := evaluator.NewJoinStage(evaluator.StraightJoin, join1, join2,
 				evaluator.NewSQLValueExpr(values.NewSQLBool(valKind, true)))
 			return evaluator.NewProjectStage(join3,
-				createProjectedColumn(1, barSource, "bar", "a", "bar", "a"))
+				createProjectedColumn(1, barSource, "bar", "a", "bar", "a", false))
 		}}, {
 
 		// In the following tests, the joins should NOT be translated to straight_joins
@@ -3590,12 +3653,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(1, "buzz", "buzz")
 			join := evaluator.NewJoinStage(evaluator.LeftJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}}, {
 
 		"select straight_join baz.b from baz natural right join buzz",
@@ -3604,12 +3667,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 			buzzSource := createMongoSource(1, "buzz", "buzz")
 			join := evaluator.NewJoinStage(evaluator.RightJoin, bazSource, buzzSource,
 				evaluator.NewSQLEqualsExpr(
-					createSQLColumnExprFromSource(bazSource, "baz", "_id"),
-					createSQLColumnExprFromSource(buzzSource, "buzz", "_id"),
+					createSQLColumnExprFromSource(bazSource, "baz", "_id", false),
+					createSQLColumnExprFromSource(buzzSource, "buzz", "_id", false),
 				),
 			)
 			return evaluator.NewProjectStage(join,
-				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b"))
+				createProjectedColumn(1, bazSource, "baz", "b", "baz", "b", false))
 		}},
 	}
 	runTestsAsSubtest("Select Straight_Join Queries", selectStraightJoinTests)
@@ -3624,11 +3687,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1,
 							defaultDbName, "foo", "a",
-							types.EvalInt64, schema.MongoInt),
+							types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3640,11 +3703,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1,
 							defaultDbName, "foo", "a",
-							types.EvalInt64, schema.MongoInt),
+							types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "b"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "b", false),
 			)
 		}}, {
 
@@ -3655,11 +3718,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", types.EvalInt64, schema.MongoInt),
+							"foo", "a", types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3670,11 +3733,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", types.EvalInt64, schema.MongoInt),
+							"foo", "a", types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "b"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "b", false),
 			)
 		}}, {
 
@@ -3685,11 +3748,11 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", types.EvalInt64, schema.MongoInt),
+							"foo", "a", types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3700,7 +3763,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", types.EvalInt64, schema.MongoInt),
+							"foo", "a", types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
@@ -3715,7 +3778,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", types.EvalInt64, schema.MongoInt),
+							"foo", "a", types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
@@ -3727,12 +3790,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
 			columns := append(createAllProjectedColumnsFromSource(1, source, "foo"),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"))
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false))
 			return evaluator.NewProjectStage(
 				evaluator.NewOrderByStage(source,
 					evaluator.NewOrderByTerm(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", types.EvalInt64, schema.MongoInt),
+							"foo", "a", types.EvalInt64, schema.MongoInt, false),
 						true,
 					),
 				),
@@ -3750,7 +3813,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 						true,
 					),
 				),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3763,12 +3826,12 @@ func TestAlgebrizeQuery(t *testing.T) {
 						evaluator.NewSQLSubtractExpr(
 							evaluator.NewSQLAddExpr(
 								evaluator.NewSQLColumnExpr(1, defaultDbName,
-									"foo", "a", types.EvalInt64, schema.MongoInt),
+									"foo", "a", types.EvalInt64, schema.MongoInt, false),
 								evaluator.NewSQLColumnExpr(1, defaultDbName,
-									"foo", "b", types.EvalInt64, schema.MongoInt),
+									"foo", "b", types.EvalInt64, schema.MongoInt, false),
 							),
 							evaluator.NewSQLColumnExpr(1, defaultDbName,
-								"foo", "b", types.EvalInt64, schema.MongoInt),
+								"foo", "b", types.EvalInt64, schema.MongoInt, false),
 						),
 						true,
 					),
@@ -3776,9 +3839,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 				evaluator.CreateProjectedColumnFromSQLExpr(1, "c",
 					evaluator.NewSQLAddExpr(
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "a", types.EvalInt64, schema.MongoInt),
+							"foo", "a", types.EvalInt64, schema.MongoInt, false),
 						evaluator.NewSQLColumnExpr(1, defaultDbName,
-							"foo", "b", types.EvalInt64, schema.MongoInt),
+							"foo", "b", types.EvalInt64, schema.MongoInt, false),
 					),
 				),
 			)
@@ -3801,13 +3864,13 @@ func TestAlgebrizeQuery(t *testing.T) {
 							false,
 							evaluator.NewProjectStage(
 								barSource,
-								createProjectedColumn(2, barSource, "bar", "a", "bar", "a"),
+								createProjectedColumn(2, barSource, "bar", "a", "bar", "a", false),
 							),
 						),
 						true,
 					),
 				),
-				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, fooSource, "foo", "a", "foo", "a", false),
 			)
 		}},
 	}
@@ -3820,7 +3883,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewLimitStage(source, 0, 10),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3829,7 +3892,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewLimitStage(source, 10, 20),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3837,7 +3900,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewEmptyStage([]*results.Column{
-				createProjectedColumn(1, source, "foo", "a", "foo", "a").Column,
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false).Column,
 			}, collation.Default)
 		}}, {
 
@@ -3845,7 +3908,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewEmptyStage([]*results.Column{
-				createProjectedColumn(1, source, "foo", "a", "foo", "a").Column,
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false).Column,
 			}, collation.Default)
 		}},
 	}
@@ -3870,7 +3933,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewLimitStage(source, 0, 10),
-				createProjectedColumn(1, source, "foo", "a", "foo", "a"),
+				createProjectedColumn(1, source, "foo", "a", "foo", "a", false),
 			)
 		}}, {
 
@@ -3892,7 +3955,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				source,
-				createProjectedColumn(1, source, "foo", "b", "foo", "b"),
+				createProjectedColumn(1, source, "foo", "b", "foo", "b", false),
 			)
 		}}, {
 
@@ -3914,7 +3977,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "fast")
 			return evaluator.NewProjectStage(
 				source,
-				createProjectedColumn(1, source, "fast", "b", "fast", "b"),
+				createProjectedColumn(1, source, "fast", "b", "fast", "b", false),
 			)
 		}}, {
 
@@ -3934,7 +3997,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "safe")
-			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b")
+			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b", false)
 			projectedColumn.Expr = evaluator.NewSQLConvertExpr(projectedColumn.Expr,
 				types.EvalInt64)
 			projectedColumn.MongoType = ""
@@ -3965,7 +4028,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "foo")
 			return evaluator.NewProjectStage(
 				evaluator.NewLimitStage(source, 10, 20),
-				createProjectedColumn(1, source, "foo", "b", "foo", "b"),
+				createProjectedColumn(1, source, "foo", "b", "foo", "b", false),
 			)
 		}}, {
 
@@ -3987,7 +4050,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			source := createMongoSource(1, "foo", "fast")
 			return evaluator.NewProjectStage(
 				evaluator.NewLimitStage(source, 10, 20),
-				createProjectedColumn(1, source, "fast", "b", "fast", "b"),
+				createProjectedColumn(1, source, "fast", "b", "fast", "b", false),
 			)
 		}}, {
 
@@ -4007,7 +4070,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		},
 		func() evaluator.PlanStage {
 			source := createMongoSource(1, "foo", "safe")
-			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b")
+			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b", false)
 			projectedColumn.Expr = evaluator.NewSQLConvertExpr(projectedColumn.Expr,
 				types.EvalInt64)
 			projectedColumn.MongoType = ""
@@ -4028,7 +4091,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 		func() evaluator.PlanStage {
 			column := results.NewColumn(1, "", "", "", "count(*)", "", "",
 				types.EvalInt64, schema.MongoNone, false)
-			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
+			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)", false)
 			source := createMongoSource(1, "foo", "foo")
 			countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage),
 				projectedColumn)
@@ -4040,7 +4103,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			column := results.NewColumn(1, "", "", "", "c", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
-			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
+			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c", false)
 			source := createMongoSource(1, "foo", "foo")
 			countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage),
 				projectedColumn)
@@ -4053,7 +4116,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			column := results.NewColumn(1, "", "", "", "c", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
-			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
+			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c", false)
 			source := createMongoSource(1, "foo", "foo")
 			countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage),
 				projectedColumn)
@@ -4066,7 +4129,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			column := results.NewColumn(1, "", "", "", "c", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
-			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c")
+			projectedColumn := createProjectedColumnFromColumn(1, column, "", "c", false)
 			source := createMongoSource(1, "foo", "foo")
 			countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage),
 				projectedColumn)
@@ -4079,7 +4142,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			column := results.NewColumn(1, "", "", "", "count(*)", "", "",
 				types.EvalInt64, schema.MongoNone, false)
 
-			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)")
+			projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)", false)
 			source := createMongoSource(1, "foo", "c")
 			countStage := evaluator.NewCountStage(source.(*evaluator.MongoSourceStage),
 				projectedColumn)
@@ -4383,7 +4446,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		for _, c := range source.Columns() {
 			if c.Name == columnName {
 				return evaluator.NewSQLColumnExpr(1,
-					c.Database, c.Table, c.Name, c.EvalType, c.MongoType)
+					c.Database, c.Table, c.Name, c.EvalType, c.MongoType, false)
 			}
 		}
 

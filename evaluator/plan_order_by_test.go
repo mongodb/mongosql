@@ -66,7 +66,7 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), true),
+						schema.MongoString, false), true),
 				}
 
 				expected := []int{2, 4, 1, 3}
@@ -77,7 +77,7 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), false),
+						schema.MongoString, false), false),
 				}
 
 				expected := []int{3, 1, 4, 2}
@@ -91,10 +91,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), true),
+						schema.MongoString, false), true),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), false),
+						schema.MongoInt, false), false),
 				}
 
 				expected := []int{2, 4, 1, 3}
@@ -106,10 +106,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), true),
+						schema.MongoString, false), true),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), false),
+						schema.MongoInt, false), false),
 				}
 
 				expected := []int{2, 4, 1, 3}
@@ -121,10 +121,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), false),
+						schema.MongoString, false), false),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), true),
+						schema.MongoInt, false), true),
 				}
 
 				expected := []int{3, 1, 4, 2}
@@ -136,10 +136,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), false),
+						schema.MongoString, false), false),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), false),
+						schema.MongoInt, false), false),
 				}
 
 				expected := []int{3, 1, 4, 2}
@@ -164,7 +164,7 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), true),
+						schema.MongoString, false), true),
 				}
 
 				expected := []int{1, 2, 3, 4}
@@ -176,7 +176,7 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), false),
+						schema.MongoString, false), false),
 				}
 
 				expected := []int{3, 4, 1, 2}
@@ -190,10 +190,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), true),
+						schema.MongoString, false), true),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), true),
+						schema.MongoInt, false), true),
 				}
 
 				expected := []int{1, 2, 4, 3}
@@ -205,10 +205,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), true),
+						schema.MongoString, false), true),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), false),
+						schema.MongoInt, false), false),
 				}
 
 				expected := []int{2, 1, 3, 4}
@@ -220,10 +220,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), false),
+						schema.MongoString, false), false),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), true),
+						schema.MongoInt, false), true),
 				}
 
 				expected := []int{4, 3, 1, 2}
@@ -235,10 +235,10 @@ func TestOrderByStage(t *testing.T) {
 				terms := []*OrderByTerm{
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
-						schema.MongoString), false),
+						schema.MongoString, false), false),
 					NewOrderByTerm(NewSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
-						schema.MongoInt), false),
+						schema.MongoInt, false), false),
 				}
 
 				expected := []int{3, 4, 2, 1}

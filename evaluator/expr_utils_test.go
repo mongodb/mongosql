@@ -28,7 +28,7 @@ func TestGetMongoDBInfo(t *testing.T) {
 
 func TestIsFullyPushedDown(t *testing.T) {
 	ms := createMongoSource(0, "foo", "foo")
-	column := createProjectedColumn(0, ms, "foo", "a", "foo", "a")
+	column := createProjectedColumn(0, ms, "foo", "a", "foo", "a", false)
 	db, _ := testCatalog.Database("INFORMATION_SCHEMA")
 	table, _ := db.Table("CHARACTER_SETS")
 

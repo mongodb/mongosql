@@ -889,3 +889,36 @@ testcases:
     sql: 'select a, sum(distinct b) from (select a.a, b.b from groupby a join  groupby b group by 1,2) sub group by a union all select a, sum(distinct c) from groupby group by 1'
     unordered: true
     variables: {pushdown: false, rewrite_distinct_as_group: false}
+
+  - db: groupby_test
+    description: BI-2160 correlated aggregate (with correlated subquery) that gets aggregated by parent
+    expected_names: ['a', 'sum']
+    expected_results:
+      - [1, 16]
+    expected_types: [int, float]
+    id: correlated_aggregate_with_correlated_subquery
+    sql: select a, (select sum(f.a + (select f.a)) from groupby limit 1) as sum from groupby f
+
+  - db: groupby_test
+    description: BI-2160 group by correlated column in subquery
+    expected_names: ['a', 'ca']
+    expected_results:
+      - [1, 1]
+      - [2, 2]
+      - [2, 2]
+      - [3, 3]
+    expected_types: [int, int]
+    id: correlated_group_by_in_subquery
+    sql: select a, (select f.a from groupby group by f.a limit 1) as ca from groupby f
+
+  - db: groupby_test
+    description: BI-2160 select distinct correlated column in subquery
+    expected_names: ['a', 'da']
+    expected_results:
+      - [1, 1]
+      - [2, 2]
+      - [2, 2]
+      - [3, 3]
+    expected_types: [int, int]
+    id: correlated_select_distinct_in_subquery
+    sql: select a, (select distinct f.a from groupby limit 1) as da from groupby f

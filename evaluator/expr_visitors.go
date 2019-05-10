@@ -29,20 +29,30 @@ func (v *joinOnExpression) visit(n Node) (Node, error) {
 }
 
 // sqlColExprCounter is a used to hold and count all
-// SQLColumnExpr values found during a Node visit.
+// SQLColumnExpr values found during a Node visit. It
+// also stores the selectID for the source query that
+// this counter is used for.
 type sqlColExprCounter struct {
-	counts map[string]int
-	exprs  []SQLColumnExpr
+	counts   map[string]int
+	exprs    []SQLColumnExpr
+	selectID int
 }
 
 // newSQLColumnExprCounter returns a new sqlColExprCounter.
-func newSQLColumnExprCounter() *sqlColExprCounter {
+func newSQLColumnExprCounter(selectID int) *sqlColExprCounter {
 	return &sqlColExprCounter{
-		counts: make(map[string]int),
+		counts:   make(map[string]int),
+		selectID: selectID,
 	}
 }
 
 func (c *sqlColExprCounter) add(e SQLColumnExpr) {
+	// If the column has this counter's selectID, it should not be marked
+	// as correlated because its source is in the query that this counter
+	// is used for. If it does not have that selectID, it must be marked
+	// as correlated because its source must come from some outer query.
+	e.correlated = e.correlated && e.selectID != c.selectID
+
 	s := e.String()
 	if _, ok := c.counts[s]; ok {
 		c.counts[s]++
@@ -82,9 +92,18 @@ type sqlColExprCollector struct {
 
 // newSQLColExprCollector returns a new sqlColExprCollector.
 func newSQLColExprCollector(selectIDs []int) *sqlColExprCollector {
+	// Get the selectID for the most deeply nested subquery. It is the
+	// last in sorted order (aka, the largest). This is needed for the
+	// sqlColExprCounter to keep track of correlation.
+	sort.Ints(selectIDs)
+	last := -1
+	if len(selectIDs) > 0 {
+		last = selectIDs[len(selectIDs)-1]
+	}
+
 	return &sqlColExprCollector{
 		selectIDs:         selectIDs,
-		referencedColumns: newSQLColumnExprCounter(),
+		referencedColumns: newSQLColumnExprCounter(last),
 	}
 }
 

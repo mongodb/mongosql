@@ -1046,6 +1046,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					fieldName,
 					typedN.EvalType(),
 					schema.MongoNone,
+					false,
 				),
 			}
 			newExpr = NewSQLAggregationFunctionExpr(typedN.Name(), false, exprs)
@@ -1112,9 +1113,9 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					NewSQLValueExpr(values.NewSQLNull(t.valueKind())),
 					newCaseCondition(
 						NewSQLColumnExpr(0, dbName, groupTempTable, countFieldName,
-							types.EvalInt64, schema.MongoNone),
-						NewSQLColumnExpr(0, dbName, groupTempTable, fieldName, typedN.EvalType(),
-							schema.MongoNone),
+							types.EvalInt64, schema.MongoNone, false),
+						NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
+							typedN.EvalType(), schema.MongoNone, false),
 					),
 				)
 			} else {
@@ -1123,8 +1124,8 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					// group_concat aggregate functions in one query.
 					v.requiresTwoSteps = false
 				}
-				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable,
-					fieldName, typedN.EvalType(), schema.MongoNone)
+				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
+					typedN.EvalType(), schema.MongoNone, false)
 			}
 		}
 
@@ -1139,7 +1140,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			fieldName := sanitizeFieldName(typedN.String())
 			dbName := getDatabaseName(typedN)
 			newExpr := NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
-				typedN.EvalType(), schema.MongoNone)
+				typedN.EvalType(), schema.MongoNone, false)
 			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, groupID+"."+keyName, false)
 			return newExpr, nil
 		}
@@ -2505,6 +2506,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				projectedColumn.Name,
 				projectedColumn.EvalType,
 				projectedColumn.MongoType,
+				false,
 			)
 
 			fixedProjectedColumns = append(fixedProjectedColumns,
@@ -2603,6 +2605,25 @@ func (v *pushdownVisitor) pushdownProject(columnExprs []SQLColumnExpr, source Pl
 			// skip any column that we need, but that does not exist in the source
 			continue
 		}
+
+		// Mark the columns as not correlated. In the context of the newly
+		// created projectStage, these columns are no longer correlated.
+		// Consider the following example:
+		//
+		//   select * from foo where a in (select a from foo);
+		//
+		//   this is rewritten as:
+		//   select * from foo where (select a) in (select a from foo);
+		//
+		// The FilterStage will fail to pushdown because of the correlated
+		// SQLColumnExpr in the left subquery. Since it fails to pushdown,
+		// we'll replace its source with the projectStage created by this
+		// function. In this projectStage, none of the columns should be
+		// marked as correlated even if their corresponding columnExpr is
+		// since this projectStage will act as the (non-correlated) source
+		// for the columnExpr.
+		columnExpr.correlated = false
+
 		column := NewColumnFromSQLColumnExpr(columnExpr, isPK)
 		columns = append(columns, ProjectedColumn{Column: column, Expr: columnExpr})
 	}

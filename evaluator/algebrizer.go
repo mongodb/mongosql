@@ -423,7 +423,7 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, column.Name, column.Table)
 		}
 		colExpr := NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
-			column.Name, column.EvalType, column.MongoType)
+			column.Name, column.EvalType, column.MongoType, false)
 		mode := a.cfg.polymorphicTypeConversionMode
 		if shouldConvert(column, mode) {
 			return NewSQLConvertExpr(colExpr, column.EvalType), nil
@@ -450,7 +450,7 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 			a.correlated = true
 			col := expr.(SQLColumnExpr)
 			col.correlated = true
-			return expr, nil
+			return col, nil
 		}
 	}
 
@@ -909,7 +909,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 			}
 
 			pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database,
-				pcs[0].Table, pcs[0].Name, pcs[0].EvalType, schema.MongoNone)
+				pcs[0].Table, pcs[0].Name, pcs[0].EvalType, schema.MongoNone, false)
 			plan = NewCountStage(mongoSource, pcs[0])
 			plan = NewProjectStage(plan, pcs[0])
 			return plan, nil
@@ -2286,9 +2286,33 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongGroupField, aggExpr.String())
 		}
 
+		// If the algebrizer responsible for aggregation (current) is not the
+		// same as the algebrizer the aggregation originally comes from (a),
+		// then the replacement column must be correlated. That is because the
+		// aggregation function will be added to current.aggregates and current
+		// is a parent of this algebrizer, a.
+		correlated := a != current
+		col := NewSQLColumnExpr(current.selectID, getDatabaseName(aggExpr), "", aggExpr.String(),
+			aggExpr.EvalType(), schema.MongoNone, correlated)
+
+		var err error
+		if correlated {
+			// If the new column is correlated, mark this algebrizer as correlated.
+			a.correlated = true
+
+			// Since the aggExpr is being moved to a parent, it must be "decorrelated".
+			// As in, any SQLColumnExprs in the aggExpr that were previously marked as
+			// correlated should be marked as _not_ correlated now that the aggExpr is
+			// being moved to the parent where the correlation source comes from.
+			aggExpr, err = decorrelateAggFunctionExpr(aggExpr)
+			if err != nil {
+				return nil, err
+			}
+		}
+
 		current.aggregates = append(current.aggregates, aggExpr)
-		return NewSQLColumnExpr(current.selectID, getDatabaseName(aggExpr), "", aggExpr.String(),
-			aggExpr.EvalType(), schema.MongoNone), nil
+
+		return col, nil
 	}
 
 	for _, e := range expr.Exprs {
@@ -2424,4 +2448,34 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 
 func (a *algebrizer) versionAtLeast(major, minor, patch uint8) bool {
 	return procutil.VersionAtLeast(a.cfg.version, []uint8{major, minor, patch})
+}
+
+// aggFuncColumnDecorrelator is used to traverse a SQLAggFunctionExpr and
+// mark any SQLColumnExprs as non-correlated.
+type aggFuncColumnDecorrelator struct{}
+
+func (v *aggFuncColumnDecorrelator) visit(n Node) (Node, error) {
+	switch typedN := n.(type) {
+	case SQLColumnExpr:
+		if typedN.correlated {
+			typedN.correlated = false
+			return typedN, nil
+		}
+	case *SQLSubqueryExpr, *SQLSubqueryCmpExpr, *SQLSubqueryAnyExpr, *SQLSubqueryAllExpr:
+		return n, nil
+	}
+	return walk(v, n)
+}
+
+// decorrelateAggFunctionExpr walks a SQLAggFunctionExpr and marks any
+// SQLColumnExprs as non-correlated. SQLColumnExprs that are nested in
+// subquery exprs will not be modified.
+func decorrelateAggFunctionExpr(expr SQLAggFunctionExpr) (SQLAggFunctionExpr, error) {
+	decorrelator := &aggFuncColumnDecorrelator{}
+	newExpr, err := walk(decorrelator, expr)
+	if err != nil {
+		return nil, err
+	}
+
+	return newExpr.(SQLAggFunctionExpr), nil
 }

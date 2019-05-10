@@ -774,35 +774,35 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		// non-boolean types always exclude null
 		{
 			"0", "a", `{"a": {"$ne": null}}`, `a`,
-			evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
+			evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
 		},
 		{
 			"1", "a = 3 AND a < b", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
 			evaluator.NewSQLLessThanExpr(
-				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
-				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 			),
 		},
 		{
 			"2", "a = 3 AND a < b AND b = 4", `{"$and": [{"a": {"$eq": {"$numberLong":"3"}}},{"b": {"$eq": {"$numberLong":"4"}}}]}`, "a < b",
 			evaluator.NewSQLLessThanExpr(
-				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
-				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 			),
 		},
 		{
 			"3", "a < b AND a = 3", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
 			evaluator.NewSQLLessThanExpr(
-				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
-				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
+				evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 			),
 		},
 		{
 			"4", "NOT (a = 3 AND a < b)", `{"$and": [{"a": {"$ne": {"$numberLong":"3"}}},{"a": {"$ne": null}}]}`, "NOT a < b",
 			evaluator.NewSQLNotExpr(
 				evaluator.NewSQLLessThanExpr(
-					evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt),
-					evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt),
+					evaluator.NewSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
+					evaluator.NewSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 				),
 			),
 		},

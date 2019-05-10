@@ -2358,3 +2358,14 @@ testcases:
     id: inner-join-less-than-or-equal-null
     sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b <= join_1.b
     variables: {type_conversion_mode: mongosql}
+
+  - db: join_test
+    description: BI-2160 Inner join collection and subquery (on simple comparison) with inner and outer group by
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+      - [3]
+    expected_types: [int]
+    id: inner-join-table-and-subquery-with-inner-and-outer-group-by
+    sql: select join_1.a a from join_1 inner join (select join_1.a a from join_1 group by 1) t0 on (join_1.a = t0.a) group by 1 order by 1

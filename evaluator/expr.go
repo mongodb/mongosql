@@ -537,7 +537,7 @@ type SQLColumnExpr struct {
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
 // NewSQLColumnExpr is a constructor for SQLColumnExpr.
-func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, evalType types.EvalType, mongoType schema.MongoType) SQLColumnExpr {
+func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, evalType types.EvalType, mongoType schema.MongoType, correlated bool) SQLColumnExpr {
 	return SQLColumnExpr{
 		selectID:     selectID,
 		databaseName: databaseName,
@@ -547,6 +547,7 @@ func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, 
 			evalType,
 			mongoType,
 		),
+		correlated: correlated,
 	}
 }
 
@@ -557,6 +558,7 @@ func newSQLColumnExprFromColumn(c *results.Column) SQLColumnExpr {
 		c.Name,
 		c.EvalType,
 		c.MongoType,
+		false,
 	)
 }
 
@@ -579,14 +581,17 @@ func (e SQLColumnExpr) Evaluate(_ context.Context, cfg *ExecutionConfig, st *Exe
 		return nil, err
 	}
 
-	for _, row := range st.rows {
-		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
-			return values.ConvertTo(value, e.EvalType()), nil
+	if e.correlated {
+		for _, row := range st.correlatedRows {
+			if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
+				return values.ConvertTo(value, e.EvalType()), nil
+			}
 		}
-	}
-	for _, row := range st.correlatedRows {
-		if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
-			return values.ConvertTo(value, e.EvalType()), nil
+	} else {
+		for _, row := range st.rows {
+			if value, ok := row.GetField(e.selectID, e.databaseName, e.tableName, e.columnName); ok {
+				return values.ConvertTo(value, e.EvalType()), nil
+			}
 		}
 	}
 
@@ -2473,7 +2478,7 @@ func (e *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
 	for _, c := range e.plan.Columns() {
 		exprs = append(exprs, NewSQLColumnExpr(c.SelectID,
-			c.Database, c.Table, c.Name, c.EvalType, c.MongoType))
+			c.Database, c.Table, c.Name, c.EvalType, c.MongoType, false))
 	}
 
 	return exprs
