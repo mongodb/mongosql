@@ -24,7 +24,7 @@ run_unit_tests() {
 (
     set -o errexit
 
-    for pkg in $(find . -name '*.go' | grep -v './vendor' | grep -v './testdata' | xargs -L1 dirname | uniq); do
+    for pkg in $(find . -name '*.go' | grep -v './vendor' | grep -v './testdata' | grep -v './release' | xargs -L1 dirname | uniq); do
         if [[ "$pkg" == "." ]]; then
             continue;
         fi
