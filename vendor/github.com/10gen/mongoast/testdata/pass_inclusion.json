@@ -1,6 +1,6 @@
 [
   {
-    "name": "ensure optimizer runs DCE",
+    "name": "ensure optimizer runs DCE and projection compression",
     "input": [
       {
         "$project": {
@@ -17,12 +17,7 @@
     "expected": [
       {
         "$project": {
-          "a": "$c"
-        }
-      },
-      {
-        "$project": {
-          "out": "$a"
+          "out": "$c"
         }
       }
     ]
@@ -112,5 +107,26 @@
         }
       }
     ]
+  },
+  {
+      "name": "$regex bug",
+      "input": [
+        {
+            "$match": {
+                "$nor": [
+                    {"a": {"$regex": "^f.*$","$options": ""}}
+                ]
+            }
+        }
+      ],
+      "expected": [
+        {
+            "$match": {
+                "$nor": [
+                    {"a": {"$regex": "^f.*$","$options": ""}}
+                ]
+            }
+        }
+      ]
   }
 ]

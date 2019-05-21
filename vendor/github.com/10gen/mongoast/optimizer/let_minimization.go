@@ -1,6 +1,8 @@
 package optimizer
 
 import (
+	"fmt"
+
 	"github.com/10gen/mongoast/ast"
 )
 
@@ -57,6 +59,14 @@ func minimizeLetVariables(let *ast.Let) ast.Expr {
 			// The markShadowsInLetAndContinueWalk function handles this for us.
 			return markShadowsInLetAndContinueWalk(v, typedN, variables)
 
+		case *ast.Map, *ast.Filter:
+			// $map and $filter defines new variables, and those may shadow some of the existing variables. If a
+			// nested variable defined by one of these functions shadows one of the outer variables,
+			// we should not count uses of that variable while walking the function; those are
+			// references to the shadow, NOT the outer variable.  The
+			// markShaodwsInMapAndContinueWalk function handles this for us.
+			return markShadowsInMapOrFilterAndContinueWalk(v, typedN.(ast.Expr), variables)
+
 		case *ast.Function:
 			// $map, $filter, and $reduce define new variables, and those may
 			// shadow some of the existing variables. If a nested variable
@@ -94,6 +104,12 @@ func minimizeLetVariables(let *ast.Let) ast.Expr {
 			// references in the nested "in" expression if they are shadows
 			// of outer variables.
 			return markShadowsInLetAndContinueWalk(v, typedN, variables)
+
+		case *ast.Map, *ast.Filter:
+			// For a nested $map or $filter expression, we should not replace variable
+			// references in the nested "in" expression if they are shadows
+			// of outer variables.
+			return markShadowsInMapOrFilterAndContinueWalk(v, typedN.(ast.Expr), variables)
 
 		case *ast.Function:
 			// For $map, $filter, and $reduce functions, we should not replace
@@ -191,6 +207,41 @@ func markShadowsInLetAndContinueWalk(v ast.Visitor, let *ast.Let, variables map[
 	}
 
 	return let
+}
+
+// markShadowsInMapOrFilterAndContinueWalk walks the provided Map expression's
+// variables and "in" expression using the provided visitor. Before
+// walking the "in" expression, this function marks variables in the
+// provided map as shadowed if a variable with the same name appears
+// in the provided Map's list of variables.
+func markShadowsInMapOrFilterAndContinueWalk(v ast.Visitor, mapOrFilter ast.Expr, variables map[string]*letVariableInfo) ast.Node {
+	asField := ""
+	switch typedN := mapOrFilter.(type) {
+	case *ast.Map:
+		asField = typedN.As
+	case *ast.Filter:
+		asField = typedN.As
+	default:
+		panic(fmt.Sprintf("markShadowsInMapOrFilterAndContinueWalk only supports *ast.Map or *ast.Filter not %T", mapOrFilter))
+	}
+
+	info, isShadowed := variables[asField]
+	wasShadowed := info != nil && info.isShadowed
+
+	// if the as field shadows an outer variable, mark that
+	// variable as shadowed before walking the function
+	if isShadowed {
+		info.isShadowed = true
+	}
+
+	n := mapOrFilter.Walk(v)
+
+	// mark it as it was before
+	if isShadowed {
+		info.isShadowed = wasShadowed
+	}
+
+	return n
 }
 
 // markShadowsInFunctionAndContinueWalk walks the provided Function using

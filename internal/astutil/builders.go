@@ -83,72 +83,72 @@ func StringConstant(v string) *ast.Constant {
 	})
 }
 
-// BooleanValue returns an ast.Unknown with a Boolean bson value. Unknowns
+// BooleanValue returns an ast.Constant with a Boolean bson value. Unknowns
 // are not wrapped in $literal.
-func BooleanValue(v bool) *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func BooleanValue(v bool) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Boolean,
 		Data: bsoncore.AppendBoolean(nil, v),
 	})
 }
 
-// DateValue returns an ast.Unknown with a DateTime bson value. Unknowns
+// DateValue returns an ast.Constant with a DateTime bson value. Unknowns
 // are not wrapped in $literal.
-func DateValue(v time.Time) *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func DateValue(v time.Time) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.DateTime,
 		Data: bsoncore.AppendDateTime(nil, v.Unix()*1000+int64(v.Nanosecond()/1e6)),
 	})
 }
 
-// FloatValue returns an ast.Unknown with a Double bson value. Unknowns
+// FloatValue returns an ast.Constant with a Double bson value. Unknowns
 // are not wrapped in $literal.
-func FloatValue(v float64) *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func FloatValue(v float64) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Double,
 		Data: bsoncore.AppendDouble(nil, v),
 	})
 }
 
-// Int32Value returns an ast.Unknown with an Int32 bson value. Unknowns
+// Int32Value returns an ast.Constant with an Int32 bson value. Unknowns
 // are not wrapped in $literal.
-func Int32Value(v int32) *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func Int32Value(v int32) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Int32,
 		Data: bsoncore.AppendInt32(nil, v),
 	})
 }
 
-// Int64Value returns an ast.Unknown with an Int64 bson value. Unknowns
+// Int64Value returns an ast.Constant with an Int64 bson value. Unknowns
 // are not wrapped in $literal.
-func Int64Value(v int64) *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func Int64Value(v int64) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Int64,
 		Data: bsoncore.AppendInt64(nil, v),
 	})
 }
 
-// NullValue returns an ast.Unknown with a Null bson value. Unknowns
+// NullValue returns an ast.Constant with a Null bson value. Unknowns
 // are not wrapped in $literal.
-func NullValue() *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func NullValue() *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Null,
 	})
 }
 
-// ObjectIDValue returns an ast.Unknown with a ObjectID bson value. Unknowns
+// ObjectIDValue returns an ast.Constant with a ObjectID bson value. Unknowns
 // are not wrapped in $literal.
-func ObjectIDValue(v primitive.ObjectID) *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func ObjectIDValue(v primitive.ObjectID) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.ObjectID,
 		Data: bsoncore.AppendObjectID(nil, v),
 	})
 }
 
-// StringValue returns an ast.Unknown with a String bson value. Unknowns
+// StringValue returns an ast.Constant with a String bson value. Unknowns
 // are not wrapped in $literal.
-func StringValue(v string) *ast.Unknown {
-	return ast.NewUnknown(bsoncore.Value{
+func StringValue(v string) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.String,
 		Data: bsoncore.AppendString(nil, v),
 	})

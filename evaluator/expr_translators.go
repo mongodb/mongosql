@@ -171,7 +171,7 @@ func (t *PushdownTranslator) addSubqueryLookupStage(subPlanMs *MongoSourceStage)
 
 	collName := subPlanMs.Collection()
 	lookup := ast.NewLookupStage(
-		collName, "", "",
+		collName, nil, "",
 		getSubqueryLookupField(collName, subPlanMs.selectIDs),
 		[]*ast.LookupLetItem{},
 		subPlanMs.pipeline,

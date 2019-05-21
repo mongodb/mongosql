@@ -5,8 +5,10 @@ import (
 	"github.com/10gen/mongoast/internal/stringutil"
 )
 
-// ReferencedFields returns all the fields referenced in
-// the provided node. In addition, it returns a boolean indicating
+// ReferencedFields returns all the fields referenced in the provided
+// node. The countIncludes argument determines whether include items
+// in a $project are returned in the set of referenced fields. In
+// addition to the set of fields, it returns a boolean indicating
 // whether this field list is complete.
 //
 // For instance, a pipeline that has no projecting stage
@@ -20,7 +22,7 @@ import (
 // For all intents and purposes, the boolean will always be
 // true for anything other than an *ast.Pipeline, for which it
 // can be false based on the stages present.
-func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
+func ReferencedFields(n ast.Node, countIncludes bool) ([]ast.Expr, bool) {
 	hasUnknown := false
 	complete := false
 	var result []ast.Expr
@@ -59,7 +61,11 @@ func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 		switch tn := n.(type) {
 		case *ast.ExcludeProjectItem:
 			return n
-		case *ast.ArrayIndexRef, *ast.FieldRef, *ast.FieldOrArrayIndexRef:
+		case *ast.IncludeProjectItem:
+			if !countIncludes {
+				return n
+			}
+		case *ast.FieldRef, *ast.FieldOrArrayIndexRef:
 			rootName, isField := GetPathRootFromRef(tn.(ast.Expr))
 			// If the root is a variable, we don't care.
 			if !isField {
@@ -71,11 +77,13 @@ func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 				// every field defined by the pipeline before this stage.
 				result = append(result, tn.(ast.Expr))
 			}
+			return n
 		case *ast.Unknown:
 			hasUnknown = true
-		default:
-			_ = n.Walk(v)
+			return n
 		}
+
+		_ = n.Walk(v)
 
 		switch tn := n.(type) {
 		case ast.Stage:
@@ -98,7 +106,7 @@ func ReferencedFields(n ast.Node) ([]ast.Expr, bool) {
 // ReferencedFieldRoots returns the unique set of field roots
 // as collected from ReferencedFields.
 func ReferencedFieldRoots(n ast.Node) ([]string, bool) {
-	fields, complete := ReferencedFields(n)
+	fields, complete := ReferencedFields(n, true)
 
 	m := stringutil.NewStringSet()
 	var result []string

@@ -1,0 +1,2735 @@
+[
+    {
+        "name": "field included in bottom; field implicitly excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "missing _id field in top correctly interpreted as implicit include",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; field included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; ancestor included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; descendent included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "nested field included in bottom; nested field excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id included in bottom but excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "a": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; field excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; ancestor excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; descendent excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; field defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; ancestor defined with $project in top (for now, conservatively do not compress)",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; descendent defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id defined in an addFields can't compress with included _id in an exclusion projection",
+        "input": [
+            {
+                "$addFields": {
+                    "_id": 17
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "_id": 17
+                }
+            },
+            {
+                "$project": {
+                    "_id": 1,
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; field defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "nested field included in bottom; ancestor defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 14
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom; descendent defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "two included fields in bottom share the same ancestor in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 1,
+                    "a.c": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 1,
+                    "a.c": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field included in bottom has multiple descendents in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1,
+                    "a.c": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 1,
+                    "a.c": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id excluded in bottom; _id implicitly included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 1,
+                    "_id": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; field implicitly excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "nested field excluded in bottom; nested field included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; field included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id excluded in bottom; _id included in top",
+        "input": [
+            {
+                "$project": {
+                    "_id": 1,
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; ancestor included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; ancestor included in top is _id in exclusion projection",
+        "input": [
+            {
+                "$project": {
+                    "_id": 1,
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "_id.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id.b": 0,
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "top-level field excluded in bottom; descendent included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "nested field excluded in bottom; descendent included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b.c": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b.c": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id excluded in bottom; descendent included in top",
+        "input": [
+            {
+                "$project": {
+                    "_id.b": 1,
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "a": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "top-level field excluded in bottom; multiple descendents included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1,
+                    "a.c": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; field excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; ancestor excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; descendent excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; field defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id excluded in bottom; _id defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "_id": {
+                        "$literal": 14
+                    },
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "a": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "nested field excluded in bottom; nested field defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b.c": {
+                        "$literal": 14
+                    },
+                    "a.b.d": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b.c": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b.c": {
+                        "$literal": 14
+                    },
+                    "a.b.d": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b.c": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; ancestor defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; descendent defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id excluded in bottom; descendent defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "_id.b": {
+                        "$literal": 15
+                    },
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "a": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; field defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 14
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "nested field excluded in bottom; nested field defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; ancestor defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; descendent defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field excluded in bottom; multiple descendents defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a.b": 15,
+                    "a.c": 2
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "need to both exclude and define a field; cannot compress to single stage",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 15,
+                    "b": 2
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": 15,
+                    "b": 2
+                }
+            },
+            {
+                "$project": {
+                    "a": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; field included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; ancestor included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; descendent included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; field excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; ancestor excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; descendent excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; field defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 20
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; ancestor defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 20
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; descendent defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 20
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 20
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; field defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 20
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; ancestor defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 20
+                }
+            },
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $project in bottom; descendent defined with $addFields in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 15
+                }
+            },
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 20
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 20
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; field implicitly excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "b": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "b": 1,
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id defined with $addFields in bottom; _id implicitly included in top",
+        "input": [
+            {
+                "$project": {
+                    "b": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "_id": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "b": 1,
+                    "_id": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; field implicitly included in top",
+        "input": [
+            {
+                "$addFields": {
+                    "b": 12
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 14
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "b": 12,
+                    "a": 14
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; field included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 14
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 14
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; ancestor included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "a.b": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "a.b": 15
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; descendent included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; field excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 14
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": 14
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; ancestor excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field (descendent of _id) defined with $addFields in bottom; _id excluded in inclusion projection in top",
+        "input": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "b": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "_id.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id.b": {
+                        "$literal": 15
+                    },
+                    "b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; descendent excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; field defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 12
+                    }
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; descendent defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 12
+                    }
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; ancestor defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 12
+                    }
+                }
+            },
+            {
+                "$addFields": {
+                    "a.b": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 15
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; field defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 12
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; descendent defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a.b": 12
+                }
+            },
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            }
+        ]
+    },
+    {
+        "name": "field defined with $addFields in bottom; ancestor defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            },
+            {
+                "$addFields": {
+                    "a.b": 12
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": 15
+                }
+            },
+            {
+                "$addFields": {
+                    "a.b": 12
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; field implicitly excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "c": 1
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "c": 1
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id referenced in bottom; _id implicitly included in top",
+        "input": [
+            {
+                "$project": {
+                    "c": 1
+                }
+            },
+            {
+                "$project": {
+                    "b": "$_id"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "b": "$_id"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; field included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; ancestor included in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 1
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; descendent included in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 1
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; field excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; ancestor excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; descendent excluded in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.b": 0
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; field defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 45
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "b": {
+                        "$literal": 45
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced AND included in bottom; field defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 45
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a": 1,
+                    "b": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 45
+                    },
+                    "b": {
+                        "$literal": 45
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; ancestor defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; descendent defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 45
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "c.b": {
+                        "$literal": 45
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; multiple descendents defined with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b": {
+                        "$literal": 45
+                    },
+                    "a.c": {
+                        "$literal": 12
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "z": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "z.b": {
+                        "$literal": 45
+                    },
+                    "z.c": {
+                        "$literal": 12
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; multiple descendents defined at varied levels with $project in top",
+        "input": [
+            {
+                "$project": {
+                    "a.b.c.d": {
+                        "$literal": 45
+                    },
+                    "a.b.e": {
+                        "$literal": 12
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "z": "$a.b"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "z.c.d": {
+                        "$literal": 45
+                    },
+                    "z.e": {
+                        "$literal": 12
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; field defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": {
+                        "$literal": 45
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "b": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "b": {
+                        "$literal": 45
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; ancestor defined with $addFields in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": {
+                        "$literal": 15
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a.b"
+                }
+            }
+        ]
+    },
+    {
+        "name": "field referenced in bottom; descendent defined with $project in top",
+        "input": [
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 45
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a.b": {
+                        "$literal": 45
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "c": "$a"
+                }
+            }
+        ]
+    },
+    {
+        "name": "simple ordering",
+        "input": [
+            {
+                "$addFields": {
+                    "a": 1,
+                    "b": 1
+                }
+            },
+            {
+                "$addFields": {
+                    "c": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "a": 1,
+                    "b": 1,
+                    "c": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "bottom related field assumes top position",
+        "input": [
+            {
+                "$project": {
+                    "a": 1,
+                    "b": 1
+                }
+            },
+            {
+                "$project": {
+                    "b": 1,
+                    "a.c": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.c": 1,
+                    "b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "multiple related fields in bottom follow order in which they appear in bottom",
+        "input": [
+            {
+                "$project": {
+                    "a": 1,
+                    "b": 1
+                }
+            },
+            {
+                "$project": {
+                    "b": 1,
+                    "a.c": 1,
+                    "a.a": 1,
+                    "a.b": 1,
+                    "a.z": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.c": 1,
+                    "a.a": 1,
+                    "a.b": 1,
+                    "a.z": 1,
+                    "b": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "order followed when field is referenced",
+        "input": [
+            {
+                "$project": {
+                    "a.c": {
+                        "$literal": 1
+                    },
+                    "a.a": {
+                        "$literal": 2
+                    },
+                    "a.b": {
+                        "$literal": 3
+                    },
+                    "a.z": {
+                        "$literal": 4
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "z": "$a"
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "z.c": {
+                        "$literal": 1
+                    },
+                    "z.a": {
+                        "$literal": 2
+                    },
+                    "z.b": {
+                        "$literal": 3
+                    },
+                    "z.z": {
+                        "$literal": 4
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "bottom field with sibling in top does not compress",
+        "input": [
+            {
+                "$project": {
+                    "a.d": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.c": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a.d": {
+                        "$literal": 14
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "a.c": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "can combine two exclusion projections",
+        "input": [
+            {
+                "$project": {
+                    "a": 0
+                }
+            },
+            {
+                "$project": {
+                    "b": 0,
+                    "c": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "a": 0,
+                    "b": 0,
+                    "c": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id excluded in bottom; _id included in top; no other items",
+        "input": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0
+                }
+            }
+        ]
+    },
+    {
+        "name": "_id excluded in bottom; _id included in top; compressed stage should be inclusion but only item is {_id: 0}",
+        "input": [
+            {
+                "$project": {
+                    "_id": 1,
+                    "a": {
+                        "$literal": 12
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "b": 1,
+                    "c": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": 1,
+                    "a": {
+                        "$literal": 12
+                    }
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "b": 1,
+                    "c": 1
+                }
+            }
+        ]
+    },
+    {
+        "name": "cannot reorder first $addFields after $group because $group is a field killer",
+        "input": [
+            {
+                "$addFields": {
+                    "b": 42
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "foo",
+                    "localField": "a",
+                    "foreignField": "b",
+                    "as": "d"
+                }
+            },
+            {
+                "$group": {
+                    "_id": null,
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$addFields": {
+                    "c": 42
+                }
+            },
+            {
+                "$project": {
+                    "out": {"$add": ["$c", "$count"]}
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$lookup": {
+                    "from": "foo",
+                    "localField": "a",
+                    "foreignField": "b",
+                    "as": "d"
+                }
+            },
+            {
+                "$addFields": {
+                    "b": {"$numberInt":"42"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": {"$literal": null},
+                    "count": {"$sum": {"$numberInt":"1"}}
+                }
+            },
+            {
+                "$project": {
+                    "out": {"$add": [{"$literal": {"$numberInt":"42"}},"$count"]}
+                }
+            }
+        ]
+    },
+    {
+        "name": "can reorder first $addFields after first $lookup, but not second, because second uses defined value",
+        "input": [
+            {
+                "$addFields": {
+                    "b": 42
+                }
+            },
+            {
+                "$lookup": {
+                     "from": "foo",
+                     "localField": "a",
+                     "foreignField": "b",
+                     "as": "d"
+               }
+            },
+            {
+                 "$addFields": {
+                     "c": 43
+                 }
+            },
+            {
+                "$lookup": {
+                    "from": "foo",
+                    "localField": "b",
+                    "foreignField": "a",
+                    "as": "d"
+                }
+            }
+       ],
+      "expected": [
+            {
+                "$lookup": {
+                      "from": "foo",
+                      "localField": "a",
+                      "foreignField": "b",
+                      "as": "d"}
+            },
+            {
+                "$addFields": {
+                    "b": {"$numberInt":"42"},
+                    "c": {"$numberInt":"43"}
+                 }
+            },
+            {
+                 "$lookup": {
+                     "from": "foo",
+                     "localField": "b",
+                     "foreignField": "a",
+                     "as": "d"
+                 }
+            }
+    ]
+    },
+    {
+        "name": "can reorder first $addFields after first $lookup, but not second, because second uses defined value (with let and pipeline)",
+        "input": [
+            {
+                "$addFields": {
+                    "b": 42
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "foo",
+                    "localField": "a",
+                    "foreignField": "b",
+                    "as": "d"
+                }
+            },
+            {
+                "$addFields": {
+                    "c": 43
+                }
+            },
+            {
+                "$lookup": {
+                    "let": {"cc": "$c", "dd": "$d"},
+                    "from": "foo",
+                    "pipeline": [{"$match" : {"$expr": {"$and": [{"$eq": ["c", "$$cc"]}, {"$eq": ["d", "$$dd"]}]}}}],
+                    "as": "d"
+                }
+            }
+       ],
+       "expected": [
+           {
+                "$lookup": {
+                    "from": "foo",
+                    "localField": "a",
+                    "foreignField": "b",
+                    "as": "d"}
+           },
+           {
+                "$addFields": {
+                    "b": {"$numberInt":"42"},
+                    "c": {"$numberInt":"43"}
+                }
+           },
+           {
+                "$lookup": {
+                    "let": {"cc": "$c", "dd": "$d"},
+                    "from": "foo",
+                    "pipeline": [{"$match": {"$expr": {"$and": [{"$eq": ["c", "$$cc"]}, {"$eq": ["d", "$$dd"]}]}}}],
+                    "as": "d"
+                }
+          }
+      ]
+  },
+  {
+       "name": "do not move addFields below unwind defining same root path through index",
+       "input": [
+            {"$addFields": {"a": 42}},
+            {"$unwind": {"path": "$a_DOT_B","includeArrayIndex": "a.B_idx","preserveNullAndEmptyArrays": true}}
+        ],
+        "expected": [
+            {"$addFields": {"a": {"$numberInt":"42"}}},
+            {"$unwind": {"path": "$a_DOT_B","includeArrayIndex": "a.B_idx","preserveNullAndEmptyArrays": true}}
+        ]
+  }
+]

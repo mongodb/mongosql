@@ -50,7 +50,7 @@ func TestShellPrint(t *testing.T) {
 				}}
 			 ]`,
 			`[
-			    {"$addFields": {
+				{"$addFields": {
 					"a": 3.14,
 					"b": "he\\llo",
 					"c": {"a\\a\n": 1.0},
@@ -59,7 +59,7 @@ func TestShellPrint(t *testing.T) {
 					"f": undefined,
 					"g": ObjectId("5cacfb7462400d2d7b114ec2"),
 					"h": true,
-					"i": ISODate("2019-04-09T16:15:54.963"),
+					"i": ISODate("2019-04-09T20:15:54.963"),
 					"j": null,
 					"l": DBPointer("hello", ObjectId("5cacfb7462400d2d7b114ec2")),
 					"m": Code("x=3"),
@@ -71,13 +71,11 @@ func TestShellPrint(t *testing.T) {
 					"s": NumberDecimal("3.14"),
 					"t": MinKey,
 					"u": MaxKey
-					}
-				},
+				}},
             	{"$addFields": {
 					"n": Symbol("x"),
 					"lit": {"$literal": {"$add": [NumberInt("2"),NumberInt("3")]}}
-					}
-				}
+				}}
 			 ]`,
 		}, {"test agg expressions",
 			`[

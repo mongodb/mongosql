@@ -7,33 +7,14 @@ import (
 // Expr is implemented by all expressions in the AST.
 type Expr interface {
 	Node
-	exprNode()
+	WalkExpr(v Visitor) Expr
 }
-
-func (n *AggExpr) exprNode()              {}
-func (n *Array) exprNode()                {}
-func (n *ArrayIndexRef) exprNode()        {}
-func (n *Binary) exprNode()               {}
-func (n *Constant) exprNode()             {}
-func (n *Document) exprNode()             {}
-func (n *FieldOrArrayIndexRef) exprNode() {}
-func (n *FieldRef) exprNode()             {}
-func (n *Function) exprNode()             {}
-func (n *Let) exprNode()                  {}
-func (n *Conditional) exprNode()          {}
-func (n *Unknown) exprNode()              {}
-func (n *VariableRef) exprNode()          {}
 
 // Ref is implemented by reference expressions in the AST.
 type Ref interface {
 	Expr
-	ref() //nolint:unused
+	WalkRef(v Visitor) Ref
 }
-
-func (n *ArrayIndexRef) ref()        {}
-func (n *FieldOrArrayIndexRef) ref() {}
-func (n *FieldRef) ref()             {}
-func (n *VariableRef) ref()          {}
 
 // NewAggExpr makes an AggExpr.
 func NewAggExpr(expr Expr) *AggExpr {
@@ -234,6 +215,34 @@ type Conditional struct {
 	Else Expr
 }
 
+// NewMap makes a new Map Expression.
+func NewMap(input Expr, as string, in Expr) *Map {
+	return &Map{Input: input, As: as, In: in}
+}
+
+// Map is the map expression, which maps a function (In) over an array (Input).
+type Map struct {
+	Input Expr
+	As    string
+	In    Expr
+}
+
+var _ Expr = &Map{}
+
+// NewFilter makes a new Filter Expression.
+func NewFilter(input Expr, as string, cond Expr) *Filter {
+	return &Filter{Input: input, As: as, Cond: cond}
+}
+
+var _ Expr = &Filter{}
+
+// Filter is the filer expression, which filters an array (Input) with a predicate (Cond).
+type Filter struct {
+	Input Expr
+	As    string
+	Cond  Expr
+}
+
 // NewFunction makes a Function.
 func NewFunction(name string, arg Expr) *Function {
 	return &Function{name, arg}
@@ -243,6 +252,22 @@ func NewFunction(name string, arg Expr) *Function {
 type Function struct {
 	Name string
 	Arg  Expr
+}
+
+// NewMatchRegex creates a new MatchRegex.
+func NewMatchRegex(field string, pattern, options bsoncore.Value) *MatchRegex {
+	return &MatchRegex{
+		Field:   field,
+		Pattern: pattern,
+		Options: options,
+	}
+}
+
+// MatchRegex is the match language $regex function.
+type MatchRegex struct {
+	Field   string
+	Pattern bsoncore.Value
+	Options bsoncore.Value
 }
 
 // NewVariableRef makes a VariableRef.

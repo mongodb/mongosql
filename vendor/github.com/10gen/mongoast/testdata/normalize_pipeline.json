@@ -1,0 +1,52 @@
+[
+  {
+    "name": "flatten project subdocuments",
+    "input": [
+      {
+        "$project": {
+          "a": {"b": {"c": 1}}
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a.b.c": {"$numberInt": "1"}
+        }
+      }
+    ]
+  },
+  {
+    "name": "flatten project subdocuments with sibling fiels",
+    "input": [
+      {
+        "$project": {
+          "a": {"b": 1, "c": {"d": 1}}
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "a.b": {"$numberInt": "1"},
+      "a.c.d": {"$numberInt": "1"}
+        }
+      }
+    ]
+  },
+  {
+    "name": "$regexp bug, regexp must be handled specially",
+    "input": [{"$match": {"$nor": [{"a": {"$regex": "^f.*$","$options": ""}}]}}],
+    "expected": [{"$match": {"$nor": [{"a": {"$regex": "^f.*$","$options": ""}}]}}]
+  },
+  {
+    "name": "$filter bug, do not add $literal around as",
+    "input": [{"$filter": {"input": [1,2,3], "as": "foo", "cond": {"$eq": ["$$foo", 2]}}}],
+    "expected": [{"$filter": {"input": [1,2,3], "as": "foo", "cond": {"$eq": ["$$foo", 2]}}}]
+  },
+  {
+    "name": "$map bug, do not add $literal around as",
+    "input": [{"$filter": {"input": [1,2,3], "as": "foo", "cond": {"$eq": ["$$foo", 2]}}}],
+    "expected": [{"$filter": {"input": [1,2,3], "as": "foo", "cond": {"$eq": ["$$foo", 2]}}}]
+  }
+]

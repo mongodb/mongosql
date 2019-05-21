@@ -461,7 +461,7 @@ func WrapInMap(input ast.Expr, as string, in ast.Expr) *ast.Function {
 	))
 }
 
-func bsonValueIsNull(value bsoncore.Value) *ast.Unknown {
+func bsonValueIsNull(value bsoncore.Value) *ast.Constant {
 	if value.Type == bsontype.Null {
 		return TrueLiteral
 	}
@@ -502,10 +502,22 @@ func WrapInNullCheckedCond(truePart, falsePart ast.Expr, conds ...ast.Expr) ast.
 	case 1:
 		condition = newConds[0]
 	default:
-		condition = WrapInOp(bsonutil.OpOr, newConds...)
+		condition = WrapInBinOp(bsonutil.OpOr, newConds...)
 	}
 
-	return WrapInOp(bsonutil.OpCond, condition, truePart, falsePart)
+	return ast.NewConditional(condition, truePart, falsePart)
+}
+
+// WrapInBinOp generates a left associative tree from varargs.
+func WrapInBinOp(op ast.BinaryOp, args ...ast.Expr) ast.Expr {
+	if len(args) <= 1 {
+		return ast.NewFunction(string(op), ast.NewArray(args...))
+	}
+	current := args[0]
+	for _, arg := range args[1:] {
+		current = ast.NewBinary(op, current, arg)
+	}
+	return current
 }
 
 // WrapInOp returns a document which passes all arguments to the op.

@@ -120,6 +120,9 @@ func mergeLets(let *ast.Let) ast.Expr {
 					variables.Add("value")
 					varsToRemove = append(varsToRemove, "value")
 				}
+			// These cases should no longer be possible assuming the pipeline comes from
+			// the parser, but we keep them in case someone is manually constructing an
+			// ast.
 			case "$map", "$filter":
 				// In case a Let is nested in a $map or $filter function,
 				// temporarily add the "as" field variable to the variable
@@ -129,6 +132,44 @@ func mergeLets(let *ast.Let) ast.Expr {
 					variables.Add(asField)
 					varsToRemove = append(varsToRemove, asField)
 				}
+			}
+
+			// walk the function with the relevant new variables in scope
+			n = n.Walk(v)
+
+			// remove any newly added variables
+			for _, varToRemove := range varsToRemove {
+				variables.Remove(varToRemove)
+			}
+
+			return n
+
+		case *ast.Map:
+			varsToRemove := make([]string, 0, 1)
+
+			asField := typedN.As
+			if !variables.Contains(asField) {
+				variables.Add(asField)
+				varsToRemove = append(varsToRemove, asField)
+			}
+
+			// walk the function with the relevant new variables in scope
+			n = n.Walk(v)
+
+			// remove any newly added variables
+			for _, varToRemove := range varsToRemove {
+				variables.Remove(varToRemove)
+			}
+
+			return n
+
+		case *ast.Filter:
+			varsToRemove := make([]string, 0, 1)
+
+			asField := typedN.As
+			if !variables.Contains(asField) {
+				variables.Add(asField)
+				varsToRemove = append(varsToRemove, asField)
 			}
 
 			// walk the function with the relevant new variables in scope

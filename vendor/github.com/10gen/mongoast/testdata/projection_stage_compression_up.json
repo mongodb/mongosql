@@ -1,0 +1,209 @@
+[
+    {
+        "name": "cannot move field killer above other stages.",
+        "input": [
+            {
+                "$match": {
+                    "foo": 42
+                }
+            },
+            {
+                "$match": {
+                    "bar": 43
+                }
+            },
+            {
+                "$project": {
+                    "b": 1
+                }
+            },
+            {
+                "$project": {
+                    "a": 1,
+                    "c": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$match": {
+                    "foo": {"$eq": {"$numberInt":"42"}}
+                }
+            },
+            {
+                "$match": {
+                    "bar": {"$eq": {"$numberInt":"43"}}
+                }
+            },
+            {
+                "$project": {
+                    "_id": {"$numberInt":"1"}
+                }
+            }
+        ]
+    },
+    {
+        "name": "cannot move $project past $lookup because it kills fields",
+        "input": [
+            {
+                "$addFields": {
+                    "b": 42
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "foo",
+                    "localField": "foo",
+                    "foreignField": "bar",
+                    "as": "foo"
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "bar",
+                    "localField": "bar",
+                    "foreignField": "foo",
+                    "as": "bar"
+                }
+            },
+            {
+                "$project": {
+                    "a": 1,
+                    "b": 1,
+                    "c": 1
+                }
+            },
+            {
+                "$project": {
+                    "_id": 0,
+                    "a": 1,
+                    "b": 1,
+                    "c": 1,
+                    "d": 1
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "b": {"$literal": {"$numberInt":"42"}}
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "foo",
+                    "localField": "foo",
+                    "foreignField": "bar",
+                    "as": "foo"
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "bar",
+                    "localField": "bar",
+                    "foreignField": "foo",
+                    "as": "bar"
+                }
+            },
+            {
+                "$project": {
+                    "a": {"$numberInt":"1"},
+                    "b": {"$numberInt":"1"},
+                    "c": {"$numberInt":"1"},
+                    "_id": {"$numberInt": "0"}
+                }
+            }
+        ]
+    },
+    {
+        "name": "can move $addFields above $lookup because it is not a fieldKiller",
+        "input": [
+            {
+                "$addFields": {
+                    "b": 42
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "bar",
+                    "pipeline": [{"$match": {"a": 42}}],
+                    "as": "bar"
+                }
+            },
+            {
+                "$addFields": {
+                    "c": 42
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                        "b": {"$numberInt":"42"},
+                        "c": {"$numberInt":"42"}
+                }
+            },
+            {
+                "$lookup": {
+                    "from": "bar",
+                    "pipeline": [{"$match": {"a": {"$eq": {"$numberInt":"42"}}}}],
+                    "as": "bar"
+                }
+            }
+        ]
+    },
+    {
+        "name": "cannot reorder second $addFields before $group because $group is a field killer",
+        "input": [
+            {
+                "$addFields": {
+                    "b": 42
+                }
+            },
+            {
+                "$group": {
+                    "_id": null,
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$addFields": {
+                    "c": 42
+                }
+            },
+            {
+                "$project": {
+                    "out": {"$add": ["$c", "$count"]}
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$addFields": {
+                    "b": {"$numberInt":"42"}
+                }
+            },
+            {
+                "$group": {
+                    "_id": {"$literal": null},
+                    "count": {"$sum": {"$numberInt":"1"}}
+                }
+            },
+            {
+                "$project": {
+                    "out": {"$add": [{"$literal": {"$numberInt":"42"}},"$count"]}
+                }
+            }
+        ]
+    },
+    {  "name": "do not compress dynamically possible document construction (even once BI-2213 is completed, this should not change)",
+       "input": [
+              {"$project": {"b": {"$cond": [false, {"$add": [1,2,3]}, {"c": 42}]}}},
+              {"$project": {"b.c": 1}}
+        ],
+        "expected": [
+              {"$project": {"b": {"$cond": [false, {"$add": [1,2,3]}, {"c": 42}]}}},
+              {"$project": {"b.c": 1}}
+        ]
+    }
+]

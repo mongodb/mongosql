@@ -1060,5 +1060,55 @@
         }
       }
     ]
+  },
+  {
+      "name": "mongosqld bug 1",
+      "input": [
+          {"$lookup": {"from": "alter_1","let": {},"pipeline": [
+              {"$collStats": {}},
+              {"$limit": {"$numberLong":"1"}},
+              {"$project": {"newField": {"$numberInt":"1"}}},
+              {"$project": {"4": {"$literal": {"$numberLong":"4"}}}}
+          ],"as": "__subquery_alter_1_[2]"}},
+          {"$lookup": {"from": "where_2","let": {},"pipeline": [
+              {"$project": {"where_test_DOT_where_2_DOT_a": "$a"}}
+          ],"as": "__subquery_where_2_[3]"}},
+          {"$match": {"$expr": {"$allElementsTrue": [
+              {"$map": {
+                  "input": {"$map": {"input": "$__subquery_where_2_[3]","as": "this","in": {"$ifNull": ["$$this.where_test_DOT_where_2_DOT_a",null]}}},
+                  "as": "this",
+                  "in": {"$and": [{"$and": [
+                      {"$ne": [{"$arrayElemAt": [
+                          {"$map": {"input": "$__subquery_alter_1_[2]","as": "this","in": {"$ifNull": ["$$this.4",null]}}},
+                          {"$numberInt":"0"}
+                      ]},"$$this"]},
+                      {"$not": {"$eq": [{"$arrayElemAt": [
+                          {"$map": {"input": "$__subquery_alter_1_[2]","as": "this","in": {"$ifNull": ["$$this.4",null]}}},
+                          {"$numberInt":"0"}
+                      ]},null]}}]},{"$not": {"$eq": ["$$this",null]}}]}}}]}}},
+          {"$project": {"where_test_DOT_where_1_DOT__id": "$_id","_id": {"$numberInt":"0"}}}],
+      "expected": [
+          {"$lookup": {"from": "alter_1","let": {},"pipeline": [
+              {"$collStats": {}},
+              {"$limit": {"$numberLong":"1"}},
+              {"$project": {"4": {"$literal": {"$numberLong":"4"}}}}
+          ],"as": "__subquery_alter_1_[2]"}},
+          {"$lookup": {"from": "where_2","let": {},"pipeline": [
+              {"$project": {"where_test_DOT_where_2_DOT_a": "$a"}}
+          ],"as": "__subquery_where_2_[3]"}},
+          {"$match": {"$expr": {"$allElementsTrue": [
+              {"$map": {
+                  "input": {"$map": {"input": "$__subquery_where_2_[3]","as": "this","in": {"$ifNull": ["$$this.where_test_DOT_where_2_DOT_a",null]}}},
+                  "as": "this",
+                  "in": {"$and": [{"$and": [
+                      {"$ne": [{"$arrayElemAt": [
+                          {"$map": {"input": "$__subquery_alter_1_[2]","as": "this","in": {"$ifNull": ["$$this.4",null]}}},
+                          {"$numberInt":"0"}
+                      ]},"$$this"]},
+                      {"$not": {"$eq": [{"$arrayElemAt": [
+                          {"$map": {"input": "$__subquery_alter_1_[2]","as": "this","in": {"$ifNull": ["$$this.4",null]}}},
+                          {"$numberInt":"0"}
+                      ]},null]}}]},{"$not": {"$eq": ["$$this",null]}}]}}}]}}},
+          {"$project": {"where_test_DOT_where_1_DOT__id": "$_id","_id": {"$numberInt":"0"}}}]
   }
 ]

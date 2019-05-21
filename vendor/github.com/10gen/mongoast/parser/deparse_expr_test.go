@@ -249,6 +249,50 @@ func TestDeparseExpr(t *testing.T) {
 				),
 			),
 		},
+		// Map
+		{
+			`{"$map": {"input": [1,2,3], "as": "foo", "in": {"$add": ["$$foo", 1]}}}`,
+			bsonutil.DocumentFromElements(
+				"$map", bsonutil.DocumentFromElements(
+					"input", bsonutil.ArrayFromValues(
+						bsonutil.Int32(1),
+						bsonutil.Int32(2),
+						bsonutil.Int32(3),
+					),
+					"as",
+					bsonutil.String("foo"),
+					"in",
+					bsonutil.DocumentFromElements(
+						"$add", bsonutil.ArrayFromValues(
+							bsonutil.String("$$foo"),
+							bsonutil.Int32(1),
+						),
+					),
+				),
+			),
+		},
+		// Filter
+		{
+			`{"$filter": {"input": [1,2,3], "as": "foo", "cond": {"$eq": ["$$foo", 2]}}}`,
+			bsonutil.DocumentFromElements(
+				"$filter", bsonutil.DocumentFromElements(
+					"input", bsonutil.ArrayFromValues(
+						bsonutil.Int32(1),
+						bsonutil.Int32(2),
+						bsonutil.Int32(3),
+					),
+					"as",
+					bsonutil.String("foo"),
+					"cond",
+					bsonutil.DocumentFromElements(
+						"$eq", bsonutil.ArrayFromValues(
+							bsonutil.String("$$foo"),
+							bsonutil.Int32(2),
+						),
+					),
+				),
+			),
+		},
 		// Unknown
 		{
 			`{"a": { "$eee": 1}}`,

@@ -88,8 +88,20 @@ func TestEvaluateMatchExpr(t *testing.T) {
 			),
 			false,
 		},
+
+		// Missing field tests
 		{
-			"missing field match",
+			`x == 0`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.Equals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			false,
+		},
+		{
+			`x == null`,
 			bsonutil.EmptyDocument(),
 			ast.NewBinary(
 				ast.Equals,
@@ -99,14 +111,200 @@ func TestEvaluateMatchExpr(t *testing.T) {
 			true,
 		},
 		{
-			"missing field non-match",
+			`x < 0`,
 			bsonutil.EmptyDocument(),
 			ast.NewBinary(
-				ast.Equals,
+				ast.LessThan,
 				ast.NewFieldRef("x", nil),
 				ast.NewConstant(bsonutil.Int32(0)),
 			),
 			false,
+		},
+		{
+			`x < null`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.LessThan,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Null()),
+			),
+			false,
+		},
+		{
+			`x <= 0`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.LessThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			false,
+		},
+		{
+			`x <= null`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.LessThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Null()),
+			),
+			true,
+		},
+		{
+			`x > 0`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.GreaterThan,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			false,
+		},
+		{
+			`x > null`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.GreaterThan,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Null()),
+			),
+			false,
+		},
+		{
+			`x >= 0`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			false,
+		},
+		{
+			`x >= null`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Null()),
+			),
+			true,
+		},
+		{
+			`x != 0`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.NotEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			true,
+		},
+		{
+			`x != null`,
+			bsonutil.EmptyDocument(),
+			ast.NewBinary(
+				ast.NotEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Null()),
+			),
+			false,
+		},
+		{
+			`{ $expr: x == 0 }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.Equals,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Int32(0)),
+				),
+			),
+			false,
+		},
+		{
+			`{ $expr: x == null }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.Equals,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Null()),
+				),
+			),
+			false,
+		},
+		{
+			`{ $expr: x < 0 }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.LessThan,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Int32(0)),
+				),
+			),
+			true,
+		},
+		{
+			`{ $expr: x < null }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.LessThan,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Null()),
+				),
+			),
+			true,
+		},
+		{
+			`{ $expr: x > 0 }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.GreaterThan,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Int32(0)),
+				),
+			),
+			false,
+		},
+		{
+			`{ $expr: x > null }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.GreaterThan,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Null()),
+				),
+			),
+			false,
+		},
+		{
+			`{ $expr: x != 0 }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.NotEquals,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Int32(0)),
+				),
+			),
+			true,
+		},
+		{
+			`{ $expr: x != null }`,
+			bsonutil.EmptyDocument(),
+			ast.NewAggExpr(
+				ast.NewBinary(
+					ast.NotEquals,
+					ast.NewFieldRef("x", nil),
+					ast.NewConstant(bsonutil.Null()),
+				),
+			),
+			true,
 		},
 	}
 

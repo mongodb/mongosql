@@ -106,6 +106,7 @@ func parseDocumentExpr(doc bsoncore.Document) (ast.Expr, error) {
 	return ast.NewDocument(documentElements...), nil
 }
 
+// ParseFieldRef parses a string into a FieldRef or FieldOrArrayIndexRef.
 func ParseFieldRef(s string) (ast.Expr, error) {
 	parts := strings.Split(s, ".")
 	var expr ast.Expr = ast.NewFieldRef(parts[0], nil)
@@ -180,6 +181,10 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 		return parseLetExpr(v)
 	case "$cond":
 		return parseConditionalExpr(v)
+	case "$map":
+		return parseMapExpr(v)
+	case "$filter":
+		return parseFilterExpr(v)
 	case "$literal":
 		return ast.NewConstant(v), nil
 	default:
@@ -343,4 +348,92 @@ func parseConditionalExpr(v bsoncore.Value) (ast.Expr, error) {
 	}
 
 	return ast.NewConditional(ifClause, thenClause, elseClause), nil
+}
+
+func parseMapExpr(v bsoncore.Value) (ast.Expr, error) {
+	var err error
+	var inputClause ast.Expr
+	asClause := "this"
+	var inClause ast.Expr
+
+	if doc, ok := v.DocumentOK(); ok {
+		elems, _ := doc.Elements()
+		for _, e := range elems {
+			switch e.Key() {
+			case "input":
+				inputClause, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $map input clause")
+				}
+			case "as":
+				asClause, ok = e.Value().StringValueOK()
+				if !ok {
+					return nil, errors.New("$map as clause must be string")
+				}
+			case "in":
+				inClause, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $map in clause")
+				}
+			default:
+				return nil, errors.Errorf("unrecognized parameter to $map: %s", e.Key())
+			}
+		}
+	} else {
+		return nil, errors.New("$map requires a document")
+	}
+
+	if inputClause == nil {
+		return nil, errors.New("missing 'input' parameter to $map")
+	}
+
+	if inClause == nil {
+		return nil, errors.New("missing 'in' parameter to $map")
+	}
+
+	return ast.NewMap(inputClause, asClause, inClause), nil
+}
+
+func parseFilterExpr(v bsoncore.Value) (ast.Expr, error) {
+	var err error
+	var inputClause ast.Expr
+	asClause := "this"
+	var condClause ast.Expr
+
+	if doc, ok := v.DocumentOK(); ok {
+		elems, _ := doc.Elements()
+		for _, e := range elems {
+			switch e.Key() {
+			case "input":
+				inputClause, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $filter input clause")
+				}
+			case "as":
+				asClause, ok = e.Value().StringValueOK()
+				if !ok {
+					return nil, errors.New("$filter as clause must be string")
+				}
+			case "cond":
+				condClause, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $filter cond clause")
+				}
+			default:
+				return nil, errors.Errorf("unrecognized parameter to $filter: %s", e.Key())
+			}
+		}
+	} else {
+		return nil, errors.New("$filter requires a document")
+	}
+
+	if inputClause == nil {
+		return nil, errors.New("missing 'input' parameter to $filter")
+	}
+
+	if condClause == nil {
+		return nil, errors.New("missing 'cond' parameter to $filter")
+	}
+
+	return ast.NewFilter(inputClause, asClause, condClause), nil
 }

@@ -10,7 +10,8 @@
   revision = "f38edd53fd4137aae1c4424fe186549b6dfb78b7"
 
 [[projects]]
-  digest = "1:9f4c9ea92213b8dd320aae207d27fe345f73fa4ee3301b51bee04fa537fab8e2"
+  branch = "master"
+  digest = "1:d65d6e166b9304bfaa5b1a9d0ea4d1567d4acb25552aa78c22132720a74cf12c"
   name = "github.com/10gen/mongo-go-driver"
   packages = [
     "bson",
@@ -33,21 +34,26 @@
     "mongo/writeconcern",
   ]
   pruneopts = ""
-  revision = "1d4cd22d0f723bd468ba081ccff07aa16c68f7de"
-  source = "github.com/jstewart-mongo/mongo-go-driver"
+  revision = "04c2b7e1bb27c2a40efee03a33c22f2c691165ef"
+  source = "github.com/pmeredit/mongo-go-driver"
 
 [[projects]]
   branch = "master"
-  digest = "1:d6fad646872fee9a78bd9716ab359e0b8afcc2f8e9dfe833a26e4380389e1a73"
+  digest = "1:7ff30beadcf5798ec910e270f7b1fd6bfb78fc539b987e73a309731082f3c4c5"
   name = "github.com/10gen/mongoast"
   packages = [
+    "analyzer",
     "ast",
     "astprint",
     "internal/bsonutil",
+    "internal/decimalutil",
+    "internal/jsonutil",
+    "internal/stringutil",
+    "optimizer",
     "parser",
   ]
   pruneopts = ""
-  revision = "b5ab168761bb6338efc8f8efffb78b5fcc9749e5"
+  revision = "cd233cc181debbb3fa4b43db13d74e8ddaea92eb"
 
 [[projects]]
   branch = "master"
@@ -388,6 +394,7 @@
     "github.com/10gen/mongo-go-driver/mongo/writeconcern",
     "github.com/10gen/mongoast/ast",
     "github.com/10gen/mongoast/astprint",
+    "github.com/10gen/mongoast/optimizer",
     "github.com/10gen/mongoast/parser",
     "github.com/10gen/openssl",
     "github.com/go-sql-driver/mysql",
