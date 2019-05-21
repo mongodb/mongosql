@@ -404,7 +404,7 @@ func parseGroupStage(doc bsoncore.Document) (*ast.GroupStage, error) {
 
 func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 	var from string
-	var localField string
+	var localField *ast.FieldRef
 	var foreignField string
 	var as string
 	var let []*ast.LookupLetItem
@@ -425,13 +425,20 @@ func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 				)
 			}
 		case "localField":
-			localField, ok = e.Value().StringValueOK()
+			localFieldName, ok := e.Value().StringValueOK()
 			if !ok {
 				return nil, errors.Errorf(
 					"$lookup argument 'localField: %v' must be a string, is type %v",
 					e.Value(),
 					e.Value().Type,
 				)
+			}
+			if localFieldName != "" {
+				localFieldExpr, err := ParseFieldRef(localFieldName)
+				if err != nil {
+					return nil, err
+				}
+				localField = localFieldExpr.(*ast.FieldRef)
 			}
 		case "foreignField":
 			foreignField, ok = e.Value().StringValueOK()
@@ -487,12 +494,12 @@ func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 	if as == "" {
 		return nil, errors.New("must specify 'as' field for a $lookup")
 	}
-	if pipeline == nil && (localField == "" || foreignField == "") {
+	if pipeline == nil && (localField == nil || foreignField == "") {
 		return nil, errors.New(
 			"$lookup requires either 'pipeline' or both 'localField' and 'foreignField' to be specified",
 		)
 	}
-	if pipeline != nil && (localField != "" || foreignField != "") {
+	if pipeline != nil && (localField != nil || foreignField != "") {
 		return nil, errors.New(
 			"$lookup with 'pipeline' may not specify 'localField' or 'foreignField'",
 		)
@@ -537,7 +544,7 @@ func parseProjectStage(doc bsoncore.Document) (*ast.ProjectStage, error) {
 	}
 
 	projectStage := ast.NewProjectStage(items...)
-	if len(projectStage.NonExcludeItems()) > 0 {
+	if projectStage.IsInclusion() {
 		excludeItems := projectStage.ExcludeItems()
 		if len(excludeItems) > 1 {
 			return nil, fmt.Errorf("cannot exclude fields other than '_id' in an inclusion projection")

@@ -3,9 +3,12 @@ package evaluator_test
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/astprint"
+	"github.com/10gen/mongoast/optimizer"
 	"github.com/10gen/sqlproxy/collation"
 	. "github.com/10gen/sqlproxy/evaluator"
 	. "github.com/10gen/sqlproxy/evaluator/types"
@@ -125,16 +128,11 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			expected: []*ast.Pipeline{
 				ast.NewPipeline(
 					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a+test_DOT_bar_DOT_a",
+						ast.NewAssignProjectItem("test_DOT_a_DOT_a",
 							astutil.WrapInOp(bsonutil.OpAdd,
 								ast.NewFieldRef("a", nil),
 								ast.NewFieldRef("a", nil),
 							),
-						),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_a_DOT_a",
-							ast.NewFieldRef("test_DOT_bar_DOT_a+test_DOT_bar_DOT_a", nil),
 						),
 					),
 				),
@@ -168,15 +166,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 							astutil.NullLiteral,
 						),
 					),
-					ast.NewLookupStage("bar", "test_DOT_foo_DOT_a", "b", "__joined_bar",
+					ast.NewLookupStage("bar", ast.NewFieldRef("test_DOT_foo_DOT_a", nil), "b", "__joined_bar",
 						nil, nil,
 					),
 					ast.NewUnwindStage(
 						ast.NewFieldRef("__joined_bar", nil),
 						"", false,
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
 					),
 					ast.NewProjectStage(
 						ast.NewAssignProjectItem("test_DOT_x_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
@@ -193,7 +188,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 							astutil.NullLiteral,
 						),
 					),
-					ast.NewLookupStage("bar", "test_DOT_foo_DOT_a", "a", "__joined_bar",
+					ast.NewLookupStage("bar", ast.NewFieldRef("test_DOT_foo_DOT_a", nil), "a", "__joined_bar",
 						nil, nil,
 					),
 					ast.NewUnwindStage(
@@ -201,10 +196,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						"", false,
 					),
 					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_g_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_y_DOT_a", ast.NewFieldRef("test_DOT_g_DOT_a", nil)),
+						ast.NewAssignProjectItem("test_DOT_y_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
 					),
 				),
 			},
@@ -237,7 +229,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 							astutil.NullLiteral,
 						),
 					),
-					ast.NewLookupStage("foo", "test_DOT_bar_DOT_a", "a", "__joined_f",
+					ast.NewLookupStage("foo", ast.NewFieldRef("test_DOT_bar_DOT_a", nil), "a", "__joined_f",
 						nil, nil,
 					),
 					ast.NewUnwindStage(
@@ -246,9 +238,6 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					),
 					ast.NewProjectStage(
 						ast.NewAssignProjectItem("test_DOT_b_DOT_b", ast.NewFieldRef("test_DOT_bar_DOT_b", nil)),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_b_DOT_b", ast.NewFieldRef("test_DOT_b_DOT_b", nil)),
 					),
 				),
 			}},
@@ -270,7 +259,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 							astutil.NullLiteral,
 						),
 					),
-					ast.NewLookupStage("foo", "_id", "_id", "__joined_f",
+					ast.NewLookupStage("foo", ast.NewFieldRef("_id", nil), "_id", "__joined_f",
 						nil, nil,
 					),
 					ast.NewUnwindStage(ast.NewFieldRef("__joined_f", nil), "", false),
@@ -292,22 +281,13 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				),
 				ast.NewPipeline(
 					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT__id", ast.NewFieldRef("_id", nil)),
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_b", ast.NewFieldRef("b", nil)),
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_c", ast.NewFieldRef("c", nil)),
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_e", astutil.FieldRefFromFieldName("d.e")),
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_f", astutil.FieldRefFromFieldName("d.f")),
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_g", ast.NewFieldRef("g", nil)),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_g_DOT__id", ast.NewFieldRef("test_DOT_foo_DOT__id", nil)),
-						ast.NewAssignProjectItem("test_DOT_g_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
-						ast.NewAssignProjectItem("test_DOT_g_DOT_b", ast.NewFieldRef("test_DOT_foo_DOT_b", nil)),
-						ast.NewAssignProjectItem("test_DOT_g_DOT_c", ast.NewFieldRef("test_DOT_foo_DOT_c", nil)),
-						ast.NewAssignProjectItem("test_DOT_g_DOT_e", ast.NewFieldRef("test_DOT_foo_DOT_e", nil)),
-						ast.NewAssignProjectItem("test_DOT_g_DOT_f", ast.NewFieldRef("test_DOT_foo_DOT_f", nil)),
-						ast.NewAssignProjectItem("test_DOT_g_DOT_g", ast.NewFieldRef("test_DOT_foo_DOT_g", nil)),
+						ast.NewAssignProjectItem("test_DOT_g_DOT__id", ast.NewFieldRef("_id", nil)),
+						ast.NewAssignProjectItem("test_DOT_g_DOT_a", ast.NewFieldRef("a", nil)),
+						ast.NewAssignProjectItem("test_DOT_g_DOT_b", ast.NewFieldRef("b", nil)),
+						ast.NewAssignProjectItem("test_DOT_g_DOT_c", ast.NewFieldRef("c", nil)),
+						ast.NewAssignProjectItem("test_DOT_g_DOT_e", astutil.FieldRefFromFieldName("d.e")),
+						ast.NewAssignProjectItem("test_DOT_g_DOT_f", astutil.FieldRefFromFieldName("d.f")),
+						ast.NewAssignProjectItem("test_DOT_g_DOT_g", ast.NewFieldRef("g", nil)),
 					),
 				),
 			},
@@ -328,18 +308,12 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					),
 					ast.NewLimitStage(1),
 					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_c_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
+						ast.NewAssignProjectItem("test_DOT_c_DOT_a", ast.NewFieldRef("a", nil)),
 					),
 				),
 				ast.NewPipeline(
 					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_b_DOT_a", ast.NewFieldRef("test_DOT_bar_DOT_a", nil)),
+						ast.NewAssignProjectItem("test_DOT_b_DOT_a", ast.NewFieldRef("a", nil)),
 					),
 				),
 				ast.NewPipeline(
@@ -400,18 +374,15 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				" join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
 			expected: []*ast.Pipeline{
 				ast.NewPipeline(
-					ast.NewAddFieldsStage(
-						ast.NewAddFieldsItem("_id_0", astutil.WrapInCond(
+					ast.NewUnwindStage(ast.NewFieldRef("b", nil), "", true),
+					ast.NewUnwindStage(ast.NewFieldRef("c", nil), "", false),
+					ast.NewProjectStage(
+						ast.NewAssignProjectItem("test_DOT_b_DOT__id", astutil.WrapInCond(
 							astutil.NullLiteral,
 							ast.NewFieldRef("_id", nil),
 							ast.NewBinary(bsonutil.OpLte, ast.NewFieldRef("b", nil), astutil.NullLiteral),
 							ast.NewBinary(bsonutil.OpEq, ast.NewFieldRef("b", nil), ast.NewArray()),
 						)),
-					),
-					ast.NewUnwindStage(ast.NewFieldRef("b", nil), "", true),
-					ast.NewUnwindStage(ast.NewFieldRef("c", nil), "", false),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_b_DOT__id", ast.NewFieldRef("_id_0", nil)),
 						ast.NewAssignProjectItem("test_DOT_c_DOT__id", ast.NewFieldRef("_id", nil)),
 						ast.NewAssignProjectItem("test_DOT_r_DOT__id", ast.NewFieldRef("_id", nil)),
 					),
@@ -549,18 +520,33 @@ func TestOptimizePartialPushdown(t *testing.T) {
 						actualPlan = pushedDown
 					}
 
-					actual := GetNodePipeline(actualPlan)
+					actualNonNormalized := GetNodePipeline(actualPlan)
+					actual := make([]*ast.Pipeline, len(actualNonNormalized))
+					for i, pipeline := range actualNonNormalized {
+						actual[i] = optimizer.NormalizePipeline(pipeline)
+					}
+					expected := make([]*ast.Pipeline, len(test.expected))
+					for i, pipeline := range test.expected {
+						expected[i] = optimizer.NormalizePipeline(pipeline)
+					}
 
-					req.Equalf(len(test.expected), len(actual),
+					req.Equalf(len(expected), len(actual),
 						"expected %d pipelines in query plan, found %d\nexpected pipelines: "+
 							"%#v\nactual pipelines: %#v\nactual plan:\n%s",
-						len(test.expected), len(actual), test.expected, actual,
+						len(expected), len(actual), expected, actual,
 						PrettyPrintPlan(actualPlan))
 
-					diff := ShouldResembleDiffed(actual, test.expected)
+					diff := ShouldResembleDiffed(actual, expected)
+					expectedJSON := ""
+					actualJSON := ""
+					for i := range expected {
+						expectedJSON += strconv.Itoa(i) + ":\n" + astprint.ShellString(expected[i]) + "\n"
+					}
+					for i := range actual {
+						actualJSON += strconv.Itoa(i) + ":\n" + astprint.ShellString(actual[i]) + "\n"
+					}
 					req.Emptyf(diff, "expected pipeline diff to be empty\nexpected: %#v\nactual:"+
-						" %#v\n", test.expected, actual)
-
+						" %#v\nexpected(json):\n%sactual(json):\n%s\n", expected, actual, expectedJSON, actualJSON)
 				})
 			}
 		})
@@ -796,17 +782,32 @@ func TestPushdownSharding(t *testing.T) {
 					actualPlan = pushedDown
 				}
 
-				actual := GetNodePipeline(actualPlan)
-
-				req.Equalf(len(test.expected), len(actual),
+				actualNonNormalized := GetNodePipeline(actualPlan)
+				actual := make([]*ast.Pipeline, len(actualNonNormalized))
+				for i, pipeline := range actualNonNormalized {
+					actual[i] = optimizer.NormalizePipeline(pipeline)
+				}
+				expected := make([]*ast.Pipeline, len(test.expected))
+				for i, pipeline := range test.expected {
+					expected[i] = optimizer.NormalizePipeline(pipeline)
+				}
+				req.Equalf(len(expected), len(actual),
 					"expected %d pipelines in query plan, found %d\nexpected pipelines: "+
 						"%#v\nactual pipelines: %#v\nactual plan:\n%s",
-					len(test.expected), len(actual), test.expected, actual,
+					len(expected), len(actual), expected, actual,
 					PrettyPrintPlan(actualPlan))
 
-				diff := ShouldResembleDiffed(actual, test.expected)
+				diff := ShouldResembleDiffed(actual, expected)
+				expectedJSON := ""
+				actualJSON := ""
+				for i := range expected {
+					expectedJSON += strconv.Itoa(i) + ":\n" + astprint.ShellString(expected[i]) + "\n"
+				}
+				for i := range actual {
+					actualJSON += strconv.Itoa(i) + ":\n" + astprint.ShellString(actual[i]) + "\n"
+				}
 				req.Emptyf(diff, "expected pipeline diff to be empty\nexpected: %#v\nactual:"+
-					" %#v\n", test.expected, actual)
+					" %#v\nexpected(json):\n%sactual(json):\n%s\n", expected, actual, expectedJSON, actualJSON)
 			})
 		}
 	}
@@ -840,13 +841,29 @@ func TestPushdownSharding(t *testing.T) {
 			sql: "select * from bar right join foo on bar.a=foo.a and bar.a=foo.f",
 			expected: []*ast.Pipeline{
 				ast.NewPipeline(
-					ast.NewLookupStage("bar", "a", "a", "__joined_bar", nil, nil),
+					ast.NewLookupStage("bar", ast.NewFieldRef("a", nil), "a", "__joined_bar", nil, nil),
 					ast.NewProjectStage(
-						ast.NewAssignProjectItem("__joined_bar", astutil.WrapInNullCheckedCond(
-							ast.NewArray(),
-							ast.NewFieldRef("__joined_bar", nil),
-							ast.NewFieldRef("a", nil),
-						)),
+						ast.NewAssignProjectItem("__joined_bar",
+							astutil.WrapInFilter(
+								astutil.WrapInCond(
+									ast.NewArray(),
+									ast.NewFieldRef("__joined_bar", nil),
+									ast.NewBinary(ast.LessThanOrEquals,
+										ast.NewFieldRef("a", nil),
+										astutil.NullConstant(),
+									),
+								),
+								"this",
+								astutil.WrapInNullCheckedCond(
+									astutil.NullLiteral,
+									ast.NewBinary(bsonutil.OpEq,
+										ast.NewFieldRef("a", ast.NewVariableRef("this")),
+										astutil.FieldRefFromFieldName("d.f"),
+									),
+									ast.NewFieldRef("a", ast.NewVariableRef("this")),
+									astutil.FieldRefFromFieldName("d.f"),
+								),
+							)),
 						ast.NewIncludeProjectItem(ast.NewFieldRef("_id", nil)),
 						ast.NewIncludeProjectItem(ast.NewFieldRef("a", nil)),
 						ast.NewIncludeProjectItem(ast.NewFieldRef("b", nil)),
@@ -854,21 +871,6 @@ func TestPushdownSharding(t *testing.T) {
 						ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName("d.e")),
 						ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName("d.f")),
 						ast.NewIncludeProjectItem(ast.NewFieldRef("g", nil)),
-					),
-					ast.NewAddFieldsStage(
-						ast.NewAddFieldsItem("__joined_bar", astutil.WrapInFilter(
-							ast.NewFieldRef("__joined_bar", nil),
-							"this",
-							astutil.WrapInNullCheckedCond(
-								astutil.NullLiteral,
-								ast.NewBinary(bsonutil.OpEq,
-									ast.NewFieldRef("a", ast.NewVariableRef("this")),
-									astutil.FieldRefFromFieldName("d.f"),
-								),
-								ast.NewFieldRef("a", ast.NewVariableRef("this")),
-								astutil.FieldRefFromFieldName("d.f"),
-							),
-						)),
 					),
 					ast.NewUnwindStage(ast.NewFieldRef("__joined_bar", nil), "", true),
 					ast.NewProjectStage(
@@ -920,18 +922,18 @@ func TestPushdownSharding(t *testing.T) {
 			expected: []*ast.Pipeline{
 				ast.NewPipeline(
 					ast.NewMatchStage(
-						ast.NewBinary(bsonutil.OpNeq,
+						ast.NewBinary(ast.NotEquals,
 							ast.NewFieldRef("a", nil),
-							astutil.NullLiteral,
+							astutil.NullConstant(),
 						),
 					),
-					ast.NewLookupStage("bar", "a", "a", "__joined_bar", nil, nil),
+					ast.NewLookupStage("bar", ast.NewFieldRef("a", nil), "a", "__joined_bar", nil, nil),
 					ast.NewUnwindStage(ast.NewFieldRef("__joined_bar", nil), "", false),
 					ast.NewAddFieldsStage(
 						ast.NewAddFieldsItem("__predicate", ast.NewLet(
 							[]*ast.LetVariable{ast.NewLetVariable("predicate",
 								astutil.WrapInNullCheckedCond(
-									astutil.NullLiteral,
+									astutil.NullConstant(),
 									ast.NewBinary(bsonutil.OpEq,
 										astutil.FieldRefFromFieldName("__joined_bar.a"),
 										astutil.FieldRefFromFieldName("d.f"),
@@ -940,21 +942,21 @@ func TestPushdownSharding(t *testing.T) {
 									astutil.FieldRefFromFieldName("d.f"),
 								),
 							)},
-							astutil.WrapInOp(bsonutil.OpAnd,
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.FalseLiteral),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.ZeroInt32Literal),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringValue("0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringValue("-0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringValue("0.0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringValue("-0.0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.NullLiteral),
+							astutil.WrapInBinOp(ast.And,
+								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.BooleanConstant(false)),
+								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.Int32Constant(0)),
+								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("0")),
+								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("-0")),
+								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("0.0")),
+								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("-0.0")),
+								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.NullConstant()),
 							),
 						)),
 					),
 					ast.NewMatchStage(
 						ast.NewBinary(bsonutil.OpEq,
 							ast.NewFieldRef("__predicate", nil),
-							astutil.TrueLiteral,
+							astutil.BooleanConstant(true),
 						),
 					),
 					ast.NewProjectStage(

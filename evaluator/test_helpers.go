@@ -13,7 +13,6 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
@@ -81,8 +80,7 @@ func (v *pipelineGatherer) visit(n Node) (Node, error) {
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
 		if len(typedN.pipeline.Stages) > 0 {
-			pipeline := astutil.DeepCopyPipeline(typedN.pipeline)
-			v.pipelines = append(v.pipelines, pipeline)
+			v.pipelines = append(v.pipelines, typedN.pipeline)
 		}
 	}
 

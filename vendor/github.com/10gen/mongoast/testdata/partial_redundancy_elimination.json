@@ -1,5 +1,20 @@
 [
   {
+  "name": "redundant $regex should not be pulled out, $let cannot be used in Match Exprs",
+  "input": [{
+    "$match": {
+      "a": {"$regex": "hello", "$options": "i"},
+      "b": {"$regex": "hello", "$options": "i"}
+    }
+  }],
+  "expected": [{
+    "$match": {
+      "a": {"$regex": "hello", "$options": "i"},
+      "b": {"$regex": "hello", "$options": "i"}
+    }
+  }]
+  },
+  {
     "name": "initial redundancy test",
     "input": [
       {
@@ -118,7 +133,7 @@
           "out": {
             "$map": {
               "input": "$a.b",
-              "as": { "$literal": "this" },
+              "as": "this",
               "in": {
                 "$let": {
                   "vars": {

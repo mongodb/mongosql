@@ -7,29 +7,8 @@ import (
 // Stage is implemented by all expressions in the AST.
 type Stage interface {
 	Node
-	stageNode()
+	WalkStage(v Visitor) Stage
 }
-
-func (n *AddFieldsStage) stageNode()   {}
-func (n *BucketStage) stageNode()      {}
-func (n *BucketAutoStage) stageNode()  {}
-func (n *CollStatsStage) stageNode()   {}
-func (n *CountStage) stageNode()       {}
-func (n *FacetStage) stageNode()       {}
-func (n *GroupStage) stageNode()       {}
-func (n *LimitStage) stageNode()       {}
-func (n *LookupStage) stageNode()      {}
-func (n *MatchStage) stageNode()       {}
-func (n *ProjectStage) stageNode()     {}
-func (n *RedactStage) stageNode()      {}
-func (n *ReplaceRootStage) stageNode() {}
-func (n *SampleStage) stageNode()      {}
-func (n *SkipStage) stageNode()        {}
-func (n *SortStage) stageNode()        {}
-func (n *SortByCountStage) stageNode() {}
-func (n *SortedMergeStage) stageNode() {}
-func (n *Unknown) stageNode()          {}
-func (n *UnwindStage) stageNode()      {}
 
 // NewAddFieldsStage makes an AddFieldsStage.
 func NewAddFieldsStage(items ...*AddFieldsItem) *AddFieldsStage {
@@ -208,7 +187,7 @@ type LimitStage struct {
 }
 
 // NewLookupStage makes a LookupStage.
-func NewLookupStage(from, localField, foreignField, as string, let []*LookupLetItem, pipeline *Pipeline) *LookupStage {
+func NewLookupStage(from string, localField *FieldRef, foreignField, as string, let []*LookupLetItem, pipeline *Pipeline) *LookupStage {
 	return &LookupStage{
 		From:         from,
 		LocalField:   localField,
@@ -236,7 +215,7 @@ type LookupLetItem struct {
 // LookupStage pulls in documents from a different collection in the same database.
 type LookupStage struct {
 	From         string
-	LocalField   string
+	LocalField   *FieldRef
 	ForeignField string
 	As           string
 	Let          []*LookupLetItem
@@ -256,36 +235,9 @@ type MatchStage struct {
 // ProjectItem is an item in a ProjectStage.
 type ProjectItem interface {
 	Node
+	GetName() string
 
-	projectItem()
-}
-
-func (pi *IncludeProjectItem) projectItem() {}
-func (pi *ExcludeProjectItem) projectItem() {}
-func (pi *AssignProjectItem) projectItem()  {}
-
-// NewIncludeProjectItem makes an IncludeProjectItem.
-func NewIncludeProjectItem(fieldRef *FieldRef) *IncludeProjectItem {
-	return &IncludeProjectItem{
-		FieldRef: fieldRef,
-	}
-}
-
-// IncludeProjectItem is included in output.
-type IncludeProjectItem struct {
-	FieldRef *FieldRef
-}
-
-// NewExcludeProjectItem makes an ExcludeProjectItem.
-func NewExcludeProjectItem(fieldRef *FieldRef) *ExcludeProjectItem {
-	return &ExcludeProjectItem{
-		FieldRef: fieldRef,
-	}
-}
-
-// ExcludeProjectItem is excluded from output.
-type ExcludeProjectItem struct {
-	FieldRef *FieldRef
+	WalkProjectItem(v Visitor) ProjectItem
 }
 
 // NewAssignProjectItem makes an AssignProjectItem.
@@ -300,6 +252,45 @@ func NewAssignProjectItem(name string, expr Expr) *AssignProjectItem {
 type AssignProjectItem struct {
 	Name string
 	Expr Expr
+}
+
+// GetName returns the name of the item.
+func (pi *AssignProjectItem) GetName() string {
+	return pi.Name
+}
+
+// GetName returns the name of the item.
+func (pi *IncludeProjectItem) GetName() string {
+	return GetDottedFieldName(pi.FieldRef)
+}
+
+// NewExcludeProjectItem makes an ExcludeProjectItem.
+func NewExcludeProjectItem(fieldRef *FieldRef) *ExcludeProjectItem {
+	return &ExcludeProjectItem{
+		FieldRef: fieldRef,
+	}
+}
+
+// ExcludeProjectItem is excluded from output.
+type ExcludeProjectItem struct {
+	FieldRef *FieldRef
+}
+
+// GetName returns the name of the item.
+func (pi *ExcludeProjectItem) GetName() string {
+	return GetDottedFieldName(pi.FieldRef)
+}
+
+// NewIncludeProjectItem makes an IncludeProjectItem.
+func NewIncludeProjectItem(fieldRef *FieldRef) *IncludeProjectItem {
+	return &IncludeProjectItem{
+		FieldRef: fieldRef,
+	}
+}
+
+// IncludeProjectItem is included in output.
+type IncludeProjectItem struct {
+	FieldRef *FieldRef
 }
 
 // NewProjectStage makes a ProjectStage.
@@ -317,11 +308,16 @@ type ProjectStage struct {
 // IsExclusion returns true if this project is an exclusion.
 func (n *ProjectStage) IsExclusion() bool {
 	for _, i := range n.Items {
-		if _, ok := i.(*ExcludeProjectItem); !ok {
+		if _, ok := i.(*ExcludeProjectItem); !ok && (len(n.Items) == 1 || i.GetName() != "_id") {
 			return false
 		}
 	}
 	return true
+}
+
+// IsInclusion returns true if this project is an inclusion.
+func (n *ProjectStage) IsInclusion() bool {
+	return !n.IsExclusion()
 }
 
 // ExcludeItems returns all the items that should be excluded.

@@ -97,6 +97,31 @@ func parseNonFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 			}
 		}
 
+		// If the returned expr is a ast.Binary and the op is not
+		// the same as the key, it means we have found a $and, $nor,
+		// or $or with one argument, which was not an original use
+		// case for mongoast (it really only makes sense in the case of $nor,
+		// as this is equivalent to negation). This fixes that case by
+		// ensuring that we still wrap the Binary expr in the proper outter function.
+		// e.g. {$nor: [{$and: [A,B]}]} was being replaced with simply
+		// {$and: [A,B]}.
+		if binOpExpr, ok := expr.(*ast.Binary); ok {
+			if binOpExpr.Op != ast.BinaryOp(key) {
+				expr = ast.NewFunction(key, ast.NewArray(binOpExpr))
+			}
+		} else {
+			// If we arrive here it is because of an issue where some of the "BinaryOps":
+			// specifically "$and", "$or", and "$nor", are actually varargs. Normally this would be
+			// fine, because the code nests them: {$and: [a,b,c]} => {$and: [{$and: [a, b]}, c}}.
+			// Where this fails is when one argument is passed, however. This should never really be
+			// done for $and or $or, because it's sort of meaningless, (though it's valid, so should
+			// be supported), but for $nor this becomes a real issue because it is the only good way
+			// to negate a regular expression match in the match language ($nor with one argument is
+			// equivalent to negation, which does not exist as a logical operator in the match
+			// language).
+			expr = ast.NewFunction(key, ast.NewArray(expr))
+		}
+
 		return expr, nil
 	case "$expr":
 		expr, err := ParseExpr(e.Value())
@@ -123,6 +148,16 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 
 	var result ast.Expr
 	elems, _ := opDoc.Elements()
+	if len(elems) == 2 {
+		if elems[0].Key() == "$regex" {
+			if elems[1].Key() != "$options" {
+				return nil, errors.Wrapf(err, `the only viable argument to $regex is "$options" not "%s"`, elems[1].Key())
+			}
+			pattern := elems[0].Value()
+			options := elems[1].Value()
+			return ast.NewMatchRegex(e.Key(), pattern, options), nil
+		}
+	}
 	for _, op := range elems {
 		key := op.Key()
 		if len(key) <= 0 {
@@ -155,6 +190,8 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 		case "$ne":
 			right := ast.NewConstant(op.Value())
 			expr = ast.NewBinary(ast.NotEquals, left, right)
+		case "$regex":
+			return ast.NewMatchRegex(e.Key(), op.Value(), bsonutil.String("")), nil
 		default:
 			expr = ast.NewFunction(
 				op.Key(),

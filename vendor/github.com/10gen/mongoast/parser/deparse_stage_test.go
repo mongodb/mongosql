@@ -279,6 +279,22 @@ func TestDeparseStage(t *testing.T) {
 			),
 		},
 		{
+
+			`{"$match": { "$nor": [ {"a": {"$regex": "^f.*$","$options": ""}} ]}}`,
+			bsonutil.DocumentFromElements(
+				"$match", bsonutil.DocumentFromElements(
+					"$nor", bsonutil.ArrayFromValues(
+						bsonutil.DocumentFromElements(
+							"a", bsonutil.DocumentFromElements(
+								"$regex", bsonutil.String("^f.*$"),
+								"$options", bsonutil.String(""),
+							),
+						),
+					),
+				),
+			),
+		},
+		{
 			`{"$project": { "a": 1, "b": 1 } }`,
 			bsonutil.DocumentFromElements(
 				"$project", bsonutil.DocumentFromElements(
@@ -349,6 +365,32 @@ func TestDeparseStage(t *testing.T) {
 			bsonutil.DocumentFromElements(
 				"$project", bsonutil.DocumentFromElements(
 					"a.b", bsonutil.Int32(1),
+				),
+			),
+		},
+		{
+			`{"$project": {"out": {"$dateFromString": {"dateString": "$x", "format": "%Y%m%d"}}}}`,
+			bsonutil.DocumentFromElements(
+				"$project", bsonutil.DocumentFromElements(
+					"out", bsonutil.DocumentFromElements(
+						"$dateFromString", bsonutil.DocumentFromElements(
+							"dateString", bsonutil.String("$x"),
+							"format", bsonutil.String("%Y%m%d"),
+						),
+					),
+				),
+			),
+		},
+		{
+			`{"$project": {"out": {"$dateToString": {"date": "$x", "format": "%Y%m%d"}}}}`,
+			bsonutil.DocumentFromElements(
+				"$project", bsonutil.DocumentFromElements(
+					"out", bsonutil.DocumentFromElements(
+						"$dateToString", bsonutil.DocumentFromElements(
+							"date", bsonutil.String("$x"),
+							"format", bsonutil.String("%Y%m%d"),
+						),
+					),
 				),
 			),
 		},

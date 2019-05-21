@@ -276,7 +276,8 @@ func TestEvaluateExpr(t *testing.T) {
 		// Logical
 		{
 			`true && true`,
-			ast.NewBinary(ast.And,
+			ast.NewBinary(
+				ast.And,
 				ast.NewConstant(bsonutil.Boolean(true)),
 				ast.NewConstant(bsonutil.Boolean(true)),
 			),
@@ -286,7 +287,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`true && false`,
-			ast.NewBinary(ast.And,
+			ast.NewBinary(
+				ast.And,
 				ast.NewConstant(bsonutil.Boolean(true)),
 				ast.NewConstant(bsonutil.Boolean(false)),
 			),
@@ -296,7 +298,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`false && true`,
-			ast.NewBinary(ast.And,
+			ast.NewBinary(
+				ast.And,
 				ast.NewConstant(bsonutil.Boolean(false)),
 				ast.NewConstant(bsonutil.Boolean(true)),
 			),
@@ -306,7 +309,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`false && false`,
-			ast.NewBinary(ast.And,
+			ast.NewBinary(
+				ast.And,
 				ast.NewConstant(bsonutil.Boolean(false)),
 				ast.NewConstant(bsonutil.Boolean(false)),
 			),
@@ -316,7 +320,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`true || true`,
-			ast.NewBinary(ast.Or,
+			ast.NewBinary(
+				ast.Or,
 				ast.NewConstant(bsonutil.Boolean(true)),
 				ast.NewConstant(bsonutil.Boolean(true)),
 			),
@@ -326,7 +331,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`true || false`,
-			ast.NewBinary(ast.Or,
+			ast.NewBinary(
+				ast.Or,
 				ast.NewConstant(bsonutil.Boolean(true)),
 				ast.NewConstant(bsonutil.Boolean(false)),
 			),
@@ -336,7 +342,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`false || true`,
-			ast.NewBinary(ast.Or,
+			ast.NewBinary(
+				ast.Or,
 				ast.NewConstant(bsonutil.Boolean(false)),
 				ast.NewConstant(bsonutil.Boolean(true)),
 			),
@@ -346,7 +353,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`false || false`,
-			ast.NewBinary(ast.Or,
+			ast.NewBinary(
+				ast.Or,
 				ast.NewConstant(bsonutil.Boolean(false)),
 				ast.NewConstant(bsonutil.Boolean(false)),
 			),
@@ -356,7 +364,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 && 2`,
-			ast.NewBinary(ast.And,
+			ast.NewBinary(
+				ast.And,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(2)),
 			),
@@ -366,7 +375,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`0 && 1`,
-			ast.NewBinary(ast.And,
+			ast.NewBinary(
+				ast.And,
 				ast.NewConstant(bsonutil.Int32(0)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
@@ -376,7 +386,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 || 2`,
-			ast.NewBinary(ast.Or,
+			ast.NewBinary(
+				ast.Or,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(2)),
 			),
@@ -386,7 +397,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`0 || 1`,
-			ast.NewBinary(ast.Or,
+			ast.NewBinary(
+				ast.Or,
 				ast.NewConstant(bsonutil.Int32(0)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
@@ -396,7 +408,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`0 || 0`,
-			ast.NewBinary(ast.Or,
+			ast.NewBinary(
+				ast.Or,
 				ast.NewConstant(bsonutil.Int32(0)),
 				ast.NewConstant(bsonutil.Int32(0)),
 			),
@@ -407,7 +420,8 @@ func TestEvaluateExpr(t *testing.T) {
 		// Comparison
 		{
 			`10 == 10`,
-			ast.NewBinary(ast.Equals,
+			ast.NewBinary(
+				ast.Equals,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -417,7 +431,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 == 10`,
-			ast.NewBinary(ast.Equals,
+			ast.NewBinary(
+				ast.Equals,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -427,7 +442,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 > 10`,
-			ast.NewBinary(ast.GreaterThan,
+			ast.NewBinary(
+				ast.GreaterThan,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -437,7 +453,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 > 10`,
-			ast.NewBinary(ast.GreaterThan,
+			ast.NewBinary(
+				ast.GreaterThan,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -447,7 +464,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 > 1`,
-			ast.NewBinary(ast.GreaterThan,
+			ast.NewBinary(
+				ast.GreaterThan,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
@@ -457,7 +475,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 >= 10`,
-			ast.NewBinary(ast.GreaterThanOrEquals,
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -467,7 +486,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 >= 10`,
-			ast.NewBinary(ast.GreaterThanOrEquals,
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -477,7 +497,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 >= 1`,
-			ast.NewBinary(ast.GreaterThanOrEquals,
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
@@ -487,7 +508,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 < 10`,
-			ast.NewBinary(ast.LessThan,
+			ast.NewBinary(
+				ast.LessThan,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -497,7 +519,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 < 10`,
-			ast.NewBinary(ast.LessThan,
+			ast.NewBinary(
+				ast.LessThan,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -507,7 +530,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 < 1`,
-			ast.NewBinary(ast.LessThan,
+			ast.NewBinary(
+				ast.LessThan,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
@@ -517,7 +541,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 <= 10`,
-			ast.NewBinary(ast.LessThanOrEquals,
+			ast.NewBinary(
+				ast.LessThanOrEquals,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -527,7 +552,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 <= 10`,
-			ast.NewBinary(ast.LessThanOrEquals,
+			ast.NewBinary(
+				ast.LessThanOrEquals,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -537,7 +563,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 <= 1`,
-			ast.NewBinary(ast.LessThanOrEquals,
+			ast.NewBinary(
+				ast.LessThanOrEquals,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
@@ -547,7 +574,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`10 != 10`,
-			ast.NewBinary(ast.NotEquals,
+			ast.NewBinary(
+				ast.NotEquals,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -557,7 +585,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`1 != 10`,
-			ast.NewBinary(ast.NotEquals,
+			ast.NewBinary(
+				ast.NotEquals,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -567,7 +596,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`{ $cmp: [1, 10] }`,
-			ast.NewBinary(ast.Compare,
+			ast.NewBinary(
+				ast.Compare,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(10)),
 			),
@@ -577,7 +607,8 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`{ $cmp: [10, 1] }`,
-			ast.NewBinary(ast.Compare,
+			ast.NewBinary(
+				ast.Compare,
 				ast.NewConstant(bsonutil.Int32(10)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
@@ -587,12 +618,402 @@ func TestEvaluateExpr(t *testing.T) {
 		},
 		{
 			`{ $cmp: [1, 1] }`,
-			ast.NewBinary(ast.Compare,
+			ast.NewBinary(
+				ast.Compare,
 				ast.NewConstant(bsonutil.Int32(1)),
 				ast.NewConstant(bsonutil.Int32(1)),
 			),
 			bsonutil.Null(),
 			bsonutil.Int32(0),
+			nil,
+		},
+		// Comparison (missing fields)
+		{
+			`x == 0`,
+			ast.NewBinary(
+				ast.Equals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x < 0`,
+			ast.NewBinary(
+				ast.LessThan,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`x <= 0`,
+			ast.NewBinary(
+				ast.LessThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`x > 0`,
+			ast.NewBinary(
+				ast.GreaterThan,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x >= 0`,
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x != 0`,
+			ast.NewBinary(
+				ast.NotEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`{ $cmp: [x, 0] }`,
+			ast.NewBinary(
+				ast.Compare,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Int32(-1),
+			nil,
+		},
+		{
+			`x && true`,
+			ast.NewBinary(
+				ast.And,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Boolean(true)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x && false`,
+			ast.NewBinary(
+				ast.And,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Boolean(false)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x || true`,
+			ast.NewBinary(
+				ast.Or,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Boolean(true)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`x || false`,
+			ast.NewBinary(
+				ast.Or,
+				ast.NewFieldRef("x", nil),
+				ast.NewConstant(bsonutil.Boolean(false)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`0 == x`,
+			ast.NewBinary(
+				ast.Equals,
+				ast.NewConstant(bsonutil.Int32(0)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`0 < x`,
+			ast.NewBinary(
+				ast.LessThan,
+				ast.NewConstant(bsonutil.Int32(0)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`0 <= x`,
+			ast.NewBinary(
+				ast.LessThanOrEquals,
+				ast.NewConstant(bsonutil.Int32(0)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`0 > x`,
+			ast.NewBinary(
+				ast.GreaterThan,
+				ast.NewConstant(bsonutil.Int32(0)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`0 >= x`,
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
+				ast.NewConstant(bsonutil.Int32(0)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`0 != x`,
+			ast.NewBinary(
+				ast.NotEquals,
+				ast.NewConstant(bsonutil.Int32(0)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`{ $cmp: [0, x] }`,
+			ast.NewBinary(
+				ast.Compare,
+				ast.NewConstant(bsonutil.Int32(0)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Int32(1),
+			nil,
+		},
+		{
+			`true && x`,
+			ast.NewBinary(
+				ast.And,
+				ast.NewConstant(bsonutil.Boolean(true)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`false && x`,
+			ast.NewBinary(
+				ast.And,
+				ast.NewConstant(bsonutil.Boolean(false)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`true || x`,
+			ast.NewBinary(
+				ast.Or,
+				ast.NewConstant(bsonutil.Boolean(true)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`false || x`,
+			ast.NewBinary(
+				ast.Or,
+				ast.NewConstant(bsonutil.Boolean(false)),
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x == y`,
+			ast.NewBinary(
+				ast.Equals,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`x < y`,
+			ast.NewBinary(
+				ast.LessThan,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x <= y`,
+			ast.NewBinary(ast.LessThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`x > y`,
+			ast.NewBinary(
+				ast.GreaterThan,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x >= y`,
+			ast.NewBinary(
+				ast.GreaterThanOrEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`x != y`,
+			ast.NewBinary(
+				ast.NotEquals,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`{ $cmp: [x, y] }`,
+			ast.NewBinary(
+				ast.Compare,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Int32(0),
+			nil,
+		},
+		{
+			`x && y`,
+			ast.NewBinary(
+				ast.And,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x || y`,
+			ast.NewBinary(
+				ast.Or,
+				ast.NewFieldRef("x", nil),
+				ast.NewFieldRef("y", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x.x == 0`,
+			ast.NewBinary(
+				ast.Equals,
+				ast.NewFieldRef("x", ast.NewFieldRef("x", nil)),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`x.x != 0`,
+			ast.NewBinary(
+				ast.NotEquals,
+				ast.NewFieldRef("x", ast.NewFieldRef("x", nil)),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Boolean(true),
+			nil,
+		},
+		{
+			`a.x == 0`,
+			ast.NewBinary(
+				ast.Equals,
+				ast.NewFieldRef("x", ast.NewFieldRef("a", nil)),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.DocumentFromElements(
+				"a", bsonutil.Int32(1),
+			),
+			bsonutil.Boolean(false),
+			nil,
+		},
+		{
+			`a.x != 0`,
+			ast.NewBinary(
+				ast.NotEquals,
+				ast.NewFieldRef("x", ast.NewFieldRef("a", nil)),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.DocumentFromElements(
+				"a", bsonutil.Int32(1),
+			),
+			bsonutil.Boolean(true),
 			nil,
 		},
 		// Document Creation
@@ -615,6 +1036,55 @@ func TestEvaluateExpr(t *testing.T) {
 			),
 			bsonutil.DocumentFromElements(
 				"a", bsonutil.Int32(1),
+			),
+			nil,
+		},
+		{
+			`{a: x}`,
+			ast.NewDocument(
+				ast.NewDocumentElement(
+					"a", ast.NewFieldRef("x", nil),
+				),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.EmptyDocument(),
+			nil,
+		},
+		// Array Creation
+		{
+			`[]`,
+			ast.NewArray(),
+			bsonutil.Null(),
+			bsonutil.EmptyArray(),
+			nil,
+		},
+		{
+			`[a, b, c]`,
+			ast.NewArray(
+				ast.NewFieldRef("a", nil),
+				ast.NewFieldRef("b", nil),
+				ast.NewFieldRef("c", nil),
+			),
+			bsonutil.DocumentFromElements(
+				"a", bsonutil.Int32(1),
+				"b", bsonutil.Int32(2),
+				"c", bsonutil.Int32(3),
+			),
+			bsonutil.ArrayFromValues(
+				bsonutil.Int32(1),
+				bsonutil.Int32(2),
+				bsonutil.Int32(3),
+			),
+			nil,
+		},
+		{
+			`[x]`,
+			ast.NewArray(
+				ast.NewFieldRef("x", nil),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.ArrayFromValues(
+				bsonutil.Null(),
 			),
 			nil,
 		},
@@ -665,6 +1135,17 @@ func TestEvaluateExpr(t *testing.T) {
 			),
 			bsonutil.Null(),
 			bsonutil.Int32(4),
+			nil,
+		},
+		{
+			`{ $cond: { if: x, then: 1, else: 0 } }`,
+			ast.NewConditional(
+				ast.NewFieldRef("$x", nil),
+				ast.NewConstant(bsonutil.Int32(1)),
+				ast.NewConstant(bsonutil.Int32(0)),
+			),
+			bsonutil.EmptyDocument(),
+			bsonutil.Int32(0),
 			nil,
 		},
 	}

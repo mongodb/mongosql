@@ -201,7 +201,7 @@ func (n *LookupStage) DeepCopy() DeepCopier {
 		}
 	}
 
-	return NewLookupStage(n.From, n.LocalField, n.ForeignField, n.As, newLet, newPipeline)
+	return NewLookupStage(n.From, n.LocalField.DeepCopy().(*FieldRef), n.ForeignField, n.As, newLet, newPipeline)
 }
 
 // DeepCopy implements the DeepCopier interface.
@@ -388,6 +388,11 @@ func (n *Binary) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *MatchRegex) DeepCopy() DeepCopier {
+	return NewMatchRegex(n.Field, n.Pattern, n.Options)
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *Document) DeepCopy() DeepCopier {
 	var newElements []*DocumentElement
 
@@ -428,6 +433,9 @@ func (n *FieldOrArrayIndexRef) DeepCopy() DeepCopier {
 
 // DeepCopy implements the DeepCopier interface.
 func (n *FieldRef) DeepCopy() DeepCopier {
+	if n == nil {
+		return n
+	}
 	var newParent Expr
 
 	if n.Parent != nil {
@@ -490,6 +498,48 @@ func (n *Conditional) DeepCopy() DeepCopier {
 	}
 
 	return NewConditional(newIf, newThen, newElse)
+}
+
+// DeepCopy implements the DeepCopier interface.
+func (n *Map) DeepCopy() DeepCopier {
+	var newInput Expr
+	var newAs string
+	var newIn Expr
+
+	if n.Input != nil {
+		newInput = n.Input.DeepCopy().(Expr)
+	}
+
+	if n.As != "" {
+		newAs = n.As
+	}
+
+	if n.In != nil {
+		newIn = n.In.DeepCopy().(Expr)
+	}
+
+	return NewMap(newInput, newAs, newIn)
+}
+
+// DeepCopy implements the DeepCopier interface.
+func (n *Filter) DeepCopy() DeepCopier {
+	var newInput Expr
+	var newAs string
+	var newCond Expr
+
+	if n.Input != nil {
+		newInput = n.Input.DeepCopy().(Expr)
+	}
+
+	if n.As != "" {
+		newAs = n.As
+	}
+
+	if n.Cond != nil {
+		newCond = n.Cond.DeepCopy().(Expr)
+	}
+
+	return NewFilter(newInput, newAs, newCond)
 }
 
 // DeepCopy implements the DeepCopier interface.

@@ -226,7 +226,7 @@ func TestDeepCopy(t *testing.T) {
 		{
 			"LookupStage",
 			ast.NewLookupStage(
-				"foo", "", "", "x",
+				"foo", nil, "", "x",
 				[]*ast.LookupLetItem{
 					ast.NewLookupLetItem("y", ast.NewFieldRef("a", nil)),
 				},
@@ -235,7 +235,7 @@ func TestDeepCopy(t *testing.T) {
 				),
 			),
 		},
-		{"LookupStage with nils", ast.NewLookupStage("foo", "a", "b", "x", nil, nil)},
+		{"LookupStage with nils", ast.NewLookupStage("foo", ast.NewFieldRef("a", nil), "b", "x", nil, nil)},
 		{
 			"MatchStage",
 			ast.NewMatchStage(ast.NewFieldRef("x", nil)),

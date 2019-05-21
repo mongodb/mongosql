@@ -105,8 +105,9 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 	case *ast.LookupStage:
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendStringElement(doc, "from", tn.From)
-		if tn.LocalField != "" {
-			doc = bsoncore.AppendStringElement(doc, "localField", tn.LocalField)
+		if tn.LocalField != nil {
+			localFieldName := ast.GetDottedFieldName(tn.LocalField)
+			doc = bsoncore.AppendStringElement(doc, "localField", localFieldName)
 		}
 		if tn.ForeignField != "" {
 			doc = bsoncore.AppendStringElement(doc, "foreignField", tn.ForeignField)

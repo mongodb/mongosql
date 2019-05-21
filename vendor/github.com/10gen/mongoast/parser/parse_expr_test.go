@@ -535,6 +535,94 @@ func TestParseExpr(t *testing.T) {
 			nil,
 			errors.New("expression $cond takes exactly 3 arguments"),
 		},
+		// Map
+		{
+			`{ "$map": { "input": [1,2,3], "as": "this", "in": {"$add": ["$$this", 1]} } }`,
+			ast.NewMap(
+				ast.NewArray(
+					ast.NewConstant(bsonutil.Int32(1)),
+					ast.NewConstant(bsonutil.Int32(2)),
+					ast.NewConstant(bsonutil.Int32(3)),
+				),
+				"this",
+				ast.NewFunction(
+					"$add",
+					ast.NewArray(
+						ast.NewVariableRef("this"),
+						ast.NewConstant(bsonutil.Int32(1)),
+					),
+				),
+			),
+			nil,
+		},
+		{
+			`{ "$map": true }`,
+			nil,
+			errors.New("$map requires a document"),
+		},
+		{
+			`{ "$map": { "input": true, "as": "bar", "in": 0, "foo": 1 } }`,
+			nil,
+			errors.New("unrecognized parameter to $map: foo"),
+		},
+		{
+			`{ "$map": { "input": true, "as": {"$literal": "bar"}, "foo": 0 } }`,
+			nil,
+			errors.New("$map as clause must be string"),
+		},
+		{
+			`{ "$map": { "as": "bar", "in": 0 } }`,
+			nil,
+			errors.New("missing 'input' parameter to $map"),
+		},
+		{
+			`{ "$map": { "input": [1,2,3], "as": "foo" } }`,
+			nil,
+			errors.New("missing 'in' parameter to $map"),
+		},
+		// Filter
+		{
+			`{ "$filter": { "input": [1,2,3], "as": "this", "cond": {"$eq": ["$$this", 2]}} }`,
+			ast.NewFilter(
+				ast.NewArray(
+					ast.NewConstant(bsonutil.Int32(1)),
+					ast.NewConstant(bsonutil.Int32(2)),
+					ast.NewConstant(bsonutil.Int32(3)),
+				),
+				"this",
+				ast.NewBinary(
+					ast.Equals,
+					ast.NewVariableRef("this"),
+					ast.NewConstant(bsonutil.Int32(2)),
+				),
+			),
+			nil,
+		},
+		{
+			`{ "$filter": true }`,
+			nil,
+			errors.New("$filter requires a document"),
+		},
+		{
+			`{ "$filter": { "input": true, "as": "bar", "cond": 0, "foo": 1 } }`,
+			nil,
+			errors.New("unrecognized parameter to $filter: foo"),
+		},
+		{
+			`{ "$filter": { "input": true, "as": {"$literal": "bar"}, "cond": 0 } }`,
+			nil,
+			errors.New("$filter as clause must be string"),
+		},
+		{
+			`{ "$filter": { "as": "bar", "cond": 0 } }`,
+			nil,
+			errors.New("missing 'input' parameter to $filter"),
+		},
+		{
+			`{ "$filter": { "input": [1,2,3], "as": "foo" } }`,
+			nil,
+			errors.New("missing 'cond' parameter to $filter"),
+		},
 	}
 
 	for _, tc := range testCases {

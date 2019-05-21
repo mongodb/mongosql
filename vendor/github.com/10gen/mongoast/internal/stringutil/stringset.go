@@ -69,3 +69,37 @@ func (s *StringSet) SortedSlice() []string {
 	sort.Strings(slice)
 	return slice
 }
+
+// Intersection computes the intersection of two StringSets.
+func (s *StringSet) Intersection(other *StringSet) *StringSet {
+	out := NewStringSet()
+	for value := range s.set {
+		if other.Contains(value) {
+			out.Add(value)
+		}
+	}
+	return out
+}
+
+// HasIntersection returns true if there is a non-empty intersection between two sets.
+func (s *StringSet) HasIntersection(other *StringSet) bool {
+	for value := range s.set {
+		if other.Contains(value) {
+			return true
+		}
+	}
+	return false
+}
+
+// Equals returns true if these sets are equal.
+func (s *StringSet) Equals(other *StringSet) bool {
+	if s.Len() != other.Len() {
+		return false
+	}
+	for value := range s.set {
+		if !other.Contains(value) {
+			return false
+		}
+	}
+	return true
+}

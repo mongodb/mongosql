@@ -21,7 +21,7 @@ func TestSubpipelineOptimization(t *testing.T) {
 		{
 			"move limit before project in lookup subpipeline",
 			ast.NewPipeline(
-				ast.NewLookupStage("foo", "bar", "baz", "buz", []*ast.LookupLetItem{},
+				ast.NewLookupStage("foo", nil, "", "bar", []*ast.LookupLetItem{},
 					ast.NewPipeline(
 						ast.NewProjectStage(
 							ast.NewIncludeProjectItem(ast.NewFieldRef("a", nil)),
@@ -32,7 +32,7 @@ func TestSubpipelineOptimization(t *testing.T) {
 						),
 					))),
 			ast.NewPipeline(
-				ast.NewLookupStage("foo", "bar", "baz", "buz", []*ast.LookupLetItem{},
+				ast.NewLookupStage("foo", nil, "", "bar", []*ast.LookupLetItem{},
 					ast.NewPipeline(
 						ast.NewLimitStage(10),
 						ast.NewProjectStage(

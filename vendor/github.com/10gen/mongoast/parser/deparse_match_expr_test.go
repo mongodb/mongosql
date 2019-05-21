@@ -224,6 +224,15 @@ func TestDeparseMatchExpr(t *testing.T) {
 				),
 			),
 		},
+		{
+			`{"a": { "$regex": "hello", "$options": "i"}}`,
+			bsonutil.DocumentFromElements(
+				"a", bsonutil.DocumentFromElements(
+					"$regex", bsonutil.String("hello"),
+					"$options", bsonutil.String("i"),
+				),
+			),
+		},
 		// Aggregation Expression
 		{
 			`{"$expr": { "$eq": ["$a", 1]}}`,

@@ -113,6 +113,19 @@ func TestParseStage(t *testing.T) {
 			errors.New("unrecognized option to $sample: foo"),
 		},
 		{
+			`{"$match": {"$nor": [{"a": {"$regex": "^f.*$", "$options": "i"}}]}}`,
+			ast.NewMatchStage(
+				ast.NewFunction("$nor",
+					ast.NewArray(
+						ast.NewMatchRegex(
+							"a", bsonutil.String("^f.*$"), bsonutil.String("i"),
+						),
+					),
+				),
+			),
+			nil,
+		},
+		{
 			`{"$match": {"a": 1}}`,
 			ast.NewMatchStage(
 				ast.NewBinary(ast.Equals,
@@ -204,21 +217,6 @@ func TestParseStage(t *testing.T) {
 			`{"$project": {}}`,
 			nil,
 			errors.New("$project must have at least one field"),
-		},
-		{
-			`{"$project": {"a": 1, "b": 0}}`,
-			nil,
-			errors.New("cannot exclude fields other than '_id' in an inclusion projection"),
-		},
-		{
-			`{"$project": {"a": 1, "_id": 0, "c": 0}}`,
-			nil,
-			errors.New("cannot exclude fields other than '_id' in an inclusion projection"),
-		},
-		{
-			`{"$project": {"a": 0, "_id": 0, "c": {"$add": [1, 3]}}}`,
-			nil,
-			errors.New("cannot exclude fields other than '_id' in an inclusion projection"),
 		},
 		{
 			`{"$project": {"a": 1, "_id": 0, "c": {"$add": [1, 3]}}}`,
@@ -421,14 +419,14 @@ func TestParseStage(t *testing.T) {
 		},
 		{
 			`{"$lookup": { "from": "foo", "localField": "a", "foreignField": "b", "as": "bar"}}`,
-			ast.NewLookupStage("foo", "a", "b", "bar", nil, nil),
+			ast.NewLookupStage("foo", ast.NewFieldRef("a", nil), "b", "bar", nil, nil),
 			nil,
 		},
 		{
 			`{"$lookup": { "from": "foo", "pipeline": [{"$match": {"a": 1}}], "as": "bar"}}`,
 			ast.NewLookupStage(
 				"foo",
-				"",
+				nil,
 				"",
 				"bar",
 				nil,
@@ -448,7 +446,7 @@ func TestParseStage(t *testing.T) {
 			`{"$lookup": { "from": "foo", "let": {"x": "$a"}, "pipeline": [{"$match": {"x": 1}}], "as": "bar"}}`,
 			ast.NewLookupStage(
 				"foo",
-				"",
+				nil,
 				"",
 				"bar",
 				[]*ast.LookupLetItem{
@@ -473,7 +471,7 @@ func TestParseStage(t *testing.T) {
 			`{"$lookup": { "from": "foo", "let": {}, "pipeline": [{"$match": {"x": 1}}], "as": "bar"}}`,
 			ast.NewLookupStage(
 				"foo",
-				"",
+				nil,
 				"",
 				"bar",
 				[]*ast.LookupLetItem{},
@@ -493,7 +491,7 @@ func TestParseStage(t *testing.T) {
 			`{"$lookup": { "from": "foo", "pipeline": [], "as": "bar"}}`,
 			ast.NewLookupStage(
 				"foo",
-				"",
+				nil,
 				"",
 				"bar",
 				nil,
@@ -667,6 +665,13 @@ func TestParseStage(t *testing.T) {
 			ast.NewAddFieldsStage(
 				ast.NewAddFieldsItem("a", ast.NewFieldRef("foo", nil)),
 				ast.NewAddFieldsItem("b", ast.NewConstant(bsonutil.Int32(1))),
+			),
+			nil,
+		},
+		{
+			`{"$addFields": {"a": {"$regularExpression": {"pattern": "^f.*$","options": ""}}}}`,
+			ast.NewAddFieldsStage(
+				ast.NewAddFieldsItem("a", ast.NewConstant(bsonutil.Regex("^f.*$", ""))),
 			),
 			nil,
 		},

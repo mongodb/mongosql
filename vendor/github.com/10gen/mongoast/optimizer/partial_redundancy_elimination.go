@@ -79,6 +79,16 @@ func removeRedundancies(e ast.Expr) ast.Expr {
 			typedExpr.Else = removeRedundancies(typedExpr.Else)
 			addExpression(typedExpr)
 			return typedExpr
+		case *ast.Map:
+			typedExpr.Input = removeRedundancies(typedExpr.Input)
+			typedExpr.In = removeRedundancies(typedExpr.In)
+			addExpression(typedExpr)
+			return typedExpr
+		case *ast.Filter:
+			typedExpr.Input = removeRedundancies(typedExpr.Input)
+			typedExpr.Cond = removeRedundancies(typedExpr.Cond)
+			addExpression(typedExpr)
+			return typedExpr
 		case *ast.Let:
 			typedExpr.Expr = removeRedundancies(typedExpr.Expr)
 			addExpression(typedExpr)
@@ -243,7 +253,8 @@ func isTrivialExpression(e ast.Expr) bool {
 		*ast.FieldOrArrayIndexRef,
 		*ast.FieldRef,
 		*ast.Unknown,
-		*ast.VariableRef:
+		*ast.VariableRef,
+		*ast.MatchRegex:
 		return true
 	default:
 		return false

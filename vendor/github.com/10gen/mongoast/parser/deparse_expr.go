@@ -85,10 +85,23 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		}
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return bsonutil.Document(doc)
+	case *ast.FieldOrArrayIndexRef:
+		return deparseFieldOrArrayIndexRef(te)
 	case *ast.FieldRef:
 		return deparseFieldRef(te)
 	case *ast.Function:
-		arg := DeparseExpr(te.Arg, mustIncludeLiteral)
+		// Temporary hack until we add LiteralExpr fix, this is to handle
+		// the format argument to $dateToString, which cannot be wrapped in
+		// $literal in server 3.6. This is safe because $dateTo/FromString
+		// were introduced in 3.6, so we do not need to worry about the
+		// 3.2- not-using-$literal-in-project-expr-leaves issue. This
+		// will be removed when we go to having LiteralExpr.
+		var arg bsoncore.Value
+		if te.Name == "$dateToString" || te.Name == "$dateFromString" {
+			arg = DeparseExpr(te.Arg, false)
+		} else {
+			arg = DeparseExpr(te.Arg, mustIncludeLiteral)
+		}
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsonutil.AppendValueElement(doc, te.Name, arg)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
@@ -120,6 +133,28 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		doc = bsoncore.AppendDocumentElement(doc, "$cond", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return bsonutil.Document(doc)
+	case *ast.Map:
+		_, subdoc := bsoncore.AppendDocumentStart(nil)
+		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
+		subdoc = bsonutil.AppendValueElement(subdoc, "as", bsonutil.String(te.As))
+		subdoc = bsonutil.AppendValueElement(subdoc, "in", DeparseExpr(te.In, mustIncludeLiteral))
+		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, "$map", subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc)
+	case *ast.Filter:
+		_, subdoc := bsoncore.AppendDocumentStart(nil)
+		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
+		subdoc = bsonutil.AppendValueElement(subdoc, "as", bsonutil.String(te.As))
+		subdoc = bsonutil.AppendValueElement(subdoc, "cond", DeparseExpr(te.Cond, mustIncludeLiteral))
+		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, "$filter", subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc)
 	case *ast.Unknown:
 		return te.Value
 	case *ast.VariableRef:
@@ -127,9 +162,31 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 			Type: bsontype.String,
 			Data: bsoncore.AppendString(nil, "$$"+te.Name),
 		}
+	// This cannot actually exist in an AggExpr, but until we get a clear distinction
+	// between Match and AggExprs, this needs to exist here or PRE can crash.
+	case *ast.MatchRegex:
+		name := te.Field
+
+		_, subdoc := bsoncore.AppendDocumentStart(nil)
+		subdoc = bsonutil.AppendValueElement(subdoc, "$regex", te.Pattern)
+		subdoc = bsonutil.AppendValueElement(subdoc, "$options", te.Options)
+		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+
+		return bsonutil.Document(doc)
 	}
 
 	panic(fmt.Sprintf("unsupported expr %T", e))
+}
+
+func deparseFieldOrArrayIndexRef(e *ast.FieldOrArrayIndexRef) bsoncore.Value {
+	return bsoncore.Value{
+		Type: bsontype.String,
+		Data: bsoncore.AppendString(nil, "$"+ast.GetDottedFieldName(e)),
+	}
 }
 
 func deparseFieldRef(e *ast.FieldRef) bsoncore.Value {

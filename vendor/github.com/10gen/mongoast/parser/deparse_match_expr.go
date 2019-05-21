@@ -59,6 +59,19 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 		return bsonutil.Document(doc)
 	case *ast.Function:
 		return deparseMatchExprFunction(te)
+	case *ast.MatchRegex:
+		name := te.Field
+
+		_, subdoc := bsoncore.AppendDocumentStart(nil)
+		subdoc = bsonutil.AppendValueElement(subdoc, "$regex", te.Pattern)
+		subdoc = bsonutil.AppendValueElement(subdoc, "$options", te.Options)
+		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+
+		return bsonutil.Document(doc)
 	case *ast.Unknown:
 		return te.Value
 	}

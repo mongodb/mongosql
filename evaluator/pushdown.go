@@ -1804,7 +1804,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		msLocal.mappingRegistry,
 	)
 	lookup := ast.NewLookupStage(
-		msForeign.collectionNames[0], "", "", asField,
+		msForeign.collectionNames[0], nil, "", asField,
 		localMappings,
 		ast.NewPipeline(matchPipeline...),
 	)
@@ -3250,20 +3250,21 @@ func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo 
 
 	pipeline := ast.NewPipeline(msLocal.pipeline.Stages...)
 
+	localField := astutil.FieldRefFromFieldName(localFieldName)
 	if join.kind == InnerJoin || join.kind == StraightJoin {
 		// Because MongoDB does not compare nulls in the same way as MySQL, we need an extra
 		// $match to ensure account for this incompatibility. Effectively, we eliminate the
 		// left hand document when the left hand field is null.
 		pipeline.Stages = append(pipeline.Stages, ast.NewMatchStage(
 			ast.NewBinary(bsonutil.OpNeq,
-				astutil.FieldRefFromFieldName(localFieldName),
+				localField,
 				astutil.NullLiteral,
 			),
 		))
 	}
 
 	pipeline.Stages = append(pipeline.Stages, ast.NewLookupStage(
-		msForeign.collectionNames[0], localFieldName, foreignFieldName, asField, nil, nil))
+		msForeign.collectionNames[0], localField, foreignFieldName, asField, nil, nil))
 
 	if join.kind == LeftJoin {
 		pipeline.Stages = append(pipeline.Stages, createNullSafeLocalPipeline(msLocal, localFieldName, asField))

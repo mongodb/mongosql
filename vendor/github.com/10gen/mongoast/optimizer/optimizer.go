@@ -15,6 +15,9 @@ func Optimize(ctx context.Context, pipeline *ast.Pipeline) *ast.Pipeline {
 		DeadCodeElimination,
 		Reorder,
 		DeadCodeElimination,
+		ProjectionStageCompressionUp,
+		ProjectionStageCompressionDown,
+		DeadCodeElimination,
 		LetMinimization,
 		LetMerging,
 		PartialRedundancyElimination,
@@ -38,8 +41,9 @@ func RunPasses(ctx context.Context, pipeline *ast.Pipeline, opts ...Optimization
 		if checkCancel() {
 			return pipeline
 		}
-		pipeline = opt(pipeline)
+		pipeline = opt(NormalizePipeline(pipeline))
 	}
+	pipeline = NormalizePipeline(pipeline)
 
 	for i := range pipeline.Stages {
 		switch typedStage := pipeline.Stages[i].(type) {

@@ -93,7 +93,7 @@ func ShellPrintConstant(w io.Writer, v bsoncore.Value) {
 		fmt.Fprintf(w, `ObjectId("%s")`, oid.Hex())
 	case bsontype.Boolean:
 		b := v.Boolean()
-		fmt.Fprintf(w, strconv.FormatBool(b))
+		fmt.Fprint(w, strconv.FormatBool(b))
 	case bsontype.DateTime:
 		dt := v.Time().UTC()
 		fmt.Fprintf(w, `ISODate("%s")`, dt.Format("2006-01-02T15:04:05.999999"))

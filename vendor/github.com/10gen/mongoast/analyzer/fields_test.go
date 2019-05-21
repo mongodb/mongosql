@@ -74,6 +74,17 @@ func TestReferencedFieldRoots_Stage(t *testing.T) {
 		{`{ "$match": { "a": 1 } }`, []string{"a"}, true},
 		{`{ "$match": { "a": { "$eee": 7 } } }`, []string{"a"}, false},
 		{`{ "$project": { "a.b": 1 }}`, []string{"a"}, true},
+		{`{"$match": {
+			"$expr":
+				{"$not": {
+					"$eq": [
+						{"$arrayElemAt": [
+								{"$map": {"input": "$__subquery_alter_1_[2]","as": "this","in": {"$ifNull": ["$$this.4",null]}}},{"$numberInt":"0"}
+						]}, null]
+					}
+				}
+			}
+		}`, []string{"__subquery_alter_1_[2]"}, true},
 
 		// TODO: bug in the bson libraries json parser
 		//{`{ "$project": { "_id": 0, "a": 1, "b": "$b", "c": { "$gt": [1, "$d"] } } }`, []string{"a", "b", "d"}, true},
@@ -198,6 +209,20 @@ func TestReferencedFieldRoots_Pipeline(t *testing.T) {
 		     ]`,
 			[]string{"a"},
 			true,
+		},
+		{
+			`[
+					{ "$lookup":
+						{ 
+						  "from": "foo",
+						  "localField": "a.b.c",
+						  "foreignField": "c",
+						  "as": "hello"
+						}
+					}
+		     ]`,
+			[]string{"a"},
+			false,
 		},
 	}
 

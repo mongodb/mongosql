@@ -237,13 +237,13 @@ func (v exprEvaluator) eval(n ast.Expr, value bsoncore.Value) (ast.Expr, error) 
 func (v exprEvaluator) evalBinary(n *ast.Binary, value bsoncore.Value) (ast.Expr, error) {
 	left, err := v.eval(n.Left, value)
 	if err == bsoncore.ErrElementNotFound {
-		return v.evalBinaryMissingField(n.Op, n.Right, value)
+		return v.evalBinaryMissingField(n.Op, n.Right, value, false)
 	} else if err != nil {
 		return nil, err
 	}
 	right, err := v.eval(n.Right, value)
 	if err == bsoncore.ErrElementNotFound {
-		return v.evalBinaryMissingField(n.Op.Flip(), n.Left, value)
+		return v.evalBinaryMissingField(n.Op, n.Left, value, true)
 	} else if err != nil {
 		return nil, err
 	}
@@ -341,7 +341,11 @@ func (v exprEvaluator) evalBinary(n *ast.Binary, value bsoncore.Value) (ast.Expr
 	}
 }
 
-func (v exprEvaluator) evalBinaryMissingField(op ast.BinaryOp, other ast.Expr, value bsoncore.Value) (ast.Expr, error) {
+func (v exprEvaluator) evalBinaryMissingField(op ast.BinaryOp, other ast.Expr, value bsoncore.Value, flip bool) (ast.Expr, error) {
+	if flip {
+		op = op.Flip()
+	}
+
 	otherValue, err := v.eval(other, value)
 	if err == bsoncore.ErrElementNotFound {
 		return v.evalBinaryMissingBothFields(op)
@@ -371,6 +375,11 @@ func (v exprEvaluator) evalBinaryMissingField(op ast.BinaryOp, other ast.Expr, v
 	}
 
 	switch op {
+	case ast.Compare:
+		if flip {
+			return ast.NewConstant(bsonutil.Int32(1)), nil
+		}
+		return ast.NewConstant(bsonutil.Int32(-1)), nil
 	case ast.LessThan, ast.LessThanOrEquals, ast.NotEquals:
 		return ast.NewConstant(bsonutil.True), nil
 	case ast.Or:
@@ -393,6 +402,8 @@ func (v exprEvaluator) evalBinaryMissingField(op ast.BinaryOp, other ast.Expr, v
 
 func (v exprEvaluator) evalBinaryMissingBothFields(op ast.BinaryOp) (ast.Expr, error) {
 	switch op {
+	case ast.Compare:
+		return ast.NewConstant(bsonutil.Int32(0)), nil
 	case ast.Equals, ast.LessThanOrEquals, ast.GreaterThanOrEquals:
 		return ast.NewConstant(bsonutil.True), nil
 	default:
