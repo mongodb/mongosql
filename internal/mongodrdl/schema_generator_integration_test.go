@@ -334,7 +334,7 @@ func testUUIDSubtype3Field(t *testing.T) {
 
 	documents := bsonutil.NewMArray(
 		bsonutil.NewM(
-			bsonutil.NewDocElem("name", bson.Binary{0x03, []byte("amOjUW1oQQ6dNsvLrQuDhg==")}),
+			bsonutil.NewDocElem("name", bson.Binary{Kind: 0x03, Data: []byte("amOjUW1oQQ6dNsvLrQuDhg==")}),
 		),
 	)
 

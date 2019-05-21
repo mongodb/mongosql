@@ -29,9 +29,9 @@ func TestDeparsePipeline(t *testing.T) {
 				),
 			),
 			[]bson.D{
-				{{"$project", bson.D{
-					{"x", bson.D{{"$add", []interface{}{"$a", "$b"}}}},
-					{"_id", int32(0)},
+				{{Name: "$project", Value: bson.D{
+					{Name: "x", Value: bson.D{{Name: "$add", Value: []interface{}{"$a", "$b"}}}},
+					{Name: "_id", Value: int32(0)},
 				}}},
 			},
 		},
@@ -56,18 +56,18 @@ func TestDeparsePipeline(t *testing.T) {
 				ast.NewLimitStage(3),
 			),
 			[]bson.D{
-				{{"$match", bson.D{
-					{"$or", []interface{}{
-						bson.D{{"x", int32(1)}},
-						bson.D{{"x", int32(2)}},
+				{{Name: "$match", Value: bson.D{
+					{Name: "$or", Value: []interface{}{
+						bson.D{{Name: "x", Value: int32(1)}},
+						bson.D{{Name: "x", Value: int32(2)}},
 					}},
 				}}},
-				{{"$skip", int64(5)}},
-				{{"$addFields", bson.D{
-					{"sum", bson.D{{"$add", []interface{}{"$x", "$y", "$z"}}}},
-					{"cons", "yo"},
+				{{Name: "$skip", Value: int64(5)}},
+				{{Name: "$addFields", Value: bson.D{
+					{Name: "sum", Value: bson.D{{Name: "$add", Value: []interface{}{"$x", "$y", "$z"}}}},
+					{Name: "cons", Value: "yo"},
 				}}},
-				{{"$limit", int64(3)}},
+				{{Name: "$limit", Value: int64(3)}},
 			},
 		},
 	}
@@ -95,9 +95,9 @@ func TestParsePipeline(t *testing.T) {
 		{
 			"single stage pipeline",
 			[]bson.D{
-				{{"$project", bson.D{
-					{"x", bson.D{{"$add", []interface{}{"$a", "$b"}}}},
-					{"_id", int32(0)},
+				{{Name: "$project", Value: bson.D{
+					{Name: "x", Value: bson.D{{Name: "$add", Value: []interface{}{"$a", "$b"}}}},
+					{Name: "_id", Value: int32(0)},
 				}}},
 			},
 			ast.NewPipeline(
@@ -117,18 +117,18 @@ func TestParsePipeline(t *testing.T) {
 		{
 			"multiple stage pipeline",
 			[]bson.D{
-				{{"$match", bson.D{
-					{"$or", []interface{}{
-						bson.D{{"x", int32(1)}},
-						bson.D{{"x", int32(2)}},
+				{{Name: "$match", Value: bson.D{
+					{Name: "$or", Value: []interface{}{
+						bson.D{{Name: "x", Value: int32(1)}},
+						bson.D{{Name: "x", Value: int32(2)}},
 					}},
 				}}},
-				{{"$skip", int64(5)}},
-				{{"$addFields", bson.D{
-					{"sum", bson.D{{"$add", []interface{}{"$x", "$y", "$z"}}}},
-					{"cons", bson.D{{"$literal", "yo"}}},
+				{{Name: "$skip", Value: int64(5)}},
+				{{Name: "$addFields", Value: bson.D{
+					{Name: "sum", Value: bson.D{{Name: "$add", Value: []interface{}{"$x", "$y", "$z"}}}},
+					{Name: "cons", Value: bson.D{{Name: "$literal", Value: "yo"}}},
 				}}},
-				{{"$limit", int64(3)}},
+				{{Name: "$limit", Value: int64(3)}},
 			},
 			ast.NewPipeline(
 				ast.NewMatchStage(ast.NewBinary("$or",

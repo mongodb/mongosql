@@ -47,6 +47,7 @@ type SaslServer struct {
 
 // Close closes the SASL Server.
 func (ss *SaslServer) Close() {
+	// nolint: staticcheck
 	C.mongosql_gssapi_server_destroy(&ss.gss)
 }
 
@@ -60,6 +61,7 @@ func (ss *SaslServer) Start() error {
 		constrainedDelegationInt = C.int(1)
 	}
 
+	// nolint: staticcheck
 	status := C.mongosql_gssapi_server_init(&ss.gss, cusername, constrainedDelegationInt)
 	if status != C.GSSAPI_OK {
 		return ss.getError("unable to initialize server")
@@ -83,6 +85,7 @@ func (ss *SaslServer) Next(challenge []byte) ([]byte, error) {
 			bufLen = C.size_t(len(challenge))
 		}
 
+		// nolint: staticcheck
 		status := C.mongosql_gssapi_server_negotiate(&ss.gss, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
 		case C.GSSAPI_OK:
@@ -98,6 +101,8 @@ func (ss *SaslServer) Next(challenge []byte) ([]byte, error) {
 		qop := []byte{1, 0, 0, 0} // quality of protection we support, which is none
 		buf = unsafe.Pointer(&qop[0])
 		bufLen = C.size_t(len(qop))
+
+		// nolint: staticcheck
 		status := C.mongosql_gssapi_server_wrap_msg(&ss.gss, buf, bufLen, &outBuf, &outBufLen)
 		if status != C.GSSAPI_OK {
 			return nil, ss.getError("unable to wrap security support")
@@ -107,6 +112,8 @@ func (ss *SaslServer) Next(challenge []byte) ([]byte, error) {
 	case SupportComplete:
 		buf = unsafe.Pointer(&challenge[0])
 		bufLen = C.size_t(len(challenge))
+
+		// nolint: staticcheck
 		status := C.mongosql_gssapi_server_unwrap_msg(&ss.gss, buf, bufLen, &outBuf, &outBufLen)
 		if status != C.GSSAPI_OK {
 			return nil, ss.getError("unable to unwrap authz")
@@ -159,6 +166,7 @@ type SaslClient struct {
 
 // Close closes the SASL Client.
 func (sc *SaslClient) Close() {
+	// nolint: staticcheck
 	C.mongosql_gssapi_client_destroy(&sc.gss)
 }
 
@@ -168,6 +176,8 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 
 	cservicePrincipalName := C.CString(sc.servicePrincipalName)
 	defer C.free(unsafe.Pointer(cservicePrincipalName))
+
+	// nolint: staticcheck
 	status := C.mongosql_gssapi_client_init(&sc.gss, &sc.serverGss, cservicePrincipalName)
 
 	if status != C.GSSAPI_OK {
@@ -197,6 +207,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 			bufLen = C.size_t(len(challenge))
 		}
 
+		// nolint: staticcheck
 		status := C.mongosql_gssapi_client_negotiate(&sc.gss, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
 		case C.GSSAPI_OK:
@@ -207,6 +218,8 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		}
 	case ContextComplete:
 		var cusername *C.char
+
+		// nolint: staticcheck
 		status := C.mongosql_gssapi_client_username(&sc.gss, &cusername)
 		if status != C.GSSAPI_OK {
 			return nil, sc.getError("unable to acquire username")
@@ -218,6 +231,8 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		msg = append(msg, []byte(username)...)
 		buf = unsafe.Pointer(&msg[0])
 		bufLen = C.size_t(len(msg))
+
+		// nolint: staticcheck
 		status = C.mongosql_gssapi_client_wrap_msg(&sc.gss, buf, bufLen, &outBuf, &outBufLen)
 		if status != C.GSSAPI_OK {
 			return nil, sc.getError("unable to wrap authz")
@@ -248,6 +263,7 @@ func (sc *SaslClient) getError(prefix string) error {
 func getError(prefix string, maj, min C.OM_uint32) error {
 	var desc *C.char
 
+	// nolint: staticcheck
 	status := C.mongosql_gssapi_error_desc(maj, min, &desc)
 	if status != C.GSSAPI_OK {
 		if desc != nil {

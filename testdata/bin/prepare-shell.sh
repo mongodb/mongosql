@@ -19,9 +19,10 @@ else
     SQLPROXY_TEST_CACHE_DIR="$PROJECT_DIR/.sqlproxy-test-cache"
 fi
 
-# set GOPATH, GOBIN
+# set GOPATH, GOBIN, GOCACHE
 GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
 GOBIN="$GOPATH/bin/"
+GOCACHE="$SQLPROXY_TEST_CACHE_DIR/go-build"
 
 # set defaults for infrastructure config variables
 if [ "$INFRASTRUCTURE_CONFIG" = "" ]; then
@@ -41,6 +42,7 @@ if [ "Windows_NT" = "$OS" ]; then
     LOG_FILE="$(cygpath -m $LOG_FILE)"
     GOPATH="$(cygpath -m $GOPATH)"
     KRB5_TRACE="$(cygpath -m $KRB5_TRACE)"
+    GOCACHE="$(cygpath -m $GOCACHE)"
 fi
 
 PATH="$GOBINDIR:$PYTHON_PATH:$MYSQL_PATH:$MONGODB_BINARIES:$PATH:$MINGW_PATH:$LIBRARY_PATH:$GOBIN:$GOROOT"
@@ -113,6 +115,7 @@ DRDL_ARGS="$DRDL_NAMESPACE $DRDL_MONGO_HOST $DRDL_AUTH_ARGS $DRDL_SSL_ARGS"
 
 # export any environment variables that will be needed by subprocesses
 export CC
+export GOCACHE
 export GOPATH
 export GORACE
 export GOROOT

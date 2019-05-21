@@ -3,7 +3,7 @@
 if [ "$VARIANT" != "" ]; then
     ARCHIVE_FORMAT='tgz'
     JAVA_HOME='/opt/java/jdk8'
-    GOROOT='/opt/golang/go1.11'
+    GOROOT='/opt/golang/go1.12'
     GOBINDIR="$GOROOT"/bin
 fi
 
@@ -106,8 +106,8 @@ windows)
     MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
     ARCHIVE_FORMAT='zip'
     ARCHIVE_CONTENT_TYPE='zip'
-    GOROOT='c:\golang\go1.11'
-    GOBINDIR='/cygdrive/c/golang/go1.11/bin'
+    GOROOT='c:\golang\go1.12'
+    GOBINDIR='/cygdrive/c/golang/go1.12/bin'
     BUILD_GSSAPI='true'
     ;;
 *) # local

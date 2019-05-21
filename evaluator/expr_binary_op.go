@@ -2220,9 +2220,6 @@ func (sub *SQLSubtractExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 	if err != nil {
 		return nil, err
 	}
-	if err != nil {
-		return nil, err
-	}
 
 	if values.HasNullValue(leftVal, rightVal) {
 		return values.NewSQLNull(cfg.sqlValueKind), nil

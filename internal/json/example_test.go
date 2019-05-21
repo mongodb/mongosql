@@ -13,6 +13,7 @@ import (
 	"strings"
 )
 
+// nolint: govet
 func ExampleMarshal() {
 	type ColorGroup struct {
 		ID     int
@@ -33,6 +34,7 @@ func ExampleMarshal() {
 	// {"ID":1,"Name":"Reds","Colors":["Crimson","Red","Ruby","Maroon"]}
 }
 
+// nolint: govet
 func ExampleUnmarshal() {
 	var jsonBlob = []byte(`[
 		{"Name": "Platypus", "Order": "Monotremata"},
@@ -53,6 +55,7 @@ func ExampleUnmarshal() {
 }
 
 // This example uses a Decoder to decode a stream of distinct JSON values.
+// nolint: govet
 func ExampleDecoder() {
 	const jsonStream = `
 		{"Name": "Ed", "Text": "Knock knock."}
@@ -83,6 +86,7 @@ func ExampleDecoder() {
 }
 
 // This example uses RawMessage to delay parsing part of a JSON message.
+// nolint: govet
 func ExampleRawMessage() {
 	type Color struct {
 		Space string
