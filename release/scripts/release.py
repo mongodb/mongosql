@@ -212,9 +212,6 @@ class BIReleaser(object):
                     else:
                         variant_with_suffix = variant + ZIP_SUFFIX
                     self.__urls[variant_with_suffix] = url
-                    # we want to get all the URLs for windows
-                    if ext not in [".msi", ".zip"]:
-                        break
 
         # adding 1 since we upload the .zip binary for Windows
         if len(self.__urls) != NUM_RELEASE_PLATFORMS + 1:
