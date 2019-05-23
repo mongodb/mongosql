@@ -1,0 +1,150 @@
+# github.com/10gen/candiedyaml v0.0.0-20181015205816-f38edd53fd41
+github.com/10gen/candiedyaml
+# github.com/10gen/mongo-go-driver v1.0.2 => github.com/pmeredit/mongo-go-driver v0.0.0-20190507213726-04c2b7e1bb27
+github.com/10gen/mongo-go-driver/bson
+github.com/10gen/mongo-go-driver/mongo/private/ops
+github.com/10gen/mongo-go-driver/mongo/connstring
+github.com/10gen/mongo-go-driver/mongo/private/cluster
+github.com/10gen/mongo-go-driver/mongo/private/conn
+github.com/10gen/mongo-go-driver/mongo/private/server
+github.com/10gen/mongo-go-driver/mongo/private/msg
+github.com/10gen/mongo-go-driver/mongo/readpref
+github.com/10gen/mongo-go-driver/mongo
+github.com/10gen/mongo-go-driver/mongo/model
+github.com/10gen/mongo-go-driver/mongo/options
+github.com/10gen/mongo-go-driver/mongo/private/auth
+github.com/10gen/mongo-go-driver/mongo/readconcern
+github.com/10gen/mongo-go-driver/mongo/writeconcern
+github.com/10gen/mongo-go-driver/bson/internal/json
+github.com/10gen/mongo-go-driver/mongo/internal
+github.com/10gen/mongo-go-driver/mongo/internal/feature
+github.com/10gen/mongo-go-driver/mongo/internal/auth/gssapi
+# github.com/10gen/mongoast v0.0.0-20190520144242-110174e616db
+github.com/10gen/mongoast/ast
+github.com/10gen/mongoast/optimizer
+github.com/10gen/mongoast/parser
+github.com/10gen/mongoast/astprint
+github.com/10gen/mongoast/analyzer
+github.com/10gen/mongoast/internal/stringutil
+github.com/10gen/mongoast/internal/bsonutil
+github.com/10gen/mongoast/internal/decimalutil
+github.com/10gen/mongoast/internal/jsonutil
+# github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
+github.com/10gen/openssl
+github.com/10gen/openssl/utils
+# github.com/davecgh/go-spew v1.1.0
+github.com/davecgh/go-spew/spew
+# github.com/go-sql-driver/mysql v1.4.1
+github.com/go-sql-driver/mysql
+# github.com/go-stack/stack v1.8.0
+github.com/go-stack/stack
+# github.com/google/go-cmp v0.2.0
+github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/internal/diff
+github.com/google/go-cmp/cmp/internal/function
+github.com/google/go-cmp/cmp/internal/value
+# github.com/gopherjs/gopherjs v0.0.0-20170702153443-2b1d432c8a82
+github.com/gopherjs/gopherjs/js
+# github.com/howeyc/gopass v0.0.0-20170109162249-bf9dde6d0d2c
+github.com/howeyc/gopass
+# github.com/jessevdk/go-flags v0.0.0-20170722072952-6cf8f02b4ae8
+github.com/jessevdk/go-flags
+# github.com/jtolds/gls v4.20.0+incompatible
+github.com/jtolds/gls
+# github.com/kardianos/osext v0.0.0-20170510131534-ae77be60afb1
+github.com/kardianos/osext
+# github.com/kardianos/service v0.0.0-20180302231109-0ab6efe2ea51
+github.com/kardianos/service
+# github.com/kr/pretty v0.0.0-20160823170715-cfb55aafdaf3
+github.com/kr/pretty
+# github.com/kr/text v0.0.0-20160504234017-7cafcd837844
+github.com/kr/text
+# github.com/mongodb/mongo-tools v0.0.0-20180130112408-4ec067b2ad33
+github.com/mongodb/mongo-tools/common/json
+github.com/mongodb/mongo-tools/common/bsonutil
+github.com/mongodb/mongo-tools/common/db
+github.com/mongodb/mongo-tools/common/options
+github.com/mongodb/mongo-tools/mongorestore
+github.com/mongodb/mongo-tools/common/util
+github.com/mongodb/mongo-tools/common/connstring
+github.com/mongodb/mongo-tools/common/db/kerberos
+github.com/mongodb/mongo-tools/common/db/openssl
+github.com/mongodb/mongo-tools/common/log
+github.com/mongodb/mongo-tools/common/password
+github.com/mongodb/mongo-tools/common/failpoint
+github.com/mongodb/mongo-tools/common
+github.com/mongodb/mongo-tools/common/archive
+github.com/mongodb/mongo-tools/common/auth
+github.com/mongodb/mongo-tools/common/intents
+github.com/mongodb/mongo-tools/common/progress
+github.com/mongodb/mongo-tools/mongorestore/ns
+github.com/mongodb/mongo-tools/common/text
+# github.com/pkg/errors v0.8.1
+github.com/pkg/errors
+# github.com/pmezard/go-difflib v1.0.0
+github.com/pmezard/go-difflib/difflib
+# github.com/satori/go.uuid v0.0.0-20181028125025-b2ce2384e17b
+github.com/satori/go.uuid
+# github.com/shopspring/decimal v0.0.0-20160918205201-d6f52241f332
+github.com/shopspring/decimal
+# github.com/smartystreets/assertions v0.0.0-20160225170624-e9a2f6771d97
+github.com/smartystreets/assertions
+github.com/smartystreets/assertions/internal/go-render/render
+github.com/smartystreets/assertions/internal/oglematchers
+# github.com/smartystreets/goconvey v0.0.0-20160503033757-d4c757aa9afd
+github.com/smartystreets/goconvey/convey
+github.com/smartystreets/goconvey/convey/reporting
+github.com/smartystreets/goconvey/convey/gotest
+# github.com/spacemonkeygo/spacelog v0.0.0-20170706210657-b6d9bf7bf3eb
+github.com/spacemonkeygo/spacelog
+# github.com/stretchr/testify v1.3.0
+github.com/stretchr/testify/assert
+github.com/stretchr/testify/require
+# github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
+github.com/xdg/stringprep
+# go.mongodb.org/mongo-driver v1.0.0-rc2
+go.mongodb.org/mongo-driver/bson/bsontype
+go.mongodb.org/mongo-driver/bson/primitive
+go.mongodb.org/mongo-driver/x/bsonx/bsoncore
+go.mongodb.org/mongo-driver/bson
+go.mongodb.org/mongo-driver/bson/bsonrw
+go.mongodb.org/mongo-driver/bson/bsoncodec
+# golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+golang.org/x/crypto/ssh/terminal
+golang.org/x/crypto/pbkdf2
+# golang.org/x/sys v0.0.0-20190226215855-775f8194d0f9
+golang.org/x/sys/windows/registry
+golang.org/x/sys/windows/svc
+golang.org/x/sys/windows/svc/eventlog
+golang.org/x/sys/windows/svc/mgr
+golang.org/x/sys/unix
+golang.org/x/sys/windows
+# golang.org/x/text v0.3.0
+golang.org/x/text/collate
+golang.org/x/text/encoding
+golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/japanese
+golang.org/x/text/encoding/korean
+golang.org/x/text/encoding/simplifiedchinese
+golang.org/x/text/encoding/traditionalchinese
+golang.org/x/text/encoding/unicode
+golang.org/x/text/encoding/unicode/utf32
+golang.org/x/text/language
+golang.org/x/text/internal/colltab
+golang.org/x/text/unicode/norm
+golang.org/x/text/encoding/internal/identifier
+golang.org/x/text/transform
+golang.org/x/text/encoding/internal
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/runes
+golang.org/x/text/internal/tag
+# google.golang.org/appengine v1.6.0
+google.golang.org/appengine/cloudsql
+# gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
+gopkg.in/mgo.v2/bson
+gopkg.in/mgo.v2
+gopkg.in/mgo.v2/internal/json
+gopkg.in/mgo.v2/internal/sasl
+gopkg.in/mgo.v2/internal/scram
+# gopkg.in/yaml.v2 v2.2.1
+gopkg.in/yaml.v2

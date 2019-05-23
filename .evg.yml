@@ -85,13 +85,6 @@ functions:
         ${SCRIPT_DIR}/download-tableau-data.sh
         ${SCRIPT_DIR}/download-tpch-data.sh
 
-  "ensure schema available":
-    command: shell.exec
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/ensure-schema-available.sh
-
   "export variables":
     - command: shell.exec
       type: system

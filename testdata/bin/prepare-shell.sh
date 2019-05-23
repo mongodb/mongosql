@@ -24,6 +24,13 @@ GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
 GOBIN="$GOPATH/bin/"
 GOCACHE="$SQLPROXY_TEST_CACHE_DIR/go-build"
 
+# The default for go version < 1.13 is to not use go modules.
+# We explicitly turn it on in preparation for the update
+GO111MODULE="on"
+
+# Although we use go modules, we use the vendor/ directory to build.
+GOFLAGS="-mod=vendor"
+
 # set defaults for infrastructure config variables
 if [ "$INFRASTRUCTURE_CONFIG" = "" ]; then
     INFRASTRUCTURE_CONFIG="default"
@@ -116,6 +123,8 @@ DRDL_ARGS="$DRDL_NAMESPACE $DRDL_MONGO_HOST $DRDL_AUTH_ARGS $DRDL_SSL_ARGS"
 # export any environment variables that will be needed by subprocesses
 export CC
 export GOCACHE
+export GOFLAGS
+export GO111MODULE
 export GOPATH
 export GORACE
 export GOROOT

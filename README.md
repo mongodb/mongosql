@@ -22,11 +22,14 @@ Download [Go](https://golang.org/dl/) version >= 1.8.1.
 
 Refer to [this guide](https://github.com/golang/go/wiki/Setting-GOPATH#unix-systems) for setting `$GOPATH`.   
 Note that on Linux systems, you should elect to use `~/.bashrc` instead of `~/.bash_profile`.
-You should also set `$GOBIN` and `$PATH`:
+If you use Go version 1.11 or 1.12 with `$GO111MODULE=on`, or if you use Go version >= 1.13,
+you must set `$GOFLAGS=-mod=vendor`. You should also set `$GOBIN` and `$PATH`:
 ```
+export GOFLAGS=-mod=vendor
 export GOBIN="$GOPATH/bin"
 export PATH="$GOBIN:$PATH"
 ```
+
 After this, you can download the repo and build it as such:
 ```
 git clone git@github.com:10gen/sqlproxy.git $GOPATH/src/github.com/10gen/sqlproxy
@@ -41,7 +44,10 @@ Refer to [this guide](https://github.com/golang/go/wiki/Setting-GOPATH#windows) 
 You should then set `%GOBIN%` to `%GOPATH%\bin`.  
 You will also need to update your `PATH` to:
 - `%GOBIN%`, if it was originally blank, or
-- `%GOBIN%;<other-contents>` otherwise. 
+- `%GOBIN%;<other-contents>` otherwise.
+
+If you use Go version 1.11 or 1.12 with `%GO111MODULE%` set to `on`, or if you use Go
+version >= 1.13, you must set `%GOFLAGS%` to `-mod=vendor`.
 
 After this, you can download the repo and build it as such:
 ```
@@ -175,6 +181,42 @@ For more a comprehensive set of startup customizations, you can pass in a config
 # This file is included in the repo, and bundled in our release package.
 mongosqld --config release/distsrc/example-mongosqld-config.yml
 ```
+
+## Dependencies
+This repository uses [Go modules](https://github.com/golang/go/wiki/Modules) for dependency
+management, and uses vendored dependencies for building and testing. Occasionally, contributors
+may need to add or update dependencies. If you need to add or update a dependency and you use Go
+version 1.11 or 1.12, you must set `GO111MODULE=on` in your environment. As noted above, you
+must also set `GOFLAGS=-mod=vendor`.
+
+#### Adding a new dependency
+If you need to add a new dependency to the project, you can simply add import statements to
+the relevant `.go` code. There is no need to `go get`.
+
+Typically, when you build the code (via `go build`, `go test`, etc) the new dependency will be
+identified automatically by the Go build system and downloaded to the module cache, if necessary.
+However, because this repository uses vendored dependencies, you **must** revendor before building:
+```
+go mod vendor
+```
+This command will update the `go.mod` and `go.sum` files and will update the `vendor/` directory
+with the new dependency.
+
+#### Updating a dependency
+There are two main ways you may need to update a dependency: using previously unused packages
+from an existing dependency, or updating the version of an existing dependency.
+
+To use a previously unused package, all you need to do is import it as necessary in the source
+code, and then `go mod vendor` to update the `vendor/` directory. The modules' vendor feature is
+clever and does not vendor unused packages, which is why you must revendor even when using an
+existing dependency. This is only necessary if the package does not already exist in the `vendor/`
+directory, which you can easily verify.
+
+To update the version of an existing dependency, you need to update the `go.mod` file. Find the
+relevant dependency in the `require` list and update the version, and then `go mod vendor` to update
+the `vendor/` directory. The new version can be a specific release version (i.e. v0.1.2), or can
+be a specific git commit (see the `go.mod` file for examples). You can also specify "master",
+which will be replaced with the relevant version info when you revendor.
 
 ## Documentation
 See the BI Connector [documentation](https://docs.mongodb.com/bi-connector/master/).
