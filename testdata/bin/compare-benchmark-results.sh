@@ -7,6 +7,15 @@
     set -o errexit
     echo "comparing benchmark results..."
 
+    # Turn off GO111MODULE support and remove the -mod=vendor Go flag from the
+    # environment. In module mode, go get will fail because it will attempt to
+    # download all project dependencies (some of which are inaccessible). With
+    # -mod=vendor set, go get is disabled and will therefore fail. We set that
+    # flag globally because we use modules but vendor our dependencies for the
+    # repository.
+    export GO111MODULE="off"
+    export GOFLAGS=""
+
     which benchstat > /dev/null 2>&1 || go get -u golang.org/x/perf/cmd/benchstat
 
     # download old file if we don't have it
