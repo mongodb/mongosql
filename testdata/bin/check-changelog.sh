@@ -8,20 +8,28 @@
 	git diff-index --stat HEAD --
 	status=$?
 
-	# if diff-index returned 0, then there was nothing in the diff
-	if [ $status -eq 0 ]; then
-		echo 'found no uncommitted changes'
-		if [ "$VARIANT" != '' ]; then
-			merge_base_ref="$(git merge-base HEAD master)"
-			echo "on evergreen, resetting to merge-base with master ($merge_base_ref)"
-			git reset "$merge_base_ref"
-			diff_ref='HEAD'
-		else
-			diff_ref='HEAD~'
-		fi
+	# if diff-index did not exit 0, then there was something in the diff
+	if [ $status -ne 0 ]; then
+		has_uncommitted_changes='true'
 	else
+		has_uncommitted_changes='false'
+	fi
+
+	merge_base_ref="$(git merge-base HEAD master)"
+	head_ref="$(git rev-parse HEAD)"
+
+	if [ "$merge_base_ref" != "$head_ref" ]; then
+		echo 'current commit not in master'
+		echo 'diffing with merge-base of HEAD and master'
+		diff_ref="$merge_base_ref"
+	elif [ "$has_uncommitted_changes" = 'true' ]; then
 		echo 'found uncommitted changes'
+		echo 'diffing with previous HEAD'
 		diff_ref='HEAD'
+	else
+		echo 'found no uncommitted changes'
+		echo 'diffing with previous commit'
+		diff_ref='HEAD~'
 	fi
 
 	echo "diffing against $diff_ref..."
