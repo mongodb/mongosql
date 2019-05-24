@@ -668,7 +668,7 @@ func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr
 	if e.correlated {
 		return nil, e
 	}
-	ref, ok := t.LookupFieldRef(e.databaseName, e.tableName, e.columnName)
+	ref, ok := t.getFieldRef(e)
 	if !ok {
 		return nil, e
 	}
@@ -1281,7 +1281,7 @@ func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr)
 		return nil, e
 	}
 
-	ref, ok := t.getFieldOrVariableRef(e.left)
+	ref, ok := t.getFieldRef(e.left)
 	if !ok {
 		return nil, e
 	}
@@ -1525,7 +1525,7 @@ func (e *SQLRegexExpr) String() string {
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLRegexExpr.
 func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	ref, ok := t.getFieldOrVariableRef(e.operand)
+	ref, ok := t.getFieldRef(e.operand)
 	if !ok {
 		return nil, e
 	}

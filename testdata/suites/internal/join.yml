@@ -2369,3 +2369,27 @@ testcases:
     expected_types: [int]
     id: inner-join-table-and-subquery-with-inner-and-outer-group-by
     sql: select join_1.a a from join_1 inner join (select join_1.a a from join_1 group by 1) t0 on (join_1.a = t0.a) group by 1 order by 1
+
+  - db: join_test
+    description: join criteria translates to match language in $match stage in $lookup pipeline
+    expected_names: [a]
+    expected_results:
+      - [2]
+      - [2]
+      - [2]
+    expected_types: [int]
+    id: criteria_translates_to_match_language
+    sql: select join_1.a from join_1 right join join_2 on join_1.a=2
+
+  - db: join_test
+    description: join criteria on local column translates to $expr in $match stage in $lookup pipeline
+    expected_names: [a]
+    expected_results:
+      - [1]
+      - [2]
+      - [3]
+      - [~]
+      - [~]
+    expected_types: [int]
+    id: criteria_translates_to_expr
+    sql: select join_1.a from join_1 right join join_2 on join_2.c=10

@@ -1288,7 +1288,7 @@ func (is *SQLIsExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, Pu
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLIsExpr.
 func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	ref, ok := t.getFieldOrVariableRef(is.left)
+	ref, ok := t.getFieldRef(is.left)
 	if !ok {
 		return nil, is
 	}
@@ -1880,7 +1880,7 @@ func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, S
 	}
 
 	if value.Value.Type != bsontype.Null {
-		ref, ok := t.getFieldOrVariableRef(neq.left)
+		ref, ok := t.getFieldRef(neq.left)
 		if !ok {
 			return nil, neq
 		}

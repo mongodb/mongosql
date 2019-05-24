@@ -665,7 +665,7 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	e, ok := n.(evaluator.SQLExpr)
 	req.True(ok, "node was not a SQLExpr")
 
-	match, local := translator.TranslatePredicate(e)
+	match, local, _ := translator.TranslatePredicate(e)
 
 	if local == nil {
 		return parser.DeparseMatchExpr(match).String()
@@ -758,7 +758,7 @@ func TestTranslatePartialPredicate(t *testing.T) {
 				)
 				req.Nilf(err, "could not get sql expr for %v", test.localDesc)
 
-				match, local := translator.TranslatePredicate(e)
+				match, local, _ := translator.TranslatePredicate(e)
 				jsonResult := parser.DeparseMatchExpr(match).String()
 				req.Equalf(test.expected, jsonResult, "actual match expr did "+
 					"not match expected in %v", test.localDesc)

@@ -541,7 +541,7 @@ func (v *pushdownVisitor) extractPreUnwindMatch(mr *mappingRegistry, expr SQLExp
 
 	// We don't care about the remaining. We will still be placing a match after the unwind,
 	// so anything we can't do here gets handled there anyways.
-	matchBody, _ := t.TranslatePredicate(combined)
+	matchBody, _, _ := t.TranslatePredicate(combined)
 	if matchBody == nil {
 		// Nothing to do.
 		return nil, false
@@ -613,7 +613,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 		}
 
 		var matchBody ast.Expr
-		matchBody, localMatcher = t.TranslatePredicate(filter.matcher)
+		matchBody, localMatcher, _ = t.TranslatePredicate(filter.matcher)
 		if matchBody != nil {
 			pipeline.Stages = append(pipeline.Stages, t.subqueryLookupStages...)
 			pipeline.Stages = append(pipeline.Stages, ast.NewMatchStage(matchBody))
@@ -1784,7 +1784,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		matcherValExpr, ok := join.matcher.(SQLValueExpr)
 		if !ok || matcherValExpr.Value.Value() != true {
 			// Build the foreign pipeline.
-			translated, pf := t.TranslateAggPredicate(join.matcher)
+			translated, _, pf := t.TranslatePredicate(join.matcher)
 			if pf != nil {
 				v.logger.Warnf(log.Dev, "unable to translate join criteria: %v", join.matcher)
 				v.addPushdownFailure(join, pf)
@@ -1792,7 +1792,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 			}
 
 			matchPipeline = append(matchPipeline, t.subqueryLookupStages...)
-			matchPipeline = append(matchPipeline, ast.NewMatchStage(ast.NewAggExpr(translated)))
+			matchPipeline = append(matchPipeline, ast.NewMatchStage(translated))
 		}
 	}
 
