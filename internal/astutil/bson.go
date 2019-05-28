@@ -33,7 +33,7 @@ func DeparsePipeline(pipeline *ast.Pipeline) ([]oldbson.D, error) {
 		if err != nil {
 			return nil, err
 		}
-		docs[i] = newToOldBSOND(d)
+		docs[i] = NewToOldBSOND(d)
 	}
 
 	return docs, nil
@@ -43,7 +43,7 @@ func DeparsePipeline(pipeline *ast.Pipeline) ([]oldbson.D, error) {
 func ParsePipeline(docs []oldbson.D) (*ast.Pipeline, error) {
 	stages := make([]ast.Stage, len(docs))
 	for i, doc := range docs {
-		d := oldToNewBSOND(doc)
+		d := OldToNewBSOND(doc)
 		json, err := bson.MarshalExtJSON(&d, false, false)
 		if err != nil {
 			return nil, err
@@ -65,17 +65,19 @@ func bsoncoreValueToRaw(v bsoncore.Value) oldbson.Raw {
 	}
 }
 
-func oldToNewBSONA(old []interface{}) bson.A {
+// OldToNewBSONA converts from the old Go driver's representation of a
+// bson array, []interface{}, to the new Go driver's bson.A.
+func OldToNewBSONA(old []interface{}) bson.A {
 	newA := make(bson.A, len(old))
 
 	for i, v := range old {
 		switch t := v.(type) {
 		case oldbson.D:
-			v = oldToNewBSOND(t)
+			v = OldToNewBSOND(t)
 		case oldbson.M:
-			v = oldToNewBSONM(t)
+			v = OldToNewBSONM(t)
 		case []interface{}:
-			v = oldToNewBSONA(t)
+			v = OldToNewBSONA(t)
 		}
 
 		newA[i] = v
@@ -84,41 +86,47 @@ func oldToNewBSONA(old []interface{}) bson.A {
 	return newA
 }
 
-func oldToNewBSOND(old oldbson.D) bson.D {
+// OldToNewBSOND converts from the old Go driver's bson.D to the new
+// Go driver's bson.D.
+func OldToNewBSOND(old oldbson.D) bson.D {
 	newD := make(bson.D, len(old))
 
 	for i, e := range old {
-		newD[i] = oldToNewBSONE(e)
+		newD[i] = OldToNewBSONE(e)
 	}
 
 	return newD
 }
 
-func oldToNewBSONE(old oldbson.DocElem) bson.E {
+// OldToNewBSONE converts from the old Go driver's bson.DocElem to
+// the new Go driver's bson.E.
+func OldToNewBSONE(old oldbson.DocElem) bson.E {
 	v := old.Value
 	switch t := old.Value.(type) {
 	case oldbson.D:
-		v = oldToNewBSOND(t)
+		v = OldToNewBSOND(t)
 	case oldbson.M:
-		v = oldToNewBSONM(t)
+		v = OldToNewBSONM(t)
 	case []interface{}:
-		v = oldToNewBSONA(t)
+		v = OldToNewBSONA(t)
 	}
 
 	return primitive.E{Key: old.Name, Value: v}
 }
 
-func oldToNewBSONM(old oldbson.M) bson.M {
+// OldToNewBSONM converts from the old Go driver's bson.M to the new
+// Go driver's bson.M.
+func OldToNewBSONM(old oldbson.M) bson.M {
 	newM := make(bson.M)
 
 	for k, v := range old {
 		switch t := v.(type) {
 		case oldbson.D:
-			v = oldToNewBSOND(t)
+			v = OldToNewBSOND(t)
 		case oldbson.M:
-			v = oldToNewBSONM(t)
+			v = OldToNewBSONM(t)
 		case []interface{}:
-			v = oldToNewBSONA(t)
+			v = OldToNewBSONA(t)
 		}
 
 		newM[k] = v
@@ -127,17 +135,20 @@ func oldToNewBSONM(old oldbson.M) bson.M {
 	return newM
 }
 
-func newToOldBSONA(newA bson.A) []interface{} {
+// NewToOldBSONA converts from the new Go driver's bson.A to a
+// []interface{}, which is the old Go driver's representation of
+// a bson array.
+func NewToOldBSONA(newA bson.A) []interface{} {
 	old := make([]interface{}, len(newA))
 
 	for i, e := range newA {
 		switch t := e.(type) {
 		case bson.A:
-			e = newToOldBSONA(t)
+			e = NewToOldBSONA(t)
 		case bson.D:
-			e = newToOldBSOND(t)
+			e = NewToOldBSOND(t)
 		case bson.M:
-			e = newToOldBSONM(t)
+			e = NewToOldBSONM(t)
 		}
 
 		old[i] = e
@@ -146,41 +157,47 @@ func newToOldBSONA(newA bson.A) []interface{} {
 	return old
 }
 
-func newToOldBSOND(newD bson.D) oldbson.D {
+// NewToOldBSOND converts from the new Go driver's bson.D to the old
+// Go driver's bson.D.
+func NewToOldBSOND(newD bson.D) oldbson.D {
 	old := make(oldbson.D, len(newD))
 
 	for i, e := range newD {
-		old[i] = newToOldBSONE(e)
+		old[i] = NewToOldBSONE(e)
 	}
 
 	return old
 }
 
-func newToOldBSONE(newE bson.E) oldbson.DocElem {
+// NewToOldBSONE converts from the new Go driver's bson.E to the old
+// Go driver's bson.DocElem.
+func NewToOldBSONE(newE bson.E) oldbson.DocElem {
 	v := newE.Value
 	switch t := newE.Value.(type) {
 	case bson.A:
-		v = newToOldBSONA(t)
+		v = NewToOldBSONA(t)
 	case bson.D:
-		v = newToOldBSOND(t)
+		v = NewToOldBSOND(t)
 	case bson.M:
-		v = newToOldBSONM(t)
+		v = NewToOldBSONM(t)
 	}
 
 	return oldbson.NewDocElem(newE.Key, v)
 }
 
-func newToOldBSONM(newM bson.M) oldbson.M {
+// NewToOldBSONM converts from the new Go driver's bson.M to the old
+// Go driver's bson.M.
+func NewToOldBSONM(newM bson.M) oldbson.M {
 	old := make(oldbson.M)
 
 	for k, v := range newM {
 		switch t := v.(type) {
 		case bson.A:
-			v = newToOldBSONA(t)
+			v = NewToOldBSONA(t)
 		case bson.D:
-			v = newToOldBSOND(t)
+			v = NewToOldBSOND(t)
 		case bson.M:
-			v = newToOldBSONM(t)
+			v = NewToOldBSONM(t)
 		}
 
 		old[k] = v
