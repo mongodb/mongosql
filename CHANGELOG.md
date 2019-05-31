@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-1750: Improved truncate pushdown coverage so that SQL queries with a column of integers representing the number of places to truncate are also pushed down, and uses the new $trunc operator for versions running on MongoDB versions >= 4.1.9.
 BI-2250: No user-facing changes.
 BI-2216: Pipelines in DRDL files are parsed with most recent version of extjson spec, but still support legacy binary, regex, and dbPointer formats.
 BI-2218: No user-facing changes.

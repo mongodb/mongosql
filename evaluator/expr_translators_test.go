@@ -338,8 +338,18 @@ func TestTranslate(t *testing.T) {
 		{"scalar_to_seconds", "to_seconds(s)"},
 		{"scalar_trim", "trim(s)"},
 		{"scalar_trim_date", "trim(g)"},
-		{"scalar_truncate", "truncate(a, 3)"},
-		{"scalar_truncate_negative", "truncate(a, -3)"},
+		{"scalar_truncate_int_literal_posInt", "truncate(a, 3)"},
+		{"scalar_truncate_int_literal_negInt", "truncate(a, -3)"},
+		{"scalar_truncate_int_literal_posFloat", "truncate(a, 3.2)"},
+		{"scalar_truncate_int_literal_negFloat", "truncate(a, -3.6)"},
+		{"scalar_truncate_float_literal_posInt", "truncate(c, 3)"},
+		{"scalar_truncate_float_literal_posFloat", "truncate(c, 2.7)"},
+		{"scalar_truncate_float_literal_negInt", "truncate(c, -2)"},
+		{"scalar_truncate_float_literal_negFloat", "truncate(c, -2.1)"},
+		{"scalar_truncate_int_column_int", "truncate(a,a)"},
+		{"scalar_truncate_int_column_float", "truncate(a,c)"},
+		{"scalar_truncate_float_column_int", "truncate(c,a)"},
+		{"scalar_truncate_float_column_float", "truncate(c,c)"},
 		{"scalar_ucase", "ucase(s)"},
 		// See comment for "scalar_current_date" for why this is commented out.
 		//{"scalar_unix_timestamp", "unix_timestamp()"},
@@ -881,6 +891,10 @@ schema:
         Name: b
         MongoType: int
         SqlType: int
+     -
+        Name: c
+        MongoType: float64
+        SqlType: float64
      -
         Name: loc.1
         MongoType: string

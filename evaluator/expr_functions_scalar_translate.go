@@ -3280,45 +3280,81 @@ func (f *baseScalarFunctionExpr) trimToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) truncateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	// Since the Mongo agg language currently does not have a $trunc operator for versions < 4.1.9, we push down the mySQL truncate() function by using
+	// the following algorithm in the MongoDB agg language. For versions >= 4.1.9, we simply use $trunc.
+	// 1. If both parameters are greater than or equal to zero, then the second parameter is used as an exponent with base 10.
+	// Then, the first parameter is multiplied by this value. For example if we have 3.2456 and 2, then we get 3.2456 * 10^2 = 324.56.
+	// Then, we take the floor (nearest integer less than the given value) of the calculated value. Here, it would be floor(324.56) = 324.
+	// Finally, we divide by 10 to the power of the second parameter. Here, this would be 324/10^2 = 3.24.
+	// 2. If the first parameter is greater than zero and the second parameter is less than zero, the procedure changes a bit. We take 10
+	// raised to the absolute value of the second parameter. Then we divide the first parameter by this value. For example, if we have 324.56 and -2,
+	// we would get 324.56/10^2 = 3.2456. Then, we take the floor of this value, which is 3, and finally multiply that by 10 to the power of the second parameter,
+	// which gives us 300 (negative numbers truncate places to the left of the decimal point).
+	// If the first parameter is less than zero, then we simply use the ceiling rather than the floor at the appropriate part of the algorithm.
+	// If the second parameter is a float, it is rounded to the nearest integer and then the above process is repeated with that integer.
+
 	if len(exprs) != 2 {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(truncate)",
 			incorrectArgCountMsg,
 		)
 	}
-	dValueExpr, ok := exprs[1].(SQLValueExpr)
-	if !ok {
-		return nil, newPushdownFailure("SQLScalarFunctionExpr(truncate)", "second arg is not a literal")
-	}
 
-	d := values.Float64(dValueExpr.Value)
-
+	dValueExpr, isScalar := exprs[1].(SQLValueExpr)
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
 	}
 
-	if d >= 0 {
-		pow := astutil.FloatValue(math.Pow(10, d))
-		return ast.NewBinary(bsonutil.OpDivide,
-			astutil.WrapInCond(
-				ast.NewFunction(bsonutil.OpFloor, ast.NewBinary(bsonutil.OpMultiply, args[0], pow)),
-				ast.NewFunction(bsonutil.OpCeil, ast.NewBinary(bsonutil.OpMultiply, args[0], pow)),
-				ast.NewBinary(bsonutil.OpGte, args[0], astutil.ZeroInt32Literal),
-			),
-			pow,
-		), nil
+	numToTruncate := args[0]
+	truncatePlaces := args[1]
+
+	if t.versionAtLeast(4, 1, 9) {
+		roundedPlaces := astutil.WrapInRound(truncatePlaces)
+		return astutil.WrapInOp(bsonutil.OpTrunc, numToTruncate, roundedPlaces), nil
 	}
 
-	pow := astutil.FloatValue(math.Pow(10, math.Abs(d)))
-	return ast.NewBinary(bsonutil.OpMultiply,
-		pow,
+	var d float64
+	var pow ast.Expr
+
+	if isScalar {
+		d = values.Float64(dValueExpr.Value)
+		pow = astutil.FloatValue(math.Pow(10, math.Abs(math.Round(d))))
+	} else {
+		pow = astutil.WrapInOp(bsonutil.OpPow, astutil.Int32Value(10), astutil.WrapInOp(bsonutil.OpAbs, astutil.WrapInRound(truncatePlaces)))
+	}
+
+	multiplyThenDivide := ast.NewBinary(bsonutil.OpDivide,
 		astutil.WrapInCond(
-			ast.NewFunction(bsonutil.OpFloor, ast.NewBinary(bsonutil.OpDivide, args[0], pow)),
-			ast.NewFunction(bsonutil.OpCeil, ast.NewBinary(bsonutil.OpDivide, args[0], pow)),
-			ast.NewBinary(bsonutil.OpGte, args[0], astutil.ZeroInt32Literal),
+			astutil.WrapInOp(bsonutil.OpFloor, ast.NewBinary(bsonutil.OpMultiply, numToTruncate, pow)),
+			astutil.WrapInOp(bsonutil.OpCeil, ast.NewBinary(bsonutil.OpMultiply, numToTruncate, pow)),
+			ast.NewBinary(bsonutil.OpGte, numToTruncate, astutil.ZeroInt32Literal),
 		),
+		pow,
+	)
+
+	divideThenMultiply := ast.NewBinary(bsonutil.OpMultiply,
+		astutil.WrapInCond(
+			astutil.WrapInOp(bsonutil.OpFloor, ast.NewBinary(bsonutil.OpDivide, numToTruncate, pow)),
+			astutil.WrapInOp(bsonutil.OpCeil, ast.NewBinary(bsonutil.OpDivide, numToTruncate, pow)),
+			ast.NewBinary(bsonutil.OpGte, numToTruncate, astutil.ZeroInt32Literal),
+		),
+		pow,
+	)
+
+	if isScalar {
+		if d >= 0 {
+			return multiplyThenDivide, nil
+		}
+		return divideThenMultiply, nil
+	}
+
+	return astutil.WrapInCond(
+		multiplyThenDivide,
+		divideThenMultiply,
+		ast.NewBinary(bsonutil.OpGte, astutil.WrapInRound(truncatePlaces), astutil.ZeroInt32Literal),
 	), nil
+
 }
 
 func (f *baseScalarFunctionExpr) ucaseToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
