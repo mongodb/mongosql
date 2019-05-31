@@ -1,0 +1,12 @@
+{
+    "id": "5c6daa9a1a45e49da12d3299",
+    "name": "atlas-query-post",
+    "run_as_user_id": "",
+    "run_as_user_id_script_source": "",
+    "options": {
+        "httpMethod": "POST",
+        "secret": "QWEoZcPOrP",
+        "validationMethod": "SECRET_AS_QUERY_PARAM"
+    },
+    "respond_result": true
+}

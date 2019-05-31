@@ -1,0 +1,10 @@
+{
+    "id": "5cf13fd7048fe9a90fa5ee77",
+    "name": "testTrigger",
+    "type": "SCHEDULED",
+    "config": {
+        "schedule": "*/1 * * * *"
+    },
+    "function_name": "testTriggerFunc",
+    "disabled": true
+}
