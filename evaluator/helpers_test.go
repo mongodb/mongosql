@@ -82,11 +82,11 @@ func createOptimizerCfg(c *collation.Collation, eCfg *evaluator.ExecutionConfig)
 }
 
 func createTestPushdownCfg() *evaluator.PushdownConfig {
-	return createPushdownCfg([]uint8{4, 0, 0})
+	return createPushdownCfg([]uint8{4, 0, 0}, values.MySQLValueKind)
 }
 
-func createPushdownCfg(version []uint8) *evaluator.PushdownConfig {
-	return evaluator.CreateTestPushdownCfg(version)
+func createPushdownCfg(version []uint8, sqlValueKind values.SQLValueKind) *evaluator.PushdownConfig {
+	return evaluator.CreateTestPushdownCfg(version, sqlValueKind)
 }
 
 // bsonDToValues takes a bson.D document and returns the corresponding values.

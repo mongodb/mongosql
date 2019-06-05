@@ -539,7 +539,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	optimized, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
 	req.Nil(err, "failed to optimize plan")
 
-	pCfg := createPushdownCfg(version)
+	pCfg := createPushdownCfg(version, values.MySQLValueKind)
 	pushedDown, err := evaluator.PushdownPlan(bgCtx, pCfg, optimized)
 	req.False(err != nil && !evaluator.IsNonFatalPushdownError(err))
 

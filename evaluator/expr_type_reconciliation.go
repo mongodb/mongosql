@@ -56,7 +56,7 @@ func isSimilar(leftType, rightType types.EvalType) bool {
 		return true
 	}
 	if leftType == types.EvalPolymorphic || rightType == types.EvalPolymorphic {
-		return true
+		return false
 	}
 	if leftType.IsNumeric() && rightType.IsNumeric() {
 		return true

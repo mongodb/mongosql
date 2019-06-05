@@ -167,6 +167,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_datediff_mixed_types_bool", "datediff(t, '2000-09-01 13:29:18')"},
 		{"scalar_datediff_mixed_types_int", "datediff(a, '2000-09-01 13:29:18')"},
 		{"scalar_datediff_mixed_types_str", "datediff(s, '2000-09-01 13:29:18')"},
+		{"scalar_datediff_polymorphic", "datediff(p, '2000-09-01 13:29:18')"},
 		{"scalar_day", "day(g)"},
 		{"scalar_day_int", "day(a)"},
 		{"scalar_day_string", "day(s)"},
@@ -532,16 +533,18 @@ func TestTranslate(t *testing.T) {
 	err = file.Close()
 	req.Nil(err, "failed to close cached results file")
 
-	// unmarshal the cached results into a three-dimensional
+	// unmarshal the cached results into a four-dimensional
 	// map, which is structured as follows:
 	// {
 	//   <expr|predicate>: {
 	//     <mongodb_version>: {
-	//       <expr_testcase_name>: <agg_expr_as_json_string>,
-	//	   }
+	//       <expr_testcase_name>: {
+	//         <type_conversion_mode>: <agg_expr_as_json_string>,
+	//       }
+	//     }
 	//   }
 	// }
-	cache := make(map[string]map[string]map[string]string)
+	cache := make(map[string]map[string]map[string]map[string]string)
 	if !*update {
 		err = json.Unmarshal(data, &cache)
 		req.Nil(err, "failed to unmarshal cached results json")
@@ -556,7 +559,13 @@ func TestTranslate(t *testing.T) {
 		{4, 2, 0},
 	}
 
-	type translateFunc func(*testing.T, []uint8, string) string
+	// define the type conversion modes for which we want to test translation
+	sqlValueKinds := []values.SQLValueKind{
+		values.MySQLValueKind,
+		values.MongoSQLValueKind,
+	}
+
+	type translateFunc func(*testing.T, []uint8, string, values.SQLValueKind) string
 	translators := map[string]translateFunc{
 		"expr":      translateExpr,
 		"predicate": translatePredicate,
@@ -566,31 +575,36 @@ func TestTranslate(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if cache[test.name] == nil {
-				cache[test.name] = make(map[string]map[string]string)
+				cache[test.name] = make(map[string]map[string]map[string]string)
 			}
 
 			// run a subtest for each type of translation
 			for typ, translator := range translators {
 				t.Run(typ, func(t *testing.T) {
 					if cache[test.name][typ] == nil {
-						cache[test.name][typ] = make(map[string]string)
+						cache[test.name][typ] = make(map[string]map[string]string)
 					}
 
 					// run a subtest for each version
 					for _, version := range versions {
 						v := formatVersion(version)
-						t.Run(v, func(t *testing.T) {
-							req = require.New(t)
-							actual := translator(t, version, test.sql)
-							if *update {
-								cache[test.name][typ][v] = actual
-								return
-							}
-							expected, ok := cache[test.name][typ][v]
-							req.True(ok, "test case not found in cache")
-							req.Equal(expected, actual, "result does not match cached result")
-
-						})
+						if cache[test.name][typ][v] == nil {
+							cache[test.name][typ][v] = make(map[string]string)
+						}
+						for _, sqlValueKind := range sqlValueKinds {
+							mode := formatSQLValueKind(sqlValueKind)
+							t.Run(v, func(t *testing.T) {
+								req = require.New(t)
+								actual := translator(t, version, test.sql, sqlValueKind)
+								if *update {
+									cache[test.name][typ][v][mode] = actual
+									return
+								}
+								expected, ok := cache[test.name][typ][v][mode]
+								req.True(ok, "test case not found in cache")
+								req.Equal(expected, actual, "result does not match cached result")
+							})
+						}
 					}
 
 				})
@@ -607,6 +621,13 @@ func TestTranslate(t *testing.T) {
 	}
 }
 
+func formatSQLValueKind(sqlValueKind values.SQLValueKind) string {
+	if sqlValueKind == values.MySQLValueKind {
+		return "mysql-mode"
+	}
+	return "mongosql-mode"
+}
+
 func formatVersion(version []uint8) string {
 	versionString := fmt.Sprintf("%d.%d", version[0], version[1])
 	if version[2] != 0 {
@@ -615,7 +636,7 @@ func formatVersion(version []uint8) string {
 	return versionString
 }
 
-func translateExpr(t *testing.T, version []uint8, sql string) string {
+func translateExpr(t *testing.T, version []uint8, sql string, sqlValueKind values.SQLValueKind) string {
 	req := require.New(t)
 
 	testSchema := evaluator.MustLoadSchema(translatorTestSchema)
@@ -623,9 +644,9 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	db := testSchema.Database("translate_test_db")
 	req.NotNil(db, "failed to get db from schema")
 
-	execCfg := createExecutionCfg("translate_test_db", 0, version, values.MySQLValueKind)
+	execCfg := createExecutionCfg("translate_test_db", 0, version, sqlValueKind)
 	optimizerCfg := createOptimizerCfg(collation.Default, execCfg)
-	pushdownCfg := createPushdownCfg(version)
+	pushdownCfg := createPushdownCfg(version, sqlValueKind)
 
 	translator := evaluator.NewPushdownTranslator(
 		pushdownCfg,
@@ -650,7 +671,7 @@ func translateExpr(t *testing.T, version []uint8, sql string) string {
 	return ""
 }
 
-func translatePredicate(t *testing.T, version []uint8, sql string) string {
+func translatePredicate(t *testing.T, version []uint8, sql string, sqlValueKind values.SQLValueKind) string {
 	req := require.New(t)
 
 	testSchema := evaluator.MustLoadSchema(translatorTestSchema)
@@ -658,9 +679,9 @@ func translatePredicate(t *testing.T, version []uint8, sql string) string {
 	db := testSchema.Database("translate_test_db")
 	req.NotNil(db, "could not find database in schema")
 
-	execCfg := createExecutionCfg("translate_test_db", 0, version, values.MySQLValueKind)
+	execCfg := createExecutionCfg("translate_test_db", 0, version, sqlValueKind)
 	optimizerCfg := createOptimizerCfg(collation.Default, execCfg)
-	pushdownCfg := createPushdownCfg(version)
+	pushdownCfg := createPushdownCfg(version, sqlValueKind)
 
 	translator := evaluator.NewPushdownTranslator(
 		pushdownCfg,
@@ -720,11 +741,12 @@ func TestTranslateCurrentDateExpr(t *testing.T) {
 	}
 
 	version := []uint8{3, 6, 0}
+	sqlValueKind := values.MySQLValueKind
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := require.New(t)
-			actual := translateExpr(t, version, test.sql)
+			actual := translateExpr(t, version, test.sql, sqlValueKind)
 			req.Equal(test.expected, actual, "actual agg expr should equal expected agg expr")
 		})
 	}
@@ -748,7 +770,8 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		req.NotNil(db, "could not find db in schema")
 
 		version := []uint8{3, 4, 0}
-		pushdownCfg := createPushdownCfg(version)
+		sqlValueKind := values.MySQLValueKind
+		pushdownCfg := createPushdownCfg(version, sqlValueKind)
 
 		translator := evaluator.NewPushdownTranslator(
 			pushdownCfg,
@@ -910,6 +933,11 @@ schema:
         MongoType: date
         SqlName: h
         SqlType: date
+     -
+        Name: p
+        MongoType: int
+        SqlName: p
+        SqlType:
      -
         Name: s
         MongoType: string

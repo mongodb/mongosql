@@ -56,12 +56,12 @@ func CreateTestOptimizerCfg(c *collation.Collation, eCfg *ExecutionConfig) *Opti
 
 // CreateTestPushdownCfg returns a new PushdownConfig for use in unit tests.
 // This function should only be called from evaluator unit tests.
-func CreateTestPushdownCfg(mongoDBVersion []uint8) *PushdownConfig {
+func CreateTestPushdownCfg(mongoDBVersion []uint8, sqlValueKind values.SQLValueKind) *PushdownConfig {
 	return &PushdownConfig{
 		lg:                log.GlobalLogger(),
 		shouldPushDown:    true,
 		pushDownSelfJoins: true,
-		sqlValueKind:      values.MySQLValueKind,
+		sqlValueKind:      sqlValueKind,
 		mongoDBVersion:    mongoDBVersion,
 	}
 }

@@ -510,7 +510,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					optimizedPlan, err := OptimizePlan(context.Background(), oCfg, plan)
 					req.Nil(err, "failed to optimize plan")
 
-					pCfg := createPushdownCfg(versionByStr[version])
+					pCfg := createPushdownCfg(versionByStr[version], MySQLValueKind)
 					pushedDown, err := PushdownPlan(bgCtx, pCfg, optimizedPlan)
 
 					var actualPlan PlanStage
@@ -772,7 +772,7 @@ func TestPushdownSharding(t *testing.T) {
 				optimized, err := OptimizePlan(context.Background(), oCfg, plan)
 				req.NoError(err)
 
-				pCfg := createPushdownCfg(version)
+				pCfg := createPushdownCfg(version, MySQLValueKind)
 				pushedDown, err := PushdownPlan(bgCtx, pCfg, optimized)
 
 				var actualPlan PlanStage
