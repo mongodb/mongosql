@@ -383,7 +383,7 @@ func (f *atanSingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, 
 }
 
 func (f *atanSingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	return f.atanToAggregationLanguage(t, f.args)
 }
 
 func (f *atanSingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
@@ -465,7 +465,7 @@ func (f *atanDualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st
 }
 
 func (f *atanDualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	return f.atanToAggregationLanguage(t, f.args)
 }
 
 func (f *atanDualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
@@ -547,7 +547,7 @@ func (f *atan2SingleArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig,
 }
 
 func (f *atan2SingleArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	return f.atan2ToAggregationLanguage(t, f.args)
 }
 
 func (f *atan2SingleArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
@@ -629,7 +629,7 @@ func (f *atan2DualArgFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 }
 
 func (f *atan2DualArgFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	return f.atan2ToAggregationLanguage(t, f.args)
 }
 
 func (f *atan2DualArgFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {

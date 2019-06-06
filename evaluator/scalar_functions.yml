@@ -114,7 +114,6 @@ functions:
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_atan
     names: ['atan']
-    no_pushdown: true
     separate_invocation_evaluation: true
 
   - _id: atan2
@@ -131,7 +130,6 @@ functions:
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_atan2
     names: ['atan2']
-    no_pushdown: true
     separate_invocation_evaluation: true
 
   - _id: ceil

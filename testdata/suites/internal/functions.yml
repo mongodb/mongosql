@@ -1324,7 +1324,7 @@ testcases:
       - [1]
     expected_types: [int]
     id: radians_degrees_roundtrip
-    sql: select radians(degrees(n)) = n as roundtrip from numbers
+    sql: select abs(radians(degrees(n)) - n) <= 0.0001 as roundtrip from numbers
 
   - db: functions_test
     description: This is a property only of Go's random number generator. This does NOT hold true for MySQL. This MAY CHANGE with Go version

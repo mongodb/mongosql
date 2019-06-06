@@ -83,12 +83,19 @@ func (f *baseScalarFunctionExpr) acosToAggregationLanguage(t *PushdownTranslator
 		ast.NewLetVariable("input", args[0]),
 	}
 
+	var acosExpr ast.Expr
+	if t.versionAtLeast(4, 1, 7) {
+		acosExpr = ast.NewFunction(bsonutil.OpAcos, input)
+	} else {
+		acosExpr = astutil.WrapInAcosComputation(input)
+	}
+
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin x + acos x = pi/2
 	return ast.NewLet(assignments,
 		astutil.WrapInCond(
 			astutil.NullLiteral,
-			astutil.WrapInAcosComputation(input),
+			acosExpr,
 			ast.NewBinary(bsonutil.OpLt, input, astutil.FloatValue(-1.0)),
 			ast.NewBinary(bsonutil.OpGt, input, astutil.FloatValue(1.0)),
 		),
@@ -112,20 +119,55 @@ func (f *baseScalarFunctionExpr) asinToAggregationLanguage(t *PushdownTranslator
 		ast.NewLetVariable("input", args[0]),
 	}
 
+	var asinExpr ast.Expr
+	if t.versionAtLeast(4, 1, 7) {
+		asinExpr = ast.NewFunction(bsonutil.OpAsin, input)
+	} else {
+		asinExpr = ast.NewBinary(bsonutil.OpSubtract,
+			astutil.PiOverTwoLiteral,
+			astutil.WrapInAcosComputation(input),
+		)
+	}
+
 	// MySQL returns NULL for values outside of the range [-1,1].
 	// asin(x) =  pi/2 - cos(x) via the identity:
 	// asin(x) + acos(x) = pi/2.
 	return ast.NewLet(assignments,
 		astutil.WrapInCond(
 			astutil.NullLiteral,
-			ast.NewBinary(bsonutil.OpSubtract,
-				astutil.PiOverTwoLiteral,
-				astutil.WrapInAcosComputation(input),
-			),
+			asinExpr,
 			ast.NewBinary(bsonutil.OpLt, input, astutil.FloatValue(-1.0)),
 			ast.NewBinary(bsonutil.OpGt, input, astutil.FloatValue(1.0)),
 		),
 	), nil
+}
+
+func (f *baseScalarFunctionExpr) atanToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	if !t.versionAtLeast(4, 1, 7) {
+		return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	}
+
+	if len(exprs) == 1 || len(exprs) == 2 {
+		args, err := t.translateArgs(exprs)
+		if err != nil {
+			return nil, err
+		}
+		if len(exprs) == 1 {
+			return astutil.WrapInOp(bsonutil.OpAtan, args[0]), nil
+		}
+		if len(exprs) == 2 {
+			return astutil.WrapInOp(bsonutil.OpAtan2, args[0], args[1]), nil
+		}
+	}
+
+	return nil, newPushdownFailure(
+		"SQLScalarFunctionExpr(atan)",
+		incorrectArgCountMsg,
+	)
+}
+
+func (f *baseScalarFunctionExpr) atan2ToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	return f.atanToAggregationLanguage(t, exprs)
 }
 
 func (f *baseScalarFunctionExpr) ceilToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -476,6 +518,10 @@ func (f *baseScalarFunctionExpr) cosToAggregationLanguage(t *PushdownTranslator,
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
+	}
+
+	if t.versionAtLeast(4, 1, 7) {
+		return ast.NewFunction(bsonutil.OpCos, args[0]), nil
 	}
 
 	input := ast.NewVariableRef("input")
@@ -886,6 +932,10 @@ func (f *baseScalarFunctionExpr) degreesToAggregationLanguage(t *PushdownTransla
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
+	}
+
+	if t.versionAtLeast(4, 1, 7) {
+		return ast.NewFunction(bsonutil.OpRadiansToDegrees, args[0]), nil
 	}
 
 	return ast.NewBinary(bsonutil.OpDivide,
@@ -1865,6 +1915,10 @@ func (f *baseScalarFunctionExpr) radiansToAggregationLanguage(t *PushdownTransla
 		return nil, err
 	}
 
+	if t.versionAtLeast(4, 1, 7) {
+		return ast.NewFunction(bsonutil.OpDegreesToRadians, args[0]), nil
+	}
+
 	return ast.NewBinary(bsonutil.OpDivide,
 		ast.NewBinary(bsonutil.OpMultiply, args[0], astutil.PiLiteral),
 		astutil.FloatValue(180.0),
@@ -2142,6 +2196,10 @@ func (f *baseScalarFunctionExpr) sinToAggregationLanguage(t *PushdownTranslator,
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
+	}
+
+	if t.versionAtLeast(4, 1, 7) {
+		return ast.NewFunction(bsonutil.OpSin, args[0]), nil
 	}
 
 	inputRef := ast.NewVariableRef("input")
@@ -2432,6 +2490,21 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 }
 
 func (f *baseScalarFunctionExpr) tanToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	if len(exprs) != 1 {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(tan)",
+			incorrectArgCountMsg,
+		)
+	}
+
+	if t.versionAtLeast(4, 1, 7) {
+		args, err := t.translateArgs(exprs)
+		if err != nil {
+			return nil, err
+		}
+		return ast.NewFunction(bsonutil.OpTan, args[0]), nil
+	}
+
 	num, err := f.sinToAggregationLanguage(t, []SQLExpr{exprs[0]})
 	if err != nil {
 		return nil, err
