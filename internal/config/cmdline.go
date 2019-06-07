@@ -15,7 +15,10 @@ import (
 	"github.com/jessevdk/go-flags"
 )
 
-const usage = `mongosqld [install|uninstall] <options>`
+const usage = `mongosqld [install|uninstall] <options>
+
+Documentation:
+  https://docs.mongodb.com/bi-connector/current/reference/mongosqld/#msqld-core-options`
 
 // ErrExitEarly is used to check if mongosqld should exit early with a normal
 // exit code (for --help, --version, etc)
@@ -628,7 +631,7 @@ type schemaOptions struct {
 	SchemaRefreshIntervalSecs *int64  `long:"schemaRefreshIntervalSecs" description:"the interval (in seconds) mongosqld waits before updating its schema"`
 
 	StoredSchemaSource *string `long:"schemaSource" description:"database to use for stored schemas"`
-	StoredSchemaMode   *string `long:"schemaMode" description:"set the stored-schema mode ('' by default)" choice:"auto" choice:"custom"`
+	StoredSchemaMode   *string `long:"schemaMode" description:"set the stored-schema mode (https://docs.mongodb.com/bi-connector/current/reference/mongosqld/#sampling-mode-reference-chart)" choice:"auto" choice:"custom"`
 	StoredSchemaName   *string `long:"schemaName" description:"the name of the stored schema to use in custom mode ('defaultSchema' by default)"`
 
 	SampleSize *int64 `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (1000 by default)"`
