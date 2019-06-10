@@ -326,7 +326,7 @@ func (a *algebrizer) lookupColumn(databaseName, tableName, columnName string) (*
 func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn, bool, error) {
 	var result ProjectedColumn
 	found := false
-	for _, pc := range a.projectedColumns {
+	for index, pc := range a.projectedColumns {
 		if strings.EqualFold(pc.Name, columnName) {
 			if found {
 				return nil,
@@ -334,6 +334,18 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 					mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
 						columnName,
 						a.currentClause)
+			}
+			// If lookupProjectedColumn is called during the translation of a group clause, we must
+			// check that the column requested to group by is not an aggregation function already
+			// mapped into projectedColumnAggregateMap. If that's the case, we return an error and
+			// do not proceed to pushdown.
+			if strings.EqualFold(a.currentClause, groupClause) {
+				if _, ok := a.projectedColumnAggregateMap[index+1]; ok {
+					return nil,
+						false,
+						mysqlerrors.Defaultf(mysqlerrors.ErWrongGroupField,
+							columnName)
+				}
 			}
 			result = pc
 			found = true

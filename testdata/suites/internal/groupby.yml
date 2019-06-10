@@ -12,6 +12,30 @@ testcases:
     sql: select a from groupby_test.groupby group by a order by a
 
   - db: groupby_test
+    description: Group by starred aggregation function that has been aliased
+    expected_error: "Error 1056: Can't group on 'f'"
+    id: 'aggregation_aliased_groupBy_1'
+    sql: select a as g, count(*) as f from groupby_test.groupby group by f order by g
+
+  - db: groupby_test
+    description: Group by unstarred aggregation function that has been aliased
+    expected_error: "Error 1056: Can't group on 'g'"
+    id: 'aggregation_aliased_groupBy_2'
+    sql: select a as f, sum(a) as g from groupby_test.groupby group by g order by g
+
+  - db: groupby_test
+    description: Group by sum of variable column and unstarred aggregation function that has been aliased
+    expected_error: "Error 1056: Can't group on 'g'"
+    id: 'aggregation_aliased_groupBy_3'
+    sql: select a as f, a+sum(a) as g from groupby_test.groupby group by g order by a
+
+  - db: groupby_test
+    description: Group by sum of starred aggregation function and variable column that has been aliased
+    expected_error: "Error 1056: Can't group on 'f'"
+    id: 'aggregation_aliased_groupBy_4'
+    sql: select a as g, count(*)+a as f from groupby_test.groupby group by f order by a
+
+  - db: groupby_test
     description: no aggregations with ordinal
     expected_names: [a]
     expected_results:
