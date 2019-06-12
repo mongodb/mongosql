@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/mongoast/ast"
 
 	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
@@ -25,7 +24,7 @@ type mockCmdHandler struct {
 	session *mongodb.Session
 }
 
-func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (ops.Cursor, error) {
+func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (mongodb.Cursor, error) {
 	return c.session.Aggregate(ctx, db, col, pipeline)
 }
 func (*mockCmdHandler) Alter(context.Context, []*schema.Alteration) error {

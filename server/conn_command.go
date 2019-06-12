@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -34,7 +33,7 @@ func (ch *commandHandler) isAdminUser() bool {
 	return ch.conn.server.isAdminUser(user, source)
 }
 
-func (ch *commandHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (ops.Cursor, error) {
+func (ch *commandHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (mongodb.Cursor, error) {
 	return ch.conn.session.Aggregate(ctx, db, col, pipeline)
 }
 

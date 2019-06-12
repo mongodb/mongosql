@@ -14,10 +14,9 @@ import (
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
-
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 )
 
 // QueryConfig is a container for all the values needed to process a SQL query.
@@ -157,7 +156,7 @@ func NewExecutionConfig(lg log.Logger, vars catalog.VariableContainer, cmds Comm
 type CommandHandler interface {
 	// Aggregate runs the provided aggregation pipeline against the
 	// specified database and collection.
-	Aggregate(ctx context.Context, db, col string, pipeline interface{}) (ops.Cursor, error)
+	Aggregate(ctx context.Context, db, col string, pipeline interface{}) (mongodb.Cursor, error)
 	// Alter executes schema alterations. It must occur in the server
 	// as that is where the schemata are maintained.
 	Alter(context.Context, []*schema.Alteration) error

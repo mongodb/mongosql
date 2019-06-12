@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2218: No user-facing changes.
 BI-2231: No user-facing changes.
 BI-2016: No user-facing changes.
 BI-2099: No user-facing changes.
