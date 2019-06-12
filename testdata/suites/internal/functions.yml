@@ -6054,6 +6054,34 @@ testcases:
     sql: select t, timestampadd(second, 1.5, t) sec, timestampadd(minute, 1.5, t) min, timestampadd(quarter, 9, t) qtr from timestamps
 
   - db: functions_test
+    expected_names: [t, p, m, m2, q]
+    expected_results:
+      - ['2010-10-11 00:00:00', '2011-11-11 00:00:00', '2010-09-11 00:00:00', '2009-07-11 00:00:00', '2010-01-11 00:00:00']
+      - ['2010-10-11 11:10:23', '2011-11-11 11:10:23', '2010-09-11 11:10:23', '2009-07-11 11:10:23', '2010-01-11 11:10:23']
+      - ['2010-10-11 11:10:23.123000', '2011-11-11 11:10:23.123000', '2010-09-11 11:10:23.123000', '2009-07-11 11:10:23.123000', '2010-01-11 11:10:23.123000']
+      - ['2003-08-31 00:00:00', '2004-09-30 00:00:00', '2003-07-31 00:00:00', '2002-05-31 00:00:00', '2002-11-30 00:00:00']
+      - ['2004-01-30 00:00:00', '2005-02-28 00:00:00', '2003-12-30 00:00:00', '2002-10-30 00:00:00', '2003-04-30 00:00:00']
+      - [null, null, null, null, null]
+      - [null, null, null, null, null]
+    expected_types: [varchar, varchar, varchar, varchar, varchar]
+    id: timestampadd_outofrangemonth
+    sql: select t, timestampadd(month, 13, t) p, timestampadd(month, -1, t) m, timestampadd(month, -15, t) m2, timestampadd(quarter, -3, t) q from timestampAdd
+
+  - db: functions_test
+    expected_names: [t, p, p2, m, m2]
+    expected_results:
+      - ['2010-10-11 00:00:00', '2010-10-13 00:00:00', '2011-01-09 00:00:00', '2010-09-26 00:00:00', '2010-09-11 00:00:00']
+      - ['2010-10-11 11:10:23', '2010-10-13 11:10:23', '2011-01-09 11:10:23', '2010-09-26 11:10:23', '2010-09-11 11:10:23']
+      - ['2010-10-11 11:10:23.123000', '2010-10-13 11:10:23.123000', '2011-01-09 11:10:23.123000', '2010-09-26 11:10:23.123000', '2010-09-11 11:10:23.123000']
+      - ['2003-08-31 00:00:00', '2003-09-02 00:00:00', '2003-11-29 00:00:00', '2003-08-16 00:00:00', '2003-08-01 00:00:00']
+      - ['2004-01-30 00:00:00', '2004-02-01 00:00:00', '2004-04-29 00:00:00', '2004-01-15 00:00:00', '2003-12-31 00:00:00']
+      - [null, null, null, null, null]
+      - [null, null, null, null, null]
+    expected_types: [varchar, varchar, varchar, varchar, varchar]
+    id: timestampadd_outofrangeday
+    sql: select t, timestampadd(day, 2, t) p, timestampadd(day, 90, t) p2, timestampadd(day, -15, t) m, timestampadd(day, -30, t) m2 from timestampAdd
+
+  - db: functions_test
     description: check pushdown for timestampadd with leap years and last days being significant
     expected_names: [t, mo]
     expected_results:
@@ -6280,6 +6308,17 @@ testcases:
     expected_types: [int, varchar]
     id: curdate_1
     sql: select _id + curdate() - curdate() as r1, concat(curdate() - curdate(), b) as r2 from scalar
+
+  - db: functions_test
+    description: show that unix_timestamp pushdown works
+    expected_names: [a, b, c, d, e, f, g]
+    expected_results:
+      - [null, null, 1046408400, 1286769600, 1286773261, null, null]
+      - [1046408400, null, null, 1286773261, 1286769600, 1286769600, null]
+      - [null, null, null, 1286773261, null, null, null]
+    expected_types: [int, int, int, int, int, int, int]
+    id: unix_timestamp
+    sql: select unix_timestamp(a) as a, unix_timestamp(b) as b, unix_timestamp(c) as c, unix_timestamp(d) as d, unix_timestamp(e) as e, unix_timestamp(f) as f, unix_timestamp(g) as g from unixTimestamp
 
   - db: functions_test
     description: show that curdate push_down works. This test will stop working in 2166... be warned

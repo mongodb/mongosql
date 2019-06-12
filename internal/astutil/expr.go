@@ -300,15 +300,6 @@ func WrapInDateFormat(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
 	), true
 }
 
-// WrapInDateFromParts returns a date given the year, month and day passed in.
-func WrapInDateFromParts(year, month, dayOfMonth ast.Expr) ast.Expr {
-	return ast.NewFunction(bsonutil.OpDateFromParts, ast.NewDocument(
-		ast.NewDocumentElement("year", ast.NewFunction(bsonutil.OpYear, year)),
-		ast.NewDocumentElement("month", ast.NewFunction(bsonutil.OpMonth, month)),
-		ast.NewDocumentElement("day", ast.NewFunction(bsonutil.OpDayOfMonth, dayOfMonth)),
-	))
-}
-
 // WrapInDateToString converts date to a string according to the specified format.
 func WrapInDateToString(date ast.Expr, format string) *ast.Function {
 	return ast.NewFunction(bsonutil.OpDateToString, ast.NewDocument(

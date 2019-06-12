@@ -106,9 +106,11 @@ func translateConvert(expr ast.Expr, from, to types.EvalType) ast.Expr {
 			converted := astutil.WrapInDateToString(expr, "%Y-%m-%d")
 			return converted
 		}
-
-		// If the expression is a date, mask its time fields.
-		expr = astutil.WrapInDateFromParts(expr, expr, expr)
+		expr = ast.NewFunction(bsonutil.OpDateFromParts, ast.NewDocument(
+			ast.NewDocumentElement("year", ast.NewFunction(bsonutil.OpYear, expr)),
+			ast.NewDocumentElement("month", ast.NewFunction(bsonutil.OpMonth, expr)),
+			ast.NewDocumentElement("day", ast.NewFunction(bsonutil.OpDayOfMonth, expr)),
+		))
 	}
 
 	defaultVal := astutil.NullLiteral
@@ -855,17 +857,4 @@ func getProjectedFieldName(fieldName string, fieldType types.EvalType) ast.Expr 
 	}
 
 	return astutil.FieldRefFromFieldName(fieldName)
-}
-
-// containsBSONType returns an expression that evaluates to true if types
-// contains the BSON type of v.
-func containsBSONType(v ast.Expr, types ...string) *ast.Function {
-	vType := astutil.WrapInType(v)
-	checks := make([]ast.Expr, len(types))
-
-	for i, t := range types {
-		checks[i] = ast.NewBinary(bsonutil.OpEq, vType, astutil.StringValue(t))
-	}
-
-	return astutil.WrapInOp(bsonutil.OpOr, checks...)
 }

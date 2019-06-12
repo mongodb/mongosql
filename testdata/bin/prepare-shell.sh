@@ -38,6 +38,9 @@ fi
 
 MYSQL_PATH="$ARTIFACTS_DIR/mysql/bin"
 
+# define the timezone variable
+TZ='EST5EDT'
+
 # if on cygwin, convert paths as needed
 if [ "Windows_NT" = "$OS" ]; then
     SCRIPT_DIR="$(cygpath -m $SCRIPT_DIR)"
@@ -50,6 +53,7 @@ if [ "Windows_NT" = "$OS" ]; then
     GOPATH="$(cygpath -m $GOPATH)"
     KRB5_TRACE="$(cygpath -m $KRB5_TRACE)"
     GOCACHE="$(cygpath -m $GOCACHE)"
+    tzutil /s "Eastern Standard Time"
 fi
 
 PATH="$GOBINDIR:$PYTHON_PATH:$MYSQL_PATH:$MONGODB_BINARIES:$PATH:$MINGW_PATH:$LIBRARY_PATH:$GOBIN:$GOROOT"
@@ -141,6 +145,7 @@ export SQLPROXY_AUTHTEST
 export SQLPROXY_MEMORY_MANAGER_FAILPOINT_OFF
 export SQLPROXY_SSLTEST
 export GO_TEST_CLIENT_SSL
+export TZ
 
 # define the function that prints the exit message at the end of each script
 print_exit_msg() {

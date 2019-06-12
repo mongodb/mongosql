@@ -363,6 +363,24 @@
     - {}
 
 - db: "functions_test"
+  collection: "timestampAdd"
+  docs:
+    - {t: {$date: '2010-10-11T00:00:00Z'}}
+    - {t: {$date: '2010-10-11T11:10:23Z'}}
+    - {t: {$date: '2010-10-11T11:10:23.123Z'}}
+    - {t: {$date: '2003-08-31T00:00:00Z'}}
+    - {t: {$date: '2004-01-30T00:00:00Z'}}
+    - {t: null}
+    - {}
+
+- db: "functions_test"
+  collection: "unixTimestamp"
+  docs:
+    - {a: 20100230000000, b: null, c: 20030228, d: {$date: '2010-10-11T00:00:00Z'}, e: '20101011010101', f: '2010', g: 4.5}
+    - {a: 030228, b: null, c: 2003, d: {$date: '2010-10-11T01:01:01Z'}, e: '2010-10-11', f: '10-10-11',  g: 4.57}
+    - {a: -1, b: 20001301, c: 20000431, d: {$date: '2010-10-11T01:01:01Z'}, e: '10000-01-01', f: '20000101250000',  g: 4.5}
+
+- db: "functions_test"
   collection: "inserts"
   docs:
     - {s: 'Quadratic', pos: 3, len: 4, newstr: 'What'}

@@ -1736,8 +1736,10 @@ func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind values.SQLValu
 		y, mp, d := t.Date()
 		m := int(mp)
 		interval := v * 3
-		y += (m + interval - 1) / 12
-		m = (m+interval-1)%12 + 1
+		y += int(math.Floor(float64(m+interval-1) / float64(12)))
+		// want to calculate ((m + interval - 1) mod 12), but Go's % operator does remainder
+		// a mod b = ((a % b) + b) % b
+		m = (((m+interval-1)%12)+12)%12 + 1
 		switch m {
 		case 2:
 			if isLeapYear(y) {
@@ -1773,8 +1775,10 @@ func (f baseScalarFunctionExpr) timestampAddEvaluate(sqlValueKind values.SQLValu
 		y, mp, d := t.Date()
 		m := int(mp)
 		interval := v
-		y += (m + interval - 1) / 12
-		m = (m+interval-1)%12 + 1
+		y += int(math.Floor(float64(m+interval-1) / float64(12)))
+		// want to calculate ((m + interval - 1) mod 12), but Go's % operator does remainder
+		// a mod b = ((a % b) + b) % b
+		m = (((m+interval-1)%12)+12)%12 + 1
 		switch m {
 		case 2:
 			if isLeapYear(y) {
@@ -1902,7 +1906,7 @@ func (f baseScalarFunctionExpr) timestampEvaluate(sqlValueKind values.SQLValueKi
 	t = t.In(schema.DefaultLocale)
 
 	if len(vs) == 1 {
-		return values.NewSQLTimestamp(sqlValueKind, t), nil
+		panic(fmt.Errorf("timestampEvaluate should only be called with 2 arguments"))
 	}
 
 	d, ok := parseDuration(vs[1])

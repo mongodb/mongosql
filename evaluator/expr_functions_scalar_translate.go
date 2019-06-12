@@ -2698,16 +2698,24 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 		}
 
 		newYearMonthLetAssignment = []*ast.LetVariable{
-			// Year = Year + SharedComputation / 12, where / truncates.
+			// Year = Year + floor(SharedComputation / 12).
 			ast.NewLetVariable("newYear", ast.NewBinary(bsonutil.OpAdd,
 				ast.NewFunction(bsonutil.OpYear, timestampArgRef),
-				astutil.WrapInIntDiv(sharedComputationRef, astutil.Int32Value(12)),
+				astutil.WrapInOp(bsonutil.OpFloor,
+					ast.NewBinary(bsonutil.OpDivide, sharedComputationRef, astutil.Int32Value(12))),
 			)),
 
-			// Month = SharedComputation % 12 + 1.
+			// Month = ((SharedComputation % 12) + 12) % 12 + 1 in order to get month between 1-12.
+			// want to calculate (sharedComputation mod 12), but Go's % operator does remainder
+			// a mod b = ((a % b) + b) % b
 			ast.NewLetVariable("newMonth", ast.NewBinary(bsonutil.OpAdd,
 				astutil.OneInt32Literal,
-				ast.NewBinary(bsonutil.OpMod, sharedComputationRef, astutil.Int32Value(12)),
+				ast.NewBinary(bsonutil.OpMod,
+					ast.NewBinary(bsonutil.OpAdd,
+						ast.NewBinary(bsonutil.OpMod, sharedComputationRef, astutil.Int32Value(12)),
+						astutil.Int32Value(12),
+					),
+					astutil.Int32Value(12)),
 			)),
 		}
 
@@ -2890,322 +2898,6 @@ func (f *baseScalarFunctionExpr) timestampDiffToAggregationLanguage(t *PushdownT
 	}
 }
 
-func (f *baseScalarFunctionExpr) timestampToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 5, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(timestamp)",
-			"cannot push down to MongoDB < 3.5",
-		)
-	}
-
-	if len(exprs) != 1 {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(timestamp)",
-			incorrectArgCountMsg,
-		)
-	}
-
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
-	valRef := ast.NewVariableRef("val")
-	inputLet := []*ast.LetVariable{
-		ast.NewLetVariable("val", args[0]),
-	}
-
-	wrapInDateFromString := func(v ast.Expr) *ast.Function {
-		return ast.NewFunction(bsonutil.OpDateFromString,
-			ast.NewDocument(ast.NewDocumentElement("dateString", v)))
-	}
-
-	// CASE 1: it's already a Mongo date, we just return it
-	isDateType := containsBSONType(valRef, "date")
-	dateBranch := astutil.WrapInCase(isDateType, valRef)
-
-	// CASE 2: it's a number.
-	isNumber := containsBSONType(valRef, "int", "decimal", "long", "double")
-
-	// evaluates to true if val positive and has <= X digits.
-	hasUpToXDigits := func(x float64) ast.Expr {
-		return astutil.WrapInInRange(valRef, 0, math.Pow(10, x))
-	}
-
-	// This handles converting a number in YYMMDDHHMMSS format to YYYYMMDDHHMMSS.
-	// if YY < 70, we assume they meant 20YY. if YY > 70, we assume 19YY.
-	getPadding := func(v ast.Expr) ast.Expr {
-		return astutil.WrapInCond(
-			astutil.Int64Value(20000000000000),
-			astutil.Int64Value(19000000000000),
-			ast.NewBinary(bsonutil.OpLt,
-				ast.NewBinary(bsonutil.OpDivide, v, astutil.Int64Value(10000000000)),
-				astutil.Int32Value(70)),
-		)
-	}
-
-	// Constant for the HHMMSS factor to handle dates that do not have HHMMSS.
-	hhmmssFactor := astutil.Int32Value(1000000)
-
-	// We interpret this as being format YYMMDD, multiply by hhmmssFactor for HHMMSS then pad.
-	ifSix := ast.NewBinary(bsonutil.OpAdd,
-		ast.NewBinary(bsonutil.OpMultiply, valRef, hhmmssFactor),
-		getPadding(ast.NewBinary(bsonutil.OpMultiply, valRef, hhmmssFactor)),
-	)
-	sixBranch := astutil.WrapInCase(hasUpToXDigits(6), ifSix)
-
-	// This number is YYYYMMDD, again, multiply by hhmmssFactor.
-	eightBranch := astutil.WrapInCase(hasUpToXDigits(8), ast.NewBinary(bsonutil.OpMultiply, valRef, hhmmssFactor))
-
-	// If it's twelve digits, interpret as YYMMDDHHMMSS. Make sure to pad the number.
-	ifTwelve := astutil.WrapInOp(bsonutil.OpAdd, valRef, getPadding(valRef))
-	twelveBranch := astutil.WrapInCase(hasUpToXDigits(12), ifTwelve)
-
-	// if fourteen, YYYYMMDDHHMMSS, we can use as it as is.
-	fourteenBranch := astutil.WrapInCase(hasUpToXDigits(14), valRef)
-
-	// define "num", the input number normalized to 14 digits, in a "let"
-	numberVar := astutil.WrapInSwitch(astutil.NullLiteral, sixBranch, eightBranch, twelveBranch, fourteenBranch)
-	numberLetVars := []*ast.LetVariable{ast.NewLetVariable("num", numberVar)}
-	numRef := ast.NewVariableRef("num")
-
-	oneHundred := astutil.Int32Value(100)
-
-	dateParts := []*ast.LetVariable{
-		// YYYYMMDDHHMMSS / 10000000000 = YYYY
-		ast.NewLetVariable("year", ast.NewFunction(bsonutil.OpTrunc,
-			ast.NewBinary(bsonutil.OpDivide, numRef, astutil.Int64Value(10000000000)),
-		)),
-
-		// (YYYYMMDDHHMMSS / 100000000) % 100 = MM
-		ast.NewLetVariable("month", ast.NewBinary(bsonutil.OpMod,
-			ast.NewFunction(bsonutil.OpTrunc,
-				ast.NewBinary(bsonutil.OpDivide, numRef, astutil.Int32Value(100000000)),
-			),
-			oneHundred,
-		)),
-
-		// YYYYMMDDHHMMSS / 1000000) % 100 = DD
-		ast.NewLetVariable("day", astutil.WrapInOp(bsonutil.OpMod,
-			ast.NewFunction(bsonutil.OpTrunc,
-				ast.NewBinary(bsonutil.OpDivide, numRef, astutil.Int32Value(1000000)),
-			),
-			oneHundred,
-		)),
-
-		// YYYYMMDDHHMMSS / 10000) % 100 = HH
-		ast.NewLetVariable("hour", astutil.WrapInOp(bsonutil.OpMod,
-			ast.NewFunction(bsonutil.OpTrunc,
-				ast.NewBinary(bsonutil.OpDivide, numRef, astutil.Int32Value(10000)),
-			),
-			oneHundred,
-		)),
-
-		// YYYYMMDDHHMMSS / 100) % 100 = MM
-		ast.NewLetVariable("minute", astutil.WrapInOp(bsonutil.OpMod,
-			ast.NewFunction(bsonutil.OpTrunc,
-				ast.NewBinary(bsonutil.OpDivide, numRef, oneHundred),
-			),
-			oneHundred,
-		)),
-
-		// YYYYMMDDHHMMSS % 100 = SS
-		ast.NewLetVariable("second", ast.NewFunction(bsonutil.OpTrunc,
-			astutil.WrapInOp(bsonutil.OpMod, numRef, oneHundred),
-		)),
-
-		// YYYYMMDDHHMMSS.FFFFF % 1 * 1000 = ms
-		ast.NewLetVariable("millisecond", ast.NewFunction(bsonutil.OpTrunc,
-			ast.NewBinary(bsonutil.OpMultiply,
-				ast.NewBinary(bsonutil.OpMod, numRef, astutil.OneInt32Literal),
-				astutil.Int32Value(1000),
-			),
-		)),
-	}
-
-	yearRef := ast.NewVariableRef("year")
-	monthRef := ast.NewVariableRef("month")
-	dayRef := ast.NewVariableRef("day")
-	hourRef := ast.NewVariableRef("hour")
-	minuteRef := ast.NewVariableRef("minute")
-	secondRef := ast.NewVariableRef("second")
-
-	// try to avoid aggregation errors by catching obviously invalid dates
-	yearValid := astutil.WrapInInRange(yearRef, 0, 10000)
-	monthValid := astutil.WrapInInRange(monthRef, 1, 13)
-	dayValid := astutil.WrapInInRange(dayRef, 1, 32)
-	// Mongo DB actually supports HH=24 which converts to 0, but MySQL does not (it returns NULL)
-	// so we stick to MySQL semantics and cap valid hours at 23.
-	// Interestingly, $dateFromString does NOT support HH=24.
-	hourValid := astutil.WrapInInRange(hourRef, 0, 24)
-	minuteValid := astutil.WrapInInRange(minuteRef, 0, 60)
-	secondValid := astutil.WrapInInRange(secondRef, 0, 60)
-
-	makeDateOrNull := astutil.WrapInCond(
-		ast.NewFunction(bsonutil.OpDateFromParts, ast.NewDocument(
-			ast.NewDocumentElement("year", yearRef),
-			ast.NewDocumentElement("month", monthRef),
-			ast.NewDocumentElement("day", dayRef),
-			ast.NewDocumentElement("hour", hourRef),
-			ast.NewDocumentElement("minute", minuteRef),
-			ast.NewDocumentElement("second", secondRef),
-			ast.NewDocumentElement("millisecond", ast.NewVariableRef("millisecond")),
-		)),
-		astutil.NullLiteral,
-		astutil.WrapInOp(bsonutil.OpAnd, yearValid, monthValid, dayValid, hourValid, minuteValid, secondValid),
-	)
-
-	evaluateNumber := ast.NewLet(dateParts, makeDateOrNull)
-	handleNumberToDate := ast.NewLet(numberLetVars, evaluateNumber)
-	numberBranch := astutil.WrapInCase(isNumber, handleNumberToDate)
-
-	// CASE 3: it's a string
-	isString := containsBSONType(valRef, "string")
-
-	// First split on T, take first substring, then split that on " ", and
-	// take first substring. this gives us just the date part of the
-	// string. note that if the string doesn't have T or a space, just
-	// returns original string
-	trimmedDateString := astutil.WrapInOp(bsonutil.OpArrElemAt,
-		astutil.WrapInOp(bsonutil.OpSplit,
-			astutil.WrapInOp(bsonutil.OpArrElemAt,
-				astutil.WrapInOp(bsonutil.OpSplit, valRef, astutil.StringValue("T")),
-				astutil.ZeroInt32Literal),
-			astutil.StringValue(" ")),
-		astutil.ZeroInt32Literal)
-
-	// Repeat the step above but take the second element to get the time
-	// part. Replace with "" if we can not find a second element.
-	trimmedTimeString := astutil.WrapInIfNull(
-		astutil.WrapInOp(bsonutil.OpArrElemAt,
-			astutil.WrapInOp(bsonutil.OpSplit, valRef, astutil.StringValue("T")),
-			astutil.OneInt32Literal,
-		),
-		astutil.WrapInIfNull(
-			astutil.WrapInOp(bsonutil.OpArrElemAt,
-				astutil.WrapInOp(bsonutil.OpSplit, valRef, astutil.StringValue(" ")),
-				astutil.OneInt32Literal,
-			),
-			astutil.EmptyStringLiteral,
-		),
-	)
-
-	// Convert the date and time strings to arrays so we can use
-	// map/reduce.
-	trimmedDateAsArray := astutil.WrapInStringToArray(ast.NewVariableRef("trimmedDate"))
-	trimmedTimeAsArray := astutil.WrapInStringToArray(ast.NewVariableRef("trimmedTime"))
-
-	cRef := ast.NewVariableRef("c")
-
-	// isSeparator evaluates to true if a character is in the defined
-	// separator list
-	isSeparator := ast.NewBinary(bsonutil.OpNeq,
-		astutil.Int32Value(-1),
-		astutil.WrapInOp("$indexOfArray", astutil.DateComponentSeparator, cRef),
-	)
-
-	// Use map to convert all separators in the date string to - symbol,
-	// and leave numbers as-is
-	dateNormalized := astutil.WrapInMap(
-		trimmedDateAsArray,
-		"c",
-		astutil.WrapInCond(astutil.StringValue("-"), cRef, isSeparator),
-	)
-	// Use map to convert all separators in the time string to '.' symbol,
-	// and leave numbers as-is. We use '.' instead of ':' so that MongoDB
-	// correctly handles fractional seconds. 10.11.23.1234 is parsed
-	// correctly as 10:11:23.1234, saving us some effort (and runtime).
-	timeNormalized := astutil.WrapInMap(
-		trimmedTimeAsArray,
-		"c",
-		astutil.WrapInCond(astutil.StringValue("."), cRef, isSeparator),
-	)
-
-	// Use reduce to convert characters back to a single string for date and time.
-	dateJoined := astutil.WrapInReduce(
-		dateNormalized,
-		astutil.EmptyStringLiteral,
-		astutil.WrapInOp(bsonutil.OpConcat, astutil.ValueVarRef, astutil.ThisVarRef),
-	)
-	timeJoined := astutil.WrapInReduce(
-		timeNormalized,
-		astutil.EmptyStringLiteral,
-		astutil.WrapInOp(bsonutil.OpConcat, astutil.ValueVarRef, astutil.ThisVarRef),
-	)
-
-	dateJoinedRef := ast.NewVariableRef("dateJoined")
-
-	// if the third character is a -, or if the string is only 6 digits
-	// long and has no slashes, then the string is either format YY/MM/DD
-	// or YYMMDD and we need to add the appropriate first two year digits
-	// (19xx or 20xx) for Mongo to understand it
-	hasShortYear := ast.NewBinary(bsonutil.OpOr,
-		// length is only 6, assume YYMMDD
-		ast.NewBinary(bsonutil.OpEq,
-			ast.NewFunction(bsonutil.OpStrlenCP, dateJoinedRef),
-			astutil.Int32Value(6),
-		),
-		// third character is -, assume YY-MM-DD
-		astutil.WrapInOp(bsonutil.OpEq,
-			astutil.StringValue("-"),
-			astutil.WrapInOp(bsonutil.OpSubstr, dateJoinedRef, astutil.Int32Value(2), astutil.OneInt32Literal),
-		),
-	)
-
-	// "$dateFromString" actually pads correctly, but not if "/" is
-	// used as the separator (it will assume year is last). If this
-	// pushdown is shown to be slow by benchmarks, we should reconsider
-	// allowing "$dateFromString" to handle padding. The change
-	// would not be trivial due to how MongoDB cannot handle short dates
-	// when there are no separators in the date.
-	padYear := astutil.WrapInOp(bsonutil.OpConcat,
-		astutil.WrapInCond(
-			astutil.StringValue("20"),
-			astutil.StringValue("19"),
-			// check if first two digits < 70 to determine padding
-			ast.NewBinary(bsonutil.OpLt,
-				astutil.WrapInOp(bsonutil.OpSubstr, dateJoinedRef, astutil.ZeroInt32Literal, astutil.Int32Value(2)),
-				astutil.StringValue("70"),
-			),
-		),
-		dateJoinedRef,
-	)
-
-	// We have to use nested $lets because in the outer one we define
-	// $$trimmedDate and in the inner one we define $$dateJoined. Defining
-	// $$dateJoined requires knowing the length of trimmedDate, so we can't
-	// do it all in one step.
-	innerIn := astutil.WrapInCond(padYear, dateJoinedRef, hasShortYear)
-	innerLet := ast.NewLet([]*ast.LetVariable{ast.NewLetVariable("dateJoined", dateJoined)}, innerIn)
-
-	// Concat the time back into the date.
-	concatedDate := astutil.WrapInOp(bsonutil.OpConcat, innerLet, timeJoined)
-
-	// gracefully handle strings that are too short to possibly be valid by returning null
-	tooShort := ast.NewBinary(bsonutil.OpLt,
-		ast.NewFunction(bsonutil.OpStrlenCP, ast.NewVariableRef("trimmedDate")),
-		astutil.Int32Value(6),
-	)
-	outerIn := astutil.WrapInCond(astutil.NullLiteral, wrapInDateFromString(concatedDate), tooShort)
-	outerLet := ast.NewLet([]*ast.LetVariable{
-		ast.NewLetVariable("trimmedDate", trimmedDateString),
-		ast.NewLetVariable("trimmedTime", trimmedTimeString),
-	}, outerIn)
-
-	// Make sure if we get the int 0 we return NULL instead
-	// of crashing. MySQL uses '0000-00-00' as an error output for some
-	// functions and we encode it as the integer 0 within push down.
-	stringBranch := astutil.WrapInCase(isString,
-		astutil.WrapInCond(
-			astutil.NullLiteral,
-			outerLet,
-			ast.NewBinary(bsonutil.OpEq, astutil.ZeroInt32Literal, valRef),
-		),
-	)
-
-	return ast.NewLet(inputLet, astutil.WrapInSwitch(astutil.NullLiteral, dateBranch, numberBranch, stringBranch)), nil
-}
-
 func (f *baseScalarFunctionExpr) toSecondsToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
 	if len(exprs) != 1 {
 		return nil, newPushdownFailure(
@@ -3375,7 +3067,7 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 		return astutil.Int64Value(now.Unix()), nil
 	}
 
-	arg, err := f.timestampToAggregationLanguage(t, exprs)
+	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
 	}
@@ -3392,7 +3084,7 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 		ast.NewLetVariable("diff", ast.NewFunction(bsonutil.OpTrunc,
 			ast.NewBinary(bsonutil.OpDivide,
 				ast.NewBinary(bsonutil.OpSubtract,
-					ast.NewBinary(bsonutil.OpSubtract, arg, astutil.DateConstant(epoch)),
+					ast.NewBinary(bsonutil.OpSubtract, args[0], astutil.DateConstant(epoch)),
 					astutil.Int64Value(int64(tzCompensation*1000)),
 				),
 				astutil.Int32Value(1000),

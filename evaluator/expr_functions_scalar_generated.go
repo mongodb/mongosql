@@ -7335,7 +7335,7 @@ func (f *timestampAddTimeFunc) Evaluate(ctx context.Context, cfg *ExecutionConfi
 }
 
 func (f *timestampAddTimeFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return f.timestampToAggregationLanguage(t, f.args)
+	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
 }
 
 func (f *timestampAddTimeFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
