@@ -1266,6 +1266,31 @@
     - {"x": "'David_'", "y": "'David\\_'"}
     - {"x": "'David%'", "y": "'David\\%'"}
 
+- db: "select_test"
+  collection: "likeWords"
+  docs:
+    - {"col_1":"chicago"}
+    - {"col_1":"bhacage"}
+    - {"col_1":"cbhaicageo"}
+    - {"col_1":"pchicagod"}
+
+- db: "select_test"
+  collection: "likeEscapeWords"
+  docs:
+    - {"col_1":"_NewYork_", "col_2": '*'}
+    - {"col_1":"NewYo%rk", "col_2": '*'}
+    - {"col_1":"NewYork\\", "col_2": '*'}
+    - {"col_1":"\\ n _ e % w \\", "col_2": '*'}
+    - {"col_1":".*\\%New+_York.\\%", "col_2": '*'}
+    - {"col_1":"**New**York**", "col_2": '*'}
+    - {"col_1":"NewYork*_", "col_2": '*'}
+
+- db: "select_test"
+  collection: "likeOptionWords"
+  docs:
+    - {"col_1":"hello\nhi"}
+    - {"col_1":"hELLo\tHi"}
+
 - db: "polymorphic_data_test"
   collection: scalar_types
   docs:

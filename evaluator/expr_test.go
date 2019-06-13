@@ -432,7 +432,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_like_expr_9", "'Clever' LIKE '%is'", NewSQLBool(knd, false)},
 			{"sql_like_expr_10", "'Adam is nice' LIKE '%xs '", NewSQLBool(knd, false)},
 			{"sql_like_expr_11", "'Adam is nice' LIKE '%is nice'", NewSQLBool(knd, true)},
-			{"sql_like_expr_12", "'abc' LIKE 'ABC'", NewSQLBool(knd, true)},    //case sensitive
+			{"sql_like_expr_12", "'abc' LIKE 'ABC'", NewSQLBool(knd, true)},    //case insensitive
 			{"sql_like_expr_13", "'abc' LIKE 'ABC '", NewSQLBool(knd, false)},  // trailing space
 			{"sql_like_expr_14", "'abc' LIKE ' ABC'", NewSQLBool(knd, false)},  // leading space
 			{"sql_like_expr_15", "'abc' LIKE ' ABC '", NewSQLBool(knd, false)}, // padded space
@@ -458,6 +458,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_like_expr_31", "'David\\_' LIKE 'David\\_' ESCAPE ''", NewSQLBool(knd, true)},
 			{"sql_like_expr_32", "'David_' LIKE 'David\\_' ESCAPE char(92)", NewSQLBool(knd, true)},
 			{"sql_like_expr_33", "'David_' LIKE 'David|_' {escape '|'}", NewSQLBool(knd, true)},
+			{"sql_like_expr_34", "'hello' LIKE concat('h_','llo')", NewSQLBool(knd, true)}, // Constant with function to match on
 			{"sql_like_binary_expr_0", "'Á Â Ã Ä' LIKE BINARY '%'", NewSQLBool(knd, true)},
 			{"sql_like_binary_expr_1", "'Á Â Ã Ä' LIKE BINARY 'Á Â Ã Ä'", NewSQLBool(knd, true)},
 			{"sql_like_binary_expr_2", "'Á Â Ã Ä' LIKE BINARY 'Á%'", NewSQLBool(knd, true)},

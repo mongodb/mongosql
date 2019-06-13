@@ -325,3 +325,12 @@ testcases:
     expected_types: [varchar]
     id: select_hello
     sql: select 'hello'
+
+  - db: test
+    description: properly escaping backslashes to generate special escape sequences in MySQL literal strings
+    expected_names: ["'\\\\New\\\\York\\\\'", "'\\new\\nyork\\n'", "'\\0ew\\0york\\0'", "'\\'ew\\'york\\''", "'\\\"ew\\\"york\\\"'", "'\\bew\\byork\\b'", "'\\rew\\ryork\\r'", "'\\tew\\tyork\\t'", "'\\Zew\\Zyork\\Z'", "'\\\\%ew\\\\%york\\\\%'", "'\\\\_ew\\\\_york\\\\_'", "'\\b\\new\\b\\ryork\\b\\t'", "'newyork'", "'BNewBRyorkBT'"]
+    expected_results:
+      - ["\\New\\York\\", "\new\nyork\n", "\0ew\0york\0", "'ew'york'", "\"ew\"york\"", "\bew\byork\b", "\rew\ryork\r", "\tew\tyork\t", "\x1Aew\x1Ayork\x1A", "\\%ew\\%york\\%", "\\_ew\\_york\\_", "\b\new\b\ryork\b\t", "newyork", "BNewBRyorkBT"]
+    expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
+    id: select_escape
+    sql: select '\\New\\York\\', '\new\nyork\n', '\0ew\0york\0', '\'ew\'york\'', '"ew"york"', '\bew\byork\b', '\rew\ryork\r', '\tew\tyork\t', '\Zew\Zyork\Z', '\%ew\%york\%', '\_ew\_york\_', '\b\new\b\ryork\b\t', 'n\ew\yor\k', '\B\New\B\Ryork\B\T'

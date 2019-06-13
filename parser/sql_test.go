@@ -1,9 +1,11 @@
 package parser_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/stretchr/testify/require"
 )
 
 // idPass does nothing, it is the id function. We use this to test
@@ -70,6 +72,61 @@ func tableTest(t *testing.T, tests []test) {
 			})
 		}
 	}
+}
+
+func TestEscape(t *testing.T) {
+	t.Logf("Testing the behavior of the escape character\n")
+
+	type test struct {
+		description string
+		inputSQL    string
+		expectedSQL string
+	}
+
+	tests := []test{
+		{"Single escaped backslash", "select '\\\\New\\\\York\\\\'", "select '\\New\\York\\'"},
+		{"Multiple escaped backslashes", "select '\\\\\\\\New\\\\\\\\york\\\\\\\\'", "select '\\\\New\\\\york\\\\'"},
+		{"Newline character", "select '\\\\new\\nyork\\n'", "select '\\new\nyork\n'"},
+		{"Null character", "select '\\0ew\\0york\\0'", "select '\000ew\000york\000'"},
+		{"Escaped single quote", "select '\\'ew\\'york\\''", "select ''ew'york''"},
+		{"Escaped double quote", "select '\\\"ew\\\"york\\\"'", "select '\"ew\"york\"'"},
+		{"Escaped backspace", "select '\\bew\\byork\\b'", "select '\bew\byork\b'"},
+		{"Carriage return character", "select '\\rew\\ryork\\r'", "select '\rew\ryork\r'"},
+		{"Tab character", "select '\\tew\\tyork\\t'", "select '\tew\tyork\t'"},
+		{"Ctrl-z escape sequence", "select '\\Zew\\Zyork\\Z'", "select '\032ew\032york\032'"},
+		{"Escaped percentage wildcard", "select '\\%ew\\%york\\%'", "select '\\%ew\\%york\\%'"},
+		{"Escaped underscore wildcard", "select '\\_ew\\_york\\_'", "select '\\_ew\\_york\\_'"},
+		{"Consecutive escaped sequences", "select '\\b\\new\\b\\ryork\\b\\t'", "select '\b\new\b\ryork\b\t'"},
+		{"Escaped characters that don't have to be escaped", "select 'n\\ew\\yor\\k'", "select 'newyork'"},
+		{"Escape sequences case sensitivity check", "select '\\B\\New\\B\\Ryork\\B\\T'", "select 'BNewBRyorkBT'"},
+	}
+
+	for _, testCase := range tests {
+		t.Run(testCase.description, func(t *testing.T) {
+			req := require.New(t)
+			statement, err := parser.Parse(testCase.inputSQL)
+			req.Nil(err, fmt.Sprintf("failed to parse: %s\n", testCase.inputSQL))
+
+			selectStmt, ok := statement.(parser.SQLNode)
+			req.Equal(ok, true, fmt.Sprintf("Expected statement to be of type SQLNode, received type %T\n", statement))
+
+			selectState, ok := selectStmt.(*parser.Select)
+			req.Equal(ok, true, fmt.Sprintf("Expected SQLNode to be of type Select, received type %T\n", selectStmt))
+
+			selectExpr := selectState.SelectExprs[0]
+
+			nonStarredSelectExpr, ok := selectExpr.(*parser.NonStarExpr)
+			req.Equal(ok, true, fmt.Sprintf("Expected select statement to be of type NonStarExpr, received type %T\n", selectExpr))
+
+			selectColName, ok := nonStarredSelectExpr.Expr.(parser.StrVal)
+			req.Equal(ok, true, fmt.Sprintf("Expected nonstarred select expr to be of type StrVal, received type %T\n", nonStarredSelectExpr))
+
+			actualSQL := `select '` + string(selectColName) + `'`
+
+			req.Equal(actualSQL, testCase.expectedSQL, "expected %s but received %s\n", testCase.expectedSQL, actualSQL)
+		})
+	}
+
 }
 
 func TestWith(t *testing.T) {

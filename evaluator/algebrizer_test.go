@@ -4291,6 +4291,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			`ERROR 1060 (42S21): Duplicate column name 'biz._id'`},
 		{"select * from foo left join bar natural join baz using (id)",
 			"ERROR 1064 (42000): A natural join cannot have join criteria"},
+
+		{"select a like 'h_l##r' escape '##' from foo",
+			`ERROR 1210 (HY000): Incorrect arguments to ESCAPE`},
 	}
 	runTestsAsSubtest("Error Tests", errorTests)
 }

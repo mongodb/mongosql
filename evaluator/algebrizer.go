@@ -2036,6 +2036,15 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 			if err != nil {
 				return nil, err
 			}
+			// At this point, we can check that if the escape parameter is a scalar string,
+			// it must have a length of 1 to be valid. Nonscalar types will result in
+			// pushdown failures and then will be checked for validity in SQLLikeExpr's implementation
+			// of Evaluate.
+			if escValue, ok := escape.(SQLValueExpr); ok {
+				if len(escValue.String()) > 1 {
+					return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, "ESCAPE")
+				}
+			}
 		} else {
 			escape = NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), "\\"))
 		}

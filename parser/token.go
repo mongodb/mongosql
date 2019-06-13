@@ -310,6 +310,9 @@ func (tkn *Tokenizer) scanString(delim uint16, typ int) (int, []byte) {
 			}
 			if decodedChar := sqltypes.SqlDecodeMap[byte(tkn.lastChar)]; decodedChar == sqltypes.DONTESCAPE {
 				ch = tkn.lastChar
+				if tkn.lastChar == '%' || tkn.lastChar == '_' {
+					buffer.WriteByte(byte('\\'))
+				}
 			} else {
 				ch = uint16(decodedChar)
 			}

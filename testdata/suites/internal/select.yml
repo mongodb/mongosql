@@ -526,6 +526,16 @@ testcases:
     sql: select x, y from like_test where x like '%dam%' and y like binary '%am%'
 
   - db: select_test
+    description: like match expression on multiline strings
+    expected_names: [col_1]
+    expected_results:
+      - ["hello\nhi"]
+      - ["hELLo\tHi"]
+    expected_types: [varchar]
+    id: liketest4
+    sql: select col_1 from likeOptionWords where col_1 like 'hello_hi'
+
+  - db: select_test
     expected_names: [x, y]
     expected_results:
       - ["'\xC1 \xC2 \xC3 \xC4'", '''%''']
@@ -556,6 +566,252 @@ testcases:
     expected_types: [varchar, varchar]
     id: likebinarytest1
     sql: select x, y from like_test where x like binary '%dam%'
+
+  - db: select_test
+    description: like expression with exact match (no wildcards)
+    expected_names: [col_1, col_1 like 'chicago']
+    expected_results:
+      - ['chicago', 1]
+      - ['bhacage', 0]
+      - ['cbhaicageo', 0]
+      - ['pchicagod', 0]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_1
+    sql: select col_1, col_1 like 'chicago' from likeWords
+
+  - db: select_test
+    description: like expression with underscores at all parts of word and no escape sequences
+    expected_names: [col_1, col_1 like '_h_cag_']
+    expected_results:
+      - ['chicago', 1]
+      - ['bhacage', 1]
+      - ['cbhaicageo', 0]
+      - ['pchicagod', 0]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_2
+    sql: select col_1, col_1 like '_h_cag_' from likeWords
+
+  - db: select_test
+    description: like expression with percentages at all parts of word and no escape sequences
+    expected_names: [col_1, col_1 like '%h%cag%']
+    expected_results:
+      - ['chicago', 1]
+      - ['bhacage', 1]
+      - ['cbhaicageo', 1]
+      - ['pchicagod', 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_3
+    sql: select col_1, col_1 like '%h%cag%' from likeWords
+
+  - db: select_test
+    description: like expression starting with escaped '_' wildcard
+    expected_names: [col_1, col_1 like '\\_%']
+    expected_results:
+      - ['_NewYork_', 1]
+      - ['NewYo%rk', 0]
+      - ['NewYork\', 0]
+      - ['\ n _ e % w \', 0]
+      - ['.*\%New+_York.\%', 0]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 0]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_4
+    sql: select col_1, col_1 like '\\_%' from likeEscapeWords
+
+  - db: select_test
+    description: like expression with escaped '_' wildcard anywhere
+    expected_names: [col_1, col_1 like '%\\_%']
+    expected_results:
+      - ['_NewYork_', 1]
+      - ['NewYo%rk', 0]
+      - ['NewYork\', 0]
+      - ['\ n _ e % w \', 1]
+      - ['.*\%New+_York.\%', 1]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_5
+    sql: select col_1, col_1 like '%\\_%' from likeEscapeWords
+
+  - db: select_test
+    description: like expression with escaped '_' wildcard at the end
+    expected_names: [col_1, col_1 like '%\\_']
+    expected_results:
+      - ['_NewYork_', 1]
+      - ['NewYo%rk', 0]
+      - ['NewYork\', 0]
+      - ['\ n _ e % w \', 0]
+      - ['.*\%New+_York.\%', 0]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_6
+    sql: select col_1, col_1 like '%\\_' from likeEscapeWords
+
+  - db: select_test
+    description: like expression containing an escaped '%' wildcard anywhere
+    expected_names: [col_1, col_1 like '%\\%%']
+    expected_results:
+      - ['_NewYork_', 0]
+      - ['NewYo%rk', 1]
+      - ['NewYork\', 0]
+      - ['\ n _ e % w \', 1]
+      - ['.*\%New+_York.\%', 1]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 0]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_7
+    sql: select col_1, col_1 like '%\\%%' from likeEscapeWords
+
+  - db: select_test
+    description: like expression ending with a backslash
+    expected_names: [col_1, col_1 like '%\\\\']
+    expected_results:
+      - ['_NewYork_', 0]
+      - ['NewYo%rk', 0]
+      - ['NewYork\', 1]
+      - ['\ n _ e % w \', 1]
+      - ['.*\%New+_York.\%', 0]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 0]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_8
+    sql: select col_1, col_1 like '%\\\\' from likeEscapeWords
+
+  - db: select_test
+    description: like expression with case insensitivity
+    expected_names: [col_1, col_1 like '\\\\ n \\_ E \\% W \\\\']
+    expected_results:
+      - ['_NewYork_', 0]
+      - ['NewYo%rk', 0]
+      - ['NewYork\', 0]
+      - ['\ n _ e % w \', 1]
+      - ['.*\%New+_York.\%', 0]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 0]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_9
+    sql: select col_1, col_1 like '\\\\ n \\_ E \\% W \\\\' from likeEscapeWords
+
+  - db: select_test
+    description: like expression starting with a special regex character
+    expected_names: [col_1, col_1 like '.*%']
+    expected_results:
+      - ['_NewYork_', 0]
+      - ['NewYo%rk', 0]
+      - ['NewYork\', 0]
+      - ['\ n _ e % w \', 0]
+      - ['.*\%New+_York.\%', 1]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 0]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_10
+    sql: select col_1, col_1 like '.*%' from likeEscapeWords
+
+  - db: select_test
+    description: like expression with escaped wildcard using custom escape character
+    expected_names: [col_1, col_1 like '%***_' escape '*']
+    expected_results:
+      - ['_NewYork_', 0]
+      - ['NewYo%rk', 0]
+      - ['NewYork\', 0]
+      - ['\ n _ e % w \', 0]
+      - ['.*\%New+_York.\%', 0]
+      - ['**New**York**', 0]
+      - ['NewYork*_', 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_11
+    sql: select col_1, col_1 like '%***_' escape '*' from likeEscapeWords
+
+  - db: select_test
+    description: like expression with escape character preceding a non-special character
+    expected_names: [col_1, col_1 like '%\\Y%']
+    expected_results:
+      - ['_NewYork_', 1]
+      - ['NewYo%rk', 1]
+      - ['NewYork\', 1]
+      - ['\ n _ e % w \', 0]
+      - ['.*\%New+_York.\%', 1]
+      - ['**New**York**', 1]
+      - ['NewYork*_', 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_12
+    sql: select col_1, col_1 like '%\\Y%' from likeEscapeWords
+
+  - db: select_test
+    description: like expression with constant input and pattern and constant-folding switched off (testing specifically for pushdown)
+    expected_names: [col_1, test]
+    expected_results:
+      - ['_NewYork_', 1]
+      - ['NewYo%rk', 1]
+      - ['NewYork\', 1]
+      - ['\ n _ e % w \', 1]
+      - ['.*\%New+_York.\%', 1]
+      - ['**New**York**', 1]
+      - ['NewYork*_', 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_13
+    min_server_version: 4.2
+    pushdown_only: true
+    sql: select col_1, 'hello' like 'h_llo' as test from likeEscapeWords
+    variables: {full_pushdown_exec_mode: true, optimize_evaluations: false}
+
+  - db: select_test
+    description: like expression with constant input and function for pattern and constant-folding switched off
+    expected_names: [col_1, test]
+    expected_results:
+      - ['_NewYork_', 1]
+      - ['NewYo%rk', 1]
+      - ['NewYork\', 1]
+      - ['\ n _ e % w \', 1]
+      - ['.*\%New+_York.\%', 1]
+      - ['**New**York**', 1]
+      - ['NewYork*_', 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_14
+    sql: select col_1, 'hello' like concat('h_','llo') as test from likeEscapeWords
+    variables: {optimize_evaluations: false}
+
+  - db: select_test
+    description: like expression with newline or tab characters in the middle of the string
+    expected_names: [col_1, test]
+    expected_results:
+      - ["hello\nhi", 1]
+      - ["hELLo\tHi", 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_15
+    sql: select col_1, col_1 like 'hello_hi' as test from likeOptionWords
+
+  - db: select_test
+    description: like expression with case-sensitive binary string as pattern
+    expected_names: [col_1, test]
+    expected_results:
+      - ["hello\nhi", 0]
+      - ["hELLo\tHi", 1]
+    expected_types: [varchar, int]
+    id: like_aggregation_test_16
+    sql: select col_1, col_1 like binary 'hELLo_Hi' as test from likeOptionWords
+
+  - db: select_test
+    description: executing like expression with column of escape characters in-memory (not supported in MySQL)
+    expected_names: [col_1, col_2, test]
+    expected_results:
+      - ['_NewYork_', '*', 0]
+      - ['NewYo%rk', '*', 0]
+      - ['NewYork\', '*', 0]
+      - ['\ n _ e % w \', '*', 0]
+      - ['.*\%New+_York.\%', '*', 0]
+      - ['**New**York**', '*', 0]
+      - ['NewYork*_', '*', 1]
+    expected_types: [varchar, varchar, int]
+    id: like_aggregation_test_17
+    sql: select col_1, col_2, col_1 like '%***_' escape col_2 as test from likeEscapeWords
+
+  - db: select_test
+    description: like expression with scalar function for escape char that resolves to string with length > 1
+    expected_error: 'Error 1210: Incorrect arguments to ESCAPE'
+    id: like_aggregation_test_18
+    sql: select col_1 like '****N%' escape substring('**' from 1 for 2) from likeEscapeWords
 
   - db: select_sTest
     description: long identifier names

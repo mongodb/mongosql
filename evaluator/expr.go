@@ -1196,24 +1196,14 @@ func (e *SQLLikeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		return nil, err
 	}
 
-	value, err := e.left.Evaluate(ctx, cfg, st)
+	input, err := e.left.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
 
-	if values.HasNullValue(value) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	data := value.String()
-
-	value, err = e.right.Evaluate(ctx, cfg, st)
+	pattern, err := e.right.Evaluate(ctx, cfg, st)
 	if err != nil {
 		return nil, err
-	}
-
-	if values.HasNullValue(value) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
 	}
 
 	escape, err := e.escape.Evaluate(ctx, cfg, st)
@@ -1221,33 +1211,26 @@ func (e *SQLLikeExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Ex
 		return nil, err
 	}
 
-	escapeSeq := []rune(escape.String())
-	if len(escapeSeq) > 1 {
-		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongArguments, "ESCAPE")
-	}
-
-	var escapeChar rune
-	if len(escapeSeq) == 1 {
-		escapeChar = escapeSeq[0]
-	}
-
-	pattern := "(?i)"
-	if e.caseSensitive {
-		pattern = ""
-	}
-	pattern += ConvertSQLValueToPattern(value, escapeChar)
-
-	matches, err := regexp.Match(pattern, []byte(data))
+	res, err := e.evaluate(cfg.sqlValueKind, input, pattern, escape)
 	if err != nil {
 		return nil, err
 	}
 
-	return values.NewSQLBool(cfg.sqlValueKind, matches), nil
+	return res, nil
 }
 
-// nolint: unparam
+// reconcile ensures that the data types of the left and right (input and pattern) parts of SQL like expressions are compatible.
+// To replicate MySQL's behavior, both the input and the pattern provided to match on are converted
+// to strings if they are not already strings.
 func (e *SQLLikeExpr) reconcile() (SQLExpr, error) {
-	return e, nil
+	exprsToReconcile := []SQLExpr{
+		e.left,
+		e.right,
+	}
+
+	reconciled := convertAllExprs(exprsToReconcile, types.EvalString)
+
+	return &SQLLikeExpr{reconciled[0], reconciled[1], e.escape, e.caseSensitive}, nil
 }
 
 // ReplaceChild replaces the i'th child of the receiver Node with the Node n.
@@ -1313,9 +1296,9 @@ func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr)
 	}
 
 	pattern := ConvertSQLValueToPattern(value.Value, escapeChar)
-	opts := "i"
-	if e.caseSensitive {
-		opts = ""
+	opts := "s"
+	if !e.caseSensitive {
+		opts += "i"
 	}
 
 	name, ok := astutil.GetRefName(ref)
@@ -1350,9 +1333,9 @@ func (e *SQLLikeExpr) evaluate(sqlValueKind values.SQLValueKind, left, right, es
 		escapeChar = escapeSeq[0]
 	}
 
-	pattern := "(?i)"
+	pattern := "(?si)"
 	if e.caseSensitive {
-		pattern = ""
+		pattern = "(?s)"
 	}
 	pattern += ConvertSQLValueToPattern(right, escapeChar)
 
@@ -1410,10 +1393,64 @@ func (e *SQLLikeExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, P
 }
 
 // ToAggregationLanguage translates SQLLikeExpr into something that can
-// be used in an aggregation pipeline. If SQLLikeExpr cannot be translated,
-// it will return nil and error.
+// be used in an aggregation pipeline. For MongoDB >= 4.1.11, it will translate successfully if the pattern is a scalar string.
+// Support for pattern inputs that are entire columns of strings will be provided in BI-2264.
 func (e *SQLLikeExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
+	SQLLikeExprParts := []SQLExpr{
+		e.left,
+		e.right,
+		e.escape,
+	}
+
+	args, err := t.translateArgs(SQLLikeExprParts)
+	if err != nil {
+		return nil, err
+	}
+
+	if !t.versionAtLeast(4, 1, 11) {
+		return nil, newPushdownFailure(e.ExprName(), "cannot translate LIKE expressions to the aggregation language for MongoDB < 4.1.11")
+	}
+
+	inputExpr := args[0]
+
+	pattern, hasConstantPattern := e.right.(SQLValueExpr)
+	escape, hasValidEscape := e.escape.(SQLValueExpr)
+
+	// We fail to pushdown if the provided escape parameter is a column. This is invalid MySQL, but we allow it but perform the query in-memory rather than pushing it down.
+	if !hasValidEscape {
+		return nil, newPushdownFailure(e.ExprName(), "cannot translate LIKE expressions to the aggregation language with columns for escape characters")
+	}
+
+	// If we get here, then this means we must have had some sort of non-SQLValueExpr escape parameter during algebrization that constant-folded to a literal string with
+	// length greater than 1.
+	if len(escape.String()) > 1 {
+		return nil, newPushdownFailure(e.ExprName(), "cannot translate LIKE expressions to the aggregation language with escape strings longer than 1 character")
+	}
+
+	if hasConstantPattern {
+		escapeChar := []rune(escape.String())[0]
+		regex := ConvertSQLValueToPattern(pattern.Value, escapeChar)
+
+		inputCol := ast.NewDocumentElement("input", inputExpr)
+		regexExp := ast.NewDocumentElement("regex", astutil.StringValue(regex))
+
+		opts := "s"
+		if !e.caseSensitive {
+			opts += "i"
+		}
+
+		options := ast.NewDocumentElement("options", astutil.StringValue(opts))
+		regexArgs := ast.NewDocument(inputCol, regexExp, options)
+		regexAgg := ast.NewFunction(bsonutil.OpRegexMatch, regexArgs)
+
+		agg := astutil.WrapInCond(astutil.OneInt32Literal, astutil.ZeroInt32Literal, regexAgg)
+
+		return agg, nil
+
+	}
+
+	// If we get here, then the provided pattern to match on is not a scalar, it is a column. We will add pushdown support for that in a separate ticket (BI-2264).
+	return nil, newPushdownFailure(e.ExprName(), "Cannot translate LIKE expressions to the aggregation language with columns of patterns yet.")
 }
 
 // SQLRegexExpr evaluates to true if the operand matches the regex patttern.
