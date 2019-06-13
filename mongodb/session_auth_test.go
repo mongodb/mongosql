@@ -95,11 +95,11 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						So(len(conn.Sent), ShouldEqual, 1)
 
 						saslStartRequest := conn.Sent[0].(*msg.Query)
-						expectedCmd := bsonutil.NewD(
+						expectedCmd := astutil.NewToOldBSOND(bsonutil.NewD(
 							bsonutil.NewDocElem("saslStart", 1),
 							bsonutil.NewDocElem("mechanism", "SINGLE"),
 							bsonutil.NewDocElem("payload", []byte("something")),
-						)
+						))
 
 						So(saslStartRequest.Query, ShouldResemble, expectedCmd)
 					}
@@ -154,19 +154,19 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 						So(len(conn.Sent), ShouldEqual, 2)
 
 						saslStartRequest := conn.Sent[0].(*msg.Query)
-						expectedCmd := bsonutil.NewD(
+						expectedCmd := astutil.NewToOldBSOND(bsonutil.NewD(
 							bsonutil.NewDocElem("saslStart", 1),
 							bsonutil.NewDocElem("mechanism", "MULTI"),
 							bsonutil.NewDocElem("payload", []byte("first")),
-						)
+						))
 
 						So(saslStartRequest.Query, ShouldResemble, expectedCmd)
 						saslContinueRequest := conn.Sent[1].(*msg.Query)
-						expectedCmd = bsonutil.NewD(
+						expectedCmd = astutil.NewToOldBSOND(bsonutil.NewD(
 							bsonutil.NewDocElem("saslContinue", 1),
 							bsonutil.NewDocElem("conversationId", j+1),
 							bsonutil.NewDocElem("payload", []byte("second")),
-						)
+						))
 
 						So(saslContinueRequest.Query, ShouldResemble, expectedCmd)
 					}

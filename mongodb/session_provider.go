@@ -15,6 +15,7 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
 	"github.com/10gen/mongo-go-driver/mongo/private/server"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
@@ -242,7 +243,7 @@ func (c *autoLogoutConnection) Close() error {
 		logoutRequest := msg.NewCommand(
 			msg.NextRequestID(),
 			c.s.authSource,
-			true, bsonutil.NewD(bsonutil.NewDocElem("logout", 1)),
+			true, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("logout", 1))),
 		)
 
 		newM := bsonutil.NewM()
