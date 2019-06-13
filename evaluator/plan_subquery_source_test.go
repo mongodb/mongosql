@@ -11,7 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestSubquerySourceStage(t *testing.T) {

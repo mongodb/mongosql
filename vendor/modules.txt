@@ -1,4 +1,4 @@
-# github.com/10gen/candiedyaml v0.0.0-20181015205816-f38edd53fd41
+# github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
 github.com/10gen/candiedyaml
 # github.com/10gen/mongo-go-driver v1.0.2 => github.com/pmeredit/mongo-go-driver v0.0.0-20190507213726-04c2b7e1bb27
 github.com/10gen/mongo-go-driver/bson
@@ -38,6 +38,8 @@ github.com/davecgh/go-spew/spew
 github.com/go-sql-driver/mysql
 # github.com/go-stack/stack v1.8.0
 github.com/go-stack/stack
+# github.com/golang/snappy v0.0.1
+github.com/golang/snappy
 # github.com/google/go-cmp v0.2.0
 github.com/google/go-cmp/cmp
 github.com/google/go-cmp/cmp/internal/diff
@@ -59,26 +61,22 @@ github.com/kardianos/service
 github.com/kr/pretty
 # github.com/kr/text v0.0.0-20160504234017-7cafcd837844
 github.com/kr/text
-# github.com/mongodb/mongo-tools v0.0.0-20180130112408-4ec067b2ad33
-github.com/mongodb/mongo-tools/common/json
-github.com/mongodb/mongo-tools/common/bsonutil
-github.com/mongodb/mongo-tools/common/db
-github.com/mongodb/mongo-tools/common/options
+# github.com/mongodb/mongo-tools v0.0.0-20190515193408-25f23659be74
 github.com/mongodb/mongo-tools/mongorestore
-github.com/mongodb/mongo-tools/common/util
-github.com/mongodb/mongo-tools/common/connstring
-github.com/mongodb/mongo-tools/common/db/kerberos
-github.com/mongodb/mongo-tools/common/db/openssl
-github.com/mongodb/mongo-tools/common/log
-github.com/mongodb/mongo-tools/common/password
-github.com/mongodb/mongo-tools/common/failpoint
-github.com/mongodb/mongo-tools/common
-github.com/mongodb/mongo-tools/common/archive
-github.com/mongodb/mongo-tools/common/auth
-github.com/mongodb/mongo-tools/common/intents
-github.com/mongodb/mongo-tools/common/progress
 github.com/mongodb/mongo-tools/mongorestore/ns
-github.com/mongodb/mongo-tools/common/text
+# github.com/mongodb/mongo-tools-common v0.0.1-0.20190515193033-4316ec1965c6 => github.com/mattChiaravalloti/mongo-tools-common v0.0.1-0.20190604201556-7f6e09e401b6
+github.com/mongodb/mongo-tools-common/db
+github.com/mongodb/mongo-tools-common/options
+github.com/mongodb/mongo-tools-common/json
+github.com/mongodb/mongo-tools-common/log
+github.com/mongodb/mongo-tools-common/password
+github.com/mongodb/mongo-tools-common/util
+github.com/mongodb/mongo-tools-common/failpoint
+github.com/mongodb/mongo-tools-common/archive
+github.com/mongodb/mongo-tools-common/auth
+github.com/mongodb/mongo-tools-common/intents
+github.com/mongodb/mongo-tools-common/progress
+github.com/mongodb/mongo-tools-common/text
 # github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -100,18 +98,50 @@ github.com/spacemonkeygo/spacelog
 # github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+# github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
+github.com/xdg/scram
 # github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
 github.com/xdg/stringprep
-# go.mongodb.org/mongo-driver v1.0.0-rc2
+# go.mongodb.org/mongo-driver v1.0.1-0.20190604194957-91df53be572d => go.mongodb.org/mongo-driver v1.0.1-0.20190604194957-91df53be572d
+go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-go.mongodb.org/mongo-driver/bson
+go.mongodb.org/mongo-driver/mongo
 go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsoncodec
+go.mongodb.org/mongo-driver/mongo/options
+go.mongodb.org/mongo-driver/mongo/readpref
+go.mongodb.org/mongo-driver/mongo/writeconcern
+go.mongodb.org/mongo-driver/tag
+go.mongodb.org/mongo-driver/x/mongo/driver/connstring
+go.mongodb.org/mongo-driver/event
+go.mongodb.org/mongo-driver/mongo/readconcern
+go.mongodb.org/mongo-driver/x/bsonx
+go.mongodb.org/mongo-driver/x/mongo/driver
+go.mongodb.org/mongo-driver/x/mongo/driver/auth
+go.mongodb.org/mongo-driver/x/mongo/driver/description
+go.mongodb.org/mongo-driver/x/mongo/driver/operation
+go.mongodb.org/mongo-driver/x/mongo/driver/session
+go.mongodb.org/mongo-driver/x/mongo/driver/topology
+go.mongodb.org/mongo-driver/x/mongo/driver/uuid
+go.mongodb.org/mongo-driver/x/mongo/driverlegacy
+go.mongodb.org/mongo-driver/x/network/command
+go.mongodb.org/mongo-driver/x/network/result
+go.mongodb.org/mongo-driver/internal
+go.mongodb.org/mongo-driver/x/mongo/driver/dns
+go.mongodb.org/mongo-driver/x/network/wiremessage
+go.mongodb.org/mongo-driver/x/mongo/driver/address
+go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
+go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi
+go.mongodb.org/mongo-driver/version
+go.mongodb.org/mongo-driver/x/network/compressor
+go.mongodb.org/mongo-driver/x/network/connection
 # golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/pbkdf2
+# golang.org/x/sync v0.0.0-20190423024810-112230192c58
+golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20190226215855-775f8194d0f9
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc
@@ -140,11 +170,5 @@ golang.org/x/text/runes
 golang.org/x/text/internal/tag
 # google.golang.org/appengine v1.6.0
 google.golang.org/appengine/cloudsql
-# gopkg.in/mgo.v2 v2.0.0-20160818020120-3f83fa500528
-gopkg.in/mgo.v2/bson
-gopkg.in/mgo.v2
-gopkg.in/mgo.v2/internal/json
-gopkg.in/mgo.v2/internal/sasl
-gopkg.in/mgo.v2/internal/scram
 # gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2

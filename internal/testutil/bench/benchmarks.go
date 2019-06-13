@@ -18,8 +18,8 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	yaml "gopkg.in/yaml.v2"
+	"go.mongodb.org/mongo-driver/bson"
+	"gopkg.in/yaml.v2"
 )
 
 // Suite represents a set of benchmarks.

@@ -3,10 +3,10 @@
     "properties" : {
         "_id" : {
             "schemas": {
-                "double": { "bsonType": "double" }
+                "int": { "bsonType": "int" }
             },
             "counts": {
-                "double": 1
+                "int": 1
             }
         },
         "xX" : {
@@ -20,10 +20,10 @@
                                 "properties" : {
                                     "c" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     },
                                     "c_0" : {
@@ -36,10 +36,10 @@
                                     },
                                     "C" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     }
                                 }
@@ -66,10 +66,10 @@
                                 "properties" : {
                                     "b" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     }
                                 }
@@ -87,18 +87,18 @@
         },
         "XX" : {
             "schemas": {
-                "double": { "bsonType": "double" }
+                "int": { "bsonType": "int" }
             },
             "counts": {
-                "double": 1
+                "int": 1
             }
         },
         "xX_0" : {
             "schemas": {
-                "double": { "bsonType": "double" }
+                "int": { "bsonType": "int" }
             },
             "counts": {
-                "double": 1
+                "int": 1
             }
         }
     }

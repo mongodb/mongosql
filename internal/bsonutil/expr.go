@@ -1,6 +1,6 @@
 package bsonutil
 
-import "github.com/10gen/mongo-go-driver/bson"
+import "go.mongodb.org/mongo-driver/bson"
 
 //
 // Expression Translation Wrappers
@@ -135,7 +135,7 @@ func WrapInCond(truePart, falsePart interface{}, conds ...interface{}) interface
 
 // WrapInOp returns a document which passes all arguments to the op.
 func WrapInOp(op string, args ...interface{}) interface{} {
-	return NewM(NewDocElem(op, args))
+	return NewM(NewDocElem(op, NewArray(args...)))
 }
 
 // WrapInType wraps the passed expression in an expression

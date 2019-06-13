@@ -3,10 +3,11 @@ package astutil_test
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/google/go-cmp/cmp"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestDeparsePipeline(t *testing.T) {
@@ -29,9 +30,9 @@ func TestDeparsePipeline(t *testing.T) {
 				),
 			),
 			[]bson.D{
-				{{Name: "$project", Value: bson.D{
-					{Name: "x", Value: bson.D{{Name: "$add", Value: []interface{}{"$a", "$b"}}}},
-					{Name: "_id", Value: int32(0)},
+				{{Key: "$project", Value: bson.D{
+					{Key: "x", Value: bson.D{{Key: "$add", Value: bson.A{"$a", "$b"}}}},
+					{Key: "_id", Value: int32(0)},
 				}}},
 			},
 		},
@@ -56,18 +57,18 @@ func TestDeparsePipeline(t *testing.T) {
 				ast.NewLimitStage(3),
 			),
 			[]bson.D{
-				{{Name: "$match", Value: bson.D{
-					{Name: "$or", Value: []interface{}{
-						bson.D{{Name: "x", Value: int32(1)}},
-						bson.D{{Name: "x", Value: int32(2)}},
+				{{Key: "$match", Value: bson.D{
+					{Key: "$or", Value: bson.A{
+						bson.D{{Key: "x", Value: int32(1)}},
+						bson.D{{Key: "x", Value: int32(2)}},
 					}},
 				}}},
-				{{Name: "$skip", Value: int64(5)}},
-				{{Name: "$addFields", Value: bson.D{
-					{Name: "sum", Value: bson.D{{Name: "$add", Value: []interface{}{"$x", "$y", "$z"}}}},
-					{Name: "cons", Value: "yo"},
+				{{Key: "$skip", Value: int64(5)}},
+				{{Key: "$addFields", Value: bson.D{
+					{Key: "sum", Value: bson.D{{Key: "$add", Value: bson.A{"$x", "$y", "$z"}}}},
+					{Key: "cons", Value: "yo"},
 				}}},
-				{{Name: "$limit", Value: int64(3)}},
+				{{Key: "$limit", Value: int64(3)}},
 			},
 		},
 	}
@@ -95,9 +96,9 @@ func TestParsePipeline(t *testing.T) {
 		{
 			"single stage pipeline",
 			[]bson.D{
-				{{Name: "$project", Value: bson.D{
-					{Name: "x", Value: bson.D{{Name: "$add", Value: []interface{}{"$a", "$b"}}}},
-					{Name: "_id", Value: int32(0)},
+				{{Key: "$project", Value: bson.D{
+					{Key: "x", Value: bson.D{{Key: "$add", Value: []interface{}{"$a", "$b"}}}},
+					{Key: "_id", Value: int32(0)},
 				}}},
 			},
 			ast.NewPipeline(
@@ -117,18 +118,18 @@ func TestParsePipeline(t *testing.T) {
 		{
 			"multiple stage pipeline",
 			[]bson.D{
-				{{Name: "$match", Value: bson.D{
-					{Name: "$or", Value: []interface{}{
-						bson.D{{Name: "x", Value: int32(1)}},
-						bson.D{{Name: "x", Value: int32(2)}},
+				{{Key: "$match", Value: bson.D{
+					{Key: "$or", Value: []interface{}{
+						bson.D{{Key: "x", Value: int32(1)}},
+						bson.D{{Key: "x", Value: int32(2)}},
 					}},
 				}}},
-				{{Name: "$skip", Value: int64(5)}},
-				{{Name: "$addFields", Value: bson.D{
-					{Name: "sum", Value: bson.D{{Name: "$add", Value: []interface{}{"$x", "$y", "$z"}}}},
-					{Name: "cons", Value: bson.D{{Name: "$literal", Value: "yo"}}},
+				{{Key: "$skip", Value: int64(5)}},
+				{{Key: "$addFields", Value: bson.D{
+					{Key: "sum", Value: bson.D{{Key: "$add", Value: []interface{}{"$x", "$y", "$z"}}}},
+					{Key: "cons", Value: bson.D{{Key: "$literal", Value: "yo"}}},
 				}}},
-				{{Name: "$limit", Value: int64(3)}},
+				{{Key: "$limit", Value: int64(3)}},
 			},
 			ast.NewPipeline(
 				ast.NewMatchStage(ast.NewBinary("$or",

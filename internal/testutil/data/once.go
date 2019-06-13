@@ -1,7 +1,7 @@
 package data
 
 import (
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
+	toolsoptions "github.com/mongodb/mongo-tools-common/options"
 )
 
 // OnceDataset is a dataset that should only be restored once. After the first

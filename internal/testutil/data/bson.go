@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/testutil/mongodb"
-	toolsdb "github.com/mongodb/mongo-tools/common/db"
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
+	toolsdb "github.com/mongodb/mongo-tools-common/db"
+	toolsoptions "github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools/mongorestore"
 )
 
@@ -93,15 +93,10 @@ func (b BSONDataset) restoreFromFile(opts *toolsoptions.ToolOptions) error {
 	if err != nil {
 		return err
 	}
-	sp.SetFlags(toolsdb.DisableSocketTimeout)
 
-	session, err := sp.GetSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
+	defer sp.Close()
 
-	ok, err := mongodb.VersionAtLeast(session, b.MinVersion)
+	ok, err := mongodb.VersionAtLeast(sp, b.MinVersion)
 	if err != nil {
 		return err
 	}
@@ -127,5 +122,5 @@ func (b BSONDataset) restoreFromFile(opts *toolsoptions.ToolOptions) error {
 		SessionProvider: sp,
 	}
 
-	return restorer.Restore()
+	return restorer.Restore().Err
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/values"
@@ -19,6 +18,8 @@ import (
 	"github.com/10gen/sqlproxy/schema/sample"
 
 	"github.com/pkg/errors"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Translator is a type for translating MySQL queries to MongoDB aggregation

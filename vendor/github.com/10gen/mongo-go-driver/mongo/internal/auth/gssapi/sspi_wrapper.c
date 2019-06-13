@@ -6,7 +6,7 @@ static HINSTANCE sspi_secur32_dll = NULL;
 static PSecurityFunctionTable sspi_functions = NULL;
 static const LPSTR SSPI_PACKAGE_NAME = "kerberos";
 
-int sspi_init(
+int sspi_init_old(
 )
 {
 	sspi_secur32_dll = LoadLibrary("secur32.dll");
@@ -27,8 +27,8 @@ int sspi_init(
 	return SSPI_OK;
 }
 
-int sspi_client_init(
-    sspi_client_state *client,
+int sspi_client_init_old(
+    sspi_client_state_old *client,
     char* username,
     char* password
 )
@@ -65,8 +65,8 @@ int sspi_client_init(
     return SSPI_OK;
 }
 
-int sspi_client_username(
-    sspi_client_state *client,
+int sspi_client_username_old(
+    sspi_client_state_old *client,
     char** username
 )
 {
@@ -86,8 +86,8 @@ int sspi_client_username(
     return SSPI_OK;
 }
 
-int sspi_client_negotiate(
-    sspi_client_state *client,
+int sspi_client_negotiate_old(
+    sspi_client_state_old *client,
     char* spn,
     PVOID input,
     ULONG input_length,
@@ -150,8 +150,8 @@ int sspi_client_negotiate(
     return SSPI_OK;
 }
 
-int sspi_client_wrap_msg(
-    sspi_client_state *client,
+int sspi_client_wrap_msg_old(
+    sspi_client_state_old *client,
     PVOID input,
     ULONG input_length,
     PVOID* output,
@@ -204,8 +204,8 @@ int sspi_client_wrap_msg(
 	return SSPI_OK;
 }
 
-int sspi_client_destroy(
-    sspi_client_state *client
+int sspi_client_destroy_old(
+    sspi_client_state_old *client
 )
 {
     if (client->has_ctx > 0) {

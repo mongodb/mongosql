@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // IndexType is an enum type representing index types we use for schema inference.
@@ -59,9 +59,9 @@ func importIndexes(doc []bson.D) indexes {
 			if bsonD, ok := mp.(bson.D); ok && len(bsonD) == 1 {
 				value := fmt.Sprintf("%v", bsonD[0].Value)
 				if value == string(Index2DSphere) {
-					indexTypeByKey[bsonD[0].Name] = Index2DSphere
+					indexTypeByKey[bsonD[0].Key] = Index2DSphere
 				} else if value == string(Index2D) {
-					indexTypeByKey[bsonD[0].Name] = Index2D
+					indexTypeByKey[bsonD[0].Key] = Index2D
 				}
 			}
 		}

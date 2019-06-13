@@ -1,20 +1,19 @@
 package mapping_test
 
 import (
-	"encoding/json"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestMapSchema(t *testing.T) {
@@ -145,7 +144,8 @@ func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
 	}
 
 	// unmarshal sample document into bson.D
-	sample, err := bsonFromJSON(sampleBytes)
+	sample := bson.D{}
+	err = bson.UnmarshalExtJSON(sampleBytes, false, &sample)
 	if err != nil {
 		return err
 	}
@@ -191,37 +191,4 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 
 	// compare the generated schema to the expected one
 	return actual.Equals(expected)
-}
-
-func bsonFromJSON(jsonBytes []byte) (bson.D, error) {
-	dict := map[string]interface{}{}
-	err := json.Unmarshal(jsonBytes, &dict)
-	if err != nil {
-		return nil, err
-	}
-
-	doc := bsonFromMap(dict)
-	return doc, nil
-}
-
-func toBSON(val interface{}) interface{} {
-	switch typedV := val.(type) {
-	case map[string]interface{}:
-		return bsonFromMap(typedV)
-	case []interface{}:
-		arr := bsonutil.NewArray()
-		for _, elem := range typedV {
-			arr = append(arr, toBSON(elem))
-		}
-		return arr
-	}
-	return val
-}
-
-func bsonFromMap(dict map[string]interface{}) bson.D {
-	var doc bson.D
-	for key, val := range dict {
-		doc = append(doc, bsonutil.NewDocElem(key, toBSON(val)))
-	}
-	return doc
 }

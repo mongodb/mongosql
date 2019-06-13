@@ -64,13 +64,13 @@ type SaslClient struct {
 	passwordSet          bool
 
 	// state
-	state           C.gssapi_client_state
+	state           C.gssapi_client_state_old
 	contextComplete bool
 	done            bool
 }
 
 func (sc *SaslClient) Close() {
-	C.gssapi_client_destroy(&sc.state)
+	C.gssapi_client_destroy_old(&sc.state)
 }
 
 func (sc *SaslClient) Start() (string, []byte, error) {
@@ -88,7 +88,7 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 			defer C.free(unsafe.Pointer(cpassword))
 		}
 	}
-	status := C.gssapi_client_init(&sc.state, cservicePrincipalName, cusername, cpassword)
+	status := C.gssapi_client_init_old(&sc.state, cservicePrincipalName, cusername, cpassword)
 
 	if status != C.GSSAPI_OK {
 		return mechName, nil, sc.getError("unable to initialize client")
@@ -112,7 +112,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 	if sc.contextComplete {
 		if sc.username == "" {
 			var cusername *C.char
-			status := C.gssapi_client_username(&sc.state, &cusername)
+			status := C.gssapi_client_username_old(&sc.state, &cusername)
 			if status != C.GSSAPI_OK {
 				return nil, sc.getError("unable to acquire username")
 			}
@@ -123,7 +123,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		bytes := append([]byte{1, 0, 0, 0}, []byte(sc.username)...)
 		buf = unsafe.Pointer(&bytes[0])
 		bufLen = C.size_t(len(bytes))
-		status := C.gssapi_client_wrap_msg(&sc.state, buf, bufLen, &outBuf, &outBufLen)
+		status := C.gssapi_client_wrap_msg_old(&sc.state, buf, bufLen, &outBuf, &outBufLen)
 		if status != C.GSSAPI_OK {
 			return nil, sc.getError("unable to wrap authz")
 		}
@@ -135,7 +135,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 			bufLen = C.size_t(len(challenge))
 		}
 
-		status := C.gssapi_client_negotiate(&sc.state, buf, bufLen, &outBuf, &outBufLen)
+		status := C.gssapi_client_negotiate_old(&sc.state, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
 		case C.GSSAPI_OK:
 			sc.contextComplete = true
@@ -159,7 +159,7 @@ func (sc *SaslClient) Completed() bool {
 func (sc *SaslClient) getError(prefix string) error {
 	var desc *C.char
 
-	status := C.gssapi_error_desc(sc.state.maj_stat, sc.state.min_stat, &desc)
+	status := C.gssapi_error_desc_old(sc.state.maj_stat, sc.state.min_stat, &desc)
 	if status != C.GSSAPI_OK {
 		if desc != nil {
 			C.free(unsafe.Pointer(desc))

@@ -5,10 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/drdl"
+
+	oldbson "github.com/10gen/mongo-go-driver/bson"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
@@ -47,9 +50,9 @@ func (p Persistor) FindNames(ctx context.Context) ([]Name, error) {
 	defer func() { _ = iter.Close(ctx) }()
 
 	names := []Name{}
-	name := &Name{}
+	name := &oldName{}
 	for iter.Next(ctx, &name) {
-		names = append(names, *name)
+		names = append(names, *name.toNew())
 	}
 
 	if err := iter.Err(); err != nil {
@@ -61,8 +64,13 @@ func (p Persistor) FindNames(ctx context.Context) ([]Name, error) {
 
 // SchemaInfo contains the ObjectId and creation time for a schema.
 type SchemaInfo struct {
-	ID      bson.ObjectId `bson:"_id"`
-	Created time.Time     `bson:"created"`
+	ID      primitive.ObjectID `bson:"_id"`
+	Created time.Time          `bson:"created"`
+}
+
+type oldSchemaInfo struct {
+	ID      oldbson.ObjectId `bson:"_id"`
+	Created time.Time        `bson:"created"`
 }
 
 // FindSchemas retrieves info on all stored Schemas.
@@ -81,9 +89,13 @@ func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
 	defer func() { _ = iter.Close(ctx) }()
 
 	schemas := []SchemaInfo{}
-	sch := &SchemaInfo{}
+	sch := &oldSchemaInfo{}
 	for iter.Next(ctx, &sch) {
-		schemas = append(schemas, *sch)
+		oid, err := primitive.ObjectIDFromHex(sch.ID.Hex())
+		if err != nil {
+			return nil, err
+		}
+		schemas = append(schemas, SchemaInfo{ID: oid, Created: sch.Created})
 	}
 
 	if err := iter.Err(); err != nil {
@@ -138,7 +150,7 @@ func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Sch
 
 // FindSchemaByID returns the drdl.Schema corresponding to the provided
 // ObjectId if it exists.
-func (p Persistor) FindSchemaByID(ctx context.Context, schemaID bson.ObjectId) (*drdl.Schema, error) {
+func (p Persistor) FindSchemaByID(ctx context.Context, schemaID primitive.ObjectID) (*drdl.Schema, error) {
 	s, err := p.session(ctx)
 	if err != nil {
 		return nil, err
@@ -176,7 +188,7 @@ func (p Persistor) FindSchemaByID(ctx context.Context, schemaID bson.ObjectId) (
 
 // DeleteSchema deletes the drdl.Schema corresponding to the provided ObjectId
 // if it exists.
-func (p Persistor) DeleteSchema(ctx context.Context, schemaID bson.ObjectId) error {
+func (p Persistor) DeleteSchema(ctx context.Context, schemaID primitive.ObjectID) error {
 	s, err := p.session(ctx)
 	if err != nil {
 		return err
@@ -201,10 +213,10 @@ func (p Persistor) DeleteName(ctx context.Context, name string) error {
 
 // InsertSchema inserts the provided drdl.Schema, returning the ObjectId by
 // which it can be referenced in the future.
-func (p Persistor) InsertSchema(ctx context.Context, drdlSchema *drdl.Schema) (bson.ObjectId, error) {
+func (p Persistor) InsertSchema(ctx context.Context, drdlSchema *drdl.Schema) (primitive.ObjectID, error) {
 	s, err := p.session(ctx)
 	if err != nil {
-		return "", err
+		return primitive.NilObjectID, err
 	}
 	defer func() { _ = s.Close() }()
 
@@ -212,16 +224,16 @@ func (p Persistor) InsertSchema(ctx context.Context, drdlSchema *drdl.Schema) (b
 
 	err = s.Insert(ctx, p.schemaSourceDB, schemasCollection, []interface{}{sch})
 	if err != nil {
-		return "", err
+		return primitive.NilObjectID, err
 	}
 
-	return sch.ID, nil
+	return primitive.ObjectIDFromHex(sch.ID.Hex())
 }
 
 // UpsertName updates the provided name to point to the schema with the
 // specified ObjectId. If the provided name does not exist, a new one is
 // created instead.
-func (p Persistor) UpsertName(ctx context.Context, name string, schemaID bson.ObjectId) error {
+func (p Persistor) UpsertName(ctx context.Context, name string, schemaID primitive.ObjectID) error {
 	s, err := p.session(ctx)
 	if err != nil {
 		return err
@@ -231,7 +243,7 @@ func (p Persistor) UpsertName(ctx context.Context, name string, schemaID bson.Ob
 	query := bsonutil.NewD(bsonutil.NewDocElem("_id", name))
 	update := newName(name, schemaID)
 
-	return s.Upsert(ctx, p.schemaSourceDB, namesCollection, query, update)
+	return s.Upsert(ctx, p.schemaSourceDB, namesCollection, query, update.toOld())
 }
 
 func (p Persistor) session(ctx context.Context) (*mongodb.Session, error) {

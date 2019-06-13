@@ -6,13 +6,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/mongo"
 
 	"github.com/kr/pretty"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Table represents a configuration for a table.
@@ -53,7 +54,7 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 	primaryKeys := map[normalizedName]struct{}{}
 
 	table := &Table{
-		pipeline:   []bson.D{},
+		pipeline:   make([]bson.D, 0, len(pipeline)),
 		sqlName:    tbl,
 		mongoName:  col,
 		columns:    map[normalizedName]*Column{},
@@ -180,11 +181,11 @@ func (t *Table) addGeoColumn(lg log.Logger, c *Column, isPK bool) {
 // any extjson expressions used in the pipeline will be converted into proper
 // BSON values.
 func (t *Table) AddPipelineStage(doc bson.D) error {
-	v, err := bsonutil.ConvertJSONValueToBSON(doc)
+	d, err := bsonutil.ParseExtendedJSON(doc)
 	if err != nil {
 		return fmt.Errorf("unable to parse extended json: %v", err)
 	}
-	t.pipeline = append(t.pipeline, v.(bson.D))
+	t.pipeline = append(t.pipeline, d.(bson.D))
 	return nil
 }
 

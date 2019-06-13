@@ -17,7 +17,6 @@ import (
 	mongoutil "github.com/10gen/sqlproxy/internal/testutil/mongodb"
 	"github.com/10gen/sqlproxy/mongodb"
 
-	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 )
 
@@ -140,70 +139,4 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		require.NoError(t, iter.Close())
 		require.Error(t, iter.Err())
 	})
-}
-
-func TestExtractField(t *testing.T) {
-	req := require.New(t)
-
-	testD := bsonutil.NewD(
-		bsonutil.NewDocElem("a", "string"),
-		bsonutil.NewDocElem("b", bsonutil.NewArray(
-			"inner",
-			bsonutil.NewD(bsonutil.NewDocElem("inner2", 1)),
-		)),
-		bsonutil.NewDocElem("c", bsonutil.NewD(bsonutil.NewDocElem("x", 5))),
-		bsonutil.NewDocElem("d", bsonutil.NewD(bsonutil.NewDocElem("z", nil))),
-	)
-
-	// regular fields should be extracted by name
-	val, ok := bsonutil.ExtractFieldByName("a", testD)
-	req.Equal(val, "string")
-	req.True(ok)
-
-	// array fields should be extracted by name
-	val, ok = bsonutil.ExtractFieldByName("b.1", testD)
-	req.Zero(convey.ShouldResemble(val, bsonutil.NewD(bsonutil.NewDocElem("inner2", 1))))
-	req.True(ok)
-	val, ok = bsonutil.ExtractFieldByName("b.1.inner2", testD)
-	req.Equal(val, 1)
-	req.True(ok)
-	val, ok = bsonutil.ExtractFieldByName("b.0", testD)
-	req.Equal(val, "inner")
-	req.True(ok)
-
-	// subdocument fields should be extracted by name
-	val, ok = bsonutil.ExtractFieldByName("c", testD)
-	req.Zero(convey.ShouldResemble(val, bsonutil.NewD(bsonutil.NewDocElem("x", 5))))
-	req.True(ok)
-	val, ok = bsonutil.ExtractFieldByName("c.x", testD)
-	req.Equal(val, 5)
-	req.True(ok)
-
-	// even if they contain null values
-	val, ok = bsonutil.ExtractFieldByName("d", testD)
-	req.Zero(convey.ShouldResemble(val, bsonutil.NewD(bsonutil.NewDocElem("z", nil))))
-	req.True(ok)
-	val, ok = bsonutil.ExtractFieldByName("d.z", testD)
-	req.Equal(val, nil)
-	req.True(ok)
-	val, ok = bsonutil.ExtractFieldByName("d.z.nope", testD)
-	req.Equal(val, nil)
-	req.False(ok)
-
-	// non-existing fields should return (nil, false)
-	for _, c := range []string{"f", "c.nope", "c.nope.NOPE", "b.1000", "b.1.nada"} {
-		val, ok = bsonutil.ExtractFieldByName(c, testD)
-		req.Nil(val)
-		req.False(ok)
-	}
-
-	// bsonutil.Extraction of a non-document should return (nil, false)
-	val, ok = bsonutil.ExtractFieldByName("meh", bsonutil.NewArray("meh"))
-	req.Nil(val)
-	req.False(ok)
-
-	// bsonutil.Extraction of a nil document should return (nil, false)
-	val, ok = bsonutil.ExtractFieldByName("a", nil)
-	req.Equal(val, nil)
-	req.False(ok)
 }

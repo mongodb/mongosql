@@ -1,8 +1,8 @@
 package data
 
 import (
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
-	"gopkg.in/mgo.v2/bson"
+	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // A DynamicDataset is a function that generates rows of data to be

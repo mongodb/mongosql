@@ -19,23 +19,23 @@ typedef struct {
     int has_ctx;
 
     SECURITY_STATUS status;
-} sspi_client_state;
+} sspi_client_state_old;
 
-int sspi_init();
+int sspi_init_old();
 
-int sspi_client_init(
-    sspi_client_state *client,
+int sspi_client_init_old(
+    sspi_client_state_old *client,
     char* username,
     char* password
 );
 
-int sspi_client_username(
-    sspi_client_state *client,
+int sspi_client_username_old(
+    sspi_client_state_old *client,
     char** username
 );
 
-int sspi_client_negotiate(
-    sspi_client_state *client,
+int sspi_client_negotiate_old(
+    sspi_client_state_old *client,
     char* spn,
     PVOID input,
     ULONG input_length,
@@ -43,16 +43,16 @@ int sspi_client_negotiate(
     ULONG* output_length
 );
 
-int sspi_client_wrap_msg(
-    sspi_client_state *client,
+int sspi_client_wrap_msg_old(
+    sspi_client_state_old *client,
     PVOID input,
     ULONG input_length,
     PVOID* output,
     ULONG* output_length 
 );
 
-int sspi_client_destroy(
-    sspi_client_state *client
+int sspi_client_destroy_old(
+    sspi_client_state_old *client
 );
 
 #endif

@@ -3,18 +3,18 @@
     "properties" : {
         "_id" : {
             "schemas": {
-                "double": { "bsonType": "double" }
+                "int": { "bsonType": "int" }
             },
             "counts": {
-                "double": 1
+                "int": 1
             }
         },
         "Ca" : {
             "schemas": {
-                "double": { "bsonType": "double" }
+                "int": { "bsonType": "int" }
             },
             "counts": {
-                "double": 1
+                "int": 1
             }
         },
         "xx" : {
@@ -28,18 +28,18 @@
                                 "properties" : {
                                     "aa" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     },
                                     "Aa" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     }
                                 }
@@ -66,18 +66,18 @@
                                 "properties" : {
                                     "b" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     },
                                     "y" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     }
                                 }
@@ -104,18 +104,18 @@
                                 "properties" : {
                                     "c" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     },
                                     "C" : {
                                         "schemas": {
-                                            "double": { "bsonType": "double" }
+                                            "int": { "bsonType": "int" }
                                         },
                                         "counts": {
-                                            "double": 1
+                                            "int": 1
                                         }
                                     }
                                 }
@@ -138,18 +138,18 @@
                     "properties" : {
                         "b" : {
                             "schemas": {
-                                "double": { "bsonType": "double" }
+                                "int": { "bsonType": "int" }
                             },
                             "counts": {
-                                "double": 1
+                                "int": 1
                             }
                         },
                         "B" : {
                             "schemas": {
-                                "double": { "bsonType": "double" }
+                                "int": { "bsonType": "int" }
                             },
                             "counts": {
-                                "double": 1
+                                "int": 1
                             }
                         }
                     }
@@ -161,18 +161,18 @@
         },
         "caa" : {
             "schemas": {
-                "double": { "bsonType": "double" }
+                "int": { "bsonType": "int" }
             },
             "counts": {
-                "double": 1
+                "int": 1
             }
         },
         "cA" : {
             "schemas": {
-                "double": { "bsonType": "double" }
+                "int": { "bsonType": "int" }
             },
             "counts": {
-                "double": 1
+                "int": 1
             }
         }
     }

@@ -1197,21 +1197,19 @@
   # but also every instance of unmappable types to showcase that we will convert
   # all unmappable types to null in a mapped column.
   docs:
-      - {"_id": 0,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"},
-        "map": "hello"}
-      - {"_id": 1,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "01"},
-        "map": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "01"}}
-      - {"_id": 2,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "02"},
-        "map": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "02"}}
+      - {"_id": 0,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"}, "map": "hello"}
+      - {"_id": 1,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "01"}, "map": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "01"}}
+      - {"_id": 2,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "02"}, "map": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "02"}}
       - {"_id": 3,  "unmap": {"$timestamp": {"t": 32, "i": 46}}, "map": {"$timestamp": {"t": 32, "i": 46}}}
       - {"_id": 4,  "unmap": {"$regex": "foo", "$options": "i" }, "map": {"$regex": "foo", "$options": "i" }}
-      - {"_id": 5,  "unmap": {"$ref": "foo", "$id": 1 }, "map": {"$ref": "foo", "$id": 1 }}
-      - {"_id": 6,  "unmap": {"$undefined": true },  "map": {"$undefined": true }}
-      - {"_id": 7,  "unmap": {"$minKey": 1 }, "map": {"$minKey": 1 }}
-      - {"_id": 8,  "unmap": {"$maxKey": 1 }, "map": {"$maxKey": 1 }}
-      - {"_id": 9,  "unmap": {"$undefined": true },  "map": {"$undefined": true }}
-      - {"_id": 10, "unmap": {"$code": "function() {}"}, "map": {"$code": "function() {}"}}
-      - {"_id": 11, "unmap": {"$code": "function() {}", "$scope": {}}, "map": {"$code": "function() {}", "$scope": {}}}
+      - {"_id": 5,  "unmap": {"$ref": "foo", "$id": "53c2ab5e4291b17b666d742a" }, "map": {"$ref": "foo", "$id": "53c2ab5e4291b17b666d742a" }}
+      - {"_id": 6,  "unmap": {"$ref": "foo", "$id": { "$oid": "53c2ab5e4291b17b666d742a" } }, "map": {"$ref": "foo", "$id": { "$oid": "53c2ab5e4291b17b666d742a" } }}
+      - {"_id": 7,  "unmap": {"$undefined": true },  "map": {"$undefined": true }}
+      - {"_id": 8,  "unmap": {"$minKey": 1 }, "map": {"$minKey": 1 }}
+      - {"_id": 9,  "unmap": {"$maxKey": 1 }, "map": {"$maxKey": 1 }}
+      - {"_id": 10, "unmap": {"$undefined": true },  "map": {"$undefined": true }}
+      - {"_id": 11, "unmap": {"$code": "function() {}"}, "map": {"$code": "function() {}"}}
+      - {"_id": 12, "unmap": {"$code": "function() {}", "$scope": {}}, "map": {"$code": "function() {}", "$scope": {}}}
 
 
 # TODO(wisdom): holding off testing here until the

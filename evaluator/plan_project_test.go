@@ -12,9 +12,9 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestProjectStage(t *testing.T) {

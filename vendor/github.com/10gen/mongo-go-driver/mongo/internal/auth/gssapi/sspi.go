@@ -81,13 +81,13 @@ type SaslClient struct {
 	passwordSet          bool
 
 	// state
-	state           C.sspi_client_state
+	state           C.sspi_client_state_old
 	contextComplete bool
 	done            bool
 }
 
 func (sc *SaslClient) Close() {
-	C.sspi_client_destroy(&sc.state)
+	C.sspi_client_destroy_old(&sc.state)
 }
 
 func (sc *SaslClient) Start() (string, []byte, error) {
@@ -103,7 +103,7 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 			defer C.free(unsafe.Pointer(cpassword))
 		}
 	}
-	status := C.sspi_client_init(&sc.state, cusername, cpassword)
+	status := C.sspi_client_init_old(&sc.state, cusername, cpassword)
 
 	if status != C.SSPI_OK {
 		return mechName, nil, sc.getError("unable to intitialize client")
@@ -125,7 +125,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 	if sc.contextComplete {
 		if sc.username == "" {
 			var cusername *C.char
-			status := C.sspi_client_username(&sc.state, &cusername)
+			status := C.sspi_client_username_old(&sc.state, &cusername)
 			if status != C.SSPI_OK {
 				return nil, sc.getError("unable to acquire username")
 			}
@@ -136,7 +136,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		bytes := append([]byte{1, 0, 0, 0}, []byte(sc.username)...)
 		buf := (C.PVOID)(unsafe.Pointer(&bytes[0]))
 		bufLen := C.ULONG(len(bytes))
-		status := C.sspi_client_wrap_msg(&sc.state, buf, bufLen, &outBuf, &outBufLen)
+		status := C.sspi_client_wrap_msg_old(&sc.state, buf, bufLen, &outBuf, &outBufLen)
 		if status != C.SSPI_OK {
 			return nil, sc.getError("unable to wrap authz")
 		}
@@ -152,7 +152,7 @@ func (sc *SaslClient) Next(challenge []byte) ([]byte, error) {
 		cservicePrincipalName := C.CString(sc.servicePrincipalName)
 		defer C.free(unsafe.Pointer(cservicePrincipalName))
 
-		status := C.sspi_client_negotiate(&sc.state, cservicePrincipalName, buf, bufLen, &outBuf, &outBufLen)
+		status := C.sspi_client_negotiate_old(&sc.state, cservicePrincipalName, buf, bufLen, &outBuf, &outBufLen)
 		switch status {
 		case C.SSPI_OK:
 			sc.contextComplete = true
@@ -181,7 +181,7 @@ var initOnce sync.Once
 var initError error
 
 func initSSPI() {
-	rc := C.sspi_init()
+	rc := C.sspi_init_old()
 	if rc != 0 {
 		initError = fmt.Errorf("error initializing sspi: %v", rc)
 	}

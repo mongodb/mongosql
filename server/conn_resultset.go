@@ -10,8 +10,6 @@ import (
 	"encoding/hex"
 	"unicode/utf8"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/results"
@@ -23,6 +21,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // dataFormatter holds information necessary for formatting
@@ -468,7 +468,7 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
 
-	doc := &bson.RawD{}
+	doc := &bson.Raw{}
 
 	maybePanic := func(err error) {
 		if err != nil {
@@ -482,17 +482,19 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 	for ctx.Err() == nil && fastIter.Next(ctx, doc) {
 		columnInfo = fastIter.GetColumnInfo()
 		packet := []byte{0, 0, 0, 0}
-		values := *doc
-		lenValues := len(values)
+		vs, err := doc.Elements()
+		maybePanic(err)
+		lenValues := len(vs)
 		if lenValues == lenColumnFields {
 			// No missing values, so we can iterate fast without checking key names.
-			for i, value := range values {
+			for i, v := range vs {
 				fieldName := columnInfo[i].Field
 				columnType := columnInfo[i].Type
 				uuidSubtype := columnInfo[i].UUIDSubtype
+				value := v.Value()
 				df := newDataFormatter(fieldName, columnType,
-					types.EvalType(value.Value.Kind), uuidSubtype,
-					charSet, mongoDBVarcharLength, value.Value.Data)
+					types.EvalType(value.Type), uuidSubtype,
+					charSet, mongoDBVarcharLength, value.Value)
 				b, err := fastFormat(df, valueKind)
 				maybePanic(err)
 				packet = append(packet, b...)
@@ -506,13 +508,13 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 				fieldName := info.Field
 				columnType := info.Type
 				uuidSubtype := info.UUIDSubtype
-				if numMissingValues > 0 && i < len(values) {
-					if fieldName == values[i].Name {
-						value := values[i].Value
+				if numMissingValues > 0 && i < len(vs) {
+					if fieldName == vs[i].Key() {
+						value := vs[i].Value()
 						// If this is the correct fieldName, output the value.
 						df := newDataFormatter(fieldName, columnType,
-							types.EvalType(value.Kind), uuidSubtype,
-							charSet, mongoDBVarcharLength, value.Data)
+							types.EvalType(value.Type), uuidSubtype,
+							charSet, mongoDBVarcharLength, value.Value)
 						b, err := fastFormat(df, valueKind)
 						maybePanic(err)
 						packet = append(packet, b...)
@@ -526,13 +528,13 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 						packet = append(packet, 0xfb)
 						numMissingValues--
 					}
-				} else if i < len(values) {
+				} else if i < len(vs) {
 					// We have found all the missing values, default to the faster mode.
-					value := values[i].Value
+					value := vs[i].Value()
 					i++
 					df := newDataFormatter(fieldName, columnType,
-						types.EvalType(value.Kind), uuidSubtype,
-						charSet, mongoDBVarcharLength, value.Data)
+						types.EvalType(value.Type), uuidSubtype,
+						charSet, mongoDBVarcharLength, value.Value)
 					b, err := fastFormat(df, valueKind)
 					maybePanic(err)
 					packet = append(packet, b...)
@@ -563,13 +565,13 @@ func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fa
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
 
-	doc := &bson.RawD{}
+	doc := &bson.Raw{}
 	columnInfo := fastIter.GetColumnInfo()
 	lenColumnInfo := len(columnInfo)
 	// We will use one nullField value to represent all NULLs that will result
 	// from missing fields.
-	nullField := &bson.Raw{Kind: byte(types.EvalNull), Data: []byte{}}
-	fieldMap := make(map[string]*bson.Raw, lenColumnInfo)
+	nullField := &bson.RawValue{Type: bson.TypeNull, Value: []byte{}}
+	fieldMap := make(map[string]*bson.RawValue, lenColumnInfo)
 	// Set the value for all columns to null so we can avoid
 	// a branch in the forloop below.
 	for _, info := range columnInfo {
@@ -578,16 +580,21 @@ func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fa
 	for ctx.Err() == nil && fastIter.Next(ctx, doc) {
 		columnInfo = fastIter.GetColumnInfo()
 		packet := []byte{0, 0, 0, 0}
-		values := *doc
+		vs, err := doc.Elements()
+		if err != nil {
+			close(packetChan)
+			panic(err)
+		}
 		// We can't rely on field ordering in 3.2.
-		for i := range values {
-			fieldMap[values[i].Name] = &(values[i].Value)
+		for _, v := range vs {
+			value := v.Value()
+			fieldMap[v.Key()] = &value
 		}
 		for _, info := range columnInfo {
 			value := fieldMap[info.Field]
 			df := newDataFormatter(info.Field, info.Type,
-				types.EvalType(value.Kind), info.UUIDSubtype,
-				charSet, mongoDBVarcharLength, value.Data)
+				types.EvalType(value.Type), info.UUIDSubtype,
+				charSet, mongoDBVarcharLength, value.Value)
 			b, err := fastFormat(df, valueKind)
 			if err != nil {
 				close(packetChan)

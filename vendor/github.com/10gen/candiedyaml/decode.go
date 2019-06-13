@@ -478,7 +478,7 @@ func (d *Decoder) mappingSlice(v reflect.Value) {
 	var valueField *field
 	for _, f := range fields {
 		switch f.name {
-		case "Name":
+		case "Key":
 			tempf := f
 			nameField = &tempf
 		case "Value":
@@ -490,7 +490,7 @@ func (d *Decoder) mappingSlice(v reflect.Value) {
 	// in this instance, we require that a struct
 	// with names Key and Value
 	if nameField == nil || valueField == nil {
-		d.error(fmt.Errorf("Expected a slice of a struct with fields called 'Name' and 'Value' ", v, d.event.start_mark))
+		d.error(fmt.Errorf("Expected a slice of a struct with fields called 'Key' and 'Value' ", v, d.event.start_mark))
 	}
 
 	d.nextEvent()

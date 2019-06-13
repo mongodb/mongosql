@@ -3,8 +3,6 @@ package astutil
 import (
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/mongoast/ast"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -13,10 +11,10 @@ import (
 )
 
 // BinaryConstant returns an ast.Constant with a Binary bson value.
-func BinaryConstant(v bson.Binary) *ast.Constant {
+func BinaryConstant(v primitive.Binary) *ast.Constant {
 	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Binary,
-		Data: bsoncore.AppendBinary(nil, v.Kind, v.Data),
+		Data: bsoncore.AppendBinary(nil, v.Subtype, v.Data),
 	})
 }
 

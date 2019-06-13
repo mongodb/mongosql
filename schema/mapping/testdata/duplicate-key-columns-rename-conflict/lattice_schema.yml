@@ -6,9 +6,9 @@ schema:
     pipeline: []
     columns:
     - Name: A
-      MongoType: float64
+      MongoType: int
       SqlName: A_1
-      SqlType: float64
+      SqlType: int
     - Name: A_0
       MongoType: string
       SqlName: A_0

@@ -8,13 +8,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/persist"
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
@@ -63,7 +64,7 @@ func TestPersistSchema(t *testing.T) {
 		setup(sp)
 		req := require.New(t)
 
-		err := p.UpsertName(ctx, "defaultSchema", bson.NewObjectId())
+		err := p.UpsertName(ctx, "defaultSchema", primitive.NewObjectID())
 		req.NoError(err, "failed to insert name")
 	})
 
@@ -103,7 +104,7 @@ func TestPersistSchema(t *testing.T) {
 		setup(sp)
 		req := require.New(t)
 
-		err := p.UpsertName(ctx, "nameOne", bson.NewObjectId())
+		err := p.UpsertName(ctx, "nameOne", primitive.NewObjectID())
 		req.NoError(err, "failed to insert name")
 
 		names, err := p.FindNames(ctx)
@@ -124,7 +125,7 @@ func TestPersistSchema(t *testing.T) {
 		setup(sp)
 		req := require.New(t)
 
-		err := p.UpsertName(ctx, "defaultSchema", bson.NewObjectId())
+		err := p.UpsertName(ctx, "defaultSchema", primitive.NewObjectID())
 		req.NoError(err, "failed to insert name")
 
 		_, err = p.FindSchemaByName(ctx, "defaultSchema")
@@ -135,7 +136,7 @@ func TestPersistSchema(t *testing.T) {
 		setup(sp)
 		req := require.New(t)
 
-		oid := bson.NewObjectId()
+		oid := primitive.NewObjectID()
 		_, err := p.FindSchemaByID(ctx, oid)
 		req.EqualError(err, fmt.Sprintf("no schema found with ObjectId %s", oid.Hex()))
 	})
@@ -167,7 +168,7 @@ func TestPersistSchema(t *testing.T) {
 		sid, err := p.InsertSchema(ctx, drdlSchema)
 		req.NoError(err, "failed to insert schema")
 
-		err = p.DeleteSchema(ctx, bson.NewObjectId())
+		err = p.DeleteSchema(ctx, primitive.NewObjectID())
 		req.NoError(err, "deleting nonexistent schema should return no error")
 
 		_, err = p.FindSchemaByID(ctx, sid)
@@ -178,10 +179,10 @@ func TestPersistSchema(t *testing.T) {
 		setup(sp)
 		req := require.New(t)
 
-		err := p.UpsertName(ctx, "nameOne", bson.NewObjectId())
+		err := p.UpsertName(ctx, "nameOne", primitive.NewObjectID())
 		req.NoError(err, "failed to insert name one")
 
-		err = p.UpsertName(ctx, "nameTwo", bson.NewObjectId())
+		err = p.UpsertName(ctx, "nameTwo", primitive.NewObjectID())
 		req.NoError(err, "failed to insert name two")
 
 		err = p.DeleteName(ctx, "nameTwo")
@@ -197,7 +198,7 @@ func TestPersistSchema(t *testing.T) {
 		setup(sp)
 		req := require.New(t)
 
-		err := p.UpsertName(ctx, "defaultSchema", bson.NewObjectId())
+		err := p.UpsertName(ctx, "defaultSchema", primitive.NewObjectID())
 		req.NoError(err, "failed to insert name")
 
 		err = p.DeleteName(ctx, "abc")
@@ -234,11 +235,11 @@ func TestPersistSchema(t *testing.T) {
 		setup(sp)
 		req := require.New(t)
 
-		oid := bson.NewObjectId()
+		oid := primitive.NewObjectID()
 		err := p.UpsertName(ctx, "defaultSchema", oid)
 		req.NoError(err, "failed to insert name")
 
-		newOID := bson.NewObjectId()
+		newOID := primitive.NewObjectID()
 		err = p.UpsertName(ctx, "defaultSchema", newOID)
 		req.NoError(err, "failed to update name")
 

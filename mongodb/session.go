@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/options"
@@ -15,7 +15,10 @@ import (
 	"github.com/10gen/mongo-go-driver/mongo/readconcern"
 	"github.com/10gen/mongo-go-driver/mongo/readpref"
 	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
@@ -138,7 +141,7 @@ func (s *Session) Aggregate(ctx context.Context, database, collection string, pi
 		// time we have left as the max time to try to execute the query in.
 		opts = append(opts, mongo.MaxTime(time.Until(ctxDeadlineTime)))
 	}
-	return ops.Aggregate(ctx, s.selectedServer, ns, readconcern.Local(), pipeline, opts...)
+	return ops.Aggregate(ctx, s.selectedServer, ns, readconcern.Local(), astutil.NewToOldBSON(pipeline), opts...)
 }
 
 // Count runs a count command for a specific database and collection.
@@ -162,11 +165,11 @@ func (s *Session) Delete(ctx context.Context, db, col string, query interface{})
 		Ok int `bson:"ok"`
 	}{}
 
-	deletes := []bson.D{
-		bsonutil.NewD(
+	deletes := []oldbson.D{
+		astutil.NewToOldBSOND(bsonutil.NewD(
 			bsonutil.NewDocElem("q", query),
 			bsonutil.NewDocElem("limit", 0),
-		),
+		)),
 	}
 
 	wc := writeconcern.New(writeconcern.WMajority(-1))
@@ -214,12 +217,12 @@ func (s *Session) Upsert(ctx context.Context, db, col string, query, update inte
 		Ok int `bson:"ok"`
 	}{}
 
-	updates := []bson.D{
-		bsonutil.NewD(
+	updates := []oldbson.D{
+		astutil.NewToOldBSOND(bsonutil.NewD(
 			bsonutil.NewDocElem("q", query),
 			bsonutil.NewDocElem("u", update),
 			bsonutil.NewDocElem("upsert", true),
-		),
+		)),
 	}
 
 	wc := writeconcern.New(writeconcern.WMajority(-1))
@@ -247,7 +250,7 @@ type cursorReturningResult struct {
 // The first batch of a cursor.
 type firstBatchCursorResult struct {
 	// The first batch of the cursor.
-	FirstBatch []bson.Raw `bson:"firstBatch"`
+	FirstBatch []oldbson.Raw `bson:"firstBatch"`
 	// The namespace used to iterate the cursor.
 	NS string `bson:"ns"`
 	// The cursor's id.
@@ -260,7 +263,7 @@ func (cursorResult *firstBatchCursorResult) Namespace() ops.Namespace {
 	return namespace
 }
 
-func (cursorResult *firstBatchCursorResult) InitialBatch() []bson.Raw {
+func (cursorResult *firstBatchCursorResult) InitialBatch() []oldbson.Raw {
 	return cursorResult.FirstBatch
 }
 
@@ -295,7 +298,7 @@ func (s *Session) ListCollections(ctx context.Context, db string, opts ops.ListC
 }
 
 type listDatabasesCursor struct {
-	databases []bson.Raw
+	databases []oldbson.Raw
 	current   int
 	err       error
 }
@@ -332,7 +335,7 @@ func (s *Session) ListDatabases(ctx context.Context) (ops.Cursor, error) {
 	listDataBasesOptions := ops.ListDatabasesOptions{}
 
 	var result struct {
-		Databases []bson.Raw `bson:"databases"`
+		Databases []oldbson.Raw `bson:"databases"`
 	}
 	listDatabasesCommand := struct {
 		ListDatabases int32 `bson:"listDatabases"`
@@ -404,15 +407,15 @@ func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses 
 	// The two conditions in the $or condition handle whether we are talking to a mongod or a
 	// mongos. A mongos reports its client addreses in a different format than a mongod.
 	currentOpsCommand := struct {
-		CurrentOp int32    `bson:"currentOp"`
-		OwnOps    int32    `bson:"$ownOps,omitempty"`
-		Or        []bson.M `bson:"$or,omitempty"`
+		CurrentOp int32       `bson:"currentOp"`
+		OwnOps    int32       `bson:"$ownOps,omitempty"`
+		Or        []oldbson.M `bson:"$or,omitempty"`
 	}{
 		CurrentOp: 1,
-		Or: bsonutil.NewMArray(
+		Or: astutil.NewToOldBSON(bsonutil.NewMArray(
 			bsonutil.NewM(bsonutil.NewDocElem("client", bsonutil.NewM(bsonutil.NewDocElem("$in", clientAddresses)))),
 			bsonutil.NewM(bsonutil.NewDocElem("command.$client.mongos.client", bsonutil.NewM(bsonutil.NewDocElem("$in", clientAddresses)))),
-		),
+		)).([]oldbson.M),
 	}
 
 	// If auth source is empty, this indicates we're running in unauthenticated mode. We should
@@ -488,5 +491,5 @@ func (s *Session) Version() ([]uint8, error) {
 
 // Run executes an arbitrary command against the given database.
 func (s *Session) Run(ctx context.Context, db string, cmd interface{}, result interface{}) error {
-	return ops.Run(ctx, s.selectedServer, db, cmd, result)
+	return ops.Run(ctx, s.selectedServer, db, astutil.NewToOldBSON(cmd), result)
 }

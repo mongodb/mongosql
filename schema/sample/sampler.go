@@ -7,8 +7,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
@@ -16,6 +17,8 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // Sampler is a type that provides schema sampling functionality.
@@ -219,15 +222,16 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 			jsonSchema := mongo.NewCollectionSchema()
 
 			// 3. create json schema and store it
-			d := bsonutil.NewD()
+			d := oldbson.D{}
 			count, doc := int64(0), &d
 
 			for iter.Next(ctx, doc) {
-				err = jsonSchema.IncludeSample(*doc)
+				newBSOND := astutil.OldToNewBSOND(*doc)
+				err = jsonSchema.IncludeSample(newBSOND)
 				if err != nil {
 					return nil, fmt.Errorf("error including sample: %v", err)
 				}
-				newD := bsonutil.NewD()
+				newD := oldbson.D{}
 				doc = &newD
 				count++
 			}

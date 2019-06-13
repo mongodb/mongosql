@@ -19,10 +19,10 @@
 		},
         "A": {
 			"schemas": {
-				"double": { "bsonType": "double" }
+				"int": { "bsonType": "int" }
 			},
 			"counts": {
-				"double": 1
+				"int": 1
 			}
 		}
     }

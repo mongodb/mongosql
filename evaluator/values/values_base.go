@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/mathutil"
@@ -805,7 +803,11 @@ func (BaseSQLObjectID) EvalType() types.EvalType {
 
 // Value returns an interface{} that represents the literal value of this SQLValue.
 func (s BaseSQLObjectID) Value() interface{} {
-	return bson.ObjectIdHex(s.val)
+	oid, err := primitive.ObjectIDFromHex(s.val)
+	if err != nil {
+		return primitive.NilObjectID
+	}
+	return oid
 }
 
 // BSONValue returns a bsoncore.Value that represents the literal value of this SQLValue.
@@ -854,11 +856,14 @@ func (s BaseSQLObjectID) SQLObjectID() SQLObjectID {
 // SQLTimestamp converts the BaseSQLObjectID receiver, s, to a SQLTimestamp.
 func (s BaseSQLObjectID) SQLTimestamp() SQLTimestamp {
 	// If it's a valid ObjectId, attempt to get the timestamp from it.
-	if len(s.varchar()) == 24 {
-		_, err := hex.DecodeString(s.varchar())
+	if len(s.val) == 24 {
+		_, err := hex.DecodeString(s.val)
 		if err == nil {
-			t := bson.ObjectIdHex(s.varchar()).Time().In(schema.DefaultLocale)
-			return NewSQLTimestamp(s.kind, t)
+			oid, err := primitive.ObjectIDFromHex(s.val)
+			if err == nil {
+				t := oid.Timestamp().In(schema.DefaultLocale)
+				return NewSQLTimestamp(s.kind, t)
+			}
 		}
 	}
 	return NewSQLTimestamp(s.kind, NullDate)

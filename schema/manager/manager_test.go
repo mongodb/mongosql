@@ -5,13 +5,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/sample"
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestFileBasedSchema(t *testing.T) {
@@ -568,8 +569,8 @@ func (t *testSampler) Sample(ctx context.Context) (*schema.Schema, error) {
 }
 
 type testPersistor struct {
-	schemasByID map[bson.ObjectId]*drdl.Schema
-	idsByName   map[string]bson.ObjectId
+	schemasByID map[primitive.ObjectID]*drdl.Schema
+	idsByName   map[string]primitive.ObjectID
 
 	fetchCount        int
 	schemaInsertCount int
@@ -578,8 +579,8 @@ type testPersistor struct {
 
 func newTestPersistor() *testPersistor {
 	return &testPersistor{
-		schemasByID: make(map[bson.ObjectId]*drdl.Schema),
-		idsByName:   make(map[string]bson.ObjectId),
+		schemasByID: make(map[primitive.ObjectID]*drdl.Schema),
+		idsByName:   make(map[string]primitive.ObjectID),
 	}
 }
 
@@ -595,14 +596,14 @@ func (t *testPersistor) populate() {
 	t.nameUpdateCount--
 }
 
-func (t *testPersistor) InsertSchema(_ context.Context, ds *drdl.Schema) (bson.ObjectId, error) {
-	oid := bson.NewObjectId()
+func (t *testPersistor) InsertSchema(_ context.Context, ds *drdl.Schema) (primitive.ObjectID, error) {
+	oid := primitive.NewObjectID()
 	t.schemasByID[oid] = ds
 	t.schemaInsertCount++
 	return oid, nil
 }
 
-func (t *testPersistor) UpsertName(_ context.Context, name string, schemaID bson.ObjectId) error {
+func (t *testPersistor) UpsertName(_ context.Context, name string, schemaID primitive.ObjectID) error {
 	t.idsByName[name] = schemaID
 	t.nameUpdateCount++
 	return nil

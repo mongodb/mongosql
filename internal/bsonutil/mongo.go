@@ -1,9 +1,7 @@
 package bsonutil
 
 import (
-	"fmt"
-
-	"github.com/10gen/mongo-go-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // URI literals
@@ -14,14 +12,16 @@ const (
 
 func bsonDToMap(doc bson.D) map[string]interface{} {
 	m := map[string]interface{}{}
-	for _, l := range doc {
-		switch typedV := l.Value.(type) {
+	for _, e := range doc {
+		switch typedV := e.Value.(type) {
 		case bson.D:
-			m[l.Name] = bsonDToMap(typedV)
+			m[e.Key] = bsonDToMap(typedV)
 		case bson.M:
-			m[l.Name] = bsonMToMap(typedV)
+			m[e.Key] = bsonMToMap(typedV)
+		case bson.A:
+			m[e.Key] = bsonAToMaps(typedV)
 		default:
-			m[l.Name] = typedV
+			m[e.Key] = typedV
 		}
 	}
 	return m
@@ -35,6 +35,8 @@ func bsonMToMap(doc bson.M) map[string]interface{} {
 			m[k] = bsonDToMap(typedV)
 		case bson.M:
 			m[k] = bsonMToMap(typedV)
+		case bson.A:
+			m[k] = bsonAToMaps(typedV)
 		default:
 			m[k] = typedV
 		}
@@ -42,15 +44,22 @@ func bsonMToMap(doc bson.M) map[string]interface{} {
 	return m
 }
 
-// ConvertBSONToMap recursively converts a bson.D/bson.M to a map[string]interface{}.
-func ConvertBSONToMap(doc interface{}) map[string]interface{} {
-	switch typedD := doc.(type) {
-	case bson.D:
-		return bsonDToMap(typedD)
-	case bson.M:
-		return bsonMToMap(typedD)
+func bsonAToMaps(a bson.A) []interface{} {
+	s := make([]interface{}, len(a))
+	for i, e := range a {
+		switch typedE := e.(type) {
+		case bson.D:
+			s[i] = bsonDToMap(typedE)
+		case bson.M:
+			s[i] = bsonMToMap(typedE)
+		case bson.A:
+			s[i] = bsonAToMaps(typedE)
+		default:
+			s[i] = typedE
+		}
 	}
-	panic(fmt.Sprintf("Unrecognized bson type: %T", doc))
+
+	return s
 }
 
 // PipelineToMapSlice converts a slice of bson.D
@@ -59,7 +68,7 @@ func ConvertBSONToMap(doc interface{}) map[string]interface{} {
 func PipelineToMapSlice(pipeline []bson.D) []map[string]interface{} {
 	m := make([]map[string]interface{}, 0)
 	for _, stage := range pipeline {
-		m = append(m, ConvertBSONToMap(stage))
+		m = append(m, bsonDToMap(stage))
 	}
 	return m
 }

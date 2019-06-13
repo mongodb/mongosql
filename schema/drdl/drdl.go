@@ -10,10 +10,11 @@ import (
 	"golang.org/x/text/encoding/unicode"
 
 	yaml "github.com/10gen/candiedyaml"
-	"github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/json"
+
+	oldbson "github.com/10gen/mongo-go-driver/bson"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // These are components of a Byte Order Mark which appears at the
@@ -25,13 +26,13 @@ const (
 
 // Schema represents a DRDL schema definition.
 type Schema struct {
-	Databases []*Database `yaml:"schema"`
+	Databases []*Database `yaml:"schema" bson:"databases"`
 }
 
 // Database represents a DRDL database definition.
 type Database struct {
-	Name   string   `yaml:"db"`
-	Tables []*Table `yaml:"tables"`
+	Name   string   `yaml:"db" bson:"name"`
+	Tables []*Table `yaml:"tables" bson:"tables"`
 }
 
 // Table represents a DRDL table definition.
@@ -139,11 +140,18 @@ func (s *Schema) Load(data []byte) error {
 	decoder := yaml.NewDecoder(bytes.NewBuffer(data))
 	decoder.StrictMode(true)
 
-	if err := decoder.Decode(&newSchema); err != nil {
+	if err = decoder.Decode(&newSchema); err != nil {
 		return err
 	}
 
 	for _, newDb := range newSchema.Databases {
+		for _, tbl := range newDb.Tables {
+			// Normalize any []interface{} into bson.A.
+			tbl.Pipeline, err = bsonutil.NormalizeBSON(tbl.Pipeline, false)
+			if err != nil {
+				return err
+			}
+		}
 		var existingDb *Database
 		for _, db := range s.Databases {
 			if db.Name == newDb.Name {
@@ -184,28 +192,25 @@ func (t *Table) MarshalYAML() (string, interface{}, error) {
 	}, nil
 }
 
+type mongoStorableTable struct {
+	SQLName   string    `bson:"sql_name"`
+	MongoName string    `bson:"mongo_name"`
+	Pipeline  string    `bson:"pipeline"`
+	Columns   []*Column `bson:"columns"`
+}
+
 // GetBSON provides a custom struct that should be marshalled into a BSON
 // document in place of this Table. Table deviates from the default BSON
 // marshalling implementation by marshalling the `Pipeline` field as a JSON
 // string instead of BSON arrays and documents. This is necessary in order to
 // store the table in MongoDB, since $-prefixed keys are not allowed.
 func (t *Table) GetBSON() (interface{}, error) {
-	pipeline, err := astutil.ParsePipeline(t.Pipeline)
+	pipelineJSON, err := bsonutil.DocSliceToString(t.Pipeline)
 	if err != nil {
 		return nil, err
 	}
-	pb, err := astutil.PipelineJSON(pipeline, 0, false)
-	if err != nil {
-		return nil, err
-	}
-	pipelineJSON := "[" + string(pb) + "]"
 
-	return struct {
-		SQLName   string    `bson:"sql_name"`
-		MongoName string    `bson:"mongo_name"`
-		Pipeline  string    `bson:"pipeline"`
-		Columns   []*Column `bson:"columns"`
-	}{
+	return &mongoStorableTable{
 		SQLName:   t.SQLName,
 		MongoName: t.MongoName,
 		Pipeline:  pipelineJSON,
@@ -213,22 +218,61 @@ func (t *Table) GetBSON() (interface{}, error) {
 	}, nil
 }
 
-// SetBSON unmarshals the provided bson.Raw into the Table.
-func (t *Table) SetBSON(raw bson.Raw) error {
-	tbl := struct {
-		SQLName   string    `bson:"sql_name"`
-		MongoName string    `bson:"mongo_name"`
-		Pipeline  string    `bson:"pipeline"`
-		Columns   []*Column `bson:"columns"`
-	}{}
+// SetBSON unmarshals the provided oldbson.Raw into the Table.
+func (t *Table) SetBSON(raw oldbson.Raw) error {
+	tbl := &mongoStorableTable{}
 
-	err := raw.Unmarshal(&tbl)
+	err := raw.Unmarshal(tbl)
 	if err != nil {
 		return err
 	}
 
 	pipeline := []bson.D{}
-	err = json.Unmarshal([]byte(tbl.Pipeline), &pipeline)
+	err = bson.UnmarshalExtJSON([]byte(tbl.Pipeline), false, &pipeline)
+	if err != nil {
+		return err
+	}
+
+	t.SQLName = tbl.SQLName
+	t.MongoName = tbl.MongoName
+	t.Pipeline = pipeline
+	t.Columns = tbl.Columns
+
+	return nil
+}
+
+// MarshalBSON is a custom implementation for marshalling a Table into raw
+// BSON bytes. Table deviates from the default BSON marshalling implementation
+// by marshalling the `Pipeline` field as a JSON string instead of BSON arrays
+// and documents. This is necessary in order to store the table in MongoDB, since
+// $-prefixed keys are not allowed.
+func (t *Table) MarshalBSON() ([]byte, error) {
+	pipelineJSON, err := bsonutil.DocSliceToString(t.Pipeline)
+	if err != nil {
+		return nil, err
+	}
+
+	tbl := &mongoStorableTable{
+		SQLName:   t.SQLName,
+		MongoName: t.MongoName,
+		Pipeline:  pipelineJSON,
+		Columns:   t.Columns,
+	}
+
+	return bson.Marshal(tbl)
+}
+
+// UnmarshalBSON unmarshals the provided raw bytes into the Table.
+func (t *Table) UnmarshalBSON(raw []byte) error {
+	tbl := &mongoStorableTable{}
+
+	err := bson.Unmarshal(raw, tbl)
+	if err != nil {
+		return err
+	}
+
+	pipeline := make([]bson.D, 0)
+	err = bson.UnmarshalExtJSON([]byte(tbl.Pipeline), false, pipeline)
 	if err != nil {
 		return err
 	}

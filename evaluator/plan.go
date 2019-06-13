@@ -3,10 +3,10 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/results"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // PlanStage represents a single a node in the Plan tree.
@@ -109,7 +109,7 @@ type DocIter interface {
 	//        return err
 	//    }
 	//
-	Next(context.Context, *bson.RawD) bool
+	Next(context.Context, *bson.Raw) bool
 	// GetColumnInfo returns the slice of ColumnInfo necessary for
 	// streaming the results.
 	GetColumnInfo() []ColumnInfo

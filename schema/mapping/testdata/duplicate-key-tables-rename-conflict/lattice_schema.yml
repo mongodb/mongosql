@@ -6,17 +6,17 @@ schema:
     pipeline: []
     columns:
     - Name: _id
-      MongoType: float64
+      MongoType: int
       SqlName: _id
-      SqlType: float64
+      SqlType: int
     - Name: XX
-      MongoType: float64
+      MongoType: int
       SqlName: XX
-      SqlType: float64
+      SqlType: int
     - Name: xX_0
-      MongoType: float64
+      MongoType: int
       SqlName: xX_0
-      SqlType: float64
+      SqlType: int
   - table: duplicate-key-tables-rename-conflict_Xx_0
     collection: duplicate-key-tables-rename-conflict
     pipeline:
@@ -26,13 +26,13 @@ schema:
         preserveNullAndEmptyArrays: false
     columns:
     - Name: _id
-      MongoType: float64
+      MongoType: int
       SqlName: _id
-      SqlType: float64
+      SqlType: int
     - Name: Xx.b
-      MongoType: float64
+      MongoType: int
       SqlName: Xx.b
-      SqlType: float64
+      SqlType: int
     - Name: Xx_idx
       MongoType: int
       SqlName: Xx_idx
@@ -46,17 +46,17 @@ schema:
         preserveNullAndEmptyArrays: false
     columns:
     - Name: _id
-      MongoType: float64
+      MongoType: int
       SqlName: _id
-      SqlType: float64
+      SqlType: int
     - Name: xX.C
-      MongoType: float64
+      MongoType: int
       SqlName: xX.C_1
-      SqlType: float64
+      SqlType: int
     - Name: xX.c
-      MongoType: float64
+      MongoType: int
       SqlName: xX.c
-      SqlType: float64
+      SqlType: int
     - Name: xX.c_0
       MongoType: string
       SqlName: xX.c_0

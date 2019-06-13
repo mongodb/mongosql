@@ -11,8 +11,9 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (

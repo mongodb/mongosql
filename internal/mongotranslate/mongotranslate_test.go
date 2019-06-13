@@ -3,14 +3,14 @@ package mongotranslate
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const (

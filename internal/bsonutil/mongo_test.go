@@ -1,53 +1,67 @@
 package bsonutil_test
 
 import (
-	"fmt"
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/bsonutil"
 
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-func TestConvertBSONToMap(t *testing.T) {
+func TestPipelineToMapSlice(t *testing.T) {
 	req := require.New(t)
 
 	type test struct {
 		name     string
-		document interface{}
-		mapped   map[string]interface{}
-	}
-
-	runTests := func(tests []test) {
-		for _, test := range tests {
-			t.Run(fmt.Sprintf("convert_bson_to_map_%s", test.name), func(t *testing.T) {
-				req.Equal(test.mapped, ConvertBSONToMap(test.document))
-			})
-		}
+		pipeline []bson.D
+		mapped   []map[string]interface{}
 	}
 
 	tests := []test{
-		{"empty", NewD(), map[string]interface{}{}},
-		{"bsonD_simple", NewD(NewDocElem("a", "b")), map[string]interface{}{"a": "b"}},
-		{"bsonM_simple", NewM(NewDocElem("a", "b")), map[string]interface{}{"a": "b"}},
+		{"empty", []bson.D{}, []map[string]interface{}{}},
+		{"empty bsonD", []bson.D{NewD()}, []map[string]interface{}{{}}},
+		{"simple bsonD", []bson.D{NewD(NewDocElem("a", "b"))}, []map[string]interface{}{{"a": "b"}}},
 		{
-			"mixed", NewD(
-				NewDocElem("a", NewM(NewDocElem("z", NewD(NewDocElem("b", "c"))))),
-			), map[string]interface{}{
-				"a": map[string]interface{}{
-					"z": map[string]interface{}{"b": "c"},
+			"nested bsonD",
+			[]bson.D{NewD(NewDocElem("a", NewD(NewDocElem("b", "c"))))},
+			[]map[string]interface{}{{"a": map[string]interface{}{"b": "c"}}},
+		},
+		{
+			"mixed",
+			[]bson.D{
+				NewD(NewDocElem("a",
+					NewM(NewDocElem("b",
+						NewD(NewDocElem("c",
+							NewArray(
+								"d",
+								NewD(NewDocElem("e", "f")),
+								NewM(NewDocElem("g", "h")),
+							),
+						)),
+					)),
+				)),
+			},
+			[]map[string]interface{}{
+				{
+					"a": map[string]interface{}{
+						"b": map[string]interface{}{
+							"c": []interface{}{
+								"d",
+								map[string]interface{}{"e": "f"},
+								map[string]interface{}{"g": "h"},
+							},
+						},
+					},
 				},
 			},
 		},
-		{
-			"bsonD_nested", NewD(NewDocElem("a", NewD(NewDocElem("b", "c")))),
-			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
-		},
-		{
-			"bsonM_nested", NewM(NewDocElem("a", NewM(NewDocElem("b", "c")))),
-			map[string]interface{}{"a": map[string]interface{}{"b": "c"}},
-		},
 	}
 
-	runTests(tests)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req.Equal(test.mapped, PipelineToMapSlice(test.pipeline))
+		})
+	}
 }

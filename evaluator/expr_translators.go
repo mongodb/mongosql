@@ -7,8 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/mongoast/ast"
 
 	"github.com/10gen/sqlproxy/evaluator/results"
@@ -472,6 +470,8 @@ func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 		return nil, false
 	}
 
+	var err error
+
 	fieldValue, err := t.getValue(valExpr)
 	if err != nil {
 		return nil, false
@@ -489,18 +489,17 @@ func (t *PushdownTranslator) translateOperator(op string, nameExpr, valExpr SQLE
 		} else if mType == schema.MongoObjectID {
 			// We know this type assert is safe because of the call to
 			// t.getValue(valExpr) above.
-			var hex string
+			var oid primitive.ObjectID
 			switch typed := valExpr.(SQLValueExpr).Value.(type) {
 			case values.SQLVarchar:
-				hex = string(bson.ObjectIdHex(values.String(typed)))
+				oid, err = primitive.ObjectIDFromHex(values.String(typed))
+				if err != nil {
+					panic(fmt.Sprintf("failed to convert ObjectID SQLValue into ast.Constant: %v", err))
+				}
 			case values.SQLObjectID:
-				hex = typed.Value().(bson.ObjectId).Hex()
+				oid = typed.Value().(primitive.ObjectID)
 			default:
 				return nil, false
-			}
-			oid, err := primitive.ObjectIDFromHex(hex)
-			if err != nil {
-				panic(fmt.Sprintf("failed to convert ObjectID SQLValue into ast.Constant: %v", err))
 			}
 			fieldValue = astutil.ObjectIDConstant(oid)
 		}
@@ -815,26 +814,26 @@ func negateFunction(op *ast.Function) ast.Expr {
 	return op
 }
 
-// GetBinaryFromExpr attempts to convert e to a bson.Binary -
+// GetBinaryFromExpr attempts to convert e to a primitive.Binary -
 // that represents a MongoDB UUID - using mType.
-func GetBinaryFromExpr(mType schema.MongoType, e SQLExpr) (bson.Binary, bool) {
+func GetBinaryFromExpr(mType schema.MongoType, e SQLExpr) (primitive.Binary, bool) {
 	// we accept UUIDs as string arguments
 	uuidString := strings.Replace(e.String(), "-", "", -1)
 	bytes, err := hex.DecodeString(uuidString)
 	if err != nil {
-		return bson.Binary{}, false
+		return primitive.Binary{}, false
 	}
 
 	err = values.NormalizeUUID(mType, bytes)
 	if err != nil {
-		return bson.Binary{}, false
+		return primitive.Binary{}, false
 	}
 
 	if mType == schema.MongoUUID {
-		return bson.Binary{Kind: 0x04, Data: bytes}, true
+		return primitive.Binary{Subtype: 0x04, Data: bytes}, true
 	}
 
-	return bson.Binary{Kind: 0x03, Data: bytes}, true
+	return primitive.Binary{Subtype: 0x03, Data: bytes}, true
 }
 
 // getProjectedFieldName returns an ast.Expr to project the given field.

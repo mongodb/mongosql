@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 
 	"github.com/10gen/mongoast/ast"
 
@@ -21,12 +21,14 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
-// nullField represents a null bson.Raw, we use this in the MongoSourceIter
-// Next method in order to represent missing values. If a value is missing
-// we will lookup nullField in the map.
-var nullField = bson.Raw{Kind: byte(types.EvalNull), Data: []byte{}}
+// nullField represents a null bson.RawValue, we use this in the
+// MongoSourceIter Next method in order to represent missing values.
+// If a value is missing we will lookup nullField in the map.
+var nullField = bson.RawValue{Type: bson.TypeNull, Value: []byte{}}
 
 // MongoSourceStage is the primary interface for SQLProxy to a MongoDB
 // installation and executes simple queries against collections.
@@ -156,7 +158,7 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *Execu
 	var err error
 
 	procutil.PanicSafeGo(func() {
-		// Convert from ast.Pipeline to []bson.Raw
+		// Convert from ast.Pipeline to []oldbson.Raw
 		bsonPipeline := astutil.RawDeparsePipeline(ms.pipeline)
 		iter, err = cfg.commandHandler.Aggregate(ctx, ms.dbName, ms.collectionNames[0], bsonPipeline)
 		errChan <- err
@@ -257,8 +259,20 @@ func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (ms *FastMongoSourceIter) Next(ctx context.Context, doc *bson.RawD) bool {
-	return ms.iter.Next(ctx, doc)
+func (ms *FastMongoSourceIter) Next(ctx context.Context, doc *bson.Raw) bool {
+	d := &oldbson.RawD{}
+	if !ms.iter.Next(ctx, d) {
+		return false
+	}
+
+	docBytes, err := oldbson.Marshal(d)
+	if err != nil {
+		return false
+	}
+
+	*doc = docBytes
+
+	return true
 }
 
 // GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
@@ -404,7 +418,7 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 	// for the first call to Next. Subsequent calls to Next
 	// will set the values back to the nullField. This
 	// allows us to catch missing values.
-	fieldValueMap := make(map[string]*bson.Raw, len(columns))
+	fieldValueMap := make(map[string]*bson.RawValue, len(columns))
 	for _, field := range fields {
 		fieldValueMap[field] = &nullField
 	}
@@ -431,27 +445,37 @@ type MongoSourceIter struct {
 	// mappingRegistry holds all columns that must be returned
 	// from data gotten in the iterator.
 	mappingRegistry *mappingRegistry
-	// fieldValueMap stores the mapping from field names to bson.Raw values.
-	fieldValueMap map[string]*bson.Raw
+	// fieldValueMap stores the mapping from field names to bson.RawValues.
+	fieldValueMap map[string]*bson.RawValue
 }
 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (ms *MongoSourceIter) Next(ctx context.Context, row *results.Row) bool {
-	document := &bson.RawD{}
-	if !ms.iter.Next(ctx, document) {
+	d := &oldbson.RawD{}
+	if !ms.iter.Next(ctx, d) {
 		return false
 	}
+
+	docBytes, err := oldbson.Marshal(d)
+	if err != nil {
+		return false
+	}
+	document := bson.Raw(docBytes)
 
 	lenCols := len(ms.mappingRegistry.columns)
 	if len(row.Data) != lenCols {
 		row.Data = make(results.RowValues, lenCols)
 	}
 
-	vs := *document
-	for i := range vs {
-		ms.fieldValueMap[vs[i].Name] = &(vs[i].Value)
+	vs, err := document.Elements()
+	if err != nil {
+		return false
+	}
+	for _, v := range vs {
+		val := v.Value()
+		ms.fieldValueMap[v.Key()] = &val
 	}
 
 	for i, col := range ms.mappingRegistry.columns {
@@ -461,9 +485,9 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *results.Row) bool {
 		ms.fieldValueMap[fieldName] = &nullField
 		sqlValue, err := values.BSONValueToSQLValue(
 			ms.cfg.sqlValueKind,
-			types.EvalType(field.Kind),
+			types.EvalType(field.Type),
 			col.UUIDSubType,
-			field.Data,
+			field.Value,
 		)
 		if err != nil {
 			ms.err = err

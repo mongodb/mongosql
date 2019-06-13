@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/10gen/sqlproxy/internal/testutil/flags"
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
+	toolsoptions "github.com/mongodb/mongo-tools-common/options"
 )
 
 // AlteredDataset is a dataset to which we need to apply additional schema

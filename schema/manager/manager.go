@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -14,13 +13,15 @@ import (
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/persist"
 	"github.com/10gen/sqlproxy/schema/sample"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Persistor is an interface that encompasses the stored-schema-management
 // behavior required by the Manager.
 type Persistor interface {
-	InsertSchema(context.Context, *drdl.Schema) (bson.ObjectId, error)
-	UpsertName(context.Context, string, bson.ObjectId) error
+	InsertSchema(context.Context, *drdl.Schema) (primitive.ObjectID, error)
+	UpsertName(context.Context, string, primitive.ObjectID) error
 	FindSchemaByName(context.Context, string) (*drdl.Schema, error)
 }
 

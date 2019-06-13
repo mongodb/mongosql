@@ -1,9 +1,11 @@
 package data
 
 import (
-	toolsdb "github.com/mongodb/mongo-tools/common/db"
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
-	"gopkg.in/mgo.v2/bson"
+	"context"
+
+	toolsdb "github.com/mongodb/mongo-tools-common/db"
+	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type indexDataset struct {
@@ -15,28 +17,21 @@ type indexDataset struct {
 // Restore restores the indexes for the specified database and collection.
 func (i *indexDataset) Restore(opts *toolsoptions.ToolOptions) error {
 	sp, err := toolsdb.NewSessionProvider(*opts)
-
-	if err != nil {
-		return err
-	}
-	sp.SetFlags(toolsdb.DisableSocketTimeout)
-
-	session, err := sp.GetSession()
 	if err != nil {
 		return err
 	}
 
-	defer session.Close()
+	defer sp.Close()
 
-	db := session.DB(i.Database)
+	db := sp.DB(i.Database)
 
 	for _, idx := range i.Indexes {
-		err = db.Run(bson.D{
-			{Name: "createIndexes", Value: i.Collection},
-			{Name: "indexes", Value: []interface{}{idx}},
-		}, &struct{}{})
-		if err != nil {
-			return err
+		r := db.RunCommand(context.Background(), bson.D{
+			{Key: "createIndexes", Value: i.Collection},
+			{Key: "indexes", Value: []interface{}{idx}},
+		})
+		if r.Err() != nil {
+			return r.Err()
 		}
 	}
 

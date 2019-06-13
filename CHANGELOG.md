@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2216: Pipelines in DRDL files are parsed with most recent version of extjson spec, but still support legacy binary, regex, and dbPointer formats.
 BI-2218: No user-facing changes.
 BI-2231: No user-facing changes.
 BI-2016: No user-facing changes.

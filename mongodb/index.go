@@ -3,12 +3,12 @@ package mongodb
 import (
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 )
 
 // Index represents a MongoDB index.
 type Index struct {
-	Key        bson.D
+	Key        oldbson.D
 	Unique     bool // Prevent two documents from having the same index key
 	DropDups   bool // Drop documents with the same index key as a previously indexed one
 	Background bool // Build index in background and return immediately

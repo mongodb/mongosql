@@ -6,11 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func TestMergeSchema(t *testing.T) {
@@ -197,7 +198,7 @@ func TestRenderJSONSchema(t *testing.T) {
 			bsonutil.NewDocElem("bool", true),
 		)),
 		bsonutil.NewDocElem("nil", nil),
-		bsonutil.NewDocElem("unique_id", bson.Binary{Kind: 0x03}),
+		bsonutil.NewDocElem("unique_id", primitive.Binary{Subtype: 0x03}),
 		bsonutil.NewDocElem("nestedarray", bsonutil.NewArray(
 			bsonutil.NewArray(true, false, false),
 			bsonutil.NewArray(true, true, true),

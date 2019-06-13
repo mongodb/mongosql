@@ -3,9 +3,10 @@ package mongodb
 import (
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
@@ -104,7 +105,7 @@ func TestLoadAuthInfoFromConnectionStatus(t *testing.T) {
 
 	var connStatusResult connectionStatusResult
 	err = bson.Unmarshal(resultBson, &connStatusResult)
-	req.Nil(err, "failed to unmarshall bson")
+	req.Nil(err, "failed to unmarshal bson")
 
 	info.loadAuthInfoFromConnectionStatus(&connStatusResult, "SAM")
 

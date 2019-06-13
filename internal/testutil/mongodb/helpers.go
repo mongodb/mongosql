@@ -6,8 +6,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/testutil/flags"
 
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
-	"gopkg.in/mgo.v2"
+	toolsdb "github.com/mongodb/mongo-tools-common/db"
+	toolsoptions "github.com/mongodb/mongo-tools-common/options"
 )
 
 const (
@@ -39,9 +39,9 @@ func GetToolOptions() *toolsoptions.ToolOptions {
 	return opts
 }
 
-// VersionAtLeast checks if the server this session is connected to has a version greater than or
-// equal to the provided minVersion.
-func VersionAtLeast(session *mgo.Session, minVersion string) (bool, error) {
+// VersionAtLeast checks if the server this session provider is connected to
+// has a version greater than or equal to the provided minVersion.
+func VersionAtLeast(sp *toolsdb.SessionProvider, minVersion string) (bool, error) {
 	if minVersion == "" {
 		return true, nil
 	}
@@ -51,12 +51,12 @@ func VersionAtLeast(session *mgo.Session, minVersion string) (bool, error) {
 		return false, err
 	}
 
-	buildInfo, err := session.BuildInfo()
+	sv, err := sp.ServerVersion()
 	if err != nil {
 		return false, err
 	}
 
-	serverVersion, err := procutil.VersionToSlice(buildInfo.Version)
+	serverVersion, err := procutil.VersionToSlice(sv)
 	if err != nil {
 		return false, err
 	}

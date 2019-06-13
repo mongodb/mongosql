@@ -6,7 +6,6 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
@@ -18,6 +17,8 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type mockCmdHandler struct {
@@ -88,16 +89,13 @@ func createPushdownCfg(version []uint8) *evaluator.PushdownConfig {
 	return evaluator.CreateTestPushdownCfg(version)
 }
 
-// bsonDToValues takes a bson.D document and returns
-// the corresponding values.
+// bsonDToValues takes a bson.D document and returns the corresponding values.
 // nolint: unparam
-func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) (
-	[]results.RowValue, error) {
-	vs := []results.RowValue{}
-	for _, v := range document {
+func bsonDToValues(selectID int, databaseName, tableName string, document bson.D) ([]results.RowValue, error) {
+	vs := make([]results.RowValue, len(document))
+	for i, v := range document {
 		value := evaluator.GoValueToSQLValue(values.MySQLValueKind, v.Value)
-		vs = append(vs, results.NewRowValue(selectID, databaseName, tableName, v.Name,
-			value))
+		vs[i] = results.NewRowValue(selectID, databaseName, tableName, v.Key, value)
 	}
 	return vs, nil
 }

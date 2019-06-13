@@ -7,15 +7,18 @@ import (
 	"net"
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	. "github.com/10gen/sqlproxy/mongodb"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/model"
 	"github.com/10gen/mongo-go-driver/mongo/private/auth"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	. "github.com/smartystreets/goconvey/convey"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestCleartextSessionAuthenticator(t *testing.T) {
@@ -358,8 +361,8 @@ func (c *mockConnection) Write(ctx context.Context, reqs ...msg.Request) error {
 	return nil
 }
 
-func createCommandReply(cmd interface{}) *msg.Reply {
-	doc, _ := bson.Marshal(cmd)
+func createCommandReply(cmd bson.D) *msg.Reply {
+	doc, _ := oldbson.Marshal(astutil.NewToOldBSOND(cmd))
 	reply := &msg.Reply{
 		NumberReturned: 1,
 		DocumentsBytes: doc,

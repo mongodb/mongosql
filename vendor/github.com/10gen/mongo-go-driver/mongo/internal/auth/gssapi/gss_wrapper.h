@@ -23,44 +23,44 @@ typedef struct {
 
     OM_uint32 maj_stat;
     OM_uint32 min_stat;
-} gssapi_client_state;
+} gssapi_client_state_old;
 
-int gssapi_error_desc(
+int gssapi_error_desc_old(
     OM_uint32 maj_stat, 
     OM_uint32 min_stat, 
     char **desc
 );
 
-int gssapi_client_init(
-    gssapi_client_state *client,
+int gssapi_client_init_old(
+    gssapi_client_state_old *client,
     char* spn,
     char* username,
     char* password
 );
 
-int gssapi_client_username(
-    gssapi_client_state *client,
+int gssapi_client_username_old(
+    gssapi_client_state_old *client,
     char** username
 );
 
-int gssapi_client_negotiate(
-    gssapi_client_state *client,
+int gssapi_client_negotiate_old(
+    gssapi_client_state_old *client,
     void* input,
     size_t input_length,
     void** output,
     size_t* output_length
 );
 
-int gssapi_client_wrap_msg(
-    gssapi_client_state *client,
+int gssapi_client_wrap_msg_old(
+    gssapi_client_state_old *client,
     void* input,
     size_t input_length,
     void** output,
     size_t* output_length 
 );
 
-int gssapi_client_destroy(
-    gssapi_client_state *client
+int gssapi_client_destroy_old(
+    gssapi_client_state_old *client
 );
 
 #endif

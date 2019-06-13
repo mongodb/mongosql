@@ -6,7 +6,6 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/memory"
@@ -344,43 +343,4 @@ func MustLoadSchema(schemaBytes []byte) *schema.Schema {
 	}
 
 	return testSchema
-}
-
-// SourceStageReplacer is a walker that replaces MongoSourceStages with
-// BSONSourceStages for testing.
-type SourceStageReplacer struct {
-	Data            []bson.D
-	Existing        int
-	Replaced        int
-	LastSourceStage *BSONSourceStage
-}
-
-func (v *SourceStageReplacer) visit(n Node) (Node, error) {
-	n, err := walk(v, n)
-	if err != nil {
-		return nil, err
-	}
-
-	switch typedN := n.(type) {
-	case *BSONSourceStage:
-		v.Existing++
-		if v.LastSourceStage == nil {
-			v.LastSourceStage = typedN
-		}
-	case *MongoSourceStage:
-		bs := NewBSONSourceStage(typedN.selectIDs[0],
-			typedN.tableNames[0],
-			typedN.collation,
-			v.Data[0:1])
-		v.Data = v.Data[1:]
-		v.Replaced++
-		n = bs
-	}
-
-	return n, nil
-}
-
-// VisitStage walks a node for SourceStageReplacer.
-func (v *SourceStageReplacer) VisitStage(n Node) (Node, error) {
-	return v.visit(n)
 }

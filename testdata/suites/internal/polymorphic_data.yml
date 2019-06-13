@@ -403,6 +403,7 @@ testcases:
       - [9, ~]
       - [10, ~]
       - [11, ~]
+      - [12, ~]
     expected_types: [int, varchar]
     id: select_all_unmappable_types
     sql: select * from all_unmappable_types

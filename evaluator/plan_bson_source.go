@@ -3,12 +3,13 @@ package evaluator
 import (
 	"context"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 const (
@@ -84,16 +85,16 @@ func (bs *BSONSourceIter) Next(_ context.Context, row *results.Row) bool {
 		return false
 	}
 
-	var vs results.RowValues
-
-	for _, docElem := range bs.data[bs.index] {
+	vs := make(results.RowValues, len(bs.data[bs.index]))
+	for i, docElem := range bs.data[bs.index] {
 		value := GoValueToSQLValue(valueKind, docElem.Value)
-		vs = append(vs, results.NewRowValue(
+		vs[i] = results.NewRowValue(
 			bs.selectID,
 			bs.databaseName,
 			bs.tableName,
-			docElem.Name,
-			value))
+			docElem.Key,
+			value,
+		)
 	}
 
 	row.Data = vs
@@ -106,21 +107,20 @@ func (bs *BSONSourceIter) Next(_ context.Context, row *results.Row) bool {
 // Columns returns the ordered set of columns that are contained in results
 // from this plan.
 func (bs *BSONSourceStage) Columns() []*results.Column {
-
-	var columns []*results.Column
-	for _, v := range bs.data[0] {
+	columns := make([]*results.Column, len(bs.data[0]))
+	for i, v := range bs.data[0] {
 		column := results.NewColumn(bs.selectID,
 			bs.tableName,
 			bs.tableName,
 			bs.databaseName,
-			v.Name,
-			v.Name,
+			v.Key,
+			v.Key,
 			"",
 			types.EvalPolymorphic,
 			schema.MongoNone,
 			false,
 		)
-		columns = append(columns, column)
+		columns[i] = column
 	}
 	return columns
 }

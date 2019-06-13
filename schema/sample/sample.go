@@ -4,13 +4,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var (
@@ -143,14 +146,14 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 // getIndexes returns the indexes present in the namespace - database
 // and collection - provided as a bson.D slice.
 func getIndexes(ctx context.Context, database, collection string, session *mongodb.Session) ([]bson.D, error) {
-	collectionIndexes, collectionIndex := bsonutil.NewDArray(), bsonutil.NewD()
+	collectionIndexes, collectionIndex := bsonutil.NewDArray(), oldbson.D{}
 	cursor, err := session.ListIndexes(ctx, database, collection)
 	if err != nil {
 		return nil, err
 	}
 
 	for cursor.Next(ctx, &collectionIndex) {
-		collectionIndexes = append(collectionIndexes, collectionIndex)
+		collectionIndexes = append(collectionIndexes, astutil.OldToNewBSOND(collectionIndex))
 	}
 
 	if err = cursor.Err(); err != nil {
@@ -181,8 +184,8 @@ func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db stri
 		Name    string `bson:"name"`
 		Type    string `bson:"type"`
 		Options struct {
-			Pipeline []bson.D `bson:"pipeline"`
-			ViewOn   string   `bson:"viewOn"`
+			Pipeline []oldbson.D `bson:"pipeline"`
+			ViewOn   string      `bson:"viewOn"`
 		} `bson:"options"`
 	}
 
@@ -210,7 +213,7 @@ func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db stri
 			namespace := formatNamespace(db, collection.Name, false)
 			nsViewPipelines[namespace] = NSViewPipeline{
 				Collection: collection.Options.ViewOn,
-				Pipeline:   collection.Options.Pipeline,
+				Pipeline:   astutil.OldToNewBSON(collection.Options.Pipeline).([]bson.D),
 			}
 		}
 	}

@@ -7,7 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Schema is a representation of a full or partial MongoDB schema. The Schema
@@ -72,7 +73,7 @@ func NewObjectSchema(doc bson.D) (*Schema, error) {
 		if err != nil {
 			return nil, err
 		}
-		props[elem.Name] = NewSchemata(propSchema)
+		props[elem.Key] = NewSchemata(propSchema)
 	}
 
 	return &Schema{
@@ -128,25 +129,13 @@ func NewSchemaFromValue(value interface{}) (*Schema, error) {
 	case string:
 		return NewScalarSchema(String)
 	case bson.D:
-		// go driver improperly renders DBPointers as documents
-		// check if this is a DBPointer.
-		if len(typedV) != 0 {
-			if typedV[0].Name == "$ref" || typedV[0].Name == "$id" {
-				// We just check if the first key is $ref or $id since
-				// paths with $ are illegal, anyway, and we would not
-				// want to map them.
-				return NewScalarSchema(DBPointer)
-			}
-		}
 		return NewObjectSchema(typedV)
 	case []interface{}:
 		return NewArraySchema(typedV)
-	// BinData with subtype 0 often comes in as []uint8
-	// from the go driver.
-	case []uint8:
-		return NewScalarSchema(UnsupportedBinData)
-	case bson.Binary:
-		switch typedV.Kind {
+	case bson.A:
+		return NewArraySchema(typedV)
+	case primitive.Binary:
+		switch typedV.Subtype {
 		case 0x03:
 			return NewUUIDSchema(UUID3)
 		case 0x04:
@@ -154,46 +143,40 @@ func NewSchemaFromValue(value interface{}) (*Schema, error) {
 		default:
 			return NewScalarSchema(UnsupportedBinData)
 		}
-	case bson.ObjectId:
+	case primitive.Undefined:
+		return NewScalarSchema(Undefined)
+	case primitive.ObjectID:
 		return NewScalarSchema(ObjectID)
 	case bool:
 		return NewScalarSchema(Boolean)
-	case time.Time:
+	case primitive.DateTime, time.Time:
 		return NewScalarSchema(Date)
-	case nil:
+	case primitive.Null, nil:
 		return NewScalarSchema(Null)
-	case bson.RegEx:
+	case primitive.Regex:
 		return NewScalarSchema(Regex)
-	case bson.DBPointer:
-		// This case appears to be impossible, but we will keep it. It might be
-		// that this problem will not exist when we switch to the new go driver.
+	case primitive.DBPointer:
 		return NewScalarSchema(DBPointer)
-	case bson.JavaScript:
-		if typedV.Scope != nil {
-			return NewScalarSchema(JSCodeWScope)
-		}
+	case primitive.JavaScript:
 		return NewScalarSchema(JSCode)
-	case bson.Symbol:
+	case primitive.Symbol:
 		return NewScalarSchema(Symbol)
+	case primitive.CodeWithScope:
+		return NewScalarSchema(JSCodeWScope)
 	case int, int32:
 		return NewScalarSchema(Int)
-	case bson.MongoTimestamp:
+	case primitive.Timestamp:
 		return NewScalarSchema(Timestamp)
 	case int64:
 		return NewScalarSchema(Long)
-	case bson.Decimal128:
+	case primitive.Decimal128:
 		return NewScalarSchema(Decimal)
-	}
-
-	// Value switch for types that are values.
-	switch value {
-	case bson.Undefined:
-		return NewScalarSchema(Undefined)
-	case bson.MinKey:
+	case primitive.MinKey:
 		return NewScalarSchema(MinKey)
-	case bson.MaxKey:
+	case primitive.MaxKey:
 		return NewScalarSchema(MaxKey)
 	}
+
 	panic(fmt.Sprintf("unknown type '%T' during sampling", value))
 }
 
@@ -455,60 +438,6 @@ func NewSchemata(s *Schema) *Schemata {
 		Schemas: schemas,
 		Counts:  counts,
 	}
-}
-
-// GetBSON returns an object to be marshalled in place of the schemata when
-// the schemata has to be marshalled. GetBSON will return the Schemata's
-// dominant schema, as determined by Schemata.Mode.
-func (s *Schemata) GetBSON() (interface{}, error) {
-	sch := struct {
-		Schemas map[BSONType]*Schema `bson:"schemas"`
-		Counts  map[BSONType]int     `bson:"counts"`
-	}{
-		Schemas: s.Schemas,
-		Counts:  s.Counts,
-	}
-
-	return sch, nil
-}
-
-// SetBSON does the opposite of GetBSON.
-func (s *Schemata) SetBSON(raw bson.Raw) error {
-	sch := struct {
-		Schemas map[BSONType]*Schema `bson:"schemas"`
-		Counts  map[BSONType]int     `bson:"counts"`
-	}{}
-
-	err := raw.Unmarshal(&sch)
-	if err != nil {
-		return err
-	}
-
-	// if unmarshalling was successful, we are done
-	if sch.Schemas != nil && sch.Counts != nil {
-
-		s.Schemas = sch.Schemas
-		s.Counts = sch.Counts
-
-		return nil
-	}
-
-	// If unmarshalling did not give us Schemas and Counts maps, then we will
-	// try to unmarshal into a schema. This will occur if we attempt to
-	// unmarshal a v1 schema stored in MongoDB.
-
-	var scm Schema
-	err = raw.Unmarshal(&scm)
-	if err != nil {
-		return err
-	}
-
-	sourceSchemata := NewSchemata(&scm)
-	s.Counts = sourceSchemata.Counts
-	s.Indexes = sourceSchemata.Indexes
-	s.Schemas = sourceSchemata.Schemas
-
-	return nil
 }
 
 // IncludeSchema will add the provided Schema in a Schemata. If the Schemata

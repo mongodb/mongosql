@@ -1,13 +1,17 @@
 package data
 
 import (
+	"context"
 	"fmt"
 
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/testutil/mongodb"
-	"github.com/mongodb/mongo-tools/common/bsonutil"
-	toolsdb "github.com/mongodb/mongo-tools/common/db"
-	toolsoptions "github.com/mongodb/mongo-tools/common/options"
-	"gopkg.in/mgo.v2/bson"
+
+	toolsdb "github.com/mongodb/mongo-tools-common/db"
+	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 // InMemoryDataset is a dataset that is stored in a struct.
@@ -27,15 +31,10 @@ func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
 	if err != nil {
 		return err
 	}
-	sp.SetFlags(toolsdb.DisableSocketTimeout)
 
-	session, err := sp.GetSession()
-	if err != nil {
-		return err
-	}
-	defer session.Close()
+	defer sp.Close()
 
-	ok, err := mongodb.VersionAtLeast(session, i.MinVersion)
+	ok, err := mongodb.VersionAtLeast(sp, i.MinVersion)
 	if err != nil {
 		return err
 	}
@@ -44,44 +43,46 @@ func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
 		return nil
 	}
 
-	db := session.DB(i.Db)
-	c := db.C(i.Collection)
+	db := sp.DB(i.Db)
+	c := db.Collection(i.Collection)
 
-	err = c.DropCollection()
-	if err != nil && err.Error() != toolsdb.ErrNsNotFound {
+	err = c.Drop(context.Background())
+	if err != nil {
 		return err
 	}
 
 	if len(i.Collation) > 0 {
-		err = db.Run(bson.D{
-			{Name: "create", Value: i.Collection},
-			{Name: "collation", Value: i.Collation},
-		}, &struct{}{})
-		if err != nil {
-			return err
+		r := db.RunCommand(context.Background(), bson.D{
+			{Key: "create", Value: i.Collection},
+			{Key: "collation", Value: i.Collation},
+		})
+		if r.Err() != nil {
+			return r.Err()
 		}
 	}
 
 	for _, idx := range i.Indexes {
-		err = db.Run(bson.D{
-			{Name: "createIndexes", Value: i.Collection},
-			{Name: "indexes", Value: []interface{}{idx}},
-		}, &struct{}{})
-		if err != nil {
-			return err
+		r := db.RunCommand(context.Background(), bson.D{
+			{Key: "createIndexes", Value: i.Collection},
+			{Key: "indexes", Value: bson.A{idx}},
+		})
+		if r.Err() != nil {
+			return r.Err()
 		}
 	}
 
-	bulk := c.Bulk()
-
-	for _, d := range i.Docs {
-		doc, convErr := bsonutil.ConvertJSONValueToBSON(d)
-		if convErr != nil {
-			return fmt.Errorf("unable to parse extended json %v error: %v", d, convErr)
-		}
-		bulk.Insert(doc)
+	// NormalizeBSON will convert extended JSON documents from the
+	// yaml file into their corresponding primitive bson types.
+	i.Docs, err = bsonutil.NormalizeBSON(i.Docs, true)
+	if err != nil {
+		return fmt.Errorf("error normalizing BSON for namespace=%s.%s: %v", i.Db, i.Collection, err)
 	}
 
-	_, err = bulk.Run()
+	docs := make([]mongo.WriteModel, len(i.Docs))
+	for j, d := range i.Docs {
+		docs[j] = mongo.NewInsertOneModel().SetDocument(d)
+	}
+
+	_, err = c.BulkWrite(context.Background(), docs)
 	return err
 }

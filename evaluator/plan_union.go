@@ -8,8 +8,6 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 
-	"github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/memory"
 	"github.com/10gen/sqlproxy/evaluator/results"
@@ -17,6 +15,8 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // UnionKind is an enum representing the different kinds of unions.
@@ -109,14 +109,14 @@ func ensureFastPlanProjectInvariant(fastPlan FastPlanStage) {
 }
 
 // fastUnionPacket allows us to group together
-// a bson.RawD with its accompanying columnInfo.
+// a bson.Raw with its accompanying columnInfo.
 type fastUnionPacket struct {
 	// columnInfo is a slice representing the field names,
 	// in order, expected in the returned document.
 	columnInfo []ColumnInfo
-	// datum is the bson.RawD corresponding the a row from the
+	// datum is the bson.Raw corresponding the a row from the
 	// left or right side of a union.
-	datum bson.RawD
+	datum bson.Raw
 }
 
 // FastUnionAllIter returns BSON documents from the UNION ALL of two
@@ -238,7 +238,7 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 
 	iterateSide := func(it DocIter, channel chan fastUnionPacket) func() {
 		return func() {
-			b := &bson.RawD{}
+			b := &bson.Raw{}
 		Loop:
 			for it.Next(ctx, b) {
 				channel <- fastUnionPacket{
@@ -250,7 +250,7 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 					break Loop
 				default:
 				}
-				b = &bson.RawD{}
+				b = &bson.Raw{}
 			}
 			close(channel)
 		}
@@ -283,7 +283,7 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
-func (iter *FastUnionAllIter) Next(ctx context.Context, doc *bson.RawD) bool {
+func (iter *FastUnionAllIter) Next(ctx context.Context, doc *bson.Raw) bool {
 	getNextPacket := func(packet fastUnionPacket,
 		ok bool,
 		otherChan chan fastUnionPacket) bool {
@@ -311,26 +311,29 @@ func (iter *FastUnionAllIter) Next(ctx context.Context, doc *bson.RawD) bool {
 	}
 }
 
-func addValueToHash(hash mathutil.Uint128, value bson.Raw) mathutil.Uint128 {
-	hash.AddByteToHash(value.Kind)
-	hash.AddByteSliceToHash(value.Data)
+func addValueToHash(hash mathutil.Uint128, value bson.RawValue) mathutil.Uint128 {
+	hash.AddByteToHash(byte(value.Type))
+	hash.AddByteSliceToHash(value.Value)
 	return hash
 }
 
-// computeHash computes and FNV-1a (plus prime) hash for a bson.RawD.
-func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) mathutil.Uint128 {
+// computeHash computes and FNV-1a (plus prime) hash for a bson.Raw.
+func (iter *FastUnionDistinctIter) computeHash(datum *bson.Raw) (mathutil.Uint128, error) {
 	columnInfo := iter.columnInfo
-	values := *datum
-	lenColumnFields, lenValues := len(columnInfo), len(values)
+	vs, err := datum.Elements()
+	if err != nil {
+		return mathutil.Uint128{}, err
+	}
+	lenColumnFields, lenValues := len(columnInfo), len(vs)
 	// if lengths are equal, we have no missing values.
 	if lenColumnFields == lenValues {
 		hash := hashSeed
-		for _, val := range values {
+		for _, val := range vs {
 			// We need to add the kind to the hash as well, as NULLs
 			// are stored with 0 bytes.
-			hash = addValueToHash(hash, val.Value)
+			hash = addValueToHash(hash, val.Value())
 		}
-		return hash
+		return hash, nil
 	}
 	// If we have missing fields, we need to check key names. Until
 	// we have determined all the missing fields.
@@ -341,8 +344,8 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) mathutil.Uint12
 	for _, info := range columnInfo {
 		fieldName := info.Field
 		if numMissingValues > 0 && i < lenValues {
-			if fieldName == values[i].Name {
-				value := values[i].Value
+			if fieldName == vs[i].Key() {
+				value := vs[i].Value()
 				// If this is the correct fieldName, output the value.
 				hash = addValueToHash(hash, value)
 				// increment i so that we consider the next value.
@@ -355,9 +358,9 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) mathutil.Uint12
 				hash.AddByteToHash(byte(types.EvalNull))
 				numMissingValues--
 			}
-		} else if i < len(values) {
+		} else if i < len(vs) {
 			// We have found all the missing values, default to the faster mode.
-			value := values[i].Value
+			value := vs[i].Value()
 			i++
 			hash = addValueToHash(hash, value)
 		} else {
@@ -369,33 +372,33 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.RawD) mathutil.Uint12
 	for ; numMissingValues != 0; numMissingValues-- {
 		hash.AddByteToHash(byte(types.EvalNull))
 	}
-	return hash
+	return hash, nil
 }
 
 // computeHash computes and FNV-1a (plus prime) hash for a bson.RawD on server versions < 3.4.0.
-func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) mathutil.Uint128 {
-	values := *datum
+func (iter *FastUnionDistinctIter32) computeHash(datum *bson.Raw) (mathutil.Uint128, error) {
+	vs, err := datum.Elements()
+	if err != nil {
+		return mathutil.Uint128{}, err
+	}
 	columnInfo := iter.GetColumnInfo()
 	lenColumnInfo := len(columnInfo)
-	// We will use one nullField value to represent all NULLs that will result
-	// from missing fields.
-	nullField := bson.Raw{Kind: byte(types.EvalNull), Data: []byte{}}
-	fieldMap := make(map[string]bson.Raw, lenColumnInfo)
+	fieldMap := make(map[string]bson.RawValue, lenColumnInfo)
 	// Set the value for all columns to null so we can avoid
 	// a branch in the loop below.
 	for _, info := range columnInfo {
 		fieldMap[info.Field] = nullField
 	}
 	// We can't rely on field ordering in 3.2.
-	for i := range values {
-		fieldMap[values[i].Name] = values[i].Value
+	for _, v := range vs {
+		fieldMap[v.Key()] = v.Value()
 	}
 	hash := hashSeed
 	for _, info := range columnInfo {
 		value := fieldMap[info.Field]
 		hash = addValueToHash(hash, value)
 	}
-	return hash
+	return hash, nil
 }
 
 // Next populates the provided Row with this iterator's next available row.
@@ -403,12 +406,15 @@ func (iter *FastUnionDistinctIter32) computeHash(datum *bson.RawD) mathutil.Uint
 // return false, and the value of the provided Row should not be used. This
 // is the only method that differs for Distinct Union, in that we check for
 // duplicates.
-func (iter *FastUnionDistinctIter) Next(ctx context.Context, doc *bson.RawD) bool {
+func (iter *FastUnionDistinctIter) Next(ctx context.Context, doc *bson.Raw) bool {
 	for {
 		if !iter.FastUnionAllIter.Next(ctx, doc) {
 			return false
 		}
-		hash := iter.computeHash(doc)
+		hash, err := iter.computeHash(doc)
+		if err != nil {
+			return false
+		}
 		if _, ok := iter.distinct[hash]; !ok {
 			iter.distinct[hash] = struct{}{}
 			// each mathutil.Uint128 in the map is 16 bytes.
@@ -428,12 +434,15 @@ func (iter *FastUnionDistinctIter) Next(ctx context.Context, doc *bson.RawD) boo
 // is the only method that differs for Distinct Union, in that we check for
 // duplicates. This version is used for MongoDB Version 3.2. Unfortunately, we need
 // to have duplicated code for the correct computeHash to be called.
-func (iter *FastUnionDistinctIter32) Next(ctx context.Context, doc *bson.RawD) bool {
+func (iter *FastUnionDistinctIter32) Next(ctx context.Context, doc *bson.Raw) bool {
 	for {
 		if !iter.FastUnionAllIter.Next(ctx, doc) {
 			return false
 		}
-		hash := iter.computeHash(doc)
+		hash, err := iter.computeHash(doc)
+		if err != nil {
+			return false
+		}
 		if _, ok := iter.distinct[hash]; !ok {
 			iter.distinct[hash] = struct{}{}
 			// each mathutil.Uint128 in the map is 16 bytes.

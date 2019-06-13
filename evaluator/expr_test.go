@@ -4249,13 +4249,13 @@ func TestGetBinaryFromExpr(t *testing.T) {
 		b, ok := GetBinaryFromExpr(schema.MongoUUID,
 			NewSQLValueExpr(NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10")))
 		req.True(ok)
-		req.Equal(byte(0x04), b.Kind)
+		req.Equal(byte(0x04), b.Subtype)
 		req.Zero(convey.ShouldResemble(b.Data, expected))
 
 		b, ok = GetBinaryFromExpr(schema.MongoUUIDOld,
 			NewSQLValueExpr(NewSQLVarchar(knd, "01020304-0506-0708-090a-0b0c0d0e0f10")))
 		req.True(ok)
-		req.Equal(byte(0x03), b.Kind)
+		req.Equal(byte(0x03), b.Subtype)
 		req.Zero(convey.ShouldResemble(b.Data, expected))
 	})
 
@@ -4264,13 +4264,13 @@ func TestGetBinaryFromExpr(t *testing.T) {
 		b, ok := GetBinaryFromExpr(schema.MongoUUIDJava,
 			NewSQLValueExpr(NewSQLVarchar(knd, "0807060504030201100f0e0d0c0b0a09")))
 		req.True(ok)
-		req.Equal(byte(0x03), b.Kind)
+		req.Equal(byte(0x03), b.Subtype)
 		req.Zero(convey.ShouldResemble(b.Data, expected))
 
 		b, ok = GetBinaryFromExpr(schema.MongoUUIDCSharp,
 			NewSQLValueExpr(NewSQLVarchar(knd, "0403020106050807090a0b0c0d0e0f10")))
 		req.True(ok)
-		req.Equal(byte(0x03), b.Kind)
+		req.Equal(byte(0x03), b.Subtype)
 		req.Zero(convey.ShouldResemble(b.Data, expected))
 	})
 }

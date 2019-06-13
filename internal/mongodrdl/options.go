@@ -10,11 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/persist"
 	"github.com/jessevdk/go-flags"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 var drdlUsage = "mongodrdl <options>"
@@ -76,7 +77,7 @@ func (o *DrdlOptions) Run() error {
 		if o.SchemaName != "" {
 			return persistor.DeleteName(ctx, o.SchemaName)
 		}
-		return persistor.DeleteSchema(ctx, o.SchemaID)
+		return persistor.DeleteSchema(ctx, *o.SchemaID)
 
 	case downloadCommand:
 		var sch *drdl.Schema
@@ -84,7 +85,7 @@ func (o *DrdlOptions) Run() error {
 		if o.SchemaName != "" {
 			sch, err = persistor.FindSchemaByName(ctx, o.SchemaName)
 		} else {
-			sch, err = persistor.FindSchemaByID(ctx, o.SchemaID)
+			sch, err = persistor.FindSchemaByID(ctx, *o.SchemaID)
 		}
 		if err != nil {
 			return err
@@ -118,10 +119,11 @@ func (o *DrdlOptions) Run() error {
 		if err != nil {
 			return err
 		}
+		oid.Hex()
 		fmt.Println(oid.Hex())
 
 	case nameSchemaCommand:
-		return persistor.UpsertName(ctx, o.SchemaName, o.SchemaID)
+		return persistor.UpsertName(ctx, o.SchemaName, *o.SchemaID)
 
 	case listSchemaIDsCommand:
 		schemas, err := persistor.FindSchemas(ctx)
@@ -195,7 +197,7 @@ func (*DrdlNamespace) Name() string {
 // DrdlStored holds flags related to manipulating stored schemas with mongodrdl.
 type DrdlStored struct {
 	DRDL         string `long:"drdl" value-name:"<schema-file>" description:"file or directory containing a DRDL schema"`
-	SchemaID     bson.ObjectId
+	SchemaID     *primitive.ObjectID
 	SchemaIDHex  string `long:"schema" value-name:"<schema-id>" description:"hex string representing ObjectId of a stored schema"`
 	SchemaName   string `long:"name" value-name:"<schema-name>" description:"name of a stored schema"`
 	SchemaSource string `long:"schemaSource" value-name:"<schema-source-db>" description:"database to use for schema storage"`
@@ -404,11 +406,11 @@ func (o DrdlOptions) Parse(osArgs []string) error {
 	}
 
 	if o.DrdlStored.SchemaIDHex != "" {
-		if bson.IsObjectIdHex(o.DrdlStored.SchemaIDHex) {
-			o.DrdlStored.SchemaID = bson.ObjectIdHex(o.DrdlStored.SchemaIDHex)
-		} else {
+		oid, err := primitive.ObjectIDFromHex(o.DrdlStored.SchemaIDHex)
+		if err != nil {
 			return fmt.Errorf("invalid ObjectId hex string %q", o.DrdlStored.SchemaIDHex)
 		}
+		o.DrdlStored.SchemaID = &oid
 	}
 
 	if len(args) > 0 {
@@ -495,7 +497,7 @@ func (o DrdlOptions) Validate() error {
 		if o.DrdlStored.SchemaName == "" {
 			return fmt.Errorf("must provide --name flag")
 		}
-		if o.DrdlStored.SchemaID == "" {
+		if o.DrdlStored.SchemaID == nil {
 			return fmt.Errorf("must provide --schema flag")
 		}
 

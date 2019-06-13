@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -476,7 +477,7 @@ func getServerVersion(t *testing.T) []uint8 {
 			ReadPref: readpref.Primary(),
 		},
 		dbname,
-		cmd,
+		astutil.NewToOldBSONM(cmd),
 		&result)
 
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/internal/testutil/flags"
@@ -17,6 +16,8 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const (
@@ -334,7 +335,7 @@ func testUUIDSubtype3Field(t *testing.T) {
 
 	documents := bsonutil.NewMArray(
 		bsonutil.NewM(
-			bsonutil.NewDocElem("name", bson.Binary{Kind: 0x03, Data: []byte("amOjUW1oQQ6dNsvLrQuDhg==")}),
+			bsonutil.NewDocElem("name", primitive.Binary{Subtype: 0x03, Data: []byte("amOjUW1oQQ6dNsvLrQuDhg==")}),
 		),
 	)
 

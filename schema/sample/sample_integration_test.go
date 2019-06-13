@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/strutil"
@@ -177,7 +178,7 @@ func TestSample(t *testing.T) {
 
 	// enabling profiling should introduce an additional system.profile
 	// collection which should not be sampled
-	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 1)), &struct{}{})
+	dbutils.RunCmd(session, db2, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("profile", 1))), &struct{}{})
 
 	opts := NewMongosqldConfig(&cfg.Schema, nil)
 	sampler := NewSampler(opts, lgr, getSessionProvider(req))
@@ -185,7 +186,7 @@ func TestSample(t *testing.T) {
 
 	req.Nilf(err, "did not expect error in sampling")
 	req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
-	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
+	dbutils.RunCmd(session, db2, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("profile", 0))), &struct{}{})
 
 	req.NotZero(countTables(sampleSchema), "found no sampled namespaces")
 
@@ -617,7 +618,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 
 	req.Nil(err)
 	req.NotNilf(sampleSchema, "sample schema is nil")
-	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
+	dbutils.RunCmd(session, db2, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("profile", 0))), &struct{}{})
 
 	req.NotZero(countTables(sampleSchema), "no namespaces sampled")
 

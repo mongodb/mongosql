@@ -2,10 +2,8 @@ package astutil
 
 import (
 	oldbson "github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/parser"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -24,8 +22,8 @@ func RawDeparsePipeline(pipeline *ast.Pipeline) []oldbson.Raw {
 }
 
 // DeparsePipeline converts an ast.Pipeline into a slice of oldbson.D.
-func DeparsePipeline(pipeline *ast.Pipeline) ([]oldbson.D, error) {
-	docs := make([]oldbson.D, len(pipeline.Stages))
+func DeparsePipeline(pipeline *ast.Pipeline) ([]bson.D, error) {
+	docs := make([]bson.D, len(pipeline.Stages))
 	for i, stage := range pipeline.Stages {
 		bv := parser.DeparseStage(stage)
 		d := bson.D{}
@@ -33,18 +31,17 @@ func DeparsePipeline(pipeline *ast.Pipeline) ([]oldbson.D, error) {
 		if err != nil {
 			return nil, err
 		}
-		docs[i] = NewToOldBSOND(d)
+		docs[i] = d
 	}
 
 	return docs, nil
 }
 
-// ParsePipeline converts a slice of oldbson.D into an ast.Pipeline.
-func ParsePipeline(docs []oldbson.D) (*ast.Pipeline, error) {
+// ParsePipeline converts a slice of bson.D into an ast.Pipeline.
+func ParsePipeline(docs []bson.D) (*ast.Pipeline, error) {
 	stages := make([]ast.Stage, len(docs))
 	for i, doc := range docs {
-		d := OldToNewBSOND(doc)
-		json, err := bson.MarshalExtJSON(&d, false, false)
+		json, err := bson.MarshalExtJSON(&doc, false, false)
 		if err != nil {
 			return nil, err
 		}
@@ -71,16 +68,7 @@ func OldToNewBSONA(old []interface{}) bson.A {
 	newA := make(bson.A, len(old))
 
 	for i, v := range old {
-		switch t := v.(type) {
-		case oldbson.D:
-			v = OldToNewBSOND(t)
-		case oldbson.M:
-			v = OldToNewBSONM(t)
-		case []interface{}:
-			v = OldToNewBSONA(t)
-		}
-
-		newA[i] = v
+		newA[i] = OldToNewBSON(v)
 	}
 
 	return newA
@@ -101,17 +89,7 @@ func OldToNewBSOND(old oldbson.D) bson.D {
 // OldToNewBSONE converts from the old Go driver's bson.DocElem to
 // the new Go driver's bson.E.
 func OldToNewBSONE(old oldbson.DocElem) bson.E {
-	v := old.Value
-	switch t := old.Value.(type) {
-	case oldbson.D:
-		v = OldToNewBSOND(t)
-	case oldbson.M:
-		v = OldToNewBSONM(t)
-	case []interface{}:
-		v = OldToNewBSONA(t)
-	}
-
-	return primitive.E{Key: old.Name, Value: v}
+	return primitive.E{Key: old.Name, Value: OldToNewBSON(old.Value)}
 }
 
 // OldToNewBSONM converts from the old Go driver's bson.M to the new
@@ -120,19 +98,71 @@ func OldToNewBSONM(old oldbson.M) bson.M {
 	newM := make(bson.M)
 
 	for k, v := range old {
-		switch t := v.(type) {
-		case oldbson.D:
-			v = OldToNewBSOND(t)
-		case oldbson.M:
-			v = OldToNewBSONM(t)
-		case []interface{}:
-			v = OldToNewBSONA(t)
-		}
-
-		newM[k] = v
+		newM[k] = OldToNewBSON(v)
 	}
 
 	return newM
+}
+
+// OldToNewBSON recursively converts from old bson types to new bson types.
+func OldToNewBSON(old interface{}) interface{} {
+	v := old
+	switch t := old.(type) {
+	case oldbson.D:
+		v = OldToNewBSOND(t)
+	case oldbson.M:
+		v = OldToNewBSONM(t)
+	case []oldbson.D:
+		n := make([]bson.D, len(t))
+		for i, oldD := range t {
+			n[i] = OldToNewBSOND(oldD)
+		}
+		v = n
+	case []oldbson.M:
+		n := make([]bson.M, len(t))
+		for i, oldM := range t {
+			n[i] = OldToNewBSONM(oldM)
+		}
+		v = n
+	case []interface{}:
+		v = OldToNewBSONA(t)
+	case []uint8:
+		v = primitive.Binary{Subtype: 0, Data: t}
+	case oldbson.Binary:
+		v = primitive.Binary{Subtype: t.Kind, Data: t.Data}
+	case oldbson.ObjectId:
+		v, _ = primitive.ObjectIDFromHex(t.Hex())
+	case oldbson.MongoTimestamp:
+		v = primitive.Timestamp{T: uint32(uint64(t) >> 32), I: uint32(t)}
+	case nil:
+		v = primitive.Null{}
+	case oldbson.RegEx:
+		v = primitive.Regex{Pattern: t.Pattern, Options: t.Options}
+	case oldbson.DBPointer:
+		oid, _ := primitive.ObjectIDFromHex(t.Id.Hex())
+		v = primitive.DBPointer{DB: t.Namespace, Pointer: oid}
+	case oldbson.JavaScript:
+		code := primitive.JavaScript(t.Code)
+		v = code
+		if t.Scope != nil {
+			v = primitive.CodeWithScope{Code: code, Scope: OldToNewBSON(t.Scope)}
+		}
+	case oldbson.Symbol:
+		v = primitive.Symbol(t)
+	case oldbson.Decimal128:
+		v, _ = primitive.ParseDecimal128(t.String())
+	}
+
+	switch v {
+	case oldbson.Undefined:
+		v = primitive.Undefined{}
+	case oldbson.MinKey:
+		v = primitive.MinKey{}
+	case oldbson.MaxKey:
+		v = primitive.MaxKey{}
+	}
+
+	return v
 }
 
 // NewToOldBSONA converts from the new Go driver's bson.A to a
@@ -142,16 +172,7 @@ func NewToOldBSONA(newA bson.A) []interface{} {
 	old := make([]interface{}, len(newA))
 
 	for i, e := range newA {
-		switch t := e.(type) {
-		case bson.A:
-			e = NewToOldBSONA(t)
-		case bson.D:
-			e = NewToOldBSOND(t)
-		case bson.M:
-			e = NewToOldBSONM(t)
-		}
-
-		old[i] = e
+		old[i] = NewToOldBSON(e)
 	}
 
 	return old
@@ -172,17 +193,7 @@ func NewToOldBSOND(newD bson.D) oldbson.D {
 // NewToOldBSONE converts from the new Go driver's bson.E to the old
 // Go driver's bson.DocElem.
 func NewToOldBSONE(newE bson.E) oldbson.DocElem {
-	v := newE.Value
-	switch t := newE.Value.(type) {
-	case bson.A:
-		v = NewToOldBSONA(t)
-	case bson.D:
-		v = NewToOldBSOND(t)
-	case bson.M:
-		v = NewToOldBSONM(t)
-	}
-
-	return oldbson.NewDocElem(newE.Key, v)
+	return oldbson.NewDocElem(newE.Key, NewToOldBSON(newE.Value))
 }
 
 // NewToOldBSONM converts from the new Go driver's bson.M to the old
@@ -191,17 +202,67 @@ func NewToOldBSONM(newM bson.M) oldbson.M {
 	old := make(oldbson.M)
 
 	for k, v := range newM {
-		switch t := v.(type) {
-		case bson.A:
-			v = NewToOldBSONA(t)
-		case bson.D:
-			v = NewToOldBSOND(t)
-		case bson.M:
-			v = NewToOldBSONM(t)
-		}
-
-		old[k] = v
+		old[k] = NewToOldBSON(v)
 	}
 
 	return old
+}
+
+// NewToOldBSON recursively converts from new bson types to old bson types.
+func NewToOldBSON(new interface{}) interface{} {
+	v := new
+	switch t := new.(type) {
+	case bson.D:
+		v = NewToOldBSOND(t)
+	case bson.M:
+		v = NewToOldBSONM(t)
+	case bson.A:
+		v = NewToOldBSONA(t)
+	case []bson.D:
+		old := make([]oldbson.D, len(t))
+		for i, newD := range t {
+			old[i] = NewToOldBSOND(newD)
+		}
+		v = old
+	case []bson.M:
+		old := make([]oldbson.M, len(t))
+		for i, newM := range t {
+			old[i] = NewToOldBSONM(newM)
+		}
+		v = old
+	case primitive.Binary:
+		if t.Subtype == 0 {
+			// nolint: unconvert
+			v = []uint8(t.Data)
+		} else {
+			v = oldbson.Binary{Kind: t.Subtype, Data: t.Data}
+		}
+	case primitive.ObjectID:
+		v = oldbson.ObjectIdHex(t.Hex())
+	case primitive.DateTime:
+		v = oldbson.MongoTimestamp(t)
+	case primitive.Null:
+		v = nil
+	case primitive.Regex:
+		v = oldbson.RegEx{Pattern: t.Pattern, Options: t.Options}
+	case primitive.DBPointer:
+		oid := oldbson.ObjectIdHex(t.Pointer.Hex())
+		v = oldbson.DBPointer{Namespace: t.DB, Id: oid}
+	case primitive.JavaScript:
+		v = oldbson.JavaScript{Code: string(t)}
+	case primitive.CodeWithScope:
+		v = oldbson.JavaScript{Code: string(t.Code), Scope: NewToOldBSON(t.Scope)}
+	case primitive.Symbol:
+		v = oldbson.Symbol(t)
+	case primitive.Decimal128:
+		v, _ = oldbson.ParseDecimal128(t.String())
+	case primitive.Undefined:
+		v = oldbson.Undefined
+	case primitive.MinKey:
+		v = oldbson.MinKey
+	case primitive.MaxKey:
+		v = oldbson.MaxKey
+	}
+
+	return v
 }

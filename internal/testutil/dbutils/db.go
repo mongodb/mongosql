@@ -4,10 +4,11 @@ import (
 	"context"
 	"strings"
 
-	"github.com/10gen/mongo-go-driver/bson"
+	oldbson "github.com/10gen/mongo-go-driver/bson"
 	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/mongo-go-driver/mongo/private/msg"
 	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 )
 
@@ -39,7 +40,7 @@ func CreateIndex(s ops.Server, databaseName, collectionName string, keys []strin
 		msg.NextRequestID(),
 		databaseName,
 		false,
-		createIndexCommand,
+		astutil.NewToOldBSOND(createIndexCommand),
 	)
 
 	c, err := s.Connection(context.Background())
@@ -48,7 +49,7 @@ func CreateIndex(s ops.Server, databaseName, collectionName string, keys []strin
 	}
 	defer func() { _ = c.Close() }()
 
-	d := bsonutil.NewD()
+	d := oldbson.D{}
 	err = conn.ExecuteCommand(context.Background(), c, request, &d)
 	if err != nil {
 		panic(err)
@@ -62,15 +63,15 @@ func DropCollection(s ops.Server, databaseName, collectionName string) {
 		panic(err)
 	}
 	defer func() { _ = c.Close() }()
-	d := bsonutil.NewD()
 
+	d := oldbson.D{}
 	err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(
 			msg.NextRequestID(),
 			databaseName,
-			false, bsonutil.NewD(bsonutil.NewDocElem("drop", collectionName)),
+			false, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("drop", collectionName))),
 		),
 
 		&d,
@@ -95,52 +96,20 @@ func DropDatabase(s ops.Server, databaseName string) {
 	}
 	defer func() { _ = c.Close() }()
 
-	d := bsonutil.NewD()
+	d := oldbson.D{}
 	err = conn.ExecuteCommand(
 		context.Background(),
 		c,
 		msg.NewCommand(
 			msg.NextRequestID(),
 			databaseName,
-			false, bsonutil.NewD(bsonutil.NewDocElem("dropDatabase", 1)),
+			false, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("dropDatabase", 1))),
 		),
 		&d,
 	)
 	if err != nil && !strings.HasSuffix(err.Error(), "database not found") {
 		panic(err)
 	}
-}
-
-// Exists checkes whether any documents in the specified collection match
-// the provided filter.
-func Exists(s ops.Server, databaseName, collectionName string, filter bson.D) bool {
-	findCommand := bsonutil.NewD(
-		bsonutil.NewDocElem("find", collectionName),
-		bsonutil.NewDocElem("filter", filter),
-		bsonutil.NewDocElem("limit", 1),
-	)
-
-	request := msg.NewCommand(
-		msg.NextRequestID(),
-		databaseName,
-		false,
-		findCommand,
-	)
-
-	c, err := s.Connection(context.Background())
-	if err != nil {
-		panic(err)
-	}
-	defer func() { _ = c.Close() }()
-
-	var result cursorReturningResult
-
-	err = conn.ExecuteCommand(context.Background(), c, request, &result)
-	if err != nil {
-		panic(err)
-	}
-
-	return len(result.Cursor.FirstBatch) > 0
 }
 
 // Find executes a find command against the specified collection.
@@ -156,7 +125,7 @@ func Find(s ops.Server, databaseName, collectionName string, batchSize int32) op
 		msg.NextRequestID(),
 		databaseName,
 		false,
-		findCommand,
+		astutil.NewToOldBSOND(findCommand),
 	)
 
 	c, err := s.Connection(context.Background())
@@ -186,7 +155,7 @@ func InsertDocuments(s ops.Server, databaseName, collectionName string, document
 		msg.NextRequestID(),
 		databaseName,
 		false,
-		insertCommand,
+		astutil.NewToOldBSOND(insertCommand),
 	)
 
 	c, err := s.Connection(context.Background())
@@ -195,7 +164,7 @@ func InsertDocuments(s ops.Server, databaseName, collectionName string, document
 	}
 	defer func() { _ = c.Close() }()
 
-	d := bsonutil.NewD()
+	d := oldbson.D{}
 	err = conn.ExecuteCommand(context.Background(), c, request, &d)
 	if err != nil {
 		panic(err)
@@ -228,9 +197,9 @@ type cursorReturningResult struct {
 }
 
 type firstBatchCursorResult struct {
-	FirstBatch []bson.Raw `bson:"firstBatch"`
-	NS         string     `bson:"ns"`
-	ID         int64      `bson:"id"`
+	FirstBatch []oldbson.Raw `bson:"firstBatch"`
+	NS         string        `bson:"ns"`
+	ID         int64         `bson:"id"`
 }
 
 func (cursorResult *firstBatchCursorResult) Namespace() ops.Namespace {
@@ -238,7 +207,7 @@ func (cursorResult *firstBatchCursorResult) Namespace() ops.Namespace {
 	return namespace
 }
 
-func (cursorResult *firstBatchCursorResult) InitialBatch() []bson.Raw {
+func (cursorResult *firstBatchCursorResult) InitialBatch() []oldbson.Raw {
 	return cursorResult.FirstBatch
 }
 
