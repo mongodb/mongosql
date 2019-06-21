@@ -1770,7 +1770,7 @@ func_expr_unconventional:
   {
     $$ = &FuncExpr{Name: string(CURRENT_TIMESTAMP_BYTES)}
   }
-| CURRENT_TIMESTAMP LPAREN select_expression_list RPAREN
+| CURRENT_TIMESTAMP LPAREN select_expression RPAREN
   {
     $$ = &FuncExpr{Name: string(CURRENT_TIMESTAMP_BYTES)}
   }
@@ -1814,9 +1814,9 @@ func_expr_unconventional:
   {
     $$ = &FuncExpr{Name: string(TIMESTAMPDIFF_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr: KeywordVal($3)}}, $5...)}
   }
-| TRIM LPAREN select_expression_list RPAREN
+| TRIM LPAREN select_expression RPAREN
   {
-    $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: $3}
+    $$ = &FuncExpr{Name: string(TRIM_BYTES), Exprs: []SelectExpr{$3}}
   }
 | TRIM LPAREN both_leading_trailing_opt select_expression FROM select_expression RPAREN
   {

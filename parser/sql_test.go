@@ -814,3 +814,29 @@ func TestGroupConcat(t *testing.T) {
 	sql = "select group_concat(distinct a, b order by a asc, b desc separator \":\") from foo"
 	testParse(t, sql)
 }
+
+func TestScalarFunctions(t *testing.T) {
+	sql := "select trim('a') from foo"
+	testParse(t, sql)
+
+	sql = "select trim(both 'a' from 'b') from foo"
+	testParse(t, sql)
+
+	sql = "select trim('a' from 'b') from foo"
+	testParse(t, sql)
+
+	sql = "select trim('a', 'b', 'c') from foo"
+	testParseError(t, sql)
+
+	sql = "select trim('a', 'b', 'c', 'd') from foo"
+	testParseError(t, sql)
+
+	sql = "select current_timestamp() from foo"
+	testParse(t, sql)
+
+	sql = "select current_timestamp(4) from foo"
+	testParse(t, sql)
+
+	sql = "select current_timestamp(1, 2) from foo"
+	testParseError(t, sql)
+}

@@ -5232,6 +5232,16 @@ testcases:
     sql: select b, trim(b) from scalar
 
   - db: functions_test
+    expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c") from scalar'' error: syntax error at position 15'
+    id: trim_parse_error
+    sql: select trim(b, "a", "c") from scalar
+
+  - db: functions_test
+    expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c", "d") from scalar'' error: syntax error at position 15'
+    id: trim_parse_error_2
+    sql: select trim(b, "a", "c", "d") from scalar
+
+  - db: functions_test
     expected_names: [b, 'trim(b, ''both'', ''y'')']
     expected_results:
       - [hey, he]
@@ -6377,6 +6387,26 @@ testcases:
     id: utc_timestamp_2
     min_server_version: 3.4
     sql: select d, year(date(d)) + 2000 > year(utc_timestamp()) as res from dates
+
+  - db: functions_test
+    description: show that current_timestamp push_down works. This test will stop working in November 2970... be warned.
+    expected_names: [d, res]
+    expected_results:
+      - ['2017-12-12', 1]
+      - ['1066-01-02', 1]
+      - ['0566-01-02', 1]
+      - ['0166-01-02', 1]
+      - ['0001-01-02', 0]
+      - ['0000-03-01', 0]
+    expected_types: [varchar, int]
+    id: current_timestamp
+    min_server_version: 3.4
+    sql: select d, year(date(d)) + 2000 > year(current_timestamp()) as res from dates
+
+  - db: functions_test
+    expected_error: 'Error 1064: parse sql ''select current_timestamp(d, _id) from dates'' error: syntax error at position 28'
+    id: current_timestamp_parse_error
+    sql: select current_timestamp(d, _id) from dates
 
   - db: functions_test
     description: no column reference in field list
