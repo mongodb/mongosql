@@ -35,9 +35,9 @@ type QueryConfig struct {
 func NewDefaultQueryConfig(mdbVersion, defaultDbName string, ctlg catalog.Catalog) *QueryConfig {
 	lgr := log.GlobalLogger()
 	vars := ctlg.Variables()
-	rCfg := NewRewriterConfig(lgr, false)
+	rCfg := NewRewriterConfig(uint64(0), defaultDbName, lgr, false, getMySQLVersion(vars), "localhost", "user")
 	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg)
-	eCfg := NewExecutionConfig(lgr, vars, nil, nil, defaultDbName, uint64(0), "user", "localhost")
+	eCfg := NewExecutionConfig(lgr, vars, nil, nil, defaultDbName)
 	oCfg := NewOptimizerConfig(lgr, vars)
 	pCfg := NewPushdownConfig(lgr, vars)
 
@@ -119,11 +119,7 @@ func handleExplainPlan(ctx context.Context, qCfg *QueryConfig, stmt *parser.Expl
 type ExecutionConfig struct {
 	lg               log.Logger
 	dbName           string
-	mySQLVersion     string
 	mongoDBVersion   []uint8
-	connID           uint64
-	user             string
-	remoteHost       string
 	fullPushdownOnly bool
 	maxStageSize     uint64
 	sqlValueKind     values.SQLValueKind
@@ -135,16 +131,12 @@ type ExecutionConfig struct {
 // NewExecutionConfig returns a new ExecutionConfig constructed from the
 // provided values. ExecutionConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewExecutionConfig(lg log.Logger, vars catalog.VariableContainer, cmds CommandHandler, mem memory.Monitor, dbName string, connID uint64, user, remoteHost string) *ExecutionConfig {
+func NewExecutionConfig(lg log.Logger, vars catalog.VariableContainer, cmds CommandHandler, mem memory.Monitor, dbName string) *ExecutionConfig {
 	return &ExecutionConfig{
 		lg:               lg,
 		commandHandler:   cmds,
 		dbName:           dbName,
 		mongoDBVersion:   getMongoDBVersion(vars),
-		mySQLVersion:     getMySQLVersion(vars),
-		connID:           connID,
-		user:             user,
-		remoteHost:       remoteHost,
 		fullPushdownOnly: vars.GetBool(variable.FullPushdownExecMode),
 		memoryMonitor:    mem,
 		sqlValueKind:     GetSQLValueKind(vars),

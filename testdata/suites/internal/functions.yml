@@ -904,6 +904,20 @@ testcases:
     sql: select ascii(null) from scalar
 
   - db: functions_test
+    description: test ascii on different character sets
+    expected_names: [ascii(a), ascii(b), ascii(c), ascii(d), ascii(e), ascii(f)]
+    expected_results:
+      - [null, 0, 49, 50, 32, 240]
+      - [null, 72, 48, null, 196, 237]
+      - [45, 9, null, null, 122, 194]
+      - [52, 126, null, null, 224, 240]
+      - [48, 0, null, null, 195, 224]
+      - [null, 226, null, null, 239, 223]
+    expected_types: [int, int, int, int, int, int]
+    id: ascii_2
+    sql: select ascii(a), ascii(b), ascii(c), ascii(d), ascii(e), ascii(f) from ascii
+
+  - db: functions_test
     expected_names: [c, ceil(c)]
     expected_results:
       - [1.456, 2]
@@ -6104,7 +6118,6 @@ testcases:
       - [null, null]
     expected_types: [varchar, varchar]
     id: timestampadd_leapyears
-    min_server_version: 3.4
     sql: select t, timestampadd(month,1,t) mo from timestamps
 
   - db: functions_test
@@ -6121,7 +6134,6 @@ testcases:
       - ['2000-12-04 12:30:25', '2006-09-04 12:30:25', 5, 23, 69, -69, 2100, 3024000, 181440000, 181440000000000, -181440000000000]
     expected_types: [varchar, varchar, int, int, int, int, int, int, int, int, int]
     id: timestampdiff_0
-    min_server_version: 3.4
     sql: select d1, d2, timestampdiff(year, d1, d2) as y, timestampdiff(quarter, d1, d2) as q, timestampdiff(month, d1, d2) as m, timestampdiff(month, d2, d1) as rm, timestampdiff(day, d1, d2) as d, timestampdiff(minute, d1, d2) as min, timestampdiff(second, d1, d2) as s, timestampdiff(microsecond, d1, d2) as us, timestampdiff(microsecond, d2, d1) as rus from timestampDiff
 
   - db: functions_test
@@ -6342,7 +6354,6 @@ testcases:
       - ['0000-03-01', 0]
     expected_types: [varchar, int]
     id: curdate_2
-    min_server_version: 3.4
     sql: select d, year(date(d)) + 2000 > year(curdate()) as res from dates
 
   - db: functions_test
@@ -6370,11 +6381,10 @@ testcases:
       - ['0000-03-01', 0]
     expected_types: [varchar, int]
     id: utc_date_2
-    min_server_version: 3.4
     sql: select d, year(date(d)) + 2000 > year(utc_date()) as res from dates
 
   - db: functions_test
-    description: show that utc_timestamp push_down works. This test will stop working in November 2970... be warned.
+    description: show that utc_timestamp push_down works. This test will stop working in 2166... be warned.
     expected_names: [d, res]
     expected_results:
       - ['2017-12-12', 1]
@@ -6385,11 +6395,10 @@ testcases:
       - ['0000-03-01', 0]
     expected_types: [varchar, int]
     id: utc_timestamp_2
-    min_server_version: 3.4
     sql: select d, year(date(d)) + 2000 > year(utc_timestamp()) as res from dates
 
   - db: functions_test
-    description: show that current_timestamp push_down works. This test will stop working in November 2970... be warned.
+    description: show that current_timestamp works. This test will stop working in 2166... be warned.
     expected_names: [d, res]
     expected_results:
       - ['2017-12-12', 1]
@@ -6400,13 +6409,38 @@ testcases:
       - ['0000-03-01', 0]
     expected_types: [varchar, int]
     id: current_timestamp
-    min_server_version: 3.4
     sql: select d, year(date(d)) + 2000 > year(current_timestamp()) as res from dates
 
   - db: functions_test
     expected_error: 'Error 1064: parse sql ''select current_timestamp(d, _id) from dates'' error: unexpected COMMA at position 28'
     id: current_timestamp_parse_error
     sql: select current_timestamp(d, _id) from dates
+
+  - db: functions_test
+    description: show that curtime works. This test will stop working in 2166... be warned.
+    expected_names: [d, res]
+    expected_results:
+      - ['2017-12-12', 1]
+      - ['1066-01-02', 1]
+      - ['0566-01-02', 1]
+      - ['0166-01-02', 1]
+      - ['0001-01-02', 0]
+      - ['0000-03-01', 0]
+    expected_types: [varchar, int]
+    id: curtime
+    sql: select d, year(date(d)) + 2000 > year(curtime()) as res from dates
+
+  - db: functions_test
+    expected_names: [a, database()]
+    expected_results:
+      - [1, "functions_test"]
+      - [null, "functions_test"]
+      - [-3, "functions_test"]
+      - [4, "functions_test"]
+      - [null, "functions_test"]
+    expected_types: [int, varchar]
+    id: database
+    sql: select a, database() from scalar
 
   - db: functions_test
     description: no column reference in field list

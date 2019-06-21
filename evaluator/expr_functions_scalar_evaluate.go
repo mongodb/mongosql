@@ -129,16 +129,6 @@ func (f baseScalarFunctionExpr) concatWsEvaluate(sqlValueKind values.SQLValueKin
 	return
 }
 
-// nolint: unparam
-func (f baseScalarFunctionExpr) connectionIDEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
-	return values.NewSQLUint64(cfg.sqlValueKind, cfg.connID), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) piEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return values.NewSQLFloat(sqlValueKind, math.Pi), nil
-}
-
 // Diverges from MySQL behavior in its handling of negative values
 // Converts bases to positive numbers, and returns a negative value if the input is negative
 // MySQL claims that "If from_base is a negative number, N is regarded as a signed number.
@@ -212,24 +202,6 @@ func (f baseScalarFunctionExpr) cotEvaluate(sqlValueKind values.SQLValueKind, _ 
 	}
 
 	return values.NewSQLFloat(sqlValueKind, 1/tan), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) currentDateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	now := time.Now().In(schema.DefaultLocale)
-	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	return values.NewSQLDate(sqlValueKind, t), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) currentTimestampEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	value := time.Now().In(schema.DefaultLocale)
-	return values.NewSQLTimestamp(sqlValueKind, value), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) curtimeEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return values.NewSQLTimestamp(sqlValueKind, time.Now().In(schema.DefaultLocale)), nil
 }
 
 // nolint: unparam
@@ -378,11 +350,6 @@ func (f baseScalarFunctionExpr) dayOfYearEvaluate(sqlValueKind values.SQLValueKi
 	}
 
 	return values.NewSQLInt64(sqlValueKind, int64(t.YearDay())), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) databaseEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
-	return values.NewSQLVarchar(cfg.sqlValueKind, cfg.dbName), nil
 }
 
 // nolint: unparam
@@ -2061,29 +2028,6 @@ func (f baseScalarFunctionExpr) unixTimestampEvaluate(sqlValueKind values.SQLVal
 	y, m, d := t.Date()
 	ts := time.Date(y, m, d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), now.Location())
 	return values.NewSQLUint64(sqlValueKind, uint64(ts.Unix())), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) userEvaluateWithFullEvaluationState(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState, vs []values.SQLValue) (values.SQLValue, error) {
-	str := fmt.Sprintf("%s@%s", cfg.user, cfg.remoteHost)
-	return values.NewSQLVarchar(cfg.sqlValueKind, str), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) utcDateEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	now := time.Now().In(time.UTC)
-	t := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	return values.NewSQLDate(sqlValueKind, t), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) utcTimestampEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return values.NewSQLTimestamp(sqlValueKind, time.Now().In(time.UTC)), nil
-}
-
-// nolint: unparam
-func (f baseScalarFunctionExpr) versionEvaluateWithFullEvaluationState(_ context.Context, cfg *ExecutionConfig, _ *ExecutionState, _ []values.SQLValue) (values.SQLValue, error) {
-	return values.NewSQLVarchar(cfg.sqlValueKind, cfg.mySQLVersion), nil
 }
 
 // nolint: unparam

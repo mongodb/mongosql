@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
@@ -110,7 +109,6 @@ func TestTranslate(t *testing.T) {
 		{"scalar_concat_null", "concat(s, null)"},
 		{"scalar_concat_ws", "concat_ws(',', s)"},
 		{"scalar_concat_ws_null", "concat_ws(',', s, null)"},
-		{"scalar_connection_id", "connection_id()"},
 		{"scalar_conv_constant_bases", "conv(s, 2, 8)"},
 		{"scalar_conv_column_bases", "conv(s, a, b)"},
 		{"scalar_conv_null", "conv(s, null, 4)"},
@@ -129,20 +127,6 @@ func TestTranslate(t *testing.T) {
 		{"scalar_cot_null", "cot(null)"},
 		{"scalar_count_0", "count(*)"},
 		{"scalar_count_1", "count(a + b)"},
-		// These tests rely on the current time, so they cannot be tested without
-		// at-runtime checks. Hardcoded result values don't work because the
-		// correct result will be different depending on when the test is ran.
-		//{"scalar_current_date", "current_date()"},
-		//{"scalar_current_date_no_parens", "current_date"},
-		//{"scalar_current_timestamp", "current_timestamp()"},
-		//{"scalar_current_timestamp_int", "current_timestamp(a)"},
-		//{"scalar_current_timestamp_no_parens", "current_timestamp"},
-		//{"scalar_current_timestamp_null", "current_timestamp(null)"},
-		//{"scalar_current_timestamp_string", "current_timestamp(s)"},
-		{"scalar_current_user", "current_user()"},
-		// See comment for "scalar_current_date" for why this is commented out.
-		//{"scalar_curtime", "curtime()"},
-		{"scalar_database", "database()"},
 		{"scalar_date", "date(s)"},
 		{"scalar_date_null", "date(null)"},
 		{"scalar_date_redundant", "date(g)"},
@@ -257,10 +241,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_not", "not(t)"},
 		{"scalar_not_int", "not(a)"},
 		{"scalar_not_null", "not(null)"},
-		// See comment for "scalar_current_date" for why this is commented out.
-		//{"scalar_now", "now()"},
 		{"scalar_nullif", "nullif(a, 1)"},
-		{"scalar_pi", "pi()"},
 		{"scalar_pow", "pow(a,a)"},
 		{"scalar_power", "power(a,a)"},
 		{"scalar_power_all_null", "power(null,null)"},
@@ -288,9 +269,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_rpad", "rpad(s, 5, 'xy')"},
 		{"scalar_rtrim", "rtrim(s)"},
 		{"scalar_rtrim_bool", "rtrim(t)"},
-		{"scalar_schema", "schema()"},
 		{"scalar_second", "second(g)"},
-		{"scalar_session_user", "session_user()"},
 		{"scalar_sign", "sign(a)"},
 		{"scalar_sin", "sin(a)"},
 		{"scalar_sleep_str", "sleep(s)"},
@@ -320,7 +299,6 @@ func TestTranslate(t *testing.T) {
 		{"scalar_substring_index", "substring_index(s,s,a)"},
 		{"scalar_substring_mixed_types", "substring(s, s)"},
 		{"scalar_substring_negative", "substring(s, -2)"},
-		{"scalar_system_user", "system_user()"},
 		{"scalar_tan", "tan(a)"},
 		{"scalar_time_to_sec", "time_to_sec(g)"},
 		{"scalar_time_to_sec_int", "time_to_sec(a)"},
@@ -352,21 +330,15 @@ func TestTranslate(t *testing.T) {
 		{"scalar_truncate_float_column_int", "truncate(c,a)"},
 		{"scalar_truncate_float_column_float", "truncate(c,c)"},
 		{"scalar_ucase", "ucase(s)"},
-		// See comment for "scalar_current_date" for why this is commented out.
+		// These tests rely on the current time, so they cannot be tested without
+		// at-runtime checks. Hardcoded result values don't work because the
+		// correct result will be different depending on when the test is ran.
 		//{"scalar_unix_timestamp", "unix_timestamp()"},
 		//{"scalar_unix_timestamp_int", "unix_timestamp(null)"},
 		//{"scalar_unix_timestamp_null", "unix_timestamp(null)"},
 		//{"scalar_unix_timestamp_string", "unix_timestamp(s)"},
 		{"scalar_upper", "upper(s)"},
 		{"scalar_upper_useless", "upper('UPPER')"},
-		{"scalar_user", "user()"},
-		// See comment for "scalar_current_date" for why this is commented out.
-		//{"scalar_utc_date", "utc_time()"},
-		//{"scalar_utc_date_no_parens", "utc_timestamp"},
-		//{"scalar_utc_time", "utc_time()"},
-		//{"scalar_utc_timestamp", "utc_timestamp()"},
-		//{"scalar_utc_timestamp_no_parens", "utc_timestamp"},
-		{"scalar_version", "version()"},
 		{"scalar_week_0", "week(a,5)"},
 		{"scalar_week_1", "week(a,7)"},
 		{"scalar_week_2", "week(g)"},
@@ -704,52 +676,6 @@ func translatePredicate(t *testing.T, version []uint8, sql string, sqlValueKind 
 	}
 
 	return ""
-}
-
-func TestTranslateCurrentDateExpr(t *testing.T) {
-	type test struct {
-		name     string
-		sql      string
-		expected string
-	}
-
-	// pad 0 pads month, day, hour, minute, second to two digits.
-	pad := func(val string) string {
-		if len(val) == 1 {
-			return "0" + val
-		}
-		return val
-	}
-
-	// currentDateLiteral gets the current date as a string or int in a literal.
-	// This isn't perfect, but there is no better way to test curdate at this time.
-	currentDateLiteral := func(asString bool, location *time.Location) string {
-		now := time.Now().In(location)
-		yearStr, monthStr, dayStr := pad(strconv.Itoa(now.Year())),
-			pad(strconv.Itoa(int(now.Month()))), pad(strconv.Itoa(now.Day()))
-		if asString {
-			return fmt.Sprintf(`"%s-%s-%s"`, yearStr, monthStr, dayStr)
-		}
-		return fmt.Sprintf(`{"$numberLong":"%s%s%s"}`, yearStr, monthStr, dayStr)
-	}
-
-	tests := []test{
-		{"concat_curdate", "concat(curdate(), '')", currentDateLiteral(true, schema.DefaultLocale)},
-		{"curdate", "curdate() + 0", currentDateLiteral(false, schema.DefaultLocale)},
-		{"concat_utc_date", "concat(utc_date(), '')", currentDateLiteral(true, time.UTC)},
-		{"utc_date", "utc_date() + 0", currentDateLiteral(false, time.UTC)},
-	}
-
-	version := []uint8{3, 6, 0}
-	sqlValueKind := values.MySQLValueKind
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			req := require.New(t)
-			actual := translateExpr(t, version, test.sql, sqlValueKind)
-			req.Equal(test.expected, actual, "actual agg expr should equal expected agg expr")
-		})
-	}
 }
 
 func TestTranslatePartialPredicate(t *testing.T) {

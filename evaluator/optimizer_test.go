@@ -495,7 +495,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					statement, err := parser.Parse(test.sql)
 					req.Nil(err, "failed to parse statement")
 
-					rCfg := NewRewriterConfig(log.GlobalLogger(), false)
+					rCfg := NewRewriterConfig(42, "test_db_name", log.GlobalLogger(),
+						false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
 
 					rewritten, err := RewriteQuery(rCfg, statement)
 					req.Nil(err, "failed to rewrite query")
@@ -755,7 +756,8 @@ func TestPushdownSharding(t *testing.T) {
 				statement, err := parser.Parse(test.sql)
 				req.NoError(err)
 
-				rCfg := NewRewriterConfig(log.GlobalLogger(), false)
+				rCfg := NewRewriterConfig(42, "test_db", log.GlobalLogger(),
+					false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
 
 				rewritten, err := RewriteQuery(rCfg, statement)
 				req.NoError(err, "failed to rewrite query")

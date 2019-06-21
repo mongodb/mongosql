@@ -524,7 +524,8 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	statement, err := parser.Parse(sql)
 	req.Nil(err, "failed to parse statement")
 
-	rCfg := evaluator.NewRewriterConfig(log.GlobalLogger(), false)
+	rCfg := evaluator.NewRewriterConfig(42, "evaluator_unit_test_dbname", log.GlobalLogger(),
+		false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
 
 	rewritten, err := evaluator.RewriteQuery(rCfg, statement)
 	req.Nil(err, "failed to rewrite query")

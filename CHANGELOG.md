@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2025: Queries using `ln`, `ascii`, `user`, `database`, `version`, `connection_id`, and constant-valued time/date functions can be fully pushed down.
 BI-1460: No user facing changes.
 BI-2219: No user facing changes.
 BI-2238: New reserved words: KEY, FULLTEXT, PRIMARY.

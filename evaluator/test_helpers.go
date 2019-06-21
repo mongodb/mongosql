@@ -28,10 +28,6 @@ func CreateTestExecutionCfg(dbName string, maxStageSize uint64,
 		commandHandler:   nil,
 		dbName:           dbName,
 		mongoDBVersion:   mongoDBVersion,
-		mySQLVersion:     "5.7.12",
-		connID:           42,
-		user:             "evaluator_unit_test_user",
-		remoteHost:       "evaluator_unit_test_remoteHost",
 		fullPushdownOnly: false,
 		memoryMonitor:    memory.NewMonitor("evaluator_unit_tests", maxStageSize),
 		maxStageSize:     maxStageSize,
@@ -243,7 +239,8 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 	vars := CreateTestVariables(info)
 	catalog := GetCatalog(schema, vars, info)
 
-	rCfg := NewRewriterConfig(log.GlobalLogger(), false)
+	rCfg := NewRewriterConfig(42, "evaluator_unit_test_dbname", log.GlobalLogger(),
+		false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
 	rewritten, err := RewriteQuery(rCfg, selectStatement)
 	if err != nil {
 		return nil, err

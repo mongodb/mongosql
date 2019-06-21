@@ -66,9 +66,7 @@ func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sql
 
 func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon memory.Monitor) *evaluator.ExecutionConfig {
 	return evaluator.NewExecutionConfig(
-		log.GlobalLogger(), vars, &mockCmdHandler{ses}, mon,
-		dbOne, 42, "evaluator_unit_test_user",
-		"evaluator_unit_test_remotehost",
+		log.GlobalLogger(), vars, &mockCmdHandler{ses}, mon, dbOne,
 	)
 }
 

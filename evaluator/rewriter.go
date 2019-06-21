@@ -8,17 +8,27 @@ import (
 // RewriterConfig is a container for all the values needed to run the syntax
 // rewrite phase.
 type RewriterConfig struct {
+	connID                 uint64
+	dbName                 string
 	lg                     log.Logger
 	rewriteDistinctAsGroup bool
+	mySQLVersion           string
+	remoteHost             string
+	user                   string
 }
 
 // NewRewriterConfig returns a new RewriterConfig constructed from the
 // provided values. RewriterConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewRewriterConfig(lg log.Logger, rewriteDistinctAsGroup bool) *RewriterConfig {
+func NewRewriterConfig(connID uint64, dbName string, lg log.Logger, rewriteDistinctAsGroup bool, mySQLVersion, remoteHost, user string) *RewriterConfig {
 	return &RewriterConfig{
+		connID:                 connID,
+		dbName:                 dbName,
 		lg:                     lg,
 		rewriteDistinctAsGroup: rewriteDistinctAsGroup,
+		mySQLVersion:           mySQLVersion,
+		remoteHost:             remoteHost,
+		user:                   user,
 	}
 }
 
@@ -42,6 +52,11 @@ func RewriteQuery(cfg *RewriterConfig, stmt parser.Statement) (parser.Statement,
 	// to avoid distinct.
 	if cfg.rewriteDistinctAsGroup {
 		stmt = parser.RewriteDistinct(stmt)
+	}
+
+	stmt, err = parser.RewriteConstantScalarFunctions(stmt, cfg.connID, cfg.dbName, cfg.mySQLVersion, cfg.remoteHost, cfg.user)
+	if err != nil {
+		return nil, err
 	}
 
 	// We check the queries for string equality to tell if a rewrite occurs. The

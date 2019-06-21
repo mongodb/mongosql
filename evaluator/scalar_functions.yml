@@ -89,7 +89,6 @@ functions:
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_ascii
     names: ['ascii']
-    no_pushdown: true
 
   - _id: asin
     description: returns the arc sine of the provided number.
@@ -190,7 +189,7 @@ functions:
       - arguments: []
         return_type: EvalInt64
     names: ['connection_id']
-    no_pushdown: true
+    no_generate: true
     use_full_evaluation_state: true
 
   - _id: conv
@@ -236,6 +235,7 @@ functions:
         return_type: EvalDate
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_curdate
     names: ['curdate', 'current_date']
+    no_generate: true
 
   - _id: currentTimestamp
     description: returns the current date and time.
@@ -244,6 +244,7 @@ functions:
         return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_now
     names: ['current_timestamp', 'now']
+    no_generate: true
 
   - _id: curtime
     description: returns the current time.
@@ -252,7 +253,7 @@ functions:
         return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_curtime
     names: ['curtime', 'current_time', 'utc_time']
-    no_pushdown: true
+    no_generate: true
 
   - _id: database
     description: returns the current database name as a string.
@@ -261,7 +262,7 @@ functions:
         return_type: EvalString
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_database
     names: ['database', 'schema']
-    no_pushdown: true
+    no_generate: true
     use_full_evaluation_state: true
 
   - _id: date
@@ -534,7 +535,6 @@ functions:
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_ln
     names: ['ln']
-    no_pushdown: true
 
   - _id: locate
     custom_fold_constants: true
@@ -708,7 +708,7 @@ functions:
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_pi
     names: ['pi']
-    no_pushdown: true
+    no_generate: true
 
   - _id: pow
     description: returns the value of base raised to the power of exp.
@@ -1072,7 +1072,7 @@ functions:
         return_type: EvalString
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_user
     names: ['user', 'current_user', 'session_user', 'system_user']
-    no_pushdown: true
+    no_generate: true
     use_full_evaluation_state: true
 
   - _id: utcDate
@@ -1082,6 +1082,7 @@ functions:
         return_type: EvalDate
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_utc-date
     names: ['utc_date']
+    no_generate: true
 
   - _id: utcTimestamp
     description: returns the current UTC date and time.
@@ -1090,6 +1091,7 @@ functions:
         return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_utc-timestamp
     names: ['utc_timestamp']
+    no_generate: true
 
   - _id: version
     description: returns a string that indicates the MySQL server version.
@@ -1098,7 +1100,7 @@ functions:
         return_type: EvalString
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/information-functions.html#function_version
     names: ['version']
-    no_pushdown: true
+    no_generate: true
     use_full_evaluation_state: true
 
   - _id: week

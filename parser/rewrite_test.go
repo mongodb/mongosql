@@ -1,6 +1,7 @@
 package parser_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/10gen/sqlproxy/parser"
@@ -8,9 +9,150 @@ import (
 )
 
 func TestRewrite(t *testing.T) {
+	t.Run("constant scalar functions", testRewriteConstantScalarFunctions)
 	t.Run("distinct", testRewriteDistinct)
 	t.Run("namer", testNamer)
 	t.Run("desugar", testDesugar)
+}
+
+func testRewriteConstantScalarFunctions(t *testing.T) {
+	tcases := []struct {
+		desc       string
+		query      string
+		expected   string
+		checkRegex bool
+	}{
+		{
+			desc:       "rewrite pi()",
+			query:      "select pi() from foo",
+			expected:   "select 3.141592653589793E0 from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite connection_id()",
+			query:      "select connection_id() from foo",
+			expected:   "select cast(42, unsigned) from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite database()",
+			query:      "select database() from foo",
+			expected:   "select 'test_db_name' from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite schema()",
+			query:      "select schema() from foo",
+			expected:   "select 'test_db_name' from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite version()",
+			query:      "select version() from foo",
+			expected:   "select 'test_version' from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite user()",
+			query:      "select user() from foo",
+			expected:   "select 'test_user@test_remoteHost' from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite current_user()",
+			query:      "select current_user() from foo",
+			expected:   "select 'test_user@test_remoteHost' from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite session_user()",
+			query:      "select session_user() from foo",
+			expected:   "select 'test_user@test_remoteHost' from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite system_user()",
+			query:      "select system_user() from foo",
+			expected:   "select 'test_user@test_remoteHost' from foo",
+			checkRegex: false,
+		},
+		{
+			desc:       "rewrite curtime()",
+			query:      "select curtime() from foo",
+			expected:   `select datetime \'\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.\d\d\d\d\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite current_time()",
+			query:      "select current_time() from foo",
+			expected:   `select datetime \'\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.\d\d\d\d\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite utc_time()",
+			query:      "select utc_time() from foo",
+			expected:   `select datetime \'\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.\d\d\d\d\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite current_timestamp()",
+			query:      "select current_timestamp() from foo",
+			expected:   `select datetime \'\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.\d\d\d\d\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite now()",
+			query:      "select now() from foo",
+			expected:   `select datetime \'\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.\d\d\d\d\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite curdate()",
+			query:      "select curdate() from foo",
+			expected:   `select date \'\d\d\d\d-\d\d-\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite current_date()",
+			query:      "select current_date() from foo",
+			expected:   `select date \'\d\d\d\d-\d\d-\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite utc_timestamp()",
+			query:      "select utc_timestamp() from foo",
+			expected:   `select datetime \'\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d.\d\d\d\d\d\d\' from foo`,
+			checkRegex: true,
+		},
+		{
+			desc:       "rewrite utc_date()",
+			query:      "select utc_date() from foo",
+			expected:   `select date \'\d\d\d\d-\d\d-\d\d\' from foo`,
+			checkRegex: true,
+		},
+	}
+
+	for _, tcase := range tcases {
+		t.Run(tcase.desc, func(t *testing.T) {
+			req := require.New(t)
+
+			tree, err := parser.Parse(tcase.query)
+			req.NoError(err)
+
+			newTree, err := parser.RewriteConstantScalarFunctions(tree, 42, "test_db_name", "test_version", "test_remoteHost", "test_user")
+			req.NoError(err)
+			buf := parser.NewTrackedBuffer(nil)
+			newTree.Format(buf)
+			newTreeStr := buf.String()
+
+			if tcase.checkRegex {
+				req.Regexp(regexp.MustCompile(tcase.expected), newTreeStr)
+			} else {
+				req.Equal(tcase.expected, newTreeStr)
+			}
+
+		})
+	}
 }
 
 func testRewriteDistinct(t *testing.T) {

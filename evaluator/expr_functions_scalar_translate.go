@@ -102,6 +102,111 @@ func (f *baseScalarFunctionExpr) acosToAggregationLanguage(t *PushdownTranslator
 	), nil
 }
 
+func (f *baseScalarFunctionExpr) asciiToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	if len(exprs) != 1 {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(ascii)",
+			incorrectArgCountMsg,
+		)
+	}
+
+	if !t.versionAtLeast(4, 0, 0) {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(ascii)",
+			"cannot push down to MongoDB < 4.0",
+		)
+	}
+
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
+	}
+
+	input := ast.NewVariableRef("input")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("input", args[0]),
+	}
+
+	firstChar := ast.NewVariableRef("firstChar")
+	firstCharAssignment := []*ast.LetVariable{
+		ast.NewLetVariable("firstChar",
+			astutil.WrapInNullCheckedCond(astutil.NullLiteral,
+				astutil.WrapInOp(bsonutil.OpSubstr,
+					input, astutil.ZeroInt32Literal, astutil.OneInt32Literal),
+				input)),
+	}
+
+	branches := make([]ast.Expr, 185)
+
+	// https://en.wikipedia.org/wiki/UTF-8
+	// https://www.smashingmagazine.com/2012/06/all-about-unicode-utf8-character-sets/
+	// MySQL follows UTF-8 and returns the first byte of a character's UTF-8 encoding.
+	// UTF-8 encodes characters using one to four 8-bit bytes using these formats.
+	// 0xxxxxxx
+	// 110xxxxx 10xxxxxx
+	// 1110xxxx 10xxxxxx 10xxxxxx
+	// 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+	// The first byte indicates how many bytes will be used in the encoding.
+	// 0-127 indicates just one byte will be used, and corresponds directly to the 128 ascii characters.
+	// 192-223 means 2 bytes will be used, 224-239 means 3 bytes, and 240-247 means 4 bytes.
+	// The 2nd-4th bytes can range in value from 128-191.
+	// Ex: 226 followed by 190 and then 128 is ⾀, and using MySQL, ascii(⾀) gives 226
+
+	// For the 0-127 ascii characters, they can be encoded in just one byte
+	// so the ascii function will return their actual ascii value.
+	// This checks string equality for the 0-127 ascii characters.
+	for i := 0; i <= 127; i++ {
+		int64i := int64(i)
+		if i == 0 {
+			// special case for both the empty string and the "\0" string
+			branches[i] = astutil.WrapInCase(
+				ast.NewBinary(bsonutil.OpOr,
+					ast.NewBinary(bsonutil.OpEq, firstChar, astutil.EmptyStringLiteral),
+					ast.NewBinary(bsonutil.OpEq, firstChar, astutil.StringValue(string(int64i)))),
+				astutil.Int64Value(int64i))
+		} else {
+			branches[i] = astutil.WrapInEqCase(
+				firstChar, astutil.StringValue(string(int64i)), astutil.Int64Value(int64i))
+		}
+	}
+
+	// For the UTF-encoding of all other characters, only their first byte is returned by the ascii function,
+	// so to figure out what the first byte is, we only need to check if the character is between
+	// the lowest and highest possible encodings for a given first byte.
+	for i := 192; i <= 247; i++ {
+		int64i := int64(i)
+		bytei := byte(i)
+		var lowStr, highStr string
+		if i <= 223 {
+			// 192 - 223 means 2 bytes will be used
+			lowStr = string([]byte{bytei, 128})
+			highStr = string([]byte{bytei, 191})
+		} else if i <= 239 {
+			// 224 - 239 means 3 bytes will be used
+			lowStr = string([]byte{bytei, 128, 128})
+			highStr = string([]byte{bytei, 191, 191})
+		} else {
+			// 240 - 247 means 4 bytes will be used
+			lowStr = string([]byte{bytei, 128, 128, 128})
+			highStr = string([]byte{bytei, 191, 191, 191})
+		}
+
+		branches[i-64] = astutil.WrapInCase(
+			ast.NewBinary(bsonutil.OpAnd,
+				ast.NewBinary(bsonutil.OpGte, firstChar, astutil.StringValue(lowStr)),
+				ast.NewBinary(bsonutil.OpLte, firstChar, astutil.StringValue(highStr))),
+			astutil.Int64Value(int64i))
+	}
+
+	// special case for null
+	branches[184] = astutil.WrapInEqCase(firstChar, astutil.NullLiteral, astutil.NullLiteral)
+
+	return ast.NewLet(assignments, ast.NewLet(firstCharAssignment,
+		ast.NewFunction(bsonutil.OpSwitch, ast.NewDocument(
+			ast.NewDocumentElement("branches", ast.NewArray(branches...)),
+		)))), nil
+}
+
 func (f *baseScalarFunctionExpr) asinToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
 	if len(exprs) != 1 {
 		return nil, newPushdownFailure(
@@ -609,19 +714,6 @@ func (f *baseScalarFunctionExpr) cotToAggregationLanguage(t *PushdownTranslator,
 			),
 		),
 	), nil
-}
-
-// nolint: unparam
-func (f *baseScalarFunctionExpr) currentDateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	now := time.Now().In(schema.DefaultLocale)
-	cd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, schema.DefaultLocale)
-	return astutil.DateConstant(cd), nil
-}
-
-// nolint: unparam
-func (f *baseScalarFunctionExpr) currentTimestampToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	now := time.Now().In(schema.DefaultLocale)
-	return astutil.DateConstant(now), nil
 }
 
 func (f *baseScalarFunctionExpr) dateAddToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -1507,6 +1599,10 @@ func (f *baseScalarFunctionExpr) logarithmToAggregationLanguage(t *PushdownTrans
 		astutil.NullLiteral,
 		ast.NewBinary(bsonutil.OpGt, args[0], astutil.ZeroInt32Literal),
 	), nil
+}
+
+func (f *baseScalarFunctionExpr) lnToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	return f.logarithmToAggregationLanguage(t, exprs, 0)
 }
 
 func (f *baseScalarFunctionExpr) lpadToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -3099,18 +3195,6 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 	)
 
 	return ast.NewLet(assignments, evaluation), nil
-}
-
-// nolint: unparam
-func (f *baseScalarFunctionExpr) utcDateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	now := time.Now().In(time.UTC)
-	cUTCd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
-	return astutil.DateConstant(cUTCd), nil
-}
-
-// nolint: unparam
-func (f *baseScalarFunctionExpr) utcTimestampToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	return astutil.DateConstant(time.Now().In(time.UTC)), nil
 }
 
 func (f *baseScalarFunctionExpr) weekToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {

@@ -186,9 +186,14 @@ func (c *conn) cleanupMemory() error {
 }
 
 func (c *conn) getRewriterConfig() *evaluator.RewriterConfig {
-	lg := c.Logger(log.RewriterComponent)
-	return evaluator.NewRewriterConfig(lg,
-		c.catalog.Variables().GetBool(variable.RewriteDistinctAsGroup))
+	return evaluator.NewRewriterConfig(
+		uint64(c.connectionID),
+		c.DB(),
+		c.Logger(log.RewriterComponent),
+		c.catalog.Variables().GetBool(variable.RewriteDistinctAsGroup),
+		c.variables.GetString(variable.Version),
+		c.remoteHost(),
+		c.user)
 }
 
 func (c *conn) getAlgebrizerConfig() *evaluator.AlgebrizerConfig {
@@ -214,8 +219,5 @@ func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {
 	cmds := c.getCommandHandler()
 	mem := c.memoryMonitor
 	dbName := c.DB()
-	connID := uint64(c.connectionID)
-	user := c.user
-	remoteHost := c.remoteHost()
-	return evaluator.NewExecutionConfig(lg, vars, cmds, mem, dbName, connID, user, remoteHost)
+	return evaluator.NewExecutionConfig(lg, vars, cmds, mem, dbName)
 }

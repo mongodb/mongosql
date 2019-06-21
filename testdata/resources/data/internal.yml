@@ -254,6 +254,17 @@
     - {_id: 2, a: 3, ab: 3}
 
 - db: "functions_test"
+  collection: "ascii" 
+  # The squares are actually different characters; they just can't be displayed properly
+  docs:
+    - {_id: 0, a: ~, b: "\0", c: true, d: {$date: "2006-12-04T12:30:25Z"}, e: " ", f: "👻"}
+    - {_id: 1, a: ~, b: "Hey", c: false, e: "Ā", f: "퀀"}
+    - {_id: 2, a: -34, b: "\t", e: "zy", f: "¡"}
+    - {_id: 3, a: 4, b: "~!", e: "ৗ", f: "𐀀"}
+    - {_id: 4, a: 0.5, b: "", e: "ÿ", f: "ࠀ"}
+    - {_id: 5, b: "⚛", e: "￮", f: "߿"}
+    
+- db: "functions_test"
   collection: "scalar"
   docs:
     - {_id: 0, a: 1, b: "hey", c: 1.456, d: {$date: {$numberLong: "969716700400"}}, s: "foobarbar", t: false}
@@ -426,7 +437,6 @@
 
 - db: "functions_test"
   collection: "timestampDiff"
-  min_server_version: 3.4
   docs:
     - {"d1": {$date: "2000-12-04T12:30:25Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
     - {"d1": {$date: "2000-12-04T12:30:25.01Z"}, "d2": {$date: "2006-12-04T12:30:25Z"}}
