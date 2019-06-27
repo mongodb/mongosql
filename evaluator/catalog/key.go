@@ -213,7 +213,7 @@ func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespa
 	}
 }
 
-func (b *catalogBuilder) getRowForForeignKey(tableName string, ck key, fk ForeignKey, position int, columnNames []string) results.Row {
+func (b *catalogBuilder) getRowForForeignKey(tableName, aliasName string, ck key, fk ForeignKey, position int, columnNames []string) results.Row {
 	catalog, database, table, column := ck.catalog, ck.database, ck.table, ck.column
 	constraintName, foreignColumn := fk.constraintName, fk.localToForeignColumn[column]
 	foreignDatabase, foreignTable := fk.foreignDatabase, fk.foreignTable
@@ -229,7 +229,7 @@ func (b *catalogBuilder) getRowForForeignKey(tableName string, ck key, fk Foreig
 	switch tableName {
 	case KeyColumnUsageTable:
 		checkColumnNumber(12)
-		return newInfoRow(tableName,
+		return newInfoRow(aliasName,
 			strv(columnNames[0], catalog),
 			strv(columnNames[1], database),
 			strv(columnNames[2], constraintName),
@@ -245,7 +245,7 @@ func (b *catalogBuilder) getRowForForeignKey(tableName string, ck key, fk Foreig
 		)
 	case ReferentialConstraintsTable:
 		checkColumnNumber(11)
-		return newInfoRow(tableName,
+		return newInfoRow(aliasName,
 			strv(columnNames[0], catalog),
 			strv(columnNames[1], database),
 			strv(columnNames[2], constraintName),
@@ -260,7 +260,7 @@ func (b *catalogBuilder) getRowForForeignKey(tableName string, ck key, fk Foreig
 		)
 	case StatisticsTable:
 		checkColumnNumber(16)
-		return newInfoRow(tableName,
+		return newInfoRow(aliasName,
 			strv(columnNames[0], catalog),
 			strv(columnNames[1], database),
 			strv(columnNames[2], table),
@@ -280,7 +280,7 @@ func (b *catalogBuilder) getRowForForeignKey(tableName string, ck key, fk Foreig
 		)
 	case TableConstraintsTable:
 		checkColumnNumber(6)
-		return newInfoRow(tableName,
+		return newInfoRow(aliasName,
 			strv(columnNames[0], catalog),
 			strv(columnNames[1], database),
 			strv(columnNames[2], constraintName),
@@ -292,7 +292,7 @@ func (b *catalogBuilder) getRowForForeignKey(tableName string, ck key, fk Foreig
 	panic(fmt.Sprintf("unknown foreign key table: %v", tableName))
 }
 
-func (b *catalogBuilder) getRowsForPrimaryKey(tableName string, ck key, primaryKeys results.Columns, columnNames []string) results.Rows {
+func (b *catalogBuilder) getRowsForPrimaryKey(tableName, aliasName string, ck key, primaryKeys results.Columns, columnNames []string) results.Rows {
 	pkConstraintName, pkConstraintType := "PRIMARY", "PRIMARY KEY"
 	catalog, database, table := ck.catalog, ck.database, ck.table
 
@@ -308,7 +308,7 @@ func (b *catalogBuilder) getRowsForPrimaryKey(tableName string, ck key, primaryK
 		switch tableName {
 		case KeyColumnUsageTable:
 			checkColumnNumber(12)
-			rows = append(rows, newInfoRow(tableName,
+			rows = append(rows, newInfoRow(aliasName,
 				strv(columnNames[0], catalog),
 				strv(columnNames[1], database),
 				strv(columnNames[2], pkConstraintName),
@@ -325,7 +325,7 @@ func (b *catalogBuilder) getRowsForPrimaryKey(tableName string, ck key, primaryK
 		case ReferentialConstraintsTable:
 		case StatisticsTable:
 			checkColumnNumber(16)
-			rows = append(rows, newInfoRow(tableName,
+			rows = append(rows, newInfoRow(aliasName,
 				strv(columnNames[0], catalog),
 				strv(columnNames[1], database),
 				strv(columnNames[2], table),
@@ -347,7 +347,7 @@ func (b *catalogBuilder) getRowsForPrimaryKey(tableName string, ck key, primaryK
 			checkColumnNumber(6)
 			// table constraints should only have one entry
 			// per key (simple/compound) relationship
-			rows = append(rows, newInfoRow(tableName,
+			rows = append(rows, newInfoRow(aliasName,
 				strv(columnNames[0], catalog),
 				strv(columnNames[1], database),
 				strv(columnNames[2], pkConstraintName),
@@ -364,7 +364,7 @@ func (b *catalogBuilder) getRowsForPrimaryKey(tableName string, ck key, primaryK
 	return rows
 }
 
-func (b *catalogBuilder) getRowsForUniqueIndexes(tableName string, ck key, indexes []Index, columnNames []string) results.Rows {
+func (b *catalogBuilder) getRowsForUniqueIndexes(tableName, aliasName string, ck key, indexes []Index, columnNames []string) results.Rows {
 	uniqueKeyConstraint, catalog := "UNIQUE", ck.catalog
 	database, table := ck.database, ck.table
 
@@ -387,7 +387,7 @@ func (b *catalogBuilder) getRowsForUniqueIndexes(tableName string, ck key, index
 		case KeyColumnUsageTable:
 			for ordinalPosition, column := range index.columns {
 				checkColumnNumber(12)
-				rows = append(rows, newInfoRow(tableName,
+				rows = append(rows, newInfoRow(aliasName,
 					strv(columnNames[0], catalog),
 					strv(columnNames[1], database),
 					strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),
@@ -406,7 +406,7 @@ func (b *catalogBuilder) getRowsForUniqueIndexes(tableName string, ck key, index
 		case StatisticsTable:
 			for ordinalPosition, column := range index.columns {
 				checkColumnNumber(16)
-				rows = append(rows, newInfoRow(tableName,
+				rows = append(rows, newInfoRow(aliasName,
 					strv(columnNames[0], catalog),
 					strv(columnNames[1], database),
 					strv(columnNames[2], table),
@@ -427,7 +427,7 @@ func (b *catalogBuilder) getRowsForUniqueIndexes(tableName string, ck key, index
 			}
 		case TableConstraintsTable:
 			checkColumnNumber(6)
-			rows = append(rows, newInfoRow(tableName,
+			rows = append(rows, newInfoRow(aliasName,
 				strv(columnNames[0], catalog),
 				strv(columnNames[1], database),
 				strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),

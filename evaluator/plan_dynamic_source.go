@@ -43,7 +43,14 @@ func NewDynamicSourceStage(db catalog.Database, table *catalog.DynamicTable,
 
 // Columns gets the columns that will be projected from the stage.
 func (s *DynamicSourceStage) Columns() []*results.Column {
-	return s.table.Columns()
+	columns := make([]*results.Column, len(s.table.Columns()))
+	for i, c := range s.table.Columns() {
+		column := c.Clone()
+		column.Table = s.aliasName
+		columns[i] = column
+	}
+
+	return columns
 }
 
 // Collation gets the collation the stage uses.
@@ -60,7 +67,7 @@ func (s *DynamicSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st 
 		dbName:     s.dbName,
 		tableName:  s.aliasName,
 		columns:    s.table.Columns(),
-		rows:       s.table.Rows(),
+		rows:       s.table.Rows(s.aliasName),
 	}
 	return i, nil
 }

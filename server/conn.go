@@ -1029,7 +1029,7 @@ func (c *conn) updateWithProcessListTable(d catalog.Database) error {
 	time := "TIME"
 	state := "STATE"
 	info := "INFO"
-	t := catalog.NewDynamicTable(pl, catalog.SystemView, func() results.Rows {
+	t := catalog.NewDynamicTable(pl, catalog.SystemView, func(aliasName string) results.Rows {
 		var rows results.Rows
 
 		s := c.server
@@ -1052,7 +1052,7 @@ func (c *conn) updateWithProcessListTable(d catalog.Database) error {
 			if !c.server.cfg.Security.Enabled || c.canListProcess(p.user) {
 				rows = append(rows, results.NewNamedRow(
 					"information_schema",
-					pl,
+					aliasName,
 					intv(id, int64(p.id)),
 					strv(user, p.user),
 					strv(host, p.host),
