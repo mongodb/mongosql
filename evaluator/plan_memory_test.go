@@ -480,7 +480,7 @@ func testLimitMemoryMonitor(t *testing.T) {
 
 func testDynamicSourceMemoryMonitor(t *testing.T) {
 	tableName := "foo"
-	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func() Rows {
+	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func(string) Rows {
 		return Rows{
 			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 1), NewSQLInt64(MongoSQLValueKind, 2)),
 			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 2), NewSQLInt64(MongoSQLValueKind, 3)),

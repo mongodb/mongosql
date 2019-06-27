@@ -13,7 +13,7 @@ import (
 const informationSchema = "information_schema"
 
 // NewDynamicTable creates a new DynamicTable.
-func NewDynamicTable(name string, tableType string, generator func() results.Rows) *DynamicTable {
+func NewDynamicTable(name string, tableType string, generator func(tableName string) results.Rows) *DynamicTable {
 	columnMap := make(map[string]*results.Column)
 	return &DynamicTable{
 		currSelectID: 1,
@@ -31,7 +31,7 @@ type DynamicTable struct {
 	columns      results.Columns
 	columnMap    map[string]*results.Column
 	tableType    string
-	generator    func() results.Rows
+	generator    func(tableName string) results.Rows
 }
 
 // Name returns the name for the DynamicTable, t.
@@ -55,12 +55,7 @@ func (t *DynamicTable) Column(name string) (*results.Column, error) {
 
 // Columns returns the columns in the DynamicTable, t.
 func (t *DynamicTable) Columns() results.Columns {
-	var cols results.Columns
-	for _, c := range t.columns {
-		// TODO: remove this clone once we stop modifying catalog columns!
-		cols = append(cols, c.Clone())
-	}
-	return cols
+	return t.columns
 }
 
 // Comments are comments about the DynamicTable, t.
@@ -147,7 +142,9 @@ func (t *DynamicTable) AddColumns(tableName string, args ...DynamicColumnDeclara
 	}
 }
 
-// Rows returns the rows.
-func (t *DynamicTable) Rows() results.Rows {
-	return t.generator()
+// Rows returns the rows. The tableName passed is the alias
+// for the table. Without that name, it will not be possible
+// to join dynamic tables with themselves or alias them.
+func (t *DynamicTable) Rows(tableName string) results.Rows {
+	return t.generator(tableName)
 }

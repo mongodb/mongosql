@@ -217,3 +217,21 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '13'
     sql: select * from information_schema.statistics where table_name='join_8_b' and table_schema='join_test'
+
+  - db: information_schema_test
+    description: it should be valid to join the key_column_usage table to itself
+    expected_names: [value]
+    expected_results:
+      - ['success']
+    expected_types: [varchar]
+    id: join_information_schema_table_to_self_0
+    sql: select 'success' as value from information_schema.key_column_usage foo join information_schema.key_column_usage bar limit 1;
+
+  - db: information_schema_test
+    description: it should be valid to join the referential_constraints table to itself
+    expected_names: [value]
+    expected_results:
+      - ['success']
+    expected_types: [varchar]
+    id: join_information_schema_table_to_self_1
+    sql: select 'success' as value from information_schema.referential_constraints foo join information_schema.referential_constraints bar limit 1;

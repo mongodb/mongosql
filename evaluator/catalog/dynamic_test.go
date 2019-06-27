@@ -13,7 +13,7 @@ import (
 func TestDynamic(t *testing.T) {
 	req := require.New(t)
 
-	testTable := catalog.NewDynamicTable("bar", "foo", func() results.Rows {
+	testTable := catalog.NewDynamicTable("bar", "foo", func(string) results.Rows {
 		out := make(results.Rows, 0)
 		for i := int64(0); i < 10; i += 2 {
 			out = append(out, results.NewNamedRow("bar", "foo",
@@ -34,7 +34,7 @@ func TestDynamic(t *testing.T) {
 	req.Equal(testTable.Columns()[1].Name, "two")
 	req.Equal(testTable.Columns()[1].SelectID, 2)
 
-	rows := testTable.Rows()
+	rows := testTable.Rows("")
 	for i := int64(0); i < int64(len(rows)); i += 2 {
 		req.Equal(rows[i].Data[0].SelectID, 1)
 		req.Equal(rows[i].Data[1].SelectID, 2)
