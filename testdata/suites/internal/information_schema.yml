@@ -160,8 +160,8 @@ testcases:
       - [PRIMARY, _id]
       - [PRIMARY, b.d_idx]
       - [PRIMARY, b_idx]
+      - [fk_information_schema_test_information_schema_3_b_d_to_information_schema_3_b_1, _id]
       - [fk_information_schema_test_information_schema_3_b_d_to_information_schema_3_b_1, b_idx]
-      - [fk_information_schema_test_information_schema_3_b_d_to_information_schema_3_c_1, _id]
     expected_types: [varchar, varchar]
     id: '8'
     sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='information_schema_3_b_d' AND CONSTRAINT_SCHEMA='information_schema_test' order by constraint_name

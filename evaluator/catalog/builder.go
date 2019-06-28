@@ -589,15 +589,6 @@ func (b *catalogBuilder) addFilesTable(d Database) error {
 	return d.AddTable(t)
 }
 
-func (b *catalogBuilder) getTableFromNamespace(ns namespace) (Table, error) {
-	currentDb, err := b.catalog.Database(ns.database)
-	if err != nil {
-		return nil, err
-	}
-
-	return currentDb.Table(ns.table)
-}
-
 func (b *catalogBuilder) addKeyColumnUsageTable(d Database) error {
 	tableName := KeyColumnUsageTable
 	columnDecls := []DynamicColumnDeclaration{
