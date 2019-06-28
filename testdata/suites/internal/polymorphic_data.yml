@@ -357,9 +357,9 @@ testcases:
     expected_names: [table_name, table_comment]
     expected_results:
       - [design_doc_example, '{ "collectionName": "design_doc_example" }']
+      - [design_doc_example_c, '{ "collectionName": "design_doc_example", "unwoundFrom": "c" }']
       - [design_doc_example_a, '{ "collectionName": "design_doc_example", "unwoundFrom": "a" }']
       - [design_doc_example_a_B, '{ "collectionName": "design_doc_example", "unwoundFrom": "a.B" }']
-      - [design_doc_example_c, '{ "collectionName": "design_doc_example", "unwoundFrom": "c" }']
     expected_types: [varchar, varchar]
     id: show_design_doc_example_table_comment
     sql: select table_name, table_comment from TABLES where table_name like '%design_doc_example%'

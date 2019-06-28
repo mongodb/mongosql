@@ -3,9 +3,7 @@ package catalog
 import (
 	"fmt"
 	"math"
-	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/10gen/mongoast/ast"
 
@@ -29,23 +27,6 @@ func addColumnToIndex(index mongodb.Index, mongoNameToColumn map[string]*results
 		uniqueIndex.columns = append(uniqueIndex.columns, column)
 	}
 	return uniqueIndex
-}
-
-// containsSiblingPaths returns true if all elements in paths are prefixes
-// of the longest (by dot-delimited component) element and false otherwise.
-func containsSiblingPaths(paths []string) bool {
-	sort.Slice(paths, func(i, j int) bool {
-		return len(strings.Split(paths[i], ".")) < len(strings.Split(paths[j], "."))
-	})
-
-	longestPath := paths[len(paths)-1]
-	for i := 0; i < len(paths)-1; i++ {
-		if len(paths[i]) > len(longestPath) || paths[i] != longestPath[:len(paths[i])] {
-			return true
-		}
-	}
-
-	return false
 }
 
 func createForeignKeyName(db, table, foreignTable string) string {
@@ -97,20 +78,6 @@ func getIndexKey(col *results.Column, tbl Table) string {
 	return ""
 }
 
-// getKeyToParentTable returns the most proximal foreign key - relative
-// to the given depth - from the list of foreign key candidates.
-func getKeyToParentTable(foreignKeys foreignKeyCandidates, depth int) *foreignKeyCandidate {
-	var keyToParent *foreignKeyCandidate
-	for _, key := range foreignKeys {
-		if key.depth < depth {
-			keyToParent = key
-			continue
-		}
-		break
-	}
-	return keyToParent
-}
-
 // getUnwindPaths returns a list of unwind paths found in the aggregation pipeline
 // and a map of the associated mongoName to its path. For a given path, if either
 // the path or array index does not exist, neither is added to the returned values.
@@ -131,22 +98,10 @@ func getUnwindPaths(pipeline *ast.Pipeline) ([]string, map[string]string) {
 
 		// only consider unwindPaths where there is a defined columns
 		unwindPaths = append(unwindPaths, pathAsString)
-		pathAliases[unwind.IncludeArrayIndex] = pathAsString
+		pathAliases[pathAsString] = unwind.IncludeArrayIndex
 
 	}
 	return unwindPaths, pathAliases
-}
-
-// sortForeignKeyCandidates sorts the foreignKeyCandidates by
-// how deeply nested they are.
-func sortForeignKeyCandidates(foreignKeyCandidates map[string]potentialForeignKeys) {
-	for collectionName := range foreignKeyCandidates {
-		for _, candidates := range foreignKeyCandidates[collectionName] {
-			sort.Slice(candidates, func(i, j int) bool {
-				return candidates[i].depth < candidates[j].depth
-			})
-		}
-	}
 }
 
 func translateColumnType(sqlType types.EvalType, maxVarcharLength uint64) string {

@@ -2,7 +2,9 @@ package catalog
 
 import (
 	"fmt"
+	"sort"
 
+	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/evaluator/results"
 )
 
@@ -14,13 +16,6 @@ type key struct {
 	table    string
 	column   string
 }
-
-type namespace struct {
-	database string
-	table    string
-}
-
-type namespaces []namespace
 
 var (
 	mongoPrimaryKey  = "_id"
@@ -37,180 +32,143 @@ type Index struct {
 	constraintName string
 }
 
-// foreignKeyCandidate is a struct used to represent
-// all columns (with names matching an unwind path)
-// that may possibly be foreign keys - more on this
-// in the comment for the addForeignKeys function.
-type foreignKeyCandidate struct {
-	name     string
-	table    string
-	database string
-	// depth is the number of unwinds
-	// present in this candidate's table.
-	depth int
+type unwindPathsAndAliases struct {
+	unwindPaths []string
+	pathAliases map[string]string
 }
-
-func newForeignKeyCandidate(name, table, database string, depth int) *foreignKeyCandidate {
-	return &foreignKeyCandidate{name, table, database, depth}
-}
-
-type foreignKeyCandidates []*foreignKeyCandidate
-type potentialForeignKeys map[string]foreignKeyCandidates
 
 // addForeignKeys augments the catalog with foreign key information.
-// It comprises a 2-phase process:
-//
-// Phase 1: all candidate columns that could reference a given column
-// are generated.
-//
-// Phase 2: all such candidate columns are then whittled down to those
-// that meet the foreign key constraints - each candidate column in
-// a given table:
-// - must be at most one table depth greater than the referenced
-// column's table (this caters to how we represent foreign keys in the
-// BIC - constrained to parent/child relationships)
-// - must not appear within a table containing a sibling paths i.e. if
-// the base table is "foo", columns in the child tables - "foo_b" and
-// "foo_c" - are not allowed as foreign keys.
 func (b *catalogBuilder) addForeignKeys() {
-	b.includeForeignKeys(b.generateForeignKeyCandidates())
-}
 
-// generateForeignKeyCandidates returns two maps from the namespaces
-// present in the catalog:
-// - one that groups namespaces by collection name and
-// - another that groups potential foreign keys by the collections they
-// come from.
-func (b *catalogBuilder) generateForeignKeyCandidates() (map[string]namespaces,
-	map[string]potentialForeignKeys) {
+	unwindPaths := make(map[string]map[string]unwindPathsAndAliases)
 
-	collectionLineage := make(map[string]namespaces)
-	candidateForeignKeys := make(map[string]potentialForeignKeys)
-
+	// Iterate through each SQL table in each SQL database and construct the table's
+	// foreign key.
 	for _, db := range b.catalog.Databases() {
 		dbName := string(db.Name())
-		for _, tbl := range db.Tables() {
+
+		// Sort the tables based on the number of unwinds in their pipeline.  We do this
+		// so we will have already added a child table's parent by the time we encounter
+		// the child.
+		tables := db.Tables()
+		sortTablesByUnwinds(tables)
+		for _, tbl := range tables {
 			mongoTable, ok := tbl.(*MongoTable)
 			if !ok {
 				continue
 			}
 
+			tblName := tbl.Name()
 			collectionName := mongoTable.collectionName
-			tableName := tbl.Name()
-			ns := namespace{dbName, tableName}
-			collectionLineage[collectionName] = append(collectionLineage[collectionName], ns)
+			tableUnwindPaths, pathAliases := getUnwindPaths(mongoTable.Pipeline())
 
-			unwindPaths, pathAliases := getUnwindPaths(mongoTable.Pipeline())
-
-			depth := len(unwindPaths)
-
-			// Sibling paths are problematic because the number of unwinds don't correspond
-			// to how deep the table is nested. Thus, such paths are ignored as candidates.
-			if depth > 1 && containsSiblingPaths(unwindPaths) {
-				continue
+			// Get all unwind paths from the current collection, and add current unwind
+			// path. We'll use the other unwind paths to find any parent tables.
+			if unwindPaths[collectionName] == nil {
+				unwindPaths[collectionName] = make(map[string]unwindPathsAndAliases)
 			}
+			currentCollectionUnwindPaths := unwindPaths[collectionName]
+			currentCollectionUnwindPaths[tblName] = unwindPathsAndAliases{tableUnwindPaths, pathAliases}
 
-			// Since the "_id" field is always a foreign key candidate,
-			// we include it for subsequent consideration.
-			pathAliases[mongoPrimaryKey] = mongoPrimaryKey
+			// Iterate through all the unwind paths in the current collection and see if
+			// current table is unwound from any of those tables.
+			for foreignTable, foreignPathsAndAliases := range currentCollectionUnwindPaths {
 
-			// All foreign key candidate columns from mongoTable (determined
-			// by column names that match an unwind path name are added to
-			// the foreign key candidates for this table.
-			for _, column := range mongoTable.columns {
-				if unwindPath, ok := pathAliases[column.MongoName]; ok {
-					fkName := column.Name
-					fkCandidate := newForeignKeyCandidate(fkName, tableName, dbName, depth)
-					if _, ok := candidateForeignKeys[collectionName]; !ok {
-						candidateForeignKeys[collectionName] = map[string]foreignKeyCandidates{
-							unwindPath: []*foreignKeyCandidate{fkCandidate},
-						}
+				// If we find its parent table, construct the foreign key. The foreign key
+				// of the current table should contain all columns in the primary key of
+				// its parent. The primary key of the parent table contains the _id field
+				// of the underlying Mongo collection plus indexes of any arrays it was
+				// unwound from. For a given SQL table unwound from an array, the index of
+				// that array is stored in a column in that table, with the name given by
+				// the path alias. Therefore we add _id + the path aliases of the unwind
+				// paths of the parent table to the foreign key.
+				if isUnwoundFrom(tableUnwindPaths, foreignPathsAndAliases.unwindPaths) {
+					var columns []*results.Column
+					localToForeignColumn := make(map[string]string)
+
+					// First add _id.
+					column, err := mongoTable.Column(mongoPrimaryKey)
+					if err != nil {
+						panic(err)
 					}
-					candidateForeignKeys[collectionName][unwindPath] = append(
-						candidateForeignKeys[collectionName][unwindPath], fkCandidate)
+					columns = append(columns, column)
+					localToForeignColumn[mongoPrimaryKey] = mongoPrimaryKey
+
+					// Then add the columns from the parent's unwind paths.
+					for _, fieldName := range foreignPathsAndAliases.unwindPaths {
+						localColumnName := pathAliases[fieldName]
+						foreignColumnName := foreignPathsAndAliases.pathAliases[fieldName]
+						localToForeignColumn[localColumnName] = foreignColumnName
+
+						column, err := mongoTable.Column(localColumnName)
+						if err != nil {
+							panic(err)
+						}
+						columns = append(columns, column)
+					}
+
+					// Construct the foreign key.
+					constraintName := createForeignKeyName(dbName, tblName, foreignTable)
+					newK := ForeignKey{
+						columns:              columns,
+						constraintName:       constraintName,
+						foreignDatabase:      dbName,
+						foreignTable:         foreignTable,
+						localToForeignColumn: localToForeignColumn,
+					}
+
+					// Add the foreign key to the table.
+					mongoTable.foreignKeys = append(mongoTable.foreignKeys, newK)
 				}
 			}
 		}
 	}
-
-	return collectionLineage, candidateForeignKeys
 }
 
-// includeForeignKeys whittles down the candidate foreign keys to those that actually meet
-// the foreign key criteria:
-// - must be at most one table depth greater than the referenced column's table (this caters
-// to how we represent foreign keys in the BIC - constrained to parent/child relationships)
-// - must not appear within a table containing a sibling paths i.e. if the base table is
-// "foo", columns in the child tables - "foo_b" and "foo_c" - are not allowed as foreign keys.
-// and then adds all such keys to the tables they reference.
-func (b *catalogBuilder) includeForeignKeys(collectionLineage map[string]namespaces,
-	candidateForeignKeys map[string]potentialForeignKeys) {
-
-	sortForeignKeyCandidates(candidateForeignKeys)
-
-	for collection, namespaces := range collectionLineage {
-		for _, namespace := range namespaces {
-			currentTable, err := b.getTableFromNamespace(namespace)
-			if err != nil {
-				continue
-			}
-
-			dbName, tableName := namespace.database, namespace.table
-			mongoTable, ok := currentTable.(*MongoTable)
-
-			if !ok {
-				continue
-			} else if len(mongoTable.Pipeline().Stages) == 0 {
-				continue
-			}
-
-			unwindPaths, pathAliases := getUnwindPaths(mongoTable.Pipeline())
-			depth := len(unwindPaths)
-			if depth > 1 && containsSiblingPaths(unwindPaths) {
-				continue
-			}
-
-			// We add the mongoPrimaryKey to the unwindPaths
-			// as it's equally a foreign key candidate.
-			pathAliases[mongoPrimaryKey] = mongoPrimaryKey
-			tableToForeignKey := make(map[string]ForeignKey)
-
-			for _, column := range mongoTable.columns {
-				if unwindPath, ok := pathAliases[column.MongoName]; ok {
-					fkCandidates, ok := candidateForeignKeys[collection][unwindPath]
-					if !ok {
-						continue
-					}
-
-					foreignKey := getKeyToParentTable(fkCandidates, depth)
-					if foreignKey == nil {
-						continue
-					}
-
-					fkColumn := foreignKey.name
-					fkTable := foreignKey.table
-					fkDatabase := foreignKey.database
-					constraintName := createForeignKeyName(dbName, tableName, fkTable)
-
-					// if there isn't a foreign key pointing to this table, create one.
-					if foreignKey, ok := tableToForeignKey[fkTable]; !ok {
-						newK := NewForeignKey(column, constraintName, fkDatabase, fkTable, fkColumn)
-						tableToForeignKey[fkTable] = newK
-					} else {
-						// If this table already has a foreign key, add the current key
-						// to generate a compound foreign key.
-						foreignKey.columns = append(foreignKey.columns, column)
-						foreignKey.localToForeignColumn[column.Name] = fkColumn
-						tableToForeignKey[fkTable] = foreignKey
-					}
-				}
-			}
-
-			for _, foreignKey := range tableToForeignKey {
-				mongoTable.foreignKeys = append(mongoTable.foreignKeys, foreignKey)
-			}
+func isUnwoundFrom(childUnwinds []string, parentUnwinds []string) bool {
+	if len(parentUnwinds) != len(childUnwinds)-1 {
+		return false
+	}
+	lastUnwindInd := len(childUnwinds) - 1
+	for i := 0; i < lastUnwindInd; i++ {
+		if childUnwinds[i] != parentUnwinds[i] {
+			return false
 		}
 	}
+	return true
+}
+
+func numUnwinds(pipeline *ast.Pipeline) int {
+	numUnwinds := 0
+	for _, stage := range pipeline.Stages {
+		if _, ok := stage.(*ast.UnwindStage); ok {
+			numUnwinds++
+		}
+	}
+	return numUnwinds
+}
+
+func sortTablesByUnwinds(tables []Table) {
+	unwindCounts := make(map[*ast.Pipeline]int)
+	for _, table := range tables {
+		mongoTable, ok := table.(*MongoTable)
+		if !ok {
+			continue
+		}
+		unwindCounts[mongoTable.pipeline] = numUnwinds(mongoTable.pipeline)
+	}
+
+	sort.SliceStable(tables, func(i, j int) bool {
+		tableI, ok := tables[i].(*MongoTable)
+		if !ok {
+			return false
+		}
+		tableJ, ok := tables[j].(*MongoTable)
+		if !ok {
+			return false
+		}
+		return unwindCounts[tableI.pipeline] < unwindCounts[tableJ.pipeline]
+	})
 }
 
 func (b *catalogBuilder) getRowForForeignKey(tableName, aliasName string, ck key, fk ForeignKey, position int, columnNames []string) results.Row {
