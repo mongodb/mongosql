@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/sqlproxy/internal/dateutil"
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -30,7 +31,7 @@ func BooleanConstant(v bool) *ast.Constant {
 func DateConstant(v time.Time) *ast.Constant {
 	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.DateTime,
-		Data: bsoncore.AppendDateTime(nil, v.Unix()*1000+int64(v.Nanosecond()/1e6)),
+		Data: bsoncore.AppendDateTime(nil, dateutil.UnixMillis(v)),
 	})
 }
 
@@ -95,7 +96,7 @@ func BooleanValue(v bool) *ast.Constant {
 func DateValue(v time.Time) *ast.Constant {
 	return ast.NewConstant(bsoncore.Value{
 		Type: bsontype.DateTime,
-		Data: bsoncore.AppendDateTime(nil, v.Unix()*1000+int64(v.Nanosecond()/1e6)),
+		Data: bsoncore.AppendDateTime(nil, dateutil.UnixMillis(v)),
 	})
 }
 

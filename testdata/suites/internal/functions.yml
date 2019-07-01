@@ -5232,12 +5232,12 @@ testcases:
     sql: select b, trim(b) from scalar
 
   - db: functions_test
-    expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c") from scalar'' error: syntax error at position 15'
+    expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c") from scalar'' error: unexpected COMMA at position 15'
     id: trim_parse_error
     sql: select trim(b, "a", "c") from scalar
 
   - db: functions_test
-    expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c", "d") from scalar'' error: syntax error at position 15'
+    expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c", "d") from scalar'' error: unexpected COMMA at position 15'
     id: trim_parse_error_2
     sql: select trim(b, "a", "c", "d") from scalar
 
@@ -6404,7 +6404,7 @@ testcases:
     sql: select d, year(date(d)) + 2000 > year(current_timestamp()) as res from dates
 
   - db: functions_test
-    expected_error: 'Error 1064: parse sql ''select current_timestamp(d, _id) from dates'' error: syntax error at position 28'
+    expected_error: 'Error 1064: parse sql ''select current_timestamp(d, _id) from dates'' error: unexpected COMMA at position 28'
     id: current_timestamp_parse_error
     sql: select current_timestamp(d, _id) from dates
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/types"
+	"github.com/10gen/sqlproxy/internal/dateutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/schema"
@@ -246,7 +247,7 @@ func (s BaseSQLDate) Value() interface{} {
 func (s BaseSQLDate) BSONValue() (bsoncore.Value, error) {
 	return bsoncore.Value{
 		Type: bsontype.DateTime,
-		Data: bsoncore.AppendDateTime(nil, s.datetime.UnixNano()/1000000),
+		Data: bsoncore.AppendDateTime(nil, dateutil.UnixMillis(s.datetime)),
 	}, nil
 }
 
@@ -273,13 +274,13 @@ func (s BaseSQLDate) SQLDate() SQLDate {
 
 // SQLFloat converts the BaseSQLDate receiver, s, to a SQLFloat.
 func (s BaseSQLDate) SQLFloat() SQLFloat {
-	epochMs := s.datetime.UnixNano() / 1000000
+	epochMs := dateutil.UnixMillis(s.datetime)
 	return NewSQLFloat(s.kind, float64(epochMs))
 }
 
 // SQLInt converts the BaseSQLDate receiver, s, to a SQLInt.
 func (s BaseSQLDate) SQLInt() SQLInt64 {
-	epochMs := s.datetime.UnixNano() / 1000000
+	epochMs := dateutil.UnixMillis(s.datetime)
 	return NewSQLInt64(s.kind, epochMs)
 }
 
@@ -296,7 +297,7 @@ func (s BaseSQLDate) SQLTimestamp() SQLTimestamp {
 
 // SQLUint converts the BaseSQLDate receiver, s, to a SQLUint64.
 func (s BaseSQLDate) SQLUint() SQLUint64 {
-	epochMs := s.datetime.UnixNano() / 1000000
+	epochMs := dateutil.UnixMillis(s.datetime)
 	return NewSQLUint64(s.kind, uint64(epochMs))
 }
 
@@ -970,7 +971,7 @@ func (s BaseSQLTimestamp) Value() interface{} {
 func (s BaseSQLTimestamp) BSONValue() (bsoncore.Value, error) {
 	return bsoncore.Value{
 		Type: bsontype.DateTime,
-		Data: bsoncore.AppendDateTime(nil, s.datetime.UnixNano()/1000000),
+		Data: bsoncore.AppendDateTime(nil, dateutil.UnixMillis(s.datetime)),
 	}, nil
 }
 
@@ -1001,13 +1002,13 @@ func (s BaseSQLTimestamp) SQLDecimal128() SQLDecimal128 {
 
 // SQLFloat converts the BaseSQLTimestamp receiver, s, to a SQLFloat.
 func (s BaseSQLTimestamp) SQLFloat() SQLFloat {
-	epochMs := s.datetime.UnixNano() / 1000000
+	epochMs := dateutil.UnixMillis(s.datetime)
 	return NewSQLFloat(s.kind, float64(epochMs))
 }
 
 // SQLInt converts the BaseSQLTimestamp receiver, s, to a SQLInt.
 func (s BaseSQLTimestamp) SQLInt() SQLInt64 {
-	epochMs := s.datetime.UnixNano() / 1000000
+	epochMs := dateutil.UnixMillis(s.datetime)
 	return NewSQLInt64(s.kind, epochMs)
 }
 
@@ -1023,7 +1024,7 @@ func (s BaseSQLTimestamp) SQLTimestamp() SQLTimestamp {
 
 // SQLUint converts the BaseSQLTimestamp receiver, s, to a SQLUint64.
 func (s BaseSQLTimestamp) SQLUint() SQLUint64 {
-	epochMs := s.datetime.UnixNano() / 1000000
+	epochMs := dateutil.UnixMillis(s.datetime)
 	return NewSQLUint64(s.kind, uint64(epochMs))
 }
 

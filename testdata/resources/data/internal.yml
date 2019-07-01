@@ -19,6 +19,12 @@
     - {"_id": 1, "a": {"b": "world"}}
 
 - db: "bugs_database"
+  collection: BI_2258
+  docs:
+    - {"_id": 0, "d": "9999-12-31 23:59:59"}
+    - {"_id": 1, "d": "0050-01-01 01:01:01"}
+
+- db: "bugs_database"
   collection: "oid"
   docs:
     - {_id: {"$oid": "53c2ab5e4291b17b666d742a"}}

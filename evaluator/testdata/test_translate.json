@@ -5664,20 +5664,20 @@
                 "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}"
             },
             "3.4": {
-                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}",
-                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}"
+                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}",
+                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}"
             },
             "3.6": {
-                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}",
-                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}"
+                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}",
+                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}",
-                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}"
+                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}",
+                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}",
-                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}"
+                "mongosql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}",
+                "mysql-mode": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}"
             }
         },
         "predicate": {
@@ -5690,16 +5690,16 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}",
-                "mysql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}"
+                "mongosql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}",
+                "mysql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}",
-                "mysql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}"
+                "mongosql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}",
+                "mysql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}",
-                "mysql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}"
+                "mongosql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}",
+                "mysql-mode": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}"
             }
         }
     },
@@ -12150,20 +12150,20 @@
                 "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}"
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}"
             }
         },
         "predicate": {
@@ -12176,16 +12176,16 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}",
+                "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}",
+                "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}",
+                "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}"
             }
         }
     },
@@ -12196,20 +12196,20 @@
                 "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}"
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}"
             }
         },
         "predicate": {
@@ -12222,16 +12222,16 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}",
+                "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}",
+                "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}",
+                "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}"
             }
         }
     },

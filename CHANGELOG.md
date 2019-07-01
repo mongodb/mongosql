@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2258: Fixed a bug that caused incorrect pushdown and type conversions for dates/datetimes that are too large/small. Also fixes instances where pushdown was failing due to ast.Unknown when ast.Constant is expected.
 BI-2251: Fixed a bug that caused information_schema tables to not alias properly.
 BI-2028: Using current_timestamp and trim functions with too many arguments now gives a parse error.
 BI-1843: Fixed a bug that caused timestampAdd to fail with out of range months.
