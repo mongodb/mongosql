@@ -41,8 +41,8 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion: testMongoVersion4,
 			schema:       testSchema,
 			format:       testFormat,
-			expectedError: `fatal error executing sql "explain drop table foo.t": ERROR 1064 (42000): ` +
-				`parse sql 'explain drop table foo.t' error: syntax error at position 14 near drop`,
+			expectedError: `fatal error executing sql "explain drop table foo.t": ERROR 1064 (42000):` +
+				` parse sql 'explain drop table foo.t' error: unexpected DROP at position 14 near drop`,
 		},
 		{
 			desc:          "query that can't be pushed down (char_length with version < 3.4)",

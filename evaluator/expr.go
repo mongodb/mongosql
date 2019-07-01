@@ -2560,36 +2560,13 @@ func (e SQLValueExpr) ReplaceChild(i int, n Node) {
 	panicWithInvalidIndex(e.ExprName(), i, -1)
 }
 
-func (e SQLValueExpr) to34PlusAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	switch e.EvalType() {
-	// These types do not require $literal wrapping. We avoid it for the slight performance
-	// and readability benefit.
-	case types.EvalDate, types.EvalDatetime, types.EvalString, types.EvalObjectID, types.EvalNull:
-		v, err := e.Value.BSONValue()
-		if err != nil {
-			return nil, newPushdownFailure(
-				e.ExprName(),
-				"failed to get value from SQLValue",
-				"error", fmt.Sprintf("%v", err),
-			)
-		}
-
-		return ast.NewUnknown(v), nil
-	}
-	return t.getValue(e)
-}
-
 // ToAggregationLanguage translates SQLValueExpr into something that can
 // be used in an aggregation pipeline. If SQLValueExpr cannot be translated,
 // it will return nil and error.
 func (e SQLValueExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	if t.versionAtLeast(3, 4, 0) {
-		return e.to34PlusAggregationLanguage(t)
-	}
-
-	// On server 3.2.0, everything needs to be wrapped in literal, even null, when
-	// used as the top level in a project specification. This call returns an
-	// ast.Constant, which is always unconditionally wrapped in $literal.
+	// This call returns an ast.Constant, which is always
+	// unconditionally wrapped in $literal. MongoAST now
+	// handles whether or not we need to wrap in $literal.
 	return t.getValue(e)
 }
 

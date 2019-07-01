@@ -1724,15 +1724,15 @@
     "nse_one_null": {
         "expr": {
             "3.2": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}",
-            "3.4": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}",
-            "3.6": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}",
-            "4.0": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}"
+            "3.4": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}",
+            "3.6": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}",
+            "4.0": "{\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}",
-            "4.0": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},{\"$ifNull\": [null,null]}]}}"
+            "3.6": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}",
+            "4.0": "{\"$expr\": {\"$eq\": [{\"$ifNull\": [\"$a\",null]},null]}}"
         }
     },
     "or_assoc_left_int": {
@@ -3684,29 +3684,29 @@
     "scalar_extract": {
         "expr": {
             "3.2": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}",
-            "3.4": "",
-            "3.6": "",
-            "4.0": ""
+            "3.4": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}",
+            "3.6": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}",
+            "4.0": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "",
-            "4.0": ""
+            "3.6": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}",
+            "4.0": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$year\": \"$g\"}}}}"
         }
     },
     "scalar_extract_second": {
         "expr": {
             "3.2": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}",
-            "3.4": "",
-            "3.6": "",
-            "4.0": ""
+            "3.4": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}",
+            "3.6": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}",
+            "4.0": "{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}"
         },
         "predicate": {
             "3.2": "",
             "3.4": "",
-            "3.6": "",
-            "4.0": ""
+            "3.6": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}",
+            "4.0": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$second\": \"$g\"}}}}"
         }
     },
     "scalar_field_ints": {

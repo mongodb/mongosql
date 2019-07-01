@@ -221,3 +221,23 @@ testcases:
     expected_types: [int]
     id: BI-1949-subquery-comparison-reconcile
     sql: select (select 1, 2, 3) < (select 1, 2, 3) as cmp
+
+  - db: bugs_database
+    description: BI-2258 Fix issue with large date/datetime literals
+    expected_names: [_id, d1, dt1, d2, dt2]
+    expected_results:
+      - ['53c2ab5e4291b17b666d742a', '9999-12-31', '9999-12-31 01:01:01', '0050-01-23', '0050-01-23 12:34:34']
+    expected_types: [varchar, varchar, varchar, varchar, varchar]
+    id: BI-2258-literals
+    sql: select _id, date('9999-12-31 01:01:01') as d1, timestamp('9999-12-31 01:01:01') as dt1, date('0050-01-23 12:34:34') as d2, timestamp('0050-01-23 12:34:34') as dt2 from oid limit 1
+
+  - db: bugs_database
+    description: BI-2258 Fix issue with large date/datetime values
+    expected_names: [d, s, f]
+    expected_results:
+      - ['9999-12-31 23:59:59', 253402300799000, 253402300799000]
+      - ['0050-01-01 01:01:01', -60589292339000, -60589292339000]
+    expected_types: [varchar, int, float]
+    id: BI-2258-values
+    sql: select timestamp(d) d, nopushdown(convert(timestamp(d), signed)) s, nopushdown(convert(timestamp(d), decimal)) f from BI_2258;
+    variables: {type_conversion_mode: mongosql}
