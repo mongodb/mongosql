@@ -23,7 +23,7 @@ testcases:
 
   - db: alter_test
     description: altering column to unknown type should fail
-    expected_error: "Error 1064: parse sql 'alter table alter_1 modify a unknownType' error: unexpected ID at position 41 near unknownType"
+    expected_error: 'Error 1064: parse sql ''alter table alter_1 modify a unknownType'' error: syntax error at position 41 near unknownType'
     id: '3'
     sql: alter table alter_1 modify a unknownType
     sync: true
