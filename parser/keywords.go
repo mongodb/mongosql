@@ -11,13 +11,18 @@ var (
 	ANY_BYTES                = []byte("any")
 	AS_BYTES                 = []byte("as")
 	ASC_BYTES                = []byte("asc")
+	AUTO_INCREMENT_BYTES     = []byte("auto_increment")
 	BEGIN_BYTES              = []byte("begin")
 	BETWEEN_BYTES            = []byte("between")
 	BIGINT_BYTES             = []byte("bigint")
 	BINARY_BYTES             = []byte("binary")
 	BINLOG_BYTES             = []byte("binlog")
+	BIT_BYTES                = []byte("bit")
+	BLOB_BYTES               = []byte("blob")
+	BOOL_BYTES               = []byte("bool")
 	BOOLEAN_BYTES            = []byte("boolean")
 	BOTH_BYTES               = []byte("both")
+	BTREE_BYTES              = []byte("btree")
 	BY_BYTES                 = []byte("by")
 	CASCADE_BYTES            = []byte("cascade")
 	CASE_BYTES               = []byte("case")
@@ -34,6 +39,7 @@ var (
 	COLUMNS_BYTES            = []byte("columns")
 	COMMIT_BYTES             = []byte("commit")
 	COMMITTED_BYTES          = []byte("committed")
+	COMMENT_BYTES            = []byte("comment")
 	CONNECTION_BYTES         = []byte("connection")
 	CONVERT_BYTES            = []byte("convert")
 	COUNT_BYTES              = []byte("count")
@@ -67,6 +73,7 @@ var (
 	END_BYTES                = []byte("end")
 	ENGINE_BYTES             = []byte("engine")
 	ENGINES_BYTES            = []byte("engines")
+	ENUM_BYTES               = []byte("enum")
 	ERRORS_BYTES             = []byte("errors")
 	ESCAPE_BYTES             = []byte("escape")
 	EVENT_BYTES              = []byte("event")
@@ -84,11 +91,13 @@ var (
 	FORMAT_BYTES             = []byte("format")
 	FROM_BYTES               = []byte("from")
 	FULL_BYTES               = []byte("full")
+	FULLTEXT_BYTES           = []byte("fulltext")
 	FUNCTION_BYTES           = []byte("function")
 	GLOBAL_BYTES             = []byte("global")
 	GRANTS_BYTES             = []byte("grants")
 	GROUP_BYTES              = []byte("group")
 	GROUP_CONCAT_BYTES       = []byte("group_concat")
+	HASH_BYTES               = []byte("hash")
 	HAVING_BYTES             = []byte("having")
 	HOSTS_BYTES              = []byte("hosts")
 	HOUR_MICROSECOND_BYTES   = []byte("hour_microsecond")
@@ -121,7 +130,10 @@ var (
 	LIMIT_BYTES              = []byte("limit")
 	LOCK_BYTES               = []byte("lock")
 	LOGS_BYTES               = []byte("logs")
+	LONGTEXT_BYTES           = []byte("longtext")
 	MASTER_BYTES             = []byte("master")
+	MEDIUMBLOB_BYTES         = []byte("mediumblob")
+	MEDIUMTEXT_BYTES         = []byte("mediumtext")
 	MICROSECOND_BYTES        = []byte("microsecond")
 	MINUS_BYTES              = []byte("minus")
 	MINUTE_MICROSECOND_BYTES = []byte("minute_microsecond")
@@ -152,6 +164,7 @@ var (
 	PARTITIONS_BYTES         = []byte("partitions")
 	PLUGINS_BYTES            = []byte("plugins")
 	PRECISION_BYTES          = []byte("precision")
+	PRIMARY_BYTES            = []byte("primary")
 	PRIVILEGES_BYTES         = []byte("privileges")
 	PROCEDURE_BYTES          = []byte("procedure")
 	PROCESSLIST_BYTES        = []byte("processlist")
@@ -177,6 +190,7 @@ var (
 	SECOND_MICROSECOND_BYTES = []byte("second_microsecond")
 	SECOND_BYTES             = []byte("second")
 	SELECT_BYTES             = []byte("select")
+	SERIAL_BYTES             = []byte("serial")
 	SERIALIZABLE_BYTES       = []byte("serializable")
 	SESSION_BYTES            = []byte("session")
 	SET_BYTES                = []byte("set")
@@ -184,6 +198,7 @@ var (
 	SHOW_BYTES               = []byte("show")
 	SIGNED_BYTES             = []byte("signed")
 	SLAVE_BYTES              = []byte("slave")
+	SMALLINT_BYTES           = []byte("smallint")
 	SOME_BYTES               = []byte("some")
 	SQL_BIGINT_BYTES         = []byte("sql_bigint")
 	SQL_DATE_BYTES           = []byte("sql_date")
@@ -215,6 +230,7 @@ var (
 	TIMESTAMPADD_BYTES       = []byte("timestampadd")
 	TIMESTAMPDIFF_BYTES      = []byte("timestampdiff")
 	TINYINT_BYTES            = []byte("tinyint")
+	TINYTEXT_BYTES           = []byte("tinytext")
 	TO_BYTES                 = []byte("to")
 	TRADITIONAL_BYTES        = []byte("traditional")
 	TRAILING_BYTES           = []byte("trailing")
@@ -259,12 +275,17 @@ var keywords = map[string]int{
 	"any":                ANY,
 	"as":                 AS,
 	"asc":                ASC,
+	"auto_increment":     AUTO_INCREMENT,
 	"between":            BETWEEN,
 	"bigint":             BIGINT,
 	"binary":             BINARY,
 	"binlog":             BINLOG,
+	"bit":                BIT,
+	"blob":               BLOB,
+	"bool":               BOOL,
 	"boolean":            BOOLEAN,
 	"both":               BOTH,
+	"btree":              BTREE,
 	"by":                 BY,
 	"cascade":            CASCADE,
 	"case":               CASE,
@@ -280,6 +301,7 @@ var keywords = map[string]int{
 	"column":             COLUMN,
 	"columns":            COLUMNS,
 	"committed":          COMMITTED,
+	"comment":            COMMENT_KWD,
 	"connection":         CONNECTION,
 	"convert":            CONVERT,
 	"count":              COUNT,
@@ -311,6 +333,7 @@ var keywords = map[string]int{
 	"end":                END,
 	"engine":             ENGINE,
 	"engines":            ENGINES,
+	"enum":               ENUM,
 	"errors":             ERRORS,
 	"escape":             ESCAPE,
 	"event":              EVENT,
@@ -330,11 +353,13 @@ var keywords = map[string]int{
 	"format":             FORMAT,
 	"from":               FROM,
 	"full":               FULL,
+	"fulltext":           FULLTEXT,
 	"function":           FUNCTION,
 	"global":             GLOBAL,
 	"grants":             GRANTS,
 	"group":              GROUP,
 	"group_concat":       GROUP_CONCAT,
+	"hash":               HASH,
 	"having":             HAVING,
 	"hosts":              HOSTS,
 	"hour_microsecond":   HOUR_MICROSECOND,
@@ -355,6 +380,7 @@ var keywords = map[string]int{
 	"isolation":          ISOLATION,
 	"join":               JOIN,
 	"json":               JSON,
+	"key":                KEY,
 	"keys":               KEYS,
 	"kill":               KILL,
 	"leading":            LEADING,
@@ -364,7 +390,10 @@ var keywords = map[string]int{
 	"limit":              LIMIT,
 	"lock":               LOCK,
 	"logs":               LOGS,
+	"longtext":           LONGTEXT,
 	"master":             MASTER,
+	"mediumblob":         MEDIUMBLOB,
+	"mediumtext":         MEDIUMTEXT,
 	"microsecond":        MICROSECOND,
 	"minus":              MINUS,
 	"minute_microsecond": MINUTE_MICROSECOND,
@@ -393,6 +422,7 @@ var keywords = map[string]int{
 	"partitions":         PARTITIONS,
 	"plugins":            PLUGINS,
 	"precision":          PRECISION,
+	"primary":            PRIMARY,
 	"privileges":         PRIVILEGES,
 	"procedure":          PROCEDURE,
 	"processlist":        PROCESSLIST,
@@ -417,6 +447,7 @@ var keywords = map[string]int{
 	"second_microsecond": SECOND_MICROSECOND,
 	"second":             SECOND,
 	"select":             SELECT,
+	"serial":             SERIAL,
 	"serializable":       SERIALIZABLE,
 	"session":            SESSION,
 	"set":                SET,
@@ -424,6 +455,7 @@ var keywords = map[string]int{
 	"show":               SHOW,
 	"signed":             SIGNED,
 	"slave":              SLAVE,
+	"smallint":           SMALLINT,
 	"some":               SOME,
 	"sql_bigint":         SQL_BIGINT,
 	"sql_date":           SQL_DATE,
@@ -454,6 +486,7 @@ var keywords = map[string]int{
 	"timestampadd":       TIMESTAMPADD,
 	"timestampdiff":      TIMESTAMPDIFF,
 	"tinyint":            TINYINT,
+	"tinytext":           TINYTEXT,
 	"to":                 TO,
 	"traditional":        TRADITIONAL,
 	"trailing":           TRAILING,
@@ -464,6 +497,7 @@ var keywords = map[string]int{
 	"true":               TRUE,
 	"uncommitted":        UNCOMMITTED,
 	"union":              UNION,
+	"unique":             UNIQUE,
 	"unknown":            UNKNOWN,
 	"unsigned":           UNSIGNED,
 	"update":             UPDATE,

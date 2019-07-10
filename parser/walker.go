@@ -36,7 +36,7 @@ func Walk(w Walker, node CST) (CST, error) {
 	// https://golang.org/doc/faq#nil_error
 	if node != nil {
 		val := reflect.ValueOf(node)
-		if val.Kind() == reflect.String || !val.IsNil() {
+		if val.Kind() == reflect.String || val.Kind() == reflect.Struct || !val.IsNil() {
 			for i, child := range node.Children() {
 				replacement, werr := Walk(w, child)
 				if werr != nil {

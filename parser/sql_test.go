@@ -6,20 +6,70 @@ import (
 	"github.com/10gen/sqlproxy/parser"
 )
 
+// idPass does nothing, it is the id function. We use this to test
+// that Children and ReplaceChild are correctly implemented for each
+// node.
+type idPass struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (idPass) PreVisit(current parser.CST) (parser.CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (idPass) PostVisit(current parser.CST) (parser.CST, error) {
+	return current, nil
+}
+
+var _ parser.Walker = idPass{}
+
 func testParse(t *testing.T, sql string) parser.Statement {
 	stmt, err := parser.Parse(sql)
 	if err != nil {
 		t.Fatalf("sql: %s err: %s", sql, err)
 	}
-	return stmt
+	result, err := parser.Walk(idPass{}, stmt)
+	if err != nil {
+		t.Fatalf("failed to Walk CST with error: %s", err)
+	}
+	return result.(parser.Statement)
 }
 
-func testParseError(t *testing.T, sql string) parser.Statement {
-	stmt, err := parser.Parse(sql)
+func testParseError(t *testing.T, sql string) {
+	_, err := parser.Parse(sql)
 	if err == nil {
 		t.Fatalf("sql: %s should cause error", sql)
 	}
-	return stmt
+}
+
+func testParseErrorWithError(t *testing.T, sql string, errMessage string) {
+	_, err := parser.Parse(sql)
+	if err == nil {
+		t.Fatalf("sql: %s should cause error", sql)
+	}
+	if err.Error() != errMessage {
+		t.Fatalf("expected error message: '%s', got '%s'", errMessage, err.Error())
+	}
+}
+
+type test struct {
+	name       string
+	input      string
+	errMessage string
+}
+
+func tableTest(t *testing.T, tests []test) {
+	for _, test := range tests {
+		if test.errMessage != "" {
+			t.Run(test.name, func(t *testing.T) {
+				testParseErrorWithError(t, test.input, test.errMessage)
+			})
+		} else {
+			t.Run(test.name, func(t *testing.T) {
+				testParse(t, test.input)
+			})
+		}
+	}
 }
 
 func TestWith(t *testing.T) {
@@ -182,6 +232,40 @@ func TestAliases(t *testing.T) {
 	testParse(t, sql)
 }
 
+func TestDropDatabase(t *testing.T) {
+	sql := "drop database foo"
+	testParse(t, sql)
+
+	sql = "drop database `foo`"
+	testParse(t, sql)
+
+	sql = "drop database if exists `foo`"
+	testParse(t, sql)
+
+	sql = "drop database if exists foo"
+	testParse(t, sql)
+
+	sql = "drop database `#funny`"
+	testParse(t, sql)
+}
+
+func TestCreateDatabase(t *testing.T) {
+	sql := "create database foo"
+	testParse(t, sql)
+
+	sql = "create database `foo`"
+	testParse(t, sql)
+
+	sql = "create database if not exists `foo`"
+	testParse(t, sql)
+
+	sql = "create database if not exists foo"
+	testParse(t, sql)
+
+	sql = "create database `#funny`"
+	testParse(t, sql)
+}
+
 func TestDropTable(t *testing.T) {
 	sql := "drop table foo"
 	testParse(t, sql)
@@ -209,6 +293,98 @@ func TestDropTable(t *testing.T) {
 
 	sql = "drop temporary table if exists `#funny` cascade"
 	testParse(t, sql)
+}
+
+func TestCreateTable(t *testing.T) {
+
+	tests := []test{
+		{
+			name: "sqldump test",
+			input: "CREATE TABLE `block` (" +
+				"`pid` int(7) NOT NULL," +
+				"`blk` varchar(7) NOT NULL UNIQUE," +
+				"`brcv` varchar(7) DEFAULT NULL," +
+				"`type` varchar(4) NOT NULL," +
+				"bar int, " +
+				"UNIQUE KEY `pid` (`pid` ASC, `blk` DESC, `brcv`)," +
+				"`foo` double precision(65,33)" +
+				") ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Blocked Punts, Field Goal Attempts, etc.'",
+			errMessage: "",
+		}, {
+			name: "test table options without commas",
+			input: "CREATE TABLE `block` (" +
+				"`pid` int(7) NOT NULL" +
+				") ENGINE=InnoDB, DEFAULT CHARSET=utf8 COMMENT='Blocked Punts, Field Goal Attempts, etc.'",
+			errMessage: "",
+		}, {
+			name: "test single table option",
+			input: "CREATE TABLE `block` (" +
+				"`pid` int(7) NOT NULL" +
+				") ENGINE=InnoDB",
+			errMessage: "",
+		}, {
+			name: "test all types",
+			input: "CREATE TABLE IF not EXIsTs foo(" +
+				"a BOOL," +
+				"b BOOLEAN," +
+				"c BIT(1)," +
+				"d BIT," +
+				"e TINYINT(4)," +
+				"f SMALLINT(15)," +
+				"g INT(42)," +
+				"f INTEGER," +
+				"h BIGINT(42)," +
+				"h2 DATE," +
+				"i DATETIME(54)," +
+				"j TIMESTAMP(42)," +
+				"k VARCHAR(43)," +
+				"k2 CHAR(43)," +
+				"l TEXT(42)," +
+				"m TINYTEXT(1)," +
+				"m2 MEDIUMTEXT(153)," +
+				"n LONGTEXT(143)," +
+				"o DECIMAL(13,34)," +
+				"o2 NUMERIC(13,34)," +
+				"p FLOAT(13,14)," +
+				"q DECIMAL(13,34)," +
+				"r DOUBLE(15,45)," +
+				"s DOUBLE PRECISION(1,2) NULL DEFAULT NULL," +
+				"FULLTEXT KEY(k, l)," +
+				"UNIQUE KEY f(f,g DESC,h ASC)" +
+				")",
+			errMessage: "",
+		}, {
+			name:       "doubles should have widths listed as (X,Y), not (X).",
+			input:      "CREATE TABLE `block` (foo double precision(42))",
+			errMessage: "unexpected RPAREN at position 47",
+		}, {
+			name:       "dates should not have fsp.",
+			input:      "CREATE TABLE `block` (foo date(42))",
+			errMessage: "unexpected LPAREN at position 32",
+		}, {
+			name:       "SERIAL is not supported",
+			input:      "CREATE TABLE foo(bar SERIAL)",
+			errMessage: "SERIAL is not supported at position 29",
+		}, {
+			name:       "AUTO_INCREMENT is not supported",
+			input:      "CREATE TABLE foo(bar int AUTO_INCREMENT)",
+			errMessage: "AUTO_INCREMENT is not supported at this time at position 41",
+		}, {
+			name:       "DEFAULT must be NULL",
+			input:      "CREATE TABLE foo(bar int DEFAULT 3)",
+			errMessage: "only NULL defaults are supported at position 36",
+		}, {
+			name:       "TEMPORARY not allowed",
+			input:      "CREATE TEMPORARY TABLE foo(bar int)",
+			errMessage: "temporary tables are not supported at position 37",
+		}, {
+			name:       "CREATE TABLE declarations cannot be empty",
+			input:      "CREATE TABLE foo()",
+			errMessage: "unexpected RPAREN at position 19",
+		},
+	}
+
+	tableTest(t, tests)
 }
 
 func TestSet(t *testing.T) {

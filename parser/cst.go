@@ -502,13 +502,225 @@ func (node *DropTable) Copy() CST {
 
 	return &DropTable{
 		name,
-		node.Exists,
-		node.Temporary,
+		node.IfExists,
 		node.Opt.Copy(),
 	}
 }
 
 var _ CST = (*DropTable)(nil)
+
+// Children iterates through all direct children of this node.
+func (node *DropDatabase) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *DropDatabase) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node *DropDatabase) Copy() CST {
+
+	return &DropDatabase{
+		node.Name,
+		node.IfExists,
+	}
+}
+
+var _ CST = (*DropDatabase)(nil)
+
+// Children iterates through all direct children of this node.
+func (node *CreateDatabase) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *CreateDatabase) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node *CreateDatabase) Copy() CST {
+
+	return &CreateDatabase{
+		node.Name,
+		node.IfNotExists,
+	}
+}
+
+var _ CST = (*CreateDatabase)(nil)
+
+// Children iterates through all direct children of this node.
+func (node *CreateTable) Children() []CST {
+	ret := make([]CST, 0, 1+len(node.Definitions)+len(node.TableOptions))
+	ret = append(ret, node.Name)
+	for _, def := range node.Definitions {
+		ret = append(ret, def)
+	}
+	for _, opt := range node.TableOptions {
+		ret = append(ret, opt)
+	}
+	return ret
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *CreateTable) ReplaceChild(i int, child CST) {
+	if i == 0 {
+		node.Name = child.(*TableName)
+		return
+	}
+	i--
+	if i < len(node.Definitions) {
+		node.Definitions[i] = child.(ColumnOrIndexDefinition)
+		return
+	}
+	i -= len(node.Definitions)
+	if i < len(node.TableOptions) {
+		node.TableOptions[i] = child.(TableOption)
+		return
+	}
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node *CreateTable) Copy() CST {
+	newDefs := make([]ColumnOrIndexDefinition, len(node.Definitions))
+	for i, def := range node.Definitions {
+		newDefs[i] = def.Copy().(ColumnOrIndexDefinition)
+	}
+	newOptions := make([]TableOption, len(node.TableOptions))
+	for i, opt := range node.Definitions {
+		newOptions[i] = opt.Copy().(TableOption)
+	}
+	return &CreateTable{
+		node.Name.Copy().(*TableName),
+		node.IfNotExists,
+		newDefs,
+		newOptions,
+	}
+}
+
+var _ CST = (*CreateTable)(nil)
+
+// Children iterates through all direct children of this node.
+func (node *ColumnDefinition) Children() []CST {
+	return []CST{node.Name}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *ColumnDefinition) ReplaceChild(i int, child CST) {
+	if i == 0 {
+		node.Name = child.(*ColName)
+		return
+	}
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node *ColumnDefinition) Copy() CST {
+	return &ColumnDefinition{
+		Name:    node.Name.Copy().(*ColName),
+		Type:    node.Type,
+		Null:    node.Null,
+		Unique:  node.Unique,
+		Comment: node.Comment,
+	}
+}
+
+var _ CST = (*ColumnDefinition)(nil)
+
+// Children iterates through all direct children of this node.
+func (node *IndexDefinition) Children() []CST {
+	ret := make([]CST, len(node.KeyParts))
+	for i, part := range node.KeyParts {
+		ret[i] = part
+	}
+	return ret
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *IndexDefinition) ReplaceChild(i int, child CST) {
+	if i < len(node.KeyParts) {
+		node.KeyParts[i] = child.(KeyPart)
+		return
+	}
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node *IndexDefinition) Copy() CST {
+	clonedKeyParts := make([]KeyPart, len(node.KeyParts))
+	for i, part := range node.KeyParts {
+		clonedKeyParts[i] = part.Copy().(KeyPart)
+	}
+	return &IndexDefinition{
+		Name:     node.Name,
+		Unique:   node.Unique,
+		FullText: node.FullText,
+		KeyParts: clonedKeyParts,
+	}
+}
+
+var _ CST = (*IndexDefinition)(nil)
+
+// Children iterates through all direct children of this node.
+func (node KeyPart) Children() []CST {
+	return []CST{node.Column}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node KeyPart) ReplaceChild(i int, child CST) {
+	if i == 0 {
+		node.Column = child.(*ColName)
+		return
+	}
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node KeyPart) Copy() CST {
+	return &KeyPart{
+		Column:    node.Column,
+		Direction: node.Direction,
+	}
+}
+
+var _ CST = KeyPart{}
+
+// Children iterates through all direct children of this node.
+func (node TableComment) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node TableComment) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node TableComment) Copy() CST {
+	return node
+}
+
+var _ CST = TableComment("")
+
+// Children iterates through all direct children of this node.
+func (node IgnoredTableOption) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node IgnoredTableOption) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node IgnoredTableOption) Copy() CST {
+	return node
+}
+
+var _ CST = IgnoredTableOption{}
 
 // Children iterates through all direct children of this node.
 func (node Comments) Children() []CST {

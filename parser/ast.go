@@ -7,6 +7,7 @@ package parser
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/option"
@@ -57,11 +58,14 @@ type Statement interface {
 	CST
 }
 
-func (*Union) IStatement()     {}
-func (*Select) IStatement()    {}
-func (*Set) IStatement()       {}
-func (*Use) IStatement()       {}
-func (*DropTable) IStatement() {}
+func (*Union) IStatement()          {}
+func (*Select) IStatement()         {}
+func (*Set) IStatement()            {}
+func (*Use) IStatement()            {}
+func (*DropTable) IStatement()      {}
+func (*DropDatabase) IStatement()   {}
+func (*CreateTable) IStatement()    {}
+func (*CreateDatabase) IStatement() {}
 
 type Use struct {
 	DBName string
@@ -216,21 +220,186 @@ const (
 	AST_DROP_TABLE_CASCADE  = "cascade"
 )
 
+type CreateDatabase struct {
+	Name        string
+	IfNotExists bool
+}
+
+func (node *CreateDatabase) Format(buf *TrackedBuffer) {
+	buf.Fprintf("create ")
+	buf.Fprintf("database ")
+	if node.IfNotExists {
+		buf.Fprintf("if not exists ")
+	}
+	buf.Fprintf("`%s`", node.Name)
+}
+
+type DropDatabase struct {
+	Name     string
+	IfExists bool
+}
+
+func (node *DropDatabase) Format(buf *TrackedBuffer) {
+	buf.Fprintf("drop ")
+	buf.Fprintf("database ")
+	if node.IfExists {
+		buf.Fprintf("if exists ")
+	}
+	buf.Fprintf("`%s`", node.Name)
+}
+
 // DropTable represents a drop table statement.
 type DropTable struct {
-	Name      *TableName
-	Exists    bool
-	Temporary bool
-	Opt       option.String
+	Name     *TableName
+	IfExists bool
+	Opt      option.String
 }
+
+// CreateTable represents a create table statement.
+type CreateTable struct {
+	Name         *TableName
+	IfNotExists  bool
+	Definitions  []ColumnOrIndexDefinition
+	TableOptions []TableOption
+}
+
+func (node *CreateTable) GetColumnAndIndexDefintions() ([]*ColumnDefinition, []*IndexDefinition) {
+	// Bet that, in general, we will have no IndexDefinitions.
+	// This only affects memory usage and performance mildly, either way.
+	cds := make([]*ColumnDefinition, 0, len(node.Definitions))
+	ids := make([]*IndexDefinition, 0)
+	for _, def := range node.Definitions {
+		switch typedDef := def.(type) {
+		case *ColumnDefinition:
+			cds = append(cds, typedDef)
+		case *IndexDefinition:
+			ids = append(ids, typedDef)
+		}
+	}
+	return cds, ids
+}
+
+func (node *CreateTable) Format(buf *TrackedBuffer) {
+	buf.Fprintf("create ")
+	buf.Fprintf("table ")
+	if node.IfNotExists {
+		buf.Fprintf("if not exists ")
+	}
+	node.Name.Format(buf)
+	node.Definitions[0].Format(buf)
+	if len(node.Definitions) > 1 {
+		for _, def := range node.Definitions[1:] {
+			buf.Fprintf(", ")
+			def.Format(buf)
+		}
+	}
+	for _, opt := range node.TableOptions {
+		switch typedO := opt.(type) {
+		case TableComment:
+			buf.Fprintf(" COMMENT = '%s'", string(typedO))
+		default:
+		}
+	}
+}
+
+type ColumnOrIndexDefinition interface {
+	SQLNode
+	CST
+	IColumnOrIndexDefinition()
+}
+
+type ColumnDefinition struct {
+	Name    *ColName
+	Type    ColumnType
+	Null    bool
+	Unique  bool
+	Comment option.String
+}
+
+func (*ColumnDefinition) IColumnOrIndexDefinition() {}
+
+func (c *ColumnDefinition) Format(buf *TrackedBuffer) {
+	c.Name.Format(buf)
+	c.Type.Format(buf)
+	if !c.Null {
+		buf.Fprintf("NOT NULL ")
+	}
+	if c.Unique {
+		buf.Fprintf("UNIQUE ")
+	}
+	if c.Comment.IsSome() {
+		buf.Fprintf("COMMENT '%s', ", c.Comment.Unwrap())
+	}
+}
+
+type IndexDefinition struct {
+	Name     option.String
+	Unique   bool
+	FullText bool
+	KeyParts []KeyPart
+}
+
+func (*IndexDefinition) IColumnOrIndexDefinition() {}
+
+func (i *IndexDefinition) Format(buf *TrackedBuffer) {
+	if i.FullText {
+		buf.Fprintf("FULLTEXT ")
+	}
+	if i.Unique {
+		buf.Fprintf("UNIQUE ")
+	}
+	buf.Fprintf("INDEX ")
+	if i.Name.IsSome() {
+		buf.Fprintf("%s", i.Name.Unwrap())
+	}
+	buf.Fprintf("(")
+	for _, part := range i.KeyParts {
+		part.Column.Format(buf)
+		buf.Fprintf(" ")
+		if part.Direction == 1 {
+			buf.Fprintf("ASC")
+		} else {
+			buf.Fprintf("DESC")
+		}
+	}
+	buf.Fprintf(")")
+}
+
+type ColumnType struct {
+	BaseType string
+	Width    option.Int
+}
+
+func (c ColumnType) Format(buf *TrackedBuffer) {
+	buf.Fprintf(c.BaseType)
+	if c.Width.IsSome() {
+		w := strconv.Itoa(c.Width.Unwrap())
+		buf.Fprintf("(%s) ", w)
+	}
+}
+
+type KeyPart struct {
+	Column    *ColName
+	Direction int
+}
+
+type TableOption interface {
+	CST
+	ITableOption()
+}
+
+type TableComment string
+
+func (TableComment) ITableOption() {}
+
+type IgnoredTableOption struct{}
+
+func (IgnoredTableOption) ITableOption() {}
 
 func (node *DropTable) Format(buf *TrackedBuffer) {
 	buf.Fprintf("drop ")
-	if node.Temporary {
-		buf.Fprintf("temporary ")
-	}
 	buf.Fprintf("table ")
-	if node.Exists {
+	if node.IfExists {
 		buf.Fprintf("if exists ")
 	}
 	node.Name.Format(buf)
@@ -659,7 +828,7 @@ func (node *RLikeExpr) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%v rlike %v", node.Operand, node.Pattern)
 }
 
-// ExistsExpr represents an EXISTS expression.
+//ExistsExpr represents an EXISTS expression.
 type ExistsExpr struct {
 	Subquery *Subquery
 }

@@ -8,11 +8,12 @@ package parser
 import (
 	"bytes"
 
+	"strconv"
 	"github.com/10gen/sqlproxy/internal/option"
 )
 
 func SetParseTree(yylex interface{}, stmt Statement) {
-  yylex.(*Tokenizer).ParseTree = stmt
+ yylex.(*Tokenizer).ParseTree = stmt
 }
 
 func SetAllowComments(yylex interface{}, allow bool) {
@@ -30,21 +31,29 @@ func ForceEOF(yylex interface{}) {
   statement   Statement
   selStmt     SelectStatement
   bool        bool
+  intopt  	  option.Int
   byt         byte
   bytes       []byte
   cte         *CTE
   cte_list    []*CTE
+  keyPart     KeyPart
+  keyPartList []KeyPart
   with        *With
   str         string
   strs        []string
   stropt      OptString
   selectExprs SelectExprs
   selectExpr  SelectExpr
+  columnOrIndexDefs []ColumnOrIndexDefinition
+  columnOrIndexDef ColumnOrIndexDefinition
   columns     Columns
   columnExprs ColumnExprs
   colName     *ColName
+  colTy       ColumnType
   tableExprs  TableExprs
   tableExpr   TableExpr
+  tableOption TableOption
+  tableOptions []TableOption
   smTableExpr SimpleTableExpr
   tableName   *TableName
   indexHints  *IndexHints
@@ -73,12 +82,13 @@ func ForceEOF(yylex interface{}) {
 
 
 %token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE SEPARATOR
-%token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO
+%token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO COMMENT_KWD FULLTEXT
 %token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR GROUP_CONCAT OBJECT_ID
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
 %token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER TINYINT INT BIGINT DOUBLE NUMERIC TEXT VARCHAR BOOLEAN
+%token <empty> BIT BLOB BOOL ENUM LONGTEXT MEDIUMBLOB MEDIUMTEXT TINYTEXT SERIAL SMALLINT
 %token <empty> BOTH LEADING TRAILING TRIM SUBSTRING SUBSTR
 %token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
 %token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
@@ -96,8 +106,8 @@ func ForceEOF(yylex interface{}) {
 %token <empty> CONNECTION QUERY
 %token <empty> SESSION GLOBAL
 %token <empty> TEMPORARY RESTRICT CASCADE
-%token <empty> USING
-%token <empty> OFF
+%token <empty> USING AUTO_INCREMENT
+%token <empty> OFF UNIQUE PRIMARY BTREE HASH
 
 %nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
@@ -111,6 +121,7 @@ func ForceEOF(yylex interface{}) {
 %left <empty> OR
 %left <empty> XOR
 %left <empty> AND
+%right <empty> KEY
 %right <empty> NOT
 %left <empty> BETWEEN CASE WHEN THEN ELSE
 %left <empty> EQ NULL_SAFE_EQUAL GE GT LE LT NE IS LIKE REGEXP RLIKE IN
@@ -130,17 +141,24 @@ func ForceEOF(yylex interface{}) {
 %type <selStmt> select_statement select_statement_with_paren_order_limit
 %type <with> with_statement
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
-%type <statement> kill_statement drop_statement alter_statement rename_statement
+%type <statement> kill_statement
+%type <statement> create_database_statement drop_database_statement drop_table_statement
+%type <statement> create_table_statement
+%type <columnOrIndexDefs> create_definition_list
+%type <columnOrIndexDef> create_definition
+%type <tableOptions> table_options_opt
+%type <tableOption> table_option
+%type <statement> alter_statement rename_statement
 %type <statement> flush_statement
 %type <alterSpecs> alter_spec_list
 %type <alterSpec> alter_spec
 %type <renameSpec> table_rename
 %type <renameSpecs> table_rename_list
 %type <stropt> column_opt to_as_opt
-%type <strs> comment_opt comment_list
+%type <strs> comment_list comment_opt
 %type <str> union_op
 %type <str> all_any_some
-%type <stropt> separator_opt
+%type <stropt> separator_opt column_comment_opt
 %type <bool> distinct_opt
 %type <queryGlobals> query_globals_opt
 %type <selectExprs> select_expression_list
@@ -151,10 +169,15 @@ func ForceEOF(yylex interface{}) {
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
 %type <bytes> column_definition data_type
+%type <colTy> column_data_type
+%type <bytes> float_column_data_type normal_column_data_type
+%type <bytes> simple_column_data_type enum_column_data_type
 %type <tableExpr> table_expression join_expression
 %type <str> join_type
 %type <smTableExpr> simple_table_expression
 %type <tableName> table_name
+%type <str> database_name
+%type <stropt> index_name_opt
 %type <indexHints> index_hint_list
 %type <strs> index_list
 %type <expr> where_expression_opt like_escape_opt
@@ -170,6 +193,8 @@ func ForceEOF(yylex interface{}) {
 %type <bytes> substr
 %type <subquery> subquery non_derived_subquery
 %type <byt> unary_operator
+%type <intopt> width_opt
+%type <empty> float_width_opt
 %type <colName> column_name explain_column_name
 %type <caseExpr> case_expression
 %type <whens> when_expression_list
@@ -190,14 +215,18 @@ func ForceEOF(yylex interface{}) {
 %type <str> transaction_level
 %type <empty> explain_alias
 %type <empty> in_or_from optional_parens
-%type <bool> exists_opt temporary_opt
+%type <bool> auto_increment_opt if_exists_opt if_not_exists_opt temporary_opt null_opt primary_key_opt unique_key_opt
+%type <bool> fulltext_opt unique_opt
 %type <stropt> cascade_or_restrict_opt
+%type <keyPart> key_part
+%type <keyPartList> key_part_list
 
+%type <empty> equal_opt default_opt index_or_key index_type_opt comma_opt character_set
 %type <empty> storage_opt
 %type <expr> in_opt from_opt
 %type <expr> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
-%type <str> show_full if_not_exists_opt
+%type <str> show_full if_not_exists_opt_string
 %type <str> scope_modifier_opt explicit_scope_modifier_opt
 %type <str> explain_type
 %type <str> format_name
@@ -226,7 +255,10 @@ command:
 | show_statement
 | explain_statement
 | use_statement
-| drop_statement
+| create_table_statement
+| create_database_statement
+| drop_database_statement
+| drop_table_statement
 | flush_statement
 | alter_statement
 | rename_statement
@@ -244,7 +276,7 @@ select_statement:
   }
 | SELECT comment_opt query_globals_opt select_expression_list limit_opt
   {
-    $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, Limit: $5} 
+    $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, Limit: $5}
   }
 | SELECT comment_opt query_globals_opt select_expression_list FROM dual_table
   {
@@ -385,10 +417,442 @@ set_expr:
     $$ = $1
   }
 
-drop_statement:
-  DROP temporary_opt TABLE exists_opt table_name cascade_or_restrict_opt
+create_database_statement:
+  CREATE DATABASE if_not_exists_opt database_name
   {
-    $$ = &DropTable{Name: $5, Temporary: $2, Exists: $4, Opt: $6 }
+    $$ = &CreateDatabase{Name: $4, IfNotExists: $3}
+  }
+
+create_table_statement:
+  CREATE temporary_opt TABLE if_not_exists_opt table_name LPAREN create_definition_list RPAREN table_options_opt
+  {
+      if $2 {
+          yylex.Error("temporary tables are not supported")
+		  return 1
+	  }
+	  $$ = &CreateTable{Name: $5, IfNotExists: $4,  Definitions: $7, TableOptions: $9}
+  }
+
+
+table_options_opt:
+  {
+    $$ = []TableOption{}
+  }
+| table_options_opt comma_opt table_option
+  {
+    $$ = append($1, $3)
+  }
+
+comma_opt:
+  {
+    $$ = struct{}{}
+  }
+  | COMMA
+  {
+    $$ = struct{}{}
+  }
+
+table_option:
+  COMMENT_KWD equal_opt STRING
+  {
+    $$ = TableComment(string($3))
+  }
+  | DEFAULT character_set equal_opt database_name
+  {
+    $$ = IgnoredTableOption{}
+  }
+  | character_set equal_opt database_name
+  {
+    $$ = IgnoredTableOption{}
+  }
+  | ENGINE equal_opt database_name
+  {
+    $$ = IgnoredTableOption{}
+  }
+
+character_set:
+  CHARACTER SET 
+  {
+    $$ = struct{}{}
+  }
+  | CHARSET
+  {
+    $$ = struct{}{}
+  }
+
+equal_opt:
+  {
+    $$ = struct{}{}
+  }
+| EQ
+  {
+    $$ = struct{}{}
+  }
+
+create_definition_list:
+  create_definition
+  {
+    $$ = []ColumnOrIndexDefinition{$1}
+  }
+| create_definition_list COMMA create_definition
+  {
+    $$ = append($1, $3)
+  }
+
+create_definition:
+  column_name column_data_type null_opt default_opt auto_increment_opt unique_key_opt primary_key_opt column_comment_opt {
+    if $7 {
+       yylex.Error("PRIMARY KEYS are not supported at this time")
+	   return 1
+    }
+	if $5 {
+       yylex.Error("AUTO_INCREMENT is not supported at this time")
+	   return 1
+	}
+    $$ = &ColumnDefinition{
+			Name: $1,
+			Type: $2,
+			Null: $3,
+			Unique: $6,
+			Comment: $8,
+		}
+  }
+| fulltext_opt unique_opt index_or_key index_name_opt index_type_opt LPAREN key_part_list RPAREN {
+	if $1 && $2 {
+		yylex.Error("indexes cannot be both UNIQUE and FULLTEXT")
+		return 1
+    }
+	$$ = &IndexDefinition{Name: $4, Unique: $2, FullText: $1, KeyParts: $7}
+  }
+
+column_data_type:
+  simple_column_data_type
+  {
+    $$ = ColumnType{BaseType: string($1), Width: option.NoneInt()}
+  }
+  |
+  normal_column_data_type width_opt
+  {
+    $$ = ColumnType{BaseType: string($1), Width: $2}
+  }
+  |
+  float_column_data_type float_width_opt
+  {
+    $$ = ColumnType{BaseType: string($1), Width: option.NoneInt()}
+  }
+  |
+  enum_column_data_type
+  {
+    $$ = ColumnType{BaseType: string($1), Width: option.NoneInt()}
+  }
+
+simple_column_data_type:
+BOOL
+  {
+    $$ = BOOL_BYTES
+  }
+| BOOLEAN
+  {
+    $$ = BOOLEAN_BYTES
+  }
+| DATE
+  {
+    $$ = DATE_BYTES
+  }
+| SERIAL
+  {
+     yylex.Error("SERIAL is not supported")
+	 return 1
+  }
+| YEAR
+  {
+    yylex.Error("YEAR is not supported")
+	return 1
+  }
+| MEDIUMBLOB
+  {
+    yylex.Error("MEDIUMBLOB is not supported")
+	return 1
+  }
+
+
+normal_column_data_type:
+  BIT
+  {
+    $$ = BIT_BYTES
+  }
+| TINYINT
+  {
+    $$ = TINYINT_BYTES
+  }
+| SMALLINT
+  {
+    $$ = SMALLINT_BYTES
+  }
+| INT
+  {
+    $$ = INT_BYTES
+  }
+| INTEGER
+  {
+    $$ = INTEGER_BYTES
+  }
+| BIGINT
+  {
+    $$ = BIGINT_BYTES
+  }
+| DATETIME
+  {
+    $$ = DATETIME_BYTES
+  }
+| TIMESTAMP
+  {
+    $$ = TIMESTAMP_BYTES
+  }
+| CHAR
+  {
+    $$ = CHAR_BYTES
+  }
+| VARCHAR
+  {
+    $$ = VARCHAR_BYTES
+  }
+| TEXT
+  {
+    $$ = TEXT_BYTES
+  }
+| BINARY
+  {
+    yylex.Error("BINARY is not supported")
+	return 1
+  }
+| TINYTEXT
+  {
+    $$ = TINYTEXT_BYTES
+  }
+| MEDIUMTEXT
+  {
+    $$ = MEDIUMTEXT_BYTES
+  }
+| BLOB
+  {
+    yylex.Error("BLOB is not supported")
+	return 1
+  }
+| LONGTEXT
+  {
+    $$ = LONGTEXT_BYTES
+  }
+
+float_column_data_type:
+DECIMAL
+  {
+    $$ = DECIMAL_BYTES
+  }
+| NUMERIC
+  {
+    $$ = NUMERIC_BYTES
+  }
+| FLOAT
+  {
+    $$ = FLOAT_BYTES
+  }
+| DOUBLE
+  {
+    $$ = DOUBLE_BYTES
+  }
+| DOUBLE PRECISION
+  {
+    $$ = DOUBLE_BYTES
+  }
+
+enum_column_data_type:
+ENUM
+  {
+    yylex.Error("ENUM is not supported")
+	return 1
+  }
+| SET
+  {
+    yylex.Error("SET is not supported")
+	return 1
+  }
+
+width_opt:
+  {
+     $$ = option.NoneInt()
+  }
+  | LPAREN NUMBER RPAREN
+  {
+     i, err := strconv.Atoi(string($2))
+	 if err != nil {
+         yylex.Error("width for datatype must be an integer, not a float")
+         return 1
+	 }
+     $$ = option.SomeInt(i)
+  }
+
+float_width_opt:
+  {
+     $$ = struct{}{}
+  }
+  // This case is for the Decimal type, and we don't need this info for the BIC.
+  // Just throw it away.
+  | LPAREN NUMBER COMMA NUMBER RPAREN
+  {
+     $$ = struct{}{}
+  }
+
+
+null_opt:
+  {
+    $$ = true
+  }
+  | NULL
+  {
+    $$ = true
+  }
+  | NOT NULL
+  {
+    $$ = false
+  }
+
+default_opt:
+  {
+    $$ = struct{}{}
+  }
+  | DEFAULT NULL
+  {
+    $$ = struct{}{}
+  }
+  | DEFAULT expression
+  {
+    yylex.Error("only NULL defaults are supported")
+	return 1
+  }
+
+auto_increment_opt:
+  {
+    $$ = false
+  }
+  | AUTO_INCREMENT
+  {
+    $$ = true
+  }
+
+unique_key_opt:
+  {
+    $$ = false
+  }
+  | UNIQUE {
+    $$ = true
+  }
+  | UNIQUE KEY {
+    $$ = true
+  }
+
+primary_key_opt:
+  {
+    $$ = false
+  }
+  | KEY {
+    $$ = true
+  }
+  | PRIMARY KEY {
+    $$ = true
+  }
+
+column_comment_opt:
+  {
+     $$ = option.NoneString()
+  }
+  | COMMENT_KWD STRING
+  {
+     $$ = option.SomeString(string($2))
+  }
+
+fulltext_opt:
+  {
+    $$ = false
+  }
+  | FULLTEXT {
+    $$ = true
+  }
+
+unique_opt:
+  {
+    $$ = false
+  }
+  | UNIQUE {
+    $$ = true
+  }
+
+index_or_key:
+INDEX
+  {
+    $$ = struct{}{}
+  }
+  | KEY
+  {
+    $$ = struct{}{}
+  }
+
+index_name_opt: 
+  {
+    $$ = option.NoneString()
+  }
+  | database_name
+  {
+    $$ = option.SomeString(string($1))
+  }
+
+index_type_opt:
+  {
+    $$ = struct{}{}
+  }
+  | USING BTREE
+  {
+    yylex.Error("index types are not supported")
+  }
+  | USING HASH
+  {
+    yylex.Error("index types are not supported")
+  }
+
+key_part_list:
+  key_part
+  {
+    $$ = []KeyPart{$1}
+  }
+| key_part_list COMMA key_part
+  {
+    $$ = append($1, $3)
+  }
+
+key_part:
+  column_name
+  {
+    $$ = KeyPart{Column: $1, Direction: 1}
+  }
+  | column_name ASC
+  {
+    $$ = KeyPart{Column: $1, Direction: 1}
+  }
+  | column_name DESC
+  {
+    $$ = KeyPart{Column: $1, Direction: -1}
+  }
+
+drop_database_statement:
+  DROP DATABASE if_exists_opt database_name
+  {
+    $$ = &DropDatabase{Name: $4, IfExists: $3}
+  }
+
+drop_table_statement:
+  DROP temporary_opt TABLE if_exists_opt table_name cascade_or_restrict_opt
+  {
+    $$ = &DropTable{Name: $5, IfExists: $4, Opt: $6 }
   }
 
 flush_statement:
@@ -414,7 +878,7 @@ table_rename_list:
   }
 | table_rename_list COMMA table_rename
   {
-    $$ = append($$, $3)
+    $$ = append($1, $3)
   }
 
 table_rename:
@@ -436,7 +900,7 @@ alter_spec_list:
   }
 | alter_spec_list COMMA alter_spec
   {
-    $$ = append($$, $3)
+    $$ = append($1, $3)
   }
 
 alter_spec:
@@ -564,9 +1028,14 @@ temporary_opt:
 | TEMPORARY
   { $$ = true }
 
-exists_opt:
+if_exists_opt:
   { $$ = false }
 | IF EXISTS
+  { $$ = true }
+
+if_not_exists_opt:
+  { $$ = false }
+| IF NOT EXISTS
   { $$ = true }
 
 cascade_or_restrict_opt:
@@ -714,11 +1183,11 @@ show_statement:
   {
     $$ = &Show{Section: "binlog events"}
   }
-| SHOW CREATE DATABASE if_not_exists_opt ID
+| SHOW CREATE DATABASE if_not_exists_opt_string ID
   {
     $$ = &Show{Section: "create database", Modifier: $4, From: StrVal($5)}
   }
-| SHOW CREATE SCHEMA if_not_exists_opt ID
+| SHOW CREATE SCHEMA if_not_exists_opt_string ID
   {
     $$ = &Show{Section: "create schema", Modifier: string($5)}
   }
@@ -963,6 +1432,12 @@ explain_alias:
     $$ = $1
   }
 
+database_name:
+  sql_id
+  {
+    $$ = $1
+  }
+
 table_name:
   sql_id
   {
@@ -1107,7 +1582,7 @@ select_expression_list:
   }
 | select_expression_list COMMA select_expression
   {
-    $$ = append($$, $3)
+    $$ = append($1, $3)
   }
 
 select_expression:
@@ -1139,7 +1614,7 @@ column_expression_list:
   }
 | column_expression_list COMMA ID
   {
-    $$ = append($$, &ColName{Name: string($3)} )
+    $$ = append($1, &ColName{Name: string($3)} )
   }
 
 table_expression_list:
@@ -1149,7 +1624,7 @@ table_expression_list:
   }
 | table_expression_list COMMA table_expression
   {
-    $$ = append($$, $3)
+    $$ = append($1, $3)
   }
 
 
@@ -1333,7 +1808,7 @@ in_opt:
     $$ = $2
   }
 
-if_not_exists_opt:
+if_not_exists_opt_string:
   {
     $$ = string("")
   }
@@ -2466,6 +2941,26 @@ keyword_as_id:
   {
     $$ = string(BINLOG_BYTES)
   }
+| AUTO_INCREMENT
+  {
+    $$ = string(AUTO_INCREMENT_BYTES)
+  }
+| BIT
+  {
+    $$ = string(BIT_BYTES)
+  }
+| BLOB
+  {
+    $$ = string(BLOB_BYTES)
+  }
+| BOOL
+  {
+    $$ = string(BOOL_BYTES)
+  }
+| BTREE
+  {
+    $$ = string(BTREE_BYTES)
+  }
 | CHANNEL
   {
     $$ = string(CHANNEL_BYTES)
@@ -2485,6 +2980,10 @@ keyword_as_id:
 | COLUMNS
   {
     $$ = string(COLUMNS_BYTES)
+  }
+| COMMENT_KWD
+  {
+    $$ = string(COMMENT_BYTES)
   }
 | COMMITTED
   {
@@ -2522,6 +3021,10 @@ keyword_as_id:
   {
     $$ = string(ENGINES_BYTES)
   }
+| ENUM
+  {
+    $$ = string(ENUM_BYTES)
+  }
 | ERRORS
   {
     $$ = string(ERRORS_BYTES)
@@ -2558,6 +3061,10 @@ keyword_as_id:
   {
     $$ = string(GRANTS_BYTES)
   }
+| HASH
+  {
+    $$ = string(HASH)
+  }
 | HOSTS
   {
     $$ = string(HOSTS_BYTES)
@@ -2586,9 +3093,21 @@ keyword_as_id:
   {
     $$ = string(LOGS_BYTES)
   }
+| LONGTEXT
+  {
+    $$ = string(LONGTEXT_BYTES)
+  }
 | MASTER
   {
     $$ = string(MASTER_BYTES)
+  }
+| MEDIUMBLOB
+  {
+    $$ = string(MEDIUMBLOB_BYTES)
+  }
+| MEDIUMTEXT
+  {
+    $$ = string(MEDIUMTEXT_BYTES)
   }
 | MICROSECOND
   {
@@ -2686,6 +3205,10 @@ keyword_as_id:
   {
     $$ = string(SECOND_BYTES)
   }
+| SERIAL
+  {
+    $$ = string(SERIAL_BYTES)
+  }
 | SERIALIZABLE
   {
     $$ = string(SERIALIZABLE_BYTES)
@@ -2697,6 +3220,10 @@ keyword_as_id:
 | SLAVE
   {
     $$ = string(SLAVE_BYTES)
+  }
+| SMALLINT
+  {
+    $$ = string(SMALLINT_BYTES)
   }
 | SOME
   {
@@ -2765,6 +3292,10 @@ keyword_as_id:
 | TIMESTAMPDIFF
   {
     $$ = string(TIMESTAMPDIFF_BYTES)
+  }
+| TINYINT
+  {
+    $$ = string(TINYINT_BYTES)
   }
 | TRANSACTION
   {

@@ -137,7 +137,7 @@ testcases:
       - [3473324443, 73434]
     expected_types: [int, int]
     id: BI-1839-cross-join-optimization-test
-    sql: SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.key) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)
+    sql: SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.`key`) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)
 
   - db: bugs_database
     description: Ensure filter optimization doesn't prematurely remove records
