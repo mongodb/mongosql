@@ -643,6 +643,144 @@
             }
         }
     },
+    "aggregate_group_concat": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\",\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}"
+            }
+        }
+    },
+    "aggregate_group_concat_null": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "null",
+                "mysql-mode": "null"
+            },
+            "3.4": {
+                "mongosql-mode": "null",
+                "mysql-mode": "null"
+            },
+            "3.6": {
+                "mongosql-mode": "null",
+                "mysql-mode": "null"
+            },
+            "4.0": {
+                "mongosql-mode": "null",
+                "mysql-mode": "null"
+            },
+            "4.2": {
+                "mongosql-mode": "null",
+                "mysql-mode": "null"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$expr\": null}",
+                "mysql-mode": "{\"$expr\": null}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": null}",
+                "mysql-mode": "{\"$expr\": null}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": null}",
+                "mysql-mode": "{\"$expr\": null}"
+            }
+        }
+    },
+    "aggregate_group_concat_with_separator": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"result\": {\"$reduce\": {\"input\": \"$s\",\"initialValue\": null,\"in\": {\"$cond\": [{\"$eq\": [\"$$value\",null]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},null,\"$$this\"]},{\"$cond\": [{\"$eq\": [\"$$this\",null]},\"$$value\",{\"$cond\": [{\"$gte\": [{\"$strLenCP\": \"$$value\"},{\"$numberLong\":\"1024\"}]},\"$$value\",{\"$concat\": [\"$$value\",\"hello\",\"$$this\"]}]}]}]}}}},\"in\": {\"$cond\": [{\"$eq\": [\"$$result\",null]},null,{\"$substrCP\": [\"$$result\",{\"$numberInt\":\"0\"},{\"$numberLong\":\"1024\"}]}]}}}}"
+            }
+        }
+    },
     "aggregate_max": {
         "expr": {
             "3.2": {

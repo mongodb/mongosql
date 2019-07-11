@@ -765,6 +765,13 @@ func TestReconcile(t *testing.T) {
 	allVals := []SQLExpr{intVal, uintVal, floatVal, decimalVal, boolVal, strVal, dateVal, datetimeVal}
 	allTypes := []types.EvalType{types.EvalInt64, types.EvalUint64, types.EvalDouble, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime}
 
+	makeTypeSlice := func(typ types.EvalType) []types.EvalType {
+		s := make([]types.EvalType, len(allVals))
+		for i := range s {
+			s[i] = typ
+		}
+		return s
+	}
 	// Type order: polymorphic < bool < string < date < datetime < int < uint < double < decimal
 
 	// tests is a list of test cases for the binary and unary operator
@@ -2094,15 +2101,17 @@ func TestReconcile(t *testing.T) {
 		{"tilde(date)", NewSQLTildeExpr(dateVal), []types.EvalType{types.EvalInt64}},
 		{"tilde(datetime)", NewSQLTildeExpr(datetimeVal), []types.EvalType{types.EvalInt64}},
 
-		// agg functions: all of the aggregation functions' reconcile methods are no-ops, so there are no conversions.
+		// agg functions: most of the aggregation functions' reconcile methods are no-ops, so there are no conversions.
 		{"avg", NewSQLAggregationFunctionExpr(parser.AvgAggregateName, false, allVals), allTypes},
 		{"count", NewSQLAggregationFunctionExpr(parser.CountAggregateName, false, allVals), allTypes},
-		{"groupConcat", NewSQLAggregationFunctionExpr(parser.GroupConcatAggregateName, false, allVals), allTypes},
 		{"max", NewSQLAggregationFunctionExpr(parser.MaxAggregateName, false, allVals), allTypes},
 		{"min", NewSQLAggregationFunctionExpr(parser.MinAggregateName, false, allVals), allTypes},
 		{"sum", NewSQLAggregationFunctionExpr(parser.SumAggregateName, false, allVals), allTypes},
 		{"stdDev", NewSQLAggregationFunctionExpr(parser.StdDevAggregateName, false, allVals), allTypes},
 		{"stdDevSample", NewSQLAggregationFunctionExpr(parser.StdDevSampleAggregateName, false, allVals), allTypes},
+		// group_concat operates on strings, so it converts all other types to strings.
+		{"groupConcat", NewSQLAggregationFunctionExpr(parser.GroupConcatAggregateName, false, allVals),
+			makeTypeSlice(types.EvalString)},
 	}
 
 	runReconcileTests(t, tests)

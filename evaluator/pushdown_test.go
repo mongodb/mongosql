@@ -157,6 +157,10 @@ func TestPushdownPlan(t *testing.T) {
 		{"count_distinct", "select count(distinct b) from foo"},
 		// This addresses the bug from BI-1998.
 		{"group_concat_with_count", "select group_concat(a), count(b) from foo"},
+		// This addresses the bug from BI-2196.
+		{"group_concat_multiple", "select group_concat(a), group_concat(b) from foo"},
+		// Must test this here as this logic is outside of group_concat's ToAggregationLanguage function.
+		{"group_concat_one_function_multiple_args", "select group_concat(a, b) from foo"},
 		{"group_having", "select max(a) from foo group by c having max(b) = 10"},
 		{"order_simple", "select a from foo order by b"},
 		{"order_inside_subquery", "(select a from foo order by b)"},
@@ -495,7 +499,7 @@ func TestPushdownPlan(t *testing.T) {
 					if expected == "" || actual == "" {
 						req.Equal(expected, actual, "result does not match cached result")
 					} else {
-						req.JSONEq(expected, actual, "result does not match cached result")
+						req.Equal(expected, actual, "result does not match cached result")
 					}
 				})
 			}

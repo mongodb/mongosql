@@ -2306,7 +2306,7 @@ func NewSQLAggregationFunctionExpr(name string, distinct bool, exprs []SQLExpr) 
 	case parser.CountAggregateName:
 		return NewSQLCountFunctionExpr(distinct, exprs)
 	case parser.GroupConcatAggregateName:
-		return NewSQLGroupConcatFunctionExpr(distinct, exprs)
+		return NewSQLGroupConcatFunctionExpr(distinct, exprs, option.NoneString(), 0)
 	case parser.MaxAggregateName:
 		return NewSQLMaxFunctionExpr(distinct, exprs)
 	case parser.MinAggregateName:
@@ -2359,7 +2359,11 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 
 		aggExpr := NewSQLAggregationFunctionExpr(name, expr.Distinct, exprs)
 		if groupConcat, ok := aggExpr.(*SQLGroupConcatFunctionExpr); ok {
-			groupConcat.Separator = expr.Separator
+			if expr.Separator.IsSome() {
+				groupConcat.Separator = expr.Separator
+			} else {
+				groupConcat.Separator = option.SomeString(",")
+			}
 			groupConcat.GroupConcatMaxLen = int(a.cfg.groupConcatMaxLen)
 		}
 

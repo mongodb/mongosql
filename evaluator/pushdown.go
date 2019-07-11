@@ -964,7 +964,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 		var newExpr SQLExpr
 		groupConcat, isGroupConcat := typedN.(*SQLGroupConcatFunctionExpr)
-		if typedN.Distinct() || (isGroupConcat && !v.requiresTwoSteps) {
+		if typedN.Distinct() || isGroupConcat {
 			// Distinct aggregation expressions are two-step aggregations. In the $group stage, we
 			// use $addToSet to handle whatever the distinct expression is, which could simply be a
 			// field name, or something more complex like a mathematical computation. We don't care
@@ -1002,18 +1002,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 						return nil, pushdownFail
 					}
 
-					if expr.EvalType() == types.EvalString {
-						translatedExprs = append(translatedExprs, trans)
-					} else {
-						// $convert was introduced in Mongo 4.0, so we cannot push down the query if
-						// the user is using an earlier Mongo version.
-						if !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{4, 0, 0}) {
-							return nil, newPushdownFailure(expr.ExprName(),
-								"cannot push down group_concat of non-strings for versions < 4.0")
-						}
-						translatedExprs = append(translatedExprs,
-							translateConvert(trans, expr.EvalType(), types.EvalString))
-					}
+					translatedExprs = append(translatedExprs, trans)
 				}
 
 				// concatenatedArguments holds a concatenated string of any number of expressions
@@ -1120,11 +1109,6 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					),
 				)
 			} else {
-				if isGroupConcat {
-					// We set v.requiresTwoSteps back to false in the event that we have multiple
-					// group_concat aggregate functions in one query.
-					v.requiresTwoSteps = false
-				}
 				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
 					typedN.EvalType(), schema.MongoNone, false, true)
 			}

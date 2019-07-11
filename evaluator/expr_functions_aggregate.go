@@ -381,14 +381,14 @@ type SQLGroupConcatFunctionExpr struct {
 }
 
 // NewSQLGroupConcatFunctionExpr is a constructor for SQLGroupConcatFunctionExpr.
-func NewSQLGroupConcatFunctionExpr(distinct bool, exprs []SQLExpr) *SQLGroupConcatFunctionExpr {
+func NewSQLGroupConcatFunctionExpr(distinct bool, exprs []SQLExpr, separator option.String, groupConcatMaxLen int) *SQLGroupConcatFunctionExpr {
 	return &SQLGroupConcatFunctionExpr{
 		baseAggFunctionExpr: baseAggFunctionExpr{
 			distinct: distinct,
 			exprs:    exprs,
 		},
-		Separator:         option.NoneString(),
-		GroupConcatMaxLen: 0,
+		Separator:         separator,
+		GroupConcatMaxLen: groupConcatMaxLen,
 	}
 }
 
@@ -418,7 +418,7 @@ func (f *SQLGroupConcatFunctionExpr) ToAggregationLanguage(t *PushdownTranslator
 	}
 
 	maxlen := astutil.Int64Value(int64(f.GroupConcatMaxLen))
-	separator := astutil.StringValue(f.Separator.Else(","))
+	separator := astutil.StringValue(f.Separator.Unwrap())
 
 	// The first time we add something to the list, we don't include a separator.
 	firstConcat := astutil.WrapInCond(
@@ -568,7 +568,8 @@ func (*SQLGroupConcatFunctionExpr) Name() string {
 
 // nolint: unparam
 func (f *SQLGroupConcatFunctionExpr) reconcile() (SQLExpr, error) {
-	return f, nil
+	reconciled := convertAllExprs(f.Exprs(), types.EvalString)
+	return NewSQLGroupConcatFunctionExpr(f.Distinct(), reconciled, f.Separator, f.GroupConcatMaxLen), nil
 }
 
 // String converts to a string.
