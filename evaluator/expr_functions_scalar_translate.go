@@ -3,9 +3,11 @@ package evaluator
 import (
 	"fmt"
 	"math"
+	"strings"
 	"time"
 
 	"github.com/10gen/mongoast/ast"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
@@ -288,6 +290,115 @@ func (f *baseScalarFunctionExpr) ceilToAggregationLanguage(t *PushdownTranslator
 	}
 
 	return ast.NewFunction(bsonutil.OpCeil, args[0]), nil
+}
+
+func (f *baseScalarFunctionExpr) charToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	if !t.versionAtLeast(3, 4, 0) {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(char)",
+			"cannot push down to MongoDB < 3.4",
+		)
+	}
+
+	// char is not pushed down for more than 1 arg, because there is currently no way
+	// to convert multi-byte characters like ⾀ (which is 226, 190, 128).
+	if len(exprs) != 1 {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(char)",
+			incorrectArgCountMsg,
+		)
+	}
+
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
+	}
+
+	// The char function takes the input number and converts it into a byte array
+	// by converting the number to base 256.
+	// The byte array is then converted into a string array,
+	// which is then concatenated together into a string.
+
+	// The following is all special casing for decimal, non-positive or null inputs
+	val := astutil.WrapInRound(args[0])
+	valRef := ast.NewVariableRef("val")
+	valLetAssignment := []*ast.LetVariable{
+		ast.NewLetVariable("val", val),
+	}
+
+	// If the argument is null, change the step input to $range to be -1
+	//in order to create an empty byte array and return an empty string at the end.
+	step := astutil.WrapInNullCheckedCond(astutil.Int32Value(-1), astutil.OneInt32Literal, args[0])
+
+	// if val < 0, val = val % 256
+	// This matches the behavior of in-memory evaluation of char for negative numbers,
+	// but not the behavior of MySQL's char function for negative numbers.
+	positiveVal := ast.NewLet(valLetAssignment, astutil.WrapInCond(
+		astutil.WrapInMod(valRef, astutil.Int32Value(256)), valRef,
+		astutil.WrapInBinOp(bsonutil.OpLt, valRef, astutil.ZeroInt32Literal)))
+
+	positiveValRef := ast.NewVariableRef("positiveVal")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("positiveVal", positiveVal),
+	}
+
+	// This converts val into a byte array representing val base 256.
+
+	// First, create a placeholder for each digit in val base 256
+	// by creating an array from 0 to (int(log_256(val)) + 1).
+	// These will be each digit of val base 256 (the ones digit, the 256 digit, the 256^2 digit, etc.)
+	// If the value is 0 or null, set the upper bound of the array to be 0
+	// because $log and $range don't take zero/null inputs respectively.
+	upperLimit := astutil.WrapInNullCheckedCond(astutil.ZeroInt32Literal,
+		astutil.WrapInCond(astutil.ZeroInt32Literal,
+			astutil.WrapInOp(bsonutil.OpAdd,
+				astutil.WrapInIntDiv(ast.NewBinary(bsonutil.OpLog, positiveValRef, astutil.Int32Value(256)),
+					astutil.OneInt32Literal), astutil.OneInt32Literal),
+			astutil.WrapInBinOp(bsonutil.OpEq, positiveValRef, astutil.ZeroInt32Literal)),
+		positiveValRef)
+
+	powers := astutil.WrapInRange(astutil.ZeroInt32Literal, upperLimit, step)
+
+	// Calculate the value of each digit in val base 256
+	// by calculating (val / 256 ^ (array_element)) % 256 on each element of the array.
+	valRemaindersFunc := astutil.WrapInRemainder(
+		astutil.WrapInIntDiv(positiveValRef,
+			ast.NewBinary(bsonutil.OpPow, astutil.Int32Value(256), astutil.ThisVarRef)),
+		astutil.Int32Value(256))
+
+	valBase256 := astutil.WrapInMap(powers, "this", valRemaindersFunc)
+
+	// converting byte array to string array
+	branches := make([]ast.Expr, 129)
+	for i := 0; i <= 127; i++ {
+		var bytei []byte
+		bytei = append(bytei, byte(i))
+		branches[i] = astutil.WrapInEqCase(
+			astutil.ThisVarRef, astutil.Int32Value(int32(i)), astutil.StringValue(string(bytei)))
+	}
+
+	// If the number is between 128 and 255, output the literal '�' character instead of the string version
+	// of the number, because the string version of the number is an invalid UTF-8 character.
+	// Because of this, this function doesn't roundtrip in all cases:
+	// ascii(char(128)) will give 239 instead of 128 (because the first byte of '�' is 239).
+	// This does not match the in-memory evaluation of the char function, which correctly
+	// returns the string version of the number.
+	branches[128] = astutil.WrapInCase(
+		ast.NewBinary(bsonutil.OpAnd,
+			ast.NewBinary(bsonutil.OpGte, astutil.ThisVarRef, astutil.Int32Value(128)),
+			ast.NewBinary(bsonutil.OpLte, astutil.ThisVarRef, astutil.Int32Value(255))),
+		astutil.StringValue("�"))
+
+	branchFunc := ast.NewFunction(bsonutil.OpSwitch, ast.NewDocument(
+		ast.NewDocumentElement("branches", ast.NewArray(branches...))))
+	convertedStringArr := astutil.WrapInMap(valBase256, "this", branchFunc)
+
+	// concatenate string array together from right to left to get correct order of characters
+	concatenatedString := ast.NewLet(assignments,
+		astutil.WrapInReduce(convertedStringArr, astutil.StringValue(""),
+			astutil.WrapInOp(bsonutil.OpConcat, astutil.ThisVarRef, astutil.ValueVarRef)))
+
+	return concatenatedString, nil
 }
 
 func (f *baseScalarFunctionExpr) characterLengthToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
@@ -932,7 +1043,7 @@ func (f *baseScalarFunctionExpr) dateFormatToAggregationLanguage(t *PushdownTran
 	}
 	formatValue := formatValueExpr.Value
 
-	wrapped, ok := astutil.WrapInDateFormat(date, formatValue.String())
+	wrapped, ok := formatDate(date, formatValue.String())
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(dateFormat)",
@@ -1108,6 +1219,61 @@ func (f *baseScalarFunctionExpr) floorToAggregationLanguage(t *PushdownTranslato
 	return ast.NewFunction(bsonutil.OpFloor, args[0]), nil
 }
 
+// formatDate wraps an Aggregation Expression that evaluates to a date
+// in a date_format expression that will use '$dateFromString' to format
+// a date to a string.
+func formatDate(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
+	var format string
+	for i := 0; i < len(mysqlFormat); i++ {
+		if mysqlFormat[i] == '%' {
+			if i != len(mysqlFormat)-1 {
+				switch mysqlFormat[i+1] {
+				case '%':
+					format += "%%"
+				case 'd':
+					format += "%d"
+				case 'f':
+					format += "%L000"
+				case 'H', 'k':
+					format += "%H"
+				case 'i':
+					format += "%M"
+				case 'j':
+					format += "%j"
+				case 'm':
+					format += "%m"
+				case 's', 'S':
+					format += "%S"
+				case 'T':
+					format += "%H:%M:%S"
+				case 'U':
+					format += "%U"
+				case 'Y':
+					format += "%Y"
+				default:
+					return nil, false
+				}
+				i++
+			} else {
+				// MongoDB fails when the last character is a % sign in the format string.
+				return nil, false
+			}
+		} else {
+			format += string(mysqlFormat[i])
+		}
+	}
+
+	if val, ok := date.(*ast.Constant); ok && val.Value.Type == bsontype.Null {
+		return nil, true
+	}
+
+	return astutil.WrapInNullCheckedCond(
+		astutil.NullLiteral,
+		astutil.WrapInDateToString(date, format),
+		date,
+	), true
+}
+
 func (f *baseScalarFunctionExpr) fromDaysToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
 	if len(exprs) != 1 {
 		return nil, newPushdownFailure(
@@ -1188,7 +1354,7 @@ func (f *baseScalarFunctionExpr) fromUnixtimeToAggregationLanguage(t *PushdownTr
 	}
 	if formatExpr, ok := exprs[1].(SQLValueExpr); ok {
 		format := formatExpr.Value
-		wrapped, ok := astutil.WrapInDateFormat(ret, format.String())
+		wrapped, ok := formatDate(ret, format.String())
 		if !ok {
 			return nil, newPushdownFailure(
 				"SQLScalarFunctionExpr(fromUnixtime)",
@@ -2424,6 +2590,119 @@ func (f *baseScalarFunctionExpr) sqrtToAggregationLanguage(t *PushdownTranslator
 		ast.NewFunction(bsonutil.OpSqrt, args[0]),
 		astutil.NullLiteral,
 		ast.NewBinary(bsonutil.OpGte, args[0], astutil.ZeroInt32Literal),
+	), nil
+}
+
+func (f *baseScalarFunctionExpr) strToDateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	if !t.versionAtLeast(4, 0, 0) {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(strToDate)",
+			"cannot push down to MongoDB < 4.0",
+		)
+	}
+
+	if len(exprs) != 2 {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(strToDate)",
+			incorrectArgCountMsg,
+		)
+	}
+
+	str, err := t.ToAggregationLanguage(exprs[0])
+	if err != nil {
+		return nil, err
+	}
+
+	formatValueExpr, ok := exprs[1].(SQLValueExpr)
+	if !ok {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateFormat)",
+			"format string was not a literal",
+		)
+	}
+
+	formatValueString := formatValueExpr.Value.String()
+
+	// if the input date string is null, return null
+	if val, ok := str.(*ast.Constant); ok && val.Value.Type == bsontype.Null {
+		return nil, nil
+	}
+
+	// pushdown uses $dateFromString, so it is unable to support the
+	// MySQL date format operators for %a, %b, %c, %e, %M, %W, %y
+	// which are supported in the in-memory evaluation
+	var format string
+	for i := 0; i < len(formatValueString); i++ {
+		if formatValueString[i] == '%' {
+			if i != len(formatValueString)-1 {
+				switch formatValueString[i+1] {
+				case 'd':
+					format += "%d"
+				case 'H':
+					format += "%H"
+				case 'i':
+					format += "%M"
+				case 'm':
+					format += "%m"
+				case 's', 'S':
+					format += "%S"
+				case 'T':
+					format += "%H:%M:%S"
+				case 'Y':
+					format += "%Y"
+				default:
+					return nil, newPushdownFailure(
+						"SQLScalarFunctionExpr(strToDate)",
+						"unable to push down format string",
+						"formatString", formatValueString,
+					)
+				}
+				i++
+			} else {
+				// MongoDB fails when the last character is a % sign in the format string.
+				return nil, newPushdownFailure(
+					"SQLScalarFunctionExpr(strToDate)",
+					"unable to push down format string",
+					"formatString", formatValueString,
+				)
+			}
+		} else {
+			format += string(formatValueString[i])
+		}
+	}
+
+	// $dateFromString requires that the format string and corresponding date string
+	// contain %Y, %m, and %d and the corresponding year, month, and date values.
+	// This manually adds default year, month, and date values if the inputted
+	// strings don't contains them in order to match the in-memory evaluation default values.
+	var arr []ast.Expr
+	arr = append(arr, str)
+
+	if !strings.Contains(format, "%Y") {
+		format += " %Y"
+		arr = append(arr, astutil.StringValue(" 0000"))
+	}
+
+	if !strings.Contains(format, "%m") {
+		format += " %m"
+		arr = append(arr, astutil.StringValue(" 01"))
+	}
+
+	if !strings.Contains(format, "%d") {
+		format += " %d"
+		arr = append(arr, astutil.StringValue(" 01"))
+	}
+
+	newString := astutil.WrapInConcat(arr)
+
+	return astutil.WrapInNullCheckedCond(
+		astutil.NullLiteral,
+		ast.NewFunction(bsonutil.OpDateFromString, ast.NewDocument(
+			ast.NewDocumentElement("dateString", newString),
+			ast.NewDocumentElement("format", astutil.StringValue(format)),
+			ast.NewDocumentElement("onError", astutil.NullLiteral),
+		)),
+		newString,
 	), nil
 }
 

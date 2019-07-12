@@ -793,7 +793,7 @@ func (f *charFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *Execu
 }
 
 func (f *charFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	return f.charToAggregationLanguage(t, f.args)
 }
 
 func (f *charFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
@@ -6306,7 +6306,7 @@ func (f *strToDateFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 }
 
 func (f *strToDateFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	return f.strToDateToAggregationLanguage(t, f.args)
 }
 
 func (f *strToDateFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
@@ -6343,10 +6343,6 @@ func (f *strToDateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 func (f *strToDateFunc) reconcile() (SQLExpr, error) {
 	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
-}
-
-func strToDateEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDatetime
 }
 
 type substringFromFunc struct {

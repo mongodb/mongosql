@@ -264,10 +264,10 @@
   collection: "ascii" 
   # The squares are actually different characters; they just can't be displayed properly
   docs:
-    - {_id: 0, a: ~, b: "\0", c: true, d: {$date: "2006-12-04T12:30:25Z"}, e: " ", f: "👻"}
+    - {_id: 0, a: ~, b: "\0", c: true, d: {$date: "2006-12-04T12:30:25Z"}, e: " ", f: "☔"}
     - {_id: 1, a: ~, b: "Hey", c: false, e: "Ā", f: "퀀"}
     - {_id: 2, a: -34, b: "\t", e: "zy", f: "¡"}
-    - {_id: 3, a: 4, b: "~!", e: "ৗ", f: "𐀀"}
+    - {_id: 3, a: 4, b: "~!", e: "ৗ", f: "ꝝ"}
     - {_id: 4, a: 0.5, b: "", e: "ÿ", f: "ࠀ"}
     - {_id: 5, b: "⚛", e: "￮", f: "߿"}
     
@@ -279,6 +279,54 @@
     - {_id: 2, a: -3, b: ~, c: 56.7342, d: {$date: {$numberLong: "972395100007"}}, t: ~}
     - {_id: 3, a: 4, b: "this", c: ~, d: ~, z: 0}
     - {_id: 4, z: ~}
+
+- db: "functions_test"
+  collection: "simple_char_test_int"
+  docs:
+    - {a: 97}
+    - {a: 124}
+    - {a: 33}
+    - {a: 125}
+
+- db: "functions_test"
+  collection: "simple_char_test_float"
+  docs:
+    - {a: 99.0}
+    - {a: 32.4}
+    - {a: 8.5}
+    - {a: -159.0}
+
+- db: "functions_test"
+  collection: "char_zero"
+  docs:
+    - {a: "", b: null, c: 0}
+    - {a: "0", b: null, c: null}
+
+- db: "functions_test"
+  collection: "ascii_char_test_int"
+  docs:
+    - {c: 609}
+    - {c: 127}
+    - {c: 17046}
+
+- db: "functions_test"
+  collection: "large_num_char_test"
+  docs:
+    - {a: 6372406, b: 6372479}
+    - {a: 24929, b: 84281100}
+    - {a: 572612962,  b: 2826014}
+    - {a: 6502440, b: 2039339}
+    # Characters between 128 and 255 can't be tested because pushdown returns the literal '�' character,
+    # while evaluate returns the actual character
+    # - {a: 255, b: 128, c: 17046}
+
+- db: "functions_test"
+  collection: "multi_arg_char_test"
+  docs:
+    - {a: 226, b: 190, c: 128, d: 97}
+    - {a: 65, b: 9, c: 33, d: 98}
+    - {a: 196, b: 128, c: 195, d: 191}
+    - {a: 50, b: 226, c: 152, d: 148}
 
 - db: "functions_test"
   collection: "booleans"
@@ -691,6 +739,58 @@
     - {s: "ƏŨ Ó€"}
     - {s: "⅓ ⅔ † ‡ µ ¢ £"}
     - {s: "∞π∅≤≥≠≈"}
+
+- db: "functions_test"
+  collection: "strToDateColumns"
+  docs:
+    - {s: "01,05,2013 23b01b02", f: "%d,%m,%Y %Hb%Sb%i"}
+    - {s: "Fri 4Mar 20.5935 05", f: "%a %e%b %H.%s%i %y"}
+    - {s: "3 2 2004-2304:04:04 Tuesday", f: "%c 2 %Y-%d%T %W"}
+
+- db: "functions_test"
+  collection: "strToDateColumnsNoTime"
+  docs:
+    - {s: "01-23-1999", f: "%m-%d-%Y"}
+    - {s: "May 01a, 2013", f: "%M %da, %Y"}
+
+- db: "functions_test"
+  collection: "strToDateColumnsNoDate"
+  docs:
+    - {s: "a09:30:17", f: "a%H:%i:%s"}
+    - {s: "09", f: "%s"}
+
+- db: "functions_test"
+  collection: "strToDateColumnsNull"
+  docs:
+    - {s: "01-23-1999", f: "%Y-%m-%d"}
+    - {s: "a09:30:17", f: "%H:%i:%s"}
+    - {s: "2000-01-01", f: ""}
+
+- db: "functions_test"
+  collection: "strToDateColumnsInvalidDates"
+  docs:
+    - {s: "04/31/2004", f: "%m/%d/%Y"}
+    - {s: "00/00/0000", f: "%m/%d/%Y"}
+
+- db: "functions_test"
+  collection: "strToDate"
+  docs:
+    - {s: "01,05,2013 23b01..02", i: 12101999040359}
+    - {s: "0490320592005"}
+    - {s: "0382004-2304:04:04"}
+
+- db: "functions_test"
+  collection: "strToDateNoDateOrTime"
+  docs:
+    - {s: "01-23-1999"}
+    - {s: "09"}
+    - {s: "1960-24"}
+
+- db: "functions_test"
+  collection: "strToDateInvalidDates"
+  docs:
+    - {s: "04/31/2004"}
+    - {s: "00/00/0000"}
 
 - db: "groupby_test"
   collection: "groupby"

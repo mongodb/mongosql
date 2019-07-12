@@ -2310,6 +2310,11 @@ func TestEvaluates(t *testing.T) {
 				EvalDate,
 			},
 			{"sql_least_type_1", "LEAST(1, 123.52, 'something')", EvalDecimal128},
+			{"sql_str_to_date_type_0", "STR_TO_DATE('2000-01-01', '%Y-%m-%d')", EvalDate},
+			{"sql_str_to_date_type_1", "STR_TO_DATE('2000-01-01', 'hello%iworld')", EvalDatetime},
+			{"sql_str_to_date_type_2", "STR_TO_DATE('2000-01-01', 'hello%%Hworld')", EvalDatetime},
+			{"sql_str_to_date_type_3", "STR_TO_DATE('2000-01-01', 'hi%%wd')", EvalDate},
+			{"sql_str_to_date_type_4", "STR_TO_DATE('2000-01-01', '%S%Y')", EvalDatetime},
 			{
 				"sql_timestampadd_type_0",
 				"TIMESTAMPADD(SQL_TSI_QUARTER, 2, DATE '2002-07-02')",

@@ -2614,3 +2614,29 @@ func TestConvertExprs(t *testing.T) {
 		})
 	}
 }
+
+func TestStrToDateEvalType(t *testing.T) {
+	type test struct {
+		name         string
+		testExpr     []SQLExpr
+		expectedType types.EvalType
+	}
+
+	knd := values.MySQLValueKind
+	tests := []test{
+		{"sql_str_to_date_type_0", []SQLExpr{NewSQLValueExpr(values.NewSQLVarchar(knd, "2000-01-01")), NewSQLValueExpr(values.NewSQLVarchar(knd, "%Y-%m-%d"))}, types.EvalDate},
+		{"sql_str_to_date_type_1", []SQLExpr{NewSQLValueExpr(values.NewSQLVarchar(knd, "2000-01-01")), NewSQLValueExpr(values.NewSQLVarchar(knd, "hello%iworld"))}, types.EvalDatetime},
+		{"sql_str_to_date_type_2", []SQLExpr{NewSQLValueExpr(values.NewSQLVarchar(knd, "2000-01-01")), NewSQLValueExpr(values.NewSQLVarchar(knd, "hello%%Hworld"))}, types.EvalDatetime},
+		{"sql_str_to_date_type_3", []SQLExpr{NewSQLValueExpr(values.NewSQLVarchar(knd, "2000-01-01")), NewSQLValueExpr(values.NewSQLVarchar(knd, "hi%%wd"))}, types.EvalDate},
+		{"sql_str_to_date_type_4", []SQLExpr{NewSQLValueExpr(values.NewSQLVarchar(knd, "2000-01-01")), NewSQLValueExpr(values.NewSQLVarchar(knd, "%S%Y"))}, types.EvalDatetime},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := require.New(t)
+
+			outputType := strToDateEvalType(test.testExpr)
+			req.Equal(outputType, test.expectedType)
+		})
+	}
+}

@@ -907,10 +907,10 @@ testcases:
     description: test ascii on different character sets
     expected_names: [ascii(a), ascii(b), ascii(c), ascii(d), ascii(e), ascii(f)]
     expected_results:
-      - [null, 0, 49, 50, 32, 240]
+      - [null, 0, 49, 50, 32, 226]
       - [null, 72, 48, null, 196, 237]
       - [45, 9, null, null, 122, 194]
-      - [52, 126, null, null, 224, 240]
+      - [52, 126, null, null, 224, 234]
       - [48, 0, null, null, 195, 224]
       - [null, 226, null, null, 239, 223]
     expected_types: [int, int, int, int, int, int]
@@ -952,6 +952,86 @@ testcases:
     expected_types: [int, varchar]
     id: char
     sql: select a + 50, char(a + 50, 65) from scalar
+
+  - db: functions_test
+    description: char from int values that result in one byte
+    expected_names: [a, 'char(a)']
+    expected_results:
+      - [97, "a"]
+      - [124, "|"]
+      - [33, "!"]
+      - [125, "}"]
+    expected_types: [int, varchar]
+    id: simple_char_int
+    sql: select a, char(a) from simple_char_test_int
+
+  - db: functions_test
+    description: char from float values that result in one byte
+    expected_names: [a, 'char(a)']
+    expected_results:
+      - [99.0, "c"]
+      - [32.4, " "]
+      - [8.5, "\t"]
+      - [-159.0, "a"]
+    expected_types: [float, varchar]
+    id: simple_char_float
+    sql: select a, char(a) from simple_char_test_float
+
+  - db: functions_test
+    description: char with values that give the 0 value
+    expected_names: [a, b, c, 'ascii(char(a))', 'ascii(char(b))', 'ascii(char(c))']
+    expected_results:
+      - ["", null, 0, 0, 0, 0]
+      - ["0", null, null, 0, 0, 0]
+    expected_types: [varchar, int, int, int, int, int]
+    id: char_zero
+    sql: select a, b, c, ascii(char(a)), ascii(char(b)), ascii(char(c)) from char_zero
+
+  - db: functions_test
+    description: test ascii and char functions together with ints
+    expected_names: [c, 'ascii(char(c))']
+    expected_results:
+      - [609, 2]
+      - [127, 127]
+      - [17046, 66]
+    expected_types: [int, int]
+    id: ascii_char_int
+    sql: select c, ascii(char(c)) from ascii_char_test_int
+
+  - db: functions_test
+    description: char with values that result in multiple bytes
+    expected_names: [a, 'char(a)']
+    expected_results:
+      - [6372406, "a<6"]
+      - [24929, "aa"]
+      - [572612962, "\"!ab"]
+      - [6502440, "c8("]
+    expected_types: [int, varchar]
+    id: large_num_char
+    sql: select a, char(a) from large_num_char_test
+
+  - db: functions_test
+    description: char on large numbers should result in the same string as char on the same number converted into multiple bytes
+    expected_names: [b, a, e, c, d]
+    expected_results:
+      - [6372479, 1, 0, 0, 0]
+      - [84281100, 0, 1, 0, 0]
+      - [2826014, 0, 0, 1, 0]
+      - [2039339, 0, 0, 0, 1]
+    expected_types: [int, int, int, int, int]
+    id: large_num_char_2
+    sql: select b, char(b) = char(97, 60, 127) as a, char(b) = char(5, 6, 7, 12) as e, char(b) = char(43, 31, 30) as c, char(b) = char(31, 30, 43) as d from large_num_char_test
+
+  - db: functions_test
+    expected_names: ['char(a, b, c, d)']
+    expected_results:
+      - ["⾀a"]
+      - ["A\t!b"]
+      - ["Āÿ"]
+      - ["2☔"]
+    expected_types: [varchar]
+    id: char_multi_arg
+    sql: select char(a, b, c, d) from multi_arg_char_test
 
   - db: functions_test
     expected_names: [b, char_length(b)]
@@ -3234,6 +3314,91 @@ testcases:
     expected_types: [int]
     id: sqrt_null
     sql: select sqrt(null) from scalar
+
+  - db: functions_test
+    description: str_to_date with column inputs for both the date string and format string
+    expected_names: [s, f, 'str_to_date(s, f)']
+    expected_results:
+      - ["01,05,2013 23b01b02", "%d,%m,%Y %Hb%Sb%i", '2013-05-01 23:02:01']
+      - ["Fri 4Mar 20.5935 05", "%a %e%b %H.%s%i %y", '2005-03-04 20:35:59']
+      - ["3 2 2004-2304:04:04 Tuesday", "%c 2 %Y-%d%T %W", '2004-03-23 04:04:04']
+    expected_types: [varchar, varchar, varchar]
+    id: strToDateColumns
+    sql: select s, f, str_to_date(s, f) from strToDateColumns
+
+  - db: functions_test
+    description: str_to_date with column inputs for both date string and format string and no time format operators
+    expected_names: [s, f, 'str_to_date(s, f)']
+    expected_results:
+      - ['01-23-1999', '%m-%d-%Y', '1999-01-23 00:00:00']
+      - ["May 01a, 2013", "%M %da, %Y", '2013-05-01 00:00:00']
+    expected_types: [varchar, varchar, varchar]
+    id: strToDateColumnsNoTime
+    sql: select s, f, str_to_date(s, f) from strToDateColumnsNoTime
+
+  - db: functions_test
+    description: str_to_date with column inputs for both date string and format string and no date format operators
+    expected_names: [s, f, 'str_to_date(s, f)']
+    expected_results:
+      - ["a09:30:17", "a%H:%i:%s", "0000-01-01 09:30:17"]
+      - ["09", "%s", '0000-01-01 00:00:09']
+    expected_types: [varchar, varchar, varchar]
+    id: strToDateColumnsNoDate
+    sql: select s, f, str_to_date(s, f) from strToDateColumnsNoDate
+
+  - db: functions_test
+    description: str_to_date with column inputs for both date string and format string and null results because the date string and format string do not match
+    expected_names: [s, f, 'str_to_date(s, f)']
+    expected_results:
+      - ["01-23-1999", "%Y-%m-%d", null]
+      - ["a09:30:17", "%H:%i:%s", null]
+      - ["2000-01-01", "", null]
+    expected_types: [varchar, varchar, varchar]
+    id: strToDateColumnsNull
+    sql: select s, f, str_to_date(s, f) from strToDateColumnsNull
+
+  - db: functions_test
+    description: str_to_date with column inputs for both date string and format string and invalid/out of range dates
+    expected_names: [s, f, 'str_to_date(s, f)']
+    expected_results:
+      - ["04/31/2004", "%m/%d/%Y", null]
+      - ["00/00/0000", "%m/%d/%Y", null]
+    expected_types: [varchar, varchar, varchar]
+    id: strToDateColumnsInvalidDates
+    sql: select s, f, str_to_date(s, f) from strToDateColumnsInvalidDates
+
+  - db: functions_test
+    description: str_to_date with a literal format string
+    expected_names: [s, i, a, b, c, d]
+    expected_results:
+      - ["01,05,2013 23b01..02", 12101999040359, '2013-05-01 23:02:01', null, null, '1999-10-12 04:03:59']
+      - ["0490320592005", null, null, '2005-03-04 20:00:59', null, null]
+      - ["0382004-2304:04:04", null, null, null, '2004-03-23 04:04:04', null]
+    expected_types: [varchar, int, varchar, varchar, varchar, varchar]
+    id: strToDate
+    sql: select s, i, str_to_date(s, "%d,%m,%Y %Hb%S..%i") as a, str_to_date(s, "%d9%m%H%s%Y") as b, str_to_date(s, "%m8%Y-%d%T") as c, str_to_date(i, "%d%m%Y%H%i%s") as d from strToDate
+
+  - db: functions_test
+    description: str_to_date with a literal format string and missing either date or time format operators
+    expected_names: [s, a, b, c]
+    expected_results:
+      - ['01-23-1999', '1999-01-23', null, null]
+      - ['09', null, '0000-01-01 00:00:09', null]
+      - ['1960-24', null, null, "1960-01-24"]
+    expected_types: [varchar, varchar, varchar, varchar]
+    id: strToDateNoDateOrTime
+    sql: select s, str_to_date(s, "%m-%d-%Y") as a, str_to_date(s, "%s") as b, str_to_date(s, "%Y-%d") as c from strToDateNoDateOrTime
+
+  - db: functions_test
+    description: str_to_date with a literal format string and invalid/out of range dates
+    expected_names: [s, a]
+    expected_results:
+      - ['04/31/2004', null]
+      - ['00/00/0000', null]
+    expected_types: [varchar, varchar]
+    id: strToDateInvalidDates
+    sql: select s, str_to_date(s, "%m/%d/%Y") as a from strToDateInvalidDates
+
 
   - db: functions_test
     expected_names: [d, 'subdate(d, 433, minute)']

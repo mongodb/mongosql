@@ -38,28 +38,35 @@ func (f baseScalarFunctionExpr) asciiEvaluate(sqlValueKind values.SQLValueKind, 
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) charEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	// The char function takes each argument and converts it into a byte (or multiple bytes if > 255)
+	// and the overall byte array is then converted into a string.
+	// An argument > 255 is converted into multiple bytes by converting it to base 256.
 
-	var b []byte
-	for _, i := range vs {
-		if i.IsNull() {
+	// This goes through the vs array backwards because this way every individual byte can be appended to the
+	// output byte array, which is then reversed.
+	var out []byte
+	for i := len(vs) - 1; i >= 0; i-- {
+		elem := vs[i]
+		if elem.IsNull() {
 			continue
 		}
-		v := values.Int64(i)
-		if v >= 256 {
-			var temp []byte
-			num := v / 255
-			v = v % 256
-			for num >= 256 {
-				temp = append(temp, 0)
-				num /= 255
-			}
-			b = append(b, uint8(num))
-			b = append(b, temp...)
+		v := values.Int64(elem)
+
+		// This divides v by 256 and appends the remainder onto the output byte array,
+		// and repeats this process until v is < 256, and then appends v.
+		for v >= 256 {
+			rem := v % 256
+			out = append(out, uint8(rem))
+			v /= 256
 		}
-		b = append(b, uint8(v))
+		out = append(out, uint8(v))
 	}
 
-	return values.NewSQLVarchar(sqlValueKind, string(b)), nil
+	// reversing byte array
+	for i, j := 0, len(out)-1; i < j; i, j = i+1, j-1 {
+		out[i], out[j] = out[j], out[i]
+	}
+	return values.NewSQLVarchar(sqlValueKind, string(out)), nil
 }
 
 // nolint: unparam
@@ -1282,10 +1289,9 @@ func (f baseScalarFunctionExpr) strToDateEvaluate(sqlValueKind values.SQLValueKi
 
 	format := ""
 	skipToken := false
-	ts := false
 	for idx, char := range ftStr {
 		if !skipToken {
-			if char == 37 && idx != len(ftStr)-1 {
+			if char == '%' && idx != len(ftStr)-1 {
 				token := "%" + string(ftStr[idx+1])
 				skipToken = true
 				goToken := fmtTokens[token]
@@ -1293,10 +1299,6 @@ func (f baseScalarFunctionExpr) strToDateEvaluate(sqlValueKind values.SQLValueKi
 					format += goToken
 				} else {
 					return values.NewSQLNull(sqlValueKind), nil
-				}
-				if token == "%H" || token == "%i" || token == "%k" || token == "%p" ||
-					token == "%S" || token == "%s" || token == "%T" {
-					ts = true
 				}
 			} else {
 				format += string(char)
@@ -1311,11 +1313,14 @@ func (f baseScalarFunctionExpr) strToDateEvaluate(sqlValueKind values.SQLValueKi
 		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	if ts {
-		return values.NewSQLTimestamp(sqlValueKind, d), nil
+	// This calls the strToDateEvalType function which checks
+	// what the return type should be based on the format argument.
+	returnType := f.EvalType()
+	if returnType == types.EvalDate {
+		return values.NewSQLDate(sqlValueKind, d), nil
 	}
+	return values.NewSQLTimestamp(sqlValueKind, d), nil
 
-	return values.NewSQLDate(sqlValueKind, d), nil
 }
 
 // nolint: unparam

@@ -149,7 +149,6 @@ functions:
         return_type: EvalString
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_char
     names: ['char']
-    no_pushdown: true
 
   - _id: characterLength
     invocations:
@@ -894,10 +893,8 @@ functions:
       - arguments:
           - eval_type: EvalString
           - eval_type: EvalString
-        return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_str-to-date
     names: ['str_to_date']
-    no_pushdown: true
 
   - _id: substring
     invocations:

@@ -245,61 +245,6 @@ func WrapInCosPowerSeries(expr ast.Expr) *ast.Let {
 	)
 }
 
-// WrapInDateFormat wraps an Aggregation Expression that evaluates to a date
-// in a date_format expression that will use '$dateFromString' to format
-// a date to a string.
-func WrapInDateFormat(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
-	var format string
-	for i := 0; i < len(mysqlFormat); i++ {
-		if mysqlFormat[i] == '%' {
-			if i != len(mysqlFormat)-1 {
-				switch mysqlFormat[i+1] {
-				case '%':
-					format += "%%"
-				case 'd':
-					format += "%d"
-				case 'f':
-					format += "%L000"
-				case 'H', 'k':
-					format += "%H"
-				case 'i':
-					format += "%M"
-				case 'j':
-					format += "%j"
-				case 'm':
-					format += "%m"
-				case 's', 'S':
-					format += "%S"
-				case 'T':
-					format += "%H:%M:%S"
-				case 'U':
-					format += "%U"
-				case 'Y':
-					format += "%Y"
-				default:
-					return nil, false
-				}
-				i++
-			} else {
-				// MongoDB fails when the last character is a % sign in the format string.
-				return nil, false
-			}
-		} else {
-			format += string(mysqlFormat[i])
-		}
-	}
-
-	if val, ok := date.(*ast.Constant); ok && val.Value.Type == bsontype.Null {
-		return nil, true
-	}
-
-	return WrapInNullCheckedCond(
-		NullLiteral,
-		WrapInDateToString(date, format),
-		date,
-	), true
-}
-
 // WrapInDateToString converts date to a string according to the specified format.
 func WrapInDateToString(date ast.Expr, format string) *ast.Function {
 	return ast.NewFunction(bsonutil.OpDateToString, ast.NewDocument(
@@ -452,6 +397,16 @@ func WrapInMap(input ast.Expr, as string, in ast.Expr) *ast.Function {
 	))
 }
 
+// WrapInMod returns the modulo (not the remainder)
+// of the a divided by b,
+// using the formula a mod b = ((a % b) + b) % b
+// where % gets the remainder of a divided by b.
+func WrapInMod(a, b ast.Expr) *ast.Binary {
+	return ast.NewBinary(bsonutil.OpMod,
+		ast.NewBinary(bsonutil.OpAdd,
+			ast.NewBinary(bsonutil.OpMod, a, b), b), b)
+}
+
 func bsonValueIsNull(value bsoncore.Value) *ast.Constant {
 	if value.Type == bsontype.Null {
 		return TrueLiteral
@@ -551,6 +506,12 @@ func WrapInReduce(input, initialValue, in ast.Expr) *ast.Function {
 		ast.NewDocumentElement("initialValue", initialValue),
 		ast.NewDocumentElement("in", in),
 	))
+}
+
+// WrapInRemainder returns the aggregation expression { $mod: [ a, b ] }
+// https://docs.mongodb.com/manual/reference/operator/aggregation/mod/
+func WrapInRemainder(a, b ast.Expr) *ast.Binary {
+	return ast.NewBinary(bsonutil.OpMod, a, b)
 }
 
 // WrapInRegex returns a regex document for use in match expressions.
