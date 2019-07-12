@@ -25,7 +25,7 @@ type mockCmdHandler struct {
 	session *mongodb.Session
 }
 
-func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (mongodb.Cursor, error) {
+func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error) {
 	return c.session.Aggregate(ctx, db, col, pipeline)
 }
 func (*mockCmdHandler) Alter(context.Context, []*schema.Alteration) error {

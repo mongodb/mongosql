@@ -32,7 +32,7 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 	var trackedStmt parser.Statement
 	var planStats *evaluator.PlanStats
 
-	if err = c.session.Validate(); err != nil {
+	if err = c.session.Validate(ctx); err != nil {
 		c.close(ctx)
 		return err
 	}

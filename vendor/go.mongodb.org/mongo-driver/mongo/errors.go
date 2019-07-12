@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 	"go.mongodb.org/mongo-driver/x/network/result"
 )
@@ -45,11 +44,20 @@ func replaceErrors(err error) error {
 	if de, ok := err.(driver.Error); ok {
 		return CommandError{Code: de.Code, Message: de.Message, Labels: de.Labels, Name: de.Name}
 	}
-	if conv, ok := err.(driverlegacy.BulkWriteException); ok {
-		return BulkWriteException{
-			WriteConcernError: convertWriteConcernError(conv.WriteConcernError),
-			WriteErrors:       convertBulkWriteErrors(conv.WriteErrors),
+	if qe, ok := err.(driver.QueryFailureError); ok {
+		// qe.Message is "command failure"
+		ce := CommandError{Name: qe.Message}
+
+		dollarErr, err := qe.Response.LookupErr("$err")
+		if err == nil {
+			ce.Message, _ = dollarErr.StringValueOK()
 		}
+		code, err := qe.Response.LookupErr("code")
+		if err == nil {
+			ce.Code, _ = code.Int32OK()
+		}
+
+		return ce
 	}
 
 	return err
@@ -81,6 +89,11 @@ func (e CommandError) HasErrorLabel(label string) bool {
 		}
 	}
 	return false
+}
+
+// IsMaxTimeMSExpiredError indicates if the error is a MaxTimeMSExpiredError.
+func (e CommandError) IsMaxTimeMSExpiredError() bool {
+	return e.Code == 50 || e.Name == "MaxTimeMSExpired"
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -154,22 +167,6 @@ func (mwe WriteException) Error() string {
 	fmt.Fprintf(&buf, "{%s}, ", mwe.WriteErrors)
 	fmt.Fprintf(&buf, "{%s}]", mwe.WriteConcernError)
 	return buf.String()
-}
-
-func convertBulkWriteErrors(errors []driverlegacy.BulkWriteError) []BulkWriteError {
-	bwErrors := make([]BulkWriteError, 0, len(errors))
-	for _, err := range errors {
-		bwErrors = append(bwErrors, BulkWriteError{
-			WriteError{
-				Index:   err.Index,
-				Code:    err.Code,
-				Message: err.ErrMsg,
-			},
-			dispatchToMongoModel(err.Model),
-		})
-	}
-
-	return bwErrors
 }
 
 func convertWriteConcernError(wce *result.WriteConcernError) *WriteConcernError {

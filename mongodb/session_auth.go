@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/auth"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/mongodb/internal/mongoutil"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 )
 
 // SessionAuthenticator authenticates a session.
 type SessionAuthenticator interface {
 	// Auth handles authenticating the session.
-	Auth(context.Context, []conn.Connection) error
+	Auth(context.Context, []driver.Connection) error
 
 	source() string
 }
@@ -33,7 +33,7 @@ func (a *CleartextSessionAuthenticator) source() string {
 }
 
 // Auth handles authenticating the session.
-func (a *CleartextSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connection) error {
+func (a *CleartextSessionAuthenticator) Auth(ctx context.Context, conns []driver.Connection) error {
 
 	authCred := &auth.Cred{
 		Source:      a.Source,
@@ -55,7 +55,7 @@ func (a *CleartextSessionAuthenticator) Auth(ctx context.Context, conns []conn.C
 	}
 
 	for i := 0; i < len(conns); i++ {
-		err := authenticator.Auth(ctx, conns[i])
+		err := authenticator.Auth(ctx, conns[i].Description(), conns[i])
 		if err != nil {
 			return fmt.Errorf("unable to authenticate conversation %d: %s", i, err)
 		}
@@ -114,35 +114,34 @@ func (a *SaslSessionAuthenticator) AddConversation(payload []byte, done bool) {
 	})
 }
 
+// SaslResponse represents the server response to
+// saslStart and saslContinue messages.
+type SaslResponse struct {
+	ConversationID int    `bson:"conversationId"`
+	Code           int    `bson:"code"`
+	Done           bool   `bson:"done"`
+	Payload        []byte `bson:"payload"`
+	Ok             int    `bson:"ok"`
+}
+
 // Auth handles authenticating the session.
-func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connection) error {
+func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []driver.Connection) error {
 	source := a.Source
 
 	// Because sasl is a generic protocol, it can be client first or server first and client last
 	// or server last. As such, we need to wait until both the client and the server have said they
 	// are done in order to finalize the conversation.
 
-	type saslResponse struct {
-		ConversationID int    `bson:"conversationId"`
-		Code           int    `bson:"code"`
-		Done           bool   `bson:"done"`
-		Payload        []byte `bson:"payload"`
-	}
-
 	var err error
 	for i := 0; i < len(a.conversations); i++ {
-		saslStartRequest := msg.NewCommand(
-			msg.NextRequestID(),
-			source,
-			true, astutil.NewToOldBSOND(bsonutil.NewD(
-				bsonutil.NewDocElem("saslStart", 1),
-				bsonutil.NewDocElem("mechanism", a.Mechanism),
-				bsonutil.NewDocElem("payload", a.conversations[i].Payload),
-			)),
+		saslStartRequest := bsonutil.NewD(
+			bsonutil.NewDocElem("saslStart", 1),
+			bsonutil.NewDocElem("mechanism", a.Mechanism),
+			bsonutil.NewDocElem("payload", a.conversations[i].Payload),
 		)
 
-		var saslResp saslResponse
-		err = conn.ExecuteCommand(ctx, conns[i], saslStartRequest, &saslResp)
+		var saslResp SaslResponse
+		err = mongoutil.ExecuteWithConnection(ctx, source, conns[i], saslStartRequest, &saslResp)
 		if err != nil || saslResp.Code != 0 {
 			return fmt.Errorf("unable to saslStart conversation %d: %s", i, err)
 		}
@@ -167,19 +166,15 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connec
 		}
 
 		for i := 0; i < len(a.conversations); i++ {
-			saslContinueRequest := msg.NewCommand(
-				msg.NextRequestID(),
-				source,
-				true, astutil.NewToOldBSOND(bsonutil.NewD(
-					bsonutil.NewDocElem("saslContinue", 1),
-					bsonutil.NewDocElem("conversationId", a.conversations[i].id),
-					bsonutil.NewDocElem("payload", a.conversations[i].Payload),
-				)),
+			saslContinueRequest := bsonutil.NewD(
+				bsonutil.NewDocElem("saslContinue", 1),
+				bsonutil.NewDocElem("conversationId", a.conversations[i].id),
+				bsonutil.NewDocElem("payload", a.conversations[i].Payload),
 			)
 
-			var saslResp saslResponse
-			err = conn.ExecuteCommand(ctx, conns[i], saslContinueRequest, &saslResp)
-			if err != nil {
+			var saslResp SaslResponse
+			err = mongoutil.ExecuteWithConnection(ctx, source, conns[i], saslContinueRequest, &saslResp)
+			if err != nil || saslResp.Code != 0 {
 				return fmt.Errorf("unable to saslContinue conversation %d: %s", i, err)
 			}
 

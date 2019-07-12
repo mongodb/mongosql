@@ -39,6 +39,9 @@ func NewTranslator(ctx context.Context, cfg *config.Schema, s *mongodb.SessionPr
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = session.Close()
+	}()
 
 	sampleCfg := sample.NewMongosqldConfig(cfg, nil)
 	sampler := sample.NewSampler(sampleCfg, lgr, s)

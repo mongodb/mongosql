@@ -2,31 +2,28 @@ package mongodb
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/private/server"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
+
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/tag"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 // NewDrdlSessionProvider creates a new session provider for mongodrdl.
-func NewDrdlSessionProvider(rp *readpref.ReadPref, c *cluster.Cluster, timeout time.Duration,
-	numConns int) *SessionProvider {
+func NewDrdlSessionProvider(rp *readpref.ReadPref, t *topology.Topology, timeout time.Duration, numConns int) *SessionProvider {
 	return &SessionProvider{
 		rp:             rp,
-		c:              c,
+		t:              t,
 		connectTimeout: timeout,
 		numConns:       numConns,
 	}
@@ -34,7 +31,6 @@ func NewDrdlSessionProvider(rp *readpref.ReadPref, c *cluster.Cluster, timeout t
 
 // NewSqldSessionProvider creates a new session provider for mongosql.
 func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
-
 	uri := cfg.MongoDB.Net.URI
 	if !strings.HasPrefix(uri, bsonutil.MongoDBScheme) {
 		uri = fmt.Sprintf("%v%v", bsonutil.MongoDBScheme, uri)
@@ -49,33 +45,42 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		return nil, err
 	}
 
-	clusterOpts := []cluster.Option{
-		// before WithConnString makes these
-		// the defaults...
-		cluster.WithServerOptions(
-			server.WithMaxConnections(0),       // no upper limit per host
-			server.WithMaxIdleConnections(100), // pool 100 connections per host
-			server.WithConnectionOptions(
-				conn.WithAppName("mongosqld"),
-				conn.WithLifeTimeout(0),
-				conn.WithIdleTimeout(0),
-			),
-		),
-		cluster.WithConnString(cs),
+	topologyOpts := []topology.Option{
+		// Doing this before WithConnString makes these the defaults
+		topology.WithServerOptions(func(options ...topology.ServerOption) []topology.ServerOption {
+			return append(options,
+				topology.WithMaxConnections(func(uint16) uint16 { return 0 }),       // no upper limit per host
+				topology.WithMaxIdleConnections(func(uint16) uint16 { return 100 }), // pool 100 connections per host
+				topology.WithConnectionOptions(func(options ...topology.ConnectionOption) []topology.ConnectionOption {
+					return append(options,
+						topology.WithAppName(func(string) string { return "mongosqld" }),
+						topology.WithLifeTimeout(func(time.Duration) time.Duration { return 0 }),
+						topology.WithIdleTimeout(func(time.Duration) time.Duration { return 0 }),
+					)
+				}),
+			)
+		}),
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
+			return cs
+		}),
 	}
 
 	if cfg.MongoDB.Net.SSL.Enabled {
-		var dialer func(ctx context.Context, dialer *net.Dialer,
-			network, address string) (net.Conn, error)
+		var dialer topology.Dialer
 		dialer, err = ssl.SqldDialer(cfg)
 		if err != nil {
 			return nil, err
 		}
-		clusterOpts = append(clusterOpts,
-			cluster.WithMoreServerOptions(
-				server.WithMoreConnectionOptions(
-					conn.WithDialer(dialer),
-				),
+
+		topologyOpts = append(topologyOpts,
+			topology.WithServerOptions(
+				func(opts ...topology.ServerOption) []topology.ServerOption {
+					return append(opts, topology.WithConnectionOptions(
+						func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+							return append(opts, topology.WithDialer(func(topology.Dialer) topology.Dialer { return dialer }))
+						},
+					))
+				},
 			),
 		)
 	}
@@ -85,15 +90,20 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		return nil, err
 	}
 
-	c, err := cluster.New(clusterOpts...)
+	t, err := topology.New(topologyOpts...)
 	if err != nil {
+		return nil, err
+	}
+
+	// Must call Connect() on the topology to open it.
+	if err = t.Connect(); err != nil {
 		return nil, err
 	}
 
 	sp := &SessionProvider{
 		auth:           cfg.Security.Enabled,
 		rp:             rp,
-		c:              c,
+		t:              t,
 		connectTimeout: GetConnectTimeout(cs),
 		numConns:       cfg.MongoDB.Net.NumConnectionsPerSession,
 	}
@@ -123,7 +133,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 type SessionProvider struct {
 	auth           bool
 	rp             *readpref.ReadPref
-	c              *cluster.Cluster
+	t              *topology.Topology
 	connectTimeout time.Duration
 	numConns       int
 
@@ -132,10 +142,10 @@ type SessionProvider struct {
 
 // Close closes the session provider.
 func (sp *SessionProvider) Close() {
-	_ = sp.c.Close()
+	_ = sp.t.Disconnect(context.Background())
 }
 
-// AuthenticatedAdminSessionPrimary gets a new session used for handling administration tasks
+// AuthenticatedAdminSessionPrimary gets a new Session used for handling administration tasks
 // that require a primary and need to be authenticated separately from a client.
 func (sp *SessionProvider) AuthenticatedAdminSessionPrimary(ctx context.Context) (*Session, error) {
 	session, err := sp.session(ctx, readpref.Primary())
@@ -154,7 +164,7 @@ func (sp *SessionProvider) AuthenticatedAdminSessionPrimary(ctx context.Context)
 	return session, nil
 }
 
-// AuthenticatedAdminSession gets a new session used for handling tasks which
+// AuthenticatedAdminSession gets a new Session used for handling tasks which
 // require authentication separately from a client. This session honors the
 // read preference specified when starting up mongosqld.
 func (sp *SessionProvider) AuthenticatedAdminSession(ctx context.Context) (*Session, error) {
@@ -174,85 +184,109 @@ func (sp *SessionProvider) AuthenticatedAdminSession(ctx context.Context) (*Sess
 	return session, nil
 }
 
-// Session gets a new session.
+// Session gets a new Session.
 func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 	return sp.session(ctx, sp.rp)
 }
 
+// session creates a new Session. It uses the provided read preference to select
+// a server from the SessionProvider's deployment. We use that server to get the
+// connections for the Session's connection pool.
 func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (*Session, error) {
-	selector := readpref.Selector(rp)
+	// First, select an appropriate driver.Server from sp's topology.
+	selector := description.ReadPrefSelector(rp)
 	connectCtx, cancel := context.WithTimeout(ctx, sp.connectTimeout)
 	defer cancel()
-	server, err := sp.c.SelectServer(connectCtx, selector, rp)
+	server, err := sp.t.SelectServer(connectCtx, selector)
 	if err != nil {
 		return nil, fmt.Errorf("no servers available: %v", err)
 	}
 
+	// Create the Session
 	session := &Session{
-		cluster: sp.c,
-		server:  server,
-		count:   sp.numConns,
+		topologyKind: sp.t.Kind(),
+		numConns:     sp.numConns,
+		rp:           rp,
 	}
 
-	// Create a provider around server.Connection in order to support
-	// unauthenticating the connections.
-	provider := func(ctx context.Context) (conn.Connection, error) {
+	// Create a connection provider for the connection pool. This provider
+	// uses the selected server to get driver.Connections and adds support
+	// for unauthenticating the connections.
+	provider := func(ctx context.Context) (driver.Connection, error) {
 		c, connErr := server.Connection(ctx)
 		if connErr != nil {
 			return nil, connErr
 		}
 
 		if sp.auth {
-			// we need to ensure we logout any connections that were
-			// authenticated before returning them to the underlying pool,
-			// otherwise we'll get privilege escalation.
+			// We need to ensure we logout any connections that were
+			// authenticated before returning them to the underlying
+			// pool, otherwise we'll get privilege escalation.
+			// If the driver.Connection returned from the server is
+			// not Expirable, we cannot use it for an authenticated
+			// session.
+			e, ok := c.(expirableConnection)
+			if !ok {
+				return nil, errors.New("invalid connection for use with authentication")
+			}
 			c = &autoLogoutConnection{
-				s:          session,
-				Connection: c,
+				s:                   session,
+				expirableConnection: e,
 			}
 		}
 
-		session.clientAddresses = append(session.clientAddresses, c.LocalAddr().String())
+		session.clientAddresses = append(session.clientAddresses, c.Address().String())
 
 		return c, nil
 	}
 
-	// The pool keeps the connections checked out of the underlying pool until
-	// the session is closed.
+	// The pool keeps the connections checked out of the
+	// underlying pool until the session is closed.
 	if session.pool, err = newSessionConnPool(ctx, provider, sp.numConns); err != nil {
 		return nil, err
 	}
 
-	selectedServer := &ops.SelectedServer{
-		Server:      session,
-		ClusterKind: sp.c.Model().Kind,
-		ReadPref:    sp.rp,
+	// Finally, to support running commands against mongodb, the session needs
+	// a driver.Deployment. Here, we create a SingleServerDeployment using the
+	// the session itself! Session implements driver.Server by using the pool
+	// to provide driver.Connections. SingleServerDeployment will always return
+	// the session as the selected server, and therefore the connections will
+	// always come from the pool. This is the necessary behavior because of our
+	// auth requirements.
+	session.deployment = driver.SingleServerDeployment{
+		Server: session,
 	}
 
-	session.selectedServer = selectedServer
 	return session, nil
 }
 
+type expirableConnection interface {
+	driver.Connection
+	driver.Expirable
+}
+
 type autoLogoutConnection struct {
-	conn.Connection
+	expirableConnection
 	s *Session
 }
 
 func (c *autoLogoutConnection) Close() error {
 	if c.Alive() && c.s.authSource != "" {
-		logoutRequest := msg.NewCommand(
-			msg.NextRequestID(),
-			c.s.authSource,
-			true, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("logout", 1))),
+		logoutRequest := bsonutil.NewD(
+			bsonutil.NewDocElem("logout", 1),
 		)
 
-		newM := bsonutil.NewM()
-		if err := conn.ExecuteCommand(context.Background(), c, logoutRequest, &newM); err != nil {
-			c.MarkDead()
+		res := bsonutil.NewD()
+		if err := c.s.Run(context.Background(), c.s.authSource, logoutRequest, &res); err != nil {
+			// If the logout command fails, we expire the connection. We can ignore the error
+			// returned by Expire() because the method guarantees the connection will not be
+			// returned to the underlying pool (at the Go driver level). Not being returned to
+			// the pool ensures the authenticated connection will not be reused.
+			_ = c.Expire()
 		}
 	}
 
-	return c.Connection.Close()
+	return c.expirableConnection.Close()
 }
 
 // GetConnectTimeout returns the connection string's ConnectTimeout.
@@ -276,7 +310,7 @@ func GetReadPreference(cs connstring.ConnString) (*readpref.ReadPref, error) {
 	}
 
 	if len(cs.ReadPreferenceTagSets) > 0 {
-		tagSets := model.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
+		tagSets := tag.NewTagSetsFromMaps(cs.ReadPreferenceTagSets)
 		return readpref.New(mode, readpref.WithTagSets(tagSets...))
 	}
 

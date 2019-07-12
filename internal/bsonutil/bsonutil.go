@@ -12,6 +12,7 @@ import (
 	"github.com/mongodb/mongo-tools-common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // DeepCopyDSlice performs a deep copy of the given bson.D slice.
@@ -86,6 +87,21 @@ func deepCopyA(src bson.A) interface{} {
 		ret[i] = val
 	}
 	return ret
+}
+
+// DocSliceToCoreArray converts a slice of bson.Ds into a bsoncore.Array.
+func DocSliceToCoreArray(docs []bson.D) (bsoncore.Array, error) {
+	aidx, arr := bsoncore.AppendArrayStart(nil)
+
+	for i, doc := range docs {
+		docBytes, err := bson.Marshal(&doc)
+		if err != nil {
+			return nil, err
+		}
+		arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(i), docBytes)
+	}
+
+	return bsoncore.AppendArrayEnd(arr, aidx)
 }
 
 // DocSliceToString turns a slice of bson.Ds into an extended JSON string.

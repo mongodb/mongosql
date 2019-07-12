@@ -9,6 +9,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 // nolint: golint
@@ -16,12 +18,8 @@ var (
 	FipsModeSetter func(bool) error
 )
 
-// A DialFunc is a function that returns a net.Conn given the provided net.Dialer,
-// network, and address.
-type DialFunc func(context.Context, *net.Dialer, string, string) (net.Conn, error)
-
 // SqldDialer creates a mongosqld dialer.
-func SqldDialer(cfg *config.Config) (DialFunc, error) {
+func SqldDialer(cfg *config.Config) (topology.DialerFunc, error) {
 	sslCtx, err := createSqldSSLContext(cfg, true)
 	if err != nil {
 		return nil, err
@@ -152,15 +150,15 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 }
 
 // nolint: golint
-func Dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) DialFunc {
-	return func(ctx context.Context, dialer *net.Dialer, network, addr string) (net.Conn, error) {
+func Dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) topology.DialerFunc {
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		var c net.Conn
 		var err error
 		ch := make(chan struct{})
 		errChan := make(chan error, 1)
 
 		procutil.PanicSafeGo(func() {
-			c, err = openssl.DialWithDialer(dialer, network, addr, sslCtx, flags)
+			c, err = openssl.Dial(network, addr, sslCtx, flags)
 			ch <- struct{}{}
 		}, func(dialErr interface{}) {
 			errChan <- fmt.Errorf("openssl dial error: %v", dialErr)

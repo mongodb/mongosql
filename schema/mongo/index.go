@@ -52,10 +52,10 @@ type indexes map[string]IndexType
 
 // importIndexes takes a list of bson documents and returns them as an indexes
 // instance (i.e. a map of the path to the index key to the index type).
-func importIndexes(doc []bson.D) indexes {
+func importIndexes(docs []bson.D) indexes {
 	var indexTypeByKey indexes = make(map[string]IndexType)
-	for _, elem := range doc {
-		if mp, ok := elem.Map()["key"]; ok {
+	for _, doc := range docs {
+		if mp, ok := doc.Map()["key"]; ok {
 			if bsonD, ok := mp.(bson.D); ok && len(bsonD) == 1 {
 				value := fmt.Sprintf("%v", bsonD[0].Value)
 				if value == string(Index2DSphere) {

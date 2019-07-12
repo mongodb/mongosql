@@ -3,7 +3,6 @@ package mongodrdl
 import (
 	"context"
 	"fmt"
-	"net"
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -11,12 +10,10 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/server"
-
 	"github.com/10gen/openssl"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 const (
@@ -129,30 +126,40 @@ func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) 
 		return nil, err
 	}
 
-	clusterOpts := []cluster.Option{
-		// Do this before WithConnString makes these the defaults.
-		cluster.WithServerOptions(
-			server.WithConnectionOptions(
-				conn.WithAppName("mongodrdl"),
-			),
+	topologyOpts := []topology.Option{
+		// Doing this before WithConnString makes these the defaults
+		topology.WithServerOptions(
+			func(opts ...topology.ServerOption) []topology.ServerOption {
+				return append(opts, topology.WithConnectionOptions(
+					func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+						return append(opts, topology.WithAppName(func(string) string { return "mongodrdl" }))
+					},
+				))
+			},
 		),
-		cluster.WithConnString(cs),
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
+			return cs
+		}),
 	}
 
 	if opts.UseSSL() {
 
-		var dialer func(ctx context.Context, dialer *net.Dialer, network, address string) (net.Conn, error)
+		var dialer topology.Dialer
 
 		dialer, err = drdlDialer(opts)
 		if err != nil {
 			return nil, err
 		}
 
-		clusterOpts = append(clusterOpts,
-			cluster.WithMoreServerOptions(
-				server.WithMoreConnectionOptions(
-					conn.WithDialer(dialer),
-				),
+		topologyOpts = append(topologyOpts,
+			topology.WithServerOptions(
+				func(opts ...topology.ServerOption) []topology.ServerOption {
+					return append(opts, topology.WithConnectionOptions(
+						func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+							return append(opts, topology.WithDialer(func(topology.Dialer) topology.Dialer { return dialer }))
+						},
+					))
+				},
 			),
 		)
 	}
@@ -162,14 +169,20 @@ func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) 
 		return nil, err
 	}
 
-	clstr, err := cluster.New(clusterOpts...)
+	t, err := topology.New(topologyOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	// Open the topology
+	err = t.Connect()
 	if err != nil {
 		return nil, err
 	}
 
 	timeout := mongodb.GetConnectTimeout(cs)
 
-	return mongodb.NewDrdlSessionProvider(readPref, clstr, timeout, numDrdlConnsPerSession), nil
+	return mongodb.NewDrdlSessionProvider(readPref, t, timeout, numDrdlConnsPerSession), nil
 }
 
 func parseDrdlOptions(opts DrdlOptions) (connstring.ConnString, error) {
@@ -225,7 +238,7 @@ func getSession(ctx context.Context, opts DrdlOptions) (*mongodb.Session, error)
 }
 
 // drdlDialer creates a mongodrdl dialer.
-func drdlDialer(opts DrdlOptions) (ssl.DialFunc, error) {
+func drdlDialer(opts DrdlOptions) (topology.DialerFunc, error) {
 	sslCtx, err := createDrdlSSLContext(opts)
 	if err != nil {
 		return nil, err

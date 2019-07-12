@@ -12,8 +12,6 @@ import (
 	yaml "github.com/10gen/candiedyaml"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 
-	oldbson "github.com/10gen/mongo-go-driver/bson"
-
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -199,48 +197,6 @@ type mongoStorableTable struct {
 	Columns   []*Column `bson:"columns"`
 }
 
-// GetBSON provides a custom struct that should be marshalled into a BSON
-// document in place of this Table. Table deviates from the default BSON
-// marshalling implementation by marshalling the `Pipeline` field as a JSON
-// string instead of BSON arrays and documents. This is necessary in order to
-// store the table in MongoDB, since $-prefixed keys are not allowed.
-func (t *Table) GetBSON() (interface{}, error) {
-	pipelineJSON, err := bsonutil.DocSliceToString(t.Pipeline)
-	if err != nil {
-		return nil, err
-	}
-
-	return &mongoStorableTable{
-		SQLName:   t.SQLName,
-		MongoName: t.MongoName,
-		Pipeline:  pipelineJSON,
-		Columns:   t.Columns,
-	}, nil
-}
-
-// SetBSON unmarshals the provided oldbson.Raw into the Table.
-func (t *Table) SetBSON(raw oldbson.Raw) error {
-	tbl := &mongoStorableTable{}
-
-	err := raw.Unmarshal(tbl)
-	if err != nil {
-		return err
-	}
-
-	pipeline := []bson.D{}
-	err = bson.UnmarshalExtJSON([]byte(tbl.Pipeline), false, &pipeline)
-	if err != nil {
-		return err
-	}
-
-	t.SQLName = tbl.SQLName
-	t.MongoName = tbl.MongoName
-	t.Pipeline = pipeline
-	t.Columns = tbl.Columns
-
-	return nil
-}
-
 // MarshalBSON is a custom implementation for marshalling a Table into raw
 // BSON bytes. Table deviates from the default BSON marshalling implementation
 // by marshalling the `Pipeline` field as a JSON string instead of BSON arrays
@@ -272,7 +228,7 @@ func (t *Table) UnmarshalBSON(raw []byte) error {
 	}
 
 	pipeline := make([]bson.D, 0)
-	err = bson.UnmarshalExtJSON([]byte(tbl.Pipeline), false, pipeline)
+	err = bson.UnmarshalExtJSON([]byte(tbl.Pipeline), false, &pipeline)
 	if err != nil {
 		return err
 	}

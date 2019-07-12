@@ -6,13 +6,11 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
-	"net"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -24,12 +22,11 @@ import (
 	"github.com/go-sql-driver/mysql"
 	"github.com/shopspring/decimal"
 
-	"github.com/10gen/mongo-go-driver/mongo/connstring"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/private/server"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
 const (
@@ -44,8 +41,7 @@ const (
 // RunSQL runs the provided SQL query using the provided database handle.
 // It expects the results to have the provided column names and types, and
 // returns a list of rows and an error.
-func RunSQL(conn *sql.Conn, q string, types []schema.SQLType,
-	names []string) ([][]interface{}, error) {
+func RunSQL(conn *sql.Conn, q string, types []schema.SQLType, names []string) ([][]interface{}, error) {
 	rows, err := conn.QueryContext(context.Background(), q)
 	if err != nil {
 		return nil, err
@@ -409,9 +405,11 @@ func getServerVersion(t *testing.T) []uint8 {
 		t.Fatalf("unable to parse connection string: %v", err)
 	}
 
-	// Construct cluster options.
-	clusterOpts := []cluster.Option{
-		cluster.WithConnString(cs),
+	// Construct topology options.
+	topologyOpts := []topology.Option{
+		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
+			return cs
+		}),
 	}
 
 	// Check if MongoDB has SSL enabled.
@@ -419,8 +417,7 @@ func getServerVersion(t *testing.T) []uint8 {
 
 	if requiresSSL {
 		// Create dialer.
-		var dialer func(ctx context.Context, dialer *net.Dialer,
-			network, address string) (net.Conn, error)
+		var dialer topology.Dialer
 
 		sslCfg := config.MongoDBNetSSL{
 			Enabled:                  true,
@@ -437,57 +434,65 @@ func getServerVersion(t *testing.T) []uint8 {
 			t.Fatalf("unable to create a sqld dialer: %v", err)
 		}
 
-		// Append SSL options to clusterOpts.
-		clusterOpts = append(clusterOpts,
-			cluster.WithMoreServerOptions(
-				server.WithMoreConnectionOptions(
-					conn.WithDialer(dialer),
-				),
+		// Append SSL options to topologyOpts.
+		topologyOpts = append(topologyOpts,
+			topology.WithServerOptions(
+				func(opts ...topology.ServerOption) []topology.ServerOption {
+					return append(opts, topology.WithConnectionOptions(
+						func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+							return append(opts, topology.WithDialer(func(topology.Dialer) topology.Dialer { return dialer }))
+						},
+					))
+				},
 			),
 		)
 	}
 
-	c, err := cluster.New(clusterOpts...)
+	topo, err := topology.New(topologyOpts...)
 	if err != nil {
-		t.Fatalf("unable to create a new cluster: %v", err)
+		t.Fatalf("unable to create a new topology: %v", err)
+	}
+
+	err = topo.Connect()
+	if err != nil {
+		t.Fatalf("unable to connect to topology: %v", err)
+	}
+
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("buildInfo", 1),
+	)
+	cmdBytes, err := bson.Marshal(cmd)
+	if err != nil {
+		t.Fatalf("failed to marshal buildInfo command: %v", err)
 	}
 
 	ctx := context.Background()
 	timeoutCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	s, err := c.SelectServer(timeoutCtx, cluster.WriteSelector(), readpref.Primary())
-	if err != nil {
-		t.Fatalf("%v: %v", err, c.Model().Servers[0].LastError)
-	}
-
-	// Run command to get buildInfo, which contains the server version.
 	dbname := cs.Database
 	if dbname == "" {
 		dbname = "test"
 	}
-	cmd := bsonutil.NewM(bsonutil.NewDocElem("buildInfo", 1))
-	result := struct {
-		Version string `bson:"version"`
-	}{}
-	err = ops.Run(
-		ctx,
-		&ops.SelectedServer{
-			Server:   s,
-			ReadPref: readpref.Primary(),
-		},
-		dbname,
-		astutil.NewToOldBSONM(cmd),
-		&result)
 
+	c := operation.NewCommand(cmdBytes).Database(dbname).Deployment(topo).ReadPreference(readpref.Primary())
+
+	err = c.Execute(timeoutCtx)
 	if err != nil {
-		t.Fatalf("Error querying for mongodb version: %v\n", err)
+		t.Fatalf("failed to execute buildInfo command: %v", err)
 	}
 
-	version := result.Version
+	info := struct {
+		Version string `bson:"version"`
+	}{}
 
-	t.Logf(">> MongoDB server version is %v\n", version)
-	serverVersion, err := procutil.VersionToSlice(version)
+	err = bson.Unmarshal(c.Result(), &info)
+	if err != nil {
+		t.Fatalf("failed to unmarshal buildInfo result: %v", err)
+	}
+
+	t.Logf(">> MongoDB server version is %v\n", info.Version)
+	serverVersion, err := procutil.VersionToSlice(info.Version)
 	if err != nil {
 		t.Fatalf("Error converting version to slice: %v\n", err)
 	}

@@ -266,9 +266,12 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 	// TODO(GODRIVER-617): Add support for retryable reads.
 	retryable := op.retryable(desc.Server)
 	if retryable == RetryWrite && op.Client != nil && op.RetryMode != nil {
+		op.Client.RetryWrite = false
 		if *op.RetryMode > RetryNone {
 			op.Client.RetryWrite = true
-			op.Client.IncrementTxnNumber()
+			if !op.Client.Committing && !op.Client.Aborting {
+				op.Client.IncrementTxnNumber()
+			}
 		}
 
 		switch *op.RetryMode {
@@ -364,6 +367,11 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				defer conn.Close() // Avoid leaking the new connection.
+				if op.Client != nil && op.Client.Committing {
+					// Apply majority write concern for retries
+					op.Client.UpdateCommitTransactionWriteConcern()
+					op.WriteConcern = op.Client.CurrentWc
+				}
 				continue
 			}
 			// If batching is enabled and either ordered is the default (which is true) or
@@ -371,10 +379,22 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered == true) && len(tt.WriteErrors) > 0 {
 				return tt
 			}
+			if op.Client != nil && op.Client.Committing && tt.WriteConcernError != nil {
+				// When running commitTransaction we return WriteConcernErrors as an Error.
+				err := Error{
+					Name:    tt.WriteConcernError.Name,
+					Code:    int32(tt.WriteConcernError.Code),
+					Message: tt.WriteConcernError.Message,
+				}
+				if err.Code == 64 || err.Code == 50 || tt.WriteConcernError.Retryable() {
+					err.Labels = []string{UnknownTransactionCommitResult}
+				}
+				return err
+			}
 			operationErr.WriteConcernError = tt.WriteConcernError
 			operationErr.WriteErrors = append(operationErr.WriteErrors, tt.WriteErrors...)
 		case Error:
-			if tt.HasErrorLabel(TransientTransactionError) {
+			if tt.HasErrorLabel(TransientTransactionError) || tt.HasErrorLabel(UnknownTransactionCommitResult) {
 				op.Client.ClearPinnedServer()
 			}
 			if retryable == RetryWrite && tt.Retryable() && retries != 0 {
@@ -393,9 +413,18 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					return original
 				}
 				defer conn.Close() // Avoid leaking the new connection.
+				if op.Client != nil && op.Client.Committing {
+					// Apply majority write concern for retries
+					op.Client.UpdateCommitTransactionWriteConcern()
+					op.WriteConcern = op.Client.CurrentWc
+				}
 				continue
 			}
-			return err
+			if op.Client != nil && op.Client.Committing && (tt.Retryable() || tt.Code == 50) {
+				// If we got a retryable error or MaxTimeMSExpired error, we add UnknownTransactionCommitResult.
+				tt.Labels = append(tt.Labels, UnknownTransactionCommitResult)
+			}
+			return tt
 		case nil:
 			if moreToCome {
 				return ErrUnacknowledgedWrite
@@ -432,6 +461,9 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 func (op Operation) retryable(desc description.Server) RetryType {
 	switch op.RetryType {
 	case RetryWrite:
+		if op.Client != nil && (op.Client.Committing || op.Client.Aborting) {
+			return RetryWrite
+		}
 		if op.Deployment.SupportsRetry() &&
 			description.SessionsSupported(desc.WireVersion) &&
 			op.Client != nil && !(op.Client.TransactionInProgress() || op.Client.TransactionStarting()) &&
@@ -447,12 +479,26 @@ func (op Operation) retryable(desc description.Server) RetryType {
 func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) ([]byte, error) {
 	err := conn.WriteWireMessage(ctx, wm)
 	if err != nil {
-		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+		labels := []string{NetworkError}
+		if op.Client != nil && op.Client.TransactionRunning() && !op.Client.Committing {
+			labels = append(labels, TransientTransactionError)
+		}
+		if op.Client != nil && op.Client.Committing {
+			labels = append(labels, UnknownTransactionCommitResult)
+		}
+		return nil, Error{Message: err.Error(), Labels: labels}
 	}
 
 	wm, err = conn.ReadWireMessage(ctx, wm[:0])
 	if err != nil {
-		return nil, Error{Message: err.Error(), Labels: []string{TransientTransactionError, NetworkError}}
+		labels := []string{NetworkError}
+		if op.Client != nil && op.Client.TransactionRunning() && !op.Client.Committing {
+			labels = append(labels, TransientTransactionError)
+		}
+		if op.Client != nil && op.Client.Committing {
+			labels = append(labels, UnknownTransactionCommitResult)
+		}
+		return nil, Error{Message: err.Error(), Labels: labels}
 	}
 
 	// decompress wiremessage
@@ -463,7 +509,6 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 
 	// decode
 	res, err := op.decodeResult(wm)
-
 	// Pull out $clusterTime and operationTime and update session and clock. We handle this before
 	// handling the error to ensure we are properly gossiping the cluster time.
 	op.updateClusterTimes(res)
@@ -598,17 +643,9 @@ func (op Operation) createQueryWireMessage(dst []byte, desc description.Selected
 		return dst, info, err
 	}
 
-	dst, addedTxnNumber, err := op.addSession(dst, desc)
+	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
-	}
-
-	// TODO(GODRIVER-617): This should likely be part of addSession, but we need to ensure that we
-	// either turn off RetryWrite when we are doing a retryable read or that we pass in RetryType to
-	// addSession. We should also only be adding this if the connection supports sessions, but I
-	// think that's a given if we've set RetryWrite to true.
-	if !addedTxnNumber && op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
-		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
 
 	dst = op.addClusterTime(dst, desc)
@@ -659,17 +696,9 @@ func (op Operation) createMsgWireMessage(dst []byte, desc description.SelectedSe
 		return dst, info, err
 	}
 
-	dst, addedTxnNumber, err := op.addSession(dst, desc)
+	dst, err = op.addSession(dst, desc)
 	if err != nil {
 		return dst, info, err
-	}
-
-	// TODO(GODRIVER-617): This should likely be part of addSession, but we need to ensure that we
-	// either turn off RetryWrite when we are doing a retryable read or that we pass in RetryType to
-	// addSession. We should also only be adding this if the connection supports sessions, but I
-	// think that's a given if we've set RetryWrite to true.
-	if !addedTxnNumber && op.RetryType == RetryWrite && op.Client != nil && op.Client.RetryWrite {
-		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
 	}
 
 	dst = op.addClusterTime(dst, desc)
@@ -736,6 +765,9 @@ func (op Operation) addReadConcern(dst []byte, desc description.SelectedServer) 
 		data, _ = bsoncore.AppendDocumentEnd(data, 0)
 	}
 
+	if len(data) == bsoncore.EmptyDocumentLength {
+		return dst, nil
+	}
 	return bsoncore.AppendDocumentElement(dst, "readConcern", data), nil
 }
 
@@ -759,21 +791,26 @@ func (op Operation) addWriteConcern(dst []byte, desc description.SelectedServer)
 	return append(bsoncore.AppendHeader(dst, t, "writeConcern"), data...), nil
 }
 
-func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, bool, error) {
+func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]byte, error) {
 	client := op.Client
 	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
-		return dst, false, nil
+		return dst, nil
 	}
 	if client.Terminated {
-		return dst, false, session.ErrSessionEnded
+		return dst, session.ErrSessionEnded
 	}
 	lsid, _ := client.SessionID.MarshalBSON()
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
 
 	var addedTxnNumber bool
-	if client.TransactionRunning() || client.RetryingCommit {
-		dst = bsoncore.AppendInt64Element(dst, "txnNumber", client.TxnNumber)
+	if op.RetryType == RetryWrite && client != nil && client.RetryWrite {
 		addedTxnNumber = true
+		dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
+	}
+	if client.TransactionRunning() || client.RetryingCommit {
+		if !addedTxnNumber {
+			dst = bsoncore.AppendInt64Element(dst, "txnNumber", op.Client.TxnNumber)
+		}
 		if client.TransactionStarting() {
 			dst = bsoncore.AppendBooleanElement(dst, "startTransaction", true)
 		}
@@ -782,7 +819,7 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 
 	client.ApplyCommand(desc.Server)
 
-	return dst, addedTxnNumber, nil
+	return dst, nil
 }
 
 func (op Operation) addClusterTime(dst []byte, desc description.SelectedServer) []byte {
@@ -870,8 +907,8 @@ func (op Operation) getReadPrefBasedOnTransaction() (*readpref.ReadPref, error) 
 }
 
 func (op Operation) createReadPref(serverKind description.ServerKind, topologyKind description.TopologyKind, isOpQuery bool) (bsoncore.Document, error) {
-	if isOpQuery && serverKind != description.Mongos {
-		// Don't send read preference for non-mongos when using OP_QUERY
+	if serverKind == description.Standalone || (isOpQuery && serverKind != description.Mongos) {
+		// Don't send read preference for non-mongos when using OP_QUERY or for all standalones
 		return nil, nil
 	}
 

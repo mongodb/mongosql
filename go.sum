@@ -44,8 +44,6 @@ github.com/mattn/go-isatty v0.0.4/go.mod h1:M+lRXTBqGeGNdLjl/ufCoiOlB5xdOkqRJdNx
 github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b/go.mod h1:01TrycV0kFyexm33Z7vhZRXopbI8J3TDReVlkTgMUxE=
 github.com/mongodb/mongo-tools v0.0.0-20190515193408-25f23659be74 h1:enfX4upa3+Aru7aJyjBSnKgFc18Y6UINhbwFHg6NPnE=
 github.com/mongodb/mongo-tools v0.0.0-20190515193408-25f23659be74/go.mod h1:hkFunXA3Gbksiojtxr/hjqPMckbYrey/EwEqjaHG2h8=
-github.com/mongodb/mongo-tools-common v0.0.1-0.20190515193033-4316ec1965c6 h1:oLrORiGgQQZDqfDgZHKHvnEsGBTrzIiZwb+4Wdc1Gp8=
-github.com/mongodb/mongo-tools-common v0.0.1-0.20190515193033-4316ec1965c6/go.mod h1:T0AGIWI5PvxSzqt5zsR5zlcHl52KGeAzhoAnSvvpEtU=
 github.com/onsi/ginkgo v1.6.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
 github.com/onsi/ginkgo v1.8.0 h1:VkHVNpR4iVnU8XQR6DBm8BqYjN7CRzw+xKUbVVbbW9w=
 github.com/onsi/ginkgo v1.8.0/go.mod h1:lLunBs/Ym6LB5Z9jYTR76FiuTmxDTDusOGeTQH+WWjE=
@@ -54,8 +52,6 @@ github.com/onsi/gomega v1.5.0/go.mod h1:ex+gbHU/CVuBBDIJjb2X0qEXbFg53c61hWP/1Cpa
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
-github.com/pmeredit/mongo-go-driver v0.0.0-20190507213726-04c2b7e1bb27 h1:y6l0vWGeNU5VPDqS6ub0MMTqyig7wov8PY1WrbgA3tY=
-github.com/pmeredit/mongo-go-driver v0.0.0-20190507213726-04c2b7e1bb27/go.mod h1:ByrIBxjI6qOmFRfjlAGxcghozBij+d4zqN81QH/m3eY=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/satori/go.uuid v0.0.0-20181028125025-b2ce2384e17b h1:8O/3dJ2dGfuLVN0bo2B0IdkG0L8cjpmFJ4r8eRQBCi8=
@@ -77,10 +73,13 @@ github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c h1:u40Z8hqBAAQyv+vATcGgV
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc h1:n+nNi93yXLkJvKwXNP9d55HC7lGK4H/SRcwB5IaUZLo=
 github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=
-go.mongodb.org/mongo-driver v1.0.1-0.20190531141331-a5623d356ad8 h1:LXHrMsyfSRAT4mdFS99CU9hPfBwZcHzGmOsu//7bct0=
-go.mongodb.org/mongo-driver v1.0.1-0.20190531141331-a5623d356ad8/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
-go.mongodb.org/mongo-driver v1.0.1-0.20190604194957-91df53be572d h1:9kUR/preDYYoeQNt4VSX1AnBrJnba7m+Wq447aYyO1Q=
-go.mongodb.org/mongo-driver v1.0.1-0.20190604194957-91df53be572d/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
+go.mongodb.org/mongo-driver v1.0.0-rc1/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
+go.mongodb.org/mongo-driver v1.0.1-0.20190617172444-24c422eb6da5 h1:mqANaJhvQ9fpNCbUrtftYP3nwHLa8UsjoC63yrg4IRg=
+go.mongodb.org/mongo-driver v1.0.1-0.20190617172444-24c422eb6da5/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
+go.mongodb.org/mongo-driver v1.0.1-0.20190626181015-60e65d0f2639 h1:ME2LYhLslJmC6TeHajhBOcLhK9Bz/xALDR/jxFGHC98=
+go.mongodb.org/mongo-driver v1.0.1-0.20190626181015-60e65d0f2639/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
+go.mongodb.org/mongo-driver v1.0.1-0.20190702140415-ea4b543a1e0a h1:w79F7z68uV0zqa6ind0DBtWAOL/g+U1iNkxzDDPMtaM=
+go.mongodb.org/mongo-driver v1.0.1-0.20190702140415-ea4b543a1e0a/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 h1:VklqNMn3ovrHsnt90PveolxSbWFaJdECFbxSq0Mqo2M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=

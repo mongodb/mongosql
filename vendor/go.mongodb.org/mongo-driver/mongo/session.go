@@ -14,10 +14,12 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
 	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
@@ -137,10 +139,10 @@ func (s *sessionImpl) WithTransaction(ctx context.Context, fn func(sessCtx Sessi
 			}
 
 			if cerr, ok := err.(CommandError); ok {
-				if cerr.HasErrorLabel(command.UnknownTransactionCommitResult) {
+				if cerr.HasErrorLabel(driver.UnknownTransactionCommitResult) && !cerr.IsMaxTimeMSExpiredError() {
 					continue
 				}
-				if cerr.HasErrorLabel(command.TransientTransactionError) {
+				if cerr.HasErrorLabel(driver.TransientTransactionError) {
 					break CommitLoop
 				}
 			}
@@ -163,6 +165,7 @@ func (s *sessionImpl) StartTransaction(opts ...*options.TransactionOptions) erro
 		ReadConcern:    topts.ReadConcern,
 		ReadPreference: topts.ReadPreference,
 		WriteConcern:   topts.WriteConcern,
+		MaxCommitTime:  topts.MaxCommitTime,
 	}
 
 	return s.clientSession.StartTransaction(coreOpts)
@@ -180,14 +183,16 @@ func (s *sessionImpl) AbortTransaction(ctx context.Context) error {
 		return s.clientSession.AbortTransaction()
 	}
 
-	cmd := command.AbortTransaction{
-		Session: s.clientSession,
-	}
+	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
 
 	s.clientSession.Aborting = true
-	_, err = driverlegacy.AbortTransaction(ctx, cmd, s.topo, description.WriteSelector())
+	err = operation.NewAbortTransaction().Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").
+		Deployment(s.topo).WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).
+		Retry(driver.RetryOncePerCommand).CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken)).Execute(ctx)
 
+	s.clientSession.Aborting = false
 	_ = s.clientSession.AbortTransaction()
+
 	return replaceErrors(err)
 }
 
@@ -208,19 +213,23 @@ func (s *sessionImpl) CommitTransaction(ctx context.Context) error {
 		s.clientSession.RetryingCommit = true
 	}
 
-	cmd := command.CommitTransaction{
-		Session: s.clientSession,
+	selector := makePinnedSelector(s.clientSession, description.WriteSelector())
+
+	s.clientSession.Committing = true
+	op := operation.NewCommitTransaction().
+		Session(s.clientSession).ClusterClock(s.client.clock).Database("admin").Deployment(s.topo).
+		WriteConcern(s.clientSession.CurrentWc).ServerSelector(selector).Retry(driver.RetryOncePerCommand).
+		CommandMonitor(s.client.monitor).RecoveryToken(bsoncore.Document(s.clientSession.RecoveryToken))
+	if s.clientSession.CurrentMct != nil {
+		op.MaxTimeMS(int64(*s.clientSession.CurrentMct / time.Millisecond))
 	}
 
-	// Hack to ensure that session stays in committed state
-	if s.clientSession.TransactionCommitted() {
-		s.clientSession.Committing = true
-		defer func() {
-			s.clientSession.Committing = false
-		}()
-	}
-	_, err = driverlegacy.CommitTransaction(ctx, cmd, s.topo, description.WriteSelector())
+	err = op.Execute(ctx)
+	s.clientSession.Committing = false
 	commitErr := s.clientSession.CommitTransaction()
+
+	// We set the write concern to majority for subsequent calls to CommitTransaction.
+	s.clientSession.UpdateCommitTransactionWriteConcern()
 
 	if err != nil {
 		return replaceErrors(err)

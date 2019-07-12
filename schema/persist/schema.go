@@ -5,18 +5,18 @@ import (
 
 	"github.com/10gen/sqlproxy/schema/drdl"
 
-	oldbson "github.com/10gen/mongo-go-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type schema struct {
-	ID      oldbson.ObjectId `bson:"_id"`
-	Created time.Time        `bson:"created"`
-	DRDL    *drdl.Schema     `bson:"schema"`
+	ID      primitive.ObjectID `bson:"_id"`
+	Created time.Time          `bson:"created"`
+	DRDL    *drdl.Schema       `bson:"schema"`
 }
 
 func newSchema(ds *drdl.Schema) schema {
 	return schema{
-		ID:      oldbson.NewObjectId(),
+		ID:      primitive.NewObjectID(),
 		Created: time.Now(),
 		DRDL:    ds,
 	}

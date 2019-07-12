@@ -9,8 +9,6 @@ import (
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/drdl"
 
-	oldbson "github.com/10gen/mongo-go-driver/bson"
-
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -42,20 +40,20 @@ func (p Persistor) FindNames(ctx context.Context) ([]Name, error) {
 	}
 	defer func() { _ = s.Close() }()
 
-	pipeline := []interface{}{}
-	iter, err := s.Aggregate(ctx, p.schemaSourceDB, namesCollection, pipeline)
+	pipeline := bsonutil.NewDArray()
+	cursor, err := s.Aggregate(ctx, p.schemaSourceDB, namesCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = iter.Close(ctx) }()
+	defer func() { _ = cursor.Close(ctx) }()
 
 	names := []Name{}
-	name := &oldName{}
-	for iter.Next(ctx, &name) {
-		names = append(names, *name.toNew())
+	name := Name{}
+	for cursor.Next(ctx, &name) {
+		names = append(names, name)
 	}
 
-	if err := iter.Err(); err != nil {
+	if err := cursor.Err(); err != nil {
 		return nil, err
 	}
 
@@ -68,11 +66,6 @@ type SchemaInfo struct {
 	Created time.Time          `bson:"created"`
 }
 
-type oldSchemaInfo struct {
-	ID      oldbson.ObjectId `bson:"_id"`
-	Created time.Time        `bson:"created"`
-}
-
 // FindSchemas retrieves info on all stored Schemas.
 func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
 	s, err := p.session(ctx)
@@ -81,24 +74,20 @@ func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
 	}
 	defer func() { _ = s.Close() }()
 
-	pipeline := []interface{}{}
-	iter, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
+	pipeline := bsonutil.NewDArray()
+	cursor, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = iter.Close(ctx) }()
+	defer func() { _ = cursor.Close(ctx) }()
 
 	schemas := []SchemaInfo{}
-	sch := &oldSchemaInfo{}
-	for iter.Next(ctx, &sch) {
-		oid, err := primitive.ObjectIDFromHex(sch.ID.Hex())
-		if err != nil {
-			return nil, err
-		}
-		schemas = append(schemas, SchemaInfo{ID: oid, Created: sch.Created})
+	sch := SchemaInfo{}
+	for cursor.Next(ctx, &sch) {
+		schemas = append(schemas, sch)
 	}
 
-	if err := iter.Err(); err != nil {
+	if err := cursor.Err(); err != nil {
 		return nil, err
 	}
 
@@ -114,7 +103,7 @@ func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Sch
 	}
 	defer func() { _ = s.Close() }()
 
-	pipeline := bsonutil.NewArray(
+	pipeline := bsonutil.NewDArray(
 		bsonutil.NewD(bsonutil.NewDocElem("$lookup", bsonutil.NewD(
 			bsonutil.NewDocElem("from", namesCollection),
 			bsonutil.NewDocElem("localField", "_id"),
@@ -127,19 +116,19 @@ func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Sch
 		))),
 	)
 
-	iter, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
+	cursor, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = iter.Close(ctx) }()
+	defer func() { _ = cursor.Close(ctx) }()
 
 	res := struct {
 		Schema *drdl.Schema `bson:"schema"`
 	}{}
 
-	_ = iter.Next(ctx, &res)
-	if iter.Err() != nil {
-		return nil, iter.Err()
+	_ = cursor.Next(ctx, &res)
+	if cursor.Err() != nil {
+		return nil, cursor.Err()
 	}
 	if res.Schema == nil {
 		return nil, fmt.Errorf("no schema found for name %q", name)
@@ -157,7 +146,7 @@ func (p Persistor) FindSchemaByID(ctx context.Context, schemaID primitive.Object
 	}
 	defer func() { _ = s.Close() }()
 
-	pipeline := bsonutil.NewArray(
+	pipeline := bsonutil.NewDArray(
 		bsonutil.NewD(
 			bsonutil.NewDocElem("$match", bsonutil.NewD(
 				bsonutil.NewDocElem("_id", schemaID),
@@ -165,19 +154,19 @@ func (p Persistor) FindSchemaByID(ctx context.Context, schemaID primitive.Object
 		),
 	)
 
-	iter, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
+	cursor, err := s.Aggregate(ctx, p.schemaSourceDB, schemasCollection, pipeline)
 	if err != nil {
 		return nil, err
 	}
-	defer func() { _ = iter.Close(ctx) }()
+	defer func() { _ = cursor.Close(ctx) }()
 
 	res := struct {
 		Schema *drdl.Schema `bson:"schema"`
 	}{}
 
-	_ = iter.Next(ctx, &res)
-	if iter.Err() != nil {
-		return nil, iter.Err()
+	_ = cursor.Next(ctx, &res)
+	if cursor.Err() != nil {
+		return nil, cursor.Err()
 	}
 	if res.Schema == nil {
 		return nil, fmt.Errorf("no schema found with ObjectId %s", schemaID.Hex())
@@ -243,7 +232,7 @@ func (p Persistor) UpsertName(ctx context.Context, name string, schemaID primiti
 	query := bsonutil.NewD(bsonutil.NewDocElem("_id", name))
 	update := newName(name, schemaID)
 
-	return s.Upsert(ctx, p.schemaSourceDB, namesCollection, query, update.toOld())
+	return s.Upsert(ctx, p.schemaSourceDB, namesCollection, query, update)
 }
 
 func (p Persistor) session(ctx context.Context) (*mongodb.Session, error) {

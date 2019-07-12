@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	oldbson "github.com/10gen/mongo-go-driver/bson"
-
 	"github.com/10gen/mongoast/ast"
 
 	"github.com/10gen/sqlproxy/collation"
@@ -154,13 +152,18 @@ func (ms *MongoSourceStage) IsDual() bool {
 func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *ExecutionConfig) (mongodb.Cursor, error) {
 	errChan := make(chan error, 1)
 
-	var iter mongodb.Cursor
+	var cursor mongodb.Cursor
+	var bsonPipeline []bson.D
 	var err error
 
 	procutil.PanicSafeGo(func() {
-		// Convert from ast.Pipeline to []oldbson.Raw
-		bsonPipeline := astutil.RawDeparsePipeline(ms.pipeline)
-		iter, err = cfg.commandHandler.Aggregate(ctx, ms.dbName, ms.collectionNames[0], bsonPipeline)
+		// Convert from ast.Pipeline to []bson.D
+		bsonPipeline, err = astutil.DeparsePipeline(ms.pipeline)
+		if err != nil {
+			errChan <- err
+			return
+		}
+		cursor, err = cfg.commandHandler.Aggregate(ctx, ms.dbName, ms.collectionNames[0], bsonPipeline)
 		errChan <- err
 	}, func(err interface{}) {
 		cfg.lg.Errf(log.Admin, "MongoDB data access session closed: %v", err)
@@ -172,7 +175,7 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *Execu
 	case err = <-errChan:
 	}
 
-	return iter, err
+	return cursor, err
 }
 
 // ColumnInfo keeps track of the data needed to correctly deserialize data from
@@ -196,9 +199,9 @@ type ColumnInfo struct {
 // FastMongoSourceIter implements DocIter. It is an Iterator over raw BSON
 // Documents.
 type FastMongoSourceIter struct {
-	// iter is an implementation for getting data directly
+	// cursor is an implementation for getting data directly
 	// from MongoDB.
-	iter mongodb.Cursor
+	cursor mongodb.Cursor
 	// columnInfo is a slice representing the field names,
 	// in order, expected in the returned document.
 	columnInfo []ColumnInfo
@@ -244,13 +247,13 @@ func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, 
 		}
 	}
 
-	iter, err := ms.getAggregationCursor(ctx, cfg)
+	cursor, err := ms.getAggregationCursor(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	return &FastMongoSourceIter{
-		iter:       iter,
+		cursor:     cursor,
 		columnInfo: columnInfo,
 		err:        nil,
 	}, err
@@ -260,19 +263,7 @@ func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, 
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (ms *FastMongoSourceIter) Next(ctx context.Context, doc *bson.Raw) bool {
-	d := &oldbson.RawD{}
-	if !ms.iter.Next(ctx, d) {
-		return false
-	}
-
-	docBytes, err := oldbson.Marshal(d)
-	if err != nil {
-		return false
-	}
-
-	*doc = docBytes
-
-	return true
+	return ms.cursor.NextRaw(ctx, doc)
 }
 
 // GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
@@ -283,7 +274,7 @@ func (ms *FastMongoSourceIter) GetColumnInfo() []ColumnInfo {
 // Err returns any error that has been encountered while iterating. If no error
 // was encountered, Err returns nil.
 func (ms *FastMongoSourceIter) Err() error {
-	if err := ms.iter.Err(); err != nil {
+	if err := ms.cursor.Err(); err != nil {
 		return err
 	}
 	return ms.err
@@ -291,7 +282,7 @@ func (ms *FastMongoSourceIter) Err() error {
 
 // Close closes the iterator, returning any error encountered while doing so.
 func (ms *FastMongoSourceIter) Close() error {
-	return ms.iter.Close(context.Background())
+	return ms.cursor.Close(context.Background())
 }
 
 // buildProjectBodyForMongoSource builds a $project/$addFields body to flatten
@@ -409,7 +400,7 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 		}
 	}
 
-	iter, err := ms.getAggregationCursor(ctx, cfg)
+	cursor, err := ms.getAggregationCursor(ctx, cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -426,7 +417,7 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 		cfg:             cfg,
 		err:             nil,
 		fields:          fields,
-		iter:            iter,
+		cursor:          cursor,
 		mappingRegistry: ms.mappingRegistry,
 		fieldValueMap:   fieldValueMap,
 	}, err
@@ -439,9 +430,9 @@ type MongoSourceIter struct {
 	err error
 	// fields keeps track of the field name for each column.
 	fields []string
-	// iter is an implementation forgetting data directly
+	// cursor is an implementation for getting data directly
 	// from MongoDB.
-	iter mongodb.Cursor
+	cursor mongodb.Cursor
 	// mappingRegistry holds all columns that must be returned
 	// from data gotten in the iterator.
 	mappingRegistry *mappingRegistry
@@ -453,23 +444,17 @@ type MongoSourceIter struct {
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used.
 func (ms *MongoSourceIter) Next(ctx context.Context, row *results.Row) bool {
-	d := &oldbson.RawD{}
-	if !ms.iter.Next(ctx, d) {
+	d := bson.Raw{}
+	if !ms.cursor.NextRaw(ctx, &d) {
 		return false
 	}
-
-	docBytes, err := oldbson.Marshal(d)
-	if err != nil {
-		return false
-	}
-	document := bson.Raw(docBytes)
 
 	lenCols := len(ms.mappingRegistry.columns)
 	if len(row.Data) != lenCols {
 		row.Data = make(results.RowValues, lenCols)
 	}
 
-	vs, err := document.Elements()
+	vs, err := d.Elements()
 	if err != nil {
 		return false
 	}
@@ -531,13 +516,13 @@ func (ms *MongoSourceStage) PipelineString() string {
 
 // Close closes the iterator, returning any error encountered while doing so.
 func (ms *MongoSourceIter) Close() error {
-	return ms.iter.Close(context.Background())
+	return ms.cursor.Close(context.Background())
 }
 
 // Err returns any error that has been encountered while iterating. If no error
 // was encountered, Err returns nil.
 func (ms *MongoSourceIter) Err() error {
-	if err := ms.iter.Err(); err != nil {
+	if err := ms.cursor.Err(); err != nil {
 		return err
 	}
 	return ms.err

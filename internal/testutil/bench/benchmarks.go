@@ -145,6 +145,9 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer func() {
+		_ = s.Close()
+	}()
 
 	runAggBenchmark(b, s, dbName, coll, pipeline)
 }
@@ -181,17 +184,17 @@ func restoreBenchmarkData(name string) error {
 func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pipeline []bson.D) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		iter, err := session.Aggregate(context.Background(), db, coll, pipeline)
+		cursor, err := session.Aggregate(context.Background(), db, coll, pipeline)
 		if err != nil {
 			b.Fatal(err)
 		}
 		d := bsonutil.NewD()
 		doc := &d
-		for iter.Next(context.Background(), doc) {
+		for cursor.Next(context.Background(), doc) {
 			// do nothing
 		}
 
-		_ = iter.Close(context.Background())
+		_ = cursor.Close(context.Background())
 	}
 }
 

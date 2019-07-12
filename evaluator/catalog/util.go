@@ -20,8 +20,8 @@ import (
 func addColumnToIndex(index mongodb.Index, mongoNameToColumn map[string]*results.Column) *Index {
 	uniqueIndex := &Index{constraintName: index.Name}
 	for _, key := range index.Key {
-		column, ok := mongoNameToColumn[key.Name]
-		if !ok || key.Name == mongoPrimaryKey {
+		column, ok := mongoNameToColumn[key.Key]
+		if !ok || key.Key == mongoPrimaryKey {
 			return nil
 		}
 		uniqueIndex.columns = append(uniqueIndex.columns, column)

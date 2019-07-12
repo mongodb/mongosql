@@ -212,19 +212,17 @@ func (s *Server) loadMongoDBInfo(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("failed to create admin session for loading server cluster information: %v", err)
 	}
+	defer func() {
+		_ = adminSession.Close()
+	}()
 
 	i := &mongodb.Info{}
 	if err = i.LoadVersionInfo(ctx, adminSession); err != nil {
 		return fmt.Errorf("failed to load server version information: %v", err)
 	}
 
-	if err = i.LoadMongosInfo(ctx, adminSession); err != nil {
-		return fmt.Errorf("failed to load server topology information: %v", err)
-
-	}
-
 	topology := "standalone"
-	if i.IsMongos() {
+	if adminSession.TopologyKind() == mongodb.Sharded {
 		topology = "mongos"
 	}
 

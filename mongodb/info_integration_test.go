@@ -54,7 +54,7 @@ func TestLoadInfo(t *testing.T) {
 	req.Nil(err, "failed to get NewSqldSessionProvider")
 
 	s, err := sp.Session(context.Background())
-	req.Nil(err, "failed to get Session")
+	req.NoError(err, "failed to get Session")
 	defer s.Close()
 
 	dbutils.DropDatabase(s, "mongodb_info_test")
@@ -86,20 +86,20 @@ schema:
 	err = s.Run(context.Background(), "mongodb_info_test", bsonutil.NewD(
 		bsonutil.NewDocElem("create", "one"),
 	), &struct{}{})
-	req.Nil(err, "failed to run mongodb_info_test")
+	req.NoError(err, "failed to run mongodb_info_test")
 	err = s.Run(context.Background(), "mongodb_info_test", bsonutil.NewD(
 		bsonutil.NewDocElem("create", "two"),
 		bsonutil.NewDocElem("collation", bsonutil.NewM(bsonutil.NewDocElem("locale", "fr"))),
 	), &struct{}{})
-	req.Nil(err, "failed to run mongodb_info_test")
+	req.NoError(err, "failed to run mongodb_info_test")
 
 	drdlSchema, err := drdl.NewFromBytes([]byte(schemaString))
-	req.Nil(err, "failed to load drdl")
+	req.NoError(err, "failed to load drdl")
 	sch, err := schema.NewFromDRDL(lgr, drdlSchema)
-	req.Nil(err, "failed to create schema from drdl")
+	req.NoError(err, "failed to create schema from drdl")
 
 	info, err := mongodb.LoadInfo(context.Background(), lgr, sp, s, sch, cfg)
-	req.Nil(err, "failed to load info")
+	req.NoError(err, "failed to load info")
 
 	req.True(len(info.Databases) >= 1,
 		"there should be at least one database")

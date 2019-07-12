@@ -8,13 +8,14 @@ import (
 	"net"
 	"runtime"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/auth"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
 	"github.com/10gen/sqlproxy/mongodb/internal/gssapi"
+
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 )
 
 // Auth handles authenticating the session.
-func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connection) error {
+func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []driver.Connection) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -56,7 +57,7 @@ func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Conn
 	for i := 0; i < len(conns); i++ {
 		c := conns[i]
 		client := gssapi.NewClient(
-			getHostname(c.Model().Addr.String()),
+			getHostname(c.Address().String()),
 			server,
 			a.RemoteServiceName,
 			false,

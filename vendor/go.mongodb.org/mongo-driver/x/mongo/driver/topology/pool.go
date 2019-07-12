@@ -183,11 +183,11 @@ func (p *pool) close(c *connection) error {
 	p.Lock()
 	delete(p.opened, c.poolID)
 	p.Unlock()
-	if c.nc == nil {
-		return nil // We're closing an already closed connection.
+
+	if !atomic.CompareAndSwapInt32(&c.connected, connected, disconnected) {
+		return nil // We're closing an already closed connection
 	}
 	err := c.nc.Close()
-	c.nc = nil
 	if err != nil {
 		return ConnectionError{ConnectionID: c.id, Wrapped: err, message: "failed to close net.Conn"}
 	}

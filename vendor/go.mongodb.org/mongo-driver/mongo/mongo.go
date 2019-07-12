@@ -296,13 +296,16 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 			return nil, false, fmt.Errorf("ValueMarshaler returned a %v, but was expecting %v", btype, bsontype.Array)
 		}
 
-		var hasDollarOut bool
+		var hasOutputStage bool
 		pipelineDoc := bsoncore.Document(val)
 		if _, err := pipelineDoc.LookupErr("$out"); err == nil {
-			hasDollarOut = true
+			hasOutputStage = true
+		}
+		if _, err := pipelineDoc.LookupErr("$merge"); err == nil {
+			hasOutputStage = true
 		}
 
-		return pipelineDoc, hasDollarOut, nil
+		return pipelineDoc, hasOutputStage, nil
 	default:
 		val := reflect.ValueOf(t)
 		if !val.IsValid() || (val.Kind() != reflect.Slice && val.Kind() != reflect.Array) {
@@ -310,7 +313,7 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 		}
 
 		aidx, arr := bsoncore.AppendArrayStart(nil)
-		var hasDollarOut bool
+		var hasOutputStage bool
 		valLen := val.Len()
 		for idx := 0; idx < valLen; idx++ {
 			doc, err := transformBsoncoreDocument(registry, val.Index(idx).Interface())
@@ -319,25 +322,25 @@ func transformAggregatePipelinev2(registry *bsoncodec.Registry, pipeline interfa
 			}
 
 			if idx == valLen-1 {
-				if elem, err := doc.IndexErr(0); err == nil && elem.Key() == "$out" {
-					hasDollarOut = true
+				if elem, err := doc.IndexErr(0); err == nil && (elem.Key() == "$out" || elem.Key() == "$merge") {
+					hasOutputStage = true
 				}
 			}
 			arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(idx), doc)
 		}
 		arr, _ = bsoncore.AppendArrayEnd(arr, aidx)
-		return arr, hasDollarOut, nil
+		return arr, hasOutputStage, nil
 	}
 }
 
 func transformValue(registry *bsoncodec.Registry, val interface{}) (bsoncore.Value, error) {
 	switch conv := val.(type) {
 	case string:
-		return bsoncore.Value{Type: bsontype.String, Data: []byte(conv)}, nil
+		return bsoncore.Value{Type: bsontype.String, Data: bsoncore.AppendString(nil, conv)}, nil
 	default:
 		doc, err := transformBsoncoreDocument(registry, val)
 		if err != nil {
-			return bsoncore.Value{}, nil
+			return bsoncore.Value{}, err
 		}
 
 		return bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: doc}, nil
@@ -345,31 +348,41 @@ func transformValue(registry *bsoncodec.Registry, val interface{}) (bsoncore.Val
 }
 
 // Build the aggregation pipeline for the CountDocument command.
-func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts *options.CountOptions) (bsonx.Arr, error) {
-	pipeline := bsonx.Arr{}
-	filterDoc, err := transformDocument(registry, filter)
-
+func countDocumentsAggregatePipeline(registry *bsoncodec.Registry, filter interface{}, opts *options.CountOptions) (bsoncore.Document, error) {
+	filterDoc, err := transformBsoncoreDocument(registry, filter)
 	if err != nil {
 		return nil, err
 	}
-	pipeline = append(pipeline, bsonx.Document(bsonx.Doc{{"$match", bsonx.Document(filterDoc)}}))
 
+	aidx, arr := bsoncore.AppendArrayStart(nil)
+	didx, arr := bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(0))
+	arr = bsoncore.AppendDocumentElement(arr, "$match", filterDoc)
+	arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
+
+	index := 1
 	if opts != nil {
 		if opts.Skip != nil {
-			pipeline = append(pipeline, bsonx.Document(bsonx.Doc{{"$skip", bsonx.Int64(*opts.Skip)}}))
+			didx, arr = bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(index))
+			arr = bsoncore.AppendInt64Element(arr, "$skip", *opts.Skip)
+			arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
+			index++
 		}
 		if opts.Limit != nil {
-			pipeline = append(pipeline, bsonx.Document(bsonx.Doc{{"$limit", bsonx.Int64(*opts.Limit)}}))
+			didx, arr = bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(index))
+			arr = bsoncore.AppendInt64Element(arr, "$limit", *opts.Limit)
+			arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
+			index++
 		}
 	}
 
-	pipeline = append(pipeline, bsonx.Document(bsonx.Doc{
-		{"$group", bsonx.Document(bsonx.Doc{
-			{"_id", bsonx.Int32(1)},
-			{"n", bsonx.Document(bsonx.Doc{{"$sum", bsonx.Int32(1)}})},
-		})},
-	},
-	))
+	didx, arr = bsoncore.AppendDocumentElementStart(arr, strconv.Itoa(index))
+	iidx, arr := bsoncore.AppendDocumentElementStart(arr, "$group")
+	arr = bsoncore.AppendInt32Element(arr, "_id", 1)
+	iiidx, arr := bsoncore.AppendDocumentElementStart(arr, "n")
+	arr = bsoncore.AppendInt32Element(arr, "$sum", 1)
+	arr, _ = bsoncore.AppendDocumentEnd(arr, iiidx)
+	arr, _ = bsoncore.AppendDocumentEnd(arr, iidx)
+	arr, _ = bsoncore.AppendDocumentEnd(arr, didx)
 
-	return pipeline, nil
+	return bsoncore.AppendArrayEnd(arr, aidx)
 }

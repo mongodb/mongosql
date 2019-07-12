@@ -22,8 +22,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/mongo/driverlegacy"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 var (
@@ -97,9 +95,29 @@ func (db *Database) Collection(name string, opts ...*options.CollectionOptions) 
 	return newCollection(db, name, opts...)
 }
 
+// Aggregate runs an aggregation framework pipeline.
+//
+// See https://docs.mongodb.com/manual/aggregation/.
+func (db *Database) Aggregate(ctx context.Context, pipeline interface{},
+	opts ...*options.AggregateOptions) (*Cursor, error) {
+	a := aggregateParams{
+		ctx:            ctx,
+		pipeline:       pipeline,
+		client:         db.client,
+		registry:       db.registry,
+		readConcern:    db.readConcern,
+		writeConcern:   db.writeConcern,
+		db:             db.name,
+		readSelector:   db.readSelector,
+		writeSelector:  db.writeSelector,
+		readPreference: db.readPreference,
+		opts:           opts,
+	}
+	return aggregate(a)
+}
+
 func (db *Database) processRunCommand(ctx context.Context, cmd interface{},
 	opts ...*options.RunCmdOptions) (*operation.Command, *session.Client, error) {
-
 	sess := sessionFromContext(ctx)
 	if sess == nil && db.client.topology.SessionPool != nil {
 		var err error
@@ -168,8 +186,14 @@ func (db *Database) RunCommandCursor(ctx context.Context, runCommand interface{}
 	op, sess, err := db.processRunCommand(ctx, runCommand, opts...)
 	if err != nil {
 		closeImplicitSession(sess)
-		return nil, err
+		return nil, replaceErrors(err)
 	}
+
+	if err = op.Execute(ctx); err != nil {
+		closeImplicitSession(sess)
+		return nil, replaceErrors(err)
+	}
+
 	bc, err := op.ResultCursor(driver.CursorOptions{})
 	if err != nil {
 		closeImplicitSession(sess)
@@ -186,25 +210,38 @@ func (db *Database) Drop(ctx context.Context) error {
 	}
 
 	sess := sessionFromContext(ctx)
+	if sess == nil && db.client.topology.SessionPool != nil {
+		sess, err := session.NewClientSession(db.client.topology.SessionPool, db.client.id, session.Implicit)
+		if err != nil {
+			return err
+		}
+		defer sess.EndSession()
+	}
 
 	err := db.client.validSession(sess)
 	if err != nil {
 		return err
 	}
 
-	cmd := command.DropDatabase{
-		DB:      db.name,
-		Session: sess,
-		Clock:   db.client.clock,
+	wc := db.writeConcern
+	if sess.TransactionRunning() {
+		wc = nil
 	}
-	_, err = driverlegacy.DropDatabase(
-		ctx, cmd,
-		db.client.topology,
-		db.writeSelector,
-		db.client.id,
-		db.client.topology.SessionPool,
-	)
-	if err != nil && !command.IsNotFound(err) {
+	if !writeconcern.AckWrite(wc) {
+		sess = nil
+	}
+
+	selector := makePinnedSelector(sess, db.writeSelector)
+
+	op := operation.NewDropDatabase().
+		Session(sess).WriteConcern(wc).CommandMonitor(db.client.monitor).
+		ServerSelector(selector).ClusterClock(db.client.clock).
+		Database(db.name).Deployment(db.client.topology)
+
+	err = op.Execute(ctx)
+
+	driverErr, ok := err.(driver.Error)
+	if err != nil && (!ok || !driverErr.NamespaceNotFound()) {
 		return replaceErrors(err)
 	}
 	return nil
@@ -235,10 +272,7 @@ func (db *Database) ListCollections(ctx context.Context, filter interface{}, opt
 		return nil, err
 	}
 
-	selector := db.readSelector
-	if sess != nil && sess.PinnedServer != nil {
-		selector = sess.PinnedServer
-	}
+	selector := makePinnedSelector(sess, db.readSelector)
 
 	lco := options.MergeListCollectionsOptions(opts...)
 	op := operation.NewListCollections(filterDoc).
@@ -318,5 +352,13 @@ func (db *Database) WriteConcern() *writeconcern.WriteConcern {
 func (db *Database) Watch(ctx context.Context, pipeline interface{},
 	opts ...*options.ChangeStreamOptions) (*ChangeStream, error) {
 
-	return newDbChangeStream(ctx, db, pipeline, opts...)
+	csConfig := changeStreamConfig{
+		readConcern:    db.readConcern,
+		readPreference: db.readPreference,
+		client:         db.client,
+		registry:       db.registry,
+		streamType:     DatabaseStream,
+		databaseName:   db.Name(),
+	}
+	return newChangeStream(ctx, csConfig, pipeline, opts...)
 }

@@ -5,47 +5,32 @@ import (
 	"fmt"
 	"time"
 
-	oldbson "github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo"
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/options"
-	"github.com/10gen/mongo-go-driver/mongo/private/cluster"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/mongo-go-driver/mongo/readconcern"
-	"github.com/10gen/mongo-go-driver/mongo/readpref"
-	"github.com/10gen/mongo-go-driver/mongo/writeconcern"
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/procutil"
+	"github.com/10gen/sqlproxy/mongodb/internal/mongoutil"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
-
-// currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
-// and a string on a mongos. The 'Client' field is only present when talking to a mongod.
-type currentOp struct {
-	Client string      `bson:"client"`
-	Opid   interface{} `bson:"opid"`
-}
-
-// Cursor wraps the ops.Cursor interface for mongosqld
-// and mongodrdl clients.
-type Cursor interface {
-	ops.Cursor
-}
 
 // Session holds information used to create a connection
 // to MongoDB.
 type Session struct {
 	clientAddresses []string
-	cluster         *cluster.Cluster
-	count           int
-	server          cluster.Server
+	deployment      driver.Deployment
+	topologyKind    description.TopologyKind
+	numConns        int
 	pool            *sessionConnPool
+	rp              *readpref.ReadPref
 
-	err            error
-	authSource     string
-	selectedServer *ops.SelectedServer
+	err        error
+	authSource string
 }
 
 // AuthSource returns the session's authentication source.
@@ -54,22 +39,22 @@ func (s *Session) AuthSource() string {
 }
 
 // Close closes the direct server connection
-// associated with this sesssion.
+// associated with this session.
 func (s *Session) Close() error {
 	s.pool.Close()
 	return nil
 }
 
-// ClusterKind returns the kind of cluster
+// TopologyKind returns the kind of cluster
 // this session is attached to.
-func (s *Session) ClusterKind() model.ClusterKind {
-	return s.selectedServer.ClusterKind
+func (s *Session) TopologyKind() description.TopologyKind {
+	return s.topologyKind
 }
 
 // Connection gets a connection to use.
-func (s *Session) Connection(ctx context.Context) (conn.Connection, error) {
+func (s *Session) Connection(ctx context.Context) (driver.Connection, error) {
 	c, err := s.pool.Get(ctx)
-	if err == conn.ErrPoolClosed {
+	if err == topology.ErrPoolDisconnected {
 		s.err = err
 	}
 	return c, err
@@ -82,7 +67,7 @@ func (s *Session) GetClientAddresses() []string {
 
 // ConnLen is the number of connections that are part of a session.
 func (s *Session) ConnLen() int {
-	return s.count
+	return s.numConns
 }
 
 // Err returns a session level error that may have occurred.
@@ -94,36 +79,47 @@ func (s *Session) Err() error {
 	return s.pool.Err()
 }
 
-// Model returns the description of the server
-// asssociated with this session.
-func (s *Session) Model() *model.Server {
-	return s.server.Model()
-}
-
-// Validate checks that the established session meets the server
-// version requirements for the BI Connector.
-func (s *Session) Validate() error {
-
+// Validate checks that the established Session meets the read preference
+// requirements. When a SessionProvider creates a Session, it selects a
+// driver.Server using a specified ReadPref. That Server is used to check
+// out driver.Connections for the Session's pool. That ReadPref is stored
+// in the Session itself as the field rp. During the Session's lifetime,
+// the Server may change its role (for example, it may go from Secondary
+// to Primary). This method validates the selected Server still meets the
+// read preference requirements from when the Session was created.
+func (s *Session) Validate(ctx context.Context) error {
 	err := s.Err()
 	if err != nil {
 		return err
 	}
 
-	mdl := s.Model()
-
-	if mdl.LastError != nil {
-		s.err = mdl.LastError
-		return mdl.LastError
+	// Get a connection to get the server description.
+	c, err := s.Connection(ctx)
+	if err != nil {
+		return err
 	}
 
-	selector := readpref.Selector(s.selectedServer.ReadPref)
-	result, err := selector(s.cluster.Model(), []*model.Server{mdl})
-	if err != nil || len(result) == 0 {
+	// Close the connection once we get the description.
+	server := c.Description()
+	_ = c.Close()
+
+	// Create a ReadPrefSelector using the read preference
+	// from this session's creation.
+	selector := description.ReadPrefSelector(s.rp)
+	t := description.Topology{
+		Kind: s.TopologyKind(),
+	}
+
+	// Attempt to select the server. If the selector returns an error
+	// or does not select the one server, then this session does not
+	// meet the read preference requirements.
+	servers, err := selector.SelectServer(t, []description.Server{server})
+	if err != nil || len(servers) == 0 {
 		s.err = fmt.Errorf("current session does not satisfy read preference")
 		return s.err
 	}
 
-	return s.Err()
+	return nil
 }
 
 //
@@ -132,54 +128,79 @@ func (s *Session) Validate() error {
 
 // Aggregate runs the aggregation pipeline passed in against the
 // give database and collection.
-func (s *Session) Aggregate(ctx context.Context, database, collection string, pipeline interface{}) (ops.Cursor, error) {
-	ns := ops.NewNamespace(database, collection)
-
-	opts := []options.AggregateOption{mongo.AllowDiskUse(true)}
-	if ctxDeadlineTime, ctxHasDeadLine := ctx.Deadline(); ctxHasDeadLine {
-		// When the query context has a deadline then we supply the amount of
-		// time we have left as the max time to try to execute the query in.
-		opts = append(opts, mongo.MaxTime(time.Until(ctxDeadlineTime)))
+func (s *Session) Aggregate(ctx context.Context, database, collection string, pipeline []bson.D) (Cursor, error) {
+	pipelineArr, err := bsonutil.DocSliceToCoreArray(pipeline)
+	if err != nil {
+		return nil, fmt.Errorf("error converting aggregation pipeline to raw array: %v", err)
 	}
-	return ops.Aggregate(ctx, s.selectedServer, ns, readconcern.Local(), astutil.NewToOldBSON(pipeline), opts...)
+
+	c := operation.NewAggregate(pipelineArr).Database(database).Collection(collection).Deployment(s.deployment).AllowDiskUse(true)
+
+	// When the query context has a deadline then we supply the amount of
+	// time we have left as the max time to try to execute the query in.
+	maxTimeMS := int64(0)
+	if ctxDeadlineTime, ctxHasDeadLine := ctx.Deadline(); ctxHasDeadLine {
+		maxTimeMS = int64(time.Until(ctxDeadlineTime))
+		c = c.MaxTimeMS(maxTimeMS)
+	}
+
+	err = c.Execute(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error running aggregation: %v", err)
+	}
+
+	cursor, err := c.Result(driver.CursorOptions{
+		MaxTimeMS: maxTimeMS,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error getting aggregation result: %v", err)
+	}
+
+	return newBatchCursor(cursor), nil
 }
 
 // Count runs a count command for a specific database and collection.
 func (s *Session) Count(ctx context.Context, database, collection string) (int, error) {
-	return ops.Count(
-		ctx,
-		s.selectedServer,
-		ops.NewNamespace(database, collection),
-		nil,
-		nil,
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("count", collection),
 	)
-}
-
-// Delete deletes all documents from the specified namespace matching the
-// provided query.
-func (s *Session) Delete(ctx context.Context, db, col string, query interface{}) error {
-	ns := ops.NewNamespace(db, col)
 
 	result := struct {
 		N  int `bson:"n"`
 		Ok int `bson:"ok"`
 	}{}
 
-	deletes := []oldbson.D{
-		astutil.NewToOldBSOND(bsonutil.NewD(
-			bsonutil.NewDocElem("q", query),
-			bsonutil.NewDocElem("limit", 0),
-		)),
-	}
-
-	wc := writeconcern.New(writeconcern.WMajority(-1))
-	err := ops.Delete(ctx, s.selectedServer, ns, wc, deletes, &result)
+	err := s.Run(ctx, database, cmd, &result)
 	if err != nil {
-		return err
+		return 0, fmt.Errorf("error getting count for '%v'.'%v': %v", database, collection, err)
 	}
 
 	if result.Ok != 1 {
-		return fmt.Errorf("error deleting document")
+		return 0, fmt.Errorf("error getting count for '%v'.'%v'", database, collection)
+	}
+
+	return result.N, nil
+}
+
+// Delete deletes all documents from the specified namespace matching the
+// provided query.
+func (s *Session) Delete(ctx context.Context, db, col string, query bson.D) error {
+	deleteDoc := bsonutil.NewD(
+		bsonutil.NewDocElem("q", query),
+		bsonutil.NewDocElem("limit", 0),
+	)
+
+	deleteDocBytes, err := bson.Marshal(deleteDoc)
+	if err != nil {
+		return fmt.Errorf("error marshaling delete doc: %v", err)
+	}
+
+	wc := writeconcern.New(writeconcern.WMajority())
+	c := operation.NewDelete(deleteDocBytes).Database(db).Collection(col).Deployment(s.deployment).WriteConcern(wc)
+
+	err = c.Execute(ctx)
+	if err != nil {
+		return fmt.Errorf("error deleting document: %v", err)
 	}
 
 	return nil
@@ -187,198 +208,101 @@ func (s *Session) Delete(ctx context.Context, db, col string, query interface{})
 
 // Insert inserts the provided documents into the specified namespace.
 func (s *Session) Insert(ctx context.Context, db, col string, docs []interface{}) error {
-	ns := ops.NewNamespace(db, col)
+	docsToInsert := make([]bsoncore.Document, len(docs))
 
-	result := struct {
-		N  int `bson:"n"`
-		Ok int `bson:"ok"`
-	}{}
-
-	wc := writeconcern.New(writeconcern.WMajority(-1))
-	err := ops.Insert(ctx, s.selectedServer, ns, wc, docs, &result)
-	if err != nil {
-		return err
-	}
-
-	if result.Ok != 1 {
-		return fmt.Errorf("error inserting document")
-	}
-
-	return nil
-}
-
-// Upsert replaces a single document matching the provided query in the
-// specified namespace with the provided update document.
-func (s *Session) Upsert(ctx context.Context, db, col string, query, update interface{}) error {
-	ns := ops.NewNamespace(db, col)
-
-	result := struct {
-		N  int `bson:"n"`
-		Ok int `bson:"ok"`
-	}{}
-
-	updates := []oldbson.D{
-		astutil.NewToOldBSOND(bsonutil.NewD(
-			bsonutil.NewDocElem("q", query),
-			bsonutil.NewDocElem("u", update),
-			bsonutil.NewDocElem("upsert", true),
-		)),
-	}
-
-	wc := writeconcern.New(writeconcern.WMajority(-1))
-	err := ops.Update(ctx, s.selectedServer, ns, wc, updates, &result)
-	if err != nil {
-		return err
-	}
-
-	if result.Ok != 1 {
-		return fmt.Errorf("error upserting document")
-	}
-
-	return nil
-}
-
-type cursorRequest struct {
-	BatchSize int32 `bson:"batchSize,omitempty"`
-}
-
-// The result of a command that returns a cursor.
-type cursorReturningResult struct {
-	Cursor firstBatchCursorResult `bson:"cursor"`
-}
-
-// The first batch of a cursor.
-type firstBatchCursorResult struct {
-	// The first batch of the cursor.
-	FirstBatch []oldbson.Raw `bson:"firstBatch"`
-	// The namespace used to iterate the cursor.
-	NS string `bson:"ns"`
-	// The cursor's id.
-	ID int64 `bson:"id"`
-}
-
-func (cursorResult *firstBatchCursorResult) Namespace() ops.Namespace {
-	// Assume server returns a valid namespace string.
-	namespace := ops.ParseNamespace(cursorResult.NS)
-	return namespace
-}
-
-func (cursorResult *firstBatchCursorResult) InitialBatch() []oldbson.Raw {
-	return cursorResult.FirstBatch
-}
-
-func (cursorResult *firstBatchCursorResult) CursorID() int64 {
-	return cursorResult.ID
-}
-
-// ListCollections returns a cursor to iterate through
-// the collections present on the db database with options opts.
-func (s *Session) ListCollections(ctx context.Context, db string, opts ops.ListCollectionsOptions) (ops.Cursor, error) {
-	listCollectionsCommand := struct {
-		ListCollections int32          `bson:"listCollections"`
-		Filter          interface{}    `bson:"filter,omitempty"`
-		MaxTimeMS       int64          `bson:"maxTimeMS,omitempty"`
-		Cursor          *cursorRequest `bson:"cursor"`
-	}{
-		ListCollections: 1,
-		Filter:          opts.Filter,
-		MaxTimeMS:       int64(opts.MaxTime),
-		Cursor: &cursorRequest{
-			BatchSize: opts.BatchSize,
-		},
-	}
-
-	var result cursorReturningResult
-	err := s.Run(ctx, db, listCollectionsCommand, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
-}
-
-type listDatabasesCursor struct {
-	databases []oldbson.Raw
-	current   int
-	err       error
-}
-
-func (cursor *listDatabasesCursor) Next(_ context.Context, result interface{}) bool {
-	if cursor.current < len(cursor.databases) {
-		err := bson.Unmarshal(cursor.databases[cursor.current].Data, result)
+	var err error
+	for i, doc := range docs {
+		docsToInsert[i], err = bson.Marshal(&doc)
 		if err != nil {
-			cursor.err = fmt.Errorf("unable to parse listDatabases result: %v", err)
-			return false
+			return fmt.Errorf("error marshaling insert doc: %v", err)
 		}
-
-		cursor.current++
-		return true
 	}
-	return false
-}
 
-// Err returns the error status of the cursor.
-func (cursor *listDatabasesCursor) Err() error {
-	return cursor.err
-}
+	wc := writeconcern.New(writeconcern.WMajority())
+	c := operation.NewInsert(docsToInsert...).Database(db).Collection(col).Deployment(s.deployment).WriteConcern(wc)
 
-// Close closes the cursor. Ordinarily this is a no-op as the server
-// closes the cursor when it is exhausted. Returns the error status
-// of this cursor so that clients do not have to call Err() separately.
-func (cursor *listDatabasesCursor) Close(_ context.Context) error {
+	err = c.Execute(ctx)
+	if err != nil {
+		return fmt.Errorf("error inserting document(s): %v", err)
+	}
+
 	return nil
+}
+
+// Upsert replaces a single document matching the provided query
+// in the specified namespace with the provided update document.
+func (s *Session) Upsert(ctx context.Context, db, col string, query, update interface{}) error {
+	updateDoc := bsonutil.NewD(
+		bsonutil.NewDocElem("q", query),
+		bsonutil.NewDocElem("u", update),
+		bsonutil.NewDocElem("upsert", true),
+	)
+
+	updateDocBytes, err := bson.Marshal(&updateDoc)
+	if err != nil {
+		return fmt.Errorf("error marshaling update doc: %v", err)
+	}
+
+	wc := writeconcern.New(writeconcern.WMajority())
+	c := operation.NewUpdate(updateDocBytes).Database(db).Collection(col).Deployment(s.deployment).WriteConcern(wc)
+
+	err = c.Execute(ctx)
+	if err != nil {
+		return fmt.Errorf("error upserting document: %v", err)
+	}
+
+	return nil
+}
+
+// ListCollections returns a cursor to iterate through the collections
+// present on the db database with options opts.
+func (s *Session) ListCollections(ctx context.Context, db string, opts driver.CursorOptions) (Cursor, error) {
+	cmd := operation.NewListCollections(nil).Database(db).Deployment(s.deployment)
+	if err := cmd.Execute(ctx); err != nil {
+		return nil, fmt.Errorf("error listing collections for '%v': %v", db, err)
+	}
+
+	cursor, err := cmd.Result(opts)
+	if err != nil {
+		return nil, fmt.Errorf("error getting listCollections result: %v", err)
+	}
+
+	return newListCollectionsCursor(cursor), nil
 }
 
 // ListDatabases returns a cursor to iterate through
 // the database names present on a server.
-func (s *Session) ListDatabases(ctx context.Context) (ops.Cursor, error) {
-	listDataBasesOptions := ops.ListDatabasesOptions{}
-
-	var result struct {
-		Databases []oldbson.Raw `bson:"databases"`
-	}
-	listDatabasesCommand := struct {
-		ListDatabases int32 `bson:"listDatabases"`
-		MaxTimeMS     int64 `bson:"maxTimeMS,omitempty"`
-	}{
-		ListDatabases: 1,
-		MaxTimeMS:     int64(listDataBasesOptions.MaxTime / time.Millisecond),
+func (s *Session) ListDatabases(ctx context.Context) (*operation.ListDatabasesResult, error) {
+	cmd := operation.NewListDatabases(nil).Database("admin").Deployment(s.deployment)
+	if err := cmd.Execute(ctx); err != nil {
+		return nil, fmt.Errorf("error listing databases: %v", err)
 	}
 
-	err := s.Run(ctx, "admin", listDatabasesCommand, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &listDatabasesCursor{
-		databases: result.Databases,
-		current:   0,
-	}, nil
+	res := cmd.Result()
+	return &res, nil
 }
 
-// ListIndexes returns a cursor to iterate through
-// the indexes on the c collection within the db database.
-func (s *Session) ListIndexes(ctx context.Context, db, c string) (ops.Cursor, error) {
-	opts := ops.ListIndexesOptions{}
-	ns := ops.NewNamespace(db, c)
-
-	listIndexesCommand := struct {
-		ListIndexes string `bson:"listIndexes"`
-	}{
-		ListIndexes: ns.Collection,
+// ListIndexes returns a cursor to iterate through the
+// indexes on the c collection within the db database.
+func (s *Session) ListIndexes(ctx context.Context, db, col string) (Cursor, error) {
+	cmd := operation.NewListIndexes().Database(db).Collection(col).Deployment(s.deployment)
+	if err := cmd.Execute(ctx); err != nil {
+		return nil, fmt.Errorf("error listing indexes for '%v'.'%v': %v", db, col, err)
 	}
 
-	var result cursorReturningResult
-	err := s.Run(ctx, db, listIndexesCommand, &result)
-	switch err {
-	case nil:
-		return ops.NewCursor(&result.Cursor, opts.BatchSize, s)
-	default:
-		if conn.IsNsNotFound(err) {
-			return ops.NewExhaustedCursor()
-		}
-		return nil, err
+	cursor, err := cmd.Result(driver.CursorOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("error getting listIndexes result: %v", err)
 	}
+
+	return newBatchCursor(cursor), nil
+}
+
+// currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
+// and a string on a mongos. The 'Client' field is only present when talking to a mongod.
+type currentOp struct {
+	Client string      `bson:"client"`
+	Opid   interface{} `bson:"opid"`
 }
 
 // KillOps kills all operations running on a list of client addresses.
@@ -404,58 +328,59 @@ func (s *Session) KillOps(ctx context.Context, clientAddresses []string) error {
 // listCurrentOpsForClients returns all operations belonging to the provided
 // session's user from a list of client addresses.
 func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses []string) ([]currentOp, error) {
-	// The two conditions in the $or condition handle whether we are talking to a mongod or a
-	// mongos. A mongos reports its client addreses in a different format than a mongod.
-	currentOpsCommand := struct {
-		CurrentOp int32       `bson:"currentOp"`
-		OwnOps    int32       `bson:"$ownOps,omitempty"`
-		Or        []oldbson.M `bson:"$or,omitempty"`
-	}{
-		CurrentOp: 1,
-		Or: astutil.NewToOldBSON(bsonutil.NewMArray(
-			bsonutil.NewM(bsonutil.NewDocElem("client", bsonutil.NewM(bsonutil.NewDocElem("$in", clientAddresses)))),
-			bsonutil.NewM(bsonutil.NewDocElem("command.$client.mongos.client", bsonutil.NewM(bsonutil.NewDocElem("$in", clientAddresses)))),
-		)).([]oldbson.M),
+	clientAddressArray := make(bson.A, len(clientAddresses))
+	for i, clientAddress := range clientAddresses {
+		clientAddressArray[i] = clientAddress
 	}
+
+	// The two conditions in the $or condition handle whether we are talking to a mongod or a
+	// mongos. A mongos reports its client addresses in a different format than a mongod.
+	currentOpsCommand := bsonutil.NewD(
+		bsonutil.NewDocElem("currentOp", int32(1)),
+		bsonutil.NewDocElem("$or", bsonutil.NewArray(
+			bsonutil.NewD(
+				bsonutil.NewDocElem("client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
+				bsonutil.NewDocElem("command.$client.mongos.client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
+			),
+		)),
+	)
 
 	// If auth source is empty, this indicates we're running in unauthenticated mode. We should
 	// not use the $ownOps parameter in this case since operations don't have any associated
 	// MongoDB users.
 	if s.AuthSource() != "" {
-		currentOpsCommand.OwnOps = 1
+		currentOpsCommand = append(currentOpsCommand, bsonutil.NewDocElem("$ownOps", true))
 	}
 
-	var currentOpResponse struct {
+	currentOpResponse := struct {
 		InProg []currentOp `bson:"inprog"`
-	}
+	}{}
 
 	err := s.Run(ctx, "admin", currentOpsCommand, &currentOpResponse)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error running currentOp: %v", err)
 	}
+
 	return currentOpResponse.InProg, nil
 }
 
 // killOp kills an operation on the server with the input opID.
 func (s *Session) killOp(ctx context.Context, opID interface{}) error {
-	killOpCommand := struct {
-		KillOp int         `bson:"killOp"`
-		Op     interface{} `bson:"op"`
-	}{
-		KillOp: 1,
-		Op:     opID,
-	}
+	killOpCommand := bsonutil.NewD(
+		bsonutil.NewDocElem("killOp", 1),
+		bsonutil.NewDocElem("op", opID),
+	)
+
 	return s.Run(ctx, "admin", killOpCommand, &struct{}{})
 }
 
 // Login authenticates the session using the specified authenticator.
 func (s *Session) Login(ctx context.Context, a SessionAuthenticator) error {
-	var conns []conn.Connection
-
 	s.authSource = a.source()
 
 	// checkout all the connections
-	for i := 0; i < s.count; i++ {
+	conns := make([]driver.Connection, s.numConns)
+	for i := 0; i < s.numConns; i++ {
 		c, err := s.Connection(ctx)
 		if err != nil {
 			s.err = err
@@ -465,31 +390,42 @@ func (s *Session) Login(ctx context.Context, a SessionAuthenticator) error {
 			_ = c.Close()
 		}()
 
-		conns = append(conns, c)
+		conns[i] = c
 	}
 
 	s.err = a.Auth(ctx, conns)
 	return s.err
 }
 
-// Version returns the server version for this
-// session.
-func (s *Session) Version() ([]uint8, error) {
-	if len(s.server.Model().Version.Parts) == 0 {
-		// Because the driver does not directly provide the server version, check
-		// out a connection from the pool to get its version information.
-		c, err := s.Connection(context.Background())
-		if err != nil {
-			return nil, err
-		}
-		version := c.Model().Server.Version.Parts
-		err = c.Close()
-		return version, err
+// VersionInfo contains server version info.
+type VersionInfo struct {
+	Version      string  `bson:"version"`
+	GitVersion   string  `bson:"gitVersion"`
+	VersionArray []uint8 `bson:"-"`
+}
+
+// Version returns the server version for this session, as well as the git version.
+func (s *Session) Version() (*VersionInfo, error) {
+	info := VersionInfo{}
+
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("buildInfo", 1),
+	)
+
+	err := s.Run(context.Background(), "admin", cmd, &info)
+	if err != nil {
+		return nil, err
 	}
-	return s.server.Model().Version.Parts, nil
+
+	info.VersionArray, err = procutil.VersionToSlice(info.Version)
+	if err != nil {
+		return nil, err
+	}
+
+	return &info, nil
 }
 
 // Run executes an arbitrary command against the given database.
-func (s *Session) Run(ctx context.Context, db string, cmd interface{}, result interface{}) error {
-	return ops.Run(ctx, s.selectedServer, db, astutil.NewToOldBSON(cmd), result)
+func (s *Session) Run(ctx context.Context, db string, cmd bson.D, result interface{}) error {
+	return mongoutil.ExecuteWithDeployment(ctx, db, s.deployment, cmd, result)
 }

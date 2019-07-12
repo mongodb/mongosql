@@ -2,6 +2,7 @@ package bsonutil_test
 
 import (
 	"math"
+	"strconv"
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/bsonutil"
@@ -9,7 +10,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestDeepCopyDSlice(t *testing.T) {
@@ -177,6 +180,109 @@ func TestDeepCopyDSlice(t *testing.T) {
 	}
 
 	runTests(tests)
+}
+
+func TestDocSliceToCoreArray(t *testing.T) {
+	type test struct {
+		name string
+		docs []bson.D
+		arr  bsoncore.Array
+	}
+
+	makeArray := func(docs ...bsoncore.Document) bsoncore.Array {
+		aidx, arr := bsoncore.AppendArrayStart(nil)
+
+		for i, doc := range docs {
+			arr = bsoncore.AppendDocumentElement(arr, strconv.Itoa(i), doc)
+		}
+
+		arr, err := bsoncore.AppendArrayEnd(arr, aidx)
+		if err != nil {
+			panic(err)
+		}
+
+		return arr
+	}
+
+	tests := []test{
+		{"empty", NewDArray(), makeArray()},
+		{
+			"single doc single kv pair",
+			NewDArray(NewD(NewDocElem("k", "v"))),
+			makeArray(
+				bsoncore.BuildDocumentFromElements(
+					nil,
+					bsoncore.AppendStringElement(nil, "k", "v"),
+				),
+			),
+		},
+		{
+			"single doc multiple kv pairs",
+			NewDArray(
+				NewD(
+					NewDocElem("k1", "v1"),
+					NewDocElem("k2", int32(2)),
+				),
+			),
+			makeArray(
+				bsoncore.BuildDocumentFromElements(
+					nil,
+					bsoncore.AppendStringElement(nil, "k1", "v1"),
+					bsoncore.AppendInt32Element(nil, "k2", 2),
+				),
+			),
+		},
+		{
+			"multiple docs",
+			NewDArray(
+				NewD(
+					NewDocElem("k1", "v1"),
+					NewDocElem("k2", int32(2)),
+				),
+				NewD(
+					NewDocElem("k3", float64(3.3)),
+					NewDocElem("d2k2", "v4"),
+				),
+				NewD(
+					NewDocElem("d3k1", true),
+					NewDocElem("k6", int64(6)),
+					NewDocElem("k7", NewArray(int32(7), int32(8), int32(9))),
+				),
+			),
+			makeArray(
+				bsoncore.BuildDocumentFromElements(
+					nil,
+					bsoncore.AppendStringElement(nil, "k1", "v1"),
+					bsoncore.AppendInt32Element(nil, "k2", 2),
+				),
+				bsoncore.BuildDocumentFromElements(
+					nil,
+					bsoncore.AppendDoubleElement(nil, "k3", 3.3),
+					bsoncore.AppendStringElement(nil, "d2k2", "v4"),
+				),
+				bsoncore.BuildDocumentFromElements(
+					nil,
+					bsoncore.AppendBooleanElement(nil, "d3k1", true),
+					bsoncore.AppendInt64Element(nil, "k6", 6),
+					bsoncore.BuildArrayElement(nil, "k7",
+						bsoncore.Value{Type: bsontype.Int32, Data: bsoncore.AppendInt32(nil, 7)},
+						bsoncore.Value{Type: bsontype.Int32, Data: bsoncore.AppendInt32(nil, 8)},
+						bsoncore.Value{Type: bsontype.Int32, Data: bsoncore.AppendInt32(nil, 9)},
+					),
+				),
+			),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := require.New(t)
+
+			arr, err := DocSliceToCoreArray(test.docs)
+			req.NoError(err)
+			req.Equal(test.arr, arr, "incorrect bsoncore.Array")
+		})
+	}
 }
 
 func TestNormalizeBSON(t *testing.T) {

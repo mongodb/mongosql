@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // Auth handles authenticating the session.
-func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []conn.Connection) error {
+func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []driver.Connection) error {
 	return fmt.Errorf("GSSAPI is not supported on %s", runtime.GOOS)
 }

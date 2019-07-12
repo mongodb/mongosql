@@ -7,8 +7,8 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/config"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/auth"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 )
 
 type gssapiAuthenticatorWrapper struct {
@@ -30,9 +30,9 @@ func newAdminSessionGSSAPIAuthenticator(cfg config.MongoDBNetAuth) (SessionAuthe
 }
 
 // Auth will attempt to authenticate the provided connections using GSSAPI.
-func (g *gssapiAuthenticatorWrapper) Auth(ctx context.Context, conns []conn.Connection) error {
+func (g *gssapiAuthenticatorWrapper) Auth(ctx context.Context, conns []driver.Connection) error {
 	for _, c := range conns {
-		err := g.authenticator.Auth(ctx, c)
+		err := g.authenticator.Auth(ctx, c.Description(), c)
 		if err != nil {
 			return err
 		}

@@ -12,8 +12,8 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // Collections used to perform sampling operations.
@@ -25,9 +25,9 @@ const (
 	VersionGenerationField = "generation"
 )
 
-// isMaster.msg contains the string "isdbgrid" when isMaster returns from a mongos instance.
+// Wrapper for description.Sharded for use in other sqlproxy packages.
 const (
-	isShardedString = "isdbgrid"
+	Sharded = description.Sharded
 )
 
 // DatabaseName is the name of a database.
@@ -63,12 +63,6 @@ type Info struct {
 	// to keep these aside from Databases because Databases does not
 	// contain the SampleSource database.
 	sampleSourcePrivileges dbPrivilegeContainer
-	// isMongos is a boolean indicating whether the connected server is a mongos
-	isMongos bool
-}
-
-type isMasterResult struct {
-	Msg string `bson:"msg"`
 }
 
 // SetCompatibleVersion sets the compatible version and compatible version array.
@@ -93,11 +87,6 @@ func (i *Info) VersionAtLeast(version ...uint8) bool {
 		return procutil.VersionAtLeast(i.CompatibleVersionArray, version)
 	}
 	return procutil.VersionAtLeast(i.VersionArray, version)
-}
-
-// IsMongos returns true if the connected server is a mongos and false otherwise.
-func (i *Info) IsMongos() bool {
-	return i.isMongos
 }
 
 // CollectionInfo is the configuration of a collection in MongoDB.
@@ -156,15 +145,13 @@ func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userS
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin session for loading cluster information: %v", err)
 	}
+	defer func() {
+		_ = adminSession.Close()
+	}()
 
 	i = &Info{
 		Config:    config,
 		Databases: createDatabasesFromSchema(schema),
-	}
-
-	err = i.LoadMongosInfo(ctx, userSession)
-	if err != nil {
-		return nil, err
 	}
 
 	err = i.LoadVersionInfo(ctx, userSession)
@@ -229,55 +216,27 @@ func (i *Info) loadMetadata(ctx context.Context, logger log.Logger, s *Session) 
 	}
 }
 
-// LoadMongosInfo loads whether the connected server is a mongos or mongod.
-func (i *Info) LoadMongosInfo(ctx context.Context, s *Session) error {
-	cmd := bsonutil.NewD(
-		bsonutil.NewDocElem("isMaster", 1),
-	)
-
-	var result isMasterResult
-
-	if err := s.Run(ctx, "test", cmd, &result); err != nil {
-		return fmt.Errorf("failed to load whether connected server is a mongos: %v", err)
-	}
-
-	// isMaster.msg equals "isdbgrid" when isMaster returns from a mongos instance.
-	// https://docs.mongodb.com/manual/reference/command/isMaster/
-	if result.Msg == isShardedString {
-		i.isMongos = true
-	}
-
-	return nil
-}
-
 // LoadVersionInfo loads the MongoDB and git version into the Info struct.
 func (i *Info) LoadVersionInfo(ctx context.Context, s *Session) error {
-	// Because the driver does not directly provide the server version, check
-	// out a connection from the pool to get its version information.
-	c, err := s.Connection(context.Background())
+	version, err := s.Version()
 	if err != nil {
 		return err
 	}
 
-	server := c.Model().Server
-	if err = c.Close(); err != nil {
-		return err
-	}
-
-	i.GitVersion = server.GitVersion
-	i.Version = server.Version.Desc
-	i.VersionArray = server.Version.Parts
+	i.GitVersion = version.GitVersion
+	i.Version = version.Version
+	i.VersionArray = version.VersionArray
 	return nil
 }
 
 func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger, s *Session) error {
 	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
-	iter, err := s.ListCollections(ctx, dbInfo.caseSensitiveName, ops.ListCollectionsOptions{})
+	cursor, err := s.ListCollections(ctx, dbInfo.caseSensitiveName, driver.CursorOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.caseSensitiveName, err)
 	}
 
-	var colResult struct {
+	type colResult struct {
 		Name    string `bson:"name"`
 		Type    string `bson:"type"`
 		Options struct {
@@ -290,28 +249,32 @@ func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger,
 	// determine whether a view is sharded in loadShardingInfo.
 	viewToUnderlyingCollections := make(map[string]string)
 
-	for iter.Next(ctx, &colResult) {
-		colInfo, ok := dbInfo.Collections[CollectionName(colResult.Name)]
+	result := colResult{}
+	for cursor.Next(ctx, &result) {
+		colInfo, ok := dbInfo.Collections[CollectionName(result.Name)]
 		if !ok {
 			continue
 		}
 
-		colInfo.Collation = colResult.Options.Collation
-		colInfo.IsView = colResult.Type == "view"
+		colInfo.Collation = result.Options.Collation
+		colInfo.IsView = result.Type == "view"
 		if colInfo.IsView {
-			viewToUnderlyingCollections[colResult.Name] = colResult.Options.ViewOn
+			viewToUnderlyingCollections[result.Name] = result.Options.ViewOn
 		}
+
+		result = colResult{}
 	}
 
-	if s.Model().Kind == model.Mongos {
+	// Check if the server is a mongos
+	if s.TopologyKind() == description.Sharded {
 		dbInfo.loadShardingInfo(ctx, logger, s, viewToUnderlyingCollections)
 	}
 
-	if err := iter.Close(ctx); err != nil {
+	if err := cursor.Close(ctx); err != nil {
 		return err
 	}
 
-	return iter.Err()
+	return cursor.Err()
 }
 
 func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *Session) {
@@ -338,6 +301,7 @@ func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *S
 
 		for cursor.Next(ctx, &collectionIndex) {
 			collectionIndexes = append(collectionIndexes, collectionIndex)
+			collectionIndex.Key = bsonutil.NewD()
 		}
 
 		if cursor.Err() != nil {
@@ -380,9 +344,9 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Log
 		}
 
 		if isSharded, ok := isShardedCollection[collectionName]; !ok {
-			collStatsCommand := struct {
-				CollStats string `bson:"collStats"`
-			}{collectionName}
+			collStatsCommand := bsonutil.NewD(
+				bsonutil.NewDocElem("collStats", collectionName),
+			)
 
 			err := session.Run(ctx, string(dbInfo.Name), collStatsCommand, &stats)
 			if err != nil {

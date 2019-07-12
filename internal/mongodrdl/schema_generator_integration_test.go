@@ -52,8 +52,8 @@ func testIgnoreSystemCollections(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := bsonutil.NewMArray(
-		bsonutil.NewM(
+	documents := bsonutil.NewDArray(
+		bsonutil.NewD(
 			bsonutil.NewDocElem("first", "Who"),
 			bsonutil.NewDocElem("second", "What"),
 		),
@@ -62,14 +62,18 @@ func testIgnoreSystemCollections(t *testing.T) {
 	dbutils.InsertDocuments(session, db, "test", documents)
 	dbutils.CreateIndex(session, db, "test", []string{"first", "second"})
 
-	iter, err := session.ListIndexes(ctx, db, "test")
+	cursor, err := session.ListIndexes(ctx, db, "test")
 	req.NoError(err, "failed to list indexes")
 
 	indexes, index := []mongodb.Index{}, mongodb.Index{}
-	for iter.Next(ctx, &index) {
+	for cursor.Next(ctx, &index) {
 		indexes = append(indexes, index)
+		index.Key = bsonutil.NewD()
 	}
-	err = iter.Close(ctx)
+
+	req.NoError(cursor.Err(), "unexpected cursor error")
+
+	err = cursor.Close(ctx)
 	req.NoError(err, "failed to close iterator")
 	req.Len(indexes, 2, "got an unexpected number of indexes")
 
@@ -128,10 +132,10 @@ func testViewNoGeoIndex(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := bsonutil.NewMArray(
-		bsonutil.NewM(bsonutil.NewDocElem("a", 1), bsonutil.NewDocElem("b", 123)),
-		bsonutil.NewM(bsonutil.NewDocElem("a", 2), bsonutil.NewDocElem("b", 134)),
-		bsonutil.NewM(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", "s")),
+	documents := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("a", 1), bsonutil.NewDocElem("b", 123)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 2), bsonutil.NewDocElem("b", 134)),
+		bsonutil.NewD(bsonutil.NewDocElem("a", 3), bsonutil.NewDocElem("b", "s")),
 	)
 
 	dbutils.InsertDocuments(session, db, "base", documents)
@@ -139,7 +143,14 @@ func testViewNoGeoIndex(t *testing.T) {
 	err = session.Run(ctx, db, bsonutil.NewD(
 		bsonutil.NewDocElem("create", "view"),
 		bsonutil.NewDocElem("viewOn", "base"),
-		bsonutil.NewDocElem("pipeline", bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("$match", bsonutil.NewM(bsonutil.NewDocElem("a", 3)))))),
+		bsonutil.NewDocElem("pipeline", bsonutil.NewDArray(
+			bsonutil.NewD(
+				bsonutil.NewDocElem(
+					"$match",
+					bsonutil.NewD(bsonutil.NewDocElem("a", 3)),
+				),
+			),
+		)),
 	), &struct{}{})
 	req.NoError(err, "failed to create view")
 
@@ -179,14 +190,11 @@ func testViewGeoIndex(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := bsonutil.NewMArray(
-		bsonutil.NewM(
-			bsonutil.NewDocElem("loc", bsonutil.NewM(
+	documents := bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("loc", bsonutil.NewD(
 				bsonutil.NewDocElem("type", "Point"),
-				bsonutil.NewDocElem("coordinates", bsonutil.NewArray(
-					-73.88,
-					40.78,
-				)),
+				bsonutil.NewDocElem("coordinates", bsonutil.NewArray(-73.88, 40.78)),
 			)),
 		),
 	)
@@ -194,16 +202,16 @@ func testViewGeoIndex(t *testing.T) {
 	dbutils.InsertDocuments(session, db, "base", documents)
 	dbutils.CreateIndex(session, db, "base", []string{"$2d:loc.coordinates"})
 
-	iter, err := session.ListIndexes(ctx, db, "base")
+	cursor, err := session.ListIndexes(ctx, db, "base")
 	req.NoError(err, "failed to list indexes")
 
-	ok := iter.Next(ctx, &struct{}{})
+	ok := cursor.Next(ctx, &struct{}{})
 	req.True(ok, "expected base to have indexes")
 
 	err = session.Run(ctx, db, bsonutil.NewD(
 		bsonutil.NewDocElem("create", "view"),
 		bsonutil.NewDocElem("viewOn", "base"),
-		bsonutil.NewDocElem("pipeline", bsonutil.NewMArray()),
+		bsonutil.NewDocElem("pipeline", bsonutil.NewDArray()),
 	), &struct{}{})
 	req.NoError(err, "failed to create view")
 
@@ -242,14 +250,10 @@ func testSyntheticQueryField(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := bsonutil.NewMArray(
-		bsonutil.NewM(
+	documents := bsonutil.NewDArray(
+		bsonutil.NewD(
 			bsonutil.NewDocElem("name", "John Doe"),
-			bsonutil.NewDocElem("numbers", bsonutil.NewArray(
-				1,
-				2,
-				3,
-			)),
+			bsonutil.NewDocElem("numbers", bsonutil.NewArray(1, 2, 3)),
 		),
 	)
 
@@ -286,14 +290,14 @@ func testPolymorphicDataField(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := bsonutil.NewMArray(
-		bsonutil.NewM(
+	documents := bsonutil.NewDArray(
+		bsonutil.NewD(
 			bsonutil.NewDocElem("name", "John Doe"),
 			bsonutil.NewDocElem("payload", "hello"),
 		),
-		bsonutil.NewM(
+		bsonutil.NewD(
 			bsonutil.NewDocElem("name", "John Doe"),
-			bsonutil.NewDocElem("payload", bsonutil.NewM(
+			bsonutil.NewDocElem("payload", bsonutil.NewD(
 				bsonutil.NewDocElem("subdoc1", 4),
 				bsonutil.NewDocElem("subdoc2", 4),
 			)),
@@ -333,8 +337,8 @@ func testUUIDSubtype3Field(t *testing.T) {
 	defer dbutils.DropDatabase(session, db)
 	dbutils.DropDatabase(session, db)
 
-	documents := bsonutil.NewMArray(
-		bsonutil.NewM(
+	documents := bsonutil.NewDArray(
+		bsonutil.NewD(
 			bsonutil.NewDocElem("name", primitive.Binary{Subtype: 0x03, Data: []byte("amOjUW1oQQ6dNsvLrQuDhg==")}),
 		),
 	)

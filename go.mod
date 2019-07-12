@@ -4,7 +4,6 @@ go 1.12
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
-	github.com/10gen/mongo-go-driver v1.0.2
 	github.com/10gen/mongoast v0.0.0-20190520144242-110174e616db
 	github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 	github.com/go-sql-driver/mysql v1.4.1
@@ -32,7 +31,7 @@ require (
 	github.com/tidwall/pretty v0.0.0-20190325153808-1166b9ac2b65 // indirect
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
-	go.mongodb.org/mongo-driver v1.0.1-0.20190604194957-91df53be572d
+	go.mongodb.org/mongo-driver v1.0.1-0.20190702140415-ea4b543a1e0a
 	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 	golang.org/x/net v0.0.0-20190520210107-018c4d40a106 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
@@ -42,8 +41,4 @@ require (
 	gopkg.in/yaml.v2 v2.2.1
 )
 
-replace (
-	github.com/10gen/mongo-go-driver => github.com/pmeredit/mongo-go-driver v0.0.0-20190507213726-04c2b7e1bb27
-	github.com/mongodb/mongo-tools-common => github.com/mattChiaravalloti/mongo-tools-common v0.0.1-0.20190604201556-7f6e09e401b6
-	go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.0.1-0.20190604194957-91df53be572d
-)
+replace github.com/mongodb/mongo-tools-common => github.com/mattChiaravalloti/mongo-tools-common v0.0.1-0.20190604201556-7f6e09e401b6

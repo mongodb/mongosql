@@ -8,7 +8,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/strutil"
@@ -114,14 +113,14 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 		bsonutil.NewDocElem("$group", bsonutil.NewD(
 			bsonutil.NewDocElem("_id", bsonutil.NewD()),
 			bsonutil.NewDocElem("b", bsonutil.NewD(
-				bsonutil.NewDocElem("$sum", 1),
+				bsonutil.NewDocElem("$sum", int32(1)),
 			)),
 		)),
 	)
 
 	pipeline2 := bsonutil.NewD(
 		bsonutil.NewDocElem("$addFields", bsonutil.NewD(
-			bsonutil.NewDocElem("c", 1),
+			bsonutil.NewDocElem("c", int32(1)),
 		)),
 	)
 
@@ -178,7 +177,7 @@ func TestSample(t *testing.T) {
 
 	// enabling profiling should introduce an additional system.profile
 	// collection which should not be sampled
-	dbutils.RunCmd(session, db2, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("profile", 1))), &struct{}{})
+	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 1)), &struct{}{})
 
 	opts := NewMongosqldConfig(&cfg.Schema, nil)
 	sampler := NewSampler(opts, lgr, getSessionProvider(req))
@@ -186,7 +185,7 @@ func TestSample(t *testing.T) {
 
 	req.Nilf(err, "did not expect error in sampling")
 	req.NotNilf(sampleSchema, "did not expect sample schema to be nil")
-	dbutils.RunCmd(session, db2, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("profile", 0))), &struct{}{})
+	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
 
 	req.NotZero(countTables(sampleSchema), "found no sampled namespaces")
 
@@ -591,14 +590,14 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 
 	req := require.New(t)
 
-	doc1 := bsonutil.NewMArray(
-		bsonutil.NewM(bsonutil.NewDocElem("XX", 2)),
-		bsonutil.NewM(bsonutil.NewDocElem("xX_0", 4)),
-		bsonutil.NewM(bsonutil.NewDocElem("xX", bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("c", 1))))),
-		bsonutil.NewM(bsonutil.NewDocElem("Xx", bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("b", 3))))),
+	doc1 := bsonutil.NewDArray(
+		bsonutil.NewD(bsonutil.NewDocElem("XX", 2)),
+		bsonutil.NewD(bsonutil.NewDocElem("xX_0", 4)),
+		bsonutil.NewD(bsonutil.NewDocElem("xX", bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("c", 1))))),
+		bsonutil.NewD(bsonutil.NewDocElem("Xx", bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("b", 3))))),
 	)
 
-	doc2 := bsonutil.NewMArray(bsonutil.NewM(bsonutil.NewDocElem("hello", 2)))
+	doc2 := bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("hello", 2)))
 
 	t1 := "foo"
 	t2 := fmt.Sprintf("%v_Xx_0", t1)
@@ -618,7 +617,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 
 	req.Nil(err)
 	req.NotNilf(sampleSchema, "sample schema is nil")
-	dbutils.RunCmd(session, db2, astutil.NewToOldBSOND(bsonutil.NewD(bsonutil.NewDocElem("profile", 0))), &struct{}{})
+	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
 
 	req.NotZero(countTables(sampleSchema), "no namespaces sampled")
 

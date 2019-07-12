@@ -6,216 +6,272 @@ import (
 	"testing"
 	"time"
 
-	"net"
-
-	"github.com/10gen/mongo-go-driver/mongo/model"
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
-	"github.com/10gen/mongo-go-driver/mongo/private/msg"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-func TestNewSessionConnPool_Get_max_connections(t *testing.T) {
-	count := 0
-	provider := func(ctx context.Context) (conn.Connection, error) {
-		count++
-		return &mockConn{}, nil
-	}
+func TestNewSessionConnPool(t *testing.T) {
+	t.Run("creates max connections", func(t *testing.T) {
+		expectedMax := 3
+		count := 0
+		provider := func(context.Context) (driver.Connection, error) {
+			count++
+			return &mockConn{}, nil
+		}
 
-	_, err := newSessionConnPool(context.Background(), provider, 3)
-	if err != nil {
-		t.Fatal(err)
-	}
+		_, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		if err != nil {
+			t.Fatalf("unexpected error creating pool: %v", err)
+		}
 
-	if count != 3 {
-		t.Fatalf("expected pool to checkout 3 connections eagerly, but only have %d", count)
-	}
+		if count != expectedMax {
+			t.Fatalf("expected pool to checkout %d connections eagerly, but only have %d", expectedMax, count)
+		}
+	})
+
+	t.Run("returns an error when getting a connection errors", func(t *testing.T) {
+		provider := func(context.Context) (driver.Connection, error) {
+			return nil, fmt.Errorf("AHAHAHAH")
+		}
+
+		_, err := newSessionConnPool(context.Background(), provider, 3)
+		if err == nil {
+			t.Fatal("expected an error, but got none")
+		}
+	})
 }
 
-func TestNewSessionConnPool_Return_an_error_when_getting_a_connection_errors(t *testing.T) {
-	provider := func(ctx context.Context) (conn.Connection, error) {
-		return nil, fmt.Errorf("AHAHAHAH")
-	}
+func TestSessionConnPool_Get(t *testing.T) {
+	t.Run("succeeds to get max connections", func(t *testing.T) {
+		expectedMax := 5
 
-	_, err := newSessionConnPool(context.Background(), provider, 3)
-	if err == nil {
-		t.Fatal("expected an error, but got none")
-	}
-}
+		provider := func(context.Context) (driver.Connection, error) {
+			return &mockConn{}, nil
+		}
 
-func TestSessionConnPool_Get_when_context_is_cancelled(t *testing.T) {
-	var created []*mockConn
-	provider := func(_ context.Context) (conn.Connection, error) {
-		created = append(created, &mockConn{})
-		return created[len(created)-1], nil
-	}
+		p, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		if err != nil {
+			t.Fatalf("unexpected error creating pool: %v", err)
+		}
 
-	p, err := newSessionConnPool(context.Background(), provider, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+		for i := 0; i < expectedMax; i++ {
+			_, err = p.Get(context.Background())
+			if err != nil {
+				t.Fatalf("failed to get conn %d out of %d: %v", i+1, expectedMax, err)
+			}
+		}
+	})
 
-	_, err = p.Get(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = p.Get(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("succeeds to get connections after they are closed and returned", func(t *testing.T) {
+		expectedMax := 3
 
-	ctx, cancel := context.WithCancel(context.Background())
-	go func() {
-		time.Sleep(1 * time.Second)
-		cancel()
-	}()
+		provider := func(context.Context) (driver.Connection, error) {
+			return &mockConn{}, nil
+		}
 
-	_, err = p.Get(ctx)
-	if err == nil {
-		t.Fatal("expected an error, but got none")
-	}
-}
+		p, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		if err != nil {
+			t.Fatalf("unexpected error creating pool: %v", err)
+		}
 
-func TestSessionConnPool_Get_when_pool_is_closed(t *testing.T) {
-	var created []*mockConn
-	provider := func(_ context.Context) (conn.Connection, error) {
-		created = append(created, &mockConn{})
-		return created[len(created)-1], nil
-	}
+		conns := make([]driver.Connection, expectedMax)
 
-	p, err := newSessionConnPool(context.Background(), provider, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+		// check out all connections
+		for i := 0; i < expectedMax; i++ {
+			conns[i], err = p.Get(context.Background())
+			if err != nil {
+				t.Fatalf("failed to get conn %d out of %d: %v", i+1, expectedMax, err)
+			}
+		}
 
-	p.Close()
+		// cannot check out more than that (cancel context to stop waiting)
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(1 * time.Second)
+			cancel()
+		}()
 
-	_, err = p.Get(context.Background())
-	if err == nil {
-		t.Fatal("expected an error, but got none")
-	}
-}
+		_, err = p.Get(ctx)
+		if err == nil {
+			t.Fatal("expected an error, but got none")
+		}
 
-func TestSessionConnPool_Get_when_pool_is_closed_2(t *testing.T) {
-	var created []*mockConn
-	provider := func(_ context.Context) (conn.Connection, error) {
-		created = append(created, &mockConn{})
-		return created[len(created)-1], nil
-	}
+		// close all connections
+		for i, c := range conns {
+			err = c.Close()
+			if err != nil {
+				t.Fatalf("unexpected error when closing connection %d: %v", i, err)
+			}
+		}
 
-	p, err := newSessionConnPool(context.Background(), provider, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+		// and finally successfully check out connections again
+		for i := 0; i < expectedMax; i++ {
+			_, err = p.Get(context.Background())
+			if err != nil {
+				t.Fatalf("failed to re-get conn %d out of %d: %v", i+1, expectedMax, err)
+			}
+		}
+	})
 
-	_, err = p.Get(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = p.Get(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+	t.Run("succeeds to get a connection when one is returned", func(t *testing.T) {
+		expectedMax := 3
 
-	errChan := make(chan error, 1)
+		provider := func(context.Context) (driver.Connection, error) {
+			return &mockConn{}, nil
+		}
 
-	go func() {
+		p, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		if err != nil {
+			t.Fatalf("unexpected error creating pool: %v", err)
+		}
+
+		conns := make([]driver.Connection, expectedMax)
+
+		// check out all connections
+		for i := 0; i < expectedMax; i++ {
+			conns[i], err = p.Get(context.Background())
+			if err != nil {
+				t.Fatalf("failed to get conn %d out of %d: %v", i+1, expectedMax, err)
+			}
+		}
+
+		errChan := make(chan error, 1)
+		// cannot check out more than that (cancel context to stop waiting)
+		go func() {
+			time.Sleep(1 * time.Second)
+			err = conns[0].Close()
+			if err != nil {
+				errChan <- err
+			} else {
+				errChan <- nil
+			}
+		}()
+
+		err = <-errChan
+		if err != nil {
+			t.Fatalf("failed to close connection: %v", err)
+		}
+
 		_, err = p.Get(context.Background())
-		errChan <- err
-	}()
+		if err != nil {
+			t.Fatalf("failed to get connection after one became available: %v", err)
+		}
+	})
 
-	time.Sleep(1 * time.Second)
+	t.Run("returns error when context is cancelled", func(t *testing.T) {
+		provider := func(_ context.Context) (driver.Connection, error) {
+			return &mockConn{}, nil
+		}
 
-	// close the pool while waiting for a get
-	p.Close()
+		p, err := newSessionConnPool(context.Background(), provider, 2)
+		if err != nil {
+			t.Fatalf("unexpected error creating pool: %v", err)
+		}
 
-	err = <-errChan
-	if err == nil {
-		t.Fatal("expected an error, but got none")
-	}
-}
+		_, err = p.Get(context.Background())
+		if err != nil {
+			t.Fatalf("failed to get connection: %v", err)
+		}
+		_, err = p.Get(context.Background())
+		if err != nil {
+			t.Fatalf("failed to get connection: %v", err)
+		}
 
-func TestSessionConnPool_Get_a_connection_which_expired_in_the_pool(t *testing.T) {
-	var created []*mockConn
-	provider := func(_ context.Context) (conn.Connection, error) {
-		created = append(created, &mockConn{})
-		return created[len(created)-1], nil
-	}
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(1 * time.Second)
+			cancel()
+		}()
 
-	p, err := newSessionConnPool(context.Background(), provider, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+		_, err = p.Get(ctx)
+		if err == nil {
+			t.Fatal("expected an error, but got none")
+		}
+	})
 
-	created[0].MarkDead()
+	t.Run("returns an error when pool is closed", func(t *testing.T) {
+		provider := func(context.Context) (driver.Connection, error) {
+			return &mockConn{}, nil
+		}
 
-	_, err = p.Get(context.Background())
-	if err == nil {
-		t.Fatal("expected an error, but got none")
-	}
-}
+		p, err := newSessionConnPool(context.Background(), provider, 2)
+		if err != nil {
+			t.Fatalf("unexpected error creating pool: %v", err)
+		}
 
-func TestSessionConnPool_Connection_expired_when_checking_in(t *testing.T) {
-	var created []*mockConn
-	provider := func(_ context.Context) (conn.Connection, error) {
-		created = append(created, &mockConn{})
-		return created[len(created)-1], nil
-	}
+		p.Close()
 
-	p, err := newSessionConnPool(context.Background(), provider, 2)
-	if err != nil {
-		t.Fatal(err)
-	}
+		_, err = p.Get(context.Background())
+		if err == nil {
+			t.Fatal("expected an error, but got none")
+		}
 
-	c, err := p.Get(context.Background())
-	if err != nil {
-		t.Fatal(err)
-	}
+		if err != topology.ErrPoolDisconnected {
+			t.Fatalf("expected error '%v' but got '%v'", topology.ErrPoolDisconnected, err)
+		}
+	})
 
-	created[0].MarkDead()
+	t.Run("returns an error when pool is closed after connections are checked out", func(t *testing.T) {
+		provider := func(_ context.Context) (driver.Connection, error) {
+			return &mockConn{}, nil
+		}
 
-	c.Close()
+		p, err := newSessionConnPool(context.Background(), provider, 2)
+		if err != nil {
+			t.Fatalf("unexpected error creating pool: %v", err)
+		}
 
-	if p.Err() == nil {
-		t.Fatalf("expected error, but got none")
-	}
+		_, err = p.Get(context.Background())
+		if err != nil {
+			t.Fatalf("failed to get connection: %v", err)
+		}
+		_, err = p.Get(context.Background())
+		if err != nil {
+			t.Fatalf("failed to get connection: %v", err)
+		}
+
+		errChan := make(chan error, 1)
+
+		go func() {
+			_, err = p.Get(context.Background())
+			errChan <- err
+		}()
+
+		time.Sleep(1 * time.Second)
+
+		// close the pool while waiting for a get
+		p.Close()
+
+		err = <-errChan
+		if err == nil {
+			t.Fatal("expected an error, but got none")
+		}
+	})
 }
 
 type mockConn struct {
-	dead bool
 }
 
-func (c *mockConn) Alive() bool {
-	return !c.dead
-}
-
-func (c *mockConn) Close() error {
-	c.dead = true
+func (c *mockConn) WriteWireMessage(context.Context, []byte) error {
 	return nil
 }
 
-func (c *mockConn) CloseIgnoreError() {
-	c.Close()
-}
-
-func (c *mockConn) MarkDead() {
-	c.dead = true
-}
-
-func (c *mockConn) Model() *model.Conn {
-	return nil
-}
-
-func (c *mockConn) Expired() bool {
-	return c.dead
-}
-
-func (c *mockConn) LocalAddr() net.Addr {
-	return nil
-}
-
-func (c *mockConn) Read(ctx context.Context, responseTo int32) (msg.Response, error) {
+func (c *mockConn) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (c *mockConn) Write(ctx context.Context, reqs ...msg.Request) error {
+func (c *mockConn) Description() description.Server {
+	return description.Server{}
+}
+func (c *mockConn) Close() error {
 	return nil
+}
+
+func (c *mockConn) ID() string {
+	return ""
+}
+func (c *mockConn) Address() address.Address {
+	return ""
 }

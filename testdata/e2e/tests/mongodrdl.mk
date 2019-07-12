@@ -20,12 +20,12 @@ test-drdl-auth: test-drdl-connect-success
 
 # drdl should fail to connect with no credentials
 test-drdl-auth-no-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth
-test-drdl-auth-no-creds: EXPECTED_ERROR = Failed: can't get the collection names for 'test': (Unauthorized) command listCollections requires authentication
+test-drdl-auth-no-creds: EXPECTED_ERROR = Failed: can't get the collection names for 'test': error listing collections for 'test': (Unauthorized) command listCollections requires authentication
 test-drdl-auth-no-creds: test-drdl-connect-failure
 
 # drdl should fail to connect with incorrect credentials
 test-drdl-auth-wrong-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,drdl/auth/wrong-creds
-test-drdl-auth-wrong-creds: EXPECTED_ERROR = Failed: no servers available: server selection failed: context deadline exceeded
+test-drdl-auth-wrong-creds: EXPECTED_ERROR = Failed: connection() : auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.
 test-drdl-auth-wrong-creds: test-drdl-connect-failure
 
 # test that drdl connects with ssl

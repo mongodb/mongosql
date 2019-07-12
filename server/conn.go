@@ -925,7 +925,7 @@ func (c *conn) setStatusVariables() {
 	sessionVariables.StartTime = globalVariables.StartTime
 
 	topology := "standalone"
-	if c.mongoDBInfo.IsMongos() {
+	if c.session.TopologyKind() == mongodb.Sharded {
 		topology = "mongos"
 	}
 	sessionVariables.SetSystemVariable(variable.MongoDBGitVersion,

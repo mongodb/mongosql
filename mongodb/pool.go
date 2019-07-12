@@ -4,10 +4,13 @@ import (
 	"context"
 	"sync"
 
-	"github.com/10gen/mongo-go-driver/mongo/private/conn"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
-func newSessionConnPool(ctx context.Context, prv conn.Provider, max int) (*sessionConnPool, error) {
+type provider func(context.Context) (driver.Connection, error)
+
+func newSessionConnPool(ctx context.Context, prv provider, max int) (*sessionConnPool, error) {
 
 	pool := &sessionConnPool{
 		conns: make(chan *sessionConn, max),
@@ -50,46 +53,29 @@ func (p *sessionConnPool) Close() {
 		return
 	}
 
-	p.errLock.Lock()
-	err := p.err
-	p.errLock.Unlock()
-
 	close(conns)
 	for c := range conns {
-		if err != nil {
-			// if the pool has an error, we need to ensure that any remaining
-			// connections are pulled as we might know more than the underlying
-			// pool and monitors.
-			c.Connection.MarkDead()
-		}
 		_ = c.Connection.Close()
 	}
 }
 
-func (p *sessionConnPool) Get(ctx context.Context) (conn.Connection, error) {
+func (p *sessionConnPool) Get(ctx context.Context) (driver.Connection, error) {
 	p.connsLock.Lock()
 	conns := p.conns
 	p.connsLock.Unlock()
 
 	if conns == nil {
-		return nil, conn.ErrPoolClosed
+		return nil, topology.ErrPoolDisconnected
 	}
 
 	return p.getConn(ctx, conns)
 }
 
-func (p *sessionConnPool) getConn(ctx context.Context,
-	conns <-chan *sessionConn) (conn.Connection, error) {
-
+func (p *sessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn) (driver.Connection, error) {
 	select {
 	case c := <-conns:
 		if c == nil {
-			return nil, conn.ErrPoolClosed
-		}
-
-		if !c.Alive() {
-			p.closeConn(c)
-			return nil, conn.ErrPoolClosed
+			return nil, topology.ErrPoolDisconnected
 		}
 
 		return c, nil
@@ -98,24 +84,7 @@ func (p *sessionConnPool) getConn(ctx context.Context,
 	}
 }
 
-func (p *sessionConnPool) closeConn(c *sessionConn) {
-	_ = c.Connection.Close()
-
-	// if the connection is expired, it is likely due to a network
-	// outage since we don't set an idle time, which means the
-	// connection experienced a castrophic network failure.
-	p.errLock.Lock()
-	p.err = conn.ErrPoolClosed
-	p.errLock.Unlock()
-	p.Close()
-}
-
 func (p *sessionConnPool) returnConn(c *sessionConn) error {
-	if !c.Alive() {
-		p.closeConn(c)
-		return conn.ErrPoolClosed
-	}
-
 	p.connsLock.Lock()
 	defer p.connsLock.Unlock()
 
@@ -128,7 +97,7 @@ func (p *sessionConnPool) returnConn(c *sessionConn) error {
 }
 
 type sessionConn struct {
-	conn.Connection
+	driver.Connection
 	p *sessionConnPool
 }
 

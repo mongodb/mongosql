@@ -4,16 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 
-	oldbson "github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 var (
@@ -63,25 +60,13 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 			lgr.Debugf(log.Dev, "namespace exclusion selector used: running listDatabases")
 		}
 
-		dbIter, err := s.ListDatabases(ctx)
+		dbResult, err := s.ListDatabases(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error listing databases: %v", err)
 		}
 
-		var dbResult struct {
-			Name string `bson:"name"`
-		}
-
-		for dbIter.Next(ctx, &dbResult) {
-			dbs = append(dbs, dbResult.Name)
-		}
-
-		if err := dbIter.Close(ctx); err != nil {
-			lgr.Warnf(log.Dev, "error closing db iterator: %v", err)
-		}
-
-		if err := dbIter.Err(); err != nil {
-			lgr.Warnf(log.Dev, "db iteration error: %v", err)
+		for _, dbRecord := range dbResult.Databases {
+			dbs = append(dbs, dbRecord.Name)
 		}
 	}
 
@@ -114,7 +99,7 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 			continue
 		}
 
-		collectionIter, err := s.ListCollections(ctx, db, ops.ListCollectionsOptions{})
+		cursor, err := s.ListCollections(ctx, db, driver.CursorOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("can't get the collection names for '%v': %v", db, err)
 		}
@@ -125,16 +110,16 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 
 		collections := []string{}
 
-		for collectionIter.Next(ctx, &collectionResult) {
+		for cursor.Next(ctx, &collectionResult) {
 			collections = append(collections, collectionResult.Name)
 		}
 
-		if err := collectionIter.Close(ctx); err != nil {
-			lgr.Warnf(log.Dev, "error closing collection iterator: %v", err)
+		if err := cursor.Err(); err != nil {
+			lgr.Warnf(log.Dev, "collection iteration error: %v", err)
 		}
 
-		if err := collectionIter.Err(); err != nil {
-			lgr.Warnf(log.Dev, "collection iteration error: %v", err)
+		if err := cursor.Close(ctx); err != nil {
+			lgr.Warnf(log.Dev, "error closing collection iterator: %v", err)
 		}
 
 		mappings[db] = NSCollections(collections)
@@ -146,14 +131,16 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 // getIndexes returns the indexes present in the namespace - database
 // and collection - provided as a bson.D slice.
 func getIndexes(ctx context.Context, database, collection string, session *mongodb.Session) ([]bson.D, error) {
-	collectionIndexes, collectionIndex := bsonutil.NewDArray(), oldbson.D{}
+	collectionIndexes, collectionIndex := bsonutil.NewDArray(), bsonutil.NewD()
 	cursor, err := session.ListIndexes(ctx, database, collection)
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = cursor.Close(ctx) }()
 
 	for cursor.Next(ctx, &collectionIndex) {
-		collectionIndexes = append(collectionIndexes, astutil.OldToNewBSOND(collectionIndex))
+		collectionIndexes = append(collectionIndexes, collectionIndex)
+		collectionIndex = bsonutil.NewD()
 	}
 
 	if err = cursor.Err(); err != nil {
@@ -180,42 +167,31 @@ type NSViewPipeline struct {
 // GetViewPipelinesInDatabase returns a map of namespace names to the viewPipeline for the views
 // within the database, db.
 func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db string) (map[string]NSViewPipeline, error) {
-	type cursorCollection struct {
-		Name    string `bson:"name"`
-		Type    string `bson:"type"`
-		Options struct {
-			Pipeline []oldbson.D `bson:"pipeline"`
-			ViewOn   string      `bson:"viewOn"`
-		} `bson:"options"`
-	}
-
-	type firstBatchCursorResult struct {
-		FirstBatch []cursorCollection `bson:"firstBatch"`
-	}
-
-	type cursorReturningResult struct {
-		Cursor firstBatchCursorResult `bson:"cursor"`
-		Ok     int                    `bson:"ok"`
-	}
-
-	result := &cursorReturningResult{}
-	if err := s.Run(ctx, db, bsonutil.NewD(bsonutil.NewDocElem("listCollections", 1)), result); err != nil {
+	cursor, err := s.ListCollections(ctx, db, driver.CursorOptions{})
+	if err != nil {
 		return nil, fmt.Errorf("error getting db views map: %v", err)
 	}
 
-	if result.Ok != 1 {
-		return nil, fmt.Errorf("error executing db views map")
-	}
-
 	nsViewPipelines := make(map[string]NSViewPipeline)
-	for _, collection := range result.Cursor.FirstBatch {
-		if collection.Type == "view" {
-			namespace := formatNamespace(db, collection.Name, false)
+
+	collectionResult := struct {
+		Name    string `bson:"name"`
+		Type    string `bson:"type"`
+		Options struct {
+			Pipeline []bson.D `bson:"pipeline"`
+			ViewOn   string   `bson:"viewOn"`
+		} `bson:"options"`
+	}{}
+
+	for cursor.Next(ctx, &collectionResult) {
+		if collectionResult.Type == "view" {
+			namespace := formatNamespace(db, collectionResult.Name, false)
 			nsViewPipelines[namespace] = NSViewPipeline{
-				Collection: collection.Options.ViewOn,
-				Pipeline:   astutil.OldToNewBSON(collection.Options.Pipeline).([]bson.D),
+				Collection: collectionResult.Options.ViewOn,
+				Pipeline:   collectionResult.Options.Pipeline,
 			}
 		}
+		collectionResult.Options.Pipeline = bsonutil.NewDArray()
 	}
 
 	// Recursively augment initial pipelines to handle views defined on views.

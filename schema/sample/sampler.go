@@ -7,9 +7,6 @@ import (
 	"sort"
 	"strings"
 
-	oldbson "github.com/10gen/mongo-go-driver/bson"
-	"github.com/10gen/mongo-go-driver/mongo/private/ops"
-	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
@@ -203,8 +200,8 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 			}
 
 			// 2. get sample documents
-			var iter ops.Cursor
-			iter, err = session.Aggregate(ctx, db, sampleCollection, pipeline)
+			var cursor mongodb.Cursor
+			cursor, err = session.Aggregate(ctx, db, sampleCollection, pipeline)
 			if err != nil {
 				// If we attempted to optimize for views, it is possible that the admin user does
 				// not possess "find" access on some referenced collection or view - either within
@@ -212,7 +209,7 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 				// regular sampling process.
 				if len(pipeline) > 1 {
 					s.lg.Debugf(log.Dev, "using vanilla $sample for view %s", quotedNs)
-					iter, err = session.Aggregate(ctx, db, col, getSamplingPipeline(s.cfg.Size()))
+					cursor, err = session.Aggregate(ctx, db, col, getSamplingPipeline(s.cfg.Size()))
 				}
 				if err != nil {
 					return nil, fmt.Errorf("error sampling collection: %v", err)
@@ -222,18 +219,19 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 			jsonSchema := mongo.NewCollectionSchema()
 
 			// 3. create json schema and store it
-			d := oldbson.D{}
-			count, doc := int64(0), &d
+			count, doc := int64(0), bsonutil.NewD()
 
-			for iter.Next(ctx, doc) {
-				newBSOND := astutil.OldToNewBSOND(*doc)
-				err = jsonSchema.IncludeSample(newBSOND)
+			for cursor.Next(ctx, &doc) {
+				err = jsonSchema.IncludeSample(doc)
 				if err != nil {
 					return nil, fmt.Errorf("error including sample: %v", err)
 				}
-				newD := oldbson.D{}
-				doc = &newD
+				doc = bsonutil.NewD()
 				count++
+			}
+
+			if err = cursor.Err(); err != nil {
+				return nil, fmt.Errorf("error iterating sample: %v", err)
 			}
 
 			if count == 0 {
@@ -241,7 +239,7 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 				continue
 			}
 
-			if err = iter.Close(ctx); err != nil {
+			if err = cursor.Close(ctx); err != nil {
 				s.lg.Warnf(log.Dev, "error closing iterator: %v", err)
 			}
 
@@ -273,7 +271,7 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 				col,
 				s.cfg.PreJoin(),
 				uuidSubtype3Encoding,
-				version,
+				version.VersionArray,
 				s.lg,
 				s.cfg.SchemaMappingMode(),
 				s.cfg.MaxNumColumnsPerTable(),

@@ -12,6 +12,8 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func (c *conn) getCommandHandler() *commandHandler {
@@ -33,7 +35,7 @@ func (ch *commandHandler) isAdminUser() bool {
 	return ch.conn.server.isAdminUser(user, source)
 }
 
-func (ch *commandHandler) Aggregate(ctx context.Context, db, col string, pipeline interface{}) (mongodb.Cursor, error) {
+func (ch *commandHandler) Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error) {
 	return ch.conn.session.Aggregate(ctx, db, col, pipeline)
 }
 
