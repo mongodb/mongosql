@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math"
-	"strconv"
 	"time"
 	"unicode/utf8"
 
@@ -15,6 +14,7 @@ import (
 
 	"github.com/shopspring/decimal"
 
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -515,7 +515,7 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype types.EvalType
 		}
 		return NewSQLBool(kind, true), nil
 	case types.EvalDecimal128:
-		h := (uint64(data[0]) << 0) |
+		l := (uint64(data[0]) << 0) |
 			(uint64(data[1]) << 8) |
 			(uint64(data[2]) << 16) |
 			(uint64(data[3]) << 24) |
@@ -523,7 +523,7 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype types.EvalType
 			(uint64(data[5]) << 40) |
 			(uint64(data[6]) << 48) |
 			(uint64(data[7]) << 56)
-		l := (uint64(data[8]) << 0) |
+		h := (uint64(data[8]) << 0) |
 			(uint64(data[9]) << 8) |
 			(uint64(data[10]) << 16) |
 			(uint64(data[11]) << 24) |
@@ -531,8 +531,8 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype types.EvalType
 			(uint64(data[13]) << 40) |
 			(uint64(data[14]) << 48) |
 			(uint64(data[15]) << 56)
-		bd := NewBSONDecimal128(l, h)
-		gd, err := decimal.NewFromString(bd.String())
+		d := primitive.NewDecimal128(h, l)
+		gd, err := decimal.NewFromString(d.String())
 		if err != nil {
 			return nil, err
 		}
@@ -631,124 +631,6 @@ func BSONValueToSQLValue(kind SQLValueKind, evalType, uuidSubtype types.EvalType
 		// on malformed Decimal128 values.
 		return NewSQLNull(kind), nil
 	}
-}
-
-// BSONDecimal128 holds decimal128 BSON values.
-type BSONDecimal128 struct {
-	h, l uint64
-}
-
-// NewBSONDecimal128 is a constructor for BSONDecimal128.
-func NewBSONDecimal128(h, l uint64) BSONDecimal128 {
-	return BSONDecimal128{h, l}
-}
-
-// String() formats a BSONDecimal128 as a string.
-func (d BSONDecimal128) String() string {
-	var pos int     // positive sign
-	var e int       // exponent
-	var h, l uint64 // significand high/low
-
-	if d.h>>63&1 == 0 {
-		pos = 1
-	}
-
-	switch d.h >> 58 & (1<<5 - 1) {
-	case 0x1F:
-		return "NaN"
-	case 0x1E:
-		return "-Inf"[pos:]
-	}
-
-	l = d.l
-	if d.h>>61&3 == 3 {
-		// Bits: 1*sign 2*ignored 14*exponent 111*significand.
-		// Implicit 0b100 prefix in significand.
-		e = int(d.h>>47&(1<<14-1)) - 6176
-		//h = 4<<47 | d.h&(1<<47-1)
-		//  says all of these values are out of range.
-		h, l = 0, 0
-	} else {
-		// Bits: 1*sign 14*exponent 113*significand
-		e = int(d.h>>49&(1<<14-1)) - 6176
-		h = d.h & (1<<49 - 1)
-	}
-
-	// Would be handled by the logic below, but that's trivial and common.
-	if h == 0 && l == 0 && e == 0 {
-		return "-0"[pos:]
-	}
-
-	var repr [48]byte // Loop 5 times over 9 digits plus dot, negative sign, and leading zero.
-	var last = len(repr)
-	var i = len(repr)
-	var dot = len(repr) + e
-	var rem uint32
-Loop:
-	for d9 := 0; d9 < 5; d9++ {
-		h, l, rem = divmod(h, l, 1e9)
-		for d1 := 0; d1 < 9; d1++ {
-			// Handle "-0.0", "0.00123400", "-1.00E-6", "1.050E+3", etc.
-			if i < len(repr) &&
-				(dot == i || (l == 0 &&
-					h == 0 &&
-					rem > 0 &&
-					rem < 10 &&
-					(dot < i-6 || e > 0))) {
-				e += len(repr) - i
-				i--
-				repr[i] = '.'
-				last = i - 1
-				dot = len(repr) // Unmark.
-			}
-			c := '0' + byte(rem%10)
-			rem /= 10
-			i--
-			repr[i] = c
-			// Handle "0E+3", "1E+3", etc.
-			if l == 0 && h == 0 && rem == 0 && i == len(repr)-1 && (dot < i-5 || e > 0) {
-				last = i
-				break Loop
-			}
-			if c != '0' {
-				last = i
-			}
-			// Break early. Works without it, but why.
-			if dot > i && l == 0 && h == 0 && rem == 0 {
-				break Loop
-			}
-		}
-	}
-	repr[last-1] = '-'
-	last--
-
-	if e > 0 {
-		return string(repr[last+pos:]) + "E+" + strconv.Itoa(e)
-	}
-	if e < 0 {
-		return string(repr[last+pos:]) + "E" + strconv.Itoa(e)
-	}
-	return string(repr[last+pos:])
-}
-
-// divmod is a helper function for SQLDecimal128 values that performs
-// both division and remainder efficiently.
-// nolint: unparam
-func divmod(h, l uint64, div uint32) (qh, ql uint64, rem uint32) {
-	div64 := uint64(div)
-	a := h >> 32
-	aq := a / div64
-	ar := a % div64
-	b := ar<<32 + h&(1<<32-1)
-	bq := b / div64
-	br := b % div64
-	c := br<<32 + l>>32
-	cq := c / div64
-	cr := c % div64
-	d := cr<<32 + l&(1<<32-1)
-	dq := d / div64
-	dr := d % div64
-	return (aq<<32 | bq), (cq<<32 | dq), uint32(dr)
 }
 
 // SQLNull represents a NULL value.

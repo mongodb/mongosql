@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-1460: No user facing changes.
 BI-2219: No user facing changes.
 BI-2238: New reserved words: KEY, FULLTEXT, PRIMARY.
 BI-2259: Fixed a bug in our foreign key construction that caused some foreign keys to point to unrelated tables.

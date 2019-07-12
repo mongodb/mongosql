@@ -23,6 +23,7 @@ import (
 	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // dataFormatter holds information necessary for formatting
@@ -93,8 +94,8 @@ func fastFormat(f dataFormatter, valueKind values.SQLValueKind) ([]byte, error) 
 }
 
 // fastCleanFormat produces byte arrays encoded in MySQL's wire protocol based
-// on the passed EvalType and the data. The charSet and
-// mongoDBVarcharLength arguments are necessary for handling string encoding
+// on the passed EvalType and the data. The dataFormatter's charSet and
+// mongoDBVarcharLength fields are necessary for handling string encoding
 // and string max allowed length, respectively.
 func fastCleanFormat(columnType, evalType types.EvalType, f *dataFormatter) ([]byte, error) {
 	switch evalType {
@@ -243,7 +244,7 @@ func fastCleanFormat(columnType, evalType types.EvalType, f *dataFormatter) ([]b
 		)
 		return putLengthEncodedString(ret), nil
 	case types.EvalDecimal128:
-		h := (uint64(f.data[0]) << 0) |
+		l := (uint64(f.data[0]) << 0) |
 			(uint64(f.data[1]) << 8) |
 			(uint64(f.data[2]) << 16) |
 			(uint64(f.data[3]) << 24) |
@@ -251,7 +252,7 @@ func fastCleanFormat(columnType, evalType types.EvalType, f *dataFormatter) ([]b
 			(uint64(f.data[5]) << 40) |
 			(uint64(f.data[6]) << 48) |
 			(uint64(f.data[7]) << 56)
-		l := (uint64(f.data[8]) << 0) |
+		h := (uint64(f.data[8]) << 0) |
 			(uint64(f.data[9]) << 8) |
 			(uint64(f.data[10]) << 16) |
 			(uint64(f.data[11]) << 24) |
@@ -259,7 +260,7 @@ func fastCleanFormat(columnType, evalType types.EvalType, f *dataFormatter) ([]b
 			(uint64(f.data[13]) << 40) |
 			(uint64(f.data[14]) << 48) |
 			(uint64(f.data[15]) << 56)
-		d := values.NewBSONDecimal128(l, h)
+		d := primitive.NewDecimal128(h, l)
 		return putLengthEncodedString([]byte(d.String())), nil
 	default:
 		readableBSONType := string(types.EvalTypeToMongoType(evalType))
