@@ -45,6 +45,15 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		return nil, err
 	}
 
+	// If no compressors are specified in the connection string,
+	// we default them here to zlib,snappy. We add these to the
+	// connection string (as opposed to adding them via default
+	// options below) because topology.WithConnString overwrites
+	// the Compressors unconditionally.
+	if len(cs.Compressors) == 0 {
+		cs.Compressors = []string{"zlib", "snappy"}
+	}
+
 	topologyOpts := []topology.Option{
 		// Doing this before WithConnString makes these the defaults
 		topology.WithServerOptions(func(options ...topology.ServerOption) []topology.ServerOption {
@@ -287,6 +296,17 @@ func (c *autoLogoutConnection) Close() error {
 	}
 
 	return c.expirableConnection.Close()
+}
+
+// CompressWireMessage handles compressing the provided wire message using the
+// underlying driver.Connection if it is also a driver.Compressor.
+func (c *autoLogoutConnection) CompressWireMessage(src, dst []byte) ([]byte, error) {
+	if compressor, ok := c.expirableConnection.(driver.Compressor); ok {
+		return compressor.CompressWireMessage(src, dst)
+	}
+
+	// Cannot compress if the underlying driver.Connection is not a driver.Compressor.
+	return append(dst, src...), nil
 }
 
 // GetConnectTimeout returns the connection string's ConnectTimeout.

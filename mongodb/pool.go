@@ -104,3 +104,14 @@ type sessionConn struct {
 func (c *sessionConn) Close() error {
 	return c.p.returnConn(c)
 }
+
+// CompressWireMessage handles compressing the provided wire message using the
+// underlying driver.Connection if it is also a driver.Compressor.
+func (c *sessionConn) CompressWireMessage(src, dst []byte) ([]byte, error) {
+	if compressor, ok := c.Connection.(driver.Compressor); ok {
+		return compressor.CompressWireMessage(src, dst)
+	}
+
+	// Cannot compress if the underlying driver.Connection is not a driver.Compressor.
+	return append(dst, src...), nil
+}
