@@ -1828,6 +1828,14 @@ tasks:
   tags: ["test", "config", "gssapi"]
 
 - <<: *run-config-test
+  name: test-drdl-gssapi-wrong-service-name
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
+  name: test-drdl-gssapi-wrong-host-name
+  tags: ["test", "config", "gssapi"]
+
+- <<: *run-config-test
   name: test-gssapi-admin-authenticator-plain-user
   tags: ["test", "config", "gssapi"]
 

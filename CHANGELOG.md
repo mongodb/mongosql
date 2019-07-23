@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2267: Fixed a bug that caused mongodrdl to ignore the `--gssapiHostName` and `gssapiServiceName` flags.
 BI-2092: No user-facing changes.
 BI-2239: No user-facing changes.
 BI-1510: If no compressors are specified in the mongodb connection string, zlib,snappy will be used by default. If compressors are specified, they will be honored.

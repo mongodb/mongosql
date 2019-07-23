@@ -214,6 +214,16 @@ func parseDrdlOptions(opts DrdlOptions) (connstring.ConnString, error) {
 
 	cs.AuthMechanism = opts.DrdlAuth.Mechanism
 
+	if cs.AuthMechanism == "GSSAPI" {
+		cs.AuthMechanismProperties = map[string]string{}
+		if opts.DrdlKerberos.Service != "" {
+			cs.AuthMechanismProperties["SERVICE_NAME"] = opts.DrdlKerberos.Service
+		}
+		if opts.DrdlKerberos.ServiceHost != "" {
+			cs.AuthMechanismProperties["SERVICE_HOST"] = opts.DrdlKerberos.ServiceHost
+		}
+	}
+
 	if s := opts.GetAuthenticationDatabase(); s != "" {
 		cs.AuthSource = s
 	}

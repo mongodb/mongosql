@@ -1,0 +1,2 @@
+
+DRDL_CREDS="--username drivers@LDAPTEST.10GEN.CC --password powerbook17 --gssapiServiceName foobar"
