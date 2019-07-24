@@ -7,6 +7,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -304,22 +305,22 @@ func TestGetCatalog(t *testing.T) {
 
 	lg := log.GlobalLogger()
 
-	c1 := schema.NewColumn("c1", schema.SQLInt, "c1", schema.MongoInt)
-	c2 := schema.NewColumn("c2", schema.SQLInt, "c2", schema.MongoInt)
-	c3 := schema.NewColumn("c3", schema.SQLInt, "c3", schema.MongoInt)
-	c4 := schema.NewColumn("c4", schema.SQLInt, "c4", schema.MongoInt)
-	c5 := schema.NewColumn("c5", schema.SQLInt, "c5", schema.MongoInt)
-	c6 := schema.NewColumn("c6", schema.SQLInt, "c6", schema.MongoInt)
-	c7 := schema.NewColumn("c7", schema.SQLInt, "c7", schema.MongoInt)
-	c8 := schema.NewColumn("c8", schema.SQLInt, "c8", schema.MongoInt)
+	c1 := schema.NewColumn("c1", schema.SQLInt, "c1", schema.MongoInt, false, option.NoneString())
+	c2 := schema.NewColumn("c2", schema.SQLInt, "c2", schema.MongoInt, false, option.NoneString())
+	c3 := schema.NewColumn("c3", schema.SQLInt, "c3", schema.MongoInt, false, option.NoneString())
+	c4 := schema.NewColumn("c4", schema.SQLInt, "c4", schema.MongoInt, false, option.NoneString())
+	c5 := schema.NewColumn("c5", schema.SQLInt, "c5", schema.MongoInt, false, option.NoneString())
+	c6 := schema.NewColumn("c6", schema.SQLInt, "c6", schema.MongoInt, false, option.NoneString())
+	c7 := schema.NewColumn("c7", schema.SQLInt, "c7", schema.MongoInt, false, option.NoneString())
+	c8 := schema.NewColumn("c8", schema.SQLInt, "c8", schema.MongoInt, false, option.NoneString())
 
-	tOneColumn, _ := schema.NewTable(lg, "t1", "t1", []bson.D{}, []*schema.Column{c1})
-	tManyColumn, _ := schema.NewTable(lg, "t2", "t2", []bson.D{}, []*schema.Column{c1, c2})
-	tManyColumn2, _ := schema.NewTable(lg, "t3", "t3", []bson.D{}, []*schema.Column{c3, c4})
-	tManyColumn3, _ := schema.NewTable(lg, "t4", "t4", []bson.D{}, []*schema.Column{c5, c6})
-	tManyColumn4, _ := schema.NewTable(lg, "t5", "t5", []bson.D{}, []*schema.Column{c7, c8})
-	tManyColumn5, _ := schema.NewTable(lg, "t6", "t6", []bson.D{}, []*schema.Column{c1, c2})
-	tManyColumn6, _ := schema.NewTable(lg, "t7", "t7", []bson.D{}, []*schema.Column{c3, c4})
+	tOneColumn, _ := schema.NewTable(lg, "t1", "t1", []bson.D{}, []*schema.Column{c1}, []schema.Index{}, option.NoneString())
+	tManyColumn, _ := schema.NewTable(lg, "t2", "t2", []bson.D{}, []*schema.Column{c1, c2}, []schema.Index{}, option.NoneString())
+	tManyColumn2, _ := schema.NewTable(lg, "t3", "t3", []bson.D{}, []*schema.Column{c3, c4}, []schema.Index{}, option.NoneString())
+	tManyColumn3, _ := schema.NewTable(lg, "t4", "t4", []bson.D{}, []*schema.Column{c5, c6}, []schema.Index{}, option.NoneString())
+	tManyColumn4, _ := schema.NewTable(lg, "t5", "t5", []bson.D{}, []*schema.Column{c7, c8}, []schema.Index{}, option.NoneString())
+	tManyColumn5, _ := schema.NewTable(lg, "t6", "t6", []bson.D{}, []*schema.Column{c1, c2}, []schema.Index{}, option.NoneString())
+	tManyColumn6, _ := schema.NewTable(lg, "t7", "t7", []bson.D{}, []*schema.Column{c3, c4}, []schema.Index{}, option.NoneString())
 
 	dbOneTableOneColumn := schema.NewDatabase(lg, "db1", []*schema.Table{tOneColumn})
 	dbOneTableManyColumn := schema.NewDatabase(lg, "db2", []*schema.Table{tManyColumn})

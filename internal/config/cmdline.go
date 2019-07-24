@@ -640,6 +640,7 @@ type schemaOptions struct {
 	SampleRefreshIntervalSecs  *int64   `long:"sampleRefreshIntervalSecs" description:"the interval (in seconds) mongosqld waits before re-sampling the schema(s)" hidden:"true"`
 	SampleUUIDSubtype3Encoding *string  `long:"uuidSubtype3Encoding" short:"b" description:"encoding used to generate UUID binary subtype 3. old: Old BSON binary subtype representation; csharp: The C#/.NET legacy UUID representation; java: The Java legacy UUID representation" choice:"old" choice:"csharp" choice:"java"`
 	SchemaMappingMode          *string  `long:"schemaMappingMode" hidden:"true" description:"schema mapping mode to use" choice:"lattice" choice:"majority"`
+	WriteMode                  *bool    `long:"writeMode" hidden:"true" description:"allow ddl operations and inserts, read schema from json-schema validators"`
 }
 
 func (o *schemaOptions) name() string {
@@ -696,6 +697,10 @@ func (o *schemaOptions) mapToConfig(cfg *Config) error {
 
 	if o.PreJoin != nil {
 		cfg.Schema.Sample.PreJoin = *o.PreJoin
+	}
+
+	if o.WriteMode != nil {
+		cfg.Schema.WriteMode = *o.WriteMode
 	}
 
 	if o.SampleNamespaces != nil {

@@ -324,6 +324,13 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("stored schema modes require a non-empty schema source")
 	}
 
+	if cfg.Schema.WriteMode {
+		err := checkForDissallowedWriteModeSettings(cfg)
+		if err != nil {
+			return err
+		}
+	}
+
 	switch cfg.SystemLog.LogRotate {
 	case log.Rename:
 		// this is valid
@@ -371,6 +378,56 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("must provide metrics.stitchURL when default metrics_backend is 'stitch'")
 	}
 
+	return nil
+}
+
+// This checks for all the possible settings that we cannot allow in --writeMode.
+func checkForDissallowedWriteModeSettings(cfg *Config) error {
+	defaultCfg := Default()
+	if cfg.Schema.Path != defaultCfg.Schema.Path {
+		return fmt.Errorf("write mode schema cannot have a (drdl) schema path")
+	}
+	if cfg.Schema.RefreshIntervalSecs != defaultCfg.Schema.RefreshIntervalSecs {
+		return fmt.Errorf("write mode schema cannot have refreshIntervalSecs")
+	}
+	if cfg.Schema.Sample.MaxNestedTableDepth != defaultCfg.Schema.Sample.MaxNestedTableDepth {
+		return fmt.Errorf("write mode schema cannot have sample settings, found maxNestedTableDepth")
+	}
+	if cfg.Schema.Sample.MaxNumColumnsPerTable != defaultCfg.Schema.Sample.MaxNumColumnsPerTable {
+		return fmt.Errorf("write mode schema cannot have sample settings, found maxNumColumnsPerTable")
+	}
+	for i := range cfg.Schema.Sample.Namespaces {
+		if cfg.Schema.Sample.Namespaces[i] != defaultCfg.Schema.Sample.Namespaces[i] {
+			return fmt.Errorf("write mode schema cannot have sample settings, found namespaces")
+		}
+	}
+	if cfg.Schema.Sample.OptimizeViewSampling != defaultCfg.Schema.Sample.OptimizeViewSampling {
+		return fmt.Errorf("write mode schema cannot have sample settings, found optimizeViewSampling")
+	}
+	if cfg.Schema.Sample.PreJoin != defaultCfg.Schema.Sample.PreJoin {
+		return fmt.Errorf("write mode schema cannot have sample settings, found prejoin")
+	}
+	if cfg.Schema.Sample.RefreshIntervalSecsDeprecated != defaultCfg.Schema.Sample.RefreshIntervalSecsDeprecated {
+		return fmt.Errorf("write mode schema cannot have sample settings, found refreshIntervalSecsDeprecated")
+	}
+	if cfg.Schema.Sample.SchemaMappingMode != defaultCfg.Schema.Sample.SchemaMappingMode {
+		return fmt.Errorf("write mode schema cannot have sample settings, found schemaMappingMode")
+	}
+	if cfg.Schema.Sample.Size != defaultCfg.Schema.Sample.Size {
+		return fmt.Errorf("write mode schema cannot have sample settings, found size")
+	}
+	if cfg.Schema.Sample.UUIDSubtype3Encoding != defaultCfg.Schema.Sample.UUIDSubtype3Encoding {
+		return fmt.Errorf("write mode schema cannot have sample settings, found uuidSubtype3Encoding")
+	}
+	if cfg.Schema.Stored.Mode != defaultCfg.Schema.Stored.Mode {
+		return fmt.Errorf("write mode schema cannot be used with a stored schema mode")
+	}
+	if cfg.Schema.Stored.Source != defaultCfg.Schema.Stored.Source {
+		return fmt.Errorf("write mode schema cannot have a stored schema source")
+	}
+	if cfg.Schema.Stored.Name != defaultCfg.Schema.Stored.Name {
+		return fmt.Errorf("write mode schema cannot have a stored schema name")
+	}
 	return nil
 }
 
@@ -423,6 +480,7 @@ type RuntimeMemory struct {
 // Schema holds schema configuration.
 type Schema struct {
 	Path                string
+	WriteMode           bool
 	MaxVarcharLength    uint64
 	RefreshIntervalSecs int64
 	Sample              SchemaSampleOptions  `config:"sample"`

@@ -15,6 +15,7 @@ type SchemaMode string
 
 // These constants represent the valid SchemaMode values.
 const (
+	WriteSchemaMode      SchemaMode = "write"
 	FileBasedSchemaMode  SchemaMode = "file"
 	StandaloneSchemaMode SchemaMode = "standalone"
 	AutoSchemaMode       SchemaMode = "auto"
@@ -26,7 +27,7 @@ const (
 // instead of a struct because the values it provides are allowed to change over
 // time, and the Manager's behavior will change accordingly.
 type Config interface {
-	// Mode returns the SchemaMode (Standalone, Auto, or Custom) that the
+	// Mode returns the SchemaMode (Write, Standalone, Auto, or Custom) that the
 	// Manager should operate in.
 	Mode() SchemaMode
 	// RefreshInterval returns the interval at which the Manager should refresh

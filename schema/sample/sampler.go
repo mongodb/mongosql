@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -16,6 +17,8 @@ import (
 	"github.com/10gen/sqlproxy/schema/mongo"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/x/mongo/driver"
 )
 
 // Sampler is a type that provides schema sampling functionality.
@@ -37,9 +40,330 @@ func NewSampler(cfg Config, lg log.Logger, sp *mongodb.SessionProvider) Sampler 
 	}
 }
 
+// Sample samples collections. In write mode, it samples collections based on
+// their jsonSchema validators and indexes. In other modes it samples based on
+// the data in collections.
+func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
+	if s.cfg.WriteMode() {
+		return s.writeModeSample(ctx)
+	}
+	return s.readModeSample(ctx)
+}
+
+func (s Sampler) writeModeSample(ctx context.Context) (*schema.Schema, error) {
+	session, err := s.sp.AuthenticatedAdminSessionPrimary(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer session.Close()
+
+	formatTableNames := func(tables []*schema.Table) string {
+		names := make([]string, len(tables))
+		for i, t := range tables {
+			names[i] = fmt.Sprintf(`"%s"`, t.SQLName())
+		}
+		return "[" + strings.Join(names, ", ") + "]"
+	}
+
+	s.lg.Infof(log.Always, "sampling MongoDB for schema...")
+
+	dbs, err := session.ListDatabases(ctx)
+	if err != nil {
+		return nil, err
+	}
+	databases := make([]*schema.Database, 0, len(dbs.Databases))
+	for _, db := range dbs.Databases {
+		tables, err := s.getWriteModeTables(ctx, session, db.Name)
+		if err != nil {
+			return nil, err
+		}
+		if len(tables) == 0 {
+			s.lg.Infof(log.Always, `skipping database "%s" because no conforming jsonSchema validators exist`, db.Name)
+			continue
+		}
+		database := schema.NewDatabase(s.lg, db.Name, tables)
+		databases = append(databases, database)
+		s.lg.Infof(log.Always, `mapped schema for %d namespaces:  "%s": %s`,
+			len(tables), db.Name, formatTableNames(tables))
+	}
+	s.lg.Infof(log.Always, "done mapping")
+
+	return schema.New(databases, []*schema.Alteration{})
+}
+
+func (s Sampler) getWriteModeTables(ctx context.Context, session *mongodb.Session, db string) ([]*schema.Table, error) {
+	collectionCursor, err := session.ListCollections(ctx, db, driver.CursorOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("can't get the collection for '%v': %v", db, err)
+	}
+
+	tables := []*schema.Table{}
+	type collectionResultType struct {
+		Name    string `bson:"name"`
+		Options bson.D `bson:"options"`
+	}
+
+	collectionResult := &collectionResultType{}
+	for collectionCursor.Next(ctx, collectionResult) {
+		jsSchema, ok := getValidator(collectionResult.Options)
+		if !ok {
+			continue
+		}
+		indexes, err := getIndexesInfo(ctx, session, db, collectionResult.Name)
+		if err != nil {
+			s.lg.Infof(log.Always, `could not get serialized table indexes for collection '%s': '%s'`, collectionResult.Name, err)
+			continue
+		}
+		table, err := s.deserializeTableSchema(collectionResult.Name, jsSchema, indexes)
+		if err != nil {
+			s.lg.Infof(log.Always, "could not deserialize table schema for collection '%s': '%s'", collectionResult.Name, err)
+			continue
+		}
+		tables = append(tables, table)
+		collectionResult = &collectionResultType{}
+	}
+	return tables, nil
+}
+
+func getValidator(options bson.D) (bson.D, bool) {
+	for _, field := range options {
+		if field.Key == "validator" {
+			doc, ok := field.Value.(bson.D)
+			if !ok {
+				return bson.D{}, false
+			}
+			for _, innerField := range doc {
+				if innerField.Key == "$jsonSchema" {
+					return innerField.Value.(bson.D), true
+				}
+			}
+		}
+	}
+	return bson.D{}, false
+}
+
+type indexInfo struct {
+	Name    string `bson:"name"`
+	Unique  bool   `bson:"unique"`
+	Key     bson.D `bson:"key"`
+	Weights bson.D `bson:"weights"`
+}
+
+func getIndexesInfo(ctx context.Context, session *mongodb.Session, db, col string) ([]indexInfo, error) {
+	indexes := []indexInfo{}
+	indexCursor, err := session.ListIndexes(ctx, db, col)
+	if err != nil {
+		return indexes, err
+	}
+	var indexResult indexInfo
+	for indexCursor.Next(ctx, &indexResult) {
+		// We want to skip the _id_ index, as this is opaque
+		// to write mode semantics at this time.
+		if indexResult.Name == "_id_" {
+			continue
+		}
+		indexes = append(indexes, indexResult)
+		indexResult = indexInfo{}
+	}
+	return indexes, nil
+}
+
+func (s Sampler) deserializeTableSchema(name string, jsonSchema bson.D, indexes []indexInfo) (*schema.Table, error) {
+	columns, comment, err := deserializeColumnsAndComment(jsonSchema)
+	if err != nil {
+		return nil, err
+	}
+	deserializedIndexes := deserializeIndexesInfo(indexes)
+	table, err := schema.NewTable(s.lg, name, name, nil, columns, deserializedIndexes, comment)
+	if err != nil {
+		return nil, err
+	}
+	return table, nil
+}
+
+func deserializeColumnsAndComment(jsonSchema bson.D) ([]*schema.Column, option.String, error) {
+	var required []string
+	var properties bson.D
+	comment := option.NoneString()
+
+	for _, field := range jsonSchema {
+		switch field.Key {
+		case "required":
+			requiredInterfaces, ok := field.Value.(primitive.A)
+			if !ok {
+				return nil, option.NoneString(), fmt.Errorf("jsonSchema 'required' must be a primitive.A, not %T", field.Value)
+			}
+			required = make([]string, len(requiredInterfaces))
+			for i, s := range requiredInterfaces {
+				required[i], ok = s.(string)
+				if !ok {
+					return nil, option.NoneString(), fmt.Errorf("jsonSchema 'required' elements must be a string, not %T", s)
+				}
+			}
+		case "description":
+			commentStr, ok := field.Value.(string)
+			if !ok {
+				return nil, option.NoneString(), fmt.Errorf("jsonSchema 'description' must be a string, not %T", field.Value)
+			}
+			comment = option.SomeString(commentStr)
+		case "properties":
+			var ok bool
+			properties, ok = field.Value.(bson.D)
+			if !ok {
+				return nil, option.NoneString(), fmt.Errorf("jsonSchema 'properties' must be a bson.D, not %T", field.Value)
+			}
+		case "bsonType":
+			if field.Value != "object" {
+				return nil, option.NoneString(), fmt.Errorf("jsonSchema must have bsonType 'object'")
+			}
+		}
+	}
+	if len(properties) < 1 {
+		return nil, option.NoneString(), fmt.Errorf("jsonSchema must have at least one property for writeMode schema mapping")
+	}
+	if len(required) != len(properties) {
+		return nil, option.NoneString(), fmt.Errorf("all properties must be required")
+	}
+	columns := make([]*schema.Column, len(required))
+	requiredSet := strutil.StringSliceToSet(required)
+	for i, property := range properties {
+		col, err := deserializeSchemaColumn(required, requiredSet, property)
+		if err != nil {
+			return nil, option.NoneString(), err
+		}
+		columns[i] = col
+	}
+	return columns, comment, nil
+}
+
+func deserializeSchemaColumn(required []string,
+	requiredSet map[string]struct{},
+	property bson.E) (*schema.Column, error) {
+	if _, ok := requiredSet[property.Key]; !ok {
+		return nil, fmt.Errorf("found property named '%s' that is not"+
+			" in the required properties: %#v", property.Key, required)
+	}
+	doc, ok := property.Value.(bson.D)
+	if !ok {
+		return nil, fmt.Errorf("property must have a bsonType object for"+
+			" its value, found %T", property.Value)
+	}
+	sqlType := schema.SQLPolymorphic
+	mongoType := schema.MongoNone
+	comment := option.NoneString()
+	null := false
+	var err error
+	getTypes := func(input interface{}) (schema.SQLType, schema.MongoType, error) {
+		var bsonType string
+		bsonType, ok = input.(string)
+		if !ok {
+			return sqlType, mongoType,
+				fmt.Errorf("bsonType must be a string denoting"+
+					" the type, found %T", input)
+		}
+		return schema.GetSQLTypeAndMongoTypeFromJSONSchemaType(bsonType)
+	}
+	for _, e := range doc {
+		switch e.Key {
+		case "description":
+			var commentStr string
+			commentStr, ok = e.Value.(string)
+			if !ok {
+				return nil, fmt.Errorf("property description must have"+
+					" type string, found %T", e.Value)
+			}
+			comment = option.SomeString(commentStr)
+		case "bsonType":
+			sqlType, mongoType, err = getTypes(e.Value)
+			if err != nil {
+				return nil, err
+			}
+		case "oneOf":
+			var docArr []interface{}
+			docArr, ok = e.Value.(primitive.A)
+			if !ok {
+				return nil, fmt.Errorf("'oneOf' argument must be a primitive.A, found %T", e.Value)
+			}
+			if len(docArr) != 2 {
+				return nil, fmt.Errorf("the only supported value for 'oneOf' is a simple bsonType with null, "+
+					"thus there should be two elements, not %d", len(docArr))
+			}
+			sqlTypes := make([]schema.SQLType, 2)
+			mongoTypes := make([]schema.MongoType, 2)
+
+			for i, oneOfDocInterface := range docArr {
+				var oneOfDoc bson.D
+				oneOfDoc, ok = oneOfDocInterface.(bson.D)
+				if !ok {
+					return nil, fmt.Errorf("the values under 'oneOf' must be documents not %T", oneOfDocInterface)
+				}
+				if len(oneOfDoc) != 1 {
+					return nil, fmt.Errorf("the only supported values for 'oneOf' are 'bsonType', "+
+						" which means documents of size 1, but found document with length %d", len(oneOfDoc))
+				}
+				if oneOfDoc[0].Key != "bsonType" {
+					return nil, fmt.Errorf("the only supported values for 'oneOf' are "+
+						"'bsonType', not '%s'", oneOfDoc[0].Key)
+				}
+				sqlTypes[i], mongoTypes[i], err = getTypes(oneOfDoc[0].Value)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if sqlTypes[0] == schema.SQLNull {
+				null = true
+				sqlType, mongoType = sqlTypes[1], mongoTypes[1]
+			} else if sqlTypes[1] == schema.SQLNull {
+				null = true
+				sqlType, mongoType = sqlTypes[0], mongoTypes[0]
+			} else {
+				return nil, fmt.Errorf("'oneOf' is only supported when one of the bsonTypes"+
+					" is 'null', but found '%s' and '%s'", sqlTypes[0], sqlTypes[1])
+			}
+		}
+	}
+	return schema.NewColumn(strings.ToLower(property.Key), sqlType, property.Key, mongoType, null, comment), nil
+}
+
+func deserializeIndexesInfo(indexes []indexInfo) []schema.Index {
+	ret := make([]schema.Index, len(indexes))
+	for i, info := range indexes {
+		fullText := false
+		// If weights exists, this represents a full text info, and the
+		// weights should be used as the key. This is a quirk of mongo
+		// full text indexes.
+		if len(info.Weights) != 0 {
+			fullText = true
+			info.Key = info.Weights
+		}
+		parts := deserializeIndexParts(info.Key)
+		ret[i] = schema.NewIndex(info.Name, info.Unique, fullText, parts)
+	}
+	return ret
+}
+
+func deserializeIndexParts(indexKey bson.D) []schema.IndexPart {
+	indexParts := make([]schema.IndexPart, len(indexKey))
+	for i, part := range indexKey {
+		switch typedDirection := part.Value.(type) {
+		case int:
+			indexParts[i] = schema.NewIndexPart(part.Key, typedDirection)
+		case int32:
+			indexParts[i] = schema.NewIndexPart(part.Key, int(typedDirection))
+		case int64:
+			indexParts[i] = schema.NewIndexPart(part.Key, int(typedDirection))
+		case float64:
+			indexParts[i] = schema.NewIndexPart(part.Key, int(typedDirection))
+		default:
+			panic(fmt.Sprintf("found unknown direction type %T", part.Value))
+		}
+	}
+	return indexParts
+}
+
 // Sample samples the MongoDB namespaces indicated by the sampler config. It
 // returns the relational schema generated from the sampled schema.
-func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
+func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 	session, err := s.sp.AuthenticatedAdminSessionPrimary(ctx)
 	if err != nil {
 		return nil, err

@@ -20,6 +20,8 @@ type Config interface {
 	Namespaces() []string
 	UUIDSubtype3Encoding() string
 	SchemaMappingMode() config.MappingMode
+	SchemaMode() config.StoredSchemaMode
+	WriteMode() bool
 }
 
 // NewMongosqldConfig returns a new config that sources its options from a mongosqld
@@ -85,4 +87,12 @@ func (m mongosqldConfig) SchemaMappingMode() config.MappingMode {
 		return config.GetMappingMode(m.vars.GetString(variable.SchemaMappingMode))
 	}
 	return m.cfg.Sample.SchemaMappingMode
+}
+
+func (m mongosqldConfig) SchemaMode() config.StoredSchemaMode {
+	return m.cfg.Stored.Mode
+}
+
+func (m mongosqldConfig) WriteMode() bool {
+	return m.cfg.WriteMode
 }

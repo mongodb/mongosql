@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -22,13 +23,13 @@ func testPostProcessDb(t *testing.T) {
 
 	db := schema.NewDatabase(lg, "test", nil)
 
-	full, err := schema.NewTable(lg, "full", "mongo_full", nil, nil)
+	full, err := schema.NewTable(lg, "full", "mongo_full", nil, nil, []schema.Index{}, option.NoneString())
 	req.NoError(err, "failed to create table")
 
-	col := schema.NewColumn("col", schema.SQLInt, "mongo_col", schema.MongoInt)
+	col := schema.NewColumn("col", schema.SQLInt, "mongo_col", schema.MongoInt, false, option.NoneString())
 	full.AddColumn(lg, col, false)
 
-	empty, err := schema.NewTable(lg, "empty", "mongo_empty", nil, nil)
+	empty, err := schema.NewTable(lg, "empty", "mongo_empty", nil, nil, []schema.Index{}, option.NoneString())
 	req.NoError(err, "failed to create table")
 
 	db.AddTable(lg, full)
@@ -55,7 +56,7 @@ func testAddTables(t *testing.T) {
 			db := schema.NewDatabase(lg, "test", nil)
 
 			for _, tblName := range tblNames {
-				tbl, err := schema.NewTable(lg, tblName, tblName, nil, nil)
+				tbl, err := schema.NewTable(lg, tblName, tblName, nil, nil, []schema.Index{}, option.NoneString())
 				req.NoErrorf(err, "failed to create table %q", tblName)
 				db.AddTable(lg, tbl)
 			}

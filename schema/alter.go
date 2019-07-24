@@ -75,7 +75,7 @@ func (a *Alteration) alter(schema *Schema) error {
 		if err != nil {
 			return fmt.Errorf("could not modify column %s: %v", a.Column, err)
 		}
-		mongoType := getMongoTypeFromSQLType(sqlType)
+		mongoType := GetMongoTypeFromSQLType(sqlType)
 		return table.ChangeColumnType(a.Column, sqlType, mongoType)
 	case DropColumn:
 		if len(table.Columns()) == 1 {

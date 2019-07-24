@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/mongo"
 )
@@ -26,11 +27,17 @@ type Column struct {
 	// has been altered, as we must wrap references to this
 	// column in converts if it has been.
 	hasAlteredType bool
+	// nullable is true if this column can contain NULLs.
+	nullable bool
+	// comment is a string added by the user during table creation.
+	comment option.String
 }
 
 // NewColumn returns a new Column with the provided fields.
 // If the mongoName is empty, reuse the sqlName.
-func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType MongoType) *Column {
+func NewColumn(sqlName string, sqlType SQLType,
+	mongoName string, mongoType MongoType,
+	nullable bool, comment option.String) *Column {
 	if mongoName == "" {
 		mongoName = sqlName
 	} else if sqlName == "" {
@@ -48,6 +55,8 @@ func NewColumn(sqlName string, sqlType SQLType, mongoName string, mongoType Mong
 		mongoType:      mongoType,
 		sampledTypes:   nil,
 		hasAlteredType: false,
+		nullable:       nullable,
+		comment:        comment,
 	}
 }
 
@@ -59,7 +68,7 @@ func NewColumnWithSampledTypes(sqlName string, sqlType SQLType, mongoName string
 	for i, v := range sampledTypes {
 		stringSampledTypes[i] = string(v)
 	}
-	ret := NewColumn(sqlName, sqlType, mongoName, mongoType)
+	ret := NewColumn(sqlName, sqlType, mongoName, mongoType, false, option.NoneString())
 	ret.sampledTypes = stringSampledTypes
 	return ret
 }
@@ -83,6 +92,8 @@ func NewColumnFromDRDL(drdlCol *drdl.Column) (*Column, error) {
 		sqlType,
 		drdlCol.MongoName,
 		mongoType,
+		false,
+		option.NoneString(),
 	), nil
 }
 
@@ -95,6 +106,8 @@ func (c *Column) DeepCopy() *Column {
 		c.sqlType,
 		c.mongoName,
 		c.mongoType,
+		c.nullable,
+		c.comment,
 	)
 	newC.sampledTypes = copiedSampledTypes
 	newC.hasAlteredType = c.hasAlteredType
@@ -158,6 +171,16 @@ func (c *Column) SQLType() SQLType {
 // SampledTypes returns this Column's SampledTypes.
 func (c *Column) SampledTypes() []string {
 	return c.sampledTypes
+}
+
+// Nullable returns true if this column can have NULL values.
+func (c *Column) Nullable() bool {
+	return c.nullable
+}
+
+// Comment returns the comment for this column.
+func (c *Column) Comment() option.String {
+	return c.comment
 }
 
 // Validate checks whether this Column is valid, returning an error if not.

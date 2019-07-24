@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/mongo"
@@ -14,6 +15,7 @@ import (
 	"github.com/kr/pretty"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 // Table represents a configuration for a table.
@@ -45,11 +47,15 @@ type Table struct {
 	isPostProcessed bool
 	// unwindPath is the path unwound to generate this table, if it is an array table.
 	unwindPath string
+	// indexes are the indexes associated with this table.
+	indexes Indexes
+	// comment is the comment associated with this table.
+	comment option.String
 }
 
 // NewTable creates a new table with the provided fields.
 func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
-	cols []*Column) (*Table, error) {
+	cols []*Column, indexes []Index, comment option.String) (*Table, error) {
 
 	primaryKeys := map[normalizedName]struct{}{}
 
@@ -59,6 +65,8 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 		mongoName:  col,
 		columns:    map[normalizedName]*Column{},
 		primaryKey: primaryKeys,
+		indexes:    indexes,
+		comment:    comment,
 	}
 
 	for _, col := range cols {
@@ -72,6 +80,8 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 		}
 	}
 
+	table.removeInvalidIndexes()
+	table.indexes = table.indexes.createUniqueNames()
 	return table, nil
 }
 
@@ -80,7 +90,7 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 // generate this table, only needed for array tables.
 func NewTableWithUnwindPath(lg log.Logger, tbl, col string, pipeline []bson.D,
 	cols []*Column, unwindPath string) (*Table, error) {
-	ret, err := NewTable(lg, tbl, col, pipeline, cols)
+	ret, err := NewTable(lg, tbl, col, pipeline, cols, []Index{}, option.NoneString())
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +118,8 @@ func NewTableFromDRDL(lg log.Logger, drdlTbl *drdl.Table) (*Table, error) {
 		drdlTbl.SQLName, drdlTbl.MongoName,
 		drdlTbl.Pipeline,
 		cols,
+		[]Index{},
+		option.NoneString(),
 	)
 }
 
@@ -286,6 +298,11 @@ func (t *Table) DeepCopy() *Table {
 		pkCols[colName] = struct{}{}
 	}
 
+	indexes := make([]Index, len(t.indexes))
+	for i, index := range t.indexes {
+		indexes[i] = index.DeepCopy()
+	}
+
 	parent := t.parent.DeepCopy()
 
 	pipeline := bsonutil.DeepCopyDSlice(t.pipeline)
@@ -298,7 +315,14 @@ func (t *Table) DeepCopy() *Table {
 		parent:     parent,
 		primaryKey: pkCols,
 		unwindPath: t.unwindPath,
+		indexes:    indexes,
+		comment:    t.comment,
 	}
+}
+
+// Indexes returns the table's indexes.
+func (t *Table) Indexes() []Index {
+	return t.indexes
 }
 
 // Equals checks whether this Table is equal to the provided Table. The equality
@@ -434,6 +458,11 @@ func (t *Table) Parent() *Table {
 // Pipeline returns this table's pipeline.
 func (t *Table) Pipeline() []bson.D {
 	return t.pipeline
+}
+
+// Comment returns the Table comment.
+func (t *Table) Comment() option.String {
+	return t.comment
 }
 
 // PostProcess copies columns from this table's parent into the table. If
@@ -574,4 +603,116 @@ func (t *Table) Validate() error {
 	}
 
 	return nil
+}
+
+// GenerateCreateCollection will generate the necessary createCollection command from a Table.
+func (t *Table) GenerateCreateCollection() (bson.D, error) {
+	sortedColumns := t.ColumnsSorted()
+	required := make(primitive.A, len(sortedColumns))
+	properties := make(bson.D, len(sortedColumns))
+	for i, col := range sortedColumns {
+		required[i] = col.MongoName()
+		baseType, err := GetJSONSchemaTypeFromColumnType(col.SQLType())
+		if err != nil {
+			return nil, err
+		}
+		var property bson.E
+		if !col.Nullable() {
+			property = bsonutil.NewDocElem(
+				col.MongoName(), bsonutil.NewD(
+					bsonutil.NewDocElem("bsonType", baseType),
+				),
+			)
+		} else {
+			property = bsonutil.NewDocElem(
+				col.MongoName(), bsonutil.NewD(
+					bsonutil.NewDocElem("oneOf", primitive.A{
+						bsonutil.NewD(
+							bsonutil.NewDocElem("bsonType", baseType),
+						),
+						bsonutil.NewD(
+							bsonutil.NewDocElem("bsonType", "null"),
+						),
+					}),
+				),
+			)
+		}
+		if col.Comment().IsSome() {
+			property.Value = append(property.Value.(bson.D), bsonutil.NewDocElem("description", col.Comment().Unwrap()))
+		}
+		properties[i] = property
+	}
+	jsSchema := bsonutil.NewD(
+		bsonutil.NewDocElem("bsonType", "object"),
+		bsonutil.NewDocElem("required", required),
+		bsonutil.NewDocElem("properties", properties),
+	)
+	if t.Comment().IsSome() {
+		jsSchema = append(jsSchema, bsonutil.NewDocElem("description", t.Comment().Unwrap()))
+	}
+	createCol := bsonutil.NewD(
+		bsonutil.NewDocElem("create", t.MongoName()),
+		bsonutil.NewDocElem("validator", bsonutil.NewD(
+			bsonutil.NewDocElem("$jsonSchema", jsSchema),
+		),
+		),
+	)
+	return createCol, nil
+}
+
+// GenerateCreateIndexes will generate the necessary createIndexes command from a Table.
+func (t *Table) GenerateCreateIndexes() bson.D {
+	if len(t.Indexes()) == 0 {
+		return bson.D{}
+	}
+	indexes := make(primitive.A, len(t.Indexes()))
+	for i, index := range t.Indexes() {
+		key := makeIndexKeyFromParts(index.FullText(), index.Parts())
+		indexes[i] = bsonutil.NewD(
+			bsonutil.NewDocElem("key", key),
+			bsonutil.NewDocElem("name", index.MongoName()),
+			bsonutil.NewDocElem("unique", index.Unique()),
+		)
+	}
+
+	createIndexes := bsonutil.NewD(
+		bsonutil.NewDocElem("createIndexes", t.MongoName()),
+		bsonutil.NewDocElem("indexes", indexes),
+	)
+	return createIndexes
+}
+
+// removeInvalidIndexes removes any indexes referring to columns
+// not in the Table (this can happen, potentially, in writeMode, where a given
+// index refers to a field that is not in the jsonSchema.
+func (t *Table) removeInvalidIndexes() {
+	newIndexes := make(Indexes, 0)
+	for _, index := range t.indexes {
+		keep := true
+		for _, part := range index.Parts() {
+			if _, ok := t.columns[normalizedName(part.sqlName)]; !ok {
+				keep = false
+				break
+			}
+		}
+		if keep {
+			newIndexes = append(newIndexes, index)
+		}
+	}
+	t.indexes = newIndexes
+}
+
+func makeIndexKeyFromParts(isFullText bool, parts []IndexPart) bson.D {
+	if len(parts) < 1 {
+		panic("an index with 0 parts should not be possible")
+	}
+	ret := make(bson.D, len(parts))
+	for i, part := range parts {
+		if isFullText {
+			ret[i] = bsonutil.NewDocElem(part.MongoName(), "text")
+		} else {
+			ret[i] = bsonutil.NewDocElem(part.MongoName(), int32(part.Direction()))
+		}
+	}
+	return ret
 }

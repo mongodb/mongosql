@@ -107,3 +107,13 @@ func String(b []byte) (s string) {
 func ToUniversalPath(path string) string {
 	return filepath.FromSlash(path)
 }
+
+// StringSliceToSet converts a []string to a map[string]struct{},
+// necessarily dropping any duplicates.
+func StringSliceToSet(strs []string) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for _, str := range strs {
+		ret[str] = struct{}{}
+	}
+	return ret
+}

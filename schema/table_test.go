@@ -1,11 +1,15 @@
 package schema_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/option"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mongo"
 	"github.com/stretchr/testify/require"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestTable(t *testing.T) {
@@ -19,11 +23,11 @@ func testAddColumn(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			req := require.New(t)
 
-			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil)
+			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil, []schema.Index{}, option.NoneString())
 			req.NoError(err, "failed to create table")
 
 			for _, colName := range colNames {
-				col := schema.NewColumn(colName, "", colName, "")
+				col := schema.NewColumn(colName, "", colName, "", false, option.NoneString())
 				table.AddColumn(lg, col, false)
 			}
 
@@ -90,11 +94,11 @@ func testAddGeoColumn(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			req := require.New(t)
 
-			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil)
+			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil, []schema.Index{}, option.NoneString())
 			req.NoError(err, "failed to create table")
 
 			for _, colName := range colNames {
-				col := schema.NewColumn(colName, "", colName, "")
+				col := schema.NewColumn(colName, "", colName, "", false, option.NoneString())
 				table.AddColumn(lg, col, false)
 			}
 
@@ -147,7 +151,7 @@ func testPostProcessTable(t *testing.T) {
 	t.Run("no_parent", func(t *testing.T) {
 		req := require.New(t)
 
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil)
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
 		req.NoError(err, "failed to create table")
 
 		newTable := table.DeepCopy()
@@ -162,11 +166,11 @@ func testPostProcessTable(t *testing.T) {
 		req := require.New(t)
 
 		// create some columns
-		pk := schema.NewColumn("pk", schema.SQLBoolean, "pk", schema.MongoBool)
-		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool)
+		pk := schema.NewColumn("pk", schema.SQLBoolean, "pk", schema.MongoBool, false, option.NoneString())
+		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool, false, option.NoneString())
 
 		// create an empty table
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil)
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
 		req.NoError(err, "failed to create table")
 
 		// create a parent table and add the columns to it
@@ -198,11 +202,11 @@ func testPostProcessTable(t *testing.T) {
 		req := require.New(t)
 
 		// create some columns
-		pk := schema.NewColumn("pk", schema.SQLBoolean, "pk", schema.MongoBool)
-		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool)
+		pk := schema.NewColumn("pk", schema.SQLBoolean, "pk", schema.MongoBool, false, option.NoneString())
+		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool, false, option.NoneString())
 
 		// create an empty table
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil)
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
 		req.NoError(err, "failed to create table")
 
 		// create a parent table and add the columns to it
@@ -233,12 +237,12 @@ func testPostProcessTable(t *testing.T) {
 		req := require.New(t)
 
 		// create some columns
-		pk := schema.NewColumn("pk", schema.SQLBoolean, "pk", schema.MongoBool)
-		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool)
-		childCol := schema.NewColumn("col", schema.SQLBoolean, "childCol", schema.MongoBool)
+		pk := schema.NewColumn("pk", schema.SQLBoolean, "pk", schema.MongoBool, false, option.NoneString())
+		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool, false, option.NoneString())
+		childCol := schema.NewColumn("col", schema.SQLBoolean, "childCol", schema.MongoBool, false, option.NoneString())
 
 		// create an empty table
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil)
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
 		req.NoError(err, "failed to create table")
 
 		// create a parent table and add the columns to it
@@ -277,4 +281,149 @@ func testPostProcessTable(t *testing.T) {
 		)
 		req.NoError(cols[2].Equals(pk), "child should have pk column")
 	})
+}
+
+func testTable(lg log.Logger, tbl, col string,
+	pipeline []bson.D, cols []*schema.Column,
+	indexes []schema.Index, comment option.String) *schema.Table {
+	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment)
+	if err != nil {
+		panic("this table should not error")
+	}
+	return out
+}
+
+func TestGenerateCreateCollection(t *testing.T) {
+	type test struct {
+		name     string
+		table    *schema.Table
+		expected string
+	}
+
+	logger := log.NewComponentLogger(log.SchemaComponent, log.GlobalLogger())
+
+	tests := []test{
+		{
+			name: "test1",
+			table: testTable(
+				logger,
+				"fOo",
+				"fOo",
+				[]bson.D{},
+				[]*schema.Column{
+					schema.NewColumn("a", schema.SQLInt, "a", schema.MongoInt64, true, option.NoneString()),
+					schema.NewColumn("B", schema.SQLVarchar, "B", schema.MongoString, true, option.SomeString("fooo")),
+					schema.NewColumn("C", schema.SQLVarchar, "c", schema.MongoString, false, option.SomeString("HELLO!")),
+				},
+				[]schema.Index{
+					schema.NewIndex("BAR", true, false,
+						[]schema.IndexPart{schema.NewIndexPart("a", 1), schema.NewIndexPart("b", -1)},
+					),
+					schema.NewIndex("", false, true,
+						[]schema.IndexPart{schema.NewIndexPart("b", 1), schema.NewIndexPart("c", 1)},
+					),
+				},
+				option.SomeString("WORLD"),
+			),
+			expected: `{
+							"create": "fOo",
+							"validator": {
+								"$jsonSchema": {
+									"bsonType": "object",
+									"required": ["a", "B", "c"],
+									"properties": {
+										"a": {"oneOf": [
+												 {"bsonType": "long"},
+												 {"bsonType": "null"}
+											  ]
+										},
+										"B": {"oneOf": [
+												 {"bsonType": "string"},
+												 {"bsonType": "null"}
+											  ],
+											  "description": "fooo"
+										},
+										"c": {"bsonType": "string",
+											  "description": "HELLO!"
+										}
+									},
+									"description": "WORLD"
+								}
+							}
+						}`,
+		},
+	}
+
+	for _, tst := range tests {
+		t.Run(tst.name, func(t *testing.T) {
+			req := require.New(t)
+			out, err := tst.table.GenerateCreateCollection()
+			req.Nil(err)
+			expected := bson.D{}
+			err = bson.UnmarshalExtJSON([]byte(tst.expected), false, &expected)
+			req.Nil(err)
+			req.Equal(expected, out, fmt.Sprintf("expected %#v,\n\ngot      %#v", expected, out))
+		})
+	}
+}
+
+func TestGenerateCreateIndexes(t *testing.T) {
+	type test struct {
+		name     string
+		table    *schema.Table
+		expected string
+	}
+
+	logger := log.NewComponentLogger(log.SchemaComponent, log.GlobalLogger())
+
+	tests := []test{
+		{
+			name: "test1",
+			table: testTable(
+				logger,
+				"fOo",
+				"fOo",
+				[]bson.D{},
+				[]*schema.Column{
+					schema.NewColumn("a", schema.SQLInt, "a", schema.MongoInt64, false, option.NoneString()),
+					schema.NewColumn("B", schema.SQLVarchar, "B", schema.MongoString, false, option.SomeString("fooo")),
+					schema.NewColumn("C", schema.SQLVarchar, "c", schema.MongoString, true, option.SomeString("HELLO!")),
+				},
+				[]schema.Index{
+					schema.NewIndex("BAR", true, false,
+						[]schema.IndexPart{schema.NewIndexPart("a", 1), schema.NewIndexPart("b", -1)},
+					),
+					schema.NewIndex("", false, true,
+						[]schema.IndexPart{schema.NewIndexPart("b", 1), schema.NewIndexPart("c", 1)},
+					),
+				},
+				option.SomeString("WORLD"),
+			),
+			expected: `{
+							"createIndexes": "fOo",
+							"indexes": [{
+									"key": {"a": 1, "b" : -1},
+									"name": "BAR",
+									"unique": true
+								},
+						   		{
+									"key": {"b": "text", "c": "text"},
+									"name": "b_text_c_text",
+									"unique": false
+								}
+							]
+						}`,
+		},
+	}
+
+	for _, tst := range tests {
+		t.Run(tst.name, func(t *testing.T) {
+			req := require.New(t)
+			out := tst.table.GenerateCreateIndexes()
+			expected := bson.D{}
+			err := bson.UnmarshalExtJSON([]byte(tst.expected), false, &expected)
+			req.Nil(err)
+			req.Equal(expected, out, fmt.Sprintf("expected %#v,\n\ngot      %#v", expected, out))
+		})
+	}
 }

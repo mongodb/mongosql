@@ -8,12 +8,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
+	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/stretchr/testify/require"
 )
@@ -707,11 +711,75 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	req.Equal(getColumnMappings(table), expectedColumnMappings)
 }
 
+func TestWriteModeRoundTrip(t *testing.T) {
+	logger := log.NewComponentLogger(log.SchemaComponent, log.GlobalLogger())
+	req := require.New(t)
+
+	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	req.Nil(err)
+
+	session, err := provider.Session(context.Background())
+	req.Nil(err)
+	defer session.Close()
+
+	dbName := "foo"
+	cleanupWriteData(session, dbName)
+	defer cleanupData(session, dbName)
+
+	tableName := "foo"
+	table1 := newTableTestHelper(
+		logger,
+		tableName,
+		tableName,
+		[]bson.D{},
+		[]*schema.Column{
+			schema.NewColumn("a", schema.SQLInt, "a", schema.MongoInt64, false, option.NoneString()),
+			schema.NewColumn("b", schema.SQLVarchar, "B", schema.MongoString, false, option.SomeString("fooo")),
+			schema.NewColumn("c", schema.SQLVarchar, "C", schema.MongoString, true, option.SomeString("HELLO!")),
+		},
+		[]schema.Index{
+			schema.NewIndex("bAr", true, false,
+				[]schema.IndexPart{schema.NewIndexPart("a", 1), schema.NewIndexPart("b", -1)},
+			),
+			schema.NewIndex("", false, true,
+				[]schema.IndexPart{schema.NewIndexPart("b", 1), schema.NewIndexPart("c", 1)},
+			),
+		},
+		option.SomeString("WORLD"),
+	)
+
+	cc, err := table1.GenerateCreateCollection()
+	req.Nil(err)
+	ci := table1.GenerateCreateIndexes()
+	ctx := context.Background()
+	result := bsonutil.NewD()
+	for _, c := range []*bson.D{&cc, &ci} {
+		err = session.Run(ctx, dbName, *c, &result)
+		req.Nil(err)
+	}
+	writeCfg := config.Default()
+	writeCfg.Schema.WriteMode = true
+	sampler := NewSampler(NewMongosqldConfig(&writeCfg.Schema, variable.NewGlobalContainer(writeCfg)), logger, provider)
+	schema, err := sampler.Sample(ctx)
+	req.Nil(err)
+	schemaDB := schema.Database(dbName)
+	schemaTable := schemaDB.Table(tableName)
+	// call ColumnsSorted to populated the cachedSortedColumns so the test succeeds.
+	_ = schemaTable.ColumnsSorted()
+	req.Equal(table1, schemaTable, "tables should be equal")
+}
+
 func cleanupData(session *mongodb.Session, databases ...string) {
 	dbutils.DropDatabase(session, cfg.Schema.Stored.Source)
 	dbutils.DropDatabase(session, db1)
 	dbutils.DropDatabase(session, db2)
 	dbutils.DropDatabase(session, db3)
+	for _, db := range databases {
+		dbutils.DropDatabase(session, db)
+	}
+}
+
+func cleanupWriteData(session *mongodb.Session, databases ...string) {
 	for _, db := range databases {
 		dbutils.DropDatabase(session, db)
 	}
@@ -737,4 +805,14 @@ func countTables(sch *schema.Schema) int {
 		count += len(db.Tables())
 	}
 	return count
+}
+
+func newTableTestHelper(lg log.Logger, tbl, col string,
+	pipeline []bson.D, cols []*schema.Column,
+	indexes []schema.Index, comment option.String) *schema.Table {
+	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment)
+	if err != nil {
+		panic("this table should not error")
+	}
+	return out
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
@@ -93,7 +94,7 @@ func Map(cfg SchemaMappingConfig) error {
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
 	// unless we have array fields, this is the only table we will create.
-	t, err := schema.NewTable(cfg.Logger, cfg.CollectionName, cfg.CollectionName, nil, nil)
+	t, err := schema.NewTable(cfg.Logger, cfg.CollectionName, cfg.CollectionName, nil, nil, []schema.Index{}, option.NoneString())
 	if err != nil {
 		return err
 	}
@@ -641,7 +642,7 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	ctx.seenFields[ctx.table] = append(ctx.seenFields[ctx.table], indexName)
 
 	// create the array index column and add it to the current table
-	col := schema.NewColumn(indexName, schema.SQLInt, indexName, schema.MongoInt)
+	col := schema.NewColumn(indexName, schema.SQLInt, indexName, schema.MongoInt, false, option.NoneString())
 	ctx.table.AddColumn(ctx.logger, col, true)
 
 	path := ctx.path

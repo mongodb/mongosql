@@ -6,6 +6,8 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2092: No user-facing changes.
+BI-2239: No user-facing changes.
 BI-1510: If no compressors are specified in the mongodb connection string, zlib,snappy will be used by default. If compressors are specified, they will be honored.
 BI-2025: Queries using `ln`, `ascii`, `user`, `database`, `version`, `connection_id`, and constant-valued time/date functions can be fully pushed down.
 BI-1460: No user facing changes.

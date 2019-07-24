@@ -23,6 +23,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.Schema.Path, "", "cfg.Schema.Path")
 	testUint64(t, cfg.Schema.MaxVarcharLength, 0, "cfg.Schema.MaxVarcharLength")
 	testInt64(t, cfg.Schema.RefreshIntervalSecs, 0, "cfg.Schema.RefreshIntervalSecs")
+	testBool(t, cfg.Schema.WriteMode, false, "cfg.Schema.WriteMode")
 	testStoredSchemaMode(t, cfg.Schema.Stored.Mode, NoStoredSchemaMode, "cfg.Schema.Stored.Mode")
 	testString(t, cfg.Schema.Stored.Source, "", "cfg.Schema.Stored.Source")
 	testString(t, cfg.Schema.Stored.Name, "defaultSchema", "cfg.Schema.Stored.Name")
@@ -589,6 +590,82 @@ func TestValidate_CustomMode_Source(t *testing.T) {
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but go '%s'", expected, err)
 	}
+}
+
+func TestValidate_WriteMode_SampleSettings(t *testing.T) {
+	getCfg := func() *Config {
+		cfg := Default()
+		cfg.Schema.WriteMode = true
+		return cfg
+	}
+
+	var cfg *Config
+	check := func(expected string) {
+		t.Run(expected, func(t *testing.T) {
+			err := Validate(cfg)
+			if err == nil {
+				t.Fatalf("expected an error, but got none")
+			}
+			if err.Error() != expected {
+				t.Fatalf("expected error to be '%s', but go '%s'", expected, err)
+			}
+		})
+	}
+
+	cfg = getCfg()
+	cfg.Schema.WriteMode = true
+	cfg.Schema.Path = "foo"
+	check("write mode schema cannot have a (drdl) schema path")
+	cfg = getCfg()
+	cfg.Schema.WriteMode = true
+	cfg.Schema.RefreshIntervalSecs++
+	check("write mode schema cannot have refreshIntervalSecs")
+	cfg = getCfg()
+	cfg.Schema.WriteMode = true
+	cfg.Schema.Stored.Source = "foo"
+	check("write mode schema cannot have a stored schema source")
+	cfg = getCfg()
+	cfg.Schema.WriteMode = true
+	cfg.Schema.Stored.Source = "foo"
+	cfg.Schema.Stored.Mode = CustomStoredSchemaMode
+	check("write mode schema cannot be used with a stored schema mode")
+	cfg = getCfg()
+	cfg.Schema.WriteMode = true
+	cfg.Schema.Stored.Name = "foo"
+	check("write mode schema cannot have a stored schema name")
+	// These tests test that any Sample setting causes an error
+	// when set to something other than the default setting.
+	cfg = getCfg()
+	cfg.Schema.Sample.MaxNestedTableDepth++
+	check("write mode schema cannot have sample settings, found maxNestedTableDepth")
+	cfg = getCfg()
+	cfg.Schema.Sample.MaxNumColumnsPerTable++
+	check("write mode schema cannot have sample settings, found maxNumColumnsPerTable")
+	cfg = getCfg()
+	cfg.Schema.Sample.Namespaces = []string{"*.foo"}
+	check("write mode schema cannot have sample settings, found namespaces")
+	cfg = getCfg()
+	cfg.Schema.Sample.OptimizeViewSampling = !cfg.Schema.Sample.OptimizeViewSampling
+	check("write mode schema cannot have sample settings, found optimizeViewSampling")
+	cfg = getCfg()
+	cfg.Schema.Sample.PreJoin = !cfg.Schema.Sample.PreJoin
+	check("write mode schema cannot have sample settings, found prejoin")
+	cfg = getCfg()
+	cfg.Schema.Sample.RefreshIntervalSecsDeprecated++
+	check("write mode schema cannot have sample settings, found refreshIntervalSecsDeprecated")
+	cfg = getCfg()
+	if cfg.Schema.Sample.SchemaMappingMode == MappingMode("lattice") {
+		cfg.Schema.Sample.SchemaMappingMode = MappingMode("majority")
+	} else {
+		cfg.Schema.Sample.SchemaMappingMode = MappingMode("lattice")
+	}
+	check("write mode schema cannot have sample settings, found schemaMappingMode")
+	cfg = getCfg()
+	cfg.Schema.Sample.Size++
+	check("write mode schema cannot have sample settings, found size")
+	cfg = getCfg()
+	cfg.Schema.Sample.UUIDSubtype3Encoding += "fooo!!!"
+	check("write mode schema cannot have sample settings, found uuidSubtype3Encoding")
 }
 
 func TestValidate_auth_specified_without_admin_creds(t *testing.T) {

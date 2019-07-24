@@ -53,18 +53,23 @@ func getSQLTypeFromColumnType(colTyp string) (SQLType, error) {
 	}
 }
 
-func getMongoTypeFromSQLType(colTyp SQLType) MongoType {
+// GetMongoTypeFromSQLType gets the MongoType implied for each SQLType.
+func GetMongoTypeFromSQLType(colTyp SQLType) MongoType {
 	switch colTyp {
-	case SQLInt:
-		return MongoInt
+	case SQLBoolean:
+		return MongoBool
+	case SQLInt, SQLUint:
+		return MongoInt64
 	case SQLDecimal:
 		return MongoDecimal128
-	case SQLFloat:
+	case SQLFloat, SQLNumeric:
 		return MongoFloat
 	case SQLDate, SQLTimestamp:
 		return MongoDate
 	case SQLVarchar:
 		return MongoString
+	case SQLNull:
+		return MongoNull
 	default:
 		panic(fmt.Errorf("no mongoType mapping for sqlType %q", colTyp))
 	}
@@ -192,3 +197,51 @@ const (
 	SQLUUID        SQLType = "uuid"
 	SQLVarchar     SQLType = "varchar"
 )
+
+// GetJSONSchemaTypeFromColumnType gets a json-schema string
+// name for the passed SQLType.
+func GetJSONSchemaTypeFromColumnType(s SQLType) (string, error) {
+	switch s {
+	case SQLBoolean:
+		return "bool", nil
+	case SQLDate, SQLTimestamp:
+		return "date", nil
+	case SQLDecimal, SQLNumeric:
+		return "decimal", nil
+	case SQLFloat:
+		return "double", nil
+	case SQLInt, SQLUint:
+		return "long", nil
+	case SQLVarchar:
+		return "string", nil
+	}
+	// SQLNull should not be supported here because it is not a valid column type.
+	// If it occurs, we want it to be an error so that we can catch it.
+	return "", fmt.Errorf("unsupported type '%s' for jsonSchema validator", s)
+}
+
+// GetSQLTypeAndMongoTypeFromJSONSchemaType gets the SQLType and MongoType for the given json-schema
+// bsonType string.
+func GetSQLTypeAndMongoTypeFromJSONSchemaType(s string) (SQLType, MongoType, error) {
+	ty := SQLPolymorphic
+	switch s {
+	case "bool":
+		ty = SQLBoolean
+	case "date":
+		ty = SQLTimestamp
+	case "decimal":
+		ty = SQLDecimal
+	case "double":
+		ty = SQLFloat
+	case "long":
+		ty = SQLInt
+	case "string":
+		ty = SQLVarchar
+	case "null":
+		ty = SQLNull
+	}
+	if ty != SQLPolymorphic {
+		return ty, GetMongoTypeFromSQLType(ty), nil
+	}
+	return SQLPolymorphic, MongoNone, fmt.Errorf("unsupported bsonType '%s' for writeMode jsonSchema validator property", s)
+}

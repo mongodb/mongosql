@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -198,14 +199,16 @@ func getCatalog(mongoVersion string, relationalSchema *schema.Schema) (catalog.C
 
 		tables := database.Tables()
 		for _, table := range tables {
-			tbl, err := schema.NewTable(lgr, table.SQLName(), table.MongoName(), nil, nil)
+			tbl, err := schema.NewTable(lgr, table.SQLName(), table.MongoName(),
+				nil, nil, []schema.Index{}, option.NoneString())
 			if err != nil {
 				return nil, err
 			}
 
 			columns := table.Columns()
 			for _, column := range columns {
-				col := schema.NewColumn(column.SQLName(), column.SQLType(), column.MongoName(), column.MongoType())
+				col := schema.NewColumn(column.SQLName(), column.SQLType(),
+					column.MongoName(), column.MongoType(), false, option.NoneString())
 				tbl.AddColumn(lgr, col, false)
 			}
 

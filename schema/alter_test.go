@@ -3,6 +3,7 @@ package schema_test
 import (
 	"testing"
 
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -117,12 +118,12 @@ func testRenameTableTwice(t *testing.T) {
 
 func createTestSchema() *schema.Schema {
 	cols := []*schema.Column{
-		schema.NewColumn("foo", schema.SQLInt, "mongo_foo", schema.MongoInt),
+		schema.NewColumn("foo", schema.SQLInt, "mongo_foo", schema.MongoInt, false, option.NoneString()),
 	}
 	table, _ := schema.NewTable(
 		lg,
 		"testTable", "testCollection",
-		nil, cols,
+		nil, cols, []schema.Index{}, option.NoneString(),
 	)
 	db := schema.NewDatabase(lg, "testDb", []*schema.Table{table})
 	s, _ := schema.New([]*schema.Database{db}, nil)

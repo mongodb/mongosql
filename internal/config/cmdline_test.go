@@ -260,6 +260,20 @@ func TestParseArgs_Valid2(t *testing.T) {
 
 }
 
+func TestParseArgs_Valid3(t *testing.T) {
+	cfg := Default()
+	args := []string{
+		// Set --writeMode
+		"--writeMode",
+	}
+
+	_, err := ParseArgs(cfg, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	testBool(t, cfg.Schema.WriteMode, true, "cfg.Schema.WriteMode")
+}
+
 func TestParseArgs_Invalid(t *testing.T) {
 	var shortOptDelim, longOptDelim string
 	if runtime.GOOS == "windows" {
