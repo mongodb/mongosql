@@ -28,7 +28,7 @@ func GetPipelineUnwindFields(stages []ast.Stage) []UnwindInfo {
 	unwinds := make([]UnwindInfo, 0, len(stages))
 	for i, stage := range stages {
 		if unwind, isUnwind := stage.(*ast.UnwindStage); isUnwind {
-			path := FieldRefString(unwind.Path)
+			path := RefString(unwind.Path)
 			index := unwind.IncludeArrayIndex
 			unwinds = append(unwinds, UnwindInfo{StageNumber: i, Path: path, Index: index})
 		}

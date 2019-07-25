@@ -617,8 +617,8 @@ func handleBottomAddFields(bottomAddFields *ast.AddFieldsItem, relatedItems []in
 				// If the top contains {_id: 0} in an inclusion projection, then we can
 				// compress this into an inclusion projection.
 				bottomItems[bottomFieldName] = ast.NewAssignProjectItem(bottomFieldName, bottomAddFields.Expr)
-			} else { // descendent
-				// Similar to the first case, we keep the $addFields item.
+			} else { // nolint:staticcheck
+				// Descendent; similar to the first case, we keep the $addFields item.
 			}
 		case *ast.AssignProjectItem:
 			// In all three cases below, the definition in bottom will overwrite the
@@ -645,7 +645,8 @@ func handleBottomAddFields(bottomAddFields *ast.AddFieldsItem, relatedItems []in
 				// the sibling fields. Though $project would, it would also exclude all
 				// other fields in the return document, which we don't want.
 				return false
-			} else { // descendent
+			} else { // nolint:staticcheck
+				// descendent
 			}
 		}
 	}

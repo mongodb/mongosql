@@ -447,13 +447,13 @@ type SortedMergeStage struct {
 }
 
 // NewUnwindStage makes an unwind stage.
-func NewUnwindStage(field *FieldRef, arrayIndexField string, preserveNullAndEmptyArrays bool) *UnwindStage {
+func NewUnwindStage(field Ref, arrayIndexField string, preserveNullAndEmptyArrays bool) *UnwindStage {
 	return &UnwindStage{field, arrayIndexField, preserveNullAndEmptyArrays}
 }
 
 // UnwindStage is a stage that unwinds a particular field.
 type UnwindStage struct {
-	Path                       *FieldRef
+	Path                       Ref
 	IncludeArrayIndex          string
 	PreserveNullAndEmptyArrays bool
 }

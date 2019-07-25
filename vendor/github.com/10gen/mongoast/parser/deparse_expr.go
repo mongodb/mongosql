@@ -133,6 +133,12 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		doc = bsoncore.AppendDocumentElement(doc, "$cond", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return bsonutil.Document(doc)
+	case *ast.Unary:
+		arr := bsonutil.ArrayFromValues(DeparseExpr(te.Expr))
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendArrayElement(doc, string(te.Op), arr.Data)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc)
 	case *ast.Map:
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
@@ -155,6 +161,17 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		doc = bsoncore.AppendDocumentElement(doc, "$filter", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return bsonutil.Document(doc)
+	case *ast.Reduce:
+		_, subdoc := bsoncore.AppendDocumentStart(nil)
+		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
+		subdoc = bsonutil.AppendValueElement(subdoc, "initialValue", DeparseExpr(te.InitialValue, mustIncludeLiteral))
+		subdoc = bsonutil.AppendValueElement(subdoc, "in", DeparseExpr(te.In, mustIncludeLiteral))
+		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, "$reduce", subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc)
 	case *ast.Unknown:
 		return te.Value
 	case *ast.VariableRef:
@@ -165,17 +182,53 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 	// This cannot actually exist in an AggExpr, but until we get a clear distinction
 	// between Match and AggExprs, this needs to exist here or PRE can crash.
 	case *ast.MatchRegex:
-		name := te.Field
+		name := deparseMatchFieldName(te.Expr)
 
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
-		subdoc = bsonutil.AppendValueElement(subdoc, "$regex", te.Pattern)
-		subdoc = bsonutil.AppendValueElement(subdoc, "$options", te.Options)
+		subdoc = bsoncore.AppendStringElement(subdoc, "$regex", te.Pattern)
+		subdoc = bsoncore.AppendStringElement(subdoc, "$options", te.Options)
 		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
 
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 
+		return bsonutil.Document(doc)
+	// This cannot actually exist in an AggExpr, but until we get a clear distinction
+	// between Match and AggExprs, this needs to exist here or PRE can crash.
+	case *ast.Exists:
+		name := deparseMatchFieldName(te.FieldRef)
+		_, subdoc := bsoncore.AppendDocumentStart(nil)
+		subdoc = bsonutil.AppendValueElement(subdoc, "$exists", bsonutil.Boolean(te.Exists))
+		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+
+		return bsonutil.Document(doc)
+	case *ast.Trunc:
+		includePrecision := true
+		if c, ok := te.Precision.(*ast.Constant); ok {
+			asInt32, isInt32 := bsonutil.AsInt32OK(c.Value)
+			asInt64, isInt64 := bsonutil.AsInt64OK(c.Value)
+
+			// do not include constant 0 precision
+			includePrecision = (isInt32 && asInt32 != 0) || (isInt64 && asInt64 != 0)
+		}
+
+		var arr bsoncore.Value
+		if includePrecision {
+			arr = bsonutil.ArrayFromValues(
+				DeparseExpr(te.Number, mustIncludeLiteral),
+				DeparseExpr(te.Precision, mustIncludeLiteral),
+			)
+		} else {
+			arr = bsonutil.ArrayFromValues(DeparseExpr(te.Number, mustIncludeLiteral))
+		}
+
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendArrayElement(doc, "$trunc", arr.Data)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return bsonutil.Document(doc)
 	}
 

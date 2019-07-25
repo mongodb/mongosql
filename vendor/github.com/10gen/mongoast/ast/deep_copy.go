@@ -314,10 +314,10 @@ func (n *SortedMergeStage) DeepCopy() DeepCopier {
 
 // DeepCopy implements the DeepCopier interface.
 func (n *UnwindStage) DeepCopy() DeepCopier {
-	var newPath *FieldRef
+	var newPath Ref
 
 	if n.Path != nil {
-		newPath = n.Path.DeepCopy().(*FieldRef)
+		newPath = n.Path.DeepCopy().(Ref)
 	}
 
 	return NewUnwindStage(newPath, n.IncludeArrayIndex, n.PreserveNullAndEmptyArrays)
@@ -372,6 +372,17 @@ func (n *ArrayIndexRef) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *Unary) DeepCopy() DeepCopier {
+	var newExpr Expr
+
+	if n.Expr != nil {
+		newExpr = n.Expr.DeepCopy().(Expr)
+	}
+
+	return NewUnary(n.Op, newExpr)
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *Binary) DeepCopy() DeepCopier {
 	var newLeft Expr
 	var newRight Expr
@@ -388,8 +399,30 @@ func (n *Binary) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *Trunc) DeepCopy() DeepCopier {
+	var newNumber Expr
+	var newPrecision Expr
+
+	if n.Number != nil {
+		newNumber = n.Number.DeepCopy().(Expr)
+	}
+
+	if n.Precision != nil {
+		newPrecision = n.Precision.DeepCopy().(Expr)
+	}
+
+	return NewTrunc(newNumber, newPrecision)
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *MatchRegex) DeepCopy() DeepCopier {
-	return NewMatchRegex(n.Field, n.Pattern, n.Options)
+	var newExpr Expr
+
+	if n.Expr != nil {
+		newExpr = n.Expr.DeepCopy().(Expr)
+	}
+
+	return NewMatchRegex(newExpr, n.Pattern, n.Options)
 }
 
 // DeepCopy implements the DeepCopier interface.
@@ -543,6 +576,25 @@ func (n *Filter) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *Reduce) DeepCopy() DeepCopier {
+	var newInput Expr
+	var newInitialValue Expr
+	var newIn Expr
+
+	if n.Input != nil {
+		newInput = n.Input.DeepCopy().(Expr)
+	}
+	if n.InitialValue != nil {
+		newInitialValue = n.InitialValue.DeepCopy().(Expr)
+	}
+	if n.In != nil {
+		newIn = n.In.DeepCopy().(Expr)
+	}
+
+	return NewReduce(newInput, newInitialValue, newIn)
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *Unknown) DeepCopy() DeepCopier {
 	return NewUnknown(n.Value)
 }
@@ -652,4 +704,15 @@ func (n *FacetItem) DeepCopy() DeepCopier {
 	}
 
 	return NewFacetItem(n.Name, newPipeline)
+}
+
+// DeepCopy implements the DeepCopier interface.
+func (n *Exists) DeepCopy() DeepCopier {
+	var newFieldRef *FieldRef
+
+	if n.FieldRef != nil {
+		newFieldRef = n.FieldRef.DeepCopy().(*FieldRef)
+	}
+
+	return NewExists(newFieldRef, n.Exists)
 }

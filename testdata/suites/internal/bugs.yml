@@ -241,3 +241,17 @@ testcases:
     id: BI-2258-values
     sql: select timestamp(d) d, nopushdown(convert(timestamp(d), signed)) s, nopushdown(convert(timestamp(d), decimal)) f from BI_2258;
     variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    description: BI-2262 Allow numeric field names in unwind path
+    expected_names: ["_id", "a.0", "a.0_idx"]
+    expected_results:
+      - [0, "a", 0]
+      - [0, "b", 1]
+      - [1, "c", 0]
+      - [1, "d", 1]
+      - [1, "e", 2]
+      - [2, "f", 0]
+    expected_types: [int, varchar, int]
+    id: BI-2262-numeric-unwind-path
+    sql: "select _id, `a.0`, `a.0_idx` from BI_2262_a_0;"

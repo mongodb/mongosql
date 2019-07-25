@@ -815,10 +815,21 @@ func parseUnwind(v bsoncore.Value) (*ast.UnwindStage, error) {
 		return nil, errors.New("no path specified to $unwind stage")
 	}
 
-	fieldRef, ok := path.(*ast.FieldRef)
-	if !ok {
+	isValidPathRef := true
+	_, _ = ast.Visit(path, func(v ast.Visitor, n ast.Node) ast.Node {
+		switch n.(type) {
+		// Only these reference types are valid for the $unwind field path
+		case *ast.ArrayIndexRef, *ast.FieldRef, *ast.FieldOrArrayIndexRef:
+			_ = n.Walk(v)
+		default:
+			isValidPathRef = false
+		}
+		return n
+	})
+
+	if !isValidPathRef {
 		return nil, errors.New("unwind field path must be a field reference")
 	}
 
-	return ast.NewUnwindStage(fieldRef, includeArrayIndex, preserveNullAndEmptyArrays), nil
+	return ast.NewUnwindStage(path.(ast.Ref), includeArrayIndex, preserveNullAndEmptyArrays), nil
 }

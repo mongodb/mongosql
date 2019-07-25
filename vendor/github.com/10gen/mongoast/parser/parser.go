@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/internal/bsonutil"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/bsonrw"
@@ -37,10 +38,14 @@ func ParsePipelineJSON(input string) (*ast.Pipeline, error) {
 	if err != nil {
 		return nil, err
 	}
-
+	var arr bsoncore.Document
 	arr, ok := v.ArrayOK()
 	if !ok {
-		return nil, errors.New("pipeline expressions must be arrays")
+		_, ok := v.DocumentOK()
+		if !ok {
+			return nil, errors.New("Each element of the 'pipeline' array must be an object")
+		}
+		arr = bsonutil.ArrayFromValues(v).Array()
 	}
 
 	p, err := ParsePipeline(arr)

@@ -602,7 +602,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 				// to get skipped.
 				v.logger.Debugf(log.Dev, "attempting to add a redundant match before unwind")
 
-				path := astutil.FieldRefString(unwind.Path)
+				path := astutil.RefString(unwind.Path)
 				indexPath := unwind.IncludeArrayIndex
 
 				if preUnwindMatch, ok := v.extractPreUnwindMatch(ms.mappingRegistry, filter.matcher,
@@ -946,7 +946,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// the column. So project the field, and register the mapping.
 			v.groupItems = append(v.groupItems, ast.NewGroupItem(
 				sanitizeFieldName(typedN.String()),
-				ast.NewFunction(bsonutil.OpFirst, getProjectedFieldName(astutil.FieldRefString(fieldRef), typedN.EvalType())),
+				ast.NewFunction(bsonutil.OpFirst, getProjectedFieldName(astutil.RefString(fieldRef), typedN.EvalType())),
 			))
 			v.mappingRegistry.registerMapping(typedN.databaseName, typedN.tableName, typedN.columnName, sanitizeFieldName(typedN.String()), false)
 		} else {
@@ -1962,9 +1962,9 @@ func getProjectedFieldNames(project *ast.ProjectStage) map[string]struct{} {
 		case *ast.AssignProjectItem:
 			names[t.Name] = struct{}{}
 		case *ast.IncludeProjectItem:
-			names[astutil.FieldRefString(t.FieldRef)] = struct{}{}
+			names[astutil.RefString(t.FieldRef)] = struct{}{}
 		case *ast.ExcludeProjectItem:
-			names[astutil.FieldRefString(t.FieldRef)] = struct{}{}
+			names[astutil.RefString(t.FieldRef)] = struct{}{}
 		}
 	}
 
@@ -2029,7 +2029,7 @@ func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceSt
 				}
 			}
 
-			path := astutil.FieldRefString(unwind.Path)
+			path := astutil.RefString(unwind.Path)
 			arrayIdx := unwind.IncludeArrayIndex
 
 			if !strutil.StringSliceContains(pipeline.arrayPathIndexes, arrayIdx) {
@@ -3173,7 +3173,7 @@ func (v *pushdownVisitor) generateForeignUnwindPipeline(join *JoinStage, newMapp
 	msForeign, _ := join.right.(*MongoSourceStage)
 
 	foreignMapped := msForeign.pipeline.Stages[0].(*ast.UnwindStage)
-	foreignUnwindPath := astutil.FieldRefString(foreignMapped.Path)
+	foreignUnwindPath := astutil.RefString(foreignMapped.Path)
 
 	// Strip dollar sign prefix, and prepend with asField.
 	if foreignUnwindPath != "" {
@@ -3279,7 +3279,7 @@ func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo 
 	if len(msForeign.pipeline.Stages) > 0 {
 		var foreignMapped *ast.UnwindStage
 		if foreignMapped, foreignHasUnwind = msForeign.pipeline.Stages[0].(*ast.UnwindStage); foreignHasUnwind {
-			oldForeignPath := astutil.FieldRefString(foreignMapped.Path)
+			oldForeignPath := astutil.RefString(foreignMapped.Path)
 			oldForeignIndex = asField + "." + foreignMapped.IncludeArrayIndex
 			lookupOnUnwindPath = strings.Split(foreignFieldName, ".")[0] == oldForeignPath
 		}
@@ -3369,8 +3369,46 @@ func (v *pipelineOptimizationVisitor) visit(n Node) (Node, error) {
 
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
-		typedN.pipeline = optimizer.Optimize(v.ctx, typedN.pipeline)
+		optimizedPipeline := optimizer.Optimize(v.ctx, typedN.pipeline)
+		typedN.pipeline = flattenBinaryExprs(optimizedPipeline)
 		return n, nil
 	}
 	return walk(v, n)
+}
+
+// flattenBinaryExprs walks a pipeline and flattens nested $add, $and, $multiply and $or
+// ast.Binary expressions into ast.Functions.
+// For example,
+//   Binary{Op: "$add", Left: "$a", Right: Binary{Op: "$add", Left: "$b", Right: "$c"}}
+// flattens into
+//   Function{Op: "$add", Arg: ["$a", "$b", "$c"]}
+// This function
+func flattenBinaryExprs(pipeline *ast.Pipeline) *ast.Pipeline {
+	newPipeline, _ := ast.Visit(pipeline, func(v ast.Visitor, n ast.Node) ast.Node {
+		switch tn := n.(type) {
+		case *ast.Binary:
+			switch tn.Op {
+			case "$add", "$and", "$multiply", "$or":
+				args := flattenBinaryExprArgs(tn.Op, tn.Left, tn.Right)
+				n = ast.NewFunction(string(tn.Op), ast.NewArray(args...))
+			}
+		}
+		return n.Walk(v)
+	})
+
+	return newPipeline.(*ast.Pipeline)
+}
+
+func flattenBinaryExprArgs(op ast.BinaryOp, left, right ast.Expr) []ast.Expr {
+	args := make([]ast.Expr, 0)
+
+	for _, expr := range []ast.Expr{left, right} {
+		if bin, isBinary := expr.(*ast.Binary); isBinary && bin.Op == op {
+			args = append(args, flattenBinaryExprArgs(op, bin.Left, bin.Right)...)
+		} else {
+			args = append(args, expr)
+		}
+	}
+
+	return args
 }

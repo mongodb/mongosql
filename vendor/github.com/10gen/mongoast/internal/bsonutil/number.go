@@ -143,3 +143,69 @@ func asDecimal128(v bsoncore.Value) (primitive.Decimal128, error) {
 
 	return primitive.Decimal128{}, errors.Errorf("cannot convert %v to a Decimal128", v)
 }
+
+// MaxNumberType returns the "largest" type between t1 and t2. If one of types
+// is not numeric, this function will return that type
+func MaxNumberType(t1 bsontype.Type, t2 bsontype.Type) bsontype.Type {
+	switch t1 {
+	case bsontype.Int32:
+		return t2
+	case bsontype.Int64:
+		switch t2 {
+		case bsontype.Int32:
+			return bsontype.Int64
+		default:
+			return t2
+		}
+	case bsontype.Double:
+		switch t2 {
+		case bsontype.Int32, bsontype.Int64:
+			return bsontype.Double
+		default:
+			return t2
+		}
+	case bsontype.Decimal128:
+		switch t2 {
+		case bsontype.Int32, bsontype.Int64, bsontype.Double:
+			return bsontype.Decimal128
+		default:
+			return t2
+		}
+	default:
+		return t1
+	}
+
+}
+
+// AsFloat64 gets the bson.Value as a Float64.
+func AsFloat64(v bsoncore.Value) float64 {
+	f64, err := asFloat64(v)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	return f64
+}
+
+// AsFloat64OK gets the bson.Value as a Float64.
+func AsFloat64OK(v bsoncore.Value) (float64, bool) {
+	f64, err := asFloat64(v)
+	if err != nil {
+		return f64, false
+	}
+
+	return f64, true
+}
+
+func asFloat64(v bsoncore.Value) (float64, error) {
+	switch v.Type {
+	case bsontype.Int32:
+		return float64(v.Int32()), nil
+	case bsontype.Int64:
+		return float64(v.Int64()), nil
+	case bsontype.Double:
+		return v.Double(), nil
+	}
+
+	return 0, errors.Errorf("cannot convert %v to a Float64", v)
+}

@@ -648,7 +648,7 @@ func (e SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 	}
 
 	if fieldRef, isFieldRef := ref.(*ast.FieldRef); isFieldRef && astutil.AllParentsAreFieldRefs(fieldRef) {
-		return getProjectedFieldName(astutil.FieldRefString(fieldRef), e.columnType.EvalType), nil
+		return getProjectedFieldName(astutil.RefString(fieldRef), e.columnType.EvalType), nil
 	}
 
 	return ref, nil

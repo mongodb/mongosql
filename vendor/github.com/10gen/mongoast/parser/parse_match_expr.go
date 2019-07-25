@@ -4,6 +4,7 @@ import (
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
 	"github.com/pkg/errors"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -70,7 +71,7 @@ func parseMatchExprElement(e bsoncore.Element) (ast.Expr, error) {
 func parseNonFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 	key := e.Key()
 	switch key {
-	case "$and", "$nor", "$or":
+	case "$and", "$or":
 		arr, ok := e.Value().ArrayOK()
 		if !ok {
 			return nil, errors.Errorf("%s should have an array value", key)
@@ -123,6 +124,46 @@ func parseNonFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 		}
 
 		return expr, nil
+	case "$nor":
+		arr, ok := e.Value().ArrayOK()
+		if !ok {
+			return nil, errors.Errorf("%s should have an array value", key)
+		}
+
+		values, _ := arr.Values()
+		if len(values) == 0 {
+			return nil, errors.Errorf("%s array must have at least one value", key)
+		}
+
+		var expr ast.Expr
+		for i, v := range values {
+			partDoc, ok := v.DocumentOK()
+			if !ok {
+				return nil, errors.Errorf("%s array elements must be documents", key)
+			}
+			partExpr, err := ParseMatchExpr(partDoc)
+			if err != nil {
+				return nil, err
+			}
+
+			if expr == nil {
+				expr = partExpr
+			} else if i != len(values)-1 {
+				expr = ast.NewBinary(ast.Or, expr, partExpr)
+			} else {
+				expr = ast.NewBinary(ast.Nor, expr, partExpr)
+			}
+		}
+
+		if binOpExpr, ok := expr.(*ast.Binary); ok {
+			if binOpExpr.Op != ast.BinaryOp(key) {
+				expr = ast.NewFunction(key, ast.NewArray(binOpExpr))
+			}
+		} else {
+			expr = ast.NewFunction(key, ast.NewArray(expr))
+		}
+		return expr, nil
+
 	case "$expr":
 		expr, err := ParseExpr(e.Value())
 		if err != nil {
@@ -140,6 +181,10 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 		return nil, errors.Wrapf(err, "failed parsing %s as a field ref", e.Key())
 	}
 
+	if pattern, options, ok := e.Value().RegexOK(); ok {
+		return ast.NewMatchRegex(left, pattern, options), nil
+	}
+
 	opDoc, ok := e.Value().DocumentOK()
 	if !ok {
 		right := ast.NewConstant(e.Value())
@@ -147,24 +192,20 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 	}
 
 	var result ast.Expr
+	var pattern, options string
+	patternFound := false
+	optionsFound := false
 	elems, _ := opDoc.Elements()
-	if len(elems) == 2 {
-		if elems[0].Key() == "$regex" {
-			if elems[1].Key() != "$options" {
-				return nil, errors.Wrapf(err, `the only viable argument to $regex is "$options" not "%s"`, elems[1].Key())
-			}
-			pattern := elems[0].Value()
-			options := elems[1].Value()
-			return ast.NewMatchRegex(e.Key(), pattern, options), nil
-		}
-	}
-	for _, op := range elems {
+	for i, op := range elems {
 		key := op.Key()
 		if len(key) <= 0 {
 			return nil, errors.New("invalid match expression key")
 		}
 
 		if key[0] != '$' {
+			if i > 0 {
+				return nil, errors.Errorf("unknown operator: %s", key)
+			}
 			right := ast.NewConstant(e.Value())
 			return ast.NewBinary(ast.Equals, left, right), nil
 		}
@@ -191,7 +232,33 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 			right := ast.NewConstant(op.Value())
 			expr = ast.NewBinary(ast.NotEquals, left, right)
 		case "$regex":
-			return ast.NewMatchRegex(e.Key(), op.Value(), bsonutil.String("")), nil
+			pattern, ok = op.Value().StringValueOK()
+			if !ok {
+				return nil, errors.New("$regex has to be a string")
+			}
+			patternFound = true
+		case "$options":
+			options, ok = op.Value().StringValueOK()
+			if !ok {
+				return nil, errors.New("$options has to be a string")
+			}
+			optionsFound = true
+		case "$not":
+			if op.Value().Type != bsontype.EmbeddedDocument && op.Value().Type != bsontype.Regex {
+				return nil, errors.New("$not needs a regex or a document")
+			}
+			// removes $not from the expression
+			d := bsonutil.DocumentFromElements(
+				e.Key(), op.Value(),
+			)
+			subexpression, err := ParseMatchExpr(d.Document())
+			if err != nil {
+				return nil, err
+			}
+			return ast.NewUnary(ast.Not, subexpression), nil
+		case "$exists":
+			exists := bsonutil.CoerceToBoolean(op.Value())
+			expr = ast.NewExists(left.(*ast.FieldRef), exists)
 		default:
 			expr = ast.NewFunction(
 				op.Key(),
@@ -199,11 +266,24 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 			)
 		}
 
+		if expr != nil {
+			if result == nil {
+				result = expr
+			} else {
+				result = ast.NewBinary(ast.And, result, expr)
+			}
+		}
+	}
+
+	if patternFound {
+		expr := ast.NewMatchRegex(left, pattern, options)
 		if result == nil {
 			result = expr
 		} else {
 			result = ast.NewBinary(ast.And, result, expr)
 		}
+	} else if optionsFound {
+		return nil, errors.New("$options needs a $regex")
 	}
 
 	return result, nil

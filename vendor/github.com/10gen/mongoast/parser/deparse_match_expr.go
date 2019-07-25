@@ -28,8 +28,15 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 		return bsonutil.Document(doc)
 	case *ast.Binary:
 		switch te.Op {
-		case ast.And, ast.Nor, ast.Or:
+		case ast.And, ast.Or:
 			arr := bsonutil.ArrayFromValues(flattenMatchExprBinary(te.Op, te.Left, te.Right)...)
+
+			_, doc := bsoncore.AppendDocumentStart(nil)
+			doc = bsoncore.AppendArrayElement(doc, string(te.Op), arr.Data)
+			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+			return bsonutil.Document(doc)
+		case ast.Nor:
+			arr := bsonutil.ArrayFromValues(flattenNor(te.Left, te.Right)...)
 
 			_, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendArrayElement(doc, string(te.Op), arr.Data)
@@ -48,6 +55,33 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 
 			return bsonutil.Document(doc)
 		}
+	case *ast.Unary:
+		var subdoc bsoncore.Document
+		var left ast.Expr
+		switch tsub := te.Expr.(type) {
+		case *ast.MatchRegex:
+			left = tsub.Expr
+			subdoc = deparseMatchRegex(tsub)
+
+		case *ast.Binary:
+			left = tsub.Left
+			_, subdoc = bsoncore.AppendDocumentStart(nil)
+			subdoc = bsonutil.AppendValueElement(subdoc, string(tsub.Op), deparseMatchSubexpr(tsub.Right))
+			subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+
+		default:
+			panic("Unary operand must be either MatchRegex or Binary")
+		}
+
+		_, unarySubdoc := bsoncore.AppendDocumentStart(nil)
+		unarySubdoc = bsoncore.AppendDocumentElement(unarySubdoc, string(te.Op), subdoc)
+		unarySubdoc, _ = bsoncore.AppendDocumentEnd(unarySubdoc, 0)
+
+		name := deparseMatchFieldName(left)
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, name, unarySubdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc)
 	case *ast.Constant:
 		return te.Value
 	case *ast.Document:
@@ -60,13 +94,19 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 	case *ast.Function:
 		return deparseMatchExprFunction(te)
 	case *ast.MatchRegex:
-		name := te.Field
+		name := deparseMatchFieldName(te.Expr)
+		subdoc := deparseMatchRegex(te)
 
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+
+		return bsonutil.Document(doc)
+	case *ast.Exists:
+		name := deparseMatchFieldName(te.FieldRef)
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
-		subdoc = bsonutil.AppendValueElement(subdoc, "$regex", te.Pattern)
-		subdoc = bsonutil.AppendValueElement(subdoc, "$options", te.Options)
+		subdoc = bsonutil.AppendValueElement(subdoc, "$exists", bsonutil.Boolean(te.Exists))
 		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
-
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
@@ -79,6 +119,14 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 	panic(fmt.Sprintf("unsupported expr %T", e))
 }
 
+func deparseMatchRegex(expr *ast.MatchRegex) bsoncore.Document {
+	_, doc := bsoncore.AppendDocumentStart(nil)
+	doc = bsoncore.AppendStringElement(doc, "$regex", expr.Pattern)
+	doc = bsoncore.AppendStringElement(doc, "$options", expr.Options)
+	doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+	return doc
+}
+
 func flattenMatchExprBinary(op ast.BinaryOp, left, right ast.Expr) []bsoncore.Value {
 	values := make([]bsoncore.Value, 0)
 
@@ -89,6 +137,19 @@ func flattenMatchExprBinary(op ast.BinaryOp, left, right ast.Expr) []bsoncore.Va
 		}
 
 		values = append(values, deparseMatchSubexpr(e))
+	}
+
+	return values
+}
+
+func flattenNor(left, right ast.Expr) []bsoncore.Value {
+	values := make([]bsoncore.Value, 0)
+	for _, e := range []ast.Expr{left, right} {
+		if b, isBinary := e.(*ast.Binary); isBinary && b.Op == ast.Or {
+			values = append(values, flattenNor(b.Left, b.Right)...)
+		} else {
+			values = append(values, deparseMatchSubexpr(e))
+		}
 	}
 
 	return values

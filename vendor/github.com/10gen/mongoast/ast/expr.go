@@ -52,6 +52,35 @@ type ArrayIndexRef struct {
 	Parent Expr
 }
 
+// NewUnary makes a Unary.
+func NewUnary(op UnaryOp, expr Expr) *Unary {
+	return &Unary{
+		Op:   op,
+		Expr: expr,
+	}
+}
+
+// UnaryOp is the type of unary operation.
+type UnaryOp string
+
+// constants for the possible unary operations.
+const (
+	Not   UnaryOp = UnaryOp("$not")
+	Abs   UnaryOp = UnaryOp("$abs")
+	Ceil  UnaryOp = UnaryOp("$ceil")
+	Floor UnaryOp = UnaryOp("$floor")
+	Exp   UnaryOp = UnaryOp("$exp")
+	Ln    UnaryOp = UnaryOp("$ln")
+	Log10 UnaryOp = UnaryOp("$log10")
+	Sqrt  UnaryOp = UnaryOp("$sqrt")
+)
+
+// Unary is a unary expression.
+type Unary struct {
+	Op   UnaryOp
+	Expr Expr
+}
+
 // NewBinary makes a Binary.
 func NewBinary(op BinaryOp, left Expr, right Expr) *Binary {
 	return &Binary{
@@ -76,6 +105,13 @@ const (
 	Nor                 BinaryOp = BinaryOp("$nor")
 	NotEquals           BinaryOp = BinaryOp("$ne")
 	Or                  BinaryOp = BinaryOp("$or")
+	Divide              BinaryOp = BinaryOp("$divide")
+	Log                 BinaryOp = BinaryOp("$log")
+	Mod                 BinaryOp = BinaryOp("$mod")
+	Pow                 BinaryOp = BinaryOp("$pow")
+	Subtract            BinaryOp = BinaryOp("$subtract")
+	Add                 BinaryOp = BinaryOp("$add")
+	Multiply            BinaryOp = BinaryOp("$multiply")
 )
 
 // Flip flips the direction of a less than or greater than operator.
@@ -99,6 +135,20 @@ type Binary struct {
 	Op    BinaryOp
 	Left  Expr
 	Right Expr
+}
+
+// NewTrunc makes a Trunc.
+func NewTrunc(number, precision Expr) *Trunc {
+	return &Trunc{
+		Number:    number,
+		Precision: precision,
+	}
+}
+
+// Trunc is the trunc expression, which truncates a number to a precision.
+type Trunc struct {
+	Number    Expr
+	Precision Expr
 }
 
 // NewConstant makes a Constant.
@@ -236,11 +286,23 @@ func NewFilter(input Expr, as string, cond Expr) *Filter {
 
 var _ Expr = &Filter{}
 
-// Filter is the filer expression, which filters an array (Input) with a predicate (Cond).
+// Filter is the filter expression, which filters an array (Input) with a predicate (Cond).
 type Filter struct {
 	Input Expr
 	As    string
 	Cond  Expr
+}
+
+// NewReduce makes a new Reduce Expression.
+func NewReduce(input Expr, initialValue Expr, in Expr) *Reduce {
+	return &Reduce{Input: input, InitialValue: initialValue, In: in}
+}
+
+// Reduce applies an expression [In] to each element and combines them into a single value.
+type Reduce struct {
+	Input        Expr
+	InitialValue Expr
+	In           Expr
 }
 
 // NewFunction makes a Function.
@@ -255,9 +317,9 @@ type Function struct {
 }
 
 // NewMatchRegex creates a new MatchRegex.
-func NewMatchRegex(field string, pattern, options bsoncore.Value) *MatchRegex {
+func NewMatchRegex(expr Expr, pattern, options string) *MatchRegex {
 	return &MatchRegex{
-		Field:   field,
+		Expr:    expr,
 		Pattern: pattern,
 		Options: options,
 	}
@@ -265,9 +327,9 @@ func NewMatchRegex(field string, pattern, options bsoncore.Value) *MatchRegex {
 
 // MatchRegex is the match language $regex function.
 type MatchRegex struct {
-	Field   string
-	Pattern bsoncore.Value
-	Options bsoncore.Value
+	Expr    Expr
+	Pattern string
+	Options string
 }
 
 // NewVariableRef makes a VariableRef.
@@ -278,4 +340,15 @@ func NewVariableRef(name string) *VariableRef {
 // VariableRef is a reference to a variable.
 type VariableRef struct {
 	Name string
+}
+
+// Exists filters based on whether a document has a field.
+type Exists struct {
+	FieldRef *FieldRef
+	Exists   bool
+}
+
+// NewExists makes an Exists.
+func NewExists(fieldRef *FieldRef, exists bool) *Exists {
+	return &Exists{FieldRef: fieldRef, Exists: exists}
 }

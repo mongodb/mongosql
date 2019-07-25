@@ -94,7 +94,7 @@ func getUnwindPaths(pipeline *ast.Pipeline) ([]string, map[string]string) {
 			continue
 		}
 
-		pathAsString := astutil.FieldRefString(unwind.Path)
+		pathAsString := astutil.RefString(unwind.Path)
 
 		// only consider unwindPaths where there is a defined columns
 		unwindPaths = append(unwindPaths, pathAsString)

@@ -2,6 +2,8 @@ github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5 h1:quTK0bOf7s2Qi
 github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5/go.mod h1:87b3OnOQuexXculxla0GCSZ9+6sU2/E3/ze9nSwTsyM=
 github.com/10gen/mongoast v0.0.0-20190520144242-110174e616db h1:h5EqOsm1aF4rM0sosBGSf5VYdXUaJINRc9qjH/aNaRE=
 github.com/10gen/mongoast v0.0.0-20190520144242-110174e616db/go.mod h1:/7PWuJoJT196Y2SfK6JlU0r59cEY8xwdZ662XY8YaG4=
+github.com/10gen/mongoast v0.0.0-20190723173338-e977a80e8a3e h1:i8FpE4dJe3OxTGH3ReT1C7GLkWqrhrjiFadDrduQdu8=
+github.com/10gen/mongoast v0.0.0-20190723173338-e977a80e8a3e/go.mod h1:/7PWuJoJT196Y2SfK6JlU0r59cEY8xwdZ662XY8YaG4=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 h1:TbONlEzjFZ0K7a6dYca+3rwJugMwiRJLY+FSCO3C2CE=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847/go.mod h1:ngIUcWisavS+ezq2tBEu6vgSU981hsiJaalWLlpOcuE=
 github.com/craiggwilson/goke v0.0.0-20181207224902-4a17d49e9b70/go.mod h1:0jlZfO1lmeSCLmalnaa9t4RFcgdBlJstHV9zeXVBofU=

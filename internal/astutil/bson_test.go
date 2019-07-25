@@ -104,12 +104,10 @@ func TestParsePipeline(t *testing.T) {
 			ast.NewPipeline(
 				ast.NewProjectStage(
 					ast.NewAssignProjectItem("x",
-						// the mongoast does not recognize "$add" as an ast.Binary, so it will
-						// be parsed as an ast.Function.
-						ast.NewFunction("$add", ast.NewArray(
+						ast.NewBinary(ast.Add,
 							ast.NewFieldRef("a", nil),
 							ast.NewFieldRef("b", nil),
-						)),
+						),
 					),
 					ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
 				),
@@ -141,11 +139,13 @@ func TestParsePipeline(t *testing.T) {
 				ast.NewSkipStage(5),
 				ast.NewAddFieldsStage(
 					ast.NewAddFieldsItem("sum",
-						ast.NewFunction("$add", ast.NewArray(
-							ast.NewFieldRef("x", nil),
-							ast.NewFieldRef("y", nil),
+						ast.NewBinary(ast.Add,
+							ast.NewBinary(ast.Add,
+								ast.NewFieldRef("x", nil),
+								ast.NewFieldRef("y", nil),
+							),
 							ast.NewFieldRef("z", nil),
-						)),
+						),
 					),
 					ast.NewAddFieldsItem("cons", astutil.StringConstant("yo")),
 				),

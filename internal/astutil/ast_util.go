@@ -50,16 +50,16 @@ func DeepCopyPipeline(src *ast.Pipeline) *ast.Pipeline {
 	return src.DeepCopy().(*ast.Pipeline)
 }
 
-// FieldRefString returns the string representation of the full path
-// for the provided ast.FieldRef. It returns an unquoted string with
-// no preceding "$" (or "$$" in the case that the parent was an
-// ast.VariableRef).
-func FieldRefString(fr *ast.FieldRef) string {
-	if fr == nil {
+// RefString returns the string representation of the full path
+// for the provided ast.Ref. It returns an unquoted string with
+// no preceding "$". If the topmost parent is an ast.VariableRef,
+// only one "$" will be removed, not both.
+func RefString(r ast.Ref) string {
+	if r == nil {
 		return ""
 	}
 
-	fullPath := ast.GetDottedFieldName(fr)
+	fullPath := ast.GetDottedFieldName(r)
 
 	if fullPath != "" && fullPath[0] == '$' {
 		return fullPath[1:]
@@ -73,7 +73,7 @@ func FieldRefString(fr *ast.FieldRef) string {
 func GetRefName(ref ast.Ref) (string, bool) {
 	switch t := ref.(type) {
 	case *ast.FieldRef:
-		return FieldRefString(t), true
+		return RefString(t), true
 	case *ast.VariableRef:
 		return t.Name, true
 	default:

@@ -1,14 +1,10 @@
 package optimizer
 
 import (
-	"fmt"
-
 	"github.com/10gen/mongoast/analyzer"
 	"github.com/10gen/mongoast/internal/stringutil"
 
 	"github.com/10gen/mongoast/ast"
-
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // LetMerging merges nested Let expressions if there is no dependence
@@ -105,45 +101,6 @@ func mergeLets(let *ast.Let) ast.Expr {
 
 			return ast.NewLet(newNestedVariables, typedN.Expr)
 
-		case *ast.Function:
-			varsToRemove := make([]string, 0, 2)
-			switch typedN.Name {
-			case "$reduce":
-				// In case a Let is nested in a $reduce function, temporarily
-				// add the $$this and $$value variables to the variable set
-				// if they do not already exist.
-				if !variables.Contains("this") {
-					variables.Add("this")
-					varsToRemove = append(varsToRemove, "this")
-				}
-				if !variables.Contains("value") {
-					variables.Add("value")
-					varsToRemove = append(varsToRemove, "value")
-				}
-			// These cases should no longer be possible assuming the pipeline comes from
-			// the parser, but we keep them in case someone is manually constructing an
-			// ast.
-			case "$map", "$filter":
-				// In case a Let is nested in a $map or $filter function,
-				// temporarily add the "as" field variable to the variable
-				// set if it does not already exist.
-				asField := getAsField(typedN)
-				if !variables.Contains(asField) {
-					variables.Add(asField)
-					varsToRemove = append(varsToRemove, asField)
-				}
-			}
-
-			// walk the function with the relevant new variables in scope
-			n = n.Walk(v)
-
-			// remove any newly added variables
-			for _, varToRemove := range varsToRemove {
-				variables.Remove(varToRemove)
-			}
-
-			return n
-
 		case *ast.Map:
 			varsToRemove := make([]string, 0, 1)
 
@@ -182,6 +139,30 @@ func mergeLets(let *ast.Let) ast.Expr {
 
 			return n
 
+		case *ast.Reduce:
+			varsToRemove := make([]string, 0, 2)
+			// In case a Let is nested in a $reduce function, temporarily
+			// add the $$this and $$value variables to the variable set
+			// if they do not already exist.
+			if !variables.Contains("this") {
+				variables.Add("this")
+				varsToRemove = append(varsToRemove, "this")
+			}
+			if !variables.Contains("value") {
+				variables.Add("value")
+				varsToRemove = append(varsToRemove, "value")
+			}
+
+			// walk the function with the relevant new variables in scope
+			n = n.Walk(v)
+
+			// remove any newly added variables
+			for _, varToRemove := range varsToRemove {
+				variables.Remove(varToRemove)
+			}
+
+			return n
+
 		default:
 			return n.Walk(v)
 		}
@@ -191,42 +172,4 @@ func mergeLets(let *ast.Let) ast.Expr {
 	newExpr, _ := ast.Visit(let.Expr, merge)
 
 	return ast.NewLet(newVariables, newExpr.(ast.Expr))
-}
-
-// getAsField attempts to get the "as" field from a "$map" or "$filter"
-// function. This function panics if the ast.Function's Arg is not an
-// *ast.Document, if the "as" field is not an *ast.Constant or *ast.Unknown,
-// or if the BSON type of the "as" field is not a string. If there is
-// no "as" field, "this" is returned. If there is an "as" field and
-// all the types are as expected, the string value of the "as" field
-// is returned.
-func getAsField(mapOrFilter *ast.Function) string {
-	argAsDoc, ok := mapOrFilter.Arg.(*ast.Document)
-	if !ok {
-		panic(fmt.Sprintf("expected *ast.Document argument to %s function, but got %T", mapOrFilter.Name, mapOrFilter.Arg))
-	}
-
-	asFieldExpr, ok := argAsDoc.FieldsMap()["as"]
-	if !ok {
-		// the default for the as field is "this" for $map and $filter
-		return "this"
-	}
-
-	var asFieldBSONValue bsoncore.Value
-
-	switch typedE := asFieldExpr.(type) {
-	case *ast.Constant:
-		asFieldBSONValue = typedE.Value
-	case *ast.Unknown:
-		asFieldBSONValue = typedE.Value
-	default:
-		panic(fmt.Sprintf("expected *ast.Constant or *ast.Unknown value for \"as\" field, but got %T", typedE))
-	}
-
-	asField, ok := asFieldBSONValue.StringValueOK()
-	if !ok {
-		panic(fmt.Sprintf("expected string value for \"as\" field, but got %v", asFieldBSONValue.Type.String()))
-	}
-
-	return asField
 }

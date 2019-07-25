@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2262: Fixed a bug that caused a pipeline parser error for unwind paths with numeric field names.
 BI-2267: Fixed a bug that caused mongodrdl to ignore the `--gssapiHostName` and `gssapiServiceName` flags.
 BI-2092: No user-facing changes.
 BI-2239: No user-facing changes.

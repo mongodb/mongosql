@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
-	github.com/10gen/mongoast v0.0.0-20190520144242-110174e616db
+	github.com/10gen/mongoast v0.0.0-20190723173338-e977a80e8a3e
 	github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/golang/snappy v0.0.1 // indirect

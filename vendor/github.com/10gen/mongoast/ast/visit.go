@@ -592,6 +592,22 @@ func (n *ArrayIndexRef) WalkRef(v Visitor) Ref {
 }
 
 // Walk implements the Node interface.
+func (n *Unary) Walk(v Visitor) Node {
+	return n.WalkExpr(v)
+}
+
+// WalkExpr implements the Expr interface.
+func (n *Unary) WalkExpr(v Visitor) Expr {
+	expr, changedExpr := visitExpr(v, n.Expr)
+	if changedExpr {
+		cpy := *n
+		cpy.Expr = expr
+		return &cpy
+	}
+	return n
+}
+
+// Walk implements the Node interface.
 func (n *Binary) Walk(v Visitor) Node {
 	return n.WalkExpr(v)
 }
@@ -610,12 +626,37 @@ func (n *Binary) WalkExpr(v Visitor) Expr {
 }
 
 // Walk implements the Node interface.
+func (n *Trunc) Walk(v Visitor) Node {
+	return n.WalkExpr(v)
+}
+
+// WalkExpr implements the Expr interface.
+func (n *Trunc) WalkExpr(v Visitor) Expr {
+	number, changedNumber := visitExpr(v, n.Number)
+	precision, changedPrecision := visitExpr(v, n.Precision)
+	if changedNumber || changedPrecision {
+		cpy := *n
+		cpy.Number = number
+		cpy.Precision = precision
+		return &cpy
+	}
+
+	return n
+}
+
+// Walk implements the Node interface.
 func (n *MatchRegex) Walk(v Visitor) Node {
 	return n
 }
 
 // WalkExpr implements Expr interface.
 func (n *MatchRegex) WalkExpr(v Visitor) Expr {
+	expr, changed := visitExpr(v, n.Expr)
+	if changed {
+		cpy := *n
+		cpy.Expr = expr
+		return &cpy
+	}
 	return n
 }
 
@@ -672,6 +713,27 @@ func (n *Filter) WalkExpr(v Visitor) Expr {
 		cpy.Input = newInput
 		cpy.As = n.As
 		cpy.Cond = newCond
+		return &cpy
+	}
+	return n
+}
+
+// Walk implements the Node interface.
+func (n *Reduce) Walk(v Visitor) Node {
+	return n.WalkExpr(v)
+}
+
+// WalkExpr implements the Expr interface.
+func (n *Reduce) WalkExpr(v Visitor) Expr {
+	newInput, inputChanged := visitExpr(v, n.Input)
+	newInitialValue, initialValueChanged := visitExpr(v, n.InitialValue)
+	newIn, inChanged := visitExpr(v, n.In)
+
+	if inputChanged || initialValueChanged || inChanged {
+		cpy := *n
+		cpy.Input = newInput
+		cpy.InitialValue = newInitialValue
+		cpy.In = newIn
 		return &cpy
 	}
 	return n
@@ -949,6 +1011,22 @@ func (n *FacetItem) Walk(v Visitor) Node {
 	if changed {
 		cpy := *n
 		cpy.Pipeline = pipeline
+		return &cpy
+	}
+	return n
+}
+
+// Walk implements the Node interface.
+func (n *Exists) Walk(v Visitor) Node {
+	return n.WalkExpr(v)
+}
+
+//WalkExpr implements Expr interface.
+func (n *Exists) WalkExpr(v Visitor) Expr {
+	fieldRef, changedField := visitExpr(v, n.FieldRef)
+	if changedField {
+		cpy := *n
+		cpy.FieldRef = fieldRef.(*FieldRef)
 		return &cpy
 	}
 	return n

@@ -67,7 +67,7 @@ func removeRedundancies(e ast.Expr) ast.Expr {
 			// There is no reason to add this as a possibly redundant expression.
 			return typedExpr
 		case *ast.Binary:
-			if analyzer.HasLazyArgumentSemantics(typedExpr) {
+			if analyzer.HasLazyArgumentSemantics(typedExpr) || typedExpr.Op == ast.Add || typedExpr.Op == ast.Multiply {
 				typedExpr.Left = removeRedundancies(typedExpr.Left)
 				typedExpr.Right = removeRedundancies(typedExpr.Right)
 				addExpression(typedExpr)
@@ -87,6 +87,12 @@ func removeRedundancies(e ast.Expr) ast.Expr {
 		case *ast.Filter:
 			typedExpr.Input = removeRedundancies(typedExpr.Input)
 			typedExpr.Cond = removeRedundancies(typedExpr.Cond)
+			addExpression(typedExpr)
+			return typedExpr
+		case *ast.Reduce:
+			typedExpr.Input = removeRedundancies(typedExpr.Input)
+			typedExpr.InitialValue = removeRedundancies(typedExpr.InitialValue)
+			typedExpr.In = removeRedundancies(typedExpr.In)
 			addExpression(typedExpr)
 			return typedExpr
 		case *ast.Let:
@@ -254,7 +260,8 @@ func isTrivialExpression(e ast.Expr) bool {
 		*ast.FieldRef,
 		*ast.Unknown,
 		*ast.VariableRef,
-		*ast.MatchRegex:
+		*ast.MatchRegex,
+		*ast.Exists:
 		return true
 	default:
 		return false

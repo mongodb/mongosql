@@ -84,6 +84,13 @@
     - {_id: 1, value: {$date: "2000-01-02T12:35:56Z"}}
     - {_id: 2, value: {$date: "2000-01-03T12:36:56Z"}}
 
+- db: "bugs_database"
+  collection: "BI_2262"
+  docs:
+    - {_id: 0, a: {0: ["a", "b"]}}
+    - {_id: 1, a: {0: ["c", "d", "e"]}}
+    - {_id: 2, a: {0: ["f"]}}
+
 - db: "collation_test"
   collection: "collation_1"
   collation: {locale: "en_US", strength: 1}

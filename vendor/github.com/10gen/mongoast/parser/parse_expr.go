@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"github.com/10gen/mongoast/internal/bsonutil"
 	"strconv"
 	"strings"
 
@@ -135,15 +136,38 @@ func parseVariableRef(s string) (ast.Expr, error) {
 
 func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 	switch key {
-	case "$and", "$or":
+	case "$and", "$or", "$add", "$multiply":
 		arr, ok := v.ArrayOK()
+		var values []bsoncore.Value
 		if !ok {
-			return nil, errors.Errorf("%s requires an array", key)
+			values = []bsoncore.Value{v}
+		} else {
+			values, _ = arr.Values()
 		}
-
-		values, _ := arr.Values()
-
 		return parseLogicalExpr(ast.BinaryOp(key), values)
+	case "$not", "$abs", "$ceil", "$floor", "$exp", "$ln", "$log10":
+		var exprValue bsoncore.Value
+		arr, ok := v.ArrayOK()
+		if ok {
+			arrValues, err := arr.Values()
+			if err != nil {
+				return nil, err
+			}
+
+			if len(arrValues) != 1 {
+				return nil, errors.Errorf("expression %s takes exactly 1 arguments, %d were passed in", key, len(arrValues))
+			}
+			exprValue = arrValues[0]
+		} else {
+			exprValue = v
+		}
+		expr, err := ParseExpr(exprValue)
+		if err != nil {
+			return nil, err
+		}
+		return ast.NewUnary(ast.UnaryOp(key), expr), nil
+	case "$trunc":
+		return parseTruncExpr(v)
 	case "$arrayElemAt":
 		arr, ok := v.ArrayOK()
 		if !ok {
@@ -165,7 +189,7 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 			return nil, errors.Wrap(err, "failed parsing second element of $arrayElemAt")
 		}
 		return ast.NewArrayIndexRef(index, parent), nil
-	case "$cmp", "$eq", "$gt", "$gte", "$lt", "$lte", "$ne":
+	case "$cmp", "$eq", "$gt", "$gte", "$lt", "$lte", "$ne", "$divide", "$log", "$mod", "$pow", "$subtract":
 		arr, ok := v.ArrayOK()
 		if !ok {
 			return nil, errors.Errorf("%s requires an array with 2 elements", key)
@@ -185,6 +209,8 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 		return parseMapExpr(v)
 	case "$filter":
 		return parseFilterExpr(v)
+	case "$reduce":
+		return parseReduceExpr(v)
 	case "$literal":
 		return ast.NewConstant(v), nil
 	default:
@@ -225,6 +251,44 @@ func parseBinaryExpr(op ast.BinaryOp, values []bsoncore.Value) (ast.Expr, error)
 	}
 
 	return ast.NewBinary(op, left, right), nil
+}
+
+func parseTruncExpr(v bsoncore.Value) (ast.Expr, error) {
+	var numberValue bsoncore.Value
+	var err error
+
+	// default precision value of 0
+	var precision ast.Expr = ast.NewConstant(bsonutil.Int32(0))
+
+	arr, ok := v.ArrayOK()
+	if ok {
+		arrValues, err := arr.Values()
+		if err != nil {
+			return nil, err
+		}
+
+		switch len(arrValues) {
+		case 1:
+			numberValue = arrValues[0]
+		case 2:
+			numberValue = arrValues[0]
+			precision, err = ParseExpr(arrValues[1])
+			if err != nil {
+				return nil, errors.Wrap(err, "could not parse precision expr in $trunc")
+			}
+		default:
+			return nil, errors.Errorf("expression $trunc takes at least 1 argument, and at most 2, but %d were passed in", len(arrValues))
+		}
+	} else {
+		numberValue = v
+	}
+
+	number, err := ParseExpr(numberValue)
+	if err != nil {
+		return nil, errors.Wrap(err, "could not parse number expr in $trunc")
+	}
+
+	return ast.NewTrunc(number, precision), nil
 }
 
 func parseLetExpr(v bsoncore.Value) (ast.Expr, error) {
@@ -436,4 +500,50 @@ func parseFilterExpr(v bsoncore.Value) (ast.Expr, error) {
 	}
 
 	return ast.NewFilter(inputClause, asClause, condClause), nil
+}
+
+func parseReduceExpr(v bsoncore.Value) (ast.Expr, error) {
+	var err error
+	var inputClause ast.Expr
+	var initialValue ast.Expr
+	var inClause ast.Expr
+
+	if doc, ok := v.DocumentOK(); ok {
+		elems, _ := doc.Elements()
+		for _, e := range elems {
+			switch e.Key() {
+			case "input":
+				inputClause, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $reduce input clause")
+				}
+			case "initialValue":
+				initialValue, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $reduce initialValue clause")
+				}
+			case "in":
+				inClause, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $reduce in clause")
+				}
+			default:
+				return nil, errors.Errorf("unrecognized parameter to $reduce: %s", e.Key())
+			}
+		}
+	} else {
+		return nil, errors.New("$reduce requires a document")
+	}
+
+	if inputClause == nil {
+		return nil, errors.New("missing 'input' parameter to $reduce")
+	}
+	if initialValue == nil {
+		return nil, errors.New("missing 'initialValue' parameter to $reduce")
+	}
+	if inClause == nil {
+		return nil, errors.New("missing 'in' parameter to $reduce")
+	}
+
+	return ast.NewReduce(inputClause, initialValue, inClause), nil
 }

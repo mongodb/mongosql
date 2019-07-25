@@ -67,16 +67,16 @@ func minimizeLetVariables(let *ast.Let) ast.Expr {
 			// markShaodwsInMapAndContinueWalk function handles this for us.
 			return markShadowsInMapOrFilterAndContinueWalk(v, typedN.(ast.Expr), variables)
 
-		case *ast.Function:
-			// $map, $filter, and $reduce define new variables, and those may
-			// shadow some of the existing variables. If a nested variable
+		case *ast.Reduce:
+			// $reduce defines new variables, and those may shadow some
+			// of the existing variables. If a nested variable
 			// defined by one of these functions shadows one of the outer
 			// variables, we should not count uses of that variable while
 			// walking the function; those are references to the shadow, NOT
 			// the outer variable.
 			// The markShaodwsInFunctionAndContinueWalk function handles this
 			// for us.
-			return markShadowsInFunctionAndContinueWalk(v, typedN, variables)
+			return markShadowsInReduceAndContinueWalk(v, typedN, variables)
 
 		case *ast.VariableRef:
 			// only count variable references that are known
@@ -110,12 +110,10 @@ func minimizeLetVariables(let *ast.Let) ast.Expr {
 			// references in the nested "in" expression if they are shadows
 			// of outer variables.
 			return markShadowsInMapOrFilterAndContinueWalk(v, typedN.(ast.Expr), variables)
-
-		case *ast.Function:
-			// For $map, $filter, and $reduce functions, we should not replace
-			// variable references nested in the function if they are shadows
-			// of outer variables.
-			return markShadowsInFunctionAndContinueWalk(v, typedN, variables)
+		case *ast.Reduce:
+			// For $reduce expression, we should not replace variable references
+			// nested in the function if they are shadows of outer variables
+			return markShadowsInReduceAndContinueWalk(v, typedN, variables)
 
 		case *ast.FieldRef:
 			// Special handling for FieldRefs: we should only substitute
@@ -244,65 +242,32 @@ func markShadowsInMapOrFilterAndContinueWalk(v ast.Visitor, mapOrFilter ast.Expr
 	return n
 }
 
-// markShadowsInFunctionAndContinueWalk walks the provided Function using
-// the provided visitor. Before walking the it, this function checks if
-// the Function is a variable-defining function ($map, $filter, $reduce)
-// and marks variables in the provided map as shadowed if a variable with
-// the same name is defined by the function.
-func markShadowsInFunctionAndContinueWalk(v ast.Visitor, f *ast.Function, variables map[string]*letVariableInfo) ast.Node {
-	var n ast.Node
-	switch f.Name {
-	case "$reduce":
-		thisInfo, thisIsShadowed := variables["this"]
-		valueInfo, valueIsShadowed := variables["value"]
+func markShadowsInReduceAndContinueWalk(v ast.Visitor, r *ast.Reduce, variables map[string]*letVariableInfo) ast.Node {
+	thisInfo, thisIsShadowed := variables["this"]
+	valueInfo, valueIsShadowed := variables["value"]
 
-		// remember if these variables were or were not shadowed already
-		thisWasShadowed := thisInfo != nil && thisInfo.isShadowed
-		valueWasShadowed := valueInfo != nil && valueInfo.isShadowed
+	// remember if these variables were or were not shadowed already
+	thisWasShadowed := thisInfo != nil && thisInfo.isShadowed
+	valueWasShadowed := valueInfo != nil && valueInfo.isShadowed
 
-		// if "this" and/or "value" shadow an outer variable,
-		// mark them as shadowed before walking the function
-		if thisIsShadowed {
-			thisInfo.isShadowed = true
-		}
-		if valueIsShadowed {
-			valueInfo.isShadowed = true
-		}
-
-		// walk the function
-		n = f.Walk(v)
-
-		// mark them as they were before
-		if thisIsShadowed {
-			thisInfo.isShadowed = thisWasShadowed
-		}
-		if valueIsShadowed {
-			valueInfo.isShadowed = valueWasShadowed
-		}
-
-	case "$map", "$filter":
-		asField := getAsField(f)
-
-		info, isShadowed := variables[asField]
-		wasShadowed := info != nil && info.isShadowed
-
-		// if the as field shadows an outer variable, mark that
-		// variable as shadowed before walking the function
-		if isShadowed {
-			info.isShadowed = true
-		}
-
-		n = f.Walk(v)
-
-		// mark it as it was before
-		if isShadowed {
-			info.isShadowed = wasShadowed
-		}
-
-	default:
-		// no other functions define new variables
-		n = f.Walk(v)
+	// if "this" and/or "value" shadow an outer variable,
+	// mark them as shadowed before walking the function
+	if thisIsShadowed {
+		thisInfo.isShadowed = true
+	}
+	if valueIsShadowed {
+		valueInfo.isShadowed = true
 	}
 
+	// walk the function
+	n := r.Walk(v)
+
+	// mark them as they were before
+	if thisIsShadowed {
+		thisInfo.isShadowed = thisWasShadowed
+	}
+	if valueIsShadowed {
+		valueInfo.isShadowed = valueWasShadowed
+	}
 	return n
 }
