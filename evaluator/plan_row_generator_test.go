@@ -17,7 +17,7 @@ import (
 func TestRowGeneratorStage(t *testing.T) {
 	selectIDs := []int{1}
 	newColumn := NewColumn(selectIDs[0], "", "", "", "rowCount", "", "rowCount",
-		EvalUint64, schema.MongoInt64, false)
+		EvalUint64, schema.MongoInt64, false, true)
 
 	bgCtx := context.Background()
 	execCfg := createTestExecutionCfg(MySQLValueKind)

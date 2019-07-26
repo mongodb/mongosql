@@ -73,7 +73,7 @@ func TestCountPlanStage(t *testing.T) {
 	}
 
 	column := results.NewColumn(1, "", "", "", "count(*)", "", "", types.EvalInt64,
-		schema.MongoNone, false)
+		schema.MongoNone, false, true)
 	projectedColumn := createProjectedColumnFromColumn(1, column, "", "count(*)", false)
 
 	mongoTable, ok := table.(catalog.MongoDBTable)

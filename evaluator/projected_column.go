@@ -40,6 +40,7 @@ func NewColumnFromSQLColumnExpr(sqlColExpr SQLColumnExpr, isPrimaryKey bool) *re
 		sqlColExpr.columnType.EvalType,
 		sqlColExpr.columnType.MongoType,
 		isPrimaryKey,
+		sqlColExpr.nullable,
 	)
 }
 
@@ -78,7 +79,7 @@ func columnsToProjectedColumns(cs results.Columns) ProjectedColumns {
 	for _, c := range cs {
 		projectedColumn := ProjectedColumn{
 			Expr: NewSQLColumnExpr(c.SelectID, c.Database,
-				c.Table, c.Name, c.EvalType, c.MongoType, false),
+				c.Table, c.Name, c.EvalType, c.MongoType, false, c.Nullable),
 			Column: c.Clone(),
 		}
 		projectedColumns = append(projectedColumns, projectedColumn)

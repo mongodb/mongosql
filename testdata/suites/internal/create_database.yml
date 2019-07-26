@@ -1,0 +1,6 @@
+testcases:
+  - db: mysql
+    description: create database foo should be illegal
+    expected_error: 'Error 1105: create database requires --writeMode'
+    id: 'create database foo'
+    sql: create database foo;

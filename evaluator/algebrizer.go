@@ -30,6 +30,7 @@ type AlgebrizerConfig struct {
 	dbName                        string
 	groupConcatMaxLen             int64
 	isMongos                      bool
+	isWriteMode                   bool
 	lg                            log.Logger
 	sqlValueKind                  values.SQLValueKind
 	sqlSelectLimit                uint64
@@ -41,13 +42,14 @@ type AlgebrizerConfig struct {
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
 // provided values. AlgebrizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog) *AlgebrizerConfig {
+func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog, isWriteMode bool) *AlgebrizerConfig {
 	vars := c.Variables()
 	return &AlgebrizerConfig{
 		lg:                            lg,
 		dbName:                        dbName,
 		catalog:                       c,
 		isMongos:                      vars.GetString(variable.MongoDBTopology) == "mongos",
+		isWriteMode:                   isWriteMode,
 		sqlValueKind:                  GetSQLValueKind(vars),
 		sqlSelectLimit:                vars.GetUint64(variable.SQLSelectLimit),
 		maxVarcharLength:              vars.GetUint64(variable.MongoDBMaxVarcharLength),
@@ -82,13 +84,19 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig, stmt parser.Statement) (Command, er
 	case *parser.AlterTable:
 		return algebrizer.translateAlterTable(typedStmt)
 	case *parser.DropTable:
-		return algebrizer.translateDropTable(typedStmt)
+		return algebrizer.translateDropTable(typedStmt), nil
 	case *parser.RenameTable:
 		return algebrizer.translateRenameTable(typedStmt)
 	case *parser.Set:
 		return algebrizer.translateSet(typedStmt)
 	case *parser.Use:
 		return algebrizer.translateUse(typedStmt)
+	case *parser.CreateTable:
+		return algebrizer.translateCreateTable(typedStmt)
+	case *parser.CreateDatabase:
+		return algebrizer.translateCreateDatabase(typedStmt)
+	case *parser.DropDatabase:
+		return algebrizer.translateDropDatabase(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
 			fmt.Sprintf("statement %T", typedStmt))
@@ -435,7 +443,7 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, column.Name, column.Table)
 		}
 		colExpr := NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
-			column.Name, column.EvalType, column.MongoType, false)
+			column.Name, column.EvalType, column.MongoType, false, column.Nullable)
 		mode := a.cfg.polymorphicTypeConversionMode
 		if shouldConvert(column, mode) {
 			return NewSQLConvertExpr(colExpr, column.EvalType), nil
@@ -519,7 +527,6 @@ func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) 
 }
 
 func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterCommand, error) {
-
 	db, err := a.cfg.catalog.Database(a.cfg.dbName)
 	if err != nil {
 		return nil, err
@@ -616,9 +623,107 @@ func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterComman
 	return &AlterCommand{alterations}, nil
 }
 
-// nolint: unparam
-func (a *algebrizer) translateDropTable(ddl *parser.DropTable) (*DropCommand, error) {
-	return NewDropCommand(ddl.Name.Name), nil
+func (a *algebrizer) translateDropTable(ddl *parser.DropTable) *DropTableCommand {
+	// DropTable is allowed outside of --writeMode, so this is infallible.
+	return NewDropTableCommand(ddl.Name.Qualifier, ddl.Name.Name, ddl.IfExists)
+}
+
+func (a *algebrizer) translateDropDatabase(ddl *parser.DropDatabase) (*DropDatabaseCommand, error) {
+	if !a.cfg.isWriteMode {
+		return nil, fmt.Errorf("drop database requires --writeMode")
+	}
+	return NewDropDatabaseCommand(ddl.Name, ddl.IfExists), nil
+}
+
+func (a *algebrizer) translateCreateDatabase(ddl *parser.CreateDatabase) (*CreateDatabaseCommand, error) {
+	if !a.cfg.isWriteMode {
+		return nil, fmt.Errorf("create database requires --writeMode")
+	}
+	return NewCreateDatabaseCommand(ddl.Name, ddl.IfNotExists), nil
+}
+
+func getCreateTableColumns(colDefs []*parser.ColumnDefinition) []*schema.Column {
+	cols := make([]*schema.Column, len(colDefs))
+	for i, def := range colDefs {
+		sqlType, err := schema.GetSQLType(def.Type.BaseType)
+		if err != nil {
+			// This suggests an error in the CST command_desugarer.
+			panic(err)
+		}
+		cols[i] = schema.NewColumn(
+			def.Name.Name,
+			sqlType,
+			def.Name.Name,
+			schema.GetMongoTypeFromSQLType(sqlType),
+			def.Null,
+			def.Comment,
+		)
+	}
+	return cols
+}
+
+func getCreateTableIndexes(colNames map[string]struct{}, indexDefs []*parser.IndexDefinition,
+	colDefs []*parser.ColumnDefinition) (schema.Indexes, error) {
+	indexes := make(schema.Indexes, len(indexDefs))
+	for i, def := range indexDefs {
+		name := ""
+		if def.Name.IsSome() {
+			name = def.Name.Unwrap()
+		}
+		parts := make([]schema.IndexPart, len(def.KeyParts))
+		for j, partDef := range def.KeyParts {
+			if _, ok := colNames[partDef.Column.Name]; !ok {
+				return nil, fmt.Errorf("index defined on non-existent column '%s'", partDef.Column.Name)
+			}
+			parts[j] = schema.NewIndexPart(partDef.Column.Name, partDef.Direction)
+		}
+		indexes[i] = schema.NewIndex(name, def.Unique, def.FullText, parts)
+	}
+	for _, def := range colDefs {
+		if def.Unique {
+			index := schema.NewIndex(def.Name.Name+"_unique", true, false, []schema.IndexPart{
+				schema.NewIndexPart(def.Name.Name, 1),
+			})
+			indexes = append(indexes, index)
+		}
+	}
+	return indexes, nil
+}
+
+func (a *algebrizer) translateCreateTable(ddl *parser.CreateTable) (*CreateTableCommand, error) {
+	if !a.cfg.isWriteMode {
+		return nil, fmt.Errorf("create table requires --writeMode")
+	}
+	colDefs, indexDefs := ddl.GetColumnAndIndexDefintions()
+	columns := getCreateTableColumns(colDefs)
+	colNames := make(map[string]struct{})
+	for _, col := range columns {
+		colNames[col.SQLName()] = struct{}{}
+	}
+	indexes, err := getCreateTableIndexes(colNames, indexDefs, colDefs)
+	if err != nil {
+		return nil, err
+	}
+	logger := log.NewComponentLogger(log.SchemaComponent, log.GlobalLogger())
+	comment := option.NoneString()
+	for _, opt := range ddl.TableOptions {
+		switch typedOpt := opt.(type) {
+		case parser.TableComment:
+			comment = option.SomeString(string(typedOpt))
+		}
+	}
+	table, err := schema.NewTable(logger,
+		ddl.Name.Name,
+		ddl.Name.Name,
+		nil,
+		columns,
+		indexes,
+		comment,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return NewCreateTableCommand(ddl.Name.Qualifier, table, ddl.IfNotExists), nil
 }
 
 func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCommand, error) {
@@ -921,7 +1026,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 			}
 
 			pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database,
-				pcs[0].Table, pcs[0].Name, pcs[0].EvalType, schema.MongoNone, false)
+				pcs[0].Table, pcs[0].Name, pcs[0].EvalType, schema.MongoNone, false, pcs[0].Column.Nullable)
 			plan = NewCountStage(mongoSource, pcs[0])
 			plan = NewProjectStage(plan, pcs[0])
 			return plan, nil
@@ -1132,6 +1237,7 @@ func (a *algebrizer) translateSelectExprs(
 				cb.SetComments("")
 				cb.SetIsPolymorphic(false)
 				cb.SetHasAlteredType(false)
+				cb.SetNullable(true)
 				c := cb.Build()
 				projectedColumn = &ProjectedColumn{
 					Expr:   translatedExpr,
@@ -2305,7 +2411,7 @@ func (a *algebrizer) translateFuncExpr(expr *parser.FuncExpr) (SQLExpr, error) {
 		// is a parent of this algebrizer, a.
 		correlated := a != current
 		col := NewSQLColumnExpr(current.selectID, getDatabaseName(aggExpr), "", aggExpr.String(),
-			aggExpr.EvalType(), schema.MongoNone, correlated)
+			aggExpr.EvalType(), schema.MongoNone, correlated, true)
 
 		var err error
 		if correlated {

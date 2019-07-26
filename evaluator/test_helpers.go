@@ -87,16 +87,23 @@ func (v *pipelineGatherer) visit(n Node) (Node, error) {
 func CreateProjectedColumnFromSQLExpr(selectID int,
 	columnName string,
 	expr SQLExpr) ProjectedColumn {
-	column := &results.Column{
-		SelectID: selectID,
-		Name:     columnName,
-		ColumnType: results.NewColumnType(
-			expr.EvalType(),
-			schema.MongoNone,
-		),
-	}
+	cb := results.NewColumnBuilder()
+	cb.SetColumnType(results.NewColumnType(expr.EvalType(), schema.MongoNone))
+	cb.SetSelectID(selectID)
+	cb.SetTable("")
+	cb.SetOriginalTable("")
+	cb.SetDatabase(getDatabaseName(expr))
+	cb.SetName(columnName)
+	cb.SetOriginalName("")
+	cb.SetMappingRegistryName("")
+	cb.SetMongoName("")
+	cb.SetPrimaryKey(false)
+	cb.SetComments("")
+	cb.SetIsPolymorphic(false)
+	cb.SetHasAlteredType(false)
+	cb.SetNullable(true)
+	column := cb.Build()
 
-	column.Database = getDatabaseName(expr)
 	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
 		column.MongoType = sqlColExpr.columnType.MongoType
 	}
@@ -246,7 +253,7 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 		return nil, err
 	}
 
-	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, catalog)
+	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, catalog, false)
 	actualPlan, err := AlgebrizeQuery(algebrizerCfg, rewritten)
 	if err != nil {
 		return nil, err

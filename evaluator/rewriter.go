@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 )
@@ -32,10 +33,33 @@ func NewRewriterConfig(connID uint64, dbName string, lg log.Logger, rewriteDisti
 	}
 }
 
-// RewriteQuery performs any syntactic rewrites. It will return an error,
+// RewriteQuery performs any syntactic rewrites for queries. It will return an error,
 // if one of the syntactic rewrites raises an error.
 func RewriteQuery(cfg *RewriterConfig, stmt parser.Statement) (parser.Statement, error) {
+	return rewriteCommon(cfg, stmt, option.NoneString())
+}
+
+// RewriteCommand performs any syntactic rewrites for commands. It will return an error,
+// if one of the syntactic rewrites raises an error.
+func RewriteCommand(cfg *RewriterConfig, stmt parser.Statement) (parser.Statement, error) {
 	oldStmtString := parser.String(stmt)
+
+	// Rewrite the command to remove syntactic sugar and simplify the resulting
+	// command plan.
+	stmt, err := parser.DesugarCommand(stmt)
+	if err != nil {
+		return nil, err
+	}
+
+	// Now apply rewrites that are specific to queries, but not commands (since commands may
+	// contain queries).
+	return rewriteCommon(cfg, stmt, option.SomeString(oldStmtString))
+}
+
+// rewriteCommon performs any syntactic rewrites shared by queries and commands. It will return an error,
+// if one of the syntactic rewrites raises an error.
+func rewriteCommon(cfg *RewriterConfig, stmt parser.Statement, originalStmt option.String) (parser.Statement, error) {
+	oldStmtString := originalStmt.Else(parser.String(stmt))
 
 	// Add explicit aliases for columns without them, so that the column headers
 	// don't get changed by any of the following rewrites.

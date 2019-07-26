@@ -78,7 +78,7 @@ func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
 func TestJoinPlanStage(t *testing.T) {
 
 	criteria := NewSQLEqualsExpr(
-		NewSQLColumnExpr(
+		testSQLColumnExpr(
 			1,
 			BSONSourceDB,
 			tableOneName,
@@ -87,7 +87,7 @@ func TestJoinPlanStage(t *testing.T) {
 			schema.MongoInt,
 			false,
 		),
-		NewSQLColumnExpr(
+		testSQLColumnExpr(
 			1,
 			BSONSourceDB,
 			tableTwoName,

@@ -1047,6 +1047,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					typedN.EvalType(),
 					schema.MongoNone,
 					false,
+					true,
 				),
 			}
 			newExpr = NewSQLAggregationFunctionExpr(typedN.Name(), false, exprs)
@@ -1113,9 +1114,9 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					NewSQLValueExpr(values.NewSQLNull(t.valueKind())),
 					newCaseCondition(
 						NewSQLColumnExpr(0, dbName, groupTempTable, countFieldName,
-							types.EvalInt64, schema.MongoNone, false),
+							types.EvalInt64, schema.MongoNone, false, true),
 						NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
-							typedN.EvalType(), schema.MongoNone, false),
+							typedN.EvalType(), schema.MongoNone, false, true),
 					),
 				)
 			} else {
@@ -1125,7 +1126,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					v.requiresTwoSteps = false
 				}
 				newExpr = NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
-					typedN.EvalType(), schema.MongoNone, false)
+					typedN.EvalType(), schema.MongoNone, false, true)
 			}
 		}
 
@@ -1140,7 +1141,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			fieldName := sanitizeFieldName(typedN.String())
 			dbName := getDatabaseName(typedN)
 			newExpr := NewSQLColumnExpr(0, dbName, groupTempTable, fieldName,
-				typedN.EvalType(), schema.MongoNone, false)
+				typedN.EvalType(), schema.MongoNone, false, true)
 			v.mappingRegistry.registerMapping(dbName, groupTempTable, fieldName, groupID+"."+keyName, false)
 			return newExpr, nil
 		}
@@ -2402,7 +2403,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 
 			newMappingRegistry := newMappingRegistry()
 			newColumn := results.NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",
-				types.EvalUint64, schema.MongoInt64, false)
+				types.EvalUint64, schema.MongoInt64, false, true)
 			if newMappingRegistry.registerMapping(newColumn.Database, newColumn.Table, newColumn.Name, newColumn.MappingRegistryName, false) {
 				newMappingRegistry.addColumn(newColumn)
 			}
@@ -2507,6 +2508,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				projectedColumn.EvalType,
 				projectedColumn.MongoType,
 				false,
+				projectedColumn.Column.Nullable,
 			)
 
 			fixedProjectedColumns = append(fixedProjectedColumns,

@@ -1,0 +1,6 @@
+testcases:
+  - db: mysql
+    description: dropping database foo should be illegal
+    expected_error: 'Error 1105: drop database requires --writeMode'
+    id: 'drop database foo'
+    sql: drop database foo;

@@ -65,7 +65,7 @@ func TestOrderByStage(t *testing.T) {
 		t.Run("single_key", func(t *testing.T) {
 			t.Run("asc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), true),
 				}
@@ -76,7 +76,7 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("desc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), false),
 				}
@@ -90,10 +90,10 @@ func TestOrderByStage(t *testing.T) {
 		t.Run("multiple_keys", func(t *testing.T) {
 			t.Run("asc_asc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), true),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), false),
 				}
@@ -105,10 +105,10 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("asc_desc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), true),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), false),
 				}
@@ -120,10 +120,10 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("desc_asc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), false),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), true),
 				}
@@ -135,10 +135,10 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("desc_desc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), false),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), false),
 				}
@@ -163,7 +163,7 @@ func TestOrderByStage(t *testing.T) {
 		t.Run("single_key", func(t *testing.T) {
 			t.Run("asc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), true),
 				}
@@ -175,7 +175,7 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("desc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), false),
 				}
@@ -189,10 +189,10 @@ func TestOrderByStage(t *testing.T) {
 		t.Run("multiple_keys", func(t *testing.T) {
 			t.Run("asc_asc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), true),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), true),
 				}
@@ -204,10 +204,10 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("asc_desc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), true),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), false),
 				}
@@ -219,10 +219,10 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("desc_asc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), false),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), true),
 				}
@@ -234,10 +234,10 @@ func TestOrderByStage(t *testing.T) {
 
 			t.Run("desc_desc", func(t *testing.T) {
 				terms := []*OrderByTerm{
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "a", EvalString,
 						schema.MongoString, false), false),
-					NewOrderByTerm(NewSQLColumnExpr(1,
+					NewOrderByTerm(testSQLColumnExpr(1,
 						BSONSourceDB, tableOneName, "b", EvalInt64,
 						schema.MongoInt, false), false),
 				}

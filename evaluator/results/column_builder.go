@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-var columnFieldIndexToColumnName = [13]string{
+var columnFieldIndexToColumnName = [14]string{
 	"ColumnType",
 	"SelectID",
 	"Table",
@@ -19,12 +19,13 @@ var columnFieldIndexToColumnName = [13]string{
 	"Comments",
 	"IsPolymorphic",
 	"HasAlteredType",
+	"Null",
 }
 
 // ColumnBuilder builds Column objects.
 type ColumnBuilder struct {
 	column    *Column
-	setFields [13]bool
+	setFields [14]bool
 }
 
 // NewColumnBuilder builds a new ColumnBuilder.
@@ -135,5 +136,12 @@ func (cb *ColumnBuilder) SetIsPolymorphic(isPolymorphic bool) *ColumnBuilder {
 func (cb *ColumnBuilder) SetHasAlteredType(hasAlteredType bool) *ColumnBuilder {
 	cb.column.HasAlteredType = hasAlteredType
 	cb.setFields[12] = true
+	return cb
+}
+
+// SetNullable sets the Null field for the Column in the ColumnBuilder
+func (cb *ColumnBuilder) SetNullable(nullable bool) *ColumnBuilder {
+	cb.column.Nullable = nullable
+	cb.setFields[13] = true
 	return cb
 }

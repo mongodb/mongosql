@@ -54,10 +54,32 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		if typedN.mongoSource.aliasNames[0] != typedN.mongoSource.tableNames[0] {
 			b.WriteString(fmt.Sprintf(" as '%v'", typedN.mongoSource.aliasNames[0]))
 		}
-	case *DropCommand:
-		b.WriteString(fmt.Sprintf("↳ DropCommand (%s)\n:", typedN.tableName))
+	case *DropTableCommand:
+		if typedN.ifExists {
+			b.WriteString(fmt.Sprintf("↳ DropTable if exists (%s)", typedN.tableName))
+		} else {
+			b.WriteString(fmt.Sprintf("↳ DropTable (%s)", typedN.tableName))
+		}
+	case *DropDatabaseCommand:
+		if typedN.ifExists {
+			b.WriteString(fmt.Sprintf("↳ DropDatabase if exists (%s)", typedN.dbName))
+		} else {
+			b.WriteString(fmt.Sprintf("↳ DropDatabase (%s)", typedN.dbName))
+		}
+	case *CreateTableCommand:
+		if typedN.ifNotExists {
+			b.WriteString(fmt.Sprintf("↳ CreateTable if not exists (%s)", typedN.table.SQLName()))
+		} else {
+			b.WriteString(fmt.Sprintf("↳ CreateTable (%s)", typedN.table.SQLName()))
+		}
+	case *CreateDatabaseCommand:
+		if typedN.ifNotExists {
+			b.WriteString(fmt.Sprintf("↳ CreateDatabase if not exists (%s)", typedN.dbName))
+		} else {
+			b.WriteString(fmt.Sprintf("↳ CreateDatabase (%s)", typedN.dbName))
+		}
 	case *DynamicSourceStage:
-		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s):", typedN.aliasName))
+		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s)", typedN.aliasName))
 	case *DualStage:
 		b.WriteString("↳ Dual")
 	case *EmptyStage:

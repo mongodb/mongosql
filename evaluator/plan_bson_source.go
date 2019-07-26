@@ -119,6 +119,7 @@ func (bs *BSONSourceStage) Columns() []*results.Column {
 			types.EvalPolymorphic,
 			schema.MongoNone,
 			false,
+			true,
 		)
 		columns[i] = column
 	}

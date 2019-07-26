@@ -1,0 +1,11 @@
+testcases:
+  - db: mysql
+    description: dropping table `#Tableau` should be legal in any BIC mode
+    id: 'drop #Tableau'
+    sql: drop table `#Tableau`
+
+  - db: mysql
+    description: dropping table `proc` should be illegal
+    expected_error: 'Error 1105: cannot drop table (proc)'
+    id: 'drop proc'
+    sql: drop table proc

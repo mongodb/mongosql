@@ -21,6 +21,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+func testSQLColumnExpr(selectID int,
+	databaseName, tableName, columnName string,
+	evalType types.EvalType,
+	mongoType schema.MongoType,
+	correlated bool) evaluator.SQLColumnExpr {
+	return evaluator.NewSQLColumnExpr(selectID, databaseName, tableName, columnName, evalType, mongoType, correlated, true)
+}
+
 type mockCmdHandler struct {
 	session *mongodb.Session
 }
@@ -57,7 +65,7 @@ func (*mockCmdHandler) SetScopeAuthorized(variable.Scope) error {
 }
 
 func createAlgebrizerCfg(dbName string, cat catalog.Catalog) *evaluator.AlgebrizerConfig {
-	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat)
+	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat, false)
 }
 
 func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sqlValueKind values.SQLValueKind) *evaluator.ExecutionConfig {
@@ -135,8 +143,9 @@ func createProjectedColumnFromColumn(
 			PrimaryKey: column.PrimaryKey,
 			Comments:   column.Comments,
 			MongoName:  column.MongoName,
+			Nullable:   column.Nullable,
 		},
-		Expr: evaluator.NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
+		Expr: testSQLColumnExpr(column.SelectID, column.Database, column.Table,
 			column.Name, column.EvalType, column.MongoType, correlated),
 	}
 }
@@ -160,7 +169,7 @@ func createSQLColumnExprFromSource(source evaluator.PlanStage, tableName, column
 			continue
 		}
 		if c.Table == tableName && c.Name == columnName {
-			return evaluator.NewSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.EvalType, c.MongoType, correlated)
+			return testSQLColumnExpr(c.SelectID, c.Database, c.Table, c.Name, c.EvalType, c.MongoType, correlated)
 		}
 	}
 
@@ -211,6 +220,7 @@ func unsetUnimportantFields(p evaluator.PlanStage) evaluator.PlanStage {
 			for _, projectedColumn := range typedN.ProjectedColumns() {
 				projectedColumn.Column.Comments = ""
 				projectedColumn.Column.MongoName = ""
+				projectedColumn.Column.Nullable = true
 			}
 		}
 		for i, child := range n.Children() {

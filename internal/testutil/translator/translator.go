@@ -81,7 +81,8 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 		return nil, "", err
 	}
 
-	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, catalog)
+	// For now, assume no --writeMode.
+	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, catalog, false)
 
 	naivePlan, err := evaluator.AlgebrizeQuery(algebrizerCfg, stmt)
 	if err != nil {

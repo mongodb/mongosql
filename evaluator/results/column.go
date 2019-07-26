@@ -30,12 +30,13 @@ type Column struct {
 	Comments            string
 	IsPolymorphic       bool
 	HasAlteredType      bool
+	Nullable            bool
 }
 
 // NewColumn is a constructor for the Column struct.
 func NewColumn(selectID int, table, originalTable, database, name,
 	originalName, mappingRegistryName string, evalType types.EvalType,
-	mongoType schema.MongoType, primaryKey bool) *Column {
+	mongoType schema.MongoType, primaryKey, nullable bool) *Column {
 	uuidSubType := types.EvalBinary
 	if mongoType == schema.MongoUUIDJava {
 		uuidSubType = types.EvalJavaUUID
@@ -56,6 +57,7 @@ func NewColumn(selectID int, table, originalTable, database, name,
 		OriginalName:        originalName,
 		MappingRegistryName: mappingRegistryName,
 		PrimaryKey:          primaryKey,
+		Nullable:            nullable,
 	}
 }
 
@@ -99,6 +101,7 @@ func (c *Column) Clone() *Column {
 	cb.SetComments(c.Comments)
 	cb.SetIsPolymorphic(c.IsPolymorphic)
 	cb.SetHasAlteredType(c.HasAlteredType)
+	cb.SetNullable(c.Nullable)
 	return cb.Build()
 }
 

@@ -67,6 +67,7 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string, collati
 		cb.SetComments(commentStr)
 		cb.SetIsPolymorphic(isPolymorphic)
 		cb.SetHasAlteredType(c.HasTypeAlteration())
+		cb.SetNullable(c.Nullable())
 		mc := cb.Build()
 		if isPrimaryKey {
 			primaryKeys = append(primaryKeys, mc)

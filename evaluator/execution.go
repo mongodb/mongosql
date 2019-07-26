@@ -36,7 +36,8 @@ func NewDefaultQueryConfig(mdbVersion, defaultDbName string, ctlg catalog.Catalo
 	lgr := log.GlobalLogger()
 	vars := ctlg.Variables()
 	rCfg := NewRewriterConfig(uint64(0), defaultDbName, lgr, false, getMySQLVersion(vars), "localhost", "user")
-	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg)
+	// Default config will be writeMode = false
+	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg, false)
 	eCfg := NewExecutionConfig(lgr, vars, nil, nil, defaultDbName)
 	oCfg := NewOptimizerConfig(lgr, vars)
 	pCfg := NewPushdownConfig(lgr, vars)
@@ -77,7 +78,10 @@ func ExecuteSQL(ctx context.Context, qCfg *QueryConfig, sql string) (*QueryResul
 		return EvaluateQuery(ctx, qCfg, v)
 	case *parser.Show:
 		return EvaluateShow(ctx, qCfg, v)
-	case *parser.AlterTable, *parser.DropTable, *parser.Flush, *parser.Kill, *parser.RenameTable, *parser.Set, *parser.Use:
+	case *parser.AlterTable, *parser.Flush, *parser.Kill,
+		*parser.RenameTable, *parser.Set, *parser.Use,
+		*parser.DropTable, *parser.DropDatabase,
+		*parser.CreateTable, *parser.CreateDatabase:
 		return EvaluateCommand(ctx, qCfg.rCfg, qCfg.aCfg, qCfg.eCfg, v)
 	case *parser.Explain:
 		switch strings.ToLower(v.Section) {

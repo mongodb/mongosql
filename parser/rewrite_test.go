@@ -9,10 +9,14 @@ import (
 )
 
 func TestRewrite(t *testing.T) {
+	// All of these tests call .Copy() on their inputs to give coverage for our
+	// Copy() implementations.
+	// These tests also test our output formatting.
 	t.Run("constant scalar functions", testRewriteConstantScalarFunctions)
 	t.Run("distinct", testRewriteDistinct)
+	t.Run("command", testRewriteCommand)
 	t.Run("namer", testNamer)
-	t.Run("desugar", testDesugar)
+	t.Run("query", testRewriteQuery)
 }
 
 func testRewriteConstantScalarFunctions(t *testing.T) {
@@ -139,7 +143,7 @@ func testRewriteConstantScalarFunctions(t *testing.T) {
 			tree, err := parser.Parse(tcase.query)
 			req.NoError(err)
 
-			newTree, err := parser.RewriteConstantScalarFunctions(tree, 42, "test_db_name", "test_version", "test_remoteHost", "test_user")
+			newTree, err := parser.RewriteConstantScalarFunctions(tree.Copy().(parser.Statement), 42, "test_db_name", "test_version", "test_remoteHost", "test_user")
 			req.NoError(err)
 			buf := parser.NewTrackedBuffer(nil)
 			newTree.Format(buf)
@@ -308,6 +312,98 @@ func testRewriteDistinct(t *testing.T) {
 	}
 }
 
+func testRewriteCommand(t *testing.T) {
+	tcases := []struct {
+		desc     string
+		command  string
+		expected string
+	}{
+		{
+			desc:     "rewrite bool types",
+			command:  "create table foo(a bool, b bit, c boolean)",
+			expected: "create table foo(a boolean, b boolean, c boolean)",
+		},
+		{
+			desc:     "rewrite date types",
+			command:  "create table foo(a datetime, b timestamp)",
+			expected: "create table foo(a timestamp, b timestamp)",
+		},
+		{
+			desc:     "rewrite int types",
+			command:  "create table foo(a tinyint, b smallint, c int, d integer, e bigint, f tinyint(1))",
+			expected: "create table foo(a int, b int, c int, d int, e int, f int(1))",
+		},
+		{
+			desc:     "rewrite char types",
+			command:  "create table foo(a tinytext, b text, c mediumtext, d longtext, e char, f varchar)",
+			expected: "create table foo(a varchar, b varchar, c varchar, d varchar, e varchar, f varchar)",
+		},
+		{
+			desc:     "rewrite float types",
+			command:  "create table foo(a double, b float)",
+			expected: "create table foo(a float, b float)",
+		},
+		{
+			desc:     "rewrite decimal types",
+			command:  "create table foo(a decimal)",
+			expected: "create table foo(a decimal)",
+		},
+		{
+			desc: "test full create table formatting",
+			command: `create table if not exists foo(
+			                           a int not null unique,
+			                           b int null unique comment 'hello',
+									   fulltext index idx(a, b),
+									   c int comment 'world',
+									   unique index(c)) comment = 'tbl!'`,
+			expected: "create table if not exists foo(a int not null unique, " +
+				"b int unique comment 'hello', fulltext index `idx`(a asc, b asc), " +
+				"c int comment 'world', unique index(c asc)) comment = 'tbl!'",
+		},
+		{
+			desc:     "test create database formatting",
+			command:  "create database if not exists foo",
+			expected: "create database if not exists `foo`",
+		},
+		{
+			desc:     "test drop database formatting",
+			command:  "drop database if exists foo",
+			expected: "drop database if exists `foo`",
+		},
+		{
+			desc:     "test drop table formatting",
+			command:  "drop table if exists foo",
+			expected: "drop table if exists foo",
+		},
+	}
+
+	for _, tcase := range tcases {
+		t.Run(tcase.desc, func(t *testing.T) {
+			req := require.New(t)
+
+			tree, err := parser.Parse(tcase.command)
+			req.NoError(err)
+
+			newTree, err := parser.DesugarCommand(tree.Copy().(parser.Statement))
+			req.Nil(err)
+			buf := parser.NewTrackedBuffer(nil)
+			newTree.Format(buf)
+			newTreeStr := buf.String()
+			req.Equal(tcase.expected, newTreeStr)
+		})
+	}
+
+	t.Run("test that bit(n) for n > 1 fails", func(t *testing.T) {
+		req := require.New(t)
+		tree, err := parser.Parse("create table foo(x bit(12))")
+		req.NoError(err)
+
+		_, err = parser.DesugarCommand(tree.Copy().(parser.Statement))
+		req.NotNil(err)
+		req.Equal("bit(n) for n > 1 is not allowed at this time, found n = 12", err.Error())
+	})
+}
+
 func testNamer(t *testing.T) {
 	tcases := []struct {
 		desc     string
@@ -357,7 +453,7 @@ func testNamer(t *testing.T) {
 	}
 }
 
-func testDesugar(t *testing.T) {
+func testRewriteQuery(t *testing.T) {
 	tcases := []struct {
 		desc     string
 		query    string
@@ -552,7 +648,7 @@ func testDesugar(t *testing.T) {
 			tree, err := parser.Parse(tcase.query)
 			req.NoError(err)
 
-			newTree, err := parser.DesugarQuery(tree)
+			newTree, err := parser.DesugarQuery(tree.Copy().(parser.Statement))
 			req.NoError(err)
 
 			buf := parser.NewTrackedBuffer(nil)

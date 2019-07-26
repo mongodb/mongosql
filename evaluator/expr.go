@@ -533,11 +533,12 @@ type SQLColumnExpr struct {
 	columnName   string
 	columnType   results.ColumnType
 	correlated   bool
+	nullable     bool
 }
 
 // NewSQLColumnExpr creates a new SQLColumnExpr with its required fields.
 // NewSQLColumnExpr is a constructor for SQLColumnExpr.
-func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, evalType types.EvalType, mongoType schema.MongoType, correlated bool) SQLColumnExpr {
+func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, evalType types.EvalType, mongoType schema.MongoType, correlated, nullable bool) SQLColumnExpr {
 	return SQLColumnExpr{
 		selectID:     selectID,
 		databaseName: databaseName,
@@ -559,6 +560,7 @@ func newSQLColumnExprFromColumn(c *results.Column) SQLColumnExpr {
 		c.EvalType,
 		c.MongoType,
 		false,
+		c.Nullable,
 	)
 }
 
@@ -2478,7 +2480,7 @@ func (e *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
 	for _, c := range e.plan.Columns() {
 		exprs = append(exprs, NewSQLColumnExpr(c.SelectID,
-			c.Database, c.Table, c.Name, c.EvalType, c.MongoType, false))
+			c.Database, c.Table, c.Name, c.EvalType, c.MongoType, false, c.Nullable))
 	}
 
 	return exprs

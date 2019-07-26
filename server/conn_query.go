@@ -198,7 +198,7 @@ func (c *conn) getRewriterConfig() *evaluator.RewriterConfig {
 
 func (c *conn) getAlgebrizerConfig() *evaluator.AlgebrizerConfig {
 	lg := c.Logger(log.AlgebrizerComponent)
-	return evaluator.NewAlgebrizerConfig(lg, c.DB(), c.catalog)
+	return evaluator.NewAlgebrizerConfig(lg, c.DB(), c.catalog, c.server.cfg.Schema.WriteMode)
 }
 
 func (c *conn) getOptimizerConfig() *evaluator.OptimizerConfig {

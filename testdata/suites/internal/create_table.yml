@@ -1,0 +1,6 @@
+testcases:
+  - db: mysql
+    description: create table `foo` should be illegal
+    expected_error: 'Error 1105: create table requires --writeMode'
+    id: 'create table foo'
+    sql: create table foo(x int);

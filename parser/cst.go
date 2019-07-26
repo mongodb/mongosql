@@ -590,7 +590,7 @@ func (node *CreateTable) Copy() CST {
 		newDefs[i] = def.Copy().(ColumnOrIndexDefinition)
 	}
 	newOptions := make([]TableOption, len(node.TableOptions))
-	for i, opt := range node.Definitions {
+	for i, opt := range node.TableOptions {
 		newOptions[i] = opt.Copy().(TableOption)
 	}
 	return &CreateTable{
@@ -680,8 +680,8 @@ func (node KeyPart) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node KeyPart) Copy() CST {
-	return &KeyPart{
-		Column:    node.Column,
+	return KeyPart{
+		Column:    node.Column.Copy().(*ColName),
 		Direction: node.Direction,
 	}
 }

@@ -148,13 +148,13 @@ func generateExplainColumns(dbName string) []*results.Column {
 				results.NewColumn(i, tableName,
 					tableName, dbName, colNames[i],
 					colNames[i], "", types.EvalInt64,
-					schema.MongoInt64, false))
+					schema.MongoInt64, false, true))
 		default:
 			columns = append(columns,
 				results.NewColumn(i, tableName,
 					tableName, dbName, colNames[i],
 					colNames[i], "", types.EvalString,
-					schema.MongoString, false))
+					schema.MongoString, false, true))
 		}
 	}
 

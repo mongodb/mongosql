@@ -64,7 +64,7 @@ func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 					EvalType:  EvalString,
 					MongoType: schema.MongoInt,
 				}, PrimaryKey: false},
-			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+			Expr: testSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
 				EvalString, schema.MongoString, false),
 		},
 		ProjectedColumn{
@@ -80,14 +80,14 @@ func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 				"sum",
 				false,
 				[]SQLExpr{
-					NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
+					testSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
 						EvalInt64, schema.MongoInt, false),
 				},
 			),
 		},
 	}
 
-	keys := []SQLExpr{NewSQLColumnExpr(1, BSONSourceDB,
+	keys := []SQLExpr{testSQLColumnExpr(1, BSONSourceDB,
 		tableOneName, "a", EvalString, schema.MongoString, false)}
 
 	runTest(projectedColumns, keys, data)
@@ -120,7 +120,7 @@ func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 	)
 
 	terms := []*OrderByTerm{
-		NewOrderByTerm(NewSQLColumnExpr(1, BSONSourceDB,
+		NewOrderByTerm(testSQLColumnExpr(1, BSONSourceDB,
 			tableOneName, "a", EvalString, schema.MongoString, false), true),
 	}
 
@@ -130,7 +130,7 @@ func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 func testJoinMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfig, st *ExecutionState) {
 
 	criteria := NewSQLEqualsExpr(
-		NewSQLColumnExpr(
+		testSQLColumnExpr(
 			1,
 			BSONSourceDB,
 			tableOneName,
@@ -139,7 +139,7 @@ func testJoinMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfi
 			schema.MongoInt,
 			false,
 		),
-		NewSQLColumnExpr(
+		testSQLColumnExpr(
 			1,
 			BSONSourceDB,
 			tableTwoName,
@@ -226,7 +226,7 @@ func TestMemoryMonitor(t *testing.T) {
 
 func testJoinMemoryMonitor(t *testing.T) {
 	criteria := NewSQLEqualsExpr(
-		NewSQLColumnExpr(
+		testSQLColumnExpr(
 			1,
 			BSONSourceDB,
 			tableOneName,
@@ -235,7 +235,7 @@ func testJoinMemoryMonitor(t *testing.T) {
 			schema.MongoInt,
 			false,
 		),
-		NewSQLColumnExpr(
+		testSQLColumnExpr(
 			1,
 			BSONSourceDB,
 			tableTwoName,
@@ -314,7 +314,7 @@ func testRowGeneratorMemoryMonitor(t *testing.T) {
 	bss := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
 
 	newColumn := NewColumn(0, "", "", "", "a", "", "a",
-		EvalUint64, schema.MongoInt64, false)
+		EvalUint64, schema.MongoInt64, false, true)
 
 	rg := NewRowGeneratorStage(bss, newColumn)
 
@@ -376,7 +376,7 @@ func testGroupByMemoryMonitor(t *testing.T) {
 					MongoType: schema.MongoString,
 				},
 				PrimaryKey: false},
-			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+			Expr: testSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
 				EvalString, schema.MongoString, false),
 		},
 		ProjectedColumn{
@@ -392,14 +392,14 @@ func testGroupByMemoryMonitor(t *testing.T) {
 				"sum",
 				false,
 				[]SQLExpr{
-					NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
+					testSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
 						EvalInt64, schema.MongoInt, false),
 				},
 			),
 		},
 	}
 
-	keys := []SQLExpr{NewSQLColumnExpr(1, BSONSourceDB,
+	keys := []SQLExpr{testSQLColumnExpr(1, BSONSourceDB,
 		tableOneName, "a", EvalString, schema.MongoString, false)}
 
 	bss := NewBSONSourceStage(1, tableOneName, collation.Default, rows)
@@ -452,7 +452,7 @@ func testLimitMemoryMonitor(t *testing.T) {
 		bss := NewBSONSourceStage(1, tableTwoName, collation.Default, rows)
 		os := NewOrderByStage(bss,
 			NewOrderByTerm(
-				NewSQLColumnExpr(
+				testSQLColumnExpr(
 					1,
 					BSONSourceDB,
 					tableTwoName,
@@ -520,7 +520,7 @@ func testProjectMemoryMonitor(t *testing.T) {
 				EvalType: EvalInt64, MongoType: schema.MongoInt,
 			},
 			PrimaryKey: false},
-		Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+		Expr: testSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
 			EvalInt64, schema.MongoInt, false),
 	})
 

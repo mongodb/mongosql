@@ -68,7 +68,7 @@ func TestGroupByPlanStage(t *testing.T) {
 					MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},
-			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+			Expr: testSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
 				EvalString, schema.MongoString, false),
 		},
 		ProjectedColumn{
@@ -84,14 +84,14 @@ func TestGroupByPlanStage(t *testing.T) {
 				"sum",
 				false,
 				[]SQLExpr{
-					NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
+					testSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
 						EvalInt64, schema.MongoInt, false),
 				},
 			),
 		},
 	}
 
-	keys := []SQLExpr{NewSQLColumnExpr(1, BSONSourceDB,
+	keys := []SQLExpr{testSQLColumnExpr(1, BSONSourceDB,
 		tableOneName, "a", EvalString, schema.MongoString, false)}
 
 	expected := []RowValues{

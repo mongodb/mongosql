@@ -79,7 +79,7 @@ func TestProjectStage(t *testing.T) {
 					EvalType: EvalInt64, MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},
-			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
+			Expr: testSQLColumnExpr(1, BSONSourceDB, tableOneName, "a",
 				EvalInt64, schema.MongoInt, false),
 		},
 		ProjectedColumn{
@@ -90,7 +90,7 @@ func TestProjectStage(t *testing.T) {
 					EvalType: EvalInt64, MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},
-			Expr: NewSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
+			Expr: testSQLColumnExpr(1, BSONSourceDB, tableOneName, "b",
 				EvalInt64, schema.MongoInt, false),
 		},
 	}

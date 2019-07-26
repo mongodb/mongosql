@@ -2577,7 +2577,7 @@ func TestEvaluates(t *testing.T) {
 		t.Run("sqlcolumnexpr", func(t *testing.T) {
 			t.Run("should return the value of the field when it exists", func(t *testing.T) {
 				req := require.New(t)
-				subject := NewSQLColumnExpr(1,
+				subject := testSQLColumnExpr(1,
 					"test",
 					"bar",
 					"a",
@@ -2596,7 +2596,7 @@ func TestEvaluates(t *testing.T) {
 
 			t.Run("should return nil when the field is null", func(t *testing.T) {
 				req := require.New(t)
-				subject := NewSQLColumnExpr(1,
+				subject := testSQLColumnExpr(1,
 					"test",
 					"bar",
 					"c",
@@ -2611,7 +2611,7 @@ func TestEvaluates(t *testing.T) {
 
 			t.Run("should panic when the field doesn't exists", func(t *testing.T) {
 				req := require.New(t)
-				subject := NewSQLColumnExpr(1,
+				subject := testSQLColumnExpr(1,
 					"test",
 					"bar",
 					"no_existy",

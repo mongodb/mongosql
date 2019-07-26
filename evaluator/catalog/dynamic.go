@@ -105,6 +105,7 @@ func (t *DynamicTable) AddColumn(tableName, name string, evalType types.EvalType
 	cb.SetComments("")
 	cb.SetIsPolymorphic(false)
 	cb.SetHasAlteredType(false)
+	cb.SetNullable(true)
 	c := cb.Build()
 	t.currSelectID++
 

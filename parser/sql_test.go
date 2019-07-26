@@ -28,7 +28,7 @@ func testParse(t *testing.T, sql string) parser.Statement {
 	if err != nil {
 		t.Fatalf("sql: %s err: %s", sql, err)
 	}
-	result, err := parser.Walk(idPass{}, stmt)
+	result, err := parser.Walk(idPass{}, stmt.Copy().(parser.Statement))
 	if err != nil {
 		t.Fatalf("failed to Walk CST with error: %s", err)
 	}

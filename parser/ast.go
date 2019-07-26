@@ -286,6 +286,7 @@ func (node *CreateTable) Format(buf *TrackedBuffer) {
 		buf.Fprintf("if not exists ")
 	}
 	node.Name.Format(buf)
+	buf.Fprintf("(")
 	node.Definitions[0].Format(buf)
 	if len(node.Definitions) > 1 {
 		for _, def := range node.Definitions[1:] {
@@ -293,10 +294,11 @@ func (node *CreateTable) Format(buf *TrackedBuffer) {
 			def.Format(buf)
 		}
 	}
+	buf.Fprintf(")")
 	for _, opt := range node.TableOptions {
 		switch typedO := opt.(type) {
 		case TableComment:
-			buf.Fprintf(" COMMENT = '%s'", string(typedO))
+			buf.Fprintf(" comment = '%s'", string(typedO))
 		default:
 		}
 	}
@@ -320,15 +322,16 @@ func (*ColumnDefinition) IColumnOrIndexDefinition() {}
 
 func (c *ColumnDefinition) Format(buf *TrackedBuffer) {
 	c.Name.Format(buf)
+	buf.Fprintf(" ")
 	c.Type.Format(buf)
 	if !c.Null {
-		buf.Fprintf("NOT NULL ")
+		buf.Fprintf(" not null")
 	}
 	if c.Unique {
-		buf.Fprintf("UNIQUE ")
+		buf.Fprintf(" unique")
 	}
 	if c.Comment.IsSome() {
-		buf.Fprintf("COMMENT '%s', ", c.Comment.Unwrap())
+		buf.Fprintf(" comment '%s'", c.Comment.Unwrap())
 	}
 }
 
@@ -343,23 +346,32 @@ func (*IndexDefinition) IColumnOrIndexDefinition() {}
 
 func (i *IndexDefinition) Format(buf *TrackedBuffer) {
 	if i.FullText {
-		buf.Fprintf("FULLTEXT ")
+		buf.Fprintf("fulltext ")
 	}
 	if i.Unique {
-		buf.Fprintf("UNIQUE ")
+		buf.Fprintf("unique ")
 	}
-	buf.Fprintf("INDEX ")
 	if i.Name.IsSome() {
-		buf.Fprintf("%s", i.Name.Unwrap())
+		buf.Fprintf("index `%s`", i.Name.Unwrap())
+	} else {
+		buf.Fprintf("index")
 	}
 	buf.Fprintf("(")
-	for _, part := range i.KeyParts {
-		part.Column.Format(buf)
-		buf.Fprintf(" ")
-		if part.Direction == 1 {
-			buf.Fprintf("ASC")
-		} else {
-			buf.Fprintf("DESC")
+	if len(i.KeyParts) >= 1 {
+		part := i.KeyParts[0]
+		formatIndex := func() {
+			part.Column.Format(buf)
+			buf.Fprintf(" ")
+			if part.Direction == 1 {
+				buf.Fprintf("asc")
+			} else {
+				buf.Fprintf("desc")
+			}
+		}
+		formatIndex()
+		for _, part = range i.KeyParts[1:] {
+			buf.Fprintf(", ")
+			formatIndex()
 		}
 	}
 	buf.Fprintf(")")
@@ -374,7 +386,7 @@ func (c ColumnType) Format(buf *TrackedBuffer) {
 	buf.Fprintf(c.BaseType)
 	if c.Width.IsSome() {
 		w := strconv.Itoa(c.Width.Unwrap())
-		buf.Fprintf("(%s) ", w)
+		buf.Fprintf("(%s)", w)
 	}
 }
 

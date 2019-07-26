@@ -75,7 +75,7 @@ func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *Algebrizer
 
 	parsedStmt := stmt.Copy().(parser.Statement)
 
-	rewritten, err := RewriteQuery(rCfg, stmt)
+	rewritten, err := RewriteCommand(rCfg, stmt)
 	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
 	}

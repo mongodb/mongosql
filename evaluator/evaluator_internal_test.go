@@ -636,8 +636,8 @@ func TestEvaluateComparison(t *testing.T) {
 func TestValidateArgs(t *testing.T) {
 	intOne := NewSQLValueExpr(values.NewSQLInt64(values.MongoSQLValueKind, 1))
 	strOne := NewSQLValueExpr(values.NewSQLVarchar(values.MongoSQLValueKind, "1"))
-	intCol := results.NewColumn(1, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false)
-	strCol := results.NewColumn(1, "", "", "", "", "", "", types.EvalString, schema.MongoString, false)
+	intCol := results.NewColumn(1, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false, true)
+	strCol := results.NewColumn(1, "", "", "", "", "", "", types.EvalString, schema.MongoString, false, true)
 
 	tests := []struct {
 		name        string
@@ -760,7 +760,7 @@ func TestReconcile(t *testing.T) {
 	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
 	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
 
-	boolColVal := NewSQLColumnExpr(0, "", "", "", types.EvalBoolean, schema.MongoBool, false)
+	boolColVal := NewSQLColumnExpr(0, "", "", "", types.EvalBoolean, schema.MongoBool, false, true)
 
 	allVals := []SQLExpr{intVal, uintVal, floatVal, decimalVal, boolVal, strVal, dateVal, datetimeVal}
 	allTypes := []types.EvalType{types.EvalInt64, types.EvalUint64, types.EvalDouble, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime}
@@ -2120,14 +2120,14 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
 	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
 
-	intCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false)
-	uintCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalUint64, schema.MongoInt, false)
-	floatCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDouble, schema.MongoInt, false)
-	decimalCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDecimal128, schema.MongoInt, false)
-	boolCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalBoolean, schema.MongoInt, false)
-	strCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalString, schema.MongoInt, false)
-	dateCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDate, schema.MongoInt, false)
-	datetimeCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDatetime, schema.MongoInt, false)
+	intCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false, true)
+	uintCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalUint64, schema.MongoInt, false, true)
+	floatCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDouble, schema.MongoInt, false, true)
+	decimalCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDecimal128, schema.MongoInt, false, true)
+	boolCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalBoolean, schema.MongoInt, false, true)
+	strCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalString, schema.MongoInt, false, true)
+	dateCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDate, schema.MongoInt, false, true)
+	datetimeCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDatetime, schema.MongoInt, false, true)
 
 	intPC := ProjectedColumn{intCol, intVal}
 	uintPC := ProjectedColumn{uintCol, uintVal}
