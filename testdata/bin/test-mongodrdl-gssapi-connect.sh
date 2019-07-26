@@ -4,6 +4,7 @@
 . "$(dirname $0)/prepare-shell.sh"
 
 (
+    set +o errexit
 
     echo "running drdl gssapi test"
     output=$($ARTIFACTS_DIR/bin/mongodrdl $DRDL_ARGS -o $ARTIFACTS_DIR/out/gssapi.drdl 2>&1)
