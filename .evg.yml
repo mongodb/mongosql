@@ -2128,7 +2128,7 @@ buildvariants:
   run_on:
   - rhel70
   tasks:
-    - ".test !.gssapi !.oneoff-task !module-tests"
+    - ".test !.gssapi !.oneoff-task !module-tests !blackbox-nopushdown !blackbox"
 
 - name: dependencies
   display_name: Inter-project Dependencies

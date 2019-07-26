@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2094: No user-facing changes.
 BI-2287: No user-facing changes.
 BI-2241: No user-facing changes.
 BI-2262: Fixed a bug that caused a pipeline parser error for unwind paths with numeric field names.
