@@ -1139,11 +1139,6 @@ func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, 
 		return nil, innerSubqueryPushdownFailure(e)
 	}
 
-	err := t.addSubqueryLookupStage(subPlanMs)
-	if err != nil {
-		return nil, wrapExprErrWithPushdownFailure(e, err)
-	}
-
 	// We don't actually care _which_ column we get, because since this is the
 	// relational world, if there is N values for the first column, there will
 	// also be N values for second, third and so on.  So the first column
@@ -1153,9 +1148,14 @@ func (e *SQLExistsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, 
 		return nil, wrapExprErrWithPushdownFailure(e, err)
 	}
 
-	return ast.NewBinary(bsonutil.OpNeq,
-		astutil.ZeroInt32Literal,
+	err = t.addExistsSubqueryLookupStage(subPlanMs)
+	if err != nil {
+		return nil, wrapExprErrWithPushdownFailure(e, err)
+	}
+
+	return ast.NewBinary(bsonutil.OpGt,
 		ast.NewFunction(bsonutil.OpSize, ref),
+		astutil.ZeroInt32Literal,
 	), nil
 }
 

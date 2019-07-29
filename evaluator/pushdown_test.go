@@ -419,6 +419,8 @@ func TestPushdownPlan(t *testing.T) {
 		{"exists_true_with_anded_predicate", "select a from foo where EXISTS (select a from bar) and MOD(a, 2) = 0"},
 		{"complex_exists_with_join_inside_subquery_anded_with_predicate", "select a from foo where EXISTS (select bar.a from bar JOIN baz ON bar.b = baz.b) AND MOD(a, 2) = 0"},
 		{"complex_exists_with_join_in_subquery_anded_with_predicate_false", "select a from foo where EXISTS (select bar.a from bar JOIN baz ON bar.b = baz.b and bar.a = 3423423) AND MOD(a, 2) = 0"},
+		{"exists_in_select", "select a, EXISTS (select a from bar) from foo"},
+		{"exists_in_case", "select a, case when EXISTS (select a from bar) then 4 else 5 end from foo"},
 		{"simple_not_in", "select a from foo where a not in (select a from bar)"},
 		{"not_in_with_anded_predicate", "select a from foo where a not in (select a from bar) AND a > 11"},
 		{"not_in_inside_having_clause_with_order_by", "select sum(a) as sum_a from bar having sum_a not in (select a from foo) order by sum_a"},

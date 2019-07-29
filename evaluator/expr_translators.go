@@ -158,6 +158,37 @@ func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldRef FieldRefLookup) *
 	}
 }
 
+func (t *PushdownTranslator) addExistsSubqueryLookupStage(subPlanMs *MongoSourceStage) error {
+	// cannot use expressive lookup before 3.6
+	if !t.versionAtLeast(3, 6, 0) {
+		return fmt.Errorf("cannot push down subquery exists stage to " +
+			"expressive lookup: expressive lookup not available")
+	}
+
+	collName := subPlanMs.Collection()
+	if subPlanMs.isShardedCollection[collName] {
+		return fmt.Errorf("cannot use expressive $lookup on a sharded collection")
+	}
+
+	// add limit stage to end of subquery pipeline because we only care if there's
+	// at least one document, and this way we don't need to lookup the whole table
+	// into the result
+	clonedPipeline := astutil.DeepCopyPipeline(subPlanMs.pipeline)
+	newStages := append(clonedPipeline.Stages, ast.NewLimitStage(1))
+	newPipeline := ast.NewPipeline(newStages...)
+
+	lookup := ast.NewLookupStage(
+		collName, nil, "",
+		getSubqueryLookupField(collName, subPlanMs.selectIDs),
+		[]*ast.LookupLetItem{},
+		newPipeline,
+	)
+
+	t.subqueryLookupStages = append(t.subqueryLookupStages, lookup)
+
+	return nil
+}
+
 func (t *PushdownTranslator) addSubqueryLookupStage(subPlanMs *MongoSourceStage) error {
 	// cannot use expressive lookup before 3.6
 	if !t.versionAtLeast(3, 6, 0) {

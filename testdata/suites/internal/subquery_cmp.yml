@@ -813,3 +813,65 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) from test group by (98 in (select a from test10));"
+  - db: subquery_cmp_pushdown_test
+    description: "EXISTS with null values"
+    expected_names: ["a"]
+    expected_results:
+      - [0]
+      - [1]
+      - [2]
+      - [98]
+      - [80]
+      - [11]
+      - [NULL]
+      - [607]
+      - [NULL]
+    expected_types: [int]
+    id: '68'
+    schema_mapping_heuristics:
+      - drdl
+    sql: "select a from test where EXISTS (select a from three);"
+  - db: subquery_cmp_pushdown_test
+    description: "EXISTS with empty result"
+    expected_names: ["a"]
+    expected_types: [int]
+    id: '69'
+    schema_mapping_heuristics:
+      - drdl
+    sql: "select a from test where EXISTS (select a from test10 where a = 2);"
+  - db: subquery_cmp_pushdown_test
+    description: "EXISTS in select"
+    expected_names: ["a", "b"]
+    expected_results:
+      - [0, 1]
+      - [1, 1]
+      - [2, 1]
+      - [98, 1]
+      - [80, 1]
+      - [11, 1]
+      - [NULL, 1]
+      - [607, 1]
+      - [NULL, 1]
+    expected_types: [int, int]
+    id: '70'
+    schema_mapping_heuristics:
+      - drdl
+    sql: "select a, EXISTS (select a from test10) as b from test;"
+  - db: subquery_cmp_pushdown_test
+    description: "EXISTS in case"
+    expected_names: ["a", "b"]
+    expected_results:
+      - [0, 4]
+      - [1, 4]
+      - [2, 4]
+      - [98, 4]
+      - [80, 4]
+      - [11, 4]
+      - [NULL, 4]
+      - [607, 4]
+      - [NULL, 4]
+    expected_types: [int, int]
+    id: '71'
+    schema_mapping_heuristics:
+      - drdl
+    sql: "select a, (case when EXISTS (select a from test10) then 4 else 5 end) as b from test;"
