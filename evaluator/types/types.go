@@ -77,6 +77,12 @@ const (
 	EvalCSharpUUID EvalType = 0xF8
 	// ArrNumeric is for specially handling legacy 2d arrays.
 	EvalArrNumeric EvalType = 0xF6
+	// EvalNumber does not map to an actual data type value. Therefore,
+	// no concrete values can actually have type EvalNumber. We simply use this
+	// internally as an expected argument type or a return type for certain
+	// scalar functions that can accept any numeric argument or could return
+	// any numeric type.
+	EvalNumber EvalType = 0xF7
 )
 
 // EvalTyper defines an interface that has an EvalType method.
@@ -94,6 +100,7 @@ var evalNumericTypes = map[EvalType]struct{}{
 	EvalUint32:     {},
 	EvalUint64:     {},
 	EvalArrNumeric: {},
+	EvalNumber:     {},
 }
 
 // IsNumeric returns true if this type is numeric, otherwise

@@ -912,14 +912,14 @@ func TestReconcile(t *testing.T) {
 		{"add(date,bool)", NewSQLAddExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"add(date,str)", NewSQLAddExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"add(date,date)", NewSQLAddExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(date,datetime)", NewSQLAddExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"add(date,datetime)", NewSQLAddExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
 		{"add(datetime,int)", NewSQLAddExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"add(datetime,uint)", NewSQLAddExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
 		{"add(datetime,float)", NewSQLAddExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
 		{"add(datetime,decimal)", NewSQLAddExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"add(datetime,bool)", NewSQLAddExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"add(datetime,str)", NewSQLAddExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(datetime,date)", NewSQLAddExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"add(datetime,date)", NewSQLAddExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"add(datetime,datetime)", NewSQLAddExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 
 		// divide.
@@ -978,14 +978,14 @@ func TestReconcile(t *testing.T) {
 		{"div(date,bool)", NewSQLDivideExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"div(date,str)", NewSQLDivideExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"div(date,date)", NewSQLDivideExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(date,datetime)", NewSQLDivideExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"div(date,datetime)", NewSQLDivideExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
 		{"div(datetime,int)", NewSQLDivideExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"div(datetime,uint)", NewSQLDivideExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
 		{"div(datetime,float)", NewSQLDivideExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
 		{"div(datetime,decimal)", NewSQLDivideExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"div(datetime,bool)", NewSQLDivideExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"div(datetime,str)", NewSQLDivideExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(datetime,date)", NewSQLDivideExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"div(datetime,date)", NewSQLDivideExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"div(datetime,datetime)", NewSQLDivideExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 
 		// idivide.
@@ -1044,14 +1044,14 @@ func TestReconcile(t *testing.T) {
 		{"idiv(date,bool)", NewSQLIDivideExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"idiv(date,str)", NewSQLIDivideExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"idiv(date,date)", NewSQLIDivideExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(date,datetime)", NewSQLIDivideExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"idiv(date,datetime)", NewSQLIDivideExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
 		{"idiv(datetime,int)", NewSQLIDivideExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"idiv(datetime,uint)", NewSQLIDivideExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
 		{"idiv(datetime,float)", NewSQLIDivideExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
 		{"idiv(datetime,decimal)", NewSQLIDivideExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"idiv(datetime,bool)", NewSQLIDivideExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"idiv(datetime,str)", NewSQLIDivideExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(datetime,date)", NewSQLIDivideExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"idiv(datetime,date)", NewSQLIDivideExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"idiv(datetime,datetime)", NewSQLIDivideExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 
 		// mod.
@@ -1110,14 +1110,14 @@ func TestReconcile(t *testing.T) {
 		{"mod(date,bool)", NewSQLModExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"mod(date,str)", NewSQLModExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"mod(date,date)", NewSQLModExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(date,datetime)", NewSQLModExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"mod(date,datetime)", NewSQLModExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
 		{"mod(datetime,int)", NewSQLModExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"mod(datetime,uint)", NewSQLModExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
 		{"mod(datetime,float)", NewSQLModExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
 		{"mod(datetime,decimal)", NewSQLModExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"mod(datetime,bool)", NewSQLModExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"mod(datetime,str)", NewSQLModExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(datetime,date)", NewSQLModExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"mod(datetime,date)", NewSQLModExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"mod(datetime,datetime)", NewSQLModExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 
 		// multiply.
@@ -1176,14 +1176,14 @@ func TestReconcile(t *testing.T) {
 		{"mult(date,bool)", NewSQLMultiplyExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"mult(date,str)", NewSQLMultiplyExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"mult(date,date)", NewSQLMultiplyExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(date,datetime)", NewSQLMultiplyExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"mult(date,datetime)", NewSQLMultiplyExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
 		{"mult(datetime,int)", NewSQLMultiplyExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"mult(datetime,uint)", NewSQLMultiplyExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
 		{"mult(datetime,float)", NewSQLMultiplyExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
 		{"mult(datetime,decimal)", NewSQLMultiplyExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"mult(datetime,bool)", NewSQLMultiplyExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"mult(datetime,str)", NewSQLMultiplyExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(datetime,date)", NewSQLMultiplyExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"mult(datetime,date)", NewSQLMultiplyExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"mult(datetime,datetime)", NewSQLMultiplyExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 
 		// subtract.
@@ -1242,14 +1242,14 @@ func TestReconcile(t *testing.T) {
 		{"sub(date,bool)", NewSQLSubtractExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"sub(date,str)", NewSQLSubtractExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"sub(date,date)", NewSQLSubtractExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(date,datetime)", NewSQLSubtractExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sub(date,datetime)", NewSQLSubtractExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
 		{"sub(datetime,int)", NewSQLSubtractExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"sub(datetime,uint)", NewSQLSubtractExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
 		{"sub(datetime,float)", NewSQLSubtractExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
 		{"sub(datetime,decimal)", NewSQLSubtractExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"sub(datetime,bool)", NewSQLSubtractExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 		{"sub(datetime,str)", NewSQLSubtractExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(datetime,date)", NewSQLSubtractExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sub(datetime,date)", NewSQLSubtractExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
 		{"sub(datetime,datetime)", NewSQLSubtractExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 
 		// logical expressions: do not convert boolean comparable types
@@ -2637,19 +2637,19 @@ func TestConvertExprs(t *testing.T) {
 		// target other type => convert (unconditionally)
 		{
 			"convertExprs(int)", makeValSlice(intVal), allTypes,
-			[]types.EvalType{types.EvalInt64, types.EvalInt64, types.EvalInt64, types.EvalInt64, types.EvalInt64, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
+			[]types.EvalType{types.EvalInt64, types.EvalInt64, types.EvalUint64, types.EvalDouble, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
 		},
 		{
 			"convertExprs(uint)", makeValSlice(uintVal), allTypes,
-			[]types.EvalType{types.EvalUint64, types.EvalUint64, types.EvalUint64, types.EvalUint64, types.EvalUint64, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
+			[]types.EvalType{types.EvalUint64, types.EvalInt64, types.EvalUint64, types.EvalDouble, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
 		},
 		{
 			"convertExprs(float)", makeValSlice(floatVal), allTypes,
-			[]types.EvalType{types.EvalDouble, types.EvalDouble, types.EvalDouble, types.EvalDouble, types.EvalDouble, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
+			[]types.EvalType{types.EvalDouble, types.EvalInt64, types.EvalUint64, types.EvalDouble, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
 		},
 		{
 			"convertExprs(decimal)", makeValSlice(decimalVal), allTypes,
-			[]types.EvalType{types.EvalDecimal128, types.EvalDecimal128, types.EvalDecimal128, types.EvalDecimal128, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
+			[]types.EvalType{types.EvalDecimal128, types.EvalInt64, types.EvalUint64, types.EvalDouble, types.EvalDecimal128, types.EvalBoolean, types.EvalString, types.EvalDate, types.EvalDatetime},
 		},
 		{
 			"convertExprs(bool)", makeValSlice(boolVal), allTypes,

@@ -223,6 +223,9 @@ func fuzzyFloatEquals(expected, actual float64) error {
 	// prec 0 exepected values that end up being something lke 73.99999
 	// and the code outputs 74, giving us an off by one error when there
 	// is no real error. This will be cleaned up in BI-1743.
+	if math.Abs(actual-expected) < 9.9*math.Pow(10, -9) {
+		return nil
+	}
 	if prec <= 0 && math.Abs(actual-expected) > 1 {
 		return fmt.Errorf("expected %v, got %v with precision %d", expected, actual, prec)
 	}

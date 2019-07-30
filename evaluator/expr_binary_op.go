@@ -12,8 +12,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 
-	"github.com/shopspring/decimal"
-
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
@@ -21,31 +19,69 @@ type sqlBinaryNode struct {
 	left, right SQLExpr
 }
 
+// reconcileArithmetic is responsible for type reconciliation for all
+// arithmetic binary operators ($add, $multiply, $subtract, $divide, $mod, etc.).
+// The default conversion for an argument of type EvalDatetime is EvalDecimal128, while the
+// default conversion for an argument of type EvalDate is EvalInt64. If either side is
+// neither of those types AND isn't numeric, we try to reconcile it with the other type.
+// If that still results in a non-numeric type, we default to EvalDouble.
 func (bn sqlBinaryNode) reconcileArithmetic() sqlBinaryNode {
-	kind := values.MongoSQLValueKind
-
 	left := bn.left
 	right := bn.right
 
-	if left.EvalType() == types.EvalDatetime || right.EvalType() == types.EvalDatetime {
-		// Arithmetic with Timestamps should treat them as floating points due to fractional seconds.
-		left, _ = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))))
-		_, right = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLDecimal128(kind, decimal.NewFromFloat(0.0))), right)
+	// If the child is of type EvalDatetime, it is reconciled to
+	// EvalDecimal128. If the child is of type EvalDate, it is reconciled
+	// to EvalInt64.
+	dateReconcileChild := func(child SQLExpr) SQLExpr {
+		switch child.EvalType() {
+		case types.EvalDatetime:
+			return NewSQLConvertExpr(child, types.EvalDecimal128)
+		case types.EvalDate:
+			return NewSQLConvertExpr(child, types.EvalInt64)
+		default:
+			return child
+		}
+	}
 
-	} else if left.EvalType() == types.EvalDate || right.EvalType() == types.EvalDate {
-		// Arithmetic with Dates should treat them as integers.
-		left, _ = ReconcileSQLExprs(left, NewSQLValueExpr(values.NewSQLInt64(kind, 0)))
-		_, right = ReconcileSQLExprs(NewSQLValueExpr(values.NewSQLInt64(kind, 0)), right)
+	left = dateReconcileChild(left)
+	right = dateReconcileChild(right)
 
-	} else {
-		// otherwise, reconcile left and right side with each other
+	leftType := left.EvalType()
+	rightType := right.EvalType()
+
+	// If both arguments are numeric, we are done with reconciliation.
+	// If one argument is numeric, we can safely use ReconcileSQLExprs to convert
+	// the non-numeric argument to the numeric argument's type.
+	// If neither argument is numeric, we convert both to EvalDouble.
+
+	switch {
+	case leftType.IsNumeric() && rightType.IsNumeric(): // do nothing
+	case leftType.IsNumeric() || rightType.IsNumeric():
+		left, right = ReconcileSQLExprs(left, right)
+	default:
+		left = NewSQLConvertExpr(left, types.EvalDouble)
+		right = NewSQLConvertExpr(right, types.EvalDouble)
+	}
+
+	return sqlBinaryNode{left, right}
+}
+
+// reconcileComparison behaves much as reconcileArithmetic does by checking to see if both arguments are numeric. If so, then there is no
+// need for conversion. Otherwise, ReconcileSQLExprs is called to reconcile the two types based on the mySQL hierarchy.
+func (bn sqlBinaryNode) reconcileComparison() sqlBinaryNode {
+	left := bn.left
+	right := bn.right
+
+	leftType := left.EvalType()
+	rightType := right.EvalType()
+
+	// If both arguments are numeric, there is no need for
+	// type reconciliation for comparison operators.
+	if !(leftType.IsNumeric() && rightType.IsNumeric()) {
 		left, right = ReconcileSQLExprs(left, right)
 	}
 
-	// now convert them all to doubles
-	reconciled := convertAllExprs([]SQLExpr{left, right}, types.EvalDouble)
-
-	return sqlBinaryNode{reconciled[0], reconciled[1]}
+	return sqlBinaryNode{left, right}
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -795,7 +831,7 @@ func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
 	}
 
 	if !reconciled {
-		left, right = ReconcileSQLExprs(eq.left, eq.right)
+		return &SQLEqualsExpr{eq.reconcileComparison()}, nil
 	}
 
 	return NewSQLEqualsExpr(left, right), nil
@@ -878,8 +914,7 @@ func (gt *SQLGreaterThanExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, erro
 
 // nolint: unparam
 func (gt *SQLGreaterThanExpr) reconcile() (SQLExpr, error) {
-	left, right := ReconcileSQLExprs(gt.left, gt.right)
-	return NewSQLGreaterThanExpr(left, right), nil
+	return &SQLGreaterThanExpr{gt.reconcileComparison()}, nil
 }
 
 func (gt *SQLGreaterThanExpr) String() string {
@@ -992,8 +1027,7 @@ func (gte *SQLGreaterThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) (SQLEx
 
 // nolint: unparam
 func (gte *SQLGreaterThanOrEqualExpr) reconcile() (SQLExpr, error) {
-	left, right := ReconcileSQLExprs(gte.left, gte.right)
-	return NewSQLGreaterThanOrEqualExpr(left, right), nil
+	return &SQLGreaterThanOrEqualExpr{gte.reconcileComparison()}, nil
 }
 
 func (gte *SQLGreaterThanOrEqualExpr) String() string {
@@ -1406,8 +1440,7 @@ func (lt *SQLLessThanExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 
 // nolint: unparam
 func (lt *SQLLessThanExpr) reconcile() (SQLExpr, error) {
-	left, right := ReconcileSQLExprs(lt.left, lt.right)
-	return NewSQLLessThanExpr(left, right), nil
+	return &SQLLessThanExpr{lt.reconcileComparison()}, nil
 }
 
 func (lt *SQLLessThanExpr) String() string {
@@ -1521,8 +1554,7 @@ func (lte *SQLLessThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr,
 
 // nolint: unparam
 func (lte *SQLLessThanOrEqualExpr) reconcile() (SQLExpr, error) {
-	left, right := ReconcileSQLExprs(lte.left, lte.right)
-	return NewSQLLessThanOrEqualExpr(left, right), nil
+	return &SQLLessThanOrEqualExpr{lte.reconcileComparison()}, nil
 }
 
 func (lte *SQLLessThanOrEqualExpr) String() string {
@@ -1842,8 +1874,7 @@ func (neq *SQLNotEqualsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error
 
 // nolint: unparam
 func (neq *SQLNotEqualsExpr) reconcile() (SQLExpr, error) {
-	left, right := ReconcileSQLExprs(neq.left, neq.right)
-	return NewSQLNotEqualsExpr(left, right), nil
+	return &SQLNotEqualsExpr{neq.reconcileComparison()}, nil
 }
 
 func (neq *SQLNotEqualsExpr) String() string {
@@ -1963,8 +1994,7 @@ func (nse *SQLNullSafeEqualsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, 
 
 // nolint: unparam
 func (nse *SQLNullSafeEqualsExpr) reconcile() (SQLExpr, error) {
-	left, right := ReconcileSQLExprs(nse.left, nse.right)
-	return NewSQLNullSafeEqualsExpr(left, right), nil
+	return &SQLNullSafeEqualsExpr{nse.reconcileComparison()}, nil
 }
 
 func (nse *SQLNullSafeEqualsExpr) String() string {

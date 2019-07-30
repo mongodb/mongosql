@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2105: No user-facing changes.
 BI-2192: Remove alteration support. Make `enable_table_alterations` a no-op.
 BI-2061: LIKE expressions with literal pattern strings can be pushed down outside of a WHERE clause.
 BI-2240: No user-facing changes.

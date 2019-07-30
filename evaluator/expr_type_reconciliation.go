@@ -49,19 +49,7 @@ func reconcileExprs(cfg *OptimizerConfig, n Node) (Node, error) {
 // operations can be carried on leftType against rightType
 // with no need for type conversion.
 func isSimilar(leftType, rightType types.EvalType) bool {
-	if leftType == rightType {
-		return true
-	}
-	if leftType == types.EvalNull || rightType == types.EvalNull {
-		return true
-	}
-	if leftType == types.EvalPolymorphic || rightType == types.EvalPolymorphic {
-		return false
-	}
-	if leftType.IsNumeric() && rightType.IsNumeric() {
-		return true
-	}
-	return false
+	return leftType == rightType || leftType == types.EvalNull || rightType == types.EvalNull
 }
 
 func convertExprs(exprs []SQLExpr, targetTypes []types.EvalType) []SQLExpr {
@@ -75,7 +63,18 @@ func convertExprs(exprs []SQLExpr, targetTypes []types.EvalType) []SQLExpr {
 		targetType := targetTypes[i]
 		exprType := expr.EvalType()
 
-		if targetType == types.EvalPolymorphic {
+		if targetType == types.EvalNumber {
+			// types.EvalNumber is a type used internally to encompass EvalDouble,
+			// EvalDecimal128, EvalInt64, EvalInt32, EvalUint32, and EvalUint64.
+			// If the expr is numeric, no need to convert. Otherwise, default convert to
+			// an EvalDouble.
+
+			if exprType.IsNumeric() {
+				newExprs[i] = expr
+			} else {
+				newExprs[i] = NewSQLConvertExpr(expr, types.EvalDouble)
+			}
+		} else if targetType == types.EvalPolymorphic {
 			// types.EvalPolymorphic indicates that there is no need to convert this argument,
 			// as it accepts any argument.
 			newExprs[i] = expr

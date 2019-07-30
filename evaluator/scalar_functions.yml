@@ -67,8 +67,7 @@ functions:
     description: returns the absolute value of the provided number.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
-        return_type: EvalDouble
+          - eval_type: EvalNumber
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_abs
     names: ['abs']
 
@@ -76,7 +75,7 @@ functions:
     description: returns the arc cosine of the provided number.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_acos
     names: ['acos']
@@ -94,7 +93,7 @@ functions:
     description: returns the arc sine of the provided number.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_asin
     names: ['asin']
@@ -104,12 +103,12 @@ functions:
     invocations:
       - _id: SingleArg
         arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
       - _id: DualArg
         arguments:
-          - eval_type: EvalDouble
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_atan
     names: ['atan']
@@ -120,12 +119,12 @@ functions:
     invocations:
       - _id: SingleArg
         arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
       - _id: DualArg
         arguments:
-          - eval_type: EvalDouble
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_atan2
     names: ['atan2']
@@ -135,8 +134,8 @@ functions:
     description: returns the smallest integer not less than the provided number.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
-        return_type: EvalDouble
+          - eval_type: EvalNumber
+        return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_ceil
     names: ['ceil', 'ceiling']
 
@@ -213,7 +212,7 @@ functions:
     description: returns the cosine of the provided radians argument.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_cos
     names: ['cos']
@@ -222,8 +221,8 @@ functions:
     description: returns the cotangent of x.
     invocations:
       - arguments:
-          - eval_type: EvalDecimal128
-        return_type: EvalDecimal128
+          - eval_type: EvalNumber
+        return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.6/en/mathematical-functions.html#function_cot
     names: ['cot']
 
@@ -352,7 +351,7 @@ functions:
     description: converts the provided radians argument to degrees.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_degrees
     names: ['degrees']
@@ -367,7 +366,7 @@ functions:
     description: returns the value of e raised to the provided power.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_exp
     names: ['exp']
@@ -392,8 +391,8 @@ functions:
     description: returns the largest integer value not greater than the provided argument.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
-        return_type: EvalDouble
+          - eval_type: EvalNumber
+        return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_floor
     names: ['floor']
 
@@ -530,7 +529,7 @@ functions:
     description: returns the natural logarithm of the provided argument.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_ln
     names: ['ln']
@@ -558,12 +557,12 @@ functions:
     invocations:
       - _id: Natural
         arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
       - _id: WithBase
         arguments:
-          - eval_type: EvalInt64
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_log
     names: ['log']
@@ -572,7 +571,7 @@ functions:
     description: returns the base-10 logarithm of the provided number.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_log10
     names: ['log10']
@@ -581,7 +580,7 @@ functions:
     description: returns the base-2 logarithm of the provided number.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_log2
     names: ['log2']
@@ -661,9 +660,8 @@ functions:
     description: returns the remainder of n divided by m.
     invocations:
       - arguments:
-          - {eval_type: EvalDouble, name: n}
-          - {eval_type: EvalDouble, name: m}
-        return_type: EvalDouble
+          - {eval_type: EvalNumber, name: n}
+          - {eval_type: EvalNumber, name: m}
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_mod
     names: ['mod']
 
@@ -713,9 +711,8 @@ functions:
     description: returns the value of base raised to the power of exp.
     invocations:
       - arguments:
-          - {eval_type: EvalDouble, name: base}
-          - {eval_type: EvalDouble, name: exp}
-        return_type: EvalDouble
+          - {eval_type: EvalNumber, name: base}
+          - {eval_type: EvalNumber, name: exp}
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_pow
     names: ['pow', 'power']
 
@@ -732,7 +729,7 @@ functions:
     description: returns the provided degrees argument to radians.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_radians
     names: ['radians']
@@ -800,12 +797,11 @@ functions:
     invocations:
       - _id: WithDecimalPlaces
         arguments:
-          - {eval_type: EvalDecimal128, name: x}
+          - {eval_type: EvalNumber, name: x}
           - {eval_type: EvalInt64, name: d}
-        return_type: EvalDecimal128
       - _id: ToZeroDecimalPlaces
         arguments:
-          - {eval_type: EvalDecimal128, name: x}
+          - {eval_type: EvalNumber, name: x}
         return_type: EvalDecimal128
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_round
     names: ['round']
@@ -844,7 +840,7 @@ functions:
     description: returns the sign of the argument as -1, 0, or 1 depending on whether it is negative, zero, or positive.
     invocations:
       - arguments:
-          - eval_type: EvalDecimal128
+          - eval_type: EvalNumber
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_sign
     names: ['sign']
@@ -853,7 +849,7 @@ functions:
     description: returns the sine of the provided radians argument.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_sin
     names: ['sin']
@@ -882,7 +878,7 @@ functions:
     description: returns the square root of the provided (non-negative) argument.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_sqrt
     names: ['sqrt']
@@ -927,7 +923,7 @@ functions:
     description: returns the tangent of the provided radians argument.
     invocations:
       - arguments:
-          - eval_type: EvalDouble
+          - eval_type: EvalNumber
         return_type: EvalDouble
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_tan
     names: ['tan']
@@ -972,7 +968,7 @@ functions:
     invocations:
       - arguments:
           - {eval_type: EvalString, name: unit}
-          - {eval_type: EvalInt64, name: interval}
+          - {eval_type: EvalNumber, name: interval}
           - {eval_type: EvalDatetime, name: datetime}
         return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestampadd
@@ -1034,9 +1030,8 @@ functions:
     description: returns the number x truncated to d decimal places.
     invocations:
       - arguments:
-          - {eval_type: EvalDecimal128, name: x}
+          - {eval_type: EvalNumber, name: x}
           - {eval_type: EvalInt64, name: d}
-        return_type: EvalDecimal128
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/mathematical-functions.html#function_truncate
     names: ['truncate']
 

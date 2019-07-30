@@ -25,7 +25,7 @@ var _ SQLScalarFunctionExpr = (*absFunc)(nil)
 
 // The following constants represent some properties of the absFunc scalar function.
 var (
-	absExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	absExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	absIsVariadic     bool                           = false
 	absReturnTypeFunc func([]SQLExpr) types.EvalType = absEvalType
 )
@@ -94,10 +94,6 @@ func (f *absFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func absEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDouble
-}
-
 type acosFunc struct {
 	baseScalarFunctionExpr
 }
@@ -107,7 +103,7 @@ var _ SQLScalarFunctionExpr = (*acosFunc)(nil)
 
 // The following constants represent some properties of the acosFunc scalar function.
 var (
-	acosExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	acosExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	acosIsVariadic     bool                           = false
 	acosReturnTypeFunc func([]SQLExpr) types.EvalType = acosEvalType
 )
@@ -271,7 +267,7 @@ var _ SQLScalarFunctionExpr = (*asinFunc)(nil)
 
 // The following constants represent some properties of the asinFunc scalar function.
 var (
-	asinExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	asinExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	asinIsVariadic     bool                           = false
 	asinReturnTypeFunc func([]SQLExpr) types.EvalType = asinEvalType
 )
@@ -353,7 +349,7 @@ var _ SQLScalarFunctionExpr = (*atanSingleArgFunc)(nil)
 
 // The following constants represent some properties of the atanSingleArgFunc scalar function.
 var (
-	atanSingleArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	atanSingleArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	atanSingleArgIsVariadic     bool                           = false
 	atanSingleArgReturnTypeFunc func([]SQLExpr) types.EvalType = atanSingleArgEvalType
 )
@@ -435,7 +431,7 @@ var _ SQLScalarFunctionExpr = (*atanDualArgFunc)(nil)
 
 // The following constants represent some properties of the atanDualArgFunc scalar function.
 var (
-	atanDualArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	atanDualArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber, types.EvalNumber}
 	atanDualArgIsVariadic     bool                           = false
 	atanDualArgReturnTypeFunc func([]SQLExpr) types.EvalType = atanDualArgEvalType
 )
@@ -517,7 +513,7 @@ var _ SQLScalarFunctionExpr = (*atan2SingleArgFunc)(nil)
 
 // The following constants represent some properties of the atan2SingleArgFunc scalar function.
 var (
-	atan2SingleArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	atan2SingleArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	atan2SingleArgIsVariadic     bool                           = false
 	atan2SingleArgReturnTypeFunc func([]SQLExpr) types.EvalType = atan2SingleArgEvalType
 )
@@ -599,7 +595,7 @@ var _ SQLScalarFunctionExpr = (*atan2DualArgFunc)(nil)
 
 // The following constants represent some properties of the atan2DualArgFunc scalar function.
 var (
-	atan2DualArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	atan2DualArgExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber, types.EvalNumber}
 	atan2DualArgIsVariadic     bool                           = false
 	atan2DualArgReturnTypeFunc func([]SQLExpr) types.EvalType = atan2DualArgEvalType
 )
@@ -681,7 +677,7 @@ var _ SQLScalarFunctionExpr = (*ceilFunc)(nil)
 
 // The following constants represent some properties of the ceilFunc scalar function.
 var (
-	ceilExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	ceilExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	ceilIsVariadic     bool                           = false
 	ceilReturnTypeFunc func([]SQLExpr) types.EvalType = ceilEvalType
 )
@@ -751,7 +747,7 @@ func (f *ceilFunc) reconcile() (SQLExpr, error) {
 }
 
 func ceilEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDouble
+	return types.EvalInt64
 }
 
 type charFunc struct {
@@ -1217,7 +1213,7 @@ var _ SQLScalarFunctionExpr = (*cosFunc)(nil)
 
 // The following constants represent some properties of the cosFunc scalar function.
 var (
-	cosExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	cosExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	cosIsVariadic     bool                           = false
 	cosReturnTypeFunc func([]SQLExpr) types.EvalType = cosEvalType
 )
@@ -1299,7 +1295,7 @@ var _ SQLScalarFunctionExpr = (*cotFunc)(nil)
 
 // The following constants represent some properties of the cotFunc scalar function.
 var (
-	cotExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128}
+	cotExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	cotIsVariadic     bool                           = false
 	cotReturnTypeFunc func([]SQLExpr) types.EvalType = cotEvalType
 )
@@ -1369,7 +1365,7 @@ func (f *cotFunc) reconcile() (SQLExpr, error) {
 }
 
 func cotEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDecimal128
+	return types.EvalDouble
 }
 
 type dateAddFunc struct {
@@ -2037,7 +2033,7 @@ var _ SQLScalarFunctionExpr = (*degreesFunc)(nil)
 
 // The following constants represent some properties of the degreesFunc scalar function.
 var (
-	degreesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	degreesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	degreesIsVariadic     bool                           = false
 	degreesReturnTypeFunc func([]SQLExpr) types.EvalType = degreesEvalType
 )
@@ -2119,7 +2115,7 @@ var _ SQLScalarFunctionExpr = (*expFunc)(nil)
 
 // The following constants represent some properties of the expFunc scalar function.
 var (
-	expExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	expExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	expIsVariadic     bool                           = false
 	expReturnTypeFunc func([]SQLExpr) types.EvalType = expEvalType
 )
@@ -2283,7 +2279,7 @@ var _ SQLScalarFunctionExpr = (*floorFunc)(nil)
 
 // The following constants represent some properties of the floorFunc scalar function.
 var (
-	floorExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	floorExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	floorIsVariadic     bool                           = false
 	floorReturnTypeFunc func([]SQLExpr) types.EvalType = floorEvalType
 )
@@ -2353,7 +2349,7 @@ func (f *floorFunc) reconcile() (SQLExpr, error) {
 }
 
 func floorEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDouble
+	return types.EvalInt64
 }
 
 type fromDaysFunc struct {
@@ -3341,7 +3337,7 @@ var _ SQLScalarFunctionExpr = (*lnFunc)(nil)
 
 // The following constants represent some properties of the lnFunc scalar function.
 var (
-	lnExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	lnExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	lnIsVariadic     bool                           = false
 	lnReturnTypeFunc func([]SQLExpr) types.EvalType = lnEvalType
 )
@@ -3553,7 +3549,7 @@ var _ SQLScalarFunctionExpr = (*logNaturalFunc)(nil)
 
 // The following constants represent some properties of the logNaturalFunc scalar function.
 var (
-	logNaturalExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	logNaturalExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	logNaturalIsVariadic     bool                           = false
 	logNaturalReturnTypeFunc func([]SQLExpr) types.EvalType = logNaturalEvalType
 )
@@ -3635,7 +3631,7 @@ var _ SQLScalarFunctionExpr = (*logWithBaseFunc)(nil)
 
 // The following constants represent some properties of the logWithBaseFunc scalar function.
 var (
-	logWithBaseExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalInt64, types.EvalDouble}
+	logWithBaseExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber, types.EvalNumber}
 	logWithBaseIsVariadic     bool                           = false
 	logWithBaseReturnTypeFunc func([]SQLExpr) types.EvalType = logWithBaseEvalType
 )
@@ -3717,7 +3713,7 @@ var _ SQLScalarFunctionExpr = (*log10Func)(nil)
 
 // The following constants represent some properties of the log10Func scalar function.
 var (
-	log10ExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	log10ExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	log10IsVariadic     bool                           = false
 	log10ReturnTypeFunc func([]SQLExpr) types.EvalType = log10EvalType
 )
@@ -3799,7 +3795,7 @@ var _ SQLScalarFunctionExpr = (*log2Func)(nil)
 
 // The following constants represent some properties of the log2Func scalar function.
 var (
-	log2ExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	log2ExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	log2IsVariadic     bool                           = false
 	log2ReturnTypeFunc func([]SQLExpr) types.EvalType = log2EvalType
 )
@@ -4455,7 +4451,7 @@ var _ SQLScalarFunctionExpr = (*modFunc)(nil)
 
 // The following constants represent some properties of the modFunc scalar function.
 var (
-	modExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	modExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber, types.EvalNumber}
 	modIsVariadic     bool                           = false
 	modReturnTypeFunc func([]SQLExpr) types.EvalType = modEvalType
 )
@@ -4522,10 +4518,6 @@ func (f *modFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 func (f *modFunc) reconcile() (SQLExpr, error) {
 	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
-}
-
-func modEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDouble
 }
 
 type monthFunc struct {
@@ -4762,7 +4754,7 @@ var _ SQLScalarFunctionExpr = (*powFunc)(nil)
 
 // The following constants represent some properties of the powFunc scalar function.
 var (
-	powExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble, types.EvalDouble}
+	powExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber, types.EvalNumber}
 	powIsVariadic     bool                           = false
 	powReturnTypeFunc func([]SQLExpr) types.EvalType = powEvalType
 )
@@ -4829,10 +4821,6 @@ func (f *powFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 func (f *powFunc) reconcile() (SQLExpr, error) {
 	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
-}
-
-func powEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDouble
 }
 
 type quarterFunc struct {
@@ -4926,7 +4914,7 @@ var _ SQLScalarFunctionExpr = (*radiansFunc)(nil)
 
 // The following constants represent some properties of the radiansFunc scalar function.
 var (
-	radiansExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	radiansExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	radiansIsVariadic     bool                           = false
 	radiansReturnTypeFunc func([]SQLExpr) types.EvalType = radiansEvalType
 )
@@ -5466,7 +5454,7 @@ var _ SQLScalarFunctionExpr = (*roundWithDecimalPlacesFunc)(nil)
 
 // The following constants represent some properties of the roundWithDecimalPlacesFunc scalar function.
 var (
-	roundWithDecimalPlacesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128, types.EvalInt64}
+	roundWithDecimalPlacesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber, types.EvalInt64}
 	roundWithDecimalPlacesIsVariadic     bool                           = false
 	roundWithDecimalPlacesReturnTypeFunc func([]SQLExpr) types.EvalType = roundWithDecimalPlacesEvalType
 )
@@ -5535,10 +5523,6 @@ func (f *roundWithDecimalPlacesFunc) reconcile() (SQLExpr, error) {
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
 }
 
-func roundWithDecimalPlacesEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDecimal128
-}
-
 type roundToZeroDecimalPlacesFunc struct {
 	baseScalarFunctionExpr
 }
@@ -5548,7 +5532,7 @@ var _ SQLScalarFunctionExpr = (*roundToZeroDecimalPlacesFunc)(nil)
 
 // The following constants represent some properties of the roundToZeroDecimalPlacesFunc scalar function.
 var (
-	roundToZeroDecimalPlacesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128}
+	roundToZeroDecimalPlacesExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	roundToZeroDecimalPlacesIsVariadic     bool                           = false
 	roundToZeroDecimalPlacesReturnTypeFunc func([]SQLExpr) types.EvalType = roundToZeroDecimalPlacesEvalType
 )
@@ -5876,7 +5860,7 @@ var _ SQLScalarFunctionExpr = (*signFunc)(nil)
 
 // The following constants represent some properties of the signFunc scalar function.
 var (
-	signExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128}
+	signExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	signIsVariadic     bool                           = false
 	signReturnTypeFunc func([]SQLExpr) types.EvalType = signEvalType
 )
@@ -5958,7 +5942,7 @@ var _ SQLScalarFunctionExpr = (*sinFunc)(nil)
 
 // The following constants represent some properties of the sinFunc scalar function.
 var (
-	sinExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	sinExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	sinIsVariadic     bool                           = false
 	sinReturnTypeFunc func([]SQLExpr) types.EvalType = sinEvalType
 )
@@ -6194,7 +6178,7 @@ var _ SQLScalarFunctionExpr = (*sqrtFunc)(nil)
 
 // The following constants represent some properties of the sqrtFunc scalar function.
 var (
-	sqrtExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	sqrtExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	sqrtIsVariadic     bool                           = false
 	sqrtReturnTypeFunc func([]SQLExpr) types.EvalType = sqrtEvalType
 )
@@ -6583,7 +6567,7 @@ var _ SQLScalarFunctionExpr = (*tanFunc)(nil)
 
 // The following constants represent some properties of the tanFunc scalar function.
 var (
-	tanExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDouble}
+	tanExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber}
 	tanIsVariadic     bool                           = false
 	tanReturnTypeFunc func([]SQLExpr) types.EvalType = tanEvalType
 )
@@ -6911,7 +6895,7 @@ var _ SQLScalarFunctionExpr = (*timestampAddFunc)(nil)
 
 // The following constants represent some properties of the timestampAddFunc scalar function.
 var (
-	timestampAddExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalInt64, types.EvalDatetime}
+	timestampAddExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalString, types.EvalNumber, types.EvalDatetime}
 	timestampAddIsVariadic     bool                           = false
 	timestampAddReturnTypeFunc func([]SQLExpr) types.EvalType = timestampAddEvalType
 )
@@ -7485,7 +7469,7 @@ var _ SQLScalarFunctionExpr = (*truncateFunc)(nil)
 
 // The following constants represent some properties of the truncateFunc scalar function.
 var (
-	truncateExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDecimal128, types.EvalInt64}
+	truncateExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalNumber, types.EvalInt64}
 	truncateIsVariadic     bool                           = false
 	truncateReturnTypeFunc func([]SQLExpr) types.EvalType = truncateEvalType
 )
@@ -7552,10 +7536,6 @@ func (f *truncateFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 func (f *truncateFunc) reconcile() (SQLExpr, error) {
 	convertedArgs := convertExprs(f.args, f.argTypes())
 	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
-}
-
-func truncateEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalDecimal128
 }
 
 type ucaseFunc struct {

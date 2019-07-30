@@ -775,16 +775,27 @@ func (e *SQLConvertExpr) EvalType() types.EvalType {
 }
 
 func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	expr, err := t.ToAggregationLanguage(e.expr)
+	if err != nil {
+		return nil, err
+	}
+
 	if !t.versionAtLeast(4, 0, 0) {
+		fromType := e.expr.EvalType()
+		toType := e.targetType
+
+		switch fromType {
+		case types.EvalDecimal128, types.EvalDouble:
+			switch toType {
+			case types.EvalInt32, types.EvalInt64,
+				types.EvalUint32, types.EvalUint64:
+				return astutil.WrapInRound(expr), nil
+			}
+		}
 		return nil, newPushdownFailure(
 			e.ExprName(),
 			"cannot push down mongosql-mode conversions to MongoDB < 4.0",
 		)
-	}
-
-	expr, err := t.ToAggregationLanguage(e.expr)
-	if err != nil {
-		return nil, err
 	}
 
 	converted := translateConvert(expr, e.expr.EvalType(), e.targetType)
@@ -806,13 +817,6 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 	//     date             -> any numeric type
 	//     objectid         -> string
 	//
-
-	if !t.versionAtLeast(3, 6, 0) {
-		return nil, newPushdownFailure(
-			e.ExprName(),
-			"cannot push down mysql-mode conversions to MongoDB < 3.6",
-		)
-	}
 
 	fromType := e.expr.EvalType()
 	toType := e.targetType
@@ -844,6 +848,13 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 		}
 
 	case types.EvalDatetime:
+		if !t.versionAtLeast(3, 6, 0) {
+			return nil, newPushdownFailure(
+				e.ExprName(),
+				"cannot push down mysql-mode conversions to MongoDB < 3.6",
+			)
+		}
+
 		year := ast.NewFunction(bsonutil.OpYear, expr)
 		month := ast.NewFunction(bsonutil.OpMonth, expr)
 		day := ast.NewFunction(bsonutil.OpDayOfMonth, expr)
@@ -898,6 +909,13 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 		}
 
 	case types.EvalDate:
+		if !t.versionAtLeast(3, 6, 0) {
+			return nil, newPushdownFailure(
+				e.ExprName(),
+				"cannot push down mysql-mode conversions to MongoDB < 3.6",
+			)
+		}
+
 		year := ast.NewFunction(bsonutil.OpYear, expr)
 		month := ast.NewFunction(bsonutil.OpMonth, expr)
 		day := ast.NewFunction(bsonutil.OpDayOfMonth, expr)
@@ -2762,10 +2780,17 @@ func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage) {
 
 	for i, lc := range leftPlan.projectedColumns {
 		rc := rightPlan.projectedColumns[i]
-		newLeft, newRight := ReconcileSQLExprs(lc.Expr, rc.Expr)
+		lcExpr := lc.Expr
+		rcExpr := rc.Expr
+		lcEvalType := lcExpr.EvalType()
+		rcEvalType := rcExpr.EvalType()
 
-		leftColumns[i] = ProjectedColumn{lc.Column.Clone(), newLeft}
-		rightColumns[i] = ProjectedColumn{rc.Column.Clone(), newRight}
+		if !lcEvalType.IsNumeric() || !rcEvalType.IsNumeric() {
+			lcExpr, rcExpr = ReconcileSQLExprs(lc.Expr, rc.Expr)
+		}
+
+		leftColumns[i] = ProjectedColumn{lc.Column.Clone(), lcExpr}
+		rightColumns[i] = ProjectedColumn{rc.Column.Clone(), rcExpr}
 	}
 
 	newLeftPlan := NewProjectStage(leftPlan.source.clone(), leftColumns...)
@@ -2780,19 +2805,26 @@ func reconcileSubqueryPlans(left, right PlanStage) (PlanStage, PlanStage) {
 func validateArgs(expr SQLExpr) error {
 	children := expr.Children()
 
+	// If the expr has no children/args, then there is nothing to validate.
+	if len(children) == 0 {
+		return nil
+	}
 	// SQLExprs with PlanStages as children instead of SQLExprs as children
 	// require different handling.
 	if hasAllPlanStageChildren(expr) {
-		// If there are two PlanStage Children (for example, SQLSubqueryCmpExpr),
-		// validation is delegated to a different helper function.
-		if len(children) == 2 {
+		// If the expression is a SQLSubqueryCmpExpr, SQLSubqueryAnyExpr, or a SQLSubqueryAllExpr,
+		// it has two PlanStage children that must be validated with validateSubqueryPlans.
+		// If the expression is a SQLExistsExpr or a SQLSubqueryExpr, it only has one child PlanStage,
+		// so there definitely will not be any type reconciliation issues and we can safely return nil.
+		switch expr.(type) {
+		case *SQLSubqueryCmpExpr, *SQLSubqueryAnyExpr, *SQLSubqueryAllExpr:
 			return validateSubqueryPlans(children[0].(PlanStage), children[1].(PlanStage))
+		case *SQLExistsExpr, *SQLSubqueryExpr:
+			return nil
+		default:
+			panic(fmt.Sprintf("Received unexpected expression with all plan stage children of type: %s\n", expr.ExprName()))
 		}
 
-		// This case is for SQLExprs with just one child (which is a PlanStage).
-		// Currently, the only two like this are SQLExistsExpr and SQLSubqueryExpr.
-		// SQLExprs of this form are always unconditionally valid.
-		return nil
 	}
 
 	preReconciliationChildren := nodesToExprs(children)
@@ -2822,7 +2854,7 @@ func validateSubqueryPlans(left, right PlanStage) error {
 	rightColumns := right.Columns()
 
 	for i, lc := range left.Columns() {
-		if !isSimilar(lc.EvalType, rightColumns[i].EvalType) {
+		if !isSimilar(lc.EvalType, rightColumns[i].EvalType) && !(lc.EvalType.IsNumeric() && rightColumns[i].EvalType.IsNumeric()) {
 			return fmt.Errorf("expected EvalType %x at index %d, but got %x",
 				lc.EvalType, i, rightColumns[i].EvalType)
 		}
@@ -2832,6 +2864,7 @@ func validateSubqueryPlans(left, right PlanStage) error {
 }
 
 // hasAllPlanStageChildren returns true if the expr's Children are all PlanStages.
+// It also returns true if the provided expr has no children.
 func hasAllPlanStageChildren(expr SQLExpr) bool {
 	all := true
 	for _, c := range expr.Children() {

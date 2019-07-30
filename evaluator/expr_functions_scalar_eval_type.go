@@ -4,6 +4,10 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/types"
 )
 
+func absEvalType(exprs []SQLExpr) types.EvalType {
+	return exprs[0].EvalType()
+}
+
 func convertEvalType(exprs []SQLExpr) types.EvalType {
 	typ, ok := evalTypeFromSQLTypeExpr(exprs[1])
 	if !ok {
@@ -25,6 +29,14 @@ func greatestEvalType(exprs []SQLExpr) types.EvalType {
 }
 
 func leastEvalType(exprs []SQLExpr) types.EvalType {
+	return preferentialType(exprsToEvalTypers(exprs)...)
+}
+
+func modEvalType(exprs []SQLExpr) types.EvalType {
+	return preferentialType(exprsToEvalTypers(exprs)...)
+}
+
+func powEvalType(exprs []SQLExpr) types.EvalType {
 	return preferentialType(exprsToEvalTypers(exprs)...)
 }
 
@@ -62,4 +74,12 @@ func strToDateEvalType(exprs []SQLExpr) types.EvalType {
 	}
 
 	return types.EvalDate
+}
+
+func roundWithDecimalPlacesEvalType(exprs []SQLExpr) types.EvalType {
+	return exprs[0].EvalType()
+}
+
+func truncateEvalType(exprs []SQLExpr) types.EvalType {
+	return exprs[0].EvalType()
 }
