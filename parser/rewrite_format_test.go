@@ -696,7 +696,7 @@ func testRewriteAndFormatIgnored(t *testing.T) {
 			req.NoError(err)
 
 			newTree, err := parser.DesugarCommand(tree.Copy().(parser.Statement))
-			req.Nil(err)
+			req.NoError(err)
 			buf := parser.NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
