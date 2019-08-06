@@ -64,12 +64,14 @@ var (
 	DELETE_BYTES             = []byte("delete")
 	DESC_BYTES               = []byte("desc")
 	DESCRIBE_BYTES           = []byte("describe")
+	DISABLE_BYTES            = []byte("disable")
 	DISTINCT_BYTES           = []byte("distinct")
 	DIV_BYTES                = []byte("div")
 	DOUBLE_BYTES             = []byte("double")
 	DROP_BYTES               = []byte("drop")
 	DUPLICATE_BYTES          = []byte("duplicate")
 	ELSE_BYTES               = []byte("else")
+	ENABLE_BYTES             = []byte("enable")
 	END_BYTES                = []byte("end")
 	ENGINE_BYTES             = []byte("engine")
 	ENGINES_BYTES            = []byte("engines")
@@ -128,9 +130,11 @@ var (
 	LEVEL_BYTES              = []byte("level")
 	LIKE_BYTES               = []byte("like")
 	LIMIT_BYTES              = []byte("limit")
+	LOCAL_BYTES              = []byte("local")
 	LOCK_BYTES               = []byte("lock")
 	LOGS_BYTES               = []byte("logs")
 	LONGTEXT_BYTES           = []byte("longtext")
+	LOW_PRIORITY_BYTES       = []byte("low_priority")
 	MASTER_BYTES             = []byte("master")
 	MEDIUMBLOB_BYTES         = []byte("mediumblob")
 	MEDIUMTEXT_BYTES         = []byte("mediumtext")
@@ -244,6 +248,7 @@ var (
 	UNION_BYTES              = []byte("union")
 	UNIQUE_BYTES             = []byte("unique")
 	UNKNOWN_BYTES            = []byte("unknown")
+	UNLOCK_BYTES             = []byte("unlock")
 	UNSIGNED_BYTES           = []byte("unsigned")
 	UPDATE_BYTES             = []byte("update")
 	USE_BYTES                = []byte("use")
@@ -324,12 +329,14 @@ var keywords = map[string]int{
 	"default":            DEFAULT,
 	"desc":               DESC,
 	"describe":           DESCRIBE,
+	"disable":            DISABLE,
 	"distinct":           DISTINCT,
 	"div":                IDIV,
 	"double":             DOUBLE,
 	"drop":               DROP,
 	"dual":               DUAL,
 	"else":               ELSE,
+	"enable":             ENABLE,
 	"end":                END,
 	"engine":             ENGINE,
 	"engines":            ENGINES,
@@ -388,9 +395,11 @@ var keywords = map[string]int{
 	"level":              LEVEL,
 	"like":               LIKE,
 	"limit":              LIMIT,
+	"local":              LOCAL,
 	"lock":               LOCK,
 	"logs":               LOGS,
 	"longtext":           LONGTEXT,
+	"low_priority":       LOW_PRIORITY,
 	"master":             MASTER,
 	"mediumblob":         MEDIUMBLOB,
 	"mediumtext":         MEDIUMTEXT,
@@ -497,6 +506,7 @@ var keywords = map[string]int{
 	"true":               TRUE,
 	"uncommitted":        UNCOMMITTED,
 	"union":              UNION,
+	"unlock":             UNLOCK,
 	"unique":             UNIQUE,
 	"unknown":            UNKNOWN,
 	"unsigned":           UNSIGNED,

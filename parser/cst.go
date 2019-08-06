@@ -2963,3 +2963,131 @@ func (node RenameSpecs) Copy() CST {
 }
 
 var _ CST = (RenameSpecs)(nil)
+
+// Children iterates through all direct children of this node.
+func (node *IgnoredStatement) Children() []CST {
+	return []CST{node.Statement}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *IgnoredStatement) ReplaceChild(i int, child CST) {
+	if i != 0 {
+		panic("ReplaceChild out of bounds")
+	}
+	node.Statement = child.(IgnorableStatement)
+}
+
+// Copy produces a deep copy of this node.
+func (node *IgnoredStatement) Copy() CST {
+
+	return &IgnoredStatement{
+		Statement: node.Statement.Copy().(IgnorableStatement),
+	}
+}
+
+var _ CST = (*IgnoredStatement)(nil)
+
+// Children iterates through all direct children of this node.
+func (node LockTables) Children() []CST {
+	retList := make([]CST, len(node.LockList))
+	for i := range node.LockList {
+		retList[i] = node.LockList[i]
+	}
+	return retList
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node LockTables) ReplaceChild(i int, child CST) {
+	if i > len(node.LockList) {
+		panic("ReplaceChild out of bounds")
+	}
+	node.LockList[i] = child.(TableLock)
+}
+
+// Copy produces a deep copy of this node.
+func (node LockTables) Copy() CST {
+	retList := make([]TableLock, len(node.LockList))
+	for i := range node.LockList {
+		retList[i] = node.LockList[i].Copy().(TableLock)
+	}
+	return LockTables{
+		LockList: retList,
+	}
+}
+
+var _ CST = LockTables{}
+
+// Children iterates through all direct children of this node.
+func (node TableLock) Children() []CST {
+	return []CST{node.TableName}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node TableLock) ReplaceChild(i int, child CST) {
+	if i != 0 {
+		panic("ReplaceChild out of bounds")
+	}
+	node.TableName = child.(*TableName)
+}
+
+// Copy produces a deep copy of this node.
+func (node TableLock) Copy() CST {
+	return TableLock{
+		TableName: node.TableName.Copy().(*TableName),
+		Alias:     node.Alias,
+		LockType:  node.LockType,
+	}
+}
+
+var _ CST = TableLock{}
+
+// Children iterates through all direct children of this node.
+func (node UnlockTables) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node UnlockTables) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node UnlockTables) Copy() CST {
+	return node
+}
+
+var _ CST = UnlockTables{}
+
+// Children iterates through all direct children of this node.
+func (node EnableKeys) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node EnableKeys) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node EnableKeys) Copy() CST {
+	return node
+}
+
+var _ CST = EnableKeys{}
+
+// Children iterates through all direct children of this node.
+func (node DisableKeys) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node DisableKeys) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node DisableKeys) Copy() CST {
+	return node
+}
+
+var _ CST = DisableKeys{}

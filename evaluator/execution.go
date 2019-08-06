@@ -93,6 +93,8 @@ func ExecuteSQL(ctx context.Context, qCfg *QueryConfig, sql string) (*QueryResul
 			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) "+
 				"for now", sql) // unreachable
 		}
+	case *parser.IgnoredStatement:
+		return handleIgnoredStatement(v)
 	default:
 		return nil, mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}
@@ -116,6 +118,10 @@ func handleExplainPlan(ctx context.Context, qCfg *QueryConfig, stmt *parser.Expl
 		return nil, err
 	}
 	return res, err
+}
+
+func handleIgnoredStatement(statement *parser.IgnoredStatement) (*QueryResult, error) {
+	return NewQueryResult(statement.Statement, nil, nil, nil, COMMAND), nil
 }
 
 // ExecutionConfig is a container for all the values needed to execute

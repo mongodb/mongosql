@@ -387,6 +387,58 @@ func TestCreateTable(t *testing.T) {
 	tableTest(t, tests)
 }
 
+func TestIgnoredStatements(t *testing.T) {
+
+	tests := []test{
+		{
+			name:       "lock tables success simple",
+			input:      "lock tables scalar LOW_PRIORITY WRITE",
+			errMessage: "",
+		},
+		{
+			name:       "lock tables success complex",
+			input:      "lock tables scalar READ LoCaL, scalar2 as sc WRITE, scalar3 as sc3 READ, scalar4 as sc4 low_priority wRiTe",
+			errMessage: "",
+		},
+		{
+			name:       "lock tables fail complex",
+			input:      "lock tables scalar LOW_PRIORITY WRITE, scalar2 as sc WRITE, scalar3 as sc3 READ, scalar4 s sc4 low_priority wRiTe",
+			errMessage: "unexpected ID at position 96 near sc4",
+		},
+		{
+			name:       "unlock tables",
+			input:      "UnLOCK TABLES",
+			errMessage: "",
+		},
+		{
+			name:       "unlock tables fail",
+			input:      "UnLOCK TABLE",
+			errMessage: "unexpected TABLE at position 13 near table",
+		},
+		{
+			name:       "enable keys",
+			input:      "eNablE KEYS",
+			errMessage: "",
+		},
+		{
+			name:       "enable keys fail",
+			input:      "eNablE KEY",
+			errMessage: "unexpected KEY at position 11 near key",
+		},
+		{
+			name:  "disable keys",
+			input: "dIsABLE KEYs",
+		},
+		{
+			name:       "disable keys fail",
+			input:      "dIsABLE KEY",
+			errMessage: "unexpected KEY at position 12 near key",
+		},
+	}
+
+	tableTest(t, tests)
+}
+
 func TestSet(t *testing.T) {
 	sql := "set @@temp = 'gbk'"
 	testParse(t, sql)

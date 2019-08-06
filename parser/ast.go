@@ -7,6 +7,7 @@ package parser
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -1321,4 +1322,103 @@ func (node RenameSpecs) Format(buf *TrackedBuffer) {
 	for _, rn := range node[1:] {
 		buf.Fprintf(", %s", rn)
 	}
+}
+
+type IgnorableStatement interface {
+	Statement
+	IIgnorableStatement()
+}
+
+// Ignored Statements
+type IgnoredStatement struct {
+	Statement IgnorableStatement
+}
+
+func (*IgnoredStatement) IStatement() {}
+
+func (node *IgnoredStatement) Format(buf *TrackedBuffer) {
+	buf.Fprintf("/* IGNORED */ ")
+	node.Statement.Format(buf)
+}
+
+type LockTables struct {
+	LockList []TableLock
+}
+
+func (LockTables) IStatement()          {}
+func (LockTables) IIgnorableStatement() {}
+
+func (node LockTables) Format(buf *TrackedBuffer) {
+	buf.Fprintf("lock tables ")
+	// There must be at least one table locked.
+	node.LockList[0].Format(buf)
+	if len(node.LockList) < 2 {
+		return
+	}
+	for _, lock := range node.LockList[1:] {
+		buf.Fprintf(", ")
+		lock.Format(buf)
+	}
+}
+
+type LockType string
+
+const (
+	Write LockType = "write"
+	Read  LockType = "read"
+)
+
+func GetLockType(ty string) LockType {
+	switch ty {
+	case "write":
+		return Write
+	case "read":
+		return Read
+	}
+	panic(fmt.Sprintf("unknown LockType '%s'", ty))
+}
+
+type TableLock struct {
+	TableName *TableName
+	Alias     option.String
+	LockType  LockType
+}
+
+func (*TableLock) IStatement() {}
+
+func (node *TableLock) Format(buf *TrackedBuffer) {
+	node.TableName.Format(buf)
+	buf.Fprintf(" as `%s` ", node.Alias.Else(node.TableName.Name))
+	node.LockType.Format(buf)
+}
+
+func (l LockType) Format(buf *TrackedBuffer) {
+	buf.Fprintf("%s", string(l))
+}
+
+type UnlockTables struct{}
+
+func (UnlockTables) IStatement()          {}
+func (UnlockTables) IIgnorableStatement() {}
+
+func (UnlockTables) Format(buf *TrackedBuffer) {
+	buf.Fprintf("unlock tables")
+}
+
+type EnableKeys struct{}
+
+func (EnableKeys) IStatement()          {}
+func (EnableKeys) IIgnorableStatement() {}
+
+func (EnableKeys) Format(buf *TrackedBuffer) {
+	buf.Fprintf("enable keys")
+}
+
+type DisableKeys struct{}
+
+func (DisableKeys) IStatement()          {}
+func (DisableKeys) IIgnorableStatement() {}
+
+func (DisableKeys) Format(buf *TrackedBuffer) {
+	buf.Fprintf("disable keys")
 }

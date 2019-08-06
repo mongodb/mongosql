@@ -71,6 +71,9 @@ func ForceEOF(yylex interface{}) {
   updateExpr  *UpdateExpr
   alterSpec   *AlterSpec
   alterSpecs  []*AlterSpec
+  tableLock   TableLock
+  tableLocks  []TableLock
+  lockType    LockType
   renameSpec  *RenameSpec
   renameSpecs []*RenameSpec
   queryGlobals *QueryGlobals
@@ -83,7 +86,7 @@ func ForceEOF(yylex interface{}) {
 
 %token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE SEPARATOR
 %token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO COMMENT_KWD FULLTEXT
-%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK
+%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK UNLOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR GROUP_CONCAT OBJECT_ID
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
@@ -97,6 +100,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> TABLE DUAL INDEX VIEW IGNORE IF
 %token <bytes> TRANSACTION ISOLATION LEVEL
 %token <bytes> READ WRITE ONLY
+%token <empty> LOW_PRIORITY LOCAL
 %token <bytes> REPEATABLE COMMITTED UNCOMMITTED SERIALIZABLE
 %token <empty> NAMES CHARACTER COLLATE
 %token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
@@ -108,6 +112,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> TEMPORARY RESTRICT CASCADE
 %token <empty> USING AUTO_INCREMENT
 %token <empty> OFF UNIQUE PRIMARY BTREE HASH
+%token <empty> ENABLE DISABLE
 
 %nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
 %nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
@@ -141,7 +146,7 @@ func ForceEOF(yylex interface{}) {
 %type <selStmt> select_statement select_statement_with_paren_order_limit
 %type <with> with_statement
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
-%type <statement> kill_statement
+%type <statement> kill_statement ignored_statement
 %type <statement> create_database_statement drop_database_statement drop_table_statement
 %type <statement> create_table_statement
 %type <columnOrIndexDefs> create_definition_list
@@ -152,6 +157,9 @@ func ForceEOF(yylex interface{}) {
 %type <statement> flush_statement
 %type <alterSpecs> alter_spec_list
 %type <alterSpec> alter_spec
+%type <tableLocks> table_lock_list
+%type <tableLock> table_lock
+%type <lockType> lock_type
 %type <renameSpec> table_rename
 %type <renameSpecs> table_rename_list
 %type <stropt> column_opt to_as_opt
@@ -262,6 +270,7 @@ command:
 | flush_statement
 | alter_statement
 | rename_statement
+| ignored_statement
 
 select_statement_with_paren_order_limit:
   non_derived_subquery order_by_opt limit_opt
@@ -886,6 +895,58 @@ table_rename:
   {
     $$ = &RenameSpec{ Table: $1, NewTable: $3 }
   }
+
+ignored_statement:
+  LOCK TABLES table_lock_list
+  {
+    $$ = &IgnoredStatement{ Statement: LockTables{ LockList: $3 } }
+  }
+| UNLOCK TABLES
+  {
+    $$ = &IgnoredStatement{ Statement: UnlockTables {} }
+  }
+| ENABLE KEYS
+  {
+    $$ = &IgnoredStatement{ Statement: EnableKeys {} }
+  }
+| DISABLE KEYS
+  {
+	$$ = &IgnoredStatement{ Statement: DisableKeys {} }
+  }
+
+table_lock_list:
+  table_lock
+  {
+    $$ = []TableLock{$1}
+  }
+| table_lock_list COMMA table_lock
+  {
+    $$ = append($1, $3)
+  }
+
+table_lock:
+  table_name as_opt lock_type
+  {
+    $$ = TableLock{TableName: $1, Alias: $2, LockType: $3}
+  }
+
+lock_type:
+  READ local_opt
+  {
+	$$ = GetLockType(string(READ_BYTES))
+  }
+| low_priority_opt WRITE
+  {
+    $$ = GetLockType(string(WRITE_BYTES))
+  }
+
+local_opt:
+  | {}
+  LOCAL {}
+
+low_priority_opt:
+  | {}
+  LOW_PRIORITY {}
 
 alter_statement:
   ALTER TABLE table_name alter_spec_list
@@ -3013,6 +3074,14 @@ keyword_as_id:
   {
     $$ = string(DECIMAL_BYTES)
   }
+| DISABLE
+  {
+    $$ = string(DISABLE_BYTES)
+  }
+| ENABLE
+  {
+    $$ = string(ENABLE_BYTES)
+  }
 | ENGINE
   {
     $$ = string(ENGINE_BYTES)
@@ -3088,6 +3157,10 @@ keyword_as_id:
 | LEVEL
   {
     $$ = string(LEVEL_BYTES)
+  }
+| LOCAL
+  {
+    $$ = string(LOCAL_BYTES)
   }
 | LOGS
   {

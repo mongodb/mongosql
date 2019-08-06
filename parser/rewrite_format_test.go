@@ -8,18 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRewrite(t *testing.T) {
+func TestRewriteAndFormat(t *testing.T) {
 	// All of these tests call .Copy() on their inputs to give coverage for our
 	// Copy() implementations.
-	// These tests also test our output formatting.
-	t.Run("constant scalar functions", testRewriteConstantScalarFunctions)
-	t.Run("distinct", testRewriteDistinct)
-	t.Run("command", testRewriteCommand)
+	// These tests also test the output of Format.
+	t.Run("constant scalar functions", testRewriteAndFormatConstantScalarFunctions)
+	t.Run("distinct", testRewriteAndFormatDistinct)
+	t.Run("command", testRewriteAndFormatCommand)
+	t.Run("ignored", testRewriteAndFormatIgnored)
 	t.Run("namer", testNamer)
-	t.Run("query", testRewriteQuery)
+	t.Run("query", testRewriteAndFormatQuery)
 }
 
-func testRewriteConstantScalarFunctions(t *testing.T) {
+func testRewriteAndFormatConstantScalarFunctions(t *testing.T) {
 	tcases := []struct {
 		desc       string
 		query      string
@@ -159,7 +160,7 @@ func testRewriteConstantScalarFunctions(t *testing.T) {
 	}
 }
 
-func testRewriteDistinct(t *testing.T) {
+func testRewriteAndFormatDistinct(t *testing.T) {
 	tcases := []struct {
 		desc     string
 		query    string
@@ -312,7 +313,7 @@ func testRewriteDistinct(t *testing.T) {
 	}
 }
 
-func testRewriteCommand(t *testing.T) {
+func testRewriteAndFormatCommand(t *testing.T) {
 	tcases := []struct {
 		desc     string
 		command  string
@@ -453,7 +454,7 @@ func testNamer(t *testing.T) {
 	}
 }
 
-func testRewriteQuery(t *testing.T) {
+func testRewriteAndFormatQuery(t *testing.T) {
 	tcases := []struct {
 		desc     string
 		query    string
@@ -651,6 +652,51 @@ func testRewriteQuery(t *testing.T) {
 			newTree, err := parser.DesugarQuery(tree.Copy().(parser.Statement))
 			req.NoError(err)
 
+			buf := parser.NewTrackedBuffer(nil)
+			newTree.Format(buf)
+			newTreeStr := buf.String()
+			req.Equal(tcase.expected, newTreeStr)
+		})
+	}
+}
+
+func testRewriteAndFormatIgnored(t *testing.T) {
+	tcases := []struct {
+		desc     string
+		command  string
+		expected string
+	}{
+		{
+			desc:     "complex table locks",
+			command:  "lock tables scalar READ lOcAL, scalar2 as sc WRITE, scalar3 as sc3 READ, scalar4 as sc4 low_priority wRiTe",
+			expected: "/* IGNORED */ lock tables scalar as `scalar` read, scalar2 as `sc` write, scalar3 as `sc3` read, scalar4 as `sc4` write",
+		},
+		{
+			desc:     "unlock tables",
+			command:  "UnLoCK TABLES",
+			expected: "/* IGNORED */ unlock tables",
+		},
+		{
+			desc:     "enable keys",
+			command:  "EnABLE KeYS",
+			expected: "/* IGNORED */ enable keys",
+		},
+		{
+			desc:     "disable keys",
+			command:  "DiSABLE KeYS",
+			expected: "/* IGNORED */ disable keys",
+		},
+	}
+
+	for _, tcase := range tcases {
+		t.Run(tcase.desc, func(t *testing.T) {
+			req := require.New(t)
+
+			tree, err := parser.Parse(tcase.command)
+			req.NoError(err)
+
+			newTree, err := parser.DesugarCommand(tree.Copy().(parser.Statement))
+			req.Nil(err)
 			buf := parser.NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
