@@ -274,6 +274,21 @@ func TestParseArgs_Valid3(t *testing.T) {
 	testBool(t, cfg.Schema.WriteMode, true, "cfg.Schema.WriteMode")
 }
 
+func TestParseArgs_Valid4(t *testing.T) {
+	cfg := Default()
+	args := []string{
+		// set mongo uri to SRV style uri
+		"--mongo-uri", "mongodb+srv://localhost",
+	}
+
+	_, err := ParseArgs(cfg, args)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testString(t, cfg.MongoDB.Net.URI, "mongodb+srv://localhost", "cfg.MongoDB.Net.URI")
+}
+
 func TestParseArgs_Invalid(t *testing.T) {
 	var shortOptDelim, longOptDelim string
 	if runtime.GOOS == "windows" {

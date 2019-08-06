@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-1444: Add support for SRV style connection URI to `mongodrdl` and `mongosqld`.
 BI-1067: Add support to `mongodrdl` for `--uri` flag.
 BI-2237: Added docs links to cli help output.
 BI-2196: Fixed a bug that caused some queries with aggregate functions to fail to push down.

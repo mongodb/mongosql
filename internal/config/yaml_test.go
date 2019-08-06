@@ -269,6 +269,20 @@ net:
 	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
 }
 
+func TestParseYaml_MongodbSRVURI(t *testing.T) {
+	cfg := Default()
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    uri: "mongodb+srv://hostname"
+`))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testString(t, cfg.MongoDB.Net.URI, "mongodb+srv://hostname", "cfg.MongoDB.Net.URI")
+}
+
 func TestParseYaml_RefreshInterval(t *testing.T) {
 	cfg := Default()
 	err := ParseYaml(cfg, bytes.NewBufferString(`

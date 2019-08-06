@@ -258,6 +258,115 @@ func TestLoad(t *testing.T) {
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
 }
 
+func TestLoadWithSRVURI(t *testing.T) {
+	args := []string{"--config", "testdata/sample_srv.conf"}
+
+	cfg, _, err := Load(args)
+	if err != nil {
+		t.Fatalf("expected no error, but got '%v'", err)
+	}
+
+	testBool(t, cfg.SystemLog.LogAppend, true, "cfg.SystemLog.LogAppend")
+	testString(t, string(cfg.SystemLog.LogRotate), string(log.Reopen), "cfg.SystemLog.LogRotate")
+	testString(t, cfg.SystemLog.Path, "temp", "cfg.SystemLog.Path")
+	testBool(t, cfg.SystemLog.Quiet, true, "cfg.SystemLog.Quiet")
+	testInt64(t, cfg.SystemLog.Verbosity, 2, "cfg.SystemLog.Verbosity")
+
+	testString(t, cfg.Schema.Path, "/var/test", "cfg.Schema.Path")
+	testUint64(t, cfg.Schema.MaxVarcharLength, 1000, "cfg.Schema.MaxVarcharLength")
+	testInt64(t, cfg.Schema.RefreshIntervalSecs, 983, "cfg.Schema.RefreshIntervalSecs")
+	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
+	testStoredSchemaMode(t, cfg.Schema.Stored.Mode, CustomStoredSchemaMode, "cfg.Schema.Stored.Mode")
+	testString(t, cfg.Schema.Sample.SchemaMappingMode, "majority", "cfg.Schema.Sample.SchemaMappingMode")
+	testString(t, cfg.Schema.Stored.Source, "sampleDb", "cfg.Schema.Stored.Source")
+	testString(t, cfg.Schema.Stored.Name, "mySchema", "cfg.Schema.Stored.Name")
+	testInt64(t, cfg.Schema.Sample.Size, 969, "cfg.Schema.Sample.Size")
+	testBool(t, cfg.Schema.Sample.PreJoin, true, "cfg.Schema.Sample.PreJoin")
+	testStringSlice(t, cfg.Schema.Sample.Namespaces, []string{"foo.*", "*.bar"},
+		"cfg.Schema.Sample.Namespaces")
+	testString(t, cfg.Schema.Sample.UUIDSubtype3Encoding, "java",
+		"cfg.Schema.Sample.UUIDSubtype3Encoding",
+	)
+
+	testUint64(t, cfg.Runtime.Memory.MaxPerServer, 2000000, "cfg.Runtime.Memory.MaxPerServer")
+	testUint64(t, cfg.Runtime.Memory.MaxPerConnection, 1000000,
+		"cfg.Runtime.Memory.MaxPerConnection")
+	testUint64(t, cfg.Runtime.Memory.MaxPerStage, 102400, "cfg.Runtime.Memory.MaxPerStage")
+
+	testStringSlice(t, cfg.Net.BindIP, []string{"192.168.20.1"}, "cfg.Net.BindIP")
+	testInt(t, cfg.Net.Port, 3306, "cfg.Net.Port")
+	testBool(t, cfg.Net.UnixDomainSocket.Enabled, false, "cfg.Net.UnixDomainSocket.Enabled")
+	testString(t, cfg.Net.UnixDomainSocket.PathPrefix, "/var",
+		"cfg.Net.UnixDomainSocket.PathPrefix")
+	testString(t, cfg.Net.UnixDomainSocket.FilePermissions, "0600",
+		"cfg.Net.UnixDomainSocket.FilePermissions")
+
+	testString(t, cfg.Net.SSL.Mode, "requireSSL", "cfg.Net.SSL.Mode")
+	testBool(t, cfg.Net.SSL.AllowInvalidCertificates, true, "cfg.Net.SSL.AllowInvalidCertificates")
+	testString(t, cfg.Net.SSL.PEMKeyFile, "pemkeyfile", "cfg.Net.SSL.PEMKeyFile")
+	testString(t, cfg.Net.SSL.PEMKeyPassword, "pemkeypassword", "cfg.Net.SSL.PEMKeyPassword")
+	testString(t, cfg.Net.SSL.CAFile, "cafile", "cfg.Net.SSL.CAFile")
+	testString(t, cfg.Net.SSL.MinimumTLSVersion, "TLS1_0", "cfg.Net.SSL.MinimumTLSVersion")
+
+	testBool(t, cfg.Security.Enabled, true, "cfg.Security.Enabled")
+	testString(t, cfg.Security.DefaultMechanism, "GSSAPI", "cfg.Security.DefaultMechanism")
+	testString(t, cfg.Security.DefaultSource, "$external", "cfg.Security.DefaultSource")
+
+	testString(t, cfg.Security.GSSAPI.Hostname, "something", "cfg.Security.GSSAPI.Hostname")
+	testString(t, cfg.Security.GSSAPI.ServiceName, "awesome", "cfg.Security.GSSAPI.ServiceName")
+
+	testString(t, cfg.MongoDB.VersionCompatibility, "3.2", "cfg.MongoDB.VersionCompatibility")
+	testString(t, cfg.MongoDB.Net.URI, "mongodb+srv://hostname", "cfg.MongoDB.Net.URI")
+	testInt(t, cfg.MongoDB.Net.NumConnectionsPerSession, 3,
+		"cfg.MongoDB.Net.NumConnectionsPerSession")
+
+	testString(t, cfg.MongoDB.Net.Auth.Username, "user", "cfg.MongoDB.Net.Auth.Username")
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pass", "cfg.MongoDB.Net.Auth.Password")
+	testString(t, cfg.MongoDB.Net.Auth.Source, "adminer", "cfg.MongoDB.Net.Auth.Source")
+	testString(t, cfg.MongoDB.Net.Auth.Mechanism, "SCRAM-SHA-256", "cfg.MongoDB.Net.Auth.Mechanism")
+	testString(t, cfg.MongoDB.Net.Auth.GSSAPIServiceName, "hola",
+		"cfg.MongoDB.Net.Auth.GSSAPIServiceName")
+
+	testBool(t, cfg.MongoDB.Net.SSL.Enabled, true, "cfg.MongoDB.Net.SSL.Enabled")
+	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidCertificates, true,
+		"cfg.MongoDB.Net.SSL.AllowInvalidCertificates")
+	testBool(t, cfg.MongoDB.Net.SSL.AllowInvalidHostnames, true,
+		"cfg.MongoDB.Net.SSL.AllowInvalidHostnames")
+	testString(t, cfg.MongoDB.Net.SSL.PEMKeyFile, "mongopemkeyfile",
+		"cfg.MongoDB.Net.SSL.PEMKeyFile")
+	testString(t, cfg.MongoDB.Net.SSL.PEMKeyPassword, "mongopemkeypassword",
+		"cfg.MongoDB.Net.SSL.PEMKeyPassword")
+	testString(t, cfg.MongoDB.Net.SSL.CAFile, "mongocafile", "cfg.MongoDB.Net.SSL.CAFile")
+	testString(t, cfg.MongoDB.Net.SSL.CRLFile, "mongocrlfile", "cfg.MongoDB.Net.SSL.CRLFile")
+	testBool(t, cfg.MongoDB.Net.SSL.FIPSMode, true, "cfg.MongoDB.Net.SSL.FIPSMode")
+	testString(t, cfg.MongoDB.Net.SSL.MinimumTLSVersion, "TLS1_0",
+		"cfg.MongoDB.Net.SSL.MinimumTLSVersion")
+
+	testString(t, cfg.Metrics.StitchURL, "https://stitchapp.com/endpoint", "cfg.Metrics.StitchURL")
+
+	testString(t, cfg.ProcessManagement.Service.Name, "oompa",
+		"cfg.ProcessManagement.Service.Name")
+	testString(t, cfg.ProcessManagement.Service.DisplayName, "loompa",
+		"cfg.ProcessManagement.Service.DisplayName")
+	testString(t, cfg.ProcessManagement.Service.Description, "doompa tee do",
+		"cfg.ProcessManagement.Service.Description")
+
+	testBool(t, cfg.SetParameter.EnableTableAlterations, true, "cfg.SetParameter.EnableTableAlterations")
+	testString(t, cfg.SetParameter.MetricsBackend, "stitch", "cfg.SetParameter.MetricsBackend")
+	testBool(t, cfg.SetParameter.OptimizeCrossJoins, false, "cfg.SetParameter.OptimizeCrossJoins")
+	testBool(t, cfg.SetParameter.OptimizeEvaluations, false, "cfg.SetParameter.OptimizeEvaluations")
+	testBool(t, cfg.SetParameter.OptimizeFiltering, false, "cfg.SetParameter.OptimizeFiltering")
+	testBool(t, cfg.SetParameter.OptimizeInnerJoins, false, "cfg.SetParameter.OptimizeInnerJoins")
+	testBool(t, cfg.SetParameter.OptimizeSelfJoins, false, "cfg.SetParameter.OptimizeSelfJoins")
+	testBool(t, cfg.SetParameter.OptimizeViewSampling, false, "cfg.SetParameter.OptimizeViewSampling")
+	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "fast", "cfg.SetParameter.PolymorphicTypeConversionMode")
+	testBool(t, cfg.SetParameter.Pushdown, false, "cfg.SetParameter.Pushdown")
+	testString(t, cfg.SetParameter.TypeConversionMode, "mysql", "cfg.SetParameter.TypeConversionMode")
+
+	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
+	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
+}
+
 func TestLoadWithCLIArgs(t *testing.T) {
 	args := []string{
 		"--config", "testdata/sample.conf",

@@ -39,7 +39,8 @@ func NewDrdlSessionProvider(rp *readpref.ReadPref, t *topology.Topology, timeout
 // NewSqldSessionProvider creates a new session provider for mongosql.
 func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 	uri := cfg.MongoDB.Net.URI
-	if !strings.HasPrefix(uri, MongoDBScheme) {
+	if !strings.HasPrefix(uri, MongoDBScheme) &&
+		!strings.HasPrefix(uri, MongoDBSRVScheme) {
 		uri = fmt.Sprintf("%v%v", MongoDBScheme, uri)
 	}
 
