@@ -19,6 +19,13 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
+// URI literals
+const (
+	MongoDBScheme     = "mongodb://"
+	MongoDBSRVScheme  = "mongodb+srv://"
+	DefaultMongoDBURI = "mongodb://localhost:27017"
+)
+
 // NewDrdlSessionProvider creates a new session provider for mongodrdl.
 func NewDrdlSessionProvider(rp *readpref.ReadPref, t *topology.Topology, timeout time.Duration, numConns int) *SessionProvider {
 	return &SessionProvider{
@@ -32,8 +39,8 @@ func NewDrdlSessionProvider(rp *readpref.ReadPref, t *topology.Topology, timeout
 // NewSqldSessionProvider creates a new session provider for mongosql.
 func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 	uri := cfg.MongoDB.Net.URI
-	if !strings.HasPrefix(uri, bsonutil.MongoDBScheme) {
-		uri = fmt.Sprintf("%v%v", bsonutil.MongoDBScheme, uri)
+	if !strings.HasPrefix(uri, MongoDBScheme) {
+		uri = fmt.Sprintf("%v%v", MongoDBScheme, uri)
 	}
 
 	cs, err := connstring.Parse(uri)

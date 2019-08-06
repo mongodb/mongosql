@@ -3,10 +3,7 @@ package mongodrdl
 import (
 	"context"
 	"fmt"
-	"strings"
 
-	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/internal/password"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 
@@ -117,11 +114,12 @@ func createDrdlSSLContext(opts DrdlOptions) (*openssl.Ctx, error) {
 // newDrdlSessionProvider creates a new session provider for mongodrdl using the supplied
 // DRDL configuration options.
 func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) {
-	if opts.DrdlAuth.ShouldAskForPassword() {
-		opts.DrdlAuth.Password = password.Prompt()
-	}
+	var err error
 
-	cs, err := parseDrdlOptions(opts)
+	// Ensure the password is set. If we need to ask the user, this method will
+	// prompt for password input and set it appropriately.
+	opts.EnsurePassword()
+	cs, err := opts.ConnString()
 	if err != nil {
 		return nil, err
 	}
@@ -185,52 +183,6 @@ func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) 
 	return mongodb.NewDrdlSessionProvider(readPref, t, timeout, numDrdlConnsPerSession), nil
 }
 
-func parseDrdlOptions(opts DrdlOptions) (connstring.ConnString, error) {
-	uri := opts.Host
-
-	if uri == "" {
-		uri = bsonutil.DefaultMongoDBURI
-	}
-
-	if !strings.HasPrefix(uri, bsonutil.MongoDBScheme) {
-		uri = fmt.Sprintf("%v%v", bsonutil.MongoDBScheme, uri)
-	}
-
-	cs, err := connstring.Parse(uri)
-	if err != nil {
-		return cs, err
-	}
-
-	if cs.ReplicaSet == "" {
-		cs.Connect = connstring.SingleConnect
-	}
-
-	cs.Username = opts.DrdlAuth.Username
-
-	if opts.DrdlAuth.Password != "" {
-		cs.Password = opts.DrdlAuth.Password
-		cs.PasswordSet = true
-	}
-
-	cs.AuthMechanism = opts.DrdlAuth.Mechanism
-
-	if cs.AuthMechanism == "GSSAPI" {
-		cs.AuthMechanismProperties = map[string]string{}
-		if opts.DrdlKerberos.Service != "" {
-			cs.AuthMechanismProperties["SERVICE_NAME"] = opts.DrdlKerberos.Service
-		}
-		if opts.DrdlKerberos.ServiceHost != "" {
-			cs.AuthMechanismProperties["SERVICE_HOST"] = opts.DrdlKerberos.ServiceHost
-		}
-	}
-
-	if s := opts.GetAuthenticationDatabase(); s != "" {
-		cs.AuthSource = s
-	}
-
-	return cs, nil
-}
-
 // getSession returns a mongodb.Session with the connection options specified
 // by the provided DrdlOptions.
 func getSession(ctx context.Context, opts DrdlOptions) (*mongodb.Session, error) {
@@ -255,7 +207,7 @@ func drdlDialer(opts DrdlOptions) (topology.DialerFunc, error) {
 	}
 	var flags openssl.DialFlags
 
-	if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost || opts.SSLCAFile == "" {
+	if opts.DrdlSSL.SSLAllowInvalidCert || opts.DrdlSSL.SSLAllowInvalidHost || opts.DrdlSSL.SSLCAFile == "" {
 		flags = openssl.InsecureSkipHostVerification
 	}
 

@@ -42,9 +42,9 @@ func main() {
 		os.Exit(procutil.ExitBadOptions)
 	}
 
-	// connect directly, unless a replica set name is explicitly specified
-	_, setName := procutil.ParseConnectionString(opts.Host)
-	opts.ReplicaSetName = setName
+	//// connect directly, unless a replica set name is explicitly specified
+	//_, setName := procutil.ParseConnectionString(opts.Host)
+	//opts.ReplicaSetName = setName
 
 	verbosity := opts.DrdlLog.Level()
 	if opts.DrdlLog.Quiet {

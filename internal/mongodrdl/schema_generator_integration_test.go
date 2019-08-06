@@ -378,8 +378,16 @@ func createDRDLOpts(db string) (DrdlOptions, error) {
 		return *opts, err
 	}
 
-	opts.DrdlNamespace.DB = db
-	opts.DrdlConnection.Host = host
+	args := []string{
+		"--db", db,
+		"--host", host,
+	}
+
+	err = opts.Parse(args)
+	if err != nil {
+		return *opts, err
+	}
+
 	opts.DrdlSSL = getSSLOpts()
 	opts.DrdlOutput.Out = fmt.Sprintf("out/%s.yml", db)
 	opts.DrdlOutput.PreJoined = true

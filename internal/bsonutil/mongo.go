@@ -4,12 +4,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// URI literals
-const (
-	MongoDBScheme     = "mongodb://"
-	DefaultMongoDBURI = "mongodb://localhost:27017"
-)
-
 func bsonDToMap(doc bson.D) map[string]interface{} {
 	m := map[string]interface{}{}
 	for _, e := range doc {

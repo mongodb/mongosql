@@ -27,7 +27,7 @@ func GenerateSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) error 
 	var err error
 	// get the schema bytes
 	var schemaBytes []byte
-	if opts.Collection == "" {
+	if opts.Collection() == "" {
 		schemaBytes, err = databaseSchema(ctx, lg, opts)
 		if err != nil {
 			return err
@@ -74,8 +74,8 @@ func getOutputWriter(out string) (io.WriteCloser, error) {
 // collectionSchema returns marshaled bytes of the generated collection schema.
 func collectionSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) ([]byte, error) {
 	namespaces := []string{fmt.Sprintf("%v.%v",
-		opts.DrdlNamespace.DB,
-		opts.DrdlNamespace.Collection,
+		opts.DB(),
+		opts.Collection(),
 	)}
 	return schemaForNamespaces(ctx, lg, opts, namespaces)
 }
@@ -83,7 +83,7 @@ func collectionSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) ([]b
 // databaseSchema returns marshaled bytes of the generated database schema.
 func databaseSchema(ctx context.Context, lg log.Logger, opts DrdlOptions) ([]byte, error) {
 	namespaces := []string{
-		fmt.Sprintf("%v.*", opts.DrdlNamespace.DB),
+		fmt.Sprintf("%v.*", opts.DB()),
 	}
 	return schemaForNamespaces(ctx, lg, opts, namespaces)
 }
@@ -111,7 +111,7 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts DrdlOptions, n
 			&drdl.Schema{
 				Databases: []*drdl.Database{
 					{
-						Name: opts.DrdlNamespace.DB,
+						Name: opts.DB(),
 					},
 				},
 			},
