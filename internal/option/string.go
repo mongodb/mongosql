@@ -1,5 +1,7 @@
 package option
 
+import "fmt"
+
 // String represents an optional string value.
 type String struct {
 	isSome bool
@@ -77,4 +79,11 @@ func (s String) Map(f StringMapFunc) String {
 		s.str = f(s.str)
 	}
 	return s
+}
+
+// String returns a string representation of this String.
+func (s String) String() string {
+	return s.
+		Map(func(s string) string { return fmt.Sprintf("Some(%q)", s) }).
+		Else("None")
 }

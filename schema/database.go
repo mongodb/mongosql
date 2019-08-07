@@ -80,6 +80,18 @@ func (d *Database) addTable(t *Table) {
 	d.invalidateCachedSort()
 }
 
+// DropTable drops a table by name.
+func (d *Database) DropTable(tableName string) error {
+	key := normalizeSQLName(tableName)
+	if _, ok := d.tables[key]; !ok {
+		return fmt.Errorf("table '%s.%s' cannot be dropped, no such table in database '%s'",
+			d.name, tableName, d.name)
+	}
+	delete(d.tables, key)
+	d.invalidateCachedSort()
+	return nil
+}
+
 // cacheSort caches the provided sorted slice of tables.
 func (d *Database) cacheSort(tbls []*Table) {
 	d.cacheLock.Lock()

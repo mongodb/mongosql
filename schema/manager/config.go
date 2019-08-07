@@ -63,6 +63,9 @@ func NewMongosqldConfig(cfg *config.Schema, vars *variable.Container, fileBasedS
 }
 
 func (mc mongosqldConfig) Mode() SchemaMode {
+	if mc.cfg.WriteMode {
+		return WriteSchemaMode
+	}
 	switch mc.cfg.Stored.Mode {
 	case config.CustomStoredSchemaMode:
 		return CustomSchemaMode

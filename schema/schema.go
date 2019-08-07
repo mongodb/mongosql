@@ -176,6 +176,17 @@ func (s *Schema) Equals(other *Schema) error {
 	return nil
 }
 
+// DropDatabase drops a database.
+func (s *Schema) DropDatabase(db string) error {
+	dbSch := s.Database(db)
+	if dbSch == nil {
+		return fmt.Errorf("database '%s' cannot be dropped as it does not exist", db)
+	}
+	delete(s.databases, normalizeSQLName(db))
+	s.invalidateCachedSort()
+	return nil
+}
+
 // getCachedSortedDatabases returns a shallow copy of this schema's cached sort.
 func (s *Schema) getCachedSortedDatabases() []*Database {
 	s.cacheLock.RLock()

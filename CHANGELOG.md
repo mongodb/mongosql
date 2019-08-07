@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2240: No user-facing changes.
 BI-2104: Improved pushdown performance of queries with an EXISTS subquery.
 BI-2260: Added pushdown for char and str_to_date functions. Fixed a bug where str_to_date returned a date instead of a datetime for some non-constant format-string arguments.
 BI-1547: New keywords: low_priority, unlock

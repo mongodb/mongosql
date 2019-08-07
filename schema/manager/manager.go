@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -14,6 +15,7 @@ import (
 	"github.com/10gen/sqlproxy/schema/persist"
 	"github.com/10gen/sqlproxy/schema/sample"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
@@ -23,6 +25,14 @@ type Persistor interface {
 	InsertSchema(context.Context, *drdl.Schema) (primitive.ObjectID, error)
 	UpsertName(context.Context, string, primitive.ObjectID) error
 	FindSchemaByName(context.Context, string) (*drdl.Schema, error)
+}
+
+// UserSession is an interface abstracting the methods of *mongodb.Session
+// needed by a write mode Manager.
+type UserSession interface {
+	DropDatabase(context.Context, string) error
+	DropCollection(context.Context, string, string) error
+	Run(context.Context, string, bson.D, interface{}) error
 }
 
 // Sampler is an interface that encompasses the sampling behavior required by
@@ -155,7 +165,7 @@ func (mgr *Manager) initializeSchema(ctx context.Context) {
 	procutil.RetryWithDelay(ctx.Done(), 5*time.Second, true, func() bool {
 		mgr.lg.Infof(log.Admin, "attempting to initialize schema")
 
-		_, err := mgr.refreshSchema(ctx)
+		_, err := mgr.obtainSchema(ctx)
 
 		// if there was an error trying to get the initial schema, return false
 		// so the operation will be retried
@@ -251,13 +261,129 @@ func (mgr *Manager) Close() {
 	mgr.cancelMx.Unlock()
 }
 
+// DropDatabase drops a database.
+func (mgr *Manager) DropDatabase(ctx context.Context, db string,
+	session UserSession) (*schema.Schema, error) {
+	if mgr.cfg.Mode() != WriteSchemaMode {
+		return nil, fmt.Errorf("drop database only allowed in write mode")
+	}
+	sch := mgr.getSchema()
+	schDB := sch.Database(db)
+	if schDB == nil {
+		return nil, fmt.Errorf("database '%s' cannot be dropped as it does not exist", db)
+	}
+	// Cleanup MongoDB before we change the schema.
+	err := session.DropDatabase(ctx, db)
+	if err != nil {
+		return nil, err
+	}
+	err = sch.DropDatabase(db)
+	if err != nil {
+		return nil, err
+	}
+	mgr.setSchema(sch)
+	return sch, nil
+}
+
+// CreateDatabase creates a database. It does not actually change
+// the state of MongoDB because databases are created implicitly.
+func (mgr *Manager) CreateDatabase(ctx context.Context, db string) (*schema.Schema, error) {
+	if mgr.cfg.Mode() != WriteSchemaMode {
+		return nil, fmt.Errorf("create database only allowed in write mode")
+	}
+	sch := mgr.getSchema()
+	database := schema.NewDatabase(mgr.lg, db, []*schema.Table{})
+	err := sch.AddDatabase(database)
+	if err != nil {
+		return nil, err
+	}
+	mgr.setSchema(sch)
+	return sch, nil
+}
+
+// DropTable drops a table.
+func (mgr *Manager) DropTable(ctx context.Context, db, table string,
+	session UserSession) (*schema.Schema, error) {
+	if mgr.cfg.Mode() != WriteSchemaMode {
+		return nil, fmt.Errorf("drop table only allowed in write mode")
+	}
+	sch := mgr.getSchema()
+	schDB := sch.Database(db)
+	if schDB == nil {
+		return nil, fmt.Errorf("table '%s.%s' cannot be dropped, database '%s' does not exist",
+			db, table, db)
+	}
+	schTable := schDB.Table(table)
+	if schTable == nil {
+		return nil, fmt.Errorf("table '%s.%s' cannot be dropped, no such table in database '%s'",
+			db, table, db)
+	}
+	// Cleanup MongoDB before we change the schema.
+	err := session.DropCollection(ctx, db, table)
+	if err != nil {
+		return nil, err
+	}
+	err = schDB.DropTable(table)
+	if err != nil {
+		return nil, err
+	}
+	mgr.setSchema(sch)
+	return sch, nil
+}
+
+// CreateTable creates a table.
+func (mgr *Manager) CreateTable(ctx context.Context, db string,
+	tbl *schema.Table, session UserSession) (*schema.Schema, error) {
+	if mgr.cfg.Mode() != WriteSchemaMode {
+		return nil, fmt.Errorf("create table only allowed in write mode")
+	}
+	sch := mgr.getSchema()
+	logger := mgr.lg
+	database := sch.Database(db)
+	if database == nil {
+		return nil, fmt.Errorf("unknown database '%s'", db)
+	}
+	// We must create the collection in MongoDB before we update
+	// the schema. However, we will update the schema before
+	// we add the indexes, so that users may drop the table manually
+	// in the case where index creation failed.
+	createCol, err := tbl.GenerateCreateCollection()
+	if err != nil {
+		return nil, err
+	}
+	result := bsonutil.NewD()
+	err = session.Run(ctx, db, createCol, &result)
+	if err != nil {
+		return nil, err
+	}
+	if database.Table(tbl.SQLName()) != nil {
+		return nil, fmt.Errorf("table '%s' already exists in database '%s'", tbl.SQLName(), db)
+	}
+	copiedTable := tbl.DeepCopy()
+	database.AddTable(logger, copiedTable)
+	createIndexes := tbl.GenerateCreateIndexes()
+	if len(createIndexes) != 0 {
+		err = session.Run(ctx, db, createIndexes, &result)
+		if err != nil {
+			// If we failed to create indexes, remove the indexes from the table
+			// schema, and also return that we failed to create indexes. The user
+			// will be able to drop their table, if they wish to try again.
+			copiedTable.DropIndexes()
+			mgr.setSchema(sch)
+			return sch, fmt.Errorf("failed to create indexes for table '%s.%s'", db, tbl.SQLName())
+		}
+	}
+	mgr.setSchema(sch)
+	return sch, nil
+}
+
 // Schema gets a copy of the current schema. If the manager is running in
 // custom-schema mode, it will first attempt to refresh the schema. If the
 // returned schema is nil, then an initial schema is not yet available. This
 // function is thread-safe.
 func (mgr *Manager) Schema(ctx context.Context) *schema.Schema {
 	if mgr.cfg.Mode() == CustomSchemaMode {
-		_, err := mgr.refreshSchema(ctx)
+		_, err := mgr.obtainSchema(ctx)
 		if err != nil {
 			mgr.setLastErr(err, "failed to refresh custom schema")
 		}
@@ -305,11 +431,15 @@ func (mgr *Manager) Resample(ctx context.Context) (*schema.Schema, error) {
 		return nil, fmt.Errorf("cannot resample when using a file-based schema")
 	case CustomSchemaMode:
 		return nil, fmt.Errorf("cannot resample in custom-schema mode")
+	case WriteSchemaMode:
+		return nil, fmt.Errorf("cannot resample in write mode")
 	case StandaloneSchemaMode, AutoSchemaMode:
 		// resampling is allowed in these modes
+	default:
+		panic(fmt.Sprintf("unknown schema manager mode '%s'", mgr.cfg.Mode()))
 	}
 
-	return mgr.refreshSchema(ctx)
+	return mgr.obtainSchema(ctx)
 }
 
 // Alter applies the provided alterations to the current schema, persisting the
@@ -317,6 +447,8 @@ func (mgr *Manager) Resample(ctx context.Context) (*schema.Schema, error) {
 func (mgr *Manager) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.Schema, error) {
 
 	switch mgr.cfg.Mode() {
+	case WriteSchemaMode:
+		return nil, fmt.Errorf("alterations not allowed in write mode")
 	case CustomSchemaMode, AutoSchemaMode:
 		return nil, fmt.Errorf("alterations not allowed in stored-schema modes")
 	}
@@ -336,10 +468,10 @@ func (mgr *Manager) Alter(ctx context.Context, alts []*schema.Alteration) (*sche
 	return altered, nil
 }
 
-// refreshSchema obtains a new schema via the mechanism indicated by the current
+// obtainSchema obtains a new schema via the mechanism indicated by the current
 // mode and sets it as the Manager's current schema. If the Manager is running
 // in auto schema mode, the updated schema is also persisted.
-func (mgr *Manager) refreshSchema(ctx context.Context) (*schema.Schema, error) {
+func (mgr *Manager) obtainSchema(ctx context.Context) (*schema.Schema, error) {
 	var newSch *schema.Schema
 	var err error
 
@@ -347,8 +479,8 @@ func (mgr *Manager) refreshSchema(ctx context.Context) (*schema.Schema, error) {
 	case CustomSchemaMode:
 		// in custom mode, just get the most recent stored schema
 		newSch, err = mgr.fetchStoredSchema(ctx)
-	case StandaloneSchemaMode:
-		// in standalone mode, just resample to get a new schema
+	case StandaloneSchemaMode, WriteSchemaMode:
+		// in standalone mode or writeMode, just sample to get the schema
 		newSch, err = mgr.sampleSchema(ctx)
 	case AutoSchemaMode:
 		// in auto mode, resample and then persist the sampled schema
@@ -357,7 +489,7 @@ func (mgr *Manager) refreshSchema(ctx context.Context) (*schema.Schema, error) {
 			err = mgr.persistSchema(ctx, newSch)
 		}
 	case FileBasedSchemaMode:
-		panic("refreshSchema should never be called in file-based schema mode")
+		panic("obtainSchema should never be called in file-based schema mode")
 	default:
 		panic(fmt.Errorf("unknown schema mode %q", mgr.cfg.Mode()))
 	}
@@ -379,8 +511,8 @@ func (mgr *Manager) runSchemaRefreshLoop(ctx context.Context) {
 	// wait until an initial schema has been obtained
 	mgr.initializeSchema(ctx)
 
-	// If we are in file-based schema mode, no loop is necessary, so we just exit.
-	if mgr.cfg.Mode() == FileBasedSchemaMode {
+	// If we are in file-based schema mode or writeMode, no loop is necessary, so we just exit.
+	if mgr.cfg.Mode() == FileBasedSchemaMode || mgr.cfg.Mode() == WriteSchemaMode {
 		return
 	}
 
@@ -413,7 +545,7 @@ func (mgr *Manager) runSchemaRefreshLoop(ctx context.Context) {
 			continue
 		}
 
-		_, err := mgr.refreshSchema(ctx)
+		_, err := mgr.obtainSchema(ctx)
 		if err != nil {
 			mgr.setLastErr(err, "error refreshing schema")
 			continue

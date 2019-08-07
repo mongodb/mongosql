@@ -1,5 +1,7 @@
 package option
 
+import "fmt"
+
 // Int represents an optional int value.
 type Int struct {
 	isSome bool
@@ -77,4 +79,23 @@ func (v Int) Map(f IntMapFunc) Int {
 		v.i = f(v.i)
 	}
 	return v
+}
+
+// IntMapStringFunc is a function that maps a int to a string.
+type IntMapStringFunc func(int) string
+
+// MapString returns a new String with its value transformed by the provided
+// IntMapStringFunc if a Some, and None otherwise.
+func (v Int) MapString(f IntMapStringFunc) String {
+	if v.IsSome() {
+		return SomeString(f(v.i))
+	}
+	return NoneString()
+}
+
+// Int returns a string representation of this Int.
+func (v Int) String() string {
+	return v.
+		MapString(func(i int) string { return fmt.Sprintf("Some(%d)", i) }).
+		Else("None")
 }

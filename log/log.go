@@ -324,8 +324,14 @@ func newLogger() Logger {
 }
 
 // NewComponentLogger returns a new logger that will write messages to the
-// provided parent logger with the specified component.
+// provided parent logger with the specified component. If this is a noopLogger
+// we should return the noopLogger, as it does not make sense to add components
+// to the noopLogger, and it causes nil pointer issues since the parent of the
+// noopLogger is nil.
 func NewComponentLogger(component string, logger Logger) Logger {
+	if _, isNoOpLogger := logger.(noopLogger); isNoOpLogger {
+		return logger
+	}
 	lg := &componentLogger{
 		component: component,
 		parent:    logger.getParent(),

@@ -425,6 +425,27 @@ func (s *Session) Version() (*VersionInfo, error) {
 	return &info, nil
 }
 
+// DropCollection drops a database with majority write concern.
+func (s *Session) DropCollection(ctx context.Context, db, col string) error {
+	cmd := operation.NewDropCollection().
+		Database(db).
+		Collection(col).
+		Deployment(s.deployment).
+		WriteConcern(writeconcern.New(writeconcern.WMajority()))
+
+	return cmd.Execute(ctx)
+}
+
+// DropDatabase drops a database with majority write concern.
+func (s *Session) DropDatabase(ctx context.Context, db string) error {
+	cmd := operation.NewDropDatabase().
+		Database(db).
+		Deployment(s.deployment).
+		WriteConcern(writeconcern.New(writeconcern.WMajority()))
+
+	return cmd.Execute(ctx)
+}
+
 // Run executes an arbitrary command against the given database.
 func (s *Session) Run(ctx context.Context, db string, cmd bson.D, result interface{}) error {
 	return mongoutil.ExecuteWithDeployment(ctx, db, s.deployment, cmd, result)

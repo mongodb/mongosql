@@ -349,6 +349,9 @@ func TestGenerateCreateCollection(t *testing.T) {
 									},
 									"description": "WORLD"
 								}
+							},
+							"writeConcern": {
+								"w": "majority"
 							}
 						}`,
 		},
@@ -411,7 +414,10 @@ func TestGenerateCreateIndexes(t *testing.T) {
 									"name": "b_text_c_text",
 									"unique": false
 								}
-							]
+							],
+							"writeConcern": {
+								"w": "majority"
+							}
 						}`,
 		},
 	}

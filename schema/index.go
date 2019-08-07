@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -57,6 +58,38 @@ func (is Indexes) collectNames() map[string]struct{} {
 		ret[index.sqlName] = struct{}{}
 	}
 	return ret
+}
+
+// Equals implements equality.
+func (i Index) Equals(other Index) error {
+	if i.sqlName != other.sqlName {
+		return fmt.Errorf("index sqlNames not equal %q and %q", i.sqlName, other.sqlName)
+	}
+
+	if i.mongoName != other.mongoName {
+		return fmt.Errorf("index mongoNames not equal %q and %q", i.mongoName, other.mongoName)
+	}
+
+	if i.unique != other.unique {
+		return fmt.Errorf("index unique setting not equal %v and %v", i.unique, other.unique)
+	}
+
+	if i.fullText != other.fullText {
+		return fmt.Errorf("index fullText setting not equal %v and %v", i.fullText, other.fullText)
+	}
+
+	if len(i.parts) != len(other.parts) {
+		return fmt.Errorf("number of index parts unequal %d and %d", len(i.parts), len(other.parts))
+	}
+
+	for j := range i.parts {
+		err := i.parts[j].Equals(other.parts[j])
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // makeName uses MongoDB's method of creating an index name from the keys and index types.
@@ -148,6 +181,20 @@ type IndexPart struct {
 	sqlName   string
 	mongoName string
 	direction Direction
+}
+
+// Equals implements equality.
+func (i *IndexPart) Equals(other IndexPart) error {
+	if i.sqlName != other.sqlName {
+		return fmt.Errorf("index part sqlNames are not equal %q and %q", i.sqlName, other.sqlName)
+	}
+	if i.mongoName != other.mongoName {
+		return fmt.Errorf("index part mongoNames are not equal %q and %q", i.mongoName, other.mongoName)
+	}
+	if i.direction != other.direction {
+		return fmt.Errorf("index part directions are not equal %d and %d", i.direction, other.direction)
+	}
+	return nil
 }
 
 // NewIndexPart creates a new IndexPart.

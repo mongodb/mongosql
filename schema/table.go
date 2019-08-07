@@ -53,10 +53,9 @@ type Table struct {
 	comment option.String
 }
 
-// NewTable creates a new table with the provided fields.
+// NewTable creates a table without normalizing and uniquing indexes.
 func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 	cols []*Column, indexes []Index, comment option.String) (*Table, error) {
-
 	primaryKeys := map[normalizedName]struct{}{}
 
 	table := &Table{
@@ -325,6 +324,13 @@ func (t *Table) Indexes() []Index {
 	return t.indexes
 }
 
+// DropIndexes drops the indexes. This is needed when
+// there is a failure to create indexes on a table that is
+// successfully created.
+func (t *Table) DropIndexes() {
+	t.indexes = Indexes{}
+}
+
 // Equals checks whether this Table is equal to the provided Table. The equality
 // check ignores the parent and isPostProcessed fields, as those fields are only
 // used for persisting some useful state during mongo-to-relational schema
@@ -376,6 +382,23 @@ func (t *Table) Equals(other *Table) error {
 		}
 	}
 
+	if len(t.indexes) != len(other.indexes) {
+		return fmt.Errorf(
+			"this table has indexes:\n%v\nother table has indexes:\n%v",
+			other.indexes, t.indexes,
+		)
+	}
+
+	for i := range t.indexes {
+		err := t.indexes[i].Equals(other.indexes[i])
+		if err != nil {
+			return err
+		}
+	}
+
+	if t.Comment() != other.Comment() {
+		return fmt.Errorf("table comments did not match: %s and %s", t.Comment().String(), t.Comment().String())
+	}
 	return nil
 }
 
@@ -656,6 +679,9 @@ func (t *Table) GenerateCreateCollection() (bson.D, error) {
 			bsonutil.NewDocElem("$jsonSchema", jsSchema),
 		),
 		),
+		bsonutil.NewDocElem("writeConcern", bsonutil.NewD(
+			bsonutil.NewDocElem("w", "majority"),
+		)),
 	)
 	return createCol, nil
 }
@@ -678,6 +704,9 @@ func (t *Table) GenerateCreateIndexes() bson.D {
 	createIndexes := bsonutil.NewD(
 		bsonutil.NewDocElem("createIndexes", t.MongoName()),
 		bsonutil.NewDocElem("indexes", indexes),
+		bsonutil.NewDocElem("writeConcern", bsonutil.NewD(
+			bsonutil.NewDocElem("w", "majority"),
+		)),
 	)
 	return createIndexes
 }
