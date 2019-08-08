@@ -356,3 +356,6 @@ test-flush-new-collection: build-mongosqld run-mongodb run-mongosqld _test-schem
 _test-flush-and-count: QUERY := flush sample,, select count(*) from information_schema.tables where table_name = 'sample_test'
 _test-flush-and-count: EXPECTED := 1
 _test-flush-and-count: _test-mysql-query
+
+_test-flush:
+	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' testdata/bin/test-flush.sh
