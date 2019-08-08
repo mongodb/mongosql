@@ -11,7 +11,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
-	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -37,22 +36,6 @@ func (ch *commandHandler) isAdminUser() bool {
 
 func (ch *commandHandler) Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error) {
 	return ch.conn.session.Aggregate(ctx, db, col, pipeline)
-}
-
-func (ch *commandHandler) Alter(ctx context.Context, alts []*schema.Alteration) error {
-	info := ch.conn.mongoDBInfo
-	if info.IsSecurityEnabled() {
-		if !(info.IsAllowedSampleSource(mongodb.InsertPrivilege|mongodb.UpdatePrivilege) || ch.isAdminUser()) {
-			return fmt.Errorf("must have `insert` and `update` privileges for the " +
-				"'sample source' or be admin user in order to alter tables")
-		}
-	}
-
-	sch, err := ch.conn.server.Alter(ctx, alts)
-	if err != nil {
-		return err
-	}
-	return ch.conn.updateCatalog(ctx, sch)
 }
 
 func (ch *commandHandler) Count(ctx context.Context, db, col string) (int, error) {

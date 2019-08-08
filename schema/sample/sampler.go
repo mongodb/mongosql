@@ -88,7 +88,7 @@ func (s Sampler) writeModeSample(ctx context.Context) (*schema.Schema, error) {
 	}
 	s.lg.Infof(log.Always, "done mapping")
 
-	return schema.New(databases, []*schema.Alteration{})
+	return schema.New(databases)
 }
 
 func (s Sampler) getWriteModeTables(ctx context.Context, session *mongodb.Session, db string) ([]*schema.Table, error) {
@@ -635,6 +635,6 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 	}
 
 	var sampledSchema *schema.Schema
-	sampledSchema, err = schema.New(sampledDatabases, nil)
+	sampledSchema, err = schema.New(sampledDatabases)
 	return sampledSchema, err
 }

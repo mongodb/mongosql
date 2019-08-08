@@ -36,9 +36,6 @@ type mockCmdHandler struct {
 func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error) {
 	return c.session.Aggregate(ctx, db, col, pipeline)
 }
-func (*mockCmdHandler) Alter(context.Context, []*schema.Alteration) error {
-	panic("unimplemented")
-}
 func (c *mockCmdHandler) Count(ctx context.Context, db, col string) (int, error) {
 	return c.session.Count(ctx, db, col)
 }

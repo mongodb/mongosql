@@ -30,13 +30,6 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 	astutil.PrintTabs(b, d)
 
 	switch typedN := n.(type) {
-	case *AlterCommand:
-		b.WriteString("↳ Alter(")
-		for _, alt := range typedN.Alterations {
-			b.WriteString(alt.String())
-			b.WriteString("; ")
-		}
-		b.WriteString(")\n")
 	case *BSONSourceStage:
 		b.WriteString("↳ BSONSource(")
 		for i, c := range typedN.Columns() {

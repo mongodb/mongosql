@@ -234,7 +234,7 @@ func (p *program) loadConfig(args []string) ([]string, error) {
 	}
 
 	if cfg.SetParameter.EnableTableAlterations {
-		msg := "schema modification via DDL is deprecated and will be removed in a future release."
+		msg := "schema modification via DDL is no longer supported; the enable_table_alterations variable and setParameter are deprecated, and will be removed in a future release"
 		msg += " Please provide a DRDL file or use custom-schema mode instead."
 		_, _ = fmt.Fprintln(os.Stderr, "WARNING: "+msg)
 	}

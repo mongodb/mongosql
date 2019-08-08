@@ -81,12 +81,8 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig, stmt parser.Statement) (Command, er
 		return algebrizer.translateKill(typedStmt)
 	case *parser.Flush:
 		return algebrizer.translateFlush(typedStmt)
-	case *parser.AlterTable:
-		return algebrizer.translateAlterTable(typedStmt)
 	case *parser.DropTable:
 		return algebrizer.translateDropTable(typedStmt), nil
-	case *parser.RenameTable:
-		return algebrizer.translateRenameTable(typedStmt)
 	case *parser.Set:
 		return algebrizer.translateSet(typedStmt)
 	case *parser.Use:
@@ -526,103 +522,6 @@ func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) 
 	return nil, fmt.Errorf("unsupported flush kind: %v", flush.Kind)
 }
 
-func (a *algebrizer) translateAlterTable(alter *parser.AlterTable) (*AlterCommand, error) {
-	db, err := a.cfg.catalog.Database(a.cfg.dbName)
-	if err != nil {
-		return nil, err
-	}
-
-	tableName := strings.ToLower(alter.Table.Name)
-	table, err := db.Table(tableName)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, ok := table.(catalog.MongoDBTable); !ok {
-		return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(alter.Table))
-	}
-
-	alterations := []*schema.Alteration{}
-
-	for _, spec := range alter.Specs {
-		switch spec.Type {
-		case parser.AltRenameColumn:
-			colName := strings.ToLower(spec.Column.Name)
-			_, err := table.Column(colName)
-			if err != nil {
-				return nil, err
-			}
-			newColName := strings.ToLower(spec.NewColumn.Name)
-			_, err = table.Column(newColName)
-			if err == nil {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, newColName)
-			}
-			alteration := &schema.Alteration{
-				Type:      schema.RenameColumn,
-				Db:        a.cfg.dbName,
-				Table:     tableName,
-				Column:    colName,
-				NewColumn: newColName,
-			}
-			alterations = append(alterations, alteration)
-
-		case parser.AltDropColumn:
-			colName := strings.ToLower(spec.Column.Name)
-			_, err := table.Column(colName)
-			if err != nil {
-				return nil, err
-			}
-			if len(table.Columns()) == 1 {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErCantRemoveAllFields)
-			}
-			if strings.Split(colName, ".")[0] == mongoPrimaryKey {
-				return nil, fmt.Errorf("cannot drop column %s: not allowed", colName)
-			}
-			alteration := &schema.Alteration{
-				Type:   schema.DropColumn,
-				Db:     a.cfg.dbName,
-				Table:  tableName,
-				Column: colName,
-			}
-			alterations = append(alterations, alteration)
-
-		case parser.AltModifyColumn:
-			colName := strings.ToLower(spec.Column.Name)
-			_, err := table.Column(colName)
-			if err != nil {
-				return nil, err
-			}
-			alteration := &schema.Alteration{
-				Type:          schema.ModifyColumn,
-				Db:            a.cfg.dbName,
-				Table:         tableName,
-				Column:        colName,
-				NewColumnType: spec.NewColumnType,
-			}
-			alterations = append(alterations, alteration)
-
-		case parser.AltRenameTable:
-			newTableName := strings.ToLower(spec.NewTable.Name)
-			_, err := db.Table(newTableName)
-			if err == nil {
-				return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, newTableName)
-			}
-			alteration := &schema.Alteration{
-				Type:     schema.RenameTable,
-				Db:       a.cfg.dbName,
-				Table:    tableName,
-				NewTable: newTableName,
-			}
-			alterations = append(alterations, alteration)
-
-		default:
-			return nil, fmt.Errorf("invalid Alter Table type %q", spec.Type)
-		}
-	}
-
-	return &AlterCommand{alterations}, nil
-}
-
 func (a *algebrizer) translateDropTable(ddl *parser.DropTable) *DropTableCommand {
 	// DropTable is allowed outside of --writeMode, so this is infallible.
 	return NewDropTableCommand(ddl.Name.Qualifier, ddl.Name.Name, ddl.IfExists)
@@ -724,45 +623,6 @@ func (a *algebrizer) translateCreateTable(ddl *parser.CreateTable) (*CreateTable
 		return nil, err
 	}
 	return NewCreateTableCommand(ddl.Name.Qualifier, table, ddl.IfNotExists), nil
-}
-
-func (a *algebrizer) translateRenameTable(rename *parser.RenameTable) (*AlterCommand, error) {
-
-	db, err := a.cfg.catalog.Database(a.cfg.dbName)
-	if err != nil {
-		return nil, err
-	}
-
-	alterations := []*schema.Alteration{}
-
-	for _, spec := range rename.Renames {
-
-		tableName := strings.ToLower(spec.Table.Name)
-		table, err := db.Table(tableName)
-		if err != nil {
-			return nil, err
-		}
-
-		if _, ok := table.(catalog.MongoDBTable); !ok {
-			return nil, fmt.Errorf("cannot alter non-mongodb table %q", parser.String(spec.Table))
-		}
-
-		newTableName := strings.ToLower(spec.NewTable.Name)
-		_, err = db.Table(newTableName)
-		if err == nil {
-			return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, newTableName)
-		}
-		alteration := &schema.Alteration{
-			Type:     schema.RenameTable,
-			Db:       a.cfg.dbName,
-			Table:    tableName,
-			NewTable: newTableName,
-		}
-		alterations = append(alterations, alteration)
-
-	}
-
-	return &AlterCommand{alterations}, nil
 }
 
 func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error) {

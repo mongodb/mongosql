@@ -460,63 +460,6 @@ var tableauDataset = data.Once(
 	},
 )
 
-var tpchAlterations = []string{
-	"alter table partsupp change `_id.ps_partkey` `ps_partkey`",
-	"alter table partsupp change `_id.ps_suppkey` `ps_suppkey`",
-	"alter table part change `_id` `p_partkey`",
-	"alter table supplier change `_id` `s_suppkey`",
-	"alter table nation change `_id` `n_nationkey`",
-	"alter table region change `_id` `r_regionkey`",
-	"alter table lineitem change `_id.l_orderkey` `l_orderkey`",
-	"alter table lineitem change `_id.l_linenumber` `l_linenumber`",
-	"alter table orders change `_id` `o_orderkey`",
-	"alter table customer change `_id` `c_custkey`",
-	"alter table mongo_orders_o_lineitems rename to mongo_lineitem",
-	"alter table mongo_lineitem change " +
-		"`o_lineitems.l_comment` `l_comment`, " +
-		"change `o_lineitems.l_commitdate` `l_commitdate`, " +
-		"change `o_lineitems.l_discount` `l_discount`, " +
-		"change `o_lineitems.l_extendedprice` `l_extendedprice`, " +
-		"change `o_lineitems.l_linenumber` `l_linenumber`, " +
-		"change `o_lineitems.l_linestatus` `l_linestatus`, " +
-		"change `o_lineitems.l_p_brand` `l_p_brand`, " +
-		"change `o_lineitems.l_p_container` `l_p_container`, " +
-		"change `o_lineitems.l_p_name` `l_p_name`, " +
-		"change `o_lineitems.l_p_size` `l_p_size`, " +
-		"change `o_lineitems.l_p_type` `l_p_type`, " +
-		"change `o_lineitems.l_partkey` `l_partkey`, " +
-		"change `o_lineitems.l_quantity` `l_quantity`, " +
-		"change `o_lineitems.l_receiptdate` `l_receiptdate`, " +
-		"change `o_lineitems.l_returnflag` `l_returnflag`, " +
-		"change `o_lineitems.l_s_n_name` `l_s_n_name`, " +
-		"change `o_lineitems.l_s_name` `l_s_name`, " +
-		"change `o_lineitems.l_s_nationkey` `l_s_nationkey`, " +
-		"change `o_lineitems.l_s_r_name` `l_s_r_name`, " +
-		"change `o_lineitems.l_s_regionkey` `l_s_regionkey`, " +
-		"change `o_lineitems.l_shipdate` `l_shipdate`, " +
-		"change `o_lineitems.l_shipinstruct` `l_shipinstruct`, " +
-		"change `o_lineitems.l_shipmode` `l_shipmode`, " +
-		"change `o_lineitems.l_suppkey` `l_suppkey`, " +
-		"change `o_lineitems.l_tax` `l_tax`",
-	"alter table mongo_part_p_suppliers rename to mongo_partsupp",
-	"alter table mongo_partsupp " +
-		"change `p_suppliers.ps_availqty` `ps_availqty`, " +
-		"change `p_suppliers.ps_comment` `ps_comment`, " +
-		"change `p_suppliers.ps_s_n_name` `ps_s_n_name`, " +
-		"change `p_suppliers.ps_s_name` `ps_s_name`, " +
-		"change `p_suppliers.ps_s_nationkey` `ps_s_nationkey`, " +
-		"change `p_suppliers.ps_s_r_name` `ps_s_r_name`, " +
-		"change `p_suppliers.ps_s_regionkey` `ps_s_regionkey`, " +
-		"change `p_suppliers.ps_suppkey` `ps_suppkey`, " +
-		"change `p_suppliers.ps_supplycost` `ps_supplycost`",
-	"alter table mongo_supplier change `_id` `s_suppkey`",
-	"alter table mongo_partsupp change `_id` `p_partkey`",
-	"alter table mongo_part change `_id` `p_partkey`",
-	"alter table mongo_orders change `_id` `o_orderkey`",
-	"alter table mongo_lineitem change `_id` `o_orderkey`",
-	"alter table mongo_customer change `_id` `c_custkey`",
-}
-
 var (
 	tpchNormalized   = data.Once(data.NewBSONDataset("tpch_full_normalized"))
 	tpchDenormalized = data.Once(data.NewBSONDataset("tpch_full_denormalized"))
@@ -561,17 +504,11 @@ func docsArrayWithNesting(depth, length int) bson.A {
 
 func getDatasetForBenchmark(name string) data.Dataset {
 	if strings.Contains(name, "tpch_micro") {
-		return data.WithAlterations(
-			data.Resample(tpchMicro),
-			"tpch", tpchAlterations...,
-		)
+		return data.Resample(tpchMicro)
 	}
 
 	if strings.Contains(name, "tpch_full") {
-		return data.WithAlterations(
-			data.Resample(tpchFull),
-			"tpch", tpchAlterations...,
-		)
+		return data.Resample(tpchFull)
 	}
 
 	if strings.Contains(name, "tableau_") {

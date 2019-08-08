@@ -57,9 +57,6 @@ type Manager struct {
 	// schema contains the most recent schema.
 	schema *schema.Schema
 
-	// schemaAltered indicates whether the current schema has been manually altered.
-	schemaAltered bool
-
 	// schemaMx guards the schema and schemaAltered fields, since the schema
 	// will often be set and accessed from different threads.
 	schemaMx sync.RWMutex
@@ -235,23 +232,6 @@ func (mgr *Manager) setSchema(sch *schema.Schema) {
 	mgr.schemaMx.Lock()
 	defer mgr.schemaMx.Unlock()
 	mgr.schema = sch.DeepCopy()
-}
-
-// setSchemaAltered sets the schemaAltered field to the provided value. This
-// function is thread-safe.
-func (mgr *Manager) setSchemaAltered(altered bool) {
-	mgr.schemaMx.Lock()
-	defer mgr.schemaMx.Unlock()
-	mgr.schemaAltered = altered
-}
-
-// schemaIsAltered returns the value of the schemaAltered field. This function
-// is thread-safe.
-func (mgr *Manager) schemaIsAltered() bool {
-	mgr.schemaMx.RLock()
-	a := mgr.schemaAltered
-	mgr.schemaMx.RUnlock()
-	return a
 }
 
 // Close shuts down the background goroutines used by the Manager.
@@ -442,32 +422,6 @@ func (mgr *Manager) Resample(ctx context.Context) (*schema.Schema, error) {
 	return mgr.obtainSchema(ctx)
 }
 
-// Alter applies the provided alterations to the current schema, persisting the
-// altered schema if appropriate for the current mode.
-func (mgr *Manager) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.Schema, error) {
-
-	switch mgr.cfg.Mode() {
-	case WriteSchemaMode:
-		return nil, fmt.Errorf("alterations not allowed in write mode")
-	case CustomSchemaMode, AutoSchemaMode:
-		return nil, fmt.Errorf("alterations not allowed in stored-schema modes")
-	}
-
-	if !mgr.HasSchema() {
-		return nil, fmt.Errorf("cannot alter schema before it is initialized")
-	}
-
-	sch := mgr.getSchema()
-	altered, err := sch.Altered(alts...)
-	if err != nil {
-		return nil, err
-	}
-
-	mgr.setSchemaAltered(true)
-	mgr.setSchema(altered)
-	return altered, nil
-}
-
 // obtainSchema obtains a new schema via the mechanism indicated by the current
 // mode and sets it as the Manager's current schema. If the Manager is running
 // in auto schema mode, the updated schema is also persisted.
@@ -500,7 +454,6 @@ func (mgr *Manager) obtainSchema(ctx context.Context) (*schema.Schema, error) {
 		return nil, err
 	}
 
-	mgr.setSchemaAltered(false)
 	mgr.setSchema(newSch)
 	return newSch, nil
 }
@@ -538,11 +491,6 @@ func (mgr *Manager) runSchemaRefreshLoop(ctx context.Context) {
 			continue
 		case <-timeoutChan:
 			// refresh interval expired, refresh schema now
-		}
-
-		if mgr.schemaIsAltered() {
-			mgr.setLastErr(fmt.Errorf("schema has been altered"), "skipping automatic resample")
-			continue
 		}
 
 		_, err := mgr.obtainSchema(ctx)

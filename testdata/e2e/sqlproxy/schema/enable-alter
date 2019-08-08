@@ -1,2 +1,0 @@
-
-SQLPROXY_SCHEMA_ALTER="--setParameter enableTableAlterations=true"

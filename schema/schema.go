@@ -24,7 +24,7 @@ type Schema struct {
 // New returns a new schema with the provided databases and alterations. The
 // schema is built by adding each of the provided databases to the schema in
 // order.
-func New(dbs []*Database, alterations []*Alteration) (*Schema, error) {
+func New(dbs []*Database) (*Schema, error) {
 	s := &Schema{
 		databases: map[normalizedName]*Database{},
 	}
@@ -34,7 +34,7 @@ func New(dbs []*Database, alterations []*Alteration) (*Schema, error) {
 			return nil, err
 		}
 	}
-	return s.Altered(alterations...)
+	return s, nil
 }
 
 // NewFromDRDL returns a new schema that is built from the provided DRDL schema.
@@ -51,7 +51,7 @@ func NewFromDRDL(lg log.Logger, drdl *drdl.Schema) (*Schema, error) {
 		}
 		dbs = append(dbs, db)
 	}
-	return New(dbs, nil)
+	return New(dbs)
 }
 
 // AddDatabase attempts to add the provided database to the schema. If the
@@ -67,26 +67,6 @@ func (s *Schema) AddDatabase(d *Database) error {
 	s.databases[key] = d
 	s.invalidateCachedSort()
 	return nil
-}
-
-// Altered returns a new Schema that is equivalent to the current schema with
-// the provided alterations applied.
-func (s *Schema) Altered(alts ...*Alteration) (*Schema, error) {
-	if len(alts) == 0 {
-		return s, nil
-	}
-
-	newSchema := s.DeepCopy()
-
-	for _, a := range alts {
-		err := a.alter(newSchema)
-		if err != nil {
-			return nil, fmt.Errorf("could not alter schema: %v", err)
-		}
-	}
-
-	newSchema.invalidateCachedSort()
-	return newSchema, nil
 }
 
 // cacheSortedDatabases caches the provided sorted slice of databases.

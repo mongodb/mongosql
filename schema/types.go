@@ -30,29 +30,6 @@ func GetMongoType(in string) (MongoType, error) {
 	return mongoType, nil
 }
 
-// getSQLTypeFromColumnType gets the SQL type from the column time in an alter specification.
-func getSQLTypeFromColumnType(colTyp string) (SQLType, error) {
-	switch colTyp {
-	case "tinyint", "smallint", "mediumint", "int", "integer", "bigint":
-		return SQLInt, nil
-	case "decimal", "numeric":
-		return SQLDecimal, nil
-	case "float", "double":
-		return SQLFloat, nil
-	case "date":
-		return SQLDate, nil
-	case "datetime", "timestamp":
-		return SQLTimestamp, nil
-	case "char", "varchar", "binary", "varbinary", "blob", "text":
-		return SQLVarchar, nil
-	default:
-		// This value should never be used due to the error here. The result is not actually
-		// polymorphic. SQLInvalidType is not a key in any type conversion maps, which will
-		// cause a panic if this type is accidentally used.
-		return SQLInvalidType, fmt.Errorf("no SQLType mapping for column type %q", colTyp)
-	}
-}
-
 // GetMongoTypeFromSQLType gets the MongoType implied for each SQLType.
 func GetMongoTypeFromSQLType(colTyp SQLType) MongoType {
 	switch colTyp {

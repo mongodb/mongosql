@@ -329,12 +329,12 @@ func TestGetCatalog(t *testing.T) {
 	dbManyTableManySameColumn := schema.NewDatabase(lg, "db5", []*schema.Table{tManyColumn, tManyColumn5})
 	dbManyTableManySameColumn2 := schema.NewDatabase(lg, "db6", []*schema.Table{tManyColumn2, tManyColumn6})
 
-	schema1, _ := schema.New([]*schema.Database{dbOneTableOneColumn}, nil)
-	schema2, _ := schema.New([]*schema.Database{dbOneTableManyColumn}, nil)
-	schema3, _ := schema.New([]*schema.Database{dbManyTableManyColumn}, nil)
-	schema4, _ := schema.New([]*schema.Database{dbManyTableManySameColumn}, nil)
-	schema5, _ := schema.New([]*schema.Database{dbManyTableManyColumn, dbManyTableManyColumn2}, nil)
-	schema6, _ := schema.New([]*schema.Database{dbManyTableManySameColumn, dbManyTableManySameColumn2}, nil)
+	schema1, _ := schema.New([]*schema.Database{dbOneTableOneColumn})
+	schema2, _ := schema.New([]*schema.Database{dbOneTableManyColumn})
+	schema3, _ := schema.New([]*schema.Database{dbManyTableManyColumn})
+	schema4, _ := schema.New([]*schema.Database{dbManyTableManySameColumn})
+	schema5, _ := schema.New([]*schema.Database{dbManyTableManyColumn, dbManyTableManyColumn2})
+	schema6, _ := schema.New([]*schema.Database{dbManyTableManySameColumn, dbManyTableManySameColumn2})
 
 	// test that schema is mapped to catalog as expected
 	t.Run("correctly map schema to catalog", func(t *testing.T) {

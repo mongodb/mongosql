@@ -191,12 +191,6 @@ test-mongo-auth-flush-sample-success: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-flush-sample-success: QUERY := FLUSH SAMPLE
 test-mongo-auth-flush-sample-success: test-auth-command-data-success
 
-# the admin user can alter tables because it has the proper permission on all tables (insert and update)
-test-mongo-auth-alter-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/enable-alter
-test-mongo-auth-alter-success: NO_FLUSH_SCHEMA := 1
-test-mongo-auth-alter-success: QUERY := use join_test,,alter table join_1 drop column a
-test-mongo-auth-alter-success: test-auth-command-data-success
-
 # When the admin user attempts to set a global variable, that user should be able to set it.
 test-mongo-auth-set-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-set-success: QUERY := set @@global.autocommit = 1

@@ -184,7 +184,7 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	}
 
 	// create a full relational schema from the database
-	actual, err := schema.New([]*schema.Database{db}, nil)
+	actual, err := schema.New([]*schema.Database{db})
 	if err != nil {
 		return err
 	}

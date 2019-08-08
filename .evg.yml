@@ -435,9 +435,6 @@ functions:
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/mem-failpoint"
         fi
 
-        # enable alterations
-        export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/enable-alter"
-
         # use alternate schema mapping mode, if specified
         if [ "${var_schema_mapping_mode}" = "lattice" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice"
@@ -1172,10 +1169,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
-  name: test-mongo-auth-alter-success
-  tags: ["test", "config"]
-
-- <<: *run-config-test
   name: test-mongo-auth-set-success
   tags: ["test", "config"]
 
@@ -1457,18 +1450,6 @@ tasks:
 
 - <<: *run-config-test
   name: test-schema-mapping-mode-majority
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-alter-auto-mode
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-alter-custom-mode
-  tags: ["test", "config"]
-
-- <<: *run-config-test
-  name: test-alter-flush
   tags: ["test", "config"]
 
 - <<: *run-config-test

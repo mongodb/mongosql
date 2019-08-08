@@ -12,10 +12,10 @@ SCHEMA_UNAVAILABLE_ERROR = ERROR 1043 (08S01): MongoDB schema not yet available
 
 default: test
 
-benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority,sqlproxy/schema/enable-alter
+benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority
 benchmark: start-all _benchmark _parse-benchmarks
 
-benchmark-tpch: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority,sqlproxy/schema/enable-alter
+benchmark-tpch: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority
 benchmark-tpch: start-all _benchmark-tpch _parse-benchmarks
 
 
@@ -122,7 +122,6 @@ test-module-integration: test-connect-success
 
 # include e2e test targets
 E2E_TEST_DIR = testdata/e2e/tests
-include $(E2E_TEST_DIR)/alter.mk
 include $(E2E_TEST_DIR)/auth.mk
 include $(E2E_TEST_DIR)/cleartext-auth.mk
 include $(E2E_TEST_DIR)/gssapi.mk

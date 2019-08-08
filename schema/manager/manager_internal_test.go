@@ -46,30 +46,6 @@ func TestFileBasedSchema(t *testing.T) {
 		req.NotNil(mgr.getSchema())
 	})
 
-	t.Run("alter is allowed", func(t *testing.T) {
-		req := require.New(t)
-		mgr := setupFileBased()
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		oldSchema := mgr.getSchema()
-		req.NotNil(oldSchema, "schema should be available after starting manager")
-
-		alts := []*schema.Alteration{{
-			Type:     schema.RenameTable,
-			Db:       "testDb",
-			Table:    "testTbl",
-			NewTable: "renamedTbl",
-		}}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.NoError(err, "alterations should succeed")
-		req.NotEqual(oldSchema, newSchema, "alterations should result in different schema")
-
-		tbl := newSchema.Database("testDb").Tables()[0]
-		req.Equal("renamedTbl", tbl.SQLName(), "table should have new SQLName")
-		req.Equal("testCol", tbl.MongoName(), "table should have same MongoName")
-	})
-
 	t.Run("test create database not allowed", func(t *testing.T) {
 		req := require.New(t)
 		mgr := setupFileBased()
@@ -183,21 +159,6 @@ func TestAutoMode(t *testing.T) {
 		req.Equal(2, prst.nameUpdateCount, "a schema name should have been updated again")
 	})
 
-	t.Run("alter not allowed", func(t *testing.T) {
-		req := require.New(t)
-		mgr, _, _ := setupAutoMode()
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		sch := mgr.getSchema()
-		req.NotNil(sch, "schema should be available after starting manager")
-
-		alts := []*schema.Alteration{}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.EqualError(err, "alterations not allowed in stored-schema modes")
-		req.Nil(newSchema)
-	})
-
 	t.Run("public getter no refresh", func(t *testing.T) {
 		req := require.New(t)
 		mgr, smp, _ := setupAutoMode()
@@ -291,22 +252,6 @@ func TestCustomMode(t *testing.T) {
 		req.EqualError(err, "cannot resample in custom-schema mode")
 		req.Nil(sch)
 		req.NotNil(mgr.getSchema())
-	})
-
-	t.Run("alter not allowed", func(t *testing.T) {
-		req := require.New(t)
-		mgr, prst := setupCustomMode()
-		prst.populate()
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		sch := mgr.getSchema()
-		req.NotNil(sch, "schema should be available after starting manager")
-
-		alts := []*schema.Alteration{}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.EqualError(err, "alterations not allowed in stored-schema modes")
-		req.Nil(newSchema)
 	})
 
 	t.Run("public getter refresh", func(t *testing.T) {
@@ -554,110 +499,6 @@ func TestStandaloneMode(t *testing.T) {
 		req.Equal(1, smp.completed, "initial sample should have run to completion")
 	})
 
-	t.Run("alter schema no alterations", func(t *testing.T) {
-		req := require.New(t)
-		mgr, _ := setupStandalone()
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		oldSchema := mgr.getSchema()
-		req.NotNil(oldSchema, "schema should be initialized")
-
-		alts := []*schema.Alteration{}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.NoError(err, "alterations should succeed")
-		req.Equal(oldSchema, newSchema, "empty list of alterations should result in same schema")
-	})
-
-	t.Run("alter schema before initialization", func(t *testing.T) {
-		req := require.New(t)
-		mgr, smp := setupStandalone()
-		smp.latency = 3 * time.Second
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-
-		alts := []*schema.Alteration{}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.EqualError(err, "cannot alter schema before it is initialized")
-		req.Nil(newSchema)
-	})
-
-	t.Run("alter schema", func(t *testing.T) {
-		req := require.New(t)
-		mgr, _ := setupStandalone()
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		oldSchema := mgr.getSchema()
-		req.NotNil(oldSchema, "schema should be initialized")
-
-		alts := []*schema.Alteration{{
-			Type:     schema.RenameTable,
-			Db:       "testDb",
-			Table:    "testTbl",
-			NewTable: "renamedTbl",
-		}}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.NoError(err, "alterations should succeed")
-		req.NotEqual(oldSchema, newSchema, "alterations should result in different schema")
-
-		tbl := newSchema.Database("testDb").Tables()[0]
-		req.Equal("renamedTbl", tbl.SQLName(), "table should have new SQLName")
-		req.Equal("testCol", tbl.MongoName(), "table should have same MongoName")
-	})
-
-	t.Run("alter schema manual resample", func(t *testing.T) {
-		req := require.New(t)
-		mgr, _ := setupStandalone()
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		oldSchema := mgr.getSchema()
-		req.NotNil(oldSchema, "schema should be initialized")
-
-		alts := []*schema.Alteration{{
-			Type:     schema.RenameTable,
-			Db:       "testDb",
-			Table:    "testTbl",
-			NewTable: "renamedTbl",
-		}}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.NoError(err, "alterations should succeed")
-		req.NotEqual(oldSchema, newSchema, "alterations should result in different schema")
-
-		_, err = mgr.Resample(context.Background())
-		req.NoError(err, "resampling should succeed")
-		req.Equal(oldSchema, mgr.getSchema(), "resampling should overwrite the altered schema")
-	})
-
-	t.Run("alter schema automatic resample", func(t *testing.T) {
-		req := require.New(t)
-		mgr, smp, _ := setupWithOpts(StandaloneSchemaMode, 2*time.Second, nil)
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		oldSchema := mgr.getSchema()
-		req.NotNil(oldSchema, "schema should be initialized")
-
-		alts := []*schema.Alteration{{
-			Type:     schema.RenameTable,
-			Db:       "testDb",
-			Table:    "testTbl",
-			NewTable: "renamedTbl",
-		}}
-		newSchema, err := mgr.Alter(context.Background(), alts)
-		req.NoError(err, "alterations should succeed")
-		req.NotEqual(oldSchema, newSchema, "alterations should result in different schema")
-
-		time.Sleep(2 * time.Second)
-		req.Equal(1, smp.started, "no more sampling passes should have started")
-
-		currentSchema := mgr.getSchema()
-		req.Equal(newSchema, currentSchema, "automatic resampling should not overwrite altered schema")
-		req.EqualError(mgr.GetLastErr(), "skipping automatic resample: schema has been altered")
-	})
-
 	t.Run("public getter no refresh", func(t *testing.T) {
 		req := require.New(t)
 		mgr, smp := setupStandalone()
@@ -823,25 +664,6 @@ func TestWriteMode(t *testing.T) {
 		sch = mgr.Schema(context.Background())
 		req.NotNil(sch)
 		req.Equal(1, smp.started, "public getter should not trigger refresh")
-	})
-
-	t.Run("alter not allowed", func(t *testing.T) {
-		req := require.New(t)
-		mgr, _ := setupWriteMode()
-
-		mgr.Start()
-		time.Sleep(300 * time.Millisecond)
-		oldSchema := mgr.getSchema()
-		req.NotNil(oldSchema, "schema should be available after starting manager")
-
-		alts := []*schema.Alteration{{
-			Type:     schema.RenameTable,
-			Db:       "testDb",
-			Table:    "testTbl",
-			NewTable: "renamedTbl",
-		}}
-		_, err := mgr.Alter(context.Background(), alts)
-		req.EqualError(err, "alterations not allowed in write mode")
 	})
 
 	t.Run("close before start", func(t *testing.T) {

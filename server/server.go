@@ -93,14 +93,6 @@ type Server struct {
 	listeners []net.Listener
 }
 
-// Alter applies the provided alterations to the server's current schema.
-func (s *Server) Alter(ctx context.Context, alts []*schema.Alteration) (*schema.Schema, error) {
-	if !s.variables.GetBool(variable.EnableTableAlterations) {
-		return nil, fmt.Errorf("cannot alter schema: alterations not enabled")
-	}
-	return s.schemaManager.Alter(ctx, alts)
-}
-
 // Close stops the server and stops accepting connections.
 func (s *Server) Close(ctx context.Context) {
 	if !atomic.CompareAndSwapInt32(&s.closed, 0, 1) {

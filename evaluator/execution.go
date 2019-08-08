@@ -16,7 +16,6 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
-	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -161,9 +160,6 @@ type CommandHandler interface {
 	// Aggregate runs the provided aggregation pipeline against the
 	// specified database and collection.
 	Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error)
-	// Alter executes schema alterations. It must occur in the server
-	// as that is where the schemata are maintained.
-	Alter(context.Context, []*schema.Alteration) error
 	// Count runs a count command against the specified database and collection.
 	Count(ctx context.Context, db, col string) (int, error)
 	// DropTable is a workaround to handle Tableau command to drop temp tables.

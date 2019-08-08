@@ -20,19 +20,14 @@ import (
 
 // Build builds a catalog up from a schema and variables.
 func Build(schema *schema.Schema, variables VariableContainer, info *mongodb.Info) (*SQLCatalog, error) {
-	alteredSchema, err := schema.Altered()
-	if err != nil {
-		return nil, err
-	}
-
 	builder := &catalogBuilder{
 		catalog:   New("def", variables),
-		schema:    alteredSchema,
+		schema:    schema,
 		variables: variables,
 		info:      info,
 	}
 
-	err = builder.build()
+	err := builder.build()
 	if err != nil {
 		return nil, err
 	}
