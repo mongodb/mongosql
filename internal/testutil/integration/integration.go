@@ -34,6 +34,7 @@ type TestCase struct {
 	Database           string                 `yaml:"db"`
 	Skip               bool                   `yaml:"skip"`
 	SQL                string                 `yaml:"sql"`
+	SQLList            []string               `yaml:"sql_list"`
 	CleanupSQL         string                 `yaml:"sql_cleanup"`
 	VerificationSQL    string                 `yaml:"verify"`
 	Description        string                 `yaml:"description"`

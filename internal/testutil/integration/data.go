@@ -7,6 +7,7 @@ var datasetsByName = map[string]data.Dataset{
 	"internal": internalDataset,
 	"tableau":  tableauDataset,
 	"tdvt":     tdvtDataset,
+	"writes":   writesDataset,
 }
 
 var blackboxDataset = data.DatasetGroup{
@@ -36,6 +37,10 @@ var internalDataset = data.DatasetGroup{
 	data.NewBSONDataset("test2"),
 	data.NewBSONDataset("test3"),
 	data.NewBSONDataset("test4"),
+}
+
+var writesDataset = data.DatasetGroup{
+	data.YMLDataset{File: "writes.yml"},
 }
 
 var tableauDataset = data.DatasetGroup{

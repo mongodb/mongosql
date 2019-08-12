@@ -435,6 +435,10 @@ functions:
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/testing/mem-failpoint"
         fi
 
+        if [ "${var_suite}" = "writes" ]; then
+            export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/writes"
+        fi
+
         # use alternate schema mapping mode, if specified
         if [ "${var_schema_mapping_mode}" = "lattice" ]; then
             export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,sqlproxy/schema/mapping-lattice"
@@ -1031,6 +1035,20 @@ tasks:
     - func: "run integration tests"
       vars:
         var_suite: internal
+
+- name: writes
+  tags:
+    - integration
+    - test
+  commands:
+    - func: "start mongodb"
+    - func: "build mongosqld"
+    - func: "start mongosqld"
+      vars:
+        var_suite: writes
+    - func: "run integration tests"
+      vars:
+        var_suite: writes
 
 - name: internal-nopushdown
   tags:

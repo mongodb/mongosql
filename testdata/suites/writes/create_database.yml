@@ -1,0 +1,59 @@
+testcases:
+
+  - db: information_schema
+    description: create new database
+    expected_names: ['Database']
+    expected_results:
+      - ['created_writes_db']
+    expected_types: [varchar]
+    id: 'create database created_writes_db'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      show databases like 'created_writes_db']
+    sync: true
+
+  - db: information_schema
+    description: create database that already exists with 'if not exists' set
+    expected_names: ['Database']
+    expected_results:
+      - ['created_writes_db']
+    expected_types: [varchar]
+    id: 'create database created_writes_db twice no conflict'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      create database if not exists created_writes_db,
+      show databases like 'created_writes_db']
+    sync: true
+
+  - db: information_schema
+    description: create database that already exists, should error
+    expected_error: 'Error 1105: database "created_writes_db" already exists in schema'
+    id: 'create database created_writes_db twice conflict'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      create database created_writes_db]
+    sync: true
+
+  - db: information_schema
+    description: use a database we create
+    expected_names: ['Tables_in_created_writes_db']
+    expected_results: []
+    expected_types: [varchar]
+    id: 'use database'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      use created_writes_db,
+      show tables]
+    sync: true

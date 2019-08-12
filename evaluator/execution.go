@@ -16,6 +16,7 @@ import (
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -162,8 +163,14 @@ type CommandHandler interface {
 	Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error)
 	// Count runs a count command against the specified database and collection.
 	Count(ctx context.Context, db, col string) (int, error)
-	// DropTable is a workaround to handle Tableau command to drop temp tables.
-	Drop(tbl string) error
+	// DropTable supports dropping tables.
+	DropTable(ctx context.Context, db, tbl string) error
+	// DropDatabase drops databases.
+	DropDatabase(ctx context.Context, db string) error
+	// CreateTable supports creating tables.
+	CreateTable(ctx context.Context, db string, table *schema.Table) error
+	// CreateDatabase creates Databases.
+	CreateDatabase(ctx context.Context, db string) error
 	// Kill kills a Connection or Query (the KillScope). The targetConnID is the
 	// ID of the connection that is to be killed. The targetConnID may be the
 	// current connection id.
@@ -180,6 +187,8 @@ type CommandHandler interface {
 	// SetScopeAuthorized returns an error if the user is not authorized to
 	// set variables in the provided scope.
 	SetScopeAuthorized(variable.Scope) error
+	// UnsetDatabase unsets the current database.
+	UnsetDatabase() error
 }
 
 // ExecutionState is a container for state that has to be shared between

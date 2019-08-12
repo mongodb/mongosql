@@ -39,7 +39,16 @@ func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline
 func (c *mockCmdHandler) Count(ctx context.Context, db, col string) (int, error) {
 	return c.session.Count(ctx, db, col)
 }
-func (c *mockCmdHandler) Drop(tbl string) error {
+func (*mockCmdHandler) DropTable(ctx context.Context, db, tbl string) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) DropDatabase(ctx context.Context, db string) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) CreateTable(ctx context.Context, db string, table *schema.Table) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) CreateDatabase(ctx context.Context, db string) error {
 	panic("unimplemented")
 }
 func (*mockCmdHandler) Kill(context.Context, uint32, evaluator.KillScope) error {
@@ -58,6 +67,9 @@ func (*mockCmdHandler) SetDatabase(db string) error {
 	panic("unimplemented")
 }
 func (*mockCmdHandler) SetScopeAuthorized(variable.Scope) error {
+	panic("unimplemented")
+}
+func (*mockCmdHandler) UnsetDatabase() error {
 	panic("unimplemented")
 }
 

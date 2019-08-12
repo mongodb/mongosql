@@ -524,21 +524,29 @@ func (a *algebrizer) translateFlush(flush *parser.Flush) (*FlushCommand, error) 
 
 func (a *algebrizer) translateDropTable(ddl *parser.DropTable) *DropTableCommand {
 	// DropTable is allowed outside of --writeMode, so this is infallible.
-	return NewDropTableCommand(ddl.Name.Qualifier, ddl.Name.Name, ddl.IfExists)
+	return NewDropTableCommand(a.cfg.catalog,
+		ddl.Name.Qualifier.Else(a.cfg.dbName),
+		ddl.Name.Name,
+		ddl.IfExists)
 }
 
 func (a *algebrizer) translateDropDatabase(ddl *parser.DropDatabase) (*DropDatabaseCommand, error) {
 	if !a.cfg.isWriteMode {
 		return nil, fmt.Errorf("drop database requires --writeMode")
 	}
-	return NewDropDatabaseCommand(ddl.Name, ddl.IfExists), nil
+	return NewDropDatabaseCommand(a.cfg.catalog,
+		ddl.Name,
+		ddl.IfExists), nil
 }
 
 func (a *algebrizer) translateCreateDatabase(ddl *parser.CreateDatabase) (*CreateDatabaseCommand, error) {
 	if !a.cfg.isWriteMode {
 		return nil, fmt.Errorf("create database requires --writeMode")
 	}
-	return NewCreateDatabaseCommand(ddl.Name, ddl.IfNotExists), nil
+	return NewCreateDatabaseCommand(
+		a.cfg.catalog,
+		ddl.Name,
+		ddl.IfNotExists), nil
 }
 
 func getCreateTableColumns(colDefs []*parser.ColumnDefinition) []*schema.Column {
@@ -622,7 +630,10 @@ func (a *algebrizer) translateCreateTable(ddl *parser.CreateTable) (*CreateTable
 	if err != nil {
 		return nil, err
 	}
-	return NewCreateTableCommand(ddl.Name.Qualifier, table, ddl.IfNotExists), nil
+	return NewCreateTableCommand(a.cfg.catalog,
+		ddl.Name.Qualifier.Else(a.cfg.dbName),
+		table,
+		ddl.IfNotExists), nil
 }
 
 func (a *algebrizer) translateGroupBy(groupby parser.GroupBy) ([]SQLExpr, error) {

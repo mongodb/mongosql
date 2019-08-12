@@ -846,15 +846,13 @@ func TestWriteMode(t *testing.T) {
 		dbName := "random"
 		session := &testUserSession{}
 		_, err := mgr.DropTable(context.Background(), dbName, tableName, session)
-		req.EqualError(err, fmt.Sprintf("table '%s.%s' cannot be dropped, database '%s' does not exist",
-			dbName, tableName, dbName))
+		req.EqualError(err, "ERROR 1049 (42000): Unknown database 'random'")
 		tableName = "random"
 		sch := mgr.getSchema()
 		dbName = "testDb"
 		tblLen := len(sch.Database(dbName).Tables())
 		_, err = mgr.DropTable(context.Background(), dbName, tableName, session)
-		req.EqualError(err, fmt.Sprintf("table '%s.%s' cannot be dropped, no such table in database '%s'",
-			dbName, tableName, dbName))
+		req.EqualError(err, "ERROR 1051 (42S02): Unknown table 'random'")
 		req.Equal(tblLen, len(mgr.getSchema().Database(dbName).Tables()), "no table should have been dropped")
 
 		dbName = "testDb"
@@ -879,7 +877,7 @@ func TestWriteMode(t *testing.T) {
 		session := &testUserSession{}
 		tableLen := len(sch.Database(dbName).Tables())
 		_, err := mgr.CreateTable(context.Background(), dbName, table, session)
-		req.EqualError(err, fmt.Sprintf("table '%s' already exists in database '%s'", tableName, dbName))
+		req.EqualError(err, "ERROR 1050 (42S01): Table 'testTbl' already exists")
 		req.Equal(1, tableLen, "table should not have been added")
 
 		badSession := reallyBadSession{}

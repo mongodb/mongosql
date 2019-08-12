@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -290,13 +291,11 @@ func (mgr *Manager) DropTable(ctx context.Context, db, table string,
 	sch := mgr.getSchema()
 	schDB := sch.Database(db)
 	if schDB == nil {
-		return nil, fmt.Errorf("table '%s.%s' cannot be dropped, database '%s' does not exist",
-			db, table, db)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadDbError, db)
 	}
 	schTable := schDB.Table(table)
 	if schTable == nil {
-		return nil, fmt.Errorf("table '%s.%s' cannot be dropped, no such table in database '%s'",
-			db, table, db)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadTableError, table)
 	}
 	// Cleanup MongoDB before we change the schema.
 	err := session.DropCollection(ctx, db, table)
@@ -321,7 +320,7 @@ func (mgr *Manager) CreateTable(ctx context.Context, db string,
 	logger := mgr.lg
 	database := sch.Database(db)
 	if database == nil {
-		return nil, fmt.Errorf("unknown database '%s'", db)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadDbError, db)
 	}
 	// We must create the collection in MongoDB before we update
 	// the schema. However, we will update the schema before
@@ -337,7 +336,7 @@ func (mgr *Manager) CreateTable(ctx context.Context, db string,
 		return nil, err
 	}
 	if database.Table(tbl.SQLName()) != nil {
-		return nil, fmt.Errorf("table '%s' already exists in database '%s'", tbl.SQLName(), db)
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, tbl.SQLName())
 	}
 	copiedTable := tbl.DeepCopy()
 	database.AddTable(logger, copiedTable)

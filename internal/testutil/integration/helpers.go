@@ -38,11 +38,17 @@ const (
 	setPushDown = "set @@pushdown = true"
 )
 
-// RunSQL runs the provided SQL query using the provided database handle.
-// It expects the results to have the provided column names and types, and
-// returns a list of rows and an error.
-func RunSQL(conn *sql.Conn, q string, types []schema.SQLType, names []string) ([][]interface{}, error) {
-	rows, err := conn.QueryContext(context.Background(), q)
+// RunSQL runs the provided SQL queries using the provided database handle.
+// It expects the results to match the results of the last query in the list and
+// to have the provided column names and types, and returns a list of rows and an error.
+func RunSQL(conn *sql.Conn, qs []string, types []schema.SQLType, names []string) ([][]interface{}, error) {
+	for _, q := range qs[0 : len(qs)-1] {
+		_, err := conn.ExecContext(context.Background(), q)
+		if err != nil {
+			return nil, err
+		}
+	}
+	rows, err := conn.QueryContext(context.Background(), qs[len(qs)-1])
 	if err != nil {
 		return nil, err
 	}
@@ -337,18 +343,21 @@ func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
 		}
 	}
 
-	query := test.SQL
-
-	if test.VerificationSQL != "" {
-		_, err = conn.ExecContext(context.Background(), query)
-		if err != nil {
-			t.Fatal(err)
+	var queryList []string
+	if len(test.SQLList) > 0 {
+		queryList = test.SQLList
+		if test.SQL != "" {
+			panic(fmt.Sprintf("cannot specify both 'sql' and 'sql_list' in the same test: %s", test.ID))
 		}
-
-		query = test.VerificationSQL
+	} else {
+		queryList = []string{test.SQL}
 	}
 
-	results, err := RunSQL(conn, query, test.ExpectedTypes, test.ExpectedNames)
+	if test.VerificationSQL != "" {
+		queryList = append(queryList, test.VerificationSQL)
+	}
+
+	results, err := RunSQL(conn, queryList, test.ExpectedTypes, test.ExpectedNames)
 	if test.ExpectedError != "" {
 		if err == nil {
 			t.Fatal(fmt.Errorf("expected error, but query executed successfully"))
@@ -504,7 +513,6 @@ func getServerVersion(t *testing.T) []uint8 {
 }
 
 func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
-
 	if test.Sync {
 		t.Log("not running test in parallel: sync is set to true")
 	} else {
@@ -602,6 +610,11 @@ func setupIntegrationSuite(t *testing.T, suite string) *TestSuite {
 		default:
 			t.Fatalf("unrecognized integration test automation flag %q", opt)
 		}
+	}
+
+	if suite == "writes" {
+		restoreData = false
+		flushSample = false
 	}
 
 	if restoreData {

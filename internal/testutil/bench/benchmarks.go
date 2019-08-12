@@ -101,7 +101,7 @@ func verifyBenchmark(b *testing.B, db *sql.DB, bench *Benchmark) {
 		b.Fatal(err)
 	}
 
-	rows, err := integration.RunSQL(conn, bench.Query, bench.ExpectedTypes, bench.ExpectedNames)
+	rows, err := integration.RunSQL(conn, []string{bench.Query}, bench.ExpectedTypes, bench.ExpectedNames)
 	if err != nil {
 		b.Fatal(err)
 	}

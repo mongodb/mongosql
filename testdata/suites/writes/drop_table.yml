@@ -1,0 +1,91 @@
+testcases:
+
+  - db: information_schema
+    description: drop table
+    expected_names: ['table_name']
+    expected_results: []
+    expected_types: [varchar]
+    id: 'drop table created_writes_db.foo'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      'create table created_writes_db.foo(x int, y int, unique index idx(x,y))',
+      drop table created_writes_db.foo,
+      select table_name from tables where table_schema = 'created_writes_db' and table_name = 'foo']
+    sync: true
+
+
+  - db: information_schema
+    description: drop table that doesn't exist with 'if not exists' set
+    expected_names: ['table_name']
+    expected_results: []
+    expected_types: [varchar]
+    id: 'drop table if exists created_writes_db.foo'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      drop table if exists created_writes_db.foo,
+      select table_name from tables where table_schema = 'created_writes_db' and table_name = 'foo']
+    sync: true
+
+  - db: information_schema
+    description: drop table that doesn't exist, should error
+    expected_error: "Error 1051: Unknown table 'foo'"
+    id: 'drop table create_writes_db.foo that does not exist'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      drop table created_writes_db.foo]
+    sync: true
+
+  - db: information_schema
+    description: drop table in non-existent database, should error
+    expected_error: "Error 1049: Unknown database 'random'"
+    id: 'drop table random.foo, random does not exist'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists random
+    sql_list: [
+      drop database if exists random,
+      'drop table random.foo']
+    sync: true
+
+  - db: information_schema
+    description: create `#Tableau, this is in drop_table.yml because it is related to the next test`
+    expected_names: ['Tables_in_created_writes_db']
+    expected_results:
+      - ['#Tableau']
+    expected_types: [varchar]
+    id: 'create #Tableau`'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      use created_writes_db,
+      'create table `#Tableau`(x int)',
+      show tables]
+    sync: true
+
+  - db: information_schema
+    description: 'create and drop `#Tableau`, we drop twice because the second drop should not fail, due to the tableau hack'
+    expected_names: ['Tables_in_created_writes_db']
+    expected_results: []
+    expected_types: [varchar]
+    id: 'create #Tableau`'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      use created_writes_db,
+      'create table `#Tableau`(x int)',
+      'drop table `#Tableau`',
+      'drop table `#Tableau`',
+      show tables]
+    sync: true

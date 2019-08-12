@@ -4432,13 +4432,13 @@ func TestAlgebrizeCommand(t *testing.T) {
 		{
 			"create database if not exists foo",
 			func() evaluator.Command {
-				return evaluator.NewCreateDatabaseCommand("foo", true)
+				return evaluator.NewCreateDatabaseCommand(testCatalog, "foo", true)
 			},
 		},
 		{
 			"create database foo",
 			func() evaluator.Command {
-				return evaluator.NewCreateDatabaseCommand("foo", false)
+				return evaluator.NewCreateDatabaseCommand(testCatalog, "foo", false)
 			},
 		},
 	}
@@ -4449,13 +4449,13 @@ func TestAlgebrizeCommand(t *testing.T) {
 		{
 			"drop database if exists foo",
 			func() evaluator.Command {
-				return evaluator.NewDropDatabaseCommand("foo", true)
+				return evaluator.NewDropDatabaseCommand(testCatalog, "foo", true)
 			},
 		},
 		{
 			"drop database foo",
 			func() evaluator.Command {
-				return evaluator.NewDropDatabaseCommand("foo", false)
+				return evaluator.NewDropDatabaseCommand(testCatalog, "foo", false)
 			},
 		},
 	}
@@ -4466,25 +4466,25 @@ func TestAlgebrizeCommand(t *testing.T) {
 		{
 			"drop table if exists bar.foo",
 			func() evaluator.Command {
-				return evaluator.NewDropTableCommand(option.SomeString("bar"), "foo", true)
+				return evaluator.NewDropTableCommand(testCatalog, "bar", "foo", true)
 			},
 		},
 		{
 			"drop table bar.foo",
 			func() evaluator.Command {
-				return evaluator.NewDropTableCommand(option.SomeString("bar"), "foo", false)
+				return evaluator.NewDropTableCommand(testCatalog, "bar", "foo", false)
 			},
 		},
 		{
 			"drop table if exists foo",
 			func() evaluator.Command {
-				return evaluator.NewDropTableCommand(option.NoneString(), "foo", true)
+				return evaluator.NewDropTableCommand(testCatalog, "test", "foo", true)
 			},
 		},
 		{
 			"drop table foo",
 			func() evaluator.Command {
-				return evaluator.NewDropTableCommand(option.NoneString(), "foo", false)
+				return evaluator.NewDropTableCommand(testCatalog, "test", "foo", false)
 			},
 		},
 	}
@@ -4501,7 +4501,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 				"unique index bar(a asc, b desc), " +
 				"fulltext index(b, c)) comment = 'WORLD'",
 			func() evaluator.Command {
-				return evaluator.NewCreateTableCommand(option.SomeString("bar"),
+				return evaluator.NewCreateTableCommand(testCatalog, "bar",
 					testTable(
 						"foo",
 						"foo",
@@ -4529,7 +4529,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			// Also test that datetime is rewritten to timestamp, and without `if not exists`
 			"create table bar.foo(x int, y datetime)",
 			func() evaluator.Command {
-				return evaluator.NewCreateTableCommand(option.SomeString("bar"),
+				return evaluator.NewCreateTableCommand(testCatalog, "bar",
 					testTable(
 						"foo",
 						"foo",
@@ -4550,7 +4550,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			// This also shows that we can declare something as null, optionally.
 			"create table foo(x bit null unique)",
 			func() evaluator.Command {
-				return evaluator.NewCreateTableCommand(option.NoneString(),
+				return evaluator.NewCreateTableCommand(testCatalog, "test",
 					testTable(
 						"foo",
 						"foo",

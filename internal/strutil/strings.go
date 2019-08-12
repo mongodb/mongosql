@@ -117,3 +117,8 @@ func StringSliceToSet(strs []string) map[string]struct{} {
 	}
 	return ret
 }
+
+// CaseInsensitiveEquals compares two strings case insensitively.
+func CaseInsensitiveEquals(a, b string) bool {
+	return strings.ToLower(a) == strings.ToLower(b)
+}

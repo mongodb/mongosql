@@ -1,0 +1,59 @@
+testcases:
+
+  - db: information_schema
+    description: drop new database
+    expected_names: ['Database']
+    expected_results: []
+    expected_types: [varchar]
+    id: 'drop database created_writes_db'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      drop database created_writes_db,
+      show databases like 'created_writes_db']
+    sync: true
+
+  - db: information_schema
+    description: drop database that already exists with 'if not exists' set
+    expected_names: ['Database']
+    expected_results: []
+    expected_types: [varchar]
+    id: 'drop database created_writes_db twice no conflict'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      drop database created_writes_db,
+      drop database if exists created_writes_db,
+      show databases like 'created_writes_db']
+    sync: true
+
+  - db: information_schema
+    description: drop database that already exists, should error
+    expected_error: "Error 1105: database 'created_writes_db' cannot be dropped as it does not exist"
+    id: 'drop database created_writes_db twice conflict'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      drop database created_writes_db,
+      drop database created_writes_db]
+    sync: true
+
+  - db: information_schema
+    description: dropping the current database should unset the current database
+    expected_error: "Error 1046: No database selected"
+    id: 'drop current database'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      use creaTed_wriTes_Db,
+      drop database crEaTed_wRites_DB,
+      show tables]
+    sync: true

@@ -6,6 +6,6 @@ testcases:
 
   - db: mysql
     description: dropping table `proc` should be illegal
-    expected_error: 'Error 1105: cannot drop table (proc)'
+    expected_error: 'Error 1105: drop table only allowed in write mode'
     id: 'drop proc'
     sql: drop table proc

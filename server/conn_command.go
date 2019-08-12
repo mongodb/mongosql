@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/values"
@@ -11,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
 )
@@ -42,11 +42,36 @@ func (ch *commandHandler) Count(ctx context.Context, db, col string) (int, error
 	return ch.conn.session.Count(ctx, db, col)
 }
 
-func (ch *commandHandler) Drop(tbl string) error {
-	if strings.HasPrefix(tbl, "#Tableau") {
-		return nil
+func (ch *commandHandler) DropTable(ctx context.Context, db, tbl string) error {
+	sch, err := ch.conn.server.schemaManager.DropTable(ctx, db, tbl, ch.conn.session)
+	if err != nil {
+		return err
 	}
-	return mysqlerrors.Unknownf("cannot drop table (%s)", tbl)
+	return ch.conn.updateCatalog(ctx, sch)
+}
+
+func (ch *commandHandler) DropDatabase(ctx context.Context, db string) error {
+	sch, err := ch.conn.server.schemaManager.DropDatabase(ctx, db, ch.conn.session)
+	if err != nil {
+		return err
+	}
+	return ch.conn.updateCatalog(ctx, sch)
+}
+
+func (ch *commandHandler) CreateDatabase(ctx context.Context, db string) error {
+	sch, err := ch.conn.server.schemaManager.CreateDatabase(ctx, db)
+	if err != nil {
+		return err
+	}
+	return ch.conn.updateCatalog(ctx, sch)
+}
+
+func (ch *commandHandler) CreateTable(ctx context.Context, db string, table *schema.Table) error {
+	sch, err := ch.conn.server.schemaManager.CreateTable(ctx, db, table, ch.conn.session)
+	if err != nil {
+		return err
+	}
+	return ch.conn.updateCatalog(ctx, sch)
 }
 
 func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killScope evaluator.KillScope) error {
@@ -128,5 +153,10 @@ func (ch *commandHandler) SetScopeAuthorized(scope variable.Scope) error {
 			return fmt.Errorf("must be admin user or have `inprog` privilege action to set global variables")
 		}
 	}
+	return nil
+}
+
+func (ch *commandHandler) UnsetDatabase() error {
+	ch.conn.currentDB = nil
 	return nil
 }

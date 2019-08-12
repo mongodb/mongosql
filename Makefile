@@ -99,6 +99,10 @@ test-integration: test-connect-success restore-data _test-integration
 _test-integration:
 	$(ENV) SUITE="$(SUITE)" testdata/bin/run-integration-tests.sh
 
+test-writes: SUITE := writes
+test-writes: test-connect-success restore-data _test-integration
+
+
 test-option-help: build-mongosqld
 	$(ARTIFACTS_DIR)/bin/mongosqld --help
 

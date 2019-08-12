@@ -87,7 +87,7 @@ func TestWriteModeIntegration(t *testing.T) {
 	// Test that we fail because 'bar' database does not exist yet.
 	_, err = manager.CreateTable(ctx, dbName, table1, session)
 	req.NotNil(err)
-	req.Equal("unknown database 'foo'", err.Error())
+	req.EqualError(err, "ERROR 1049 (42000): Unknown database 'foo'")
 
 	// Now create database 'foo'.
 	sch, err = manager.CreateDatabase(ctx, dbName)
@@ -137,15 +137,11 @@ func TestWriteModeIntegration(t *testing.T) {
 
 	// Drop a random table in a database that doesn't exist.
 	_, err = manager.DropTable(ctx, randomName, table1Name, session)
-	req.NotNil(err)
-	req.Equal(fmt.Sprintf("table '%s.%s' cannot be dropped, database '%s' does not exist",
-		randomName, table1Name, randomName), err.Error())
+	req.EqualError(err, "ERROR 1049 (42000): Unknown database 'flibbity'")
 
 	// Drop a random table in a database that does exist.
 	_, err = manager.DropTable(ctx, dbName, randomName, session)
-	req.NotNil(err)
-	req.Equal(fmt.Sprintf("table '%s.%s' cannot be dropped, no such table in database '%s'",
-		dbName, randomName, dbName), err.Error())
+	req.EqualError(err, "ERROR 1051 (42S02): Unknown table 'flibbity'")
 
 	// Drop our table1 for real this time.
 	sch, err = manager.DropTable(ctx, dbName, table1Name, session)

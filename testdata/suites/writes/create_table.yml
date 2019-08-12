@@ -1,0 +1,75 @@
+testcases:
+
+  - db: information_schema
+    description: create new table
+    expected_names: ['table_name']
+    expected_results:
+      - ['foo']
+    expected_types: [varchar]
+    id: 'create table created_writes_db.foo'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      'create table created_writes_db.foo(x int, y int, unique index idx(x,y))',
+      select table_name from tables where table_schema = 'created_writes_db' and table_name = 'foo']
+    sync: true
+
+  - db: information_schema
+    description: create new table that already exists with 'if not exists' set
+    expected_names: ['table_name']
+    expected_results:
+      - ['foo']
+    expected_types: [varchar]
+    id: 'create table if not exists created_writes_db.foo'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      'create table created_writes_db.foo(x int, y int, unique index idx(x,y))',
+      'create table if not exists created_writes_db.foo(x int, y int, unique index idx(x,y))',
+      select table_name from tables where table_schema = 'created_writes_db' and table_name = 'foo']
+    sync: true
+
+  - db: information_schema
+    description: create table that already exists, should error
+    expected_error: "Error 1105: unable to execute command: (NamespaceExists) a collection 'created_writes_db.foo' already exists"
+    id: 'create table create_writes_db.foo conflict'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      drop database if exists created_writes_db,
+      create database created_writes_db,
+      'create table created_writes_db.foo(x int, y int, unique index idx(x,y))',
+      'create table created_writes_db.foo(x int, y int, unique index idx(x,y))']
+    sync: true
+
+  - db: information_schema
+    description: create table in non-existent database, should error
+    expected_error: "Error 1049: Unknown database 'random'"
+    id: 'create table random.foo, random does not exist'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists random
+    sql_list: [
+      drop database if exists random,
+      'create table random.foo(x int, y int, unique index idx(x,y))']
+    sync: true
+
+  - db: information_schema
+    description: use database and create table
+    expected_names: ['Tables_in_created_writes_db']
+    expected_results:
+      - ['foo']
+    expected_types: [varchar]
+    id: 'use database and create table'
+    min_server_version: 3.6
+    sql_cleanup: drop database if exists created_writes_db
+    sql_list: [
+      create database created_writes_db,
+      use created_writes_db,
+      create table foo(x int),
+      show tables
+    ]
+    sync: true
