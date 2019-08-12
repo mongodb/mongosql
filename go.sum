@@ -82,6 +82,8 @@ go.mongodb.org/mongo-driver v1.0.1-0.20190626181015-60e65d0f2639 h1:ME2LYhLslJmC
 go.mongodb.org/mongo-driver v1.0.1-0.20190626181015-60e65d0f2639/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
 go.mongodb.org/mongo-driver v1.0.1-0.20190702140415-ea4b543a1e0a h1:w79F7z68uV0zqa6ind0DBtWAOL/g+U1iNkxzDDPMtaM=
 go.mongodb.org/mongo-driver v1.0.1-0.20190702140415-ea4b543a1e0a/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
+go.mongodb.org/mongo-driver v1.0.1-0.20190808203010-d7def45f57fd h1:yL9x1GkVsJPEgM3bbyVB3Ufk7TrDqn9RzKl/iI3ieRg=
+go.mongodb.org/mongo-driver v1.0.1-0.20190808203010-d7def45f57fd/go.mod h1:u7ryQJ+DOzQmeO7zB6MHyr8jkEQvC8vH7qLUO4lqsUM=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2 h1:VklqNMn3ovrHsnt90PveolxSbWFaJdECFbxSq0Mqo2M=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/net v0.0.0-20180724234803-3673e40ba225/go.mod h1:mL1N/T3taQHkDXs73rZJwtUhF3w3ftmwwsq0BUmARs4=

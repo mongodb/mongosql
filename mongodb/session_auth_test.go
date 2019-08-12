@@ -2,6 +2,7 @@ package mongodb_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -11,11 +12,12 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 func TestCleartextSessionAuthenticator(t *testing.T) {
@@ -362,14 +364,38 @@ type mockConnection struct {
 }
 
 func (c *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {
-	query := &wiremessage.Query{}
-	err := query.UnmarshalWireMessage(wm)
-	if err != nil {
-		return err
+	_, _, _, _, rem, ok := wiremessage.ReadHeader(wm)
+	if !ok {
+		return errors.New("failed to read header")
+	}
+
+	_, rem, ok = wiremessage.ReadQueryFlags(rem)
+	if !ok {
+		return errors.New("failed to read query flags")
+	}
+
+	_, rem, ok = wiremessage.ReadQueryFullCollectionName(rem)
+	if !ok {
+		return errors.New("failed to read query full collection name")
+	}
+
+	_, rem, ok = wiremessage.ReadQueryNumberToSkip(rem)
+	if !ok {
+		return errors.New("failed to read query number to skip")
+	}
+
+	_, rem, ok = wiremessage.ReadQueryNumberToReturn(rem)
+	if !ok {
+		return errors.New("failed to read query number to return")
+	}
+
+	query, _, ok := wiremessage.ReadQueryQuery(rem)
+	if !ok {
+		return errors.New("failed to read query query")
 	}
 
 	sent := bson.D{}
-	err = bson.Unmarshal(query.Query, &sent)
+	err := bson.Unmarshal(query, &sent)
 	if err != nil {
 		return err
 	}
@@ -390,15 +416,14 @@ func (c *mockConnection) ReadWireMessage(ctx context.Context, dst []byte) ([]byt
 		return nil, err
 	}
 
-	reply := wiremessage.Reply{
-		Documents:      []bson.Raw{respBytes},
-		NumberReturned: 1,
-	}
-
-	b, err := reply.MarshalWireMessage()
-	if err != nil {
-		return nil, err
-	}
+	// Header + Flags + CursorID + StartingFrom + NumberReturned + Length of Documents
+	b := make([]byte, 0, 16+4+8+4+4+len(respBytes))
+	_, b = wiremessage.AppendHeaderStart(b, 0, 0, wiremessage.OpReply)
+	b = wiremessage.AppendReplyFlags(b, 0)
+	b = wiremessage.AppendReplyCursorID(b, 0)
+	b = wiremessage.AppendReplyStartingFrom(b, 0)
+	b = wiremessage.AppendReplyNumberReturned(b, 1)
+	b = bsoncore.AppendDocument(b, respBytes)
 
 	return b, nil
 }

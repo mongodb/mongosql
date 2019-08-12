@@ -26,9 +26,7 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
-	wiremessagex "go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
-	"go.mongodb.org/mongo-driver/x/network/command"
-	"go.mongodb.org/mongo-driver/x/network/wiremessage"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
 var globalConnectionID uint64
@@ -274,6 +272,12 @@ func (c initConnection) Description() description.Server { return description.Se
 func (c initConnection) Close() error                    { return nil }
 func (c initConnection) ID() string                      { return c.id }
 func (c initConnection) Address() address.Address        { return c.addr }
+func (c initConnection) LocalAddress() address.Address {
+	if c.connection == nil || c.nc == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(c.nc.LocalAddr().String())
+}
 func (c initConnection) WriteWireMessage(ctx context.Context, wm []byte) error {
 	return c.writeWireMessage(ctx, wm)
 }
@@ -326,18 +330,18 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 	if c.connection.compressor == wiremessage.CompressorNoOp {
 		return append(dst, src...), nil
 	}
-	_, reqid, respto, origcode, rem, ok := wiremessagex.ReadHeader(src)
+	_, reqid, respto, origcode, rem, ok := wiremessage.ReadHeader(src)
 	if !ok {
 		return dst, errors.New("wiremessage is too short to compress, less than 16 bytes")
 	}
-	idx, dst := wiremessagex.AppendHeaderStart(dst, reqid, respto, wiremessage.OpCompressed)
-	dst = wiremessagex.AppendCompressedOriginalOpCode(dst, origcode)
-	dst = wiremessagex.AppendCompressedUncompressedSize(dst, int32(len(rem)))
-	dst = wiremessagex.AppendCompressedCompressorID(dst, c.connection.compressor)
+	idx, dst := wiremessage.AppendHeaderStart(dst, reqid, respto, wiremessage.OpCompressed)
+	dst = wiremessage.AppendCompressedOriginalOpCode(dst, origcode)
+	dst = wiremessage.AppendCompressedUncompressedSize(dst, int32(len(rem)))
+	dst = wiremessage.AppendCompressedCompressorID(dst, c.connection.compressor)
 	switch c.connection.compressor {
 	case wiremessage.CompressorSnappy:
 		compressed := snappy.Encode(nil, rem)
-		dst = wiremessagex.AppendCompressedCompressedMessage(dst, compressed)
+		dst = wiremessage.AppendCompressedCompressedMessage(dst, compressed)
 	case wiremessage.CompressorZLib:
 		var b bytes.Buffer
 		w, err := zlib.NewWriterLevel(&b, c.connection.zliblevel)
@@ -352,7 +356,7 @@ func (c *Connection) CompressWireMessage(src, dst []byte) ([]byte, error) {
 		if err != nil {
 			return dst, err
 		}
-		dst = wiremessagex.AppendCompressedCompressedMessage(dst, b.Bytes())
+		dst = wiremessage.AppendCompressedCompressedMessage(dst, b.Bytes())
 	default:
 		return dst, fmt.Errorf("unknown compressor ID %v", c.connection.compressor)
 	}
@@ -432,26 +436,18 @@ func (c *Connection) Address() address.Address {
 	return c.addr
 }
 
+// LocalAddress returns the local address of the connection
+func (c *Connection) LocalAddress() address.Address {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if c.connection == nil || c.nc == nil {
+		return address.Address("0.0.0.0")
+	}
+	return address.Address(c.nc.LocalAddr().String())
+}
+
 var notMasterCodes = []int32{10107, 13435}
 var recoveringCodes = []int32{11600, 11602, 13436, 189, 91}
-
-func isRecoveringError(err command.Error) bool {
-	for _, c := range recoveringCodes {
-		if c == err.Code {
-			return true
-		}
-	}
-	return strings.Contains(err.Error(), "node is recovering")
-}
-
-func isNotMasterError(err command.Error) bool {
-	for _, c := range notMasterCodes {
-		if c == err.Code {
-			return true
-		}
-	}
-	return strings.Contains(err.Error(), "not master")
-}
 
 func configureTLS(ctx context.Context, nc net.Conn, addr address.Address, config *tls.Config) (net.Conn, error) {
 	if !config.InsecureSkipVerify {

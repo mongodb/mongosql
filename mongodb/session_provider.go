@@ -246,7 +246,12 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 			}
 		}
 
-		session.clientAddresses = append(session.clientAddresses, c.Address().String())
+		l, ok := c.(driver.LocalAddresser)
+		if !ok {
+			return nil, errors.New("unable to get connection's local address")
+		}
+
+		session.clientAddresses = append(session.clientAddresses, l.LocalAddress().String())
 
 		return c, nil
 	}
@@ -274,6 +279,7 @@ func (sp *SessionProvider) session(ctx context.Context, rp *readpref.ReadPref) (
 type expirableConnection interface {
 	driver.Connection
 	driver.Expirable
+	driver.LocalAddresser
 }
 
 type autoLogoutConnection struct {

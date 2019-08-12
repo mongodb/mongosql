@@ -15,6 +15,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -24,7 +25,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
-	"go.mongodb.org/mongo-driver/x/network/command"
 )
 
 // Collection performs operations on a given collection.
@@ -48,6 +48,7 @@ type aggregateParams struct {
 	registry       *bsoncodec.Registry
 	readConcern    *readconcern.ReadConcern
 	writeConcern   *writeconcern.WriteConcern
+	retryRead      bool
 	db             string
 	col            string
 	readSelector   description.ServerSelector
@@ -156,11 +157,6 @@ func (coll *Collection) Clone(opts ...*options.CollectionOptions) (*Collection, 
 // Name provides access to the name of the collection.
 func (coll *Collection) Name() string {
 	return coll.name
-}
-
-// namespace returns the namespace of the collection.
-func (coll *Collection) namespace() command.Namespace {
-	return command.NewNamespace(coll.db.name, coll.name)
 }
 
 // Database provides access to the database that contains the collection.
@@ -307,7 +303,7 @@ func (coll *Collection) InsertOne(ctx context.Context, document interface{},
 	}
 	res, err := coll.insert(ctx, []interface{}{document}, imOpts...)
 
-	rr, err := processWriteError(nil, nil, err)
+	rr, err := processWriteError(err)
 	if rr&rrOne == 0 {
 		return nil, err
 	}
@@ -323,7 +319,7 @@ func (coll *Collection) InsertMany(ctx context.Context, documents []interface{},
 	}
 
 	result, err := coll.insert(ctx, documents, opts...)
-	rr, err := processWriteError(nil, nil, err)
+	rr, err := processWriteError(err)
 	if rr&rrMany == 0 {
 		return nil, err
 	}
@@ -413,7 +409,7 @@ func (coll *Collection) delete(ctx context.Context, filter interface{}, deleteOn
 		retryMode = driver.RetryOncePerCommand
 	}
 	op = op.Retry(retryMode)
-	rr, err := processWriteError(nil, nil, op.Execute(ctx))
+	rr, err := processWriteError(op.Execute(ctx))
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
@@ -434,7 +430,7 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
 
-func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bsoncore.Document, multi bool, expectedRr returnResult,
+func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool, expectedRr returnResult,
 	opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
 	if ctx == nil {
@@ -444,8 +440,20 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bson
 	uo := options.MergeUpdateOptions(opts...)
 	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
 	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", filter)
-	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update)
-	updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
+
+	switch update.(type) {
+	case bsoncore.Document:
+		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update.(bsoncore.Document))
+	default:
+		u, err := transformUpdateValue(coll.registry, update, true)
+		if err != nil {
+			return nil, err
+		}
+		updateDoc = bsoncore.AppendValueElement(updateDoc, "u", u)
+	}
+	if multi {
+		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
+	}
 
 	// collation, arrayFilters, and upsert are included on the individual update documents rather than as part of the
 	// command
@@ -506,7 +514,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter, update bson
 	op = op.Retry(retry)
 	err = op.Execute(ctx)
 
-	rr, err := processWriteError(nil, nil, err)
+	rr, err := processWriteError(err)
 	if rr&expectedRr == 0 {
 		return nil, err
 	}
@@ -537,15 +545,8 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 	if err != nil {
 		return nil, err
 	}
-	u, err := transformBsoncoreDocument(coll.registry, update)
-	if err != nil {
-		return nil, err
-	}
-	if err := ensureDollarKeyv2(u); err != nil {
-		return nil, err
-	}
 
-	return coll.updateOrReplace(ctx, f, u, false, rrOne, opts...)
+	return coll.updateOrReplace(ctx, f, update, false, rrOne, opts...)
 }
 
 // UpdateMany updates multiple documents in the collection.
@@ -561,16 +562,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
-	u, err := transformBsoncoreDocument(coll.registry, update)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = ensureDollarKeyv2(u); err != nil {
-		return nil, err
-	}
-
-	return coll.updateOrReplace(ctx, f, u, true, rrMany, opts...)
+	return coll.updateOrReplace(ctx, f, update, true, rrMany, opts...)
 }
 
 // ReplaceOne replaces a single document in the collection.
@@ -619,6 +611,7 @@ func (coll *Collection) Aggregate(ctx context.Context, pipeline interface{},
 		registry:       coll.registry,
 		readConcern:    coll.readConcern,
 		writeConcern:   coll.writeConcern,
+		retryRead:      coll.client.retryReads,
 		db:             coll.db.name,
 		col:            coll.name,
 		readSelector:   coll.readSelector,
@@ -711,6 +704,12 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		op.Hint(hintVal)
 	}
 
+	retry := driver.RetryNone
+	if a.retryRead && !hasOutputStage {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
+
 	err = op.Execute(a.ctx)
 	if err != nil {
 		closeImplicitSession(sess)
@@ -780,6 +779,11 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		}
 		op.Hint(hintVal)
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -814,15 +818,16 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 
 	sess := sessionFromContext(ctx)
 
+	var err error
 	if sess == nil && coll.client.topology.SessionPool != nil {
-		sess, err := session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
+		sess, err = session.NewClientSession(coll.client.topology.SessionPool, coll.client.id, session.Implicit)
 		if err != nil {
 			return 0, err
 		}
 		defer sess.EndSession()
 	}
 
-	err := coll.client.validSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return 0, err
 	}
@@ -843,6 +848,11 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 	if co.MaxTime != nil {
 		op = op.MaxTimeMS(int64(*co.MaxTime / time.Millisecond))
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op.Retry(retry)
 
 	err = op.Execute(ctx)
 
@@ -899,6 +909,11 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 	if option.MaxTime != nil {
 		op.MaxTimeMS(int64(*option.MaxTime / time.Millisecond))
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
 
 	err = op.Execute(ctx)
 	if err != nil {
@@ -961,7 +976,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.writeSelector)
+	selector := makePinnedSelector(sess, coll.readSelector)
 
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
@@ -1069,6 +1084,11 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		}
 		op.Sort(sort)
 	}
+	retry := driver.RetryNone
+	if coll.client.retryReads {
+		retry = driver.RetryOncePerCommand
+	}
+	op = op.Retry(retry)
 
 	if err = op.Execute(ctx); err != nil {
 		closeImplicitSession(sess)
@@ -1166,7 +1186,7 @@ func (coll *Collection) findAndModify(ctx context.Context, op *operation.FindAnd
 		Deployment(coll.client.topology).
 		Retry(retry)
 
-	_, err = processWriteError(nil, nil, op.Execute(ctx))
+	_, err = processWriteError(op.Execute(ctx))
 	if err != nil {
 		return &SingleResult{err: err}
 	}
@@ -1227,7 +1247,7 @@ func (coll *Collection) FindOneAndReplace(ctx context.Context, filter interface{
 	}
 
 	fo := options.MergeFindOneAndReplaceOptions(opts...)
-	op := operation.NewFindAndModify(f).Update(r)
+	op := operation.NewFindAndModify(f).Update(bsoncore.Value{Type: bsontype.EmbeddedDocument, Data: r})
 	if fo.BypassDocumentValidation != nil && *fo.BypassDocumentValidation {
 		op = op.BypassDocumentValidation(*fo.BypassDocumentValidation)
 	}
@@ -1274,19 +1294,15 @@ func (coll *Collection) FindOneAndUpdate(ctx context.Context, filter interface{}
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	u, err := transformBsoncoreDocument(coll.registry, update)
+
+	fo := options.MergeFindOneAndUpdateOptions(opts...)
+	op := operation.NewFindAndModify(f)
+
+	u, err := transformUpdateValue(coll.registry, update, true)
 	if err != nil {
 		return &SingleResult{err: err}
 	}
-	err = ensureDollarKeyv2(u)
-	if err != nil {
-		return &SingleResult{
-			err: err,
-		}
-	}
-
-	fo := options.MergeFindOneAndUpdateOptions(opts...)
-	op := operation.NewFindAndModify(f).Update(u)
+	op = op.Update(u)
 
 	if fo.ArrayFilters != nil {
 		filtersDoc, err := fo.ArrayFilters.ToArrayDocument()
