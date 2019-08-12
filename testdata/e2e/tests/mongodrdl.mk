@@ -48,6 +48,9 @@ test-drdl-ssl-min-tls-1-2: test-drdl-connect-success
 test-drdl-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/ssl/basic,drdl/ssl/enable
 test-drdl-ssl: test-drdl-connect-success
 
+test-drdl-replset-seedlist: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/replica-set,drdl/mongo/replset-host,drdl/mongo/replset-ns
+test-drdl-replset-seedlist: test-drdl-connect-success
+
 # test that drdl connects with gssapi
 test-drdl-gssapi: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),drdl/mongo/gssapi-host,drdl/mongo/gssapi-ns,drdl/auth/gssapi-correct-username-and-password,drdl/auth/gssapi-mechanism
 test-drdl-gssapi: test-mongo-drdl-gssapi-success

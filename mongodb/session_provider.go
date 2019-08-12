@@ -9,6 +9,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 
 	"go.mongodb.org/mongo-driver/mongo/readpref"
@@ -17,13 +18,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
-)
-
-// URI literals
-const (
-	MongoDBScheme     = "mongodb://"
-	MongoDBSRVScheme  = "mongodb+srv://"
-	DefaultMongoDBURI = "mongodb://localhost:27017"
 )
 
 // NewDrdlSessionProvider creates a new session provider for mongodrdl.
@@ -39,9 +33,9 @@ func NewDrdlSessionProvider(rp *readpref.ReadPref, t *topology.Topology, timeout
 // NewSqldSessionProvider creates a new session provider for mongosql.
 func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 	uri := cfg.MongoDB.Net.URI
-	if !strings.HasPrefix(uri, MongoDBScheme) &&
-		!strings.HasPrefix(uri, MongoDBSRVScheme) {
-		uri = fmt.Sprintf("%v%v", MongoDBScheme, uri)
+	if !strings.HasPrefix(uri, procutil.MongoDBScheme) &&
+		!strings.HasPrefix(uri, procutil.MongoDBSRVScheme) {
+		uri = fmt.Sprintf("%v://%v", procutil.MongoDBScheme, uri)
 	}
 
 	cs, err := connstring.Parse(uri)

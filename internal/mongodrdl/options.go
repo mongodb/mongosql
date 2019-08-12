@@ -11,8 +11,8 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/password"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/persist"
 	"github.com/jessevdk/go-flags"
@@ -61,12 +61,6 @@ type DrdlOptions struct {
 	*DrdlOutput
 	*DrdlSample
 	*DrdlStored
-
-	// ReplicaSetName, if specified, will prevent the obtained session from
-	// communicating with any server which is not part of a replica set
-	// with the given name. The default is to communicate with any server
-	// specified or discovered via the servers contacted.
-	ReplicaSetName string
 
 	parser *flags.Parser
 }
@@ -581,19 +575,19 @@ func (o DrdlOptions) Parse(osArgs []string) error {
 	} else {
 		// URI not set. Copy other options into o.uri.
 
-		// Handle Port and Host. If both Host and Port contain a port spec, we assume the user
-		// prefers the one coming from Port, but warn just in case.
-		if o.conn.Port != "" {
-			if strings.Contains(o.conn.Host, ":") {
-				_, _ = fmt.Fprintf(os.Stderr, "WARNING: port specified in both the '--host' and "+
-					"'--port' flags, will use '%s' as port\n", o.conn.Port)
-				o.conn.Host = strings.Split(o.conn.Host, ":")[0]
-			}
-			o.conn.Host += ":" + o.conn.Port
+		// Handle Port and Host.
+		//
+		// If Host is not a replica set seedlist and both Host and Port
+		// contain a port spec, we assume the user prefers the one coming from Port, but warn
+		// just in case.
+		baseURI, replacedPort := procutil.ParseHost(o.conn.Host, o.conn.Port, true)
+		if o.conn.Port != "" && replacedPort {
+			_, _ = fmt.Fprintf(os.Stderr, "WARNING: port specified in both the '--host' and "+
+				"'--port' flags, will use '%s' as port\n", o.conn.Port)
 		}
 
 		// Make o.uri the source of option values.
-		cs, err := o.toConnString()
+		cs, err := o.toConnString(baseURI)
 		if err != nil {
 			return err
 		}
@@ -617,19 +611,8 @@ func (o DrdlOptions) Parse(osArgs []string) error {
 	return nil
 }
 
-func (o DrdlOptions) toConnString() (connstring.ConnString, error) {
-	uri := o.conn.Host
-
-	if uri == "" {
-		uri = mongodb.DefaultMongoDBURI
-	}
-
-	if !strings.HasPrefix(uri, mongodb.MongoDBScheme) &&
-		!strings.HasPrefix(uri, mongodb.MongoDBSRVScheme) {
-		uri = fmt.Sprintf("%v%v", mongodb.MongoDBScheme, uri)
-	}
-
-	cs, err := connstring.Parse(uri)
+func (o DrdlOptions) toConnString(baseURI string) (connstring.ConnString, error) {
+	cs, err := connstring.Parse(baseURI)
 	if err != nil {
 		return cs, err
 	}
@@ -701,7 +684,8 @@ func (o DrdlOptions) ConnString() (connstring.ConnString, error) {
 		return o.uri.ConnString, nil
 	}
 
-	cs, err := o.toConnString()
+	baseURI, _ := procutil.ParseHost(o.conn.Host, o.conn.Port, true)
+	cs, err := o.toConnString(baseURI)
 	if err != nil {
 		return connstring.ConnString{}, err
 	}

@@ -6,29 +6,89 @@ import (
 	"strings"
 )
 
+// URI literals
+const (
+	MongoDBScheme    = "mongodb"
+	MongoDBSRVScheme = "mongodb+srv"
+)
+
 const (
 	// InvalidDBChars lists a number of characters that are
 	// invalid for use in a database name.
 	InvalidDBChars = "/\\. \"\x00$"
 )
 
-// ParseConnectionString extracts the replica set name and the list
-// of hosts from the connection string.
-func ParseConnectionString(connString string) ([]string, string) {
-
-	// strip off the replica set name from the beginning
-	slashIndex := strings.Index(connString, "/")
-	setName := ""
-	if slashIndex != -1 {
-		setName = connString[:slashIndex]
-		if slashIndex == len(connString)-1 {
-			return []string{""}, setName
+// ParseHost parses a host string into a valid mongodb uri of the form:
+//     <scheme>://<host>:<port>
+// or
+//     <scheme>://<host>:<port>,...,<host>:<port>/?replicaSet=<replSetName>
+//
+// The host string may be any of these cases:
+//  - <host>
+//  - <host>:<port>
+//  - <scheme>://<host>
+//  - <scheme>://<host>:<port>
+//  - <scheme>://<replSetName>/<host>:<port>,...,<host>:<port>
+//  - <replSetName>/<host>:<port>,...,<host>:<port>
+//
+// A port may be provided. If port is non-empty, the host string is not
+// a replica set seedlist and contains a port, and preferPort is true,
+// then the port in the host will be replaced with the port argument.
+//
+// parseHost returns the uri string and a bool indicating whether or not
+// it replaced the port in the host string using the provided port.
+func ParseHost(host, port string, preferPort bool) (string, bool) {
+	if host == "" {
+		if port == "" {
+			host = "localhost:27017"
+		} else {
+			host = "localhost"
 		}
-		connString = connString[slashIndex+1:]
 	}
 
-	// split the hosts, and return them and the set name
-	return strings.Split(connString, ","), setName
+	scheme := MongoDBScheme
+	replSetName := ""
+	hosts := host
+	replacedPort := false
+
+	// Step 1: Get the scheme
+	if strings.HasPrefix(hosts, MongoDBScheme) ||
+		strings.HasPrefix(hosts, MongoDBSRVScheme) {
+		parts := strings.SplitN(hosts, "://", 2)
+		scheme = parts[0]
+		hosts = parts[1]
+	}
+
+	// Step 2: Get the replica set name
+	if strings.Contains(hosts, "/") {
+		parts := strings.SplitN(hosts, "/", 2)
+		replSetName = parts[0]
+		hosts = parts[1]
+	}
+
+	// Step 3: Get the port
+	if port != "" && replSetName == "" {
+		if strings.Contains(hosts, ":") {
+			parts := strings.SplitN(hosts, ":", 2)
+			hosts = parts[0]
+			if preferPort {
+				replacedPort = true
+			} else {
+				port = parts[1]
+			}
+		}
+
+		hosts = fmt.Sprintf("%v:%v", hosts, port)
+	}
+
+	// Step 4: Build the URI string
+	uri := fmt.Sprintf("%v://%v", scheme, hosts)
+
+	if replSetName != "" {
+		uri = fmt.Sprintf("%v/?replicaSet=%v", uri, replSetName)
+	}
+
+	return uri, replacedPort
 }
 
 // ValidateDBName validates that a string is a valid name for a mongodb

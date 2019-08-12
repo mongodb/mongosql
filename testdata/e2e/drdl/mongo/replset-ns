@@ -1,0 +1,2 @@
+
+DRDL_NAMESPACE="-d replica_set -c test"

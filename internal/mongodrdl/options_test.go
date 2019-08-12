@@ -198,9 +198,9 @@ func testInvalidSSL(t *testing.T) {
 func testPrecedence(t *testing.T) {
 	t.Run("port flag has higher precedence than host", func(t *testing.T) {
 		tests := []struct {
-			description  string
-			args         []string
-			expectedHost string
+			description   string
+			args          []string
+			expectedHosts []string
 		}{
 			{
 				"host and port",
@@ -208,7 +208,7 @@ func testPrecedence(t *testing.T) {
 					"--host", "localhost",
 					"--port", "6999",
 				},
-				"localhost:6999",
+				[]string{"localhost:6999"},
 			},
 			{
 				"host with port and port",
@@ -216,14 +216,22 @@ func testPrecedence(t *testing.T) {
 					"--host", "localhost:34325452",
 					"--port", "6999",
 				},
-				"localhost:6999",
+				[]string{"localhost:6999"},
 			},
 			{
 				"host with port",
 				[]string{
 					"--host", "localhost:6999",
 				},
-				"localhost:6999",
+				[]string{"localhost:6999"},
+			},
+			{
+				"replset host and port",
+				[]string{
+					"--host", "testReplSet/localhost:27017,localhost:27018,localhost:27019",
+					"--port", "6999",
+				},
+				[]string{"localhost:27017", "localhost:27018", "localhost:27019"},
 			},
 		}
 
@@ -236,7 +244,10 @@ func testPrecedence(t *testing.T) {
 
 				cs, err := opts.ConnString()
 				req.NoError(err)
-				req.Equal(test.expectedHost, cs.Hosts[0])
+
+				for i, expectedHost := range test.expectedHosts {
+					req.Equal(expectedHost, cs.Hosts[i], "incorrect host #%v", i)
+				}
 			})
 		}
 	})
@@ -441,7 +452,7 @@ func testValid(t *testing.T) {
 		expectedPassword                    string
 		expectedAuthenticationDatabase      string
 		expectedAuthenticationMechanism     string
-		expectedHost                        string
+		expectedHosts                       []string
 		expectedGSSAPIServiceName           string
 		expectedGSSAPIHostName              string
 		expectedDB                          string
@@ -482,7 +493,7 @@ func testValid(t *testing.T) {
 			"pass",
 			"$external",
 			"GSSAPI",
-			"localhost:27000",
+			[]string{"localhost:27000"},
 			"service",
 			"host",
 			"db",
@@ -524,7 +535,7 @@ func testValid(t *testing.T) {
 			"pass",
 			"authDB",
 			"SCRAM-SHA-1",
-			"localhost:27000",
+			[]string{"localhost:27000"},
 			"",
 			"",
 			"db",
@@ -553,9 +564,84 @@ func testValid(t *testing.T) {
 			"pass",
 			"$external",
 			"GSSAPI",
-			"localhost:27000",
+			[]string{"localhost:27000"},
 			"service",
 			"host",
+			"db",
+			"c",
+			true,
+			"ca",
+			"key",
+			"keypass",
+			"crl",
+			true,
+			true,
+			true,
+			"TLS1_2",
+		},
+		{
+			"replset seedlist for host",
+			[]string{
+				"--username", "user",
+				"--password", "pass",
+				"--authenticationDatabase", "authDB",
+				"--authenticationMechanism", "SCRAM-SHA-1",
+				"--host", "testReplSet/localhost:27017,localhost:27018,localhost:27019",
+				"--gssapiServiceName", "service",
+				"--gssapiHostName", "host",
+				"--db", "db",
+				"--collection", "c",
+				"--ssl",
+				"--sslCAFile", "ca",
+				"--sslPEMKeyFile", "key",
+				"--sslPEMKeyPassword", "keypass",
+				"--sslCRLFile", "crl",
+				"--sslAllowInvalidCertificates",
+				"--sslAllowInvalidHostnames",
+				"--sslFIPSMode",
+				"--minimumTLSVersion", "TLS1_2",
+			},
+			"user",
+			"pass",
+			"authDB",
+			"SCRAM-SHA-1",
+			[]string{"localhost:27017", "localhost:27018", "localhost:27019"},
+			"",
+			"",
+			"db",
+			"c",
+			true,
+			"ca",
+			"key",
+			"keypass",
+			"crl",
+			true,
+			true,
+			true,
+			"TLS1_2",
+		},
+		{
+			"replset seedlist for uri",
+			[]string{
+				"--uri", "mongodb://user:pass@localhost:27017,localhost:27018,localhost:27019/db?replicaSet=testReplSet&authSource=authDB&authMechanism=SCRAM-SHA-1",
+				"--collection", "c",
+				"--ssl",
+				"--sslCAFile", "ca",
+				"--sslPEMKeyFile", "key",
+				"--sslPEMKeyPassword", "keypass",
+				"--sslCRLFile", "crl",
+				"--sslAllowInvalidCertificates",
+				"--sslAllowInvalidHostnames",
+				"--sslFIPSMode",
+				"--minimumTLSVersion", "TLS1_2",
+			},
+			"user",
+			"pass",
+			"authDB",
+			"SCRAM-SHA-1",
+			[]string{"localhost:27017", "localhost:27018", "localhost:27019"},
+			"",
+			"",
 			"db",
 			"c",
 			true,
@@ -585,7 +671,10 @@ func testValid(t *testing.T) {
 			req.Equal(test.expectedPassword, cs.Password, "incorrect password")
 			req.Equal(test.expectedAuthenticationDatabase, cs.AuthSource, "incorrect auth source")
 			req.Equal(test.expectedAuthenticationMechanism, cs.AuthMechanism, "incorrect auth mechanism")
-			req.Equal(test.expectedHost, cs.Hosts[0], "incorrect host")
+
+			for i, expectedHost := range test.expectedHosts {
+				req.Equal(expectedHost, cs.Hosts[i], "incorrect host #%v", i)
+			}
 			req.Equal(test.expectedGSSAPIServiceName, cs.AuthMechanismProperties["SERVICE_NAME"], "incorrect GSSAPI service name")
 			req.Equal(test.expectedGSSAPIHostName, cs.AuthMechanismProperties["SERVICE_HOST"], "incorrect GSSAPI host name")
 			req.Equal(test.expectedDB, cs.Database, "incorrect db (directly in conn string)")

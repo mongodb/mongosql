@@ -1299,6 +1299,10 @@ tasks:
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
 - <<: *run-config-test
+  name: test-drdl-replset-seedlist
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-log-rotation-none
   tags: ["test", "config"]
 

@@ -7,6 +7,11 @@
 
     echo "running drdl connection test..."
 
+    if [ "$TOPOLOGY" = 'replica_set' ]; then
+        # wait for the replica set to finish setting up
+        sleep 10
+    fi
+
     set +o errexit
     output=$($ARTIFACTS_DIR/bin/mongodrdl $DRDL_ARGS -d test 2>&1)
     code=$?
