@@ -444,6 +444,88 @@ func TestCreateTable(t *testing.T) {
 	tableTest(t, tests)
 }
 
+func TestInsert(t *testing.T) {
+	tests := []test{
+		{
+			name:       "insert no column list",
+			input:      "insert into foo value(1)",
+			errMessage: "",
+		}, {
+			name:       "insert empty column list",
+			input:      "insert into foo() value(1)",
+			errMessage: "",
+		}, {
+			name:       "insert with col",
+			input:      "insert into foo(x) value(1)",
+			errMessage: "",
+		}, {
+			name:       "insert missing column list without into",
+			input:      "insert foo value(1)",
+			errMessage: "",
+		}, {
+			name:       "insert empty column list without into",
+			input:      "insert foo() value(1)",
+			errMessage: "",
+		}, {
+			name:       "insert non-empty column list without into",
+			input:      "insert foo(x) value(1)",
+			errMessage: "",
+		}, {
+			name: "insert many column values",
+			input: `insert into foo value(1,2,3,4,
+			               'hello', true, false, NULL, date '2012-01-01',
+			               time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+			errMessage: "",
+		}, {
+			name: "insert column values with column list",
+			input: `insert into foo(x,y,z) value(1,2,3,4,
+			               'hello', true, false, NULL, date '2012-01-01',
+			               time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+			errMessage: "",
+		}, {
+			name: "insert many column values with several rows and column list",
+			input: `insert into foo(x,y,z) values
+							(1,2,3,4,
+			               'hello', true, false, NULL, date '2012-01-01',
+			               time '01:03:03', timestamp '2012-01-01T01:03:03'),
+							(41,42,43,44,
+			               'world', false, true, NULL, date '2013-01-01',
+			               time '01:03:03', timestamp '2013-01-01T01:03:03')`,
+			errMessage: "",
+		}, {
+			name:       "must have at least one value list",
+			input:      "insert into foo values",
+			errMessage: "unexpected $end at position 24",
+		}, {
+			name:       "must have at least one value list",
+			input:      "insert into foo value",
+			errMessage: "unexpected $end at position 23",
+		}, {
+			name:       "value list cannot be missing",
+			input:      "insert into foo value",
+			errMessage: "unexpected $end at position 23",
+		}, {
+			name:       "value list can be empty",
+			input:      "insert into foo value()",
+			errMessage: "",
+		}, {
+			name:       "value list can be empty",
+			input:      "insert into foo value(42), ()",
+			errMessage: "",
+		}, {
+			name:       "insert with default value",
+			input:      `insert into foo() value(1,2,DEFAULT)`,
+			errMessage: "",
+		}, {
+			name:       "insert with several default values",
+			input:      `insert into foo() value(DeFault,2,DEFAULT, deFAULT)`,
+			errMessage: "",
+		},
+	}
+
+	tableTest(t, tests)
+}
+
 func TestIgnoredStatements(t *testing.T) {
 
 	tests := []test{

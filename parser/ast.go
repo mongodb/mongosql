@@ -483,7 +483,9 @@ var appendDot option.StringMapFunc = func(s string) string {
 }
 
 var escape option.StringMapFunc = func(s string) string {
-	if _, ok := keywords[strings.ToLower(s)]; ok {
+	_, isKeyword := keywords[strings.ToLower(s)]
+	_, isID := keywordAsID[strings.ToLower(s)]
+	if isKeyword && !isID {
 		return "`" + s + "`"
 	}
 	return s
@@ -677,6 +679,12 @@ type Expr interface {
 	CST
 }
 
+// Value represents values (strings, numbers, etc).
+type Value interface {
+	Expr
+	IValue()
+}
+
 func (*AndExpr) IExpr()        {}
 func (*OrExpr) IExpr()         {}
 func (*XorExpr) IExpr()        {}
@@ -688,15 +696,25 @@ func (*RLikeExpr) IExpr()      {}
 func (*RangeCond) IExpr()      {}
 func (*ExistsExpr) IExpr()     {}
 func (*DateVal) IExpr()        {}
+func (*DateVal) IValue()       {}
 func (StrVal) IExpr()          {}
+func (StrVal) IValue()         {}
 func (NumVal) IExpr()          {}
+func (NumVal) IValue()         {}
 func (ValArg) IExpr()          {}
+func (ValArg) IValue()         {}
 func (KeywordVal) IExpr()      {}
 func (*NullVal) IExpr()        {}
+func (*NullVal) IValue()       {}
+func (Default) IExpr()         {}
+func (Default) IValue()        {}
 func (*ColName) IExpr()        {}
 func (*TrueVal) IExpr()        {}
+func (*TrueVal) IValue()       {}
 func (*FalseVal) IExpr()       {}
+func (*FalseVal) IValue()      {}
 func (*UnknownVal) IExpr()     {}
+func (*UnknownVal) IValue()    {}
 func (ValTuple) IExpr()        {}
 func (*Subquery) IExpr()       {}
 func (*BinaryExpr) IExpr()     {}
@@ -880,6 +898,13 @@ type NumVal string
 
 func (node NumVal) Format(buf *TrackedBuffer) {
 	buf.Fprintf("%s", []byte(node))
+}
+
+// Default represents a default value.
+type Default struct{}
+
+func (node Default) Format(buf *TrackedBuffer) {
+	buf.Fprintf("default")
 }
 
 // ValArg represents a named bind var argument.
@@ -1421,4 +1446,58 @@ func (DisableKeys) IIgnorableStatement() {}
 
 func (DisableKeys) Format(buf *TrackedBuffer) {
 	buf.Fprintf("disable keys")
+}
+
+type Insert struct {
+	Table   *TableName
+	Columns []*ColName
+	Values  ValueListList
+}
+
+func (*Insert) IStatement() {}
+func (ins *Insert) Format(buf *TrackedBuffer) {
+	buf.Fprintf("insert into ")
+	ins.Table.Format(buf)
+	if len(ins.Columns) > 0 {
+		buf.Fprintf("(")
+		ins.Columns[0].Format(buf)
+		for _, c := range ins.Columns[1:] {
+			buf.Fprintf(", ")
+			c.Format(buf)
+		}
+		buf.Fprintf(")")
+	}
+	buf.Fprintf(" values")
+	ins.Values.Format(buf)
+}
+
+type ValueListList []ValueList
+
+func (ValueListList) IExpr() {}
+func (vll ValueListList) Format(buf *TrackedBuffer) {
+	if len(vll) <= 0 {
+		return
+	}
+	vll[0].Format(buf)
+	for _, vl := range vll[1:] {
+		buf.Fprintf(", ")
+		vl.Format(buf)
+	}
+}
+
+type ValueList []Value
+
+func (ValueList) IExpr() {}
+func (vl ValueList) Format(buf *TrackedBuffer) {
+	if len(vl) <= 0 {
+		buf.Fprintf("()")
+		return
+	}
+	buf.Fprintf("(")
+	vl[0].Format(buf)
+	for _, v := range vl[1:] {
+		buf.Fprintf(", ")
+		v.Format(buf)
+	}
+	buf.Fprintf(")")
 }

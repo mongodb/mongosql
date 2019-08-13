@@ -27,56 +27,60 @@ func ForceEOF(yylex interface{}) {
 %}
 
 %union {
-  empty       struct{}
-  statement   Statement
-  selStmt     SelectStatement
-  bool        bool
-  intopt  	  option.Int
-  byt         byte
-  bytes       []byte
-  cte         *CTE
-  cte_list    []*CTE
-  keyPart     KeyPart
-  keyPartList []KeyPart
-  with        *With
-  str         string
-  strs        []string
-  stropt      OptString
-  selectExprs SelectExprs
-  selectExpr  SelectExpr
-  columnOrIndexDefs []ColumnOrIndexDefinition
-  columnOrIndexDef ColumnOrIndexDefinition
-  columns     Columns
-  columnExprs ColumnExprs
-  colName     *ColName
-  colTy       ColumnType
-  tableExprs  TableExprs
-  tableExpr   TableExpr
-  tableOption TableOption
-  tableOptions []TableOption
-  smTableExpr SimpleTableExpr
-  tableName   *TableName
-  indexHints  *IndexHints
-  expr        Expr
-  tuple       Tuple
-  exprs       Exprs
-  subquery    *Subquery
-  caseExpr    *CaseExpr
-  whens       []*When
-  when        *When
-  orderBy     OrderBy
-  order       *Order
-  limit       *Limit
-  updateExprs UpdateExprs
-  updateExpr  *UpdateExpr
-  alterSpec   *AlterSpec
-  alterSpecs  []*AlterSpec
-  tableLock   TableLock
-  tableLocks  []TableLock
-  lockType    LockType
-  renameSpec  *RenameSpec
-  renameSpecs []*RenameSpec
-  queryGlobals *QueryGlobals
+  empty                 struct{}
+  statement             Statement
+  selStmt               SelectStatement
+  bool                  bool
+  intopt    	        option.Int
+  byt                   byte
+  bytes                 []byte
+  cte                   *CTE
+  cte_list              []*CTE
+  keyPart               KeyPart
+  keyPartList           []KeyPart
+  with                  *With
+  str                   string
+  strs                  []string
+  stropt                OptString
+  selectExprs           SelectExprs
+  selectExpr            SelectExpr
+  columnOrIndexDefs     []ColumnOrIndexDefinition
+  columnOrIndexDef      ColumnOrIndexDefinition
+  columns               Columns
+  columnList            []*ColName
+  columnExprs           ColumnExprs
+  colName               *ColName
+  colTy                 ColumnType
+  tableExprs            TableExprs
+  tableExpr             TableExpr
+  tableOption           TableOption
+  tableOptions          []TableOption
+  smTableExpr           SimpleTableExpr
+  tableName             *TableName
+  indexHints            *IndexHints
+  expr                  Expr
+  tuple                 Tuple
+  exprs                 Exprs
+  subquery              *Subquery
+  caseExpr              *CaseExpr
+  whens                 []*When
+  when                  *When
+  orderBy               OrderBy
+  order                 *Order
+  limit                 *Limit
+  updateExprs           UpdateExprs
+  updateExpr            *UpdateExpr
+  alterSpec             *AlterSpec
+  alterSpecs            []*AlterSpec
+  tableLock             TableLock
+  tableLocks            []TableLock
+  lockType              LockType
+  renameSpec            *RenameSpec
+  renameSpecs           []*RenameSpec
+  queryGlobals          *QueryGlobals
+  val                   Value
+  valueList             ValueList
+  valueListList         ValueListList
 }
 
 %token LEX_ERROR
@@ -85,8 +89,8 @@ func ForceEOF(yylex interface{}) {
 
 
 %token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE SEPARATOR
-%token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO COMMENT_KWD FULLTEXT
-%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUES DEFAULT LOCK UNLOCK
+%token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO COMMENT_KWD FULLTEXT INSERT INTO
+%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUE VALUES DEFAULT LOCK UNLOCK
 %token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR GROUP_CONCAT OBJECT_ID
 %token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
 %token <empty> DATE_SUB SUBDATE ROW
@@ -146,7 +150,7 @@ func ForceEOF(yylex interface{}) {
 %type <selStmt> select_statement select_statement_with_paren_order_limit
 %type <with> with_statement
 %type <statement> set_statement use_statement show_statement explain_statement explainable_stmt
-%type <statement> kill_statement ignored_statement
+%type <statement> kill_statement ignored_statement insert_statement
 %type <statement> create_database_statement drop_database_statement drop_table_statement
 %type <statement> create_table_statement
 %type <columnOrIndexDefs> create_definition_list
@@ -176,6 +180,9 @@ func ForceEOF(yylex interface{}) {
 %type <tableExprs> dual_table
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
+%type <columnList> column_list insert_columns_opt
+%type <valueListList> value_list_list
+%type <valueList> value_list
 %type <bytes> column_definition data_type
 %type <colTy> column_data_type
 %type <bytes> float_column_data_type normal_column_data_type
@@ -189,9 +196,8 @@ func ForceEOF(yylex interface{}) {
 %type <indexHints> index_hint_list
 %type <strs> index_list
 %type <expr> where_expression_opt like_escape_opt
-%type <expr> value
 %type <tuple> tuple
-%type <expr> boolean_value
+%type <val> value value_or_default boolean_value
 %type <exprs> expression_list
 %type <bytes> interval_unit
 %type <bytes> time_interval
@@ -202,7 +208,7 @@ func ForceEOF(yylex interface{}) {
 %type <subquery> subquery non_derived_subquery
 %type <byt> unary_operator
 %type <intopt> width_opt
-%type <empty> float_width_opt
+%type <empty> float_width_opt value_or_values
 %type <colName> column_name explain_column_name
 %type <caseExpr> case_expression
 %type <whens> when_expression_list
@@ -271,6 +277,7 @@ command:
 | alter_statement
 | rename_statement
 | ignored_statement
+| insert_statement
 
 select_statement_with_paren_order_limit:
   non_derived_subquery order_by_opt limit_opt
@@ -941,12 +948,90 @@ lock_type:
   }
 
 local_opt:
-  | {}
-  LOCAL {}
+  {}
+  | LOCAL {}
 
 low_priority_opt:
-  | {}
-  LOW_PRIORITY {}
+  {}
+  | LOW_PRIORITY {}
+
+insert_statement:
+  INSERT into_opt table_name insert_columns_opt value_or_values value_list_list
+  {
+    $$ = &Insert{ Table: $3, Columns: $4, Values: $6}
+  }
+
+into_opt:
+   {}
+  | INTO {}
+
+insert_columns_opt:
+  {
+    $$ = []*ColName{}
+  }
+  | LPAREN RPAREN
+  {
+    $$ = []*ColName{}
+  }
+  | LPAREN column_list RPAREN
+  {
+    $$ = $2
+  }
+
+column_list:
+  column_list COMMA column_name
+  {
+    $$ = append($1, $3)
+  }
+  | column_name
+  {
+    $$ = []*ColName{$1}
+  }
+
+value_or_values:
+  VALUE {}
+  | VALUES {}
+
+// eventually value_list should be expression_list, but
+// for now we want to restrict to actual values, e.g.,
+// insert into foo values(3+4) is actually valid in mysql but not
+// in BI-Connector write mode. The reason for this is that a subquery
+// is a valid expression in insert, and would require quite a bit to
+// support, despite being very uncommon in practice, and likely
+// non-existent in MySQL dump files.
+value_list_list:
+  value_list_list COMMA LPAREN value_list RPAREN
+  {
+    $$ = append($1, $4)
+  }
+  | LPAREN value_list RPAREN
+  {
+    $$ = ValueListList{$2}
+  }
+
+value_list:
+  value_list COMMA value_or_default
+  {
+    $$ = append($1, $3)
+  }
+  | value_or_default
+  {
+    $$ = ValueList{$1}
+  }
+  |
+  {
+    $$ = ValueList{}
+  }
+
+value_or_default:
+  value
+  {
+    $$ = $1
+  }
+  | DEFAULT
+  {
+    $$ = Default{}
+  }
 
 alter_statement:
   ALTER TABLE table_name alter_spec_list
@@ -2268,6 +2353,10 @@ func_expr_reserved_keyword:
   {
     $$ = &FuncExpr{Name: string(CONVERT_BYTES), Exprs: append(SelectExprs{&NonStarExpr{Expr:$3}, &NonStarExpr{Expr:KeywordVal($5)}})}
   }
+| INSERT LPAREN select_expression_list RPAREN
+  {
+    $$ = &FuncExpr{Name: string(INSERT_BYTES), Exprs: $3}
+  }
 | LEFT LPAREN select_expression_list RPAREN
   {
     $$ = &FuncExpr{Name: string(LEFT_BYTES), Exprs: $3}
@@ -3389,6 +3478,10 @@ keyword_as_id:
 | USER
   {
     $$ = string(USER_BYTES)
+  }
+| VALUE 
+  {
+    $$ = string(VALUE_BYTES)
   }
 | VARIABLES
   {

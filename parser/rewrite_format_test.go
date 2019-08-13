@@ -376,6 +376,88 @@ func testRewriteAndFormatCommand(t *testing.T) {
 			command:  "drop table if exists foo",
 			expected: "drop table if exists foo",
 		},
+		{
+			desc:     "insert missing column list",
+			command:  "insert into foo value(1)",
+			expected: "insert into foo values(1)",
+		},
+		{
+			desc:     "insert empty column list",
+			command:  "insert into foo() value(1)",
+			expected: "insert into foo values(1)",
+		},
+		{
+			desc:     "insert non-empty column list",
+			command:  "insert into foo(x) value(1)",
+			expected: "insert into foo(x) values(1)",
+		},
+		{
+			desc:     "insert missing column list without into",
+			command:  "insert foo value(1)",
+			expected: "insert into foo values(1)",
+		},
+		{
+			desc:     "insert empty column list without into",
+			command:  "insert foo() value(1)",
+			expected: "insert into foo values(1)",
+		},
+		{
+			desc:     "insert non-empty column list without into",
+			command:  "insert foo(x) value(1)",
+			expected: "insert into foo(x) values(1)",
+		},
+		{
+			desc: "insert many column row missing column list",
+			command: `insert into foo value(1,2,3,4,'hello', true, false, NULL, date '2012-01-01',
+			               time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+			expected: `insert into foo values(1, 2, 3, 4, 'hello', ` +
+				`true, false, null, date '2012-01-01', ` +
+				`time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+		},
+		{
+			desc: "insert many column row empty column list",
+			command: `insert into foo() value(1,2,3,4,'hello', true, false, NULL, date '2012-01-01',
+			               time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+			expected: `insert into foo values(1, 2, 3, 4, 'hello', ` +
+				`true, false, null, date '2012-01-01', ` +
+				`time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+		},
+		{
+			desc: "insert multi column row values with column specifier",
+			command: `insert into foo(x,y,z) value(1,2,3,4,
+			               'hello', true, false, NULL, date '2012-01-01',
+			               time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+			expected: `insert into foo(x, y, z) values(1, 2, 3, 4, ` +
+				`'hello', true, false, null, date '2012-01-01', ` +
+				`time '01:03:03', timestamp '2012-01-01T01:03:03')`,
+		},
+		{
+			desc: "insert many column row with multiple rows with column specifier",
+			command: `insert into foo(x,y,z) values
+							(1,2,3,4,
+			               'hello', true, false, NULL, date '2012-01-01',
+			               time '01:03:03', timestamp '2012-01-01T01:03:03'),
+							(41,42,43,44,
+			               'world', false, true, NULL, date '2013-01-01',
+			               time '01:03:03', timestamp '2013-01-01T01:03:03')`,
+			expected: `insert into foo(x, y, z) values` +
+				`(1, 2, 3, 4, ` +
+				`'hello', true, false, null, date '2012-01-01', ` +
+				`time '01:03:03', timestamp '2012-01-01T01:03:03'), ` +
+				`(41, 42, 43, 44, ` +
+				`'world', false, true, null, date '2013-01-01', ` +
+				`time '01:03:03', timestamp '2013-01-01T01:03:03')`,
+		},
+		{
+			desc:     "insert with default value",
+			command:  `insert into foo() value(1,2,DEFAULT)`,
+			expected: `insert into foo values(1, 2, default)`,
+		},
+		{
+			desc:     "insert with several default values",
+			command:  `insert into foo() value(DeFault,2,DEFAULT, deFAULT)`,
+			expected: `insert into foo values(default, 2, default, default)`,
+		},
 	}
 
 	for _, tcase := range tcases {
@@ -435,6 +517,11 @@ func testNamer(t *testing.T) {
 			desc:     "expr column string not perfectly preserved",
 			query:    "select 2 + 2 from foo",
 			expected: "select 2+2 as 2+2 from foo",
+		},
+		{
+			desc:     "value should not be backticked",
+			query:    "select sum(value) from foo",
+			expected: "select sum(value) as sum(value) from foo",
 		},
 	}
 

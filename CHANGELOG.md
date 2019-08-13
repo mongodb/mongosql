@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2243: New reserved words: INSERT, INTO
 BI-2290: No user-facing changes.
 BI-2117: Fix a bug that caused mongodrdl to fail to parse repl set seedlists for the `--host` flag.
 BI-2242: No user-facing changes.

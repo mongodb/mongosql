@@ -1749,6 +1749,23 @@ func (node NumVal) Copy() CST {
 var _ CST = (NumVal)("")
 
 // Children iterates through all direct children of this node.
+func (node Default) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node Default) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node Default) Copy() CST {
+	return node
+}
+
+var _ CST = Default{}
+
+// Children iterates through all direct children of this node.
 func (node ValArg) Children() []CST {
 	return []CST{}
 }
@@ -3091,3 +3108,97 @@ func (node DisableKeys) Copy() CST {
 }
 
 var _ CST = DisableKeys{}
+
+// Children iterates through all direct children of this node.
+func (node *Insert) Children() []CST {
+	ret := make([]CST, len(node.Columns)+2)
+	ret[0] = node.Table
+	i := 1
+	for _, col := range node.Columns {
+		ret[i] = col
+		i++
+	}
+	ret[i] = node.Values
+	return ret
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *Insert) ReplaceChild(i int, child CST) {
+	if i > len(node.Columns)+1 {
+		panic("ReplaceChild out of bounds")
+	}
+	switch i {
+	case 0:
+		node.Table = child.(*TableName)
+	case len(node.Columns) + 1:
+		node.Values = child.(ValueListList)
+	default:
+		node.Columns[i-1] = child.(*ColName)
+	}
+}
+
+// Copy produces a deep copy of this node.
+func (node *Insert) Copy() CST {
+	cols := make([]*ColName, len(node.Columns))
+	for i := range node.Columns {
+		cols[i] = node.Columns[i].Copy().(*ColName)
+	}
+
+	return &Insert{
+		Table:   node.Table.Copy().(*TableName),
+		Columns: cols,
+		Values:  node.Values.Copy().(ValueListList),
+	}
+}
+
+var _ CST = (*Insert)(nil)
+
+// Children iterates through all direct children of this node.
+func (node ValueListList) Children() []CST {
+	ret := make([]CST, len(node))
+	for i := range node {
+		ret[i] = node[i]
+	}
+	return ret
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node ValueListList) ReplaceChild(i int, child CST) {
+	node[i] = child.(ValueList)
+}
+
+// Copy produces a deep copy of this node.
+func (node ValueListList) Copy() CST {
+	ret := make(ValueListList, len(node))
+	for i := range node {
+		ret[i] = node[i].Copy().(ValueList)
+	}
+	return ret
+}
+
+var _ CST = ValueListList{}
+
+// Children iterates through all direct children of this node.
+func (node ValueList) Children() []CST {
+	ret := make([]CST, len(node))
+	for i := range node {
+		ret[i] = node[i]
+	}
+	return ret
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node ValueList) ReplaceChild(i int, child CST) {
+	node[i] = child.(Value)
+}
+
+// Copy produces a deep copy of this node.
+func (node ValueList) Copy() CST {
+	ret := make(ValueList, len(node))
+	for i := range node {
+		ret[i] = node[i].Copy().(Value)
+	}
+	return ret
+}
+
+var _ CST = ValueList{}
