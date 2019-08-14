@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -299,10 +300,62 @@ func (s *Session) ListIndexes(ctx context.Context, db, col string) (Cursor, erro
 }
 
 // currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
-// and a string on a mongos. The 'Client' field is only present when talking to a mongod.
+// and a string on a mongos. On server versions < 3.6, the 'query' field holds the full command object
+// associated with this operation. On server versions >= 3.6, this field was changed to 'command'.
+//
+// To kill an operation, we typically only need the 'opid': { killOp: <opid> }.
+// However, if the operation is a 'getMore', we need to use 'killCursors' instead of 'killOp'. For that,
+// we need:
+//   - the database name (from 'ns' for < 3.6, and from the 'command.$db' from >= 3.6)
+//   - the collection name (from 'query'/'command')
+//   - the cursor ID (from 'query'/'command' in the 'getMore' field)
 type currentOp struct {
-	Client string      `bson:"client"`
-	Opid   interface{} `bson:"opid"`
+	Opid    interface{} `bson:"opid"`
+	Op      string      `bson:"op"`
+	NS      string      `bson:"ns"`
+	Command *struct {
+		GetMore    *int64  `bson:"getMore"`
+		Collection *string `bson:"collection"`
+		DB         *string `bson:"$db"`
+	} `bson:"command"`
+	Query *struct {
+		GetMore    *int64  `bson:"getMore"`
+		Collection *string `bson:"collection"`
+	} `bson:"query"`
+}
+
+type killCursorsArgs struct {
+	cursorID   int64
+	db         string
+	collection string
+}
+
+// isGetMore returns true if currentOp.Op is "getMore" and the expected
+// fields in either currentOp.Command or currentOp.Query are present.
+// It also returns the appropriate cursor ID, database, and collection
+// if this operation is a getMore.
+func (co currentOp) isGetMore() (killCursorsArgs, bool) {
+	if co.Op != "getMore" {
+		return killCursorsArgs{0, "", ""}, false
+	}
+
+	if co.Command != nil && co.Command.GetMore != nil && co.Command.DB != nil && co.Command.Collection != nil {
+		return killCursorsArgs{
+			*co.Command.GetMore,
+			*co.Command.DB,
+			*co.Command.Collection,
+		}, true
+	}
+	if co.Query != nil && co.Query.GetMore != nil && co.Query.Collection != nil {
+		db := strings.Split(co.NS, ".")[0]
+		return killCursorsArgs{
+			*co.Query.GetMore,
+			db,
+			*co.Query.Collection,
+		}, true
+	}
+
+	panic("invalid currentOp response: getMore operation missing 'query' or 'command' field")
 }
 
 // KillOps kills all operations running on a list of client addresses.
@@ -317,7 +370,11 @@ func (s *Session) KillOps(ctx context.Context, clientAddresses []string) error {
 	}
 
 	for _, op := range currentOpsToKill {
-		err := s.killOp(ctx, op.Opid)
+		if args, isGetMore := op.isGetMore(); isGetMore {
+			err = s.killCursors(ctx, args.cursorID, args.db, args.collection)
+		} else {
+			err = s.killOp(ctx, op.Opid)
+		}
 		if err != nil {
 			return err
 		}
@@ -340,6 +397,8 @@ func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses 
 		bsonutil.NewDocElem("$or", bsonutil.NewArray(
 			bsonutil.NewD(
 				bsonutil.NewDocElem("client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
+			),
+			bsonutil.NewD(
 				bsonutil.NewDocElem("command.$client.mongos.client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
 			),
 		)),
@@ -362,6 +421,30 @@ func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses 
 	}
 
 	return currentOpResponse.InProg, nil
+}
+
+// killCursors kills a cursor on the server for the input collection
+// with the input cursor ID.
+func (s *Session) killCursors(ctx context.Context, cursorID int64, db, col string) error {
+	killCursorsCommand := bsonutil.NewD(
+		bsonutil.NewDocElem("killCursors", col),
+		bsonutil.NewDocElem("cursors", bsonutil.NewArray(cursorID)),
+	)
+
+	killCursorsReponse := struct {
+		CursorsKilled []int64
+	}{}
+
+	err := s.Run(ctx, db, killCursorsCommand, &killCursorsReponse)
+	if err != nil {
+		return err
+	}
+
+	if len(killCursorsReponse.CursorsKilled) == 0 || killCursorsReponse.CursorsKilled[0] != cursorID {
+		return fmt.Errorf("failed to kill cursor for '%v'.'%v'", db, col)
+	}
+
+	return nil
 }
 
 // killOp kills an operation on the server with the input opID.
