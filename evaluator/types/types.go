@@ -254,14 +254,15 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 	}
 
 	switch t1 {
-	// Polymorphic is less than all type.
+	// Polymorphic is less than all types.
 	case EvalPolymorphic:
 		return true
-	case EvalString:
+	case EvalObjectID:
 		switch t2 {
 		case EvalDecimal128, EvalInt32,
 			EvalInt64, EvalUint64, EvalDouble,
-			EvalDate, EvalDatetime:
+			EvalDate, EvalDatetime, EvalString,
+			EvalBoolean:
 			return true
 		default:
 			return false
@@ -275,24 +276,11 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 		default:
 			return false
 		}
-	case EvalInt32, EvalInt64:
-		switch t2 {
-		case EvalDecimal128, EvalDouble, EvalUint64:
-			return true
-		default:
-			return false
-		}
-	case EvalDatetime:
+	case EvalString:
 		switch t2 {
 		case EvalDecimal128, EvalInt32,
-			EvalInt64, EvalUint64, EvalDouble:
-			return true
-		default:
-			return false
-		}
-	case EvalUint64:
-		switch t2 {
-		case EvalDecimal128, EvalDouble:
+			EvalInt64, EvalUint64, EvalDouble,
+			EvalDate, EvalDatetime:
 			return true
 		default:
 			return false
@@ -305,6 +293,28 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 		default:
 			return false
 		}
+	case EvalDatetime:
+		switch t2 {
+		case EvalDecimal128, EvalInt32,
+			EvalInt64, EvalUint64, EvalDouble:
+			return true
+		default:
+			return false
+		}
+	case EvalInt32, EvalInt64:
+		switch t2 {
+		case EvalDecimal128, EvalDouble, EvalUint64:
+			return true
+		default:
+			return false
+		}
+	case EvalUint64:
+		switch t2 {
+		case EvalDecimal128, EvalDouble:
+			return true
+		default:
+			return false
+		}
 	case EvalDouble:
 		switch t2 {
 		case EvalDecimal128:
@@ -312,8 +322,10 @@ func (s *EvalTypeSorter) Less(i, j int) bool {
 		default:
 			return false
 		}
-	case EvalNull:
-		panic("EvalNull should never exist outside of BSON Documents")
+	// Decimal128 is greater than all types.
+	case EvalDecimal128:
+		return false
+	default:
+		panic(fmt.Sprintf("Should not have a SQLValue of type %v", t1))
 	}
-	return false
 }

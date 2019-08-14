@@ -760,7 +760,6 @@ func TestReconcile(t *testing.T) {
 	escapeVal := NewSQLValueExpr(values.NewSQLVarchar(knd, "\\")) // This is being used in the SQL like expression reconcile tests as the escape character.
 	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
 	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
-
 	boolColVal := NewSQLColumnExpr(0, "", "", "", types.EvalBoolean, schema.MongoBool, false, true)
 
 	allVals := []SQLExpr{intVal, uintVal, floatVal, decimalVal, boolVal, strVal, dateVal, datetimeVal}
@@ -773,484 +772,14 @@ func TestReconcile(t *testing.T) {
 		}
 		return s
 	}
-	// Type order: polymorphic < bool < string < date < datetime < int < uint < double < decimal
+	// Type order: polymorphic < objectid < bool < string < date < datetime < int < uint < double < decimal
 
-	// tests is a list of test cases for the binary and unary operator
-	// SQLExprs and the agg function SQLExprs. They have custom reconcile
-	// implementations, so they are all tested individually.
-	// This list does not contain tests for the scalar functions since those
-	// all have their reconcile implementations generated the same way. They
-	// use the convertExprs helper function which is tested separately.
-	// This list also does not contain tests for the subquery exprs since
-	// those all delegate their reconciliation to the reconcileSubqueryPlans
-	// helper function which is tested separately.
+	// tests is a list of test cases for any SQLExprs with custom reconcile
+	// implementations. SQLExprs whose reconcile functions delegate to the
+	// reconcileArithmetic, reconcileComparison, reconcileSubqueryPlans, or
+	// convertExprs functions are tested separately.
+
 	tests := []test{
-		// arithmetic expressions: do not convert numeric types; do convert
-		// non-numeric types to Decimal128 if either argument is a Datetime,
-		// non-numeric types to Int64 if either argument is a Date, and
-		// other non-numeric types to Float or the numeric type of the other
-		// argument (if the other argument is a number).
-		// The conversions are made according to the following mapping:
-		// (int, int) 			=> (int, int)
-		// (int, uint)			=> (int, uint)
-		// (int, float) 		=> (int, float)
-		// (int, decimal)		=> (int, decimal)
-		// (int, bool)			=> (int, int)
-		// (int, str)			=> (int, int)
-		// (int, date)			=> (int, int)
-		// (int, datetime)		=> (int, decimal)
-		// (uint, int) 			=> (uint, int)
-		// (uint, uint)			=> (uint, uint)
-		// (uint, float) 		=> (uint, float)
-		// (uint, decimal)		=> (uint, decimal)
-		// (uint, bool)			=> (uint, uint)
-		// (uint, str)			=> (uint, uint)
-		// (uint, date)			=> (uint, int)
-		// (uint, datetime)		=> (uint, decimal)
-		// (float, int)			=> (float, int)
-		// (float, uint)		=> (float, uint)
-		// (float, float)		=> (float, float)
-		// (float, decimal) 	=> (float, decimal)
-		// (float, bool)		=> (float, float)
-		// (float, str)			=> (float, float)
-		// (float, date)		=> (float, int)
-		// (float, datetime) 	=> (float, decimal)
-		// (decimal, int)		=> (decimal, int)
-		// (decimal, uint)		=> (decimal, uint)
-		// (decimal, float)		=> (decimal, float)
-		// (decimal, decimal)	=> (decimal, decimal)
-		// (decimal, bool)		=> (decimal, decimal)
-		// (decimal, str)		=> (decimal, decimal)
-		// (decimal, date)		=> (decimal, int)
-		// (decimal, datetime)	=> (decimal, decimal)
-		// (bool, int)			=> (int, int)
-		// (bool, uint)			=> (uint, uint)
-		// (bool, float)		=> (float, float)
-		// (bool, decimal)		=> (decimal, decimal)
-		// (bool, bool)			=> (float, float)
-		// (bool, str)			=> (float, float)
-		// (bool, date)			=> (int, int)
-		// (bool, datetime)		=> (decimal, decimal)
-		// (str, int)			=> (int, int)
-		// (str, uint)			=> (uint, uint)
-		// (str, float)			=> (float, float)
-		// (str, decimal)		=> (decimal, decimal)
-		// (str, bool)			=> (float, float)
-		// (str, str)			=> (float, float)
-		// (str, date)			=> (int, int)
-		// (str, datetime)		=> (decimal, decimal)
-		// (date, int)			=> (int, int)
-		// (date, uint)			=> (int, uint)
-		// (date, float)		=> (int, float)
-		// (date, decimal)		=> (int, decimal)
-		// (date, bool)			=> (int, int)
-		// (date, str)			=> (int, int)
-		// (date, date)			=> (int, int)
-		// (date, datetime)		=> (decimal, decimal)
-		// (datetime, int)		=> (decimal, int)
-		// (datetime, uint)		=> (decimal, uint)
-		// (datetime, float)	=> (decimal, float)
-		// (datetime, decimal)	=> (decimal, decimal)
-		// (datetime, bool)		=> (decimal, decimal)
-		// (datetime, str)		=> (decimal, decimal)
-		// (datetime, date)		=> (decimal, decimal)
-		// (datetime, datetime)	=> (decimal, decimal)
-
-		// add.
-		{"add(int,int)", NewSQLAddExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(int,uint)", NewSQLAddExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"add(int,float)", NewSQLAddExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"add(int,decimal)", NewSQLAddExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"add(int,bool)", NewSQLAddExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(int,str)", NewSQLAddExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(int,date)", NewSQLAddExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(int,datetime)", NewSQLAddExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"add(uint,int)", NewSQLAddExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"add(uint,uint)", NewSQLAddExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"add(uint,float)", NewSQLAddExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"add(uint,decimal)", NewSQLAddExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"add(uint,bool)", NewSQLAddExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"add(uint,str)", NewSQLAddExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"add(uint,date)", NewSQLAddExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"add(uint,datetime)", NewSQLAddExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"add(float,int)", NewSQLAddExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"add(float,uint)", NewSQLAddExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"add(float,float)", NewSQLAddExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(float,decimal)", NewSQLAddExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"add(float,bool)", NewSQLAddExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(float,str)", NewSQLAddExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(float,date)", NewSQLAddExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"add(float,datetime)", NewSQLAddExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"add(decimal,int)", NewSQLAddExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"add(decimal,uint)", NewSQLAddExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"add(decimal,float)", NewSQLAddExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"add(decimal,decimal)", NewSQLAddExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(decimal,bool)", NewSQLAddExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(decimal,str)", NewSQLAddExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(decimal,date)", NewSQLAddExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"add(decimal,datetime)", NewSQLAddExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(bool,int)", NewSQLAddExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(bool,uint)", NewSQLAddExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"add(bool,float)", NewSQLAddExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(bool,decimal)", NewSQLAddExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(bool,bool)", NewSQLAddExpr(boolVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(bool,str)", NewSQLAddExpr(boolVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(bool,date)", NewSQLAddExpr(boolVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(bool,datetime)", NewSQLAddExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(str,int)", NewSQLAddExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(str,uint)", NewSQLAddExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"add(str,float)", NewSQLAddExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(str,decimal)", NewSQLAddExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(str,bool)", NewSQLAddExpr(strVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(str,str)", NewSQLAddExpr(strVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"add(str,date)", NewSQLAddExpr(strVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(str,datetime)", NewSQLAddExpr(strVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(date,int)", NewSQLAddExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(date,uint)", NewSQLAddExpr(dateVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"add(date,float)", NewSQLAddExpr(dateVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"add(date,decimal)", NewSQLAddExpr(dateVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"add(date,bool)", NewSQLAddExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(date,str)", NewSQLAddExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(date,date)", NewSQLAddExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"add(date,datetime)", NewSQLAddExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"add(datetime,int)", NewSQLAddExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"add(datetime,uint)", NewSQLAddExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"add(datetime,float)", NewSQLAddExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"add(datetime,decimal)", NewSQLAddExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(datetime,bool)", NewSQLAddExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(datetime,str)", NewSQLAddExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"add(datetime,date)", NewSQLAddExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"add(datetime,datetime)", NewSQLAddExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-
-		// divide.
-		{"div(int,int)", NewSQLDivideExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(int,uint)", NewSQLDivideExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"div(int,float)", NewSQLDivideExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"div(int,decimal)", NewSQLDivideExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"div(int,bool)", NewSQLDivideExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(int,str)", NewSQLDivideExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(int,date)", NewSQLDivideExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(int,datetime)", NewSQLDivideExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"div(uint,int)", NewSQLDivideExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"div(uint,uint)", NewSQLDivideExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"div(uint,float)", NewSQLDivideExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"div(uint,decimal)", NewSQLDivideExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"div(uint,bool)", NewSQLDivideExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"div(uint,str)", NewSQLDivideExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"div(uint,date)", NewSQLDivideExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"div(uint,datetime)", NewSQLDivideExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"div(float,int)", NewSQLDivideExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"div(float,uint)", NewSQLDivideExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"div(float,float)", NewSQLDivideExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(float,decimal)", NewSQLDivideExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"div(float,bool)", NewSQLDivideExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(float,str)", NewSQLDivideExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(float,date)", NewSQLDivideExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"div(float,datetime)", NewSQLDivideExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"div(decimal,int)", NewSQLDivideExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"div(decimal,uint)", NewSQLDivideExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"div(decimal,float)", NewSQLDivideExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"div(decimal,decimal)", NewSQLDivideExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(decimal,bool)", NewSQLDivideExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(decimal,str)", NewSQLDivideExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(decimal,date)", NewSQLDivideExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"div(decimal,datetime)", NewSQLDivideExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(bool,int)", NewSQLDivideExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(bool,uint)", NewSQLDivideExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"div(bool,float)", NewSQLDivideExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(bool,decimal)", NewSQLDivideExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(bool,bool)", NewSQLDivideExpr(boolVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(bool,str)", NewSQLDivideExpr(boolVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(bool,date)", NewSQLDivideExpr(boolVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(bool,datetime)", NewSQLDivideExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(str,int)", NewSQLDivideExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(str,uint)", NewSQLDivideExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"div(str,float)", NewSQLDivideExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(str,decimal)", NewSQLDivideExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(str,bool)", NewSQLDivideExpr(strVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(str,str)", NewSQLDivideExpr(strVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"div(str,date)", NewSQLDivideExpr(strVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(str,datetime)", NewSQLDivideExpr(strVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(date,int)", NewSQLDivideExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(date,uint)", NewSQLDivideExpr(dateVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"div(date,float)", NewSQLDivideExpr(dateVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"div(date,decimal)", NewSQLDivideExpr(dateVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"div(date,bool)", NewSQLDivideExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(date,str)", NewSQLDivideExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(date,date)", NewSQLDivideExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"div(date,datetime)", NewSQLDivideExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"div(datetime,int)", NewSQLDivideExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"div(datetime,uint)", NewSQLDivideExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"div(datetime,float)", NewSQLDivideExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"div(datetime,decimal)", NewSQLDivideExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(datetime,bool)", NewSQLDivideExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(datetime,str)", NewSQLDivideExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"div(datetime,date)", NewSQLDivideExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"div(datetime,datetime)", NewSQLDivideExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-
-		// idivide.
-		{"idiv(int,int)", NewSQLIDivideExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(int,uint)", NewSQLIDivideExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"idiv(int,float)", NewSQLIDivideExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"idiv(int,decimal)", NewSQLIDivideExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"idiv(int,bool)", NewSQLIDivideExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(int,str)", NewSQLIDivideExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(int,date)", NewSQLIDivideExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(int,datetime)", NewSQLIDivideExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"idiv(uint,int)", NewSQLIDivideExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"idiv(uint,uint)", NewSQLIDivideExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"idiv(uint,float)", NewSQLIDivideExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"idiv(uint,decimal)", NewSQLIDivideExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"idiv(uint,bool)", NewSQLIDivideExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"idiv(uint,str)", NewSQLIDivideExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"idiv(uint,date)", NewSQLIDivideExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"idiv(uint,datetime)", NewSQLIDivideExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"idiv(float,int)", NewSQLIDivideExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"idiv(float,uint)", NewSQLIDivideExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"idiv(float,float)", NewSQLIDivideExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(float,decimal)", NewSQLIDivideExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"idiv(float,bool)", NewSQLIDivideExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(float,str)", NewSQLIDivideExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(float,date)", NewSQLIDivideExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"idiv(float,datetime)", NewSQLIDivideExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"idiv(decimal,int)", NewSQLIDivideExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"idiv(decimal,uint)", NewSQLIDivideExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"idiv(decimal,float)", NewSQLIDivideExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"idiv(decimal,decimal)", NewSQLIDivideExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(decimal,bool)", NewSQLIDivideExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(decimal,str)", NewSQLIDivideExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(decimal,date)", NewSQLIDivideExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"idiv(decimal,datetime)", NewSQLIDivideExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(bool,int)", NewSQLIDivideExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(bool,uint)", NewSQLIDivideExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"idiv(bool,float)", NewSQLIDivideExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(bool,decimal)", NewSQLIDivideExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(bool,bool)", NewSQLIDivideExpr(boolVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(bool,str)", NewSQLIDivideExpr(boolVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(bool,date)", NewSQLIDivideExpr(boolVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(bool,datetime)", NewSQLIDivideExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(str,int)", NewSQLIDivideExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(str,uint)", NewSQLIDivideExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"idiv(str,float)", NewSQLIDivideExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(str,decimal)", NewSQLIDivideExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(str,bool)", NewSQLIDivideExpr(strVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(str,str)", NewSQLIDivideExpr(strVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"idiv(str,date)", NewSQLIDivideExpr(strVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(str,datetime)", NewSQLIDivideExpr(strVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(date,int)", NewSQLIDivideExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(date,uint)", NewSQLIDivideExpr(dateVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"idiv(date,float)", NewSQLIDivideExpr(dateVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"idiv(date,decimal)", NewSQLIDivideExpr(dateVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"idiv(date,bool)", NewSQLIDivideExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(date,str)", NewSQLIDivideExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(date,date)", NewSQLIDivideExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"idiv(date,datetime)", NewSQLIDivideExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"idiv(datetime,int)", NewSQLIDivideExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"idiv(datetime,uint)", NewSQLIDivideExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"idiv(datetime,float)", NewSQLIDivideExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"idiv(datetime,decimal)", NewSQLIDivideExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(datetime,bool)", NewSQLIDivideExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(datetime,str)", NewSQLIDivideExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"idiv(datetime,date)", NewSQLIDivideExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"idiv(datetime,datetime)", NewSQLIDivideExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-
-		// mod.
-		{"mod(int,int)", NewSQLModExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(int,uint)", NewSQLModExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"mod(int,float)", NewSQLModExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"mod(int,decimal)", NewSQLModExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mod(int,bool)", NewSQLModExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(int,str)", NewSQLModExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(int,date)", NewSQLModExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(int,datetime)", NewSQLModExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mod(uint,int)", NewSQLModExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"mod(uint,uint)", NewSQLModExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mod(uint,float)", NewSQLModExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"mod(uint,decimal)", NewSQLModExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"mod(uint,bool)", NewSQLModExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mod(uint,str)", NewSQLModExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mod(uint,date)", NewSQLModExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"mod(uint,datetime)", NewSQLModExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"mod(float,int)", NewSQLModExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"mod(float,uint)", NewSQLModExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"mod(float,float)", NewSQLModExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(float,decimal)", NewSQLModExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"mod(float,bool)", NewSQLModExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(float,str)", NewSQLModExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(float,date)", NewSQLModExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"mod(float,datetime)", NewSQLModExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"mod(decimal,int)", NewSQLModExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mod(decimal,uint)", NewSQLModExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"mod(decimal,float)", NewSQLModExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"mod(decimal,decimal)", NewSQLModExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(decimal,bool)", NewSQLModExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(decimal,str)", NewSQLModExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(decimal,date)", NewSQLModExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mod(decimal,datetime)", NewSQLModExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(bool,int)", NewSQLModExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(bool,uint)", NewSQLModExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mod(bool,float)", NewSQLModExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(bool,decimal)", NewSQLModExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(bool,bool)", NewSQLModExpr(boolVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(bool,str)", NewSQLModExpr(boolVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(bool,date)", NewSQLModExpr(boolVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(bool,datetime)", NewSQLModExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(str,int)", NewSQLModExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(str,uint)", NewSQLModExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mod(str,float)", NewSQLModExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(str,decimal)", NewSQLModExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(str,bool)", NewSQLModExpr(strVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(str,str)", NewSQLModExpr(strVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mod(str,date)", NewSQLModExpr(strVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(str,datetime)", NewSQLModExpr(strVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(date,int)", NewSQLModExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(date,uint)", NewSQLModExpr(dateVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"mod(date,float)", NewSQLModExpr(dateVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"mod(date,decimal)", NewSQLModExpr(dateVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mod(date,bool)", NewSQLModExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(date,str)", NewSQLModExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(date,date)", NewSQLModExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mod(date,datetime)", NewSQLModExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mod(datetime,int)", NewSQLModExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mod(datetime,uint)", NewSQLModExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"mod(datetime,float)", NewSQLModExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"mod(datetime,decimal)", NewSQLModExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(datetime,bool)", NewSQLModExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(datetime,str)", NewSQLModExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mod(datetime,date)", NewSQLModExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mod(datetime,datetime)", NewSQLModExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-
-		// multiply.
-		{"mult(int,int)", NewSQLMultiplyExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(int,uint)", NewSQLMultiplyExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"mult(int,float)", NewSQLMultiplyExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"mult(int,decimal)", NewSQLMultiplyExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mult(int,bool)", NewSQLMultiplyExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(int,str)", NewSQLMultiplyExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(int,date)", NewSQLMultiplyExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(int,datetime)", NewSQLMultiplyExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mult(uint,int)", NewSQLMultiplyExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"mult(uint,uint)", NewSQLMultiplyExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mult(uint,float)", NewSQLMultiplyExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"mult(uint,decimal)", NewSQLMultiplyExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"mult(uint,bool)", NewSQLMultiplyExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mult(uint,str)", NewSQLMultiplyExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mult(uint,date)", NewSQLMultiplyExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"mult(uint,datetime)", NewSQLMultiplyExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"mult(float,int)", NewSQLMultiplyExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"mult(float,uint)", NewSQLMultiplyExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"mult(float,float)", NewSQLMultiplyExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(float,decimal)", NewSQLMultiplyExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"mult(float,bool)", NewSQLMultiplyExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(float,str)", NewSQLMultiplyExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(float,date)", NewSQLMultiplyExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"mult(float,datetime)", NewSQLMultiplyExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"mult(decimal,int)", NewSQLMultiplyExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mult(decimal,uint)", NewSQLMultiplyExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"mult(decimal,float)", NewSQLMultiplyExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"mult(decimal,decimal)", NewSQLMultiplyExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(decimal,bool)", NewSQLMultiplyExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(decimal,str)", NewSQLMultiplyExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(decimal,date)", NewSQLMultiplyExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mult(decimal,datetime)", NewSQLMultiplyExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(bool,int)", NewSQLMultiplyExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(bool,uint)", NewSQLMultiplyExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mult(bool,float)", NewSQLMultiplyExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(bool,decimal)", NewSQLMultiplyExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(bool,bool)", NewSQLMultiplyExpr(boolVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(bool,str)", NewSQLMultiplyExpr(boolVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(bool,date)", NewSQLMultiplyExpr(boolVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(bool,datetime)", NewSQLMultiplyExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(str,int)", NewSQLMultiplyExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(str,uint)", NewSQLMultiplyExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"mult(str,float)", NewSQLMultiplyExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(str,decimal)", NewSQLMultiplyExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(str,bool)", NewSQLMultiplyExpr(strVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(str,str)", NewSQLMultiplyExpr(strVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"mult(str,date)", NewSQLMultiplyExpr(strVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(str,datetime)", NewSQLMultiplyExpr(strVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(date,int)", NewSQLMultiplyExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(date,uint)", NewSQLMultiplyExpr(dateVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"mult(date,float)", NewSQLMultiplyExpr(dateVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"mult(date,decimal)", NewSQLMultiplyExpr(dateVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mult(date,bool)", NewSQLMultiplyExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(date,str)", NewSQLMultiplyExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(date,date)", NewSQLMultiplyExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"mult(date,datetime)", NewSQLMultiplyExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"mult(datetime,int)", NewSQLMultiplyExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mult(datetime,uint)", NewSQLMultiplyExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"mult(datetime,float)", NewSQLMultiplyExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"mult(datetime,decimal)", NewSQLMultiplyExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(datetime,bool)", NewSQLMultiplyExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(datetime,str)", NewSQLMultiplyExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"mult(datetime,date)", NewSQLMultiplyExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"mult(datetime,datetime)", NewSQLMultiplyExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-
-		// subtract.
-		{"sub(int,int)", NewSQLSubtractExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(int,uint)", NewSQLSubtractExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"sub(int,float)", NewSQLSubtractExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"sub(int,decimal)", NewSQLSubtractExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sub(int,bool)", NewSQLSubtractExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(int,str)", NewSQLSubtractExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(int,date)", NewSQLSubtractExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(int,datetime)", NewSQLSubtractExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sub(uint,int)", NewSQLSubtractExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"sub(uint,uint)", NewSQLSubtractExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sub(uint,float)", NewSQLSubtractExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"sub(uint,decimal)", NewSQLSubtractExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"sub(uint,bool)", NewSQLSubtractExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sub(uint,str)", NewSQLSubtractExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sub(uint,date)", NewSQLSubtractExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"sub(uint,datetime)", NewSQLSubtractExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"sub(float,int)", NewSQLSubtractExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"sub(float,uint)", NewSQLSubtractExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"sub(float,float)", NewSQLSubtractExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(float,decimal)", NewSQLSubtractExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"sub(float,bool)", NewSQLSubtractExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(float,str)", NewSQLSubtractExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(float,date)", NewSQLSubtractExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"sub(float,datetime)", NewSQLSubtractExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"sub(decimal,int)", NewSQLSubtractExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sub(decimal,uint)", NewSQLSubtractExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"sub(decimal,float)", NewSQLSubtractExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"sub(decimal,decimal)", NewSQLSubtractExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(decimal,bool)", NewSQLSubtractExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(decimal,str)", NewSQLSubtractExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(decimal,date)", NewSQLSubtractExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sub(decimal,datetime)", NewSQLSubtractExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(bool,int)", NewSQLSubtractExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(bool,uint)", NewSQLSubtractExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sub(bool,float)", NewSQLSubtractExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(bool,decimal)", NewSQLSubtractExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(bool,bool)", NewSQLSubtractExpr(boolVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(bool,str)", NewSQLSubtractExpr(boolVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(bool,date)", NewSQLSubtractExpr(boolVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(bool,datetime)", NewSQLSubtractExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(str,int)", NewSQLSubtractExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(str,uint)", NewSQLSubtractExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sub(str,float)", NewSQLSubtractExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(str,decimal)", NewSQLSubtractExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(str,bool)", NewSQLSubtractExpr(strVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(str,str)", NewSQLSubtractExpr(strVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sub(str,date)", NewSQLSubtractExpr(strVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(str,datetime)", NewSQLSubtractExpr(strVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(date,int)", NewSQLSubtractExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(date,uint)", NewSQLSubtractExpr(dateVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"sub(date,float)", NewSQLSubtractExpr(dateVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"sub(date,decimal)", NewSQLSubtractExpr(dateVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sub(date,bool)", NewSQLSubtractExpr(dateVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(date,str)", NewSQLSubtractExpr(dateVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(date,date)", NewSQLSubtractExpr(dateVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sub(date,datetime)", NewSQLSubtractExpr(dateVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sub(datetime,int)", NewSQLSubtractExpr(datetimeVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sub(datetime,uint)", NewSQLSubtractExpr(datetimeVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"sub(datetime,float)", NewSQLSubtractExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"sub(datetime,decimal)", NewSQLSubtractExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(datetime,bool)", NewSQLSubtractExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(datetime,str)", NewSQLSubtractExpr(datetimeVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sub(datetime,date)", NewSQLSubtractExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sub(datetime,datetime)", NewSQLSubtractExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
 
 		// logical expressions: do not convert boolean comparable types
 		// (bool, int, uint); do convert other types to bool.
@@ -1517,142 +1046,6 @@ func TestReconcile(t *testing.T) {
 		{"xor(datetime,str)", NewSQLXorExpr(datetimeVal, strVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
 		{"xor(datetime,date)", NewSQLXorExpr(datetimeVal, dateVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
 		{"xor(datetime,datetime)", NewSQLXorExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-
-		// comparison expressions: do not convert types if they are similar;
-		// do convert types that are not similar to the higher precedence
-		// type.
-		// The conversions are made according to the following mapping:
-		// (int, int) 			=> (int, int)
-		// (int, uint)			=> (int, uint)
-		// (int, float) 		=> (int, float)
-		// (int, decimal)		=> (int, decimal)
-		// (int, bool)			=> (int, int)
-		// (int, str)			=> (int, int)
-		// (int, date)			=> (int, int)
-		// (int, datetime)		=> (int, int)
-		// (uint, int) 			=> (uint, int)
-		// (uint, uint)			=> (uint, uint)
-		// (uint, float) 		=> (uint, float)
-		// (uint, decimal)		=> (uint, decimal)
-		// (uint, bool)			=> (uint, uint)
-		// (uint, str)			=> (uint, uint)
-		// (uint, date)			=> (uint, uint)
-		// (uint, datetime)		=> (uint, uint)
-		// (float, int)			=> (float, int)
-		// (float, uint)		=> (float, uint)
-		// (float, float)		=> (float, float)
-		// (float, decimal) 	=> (float, decimal)
-		// (float, bool)		=> (float, float)
-		// (float, str)			=> (float, float)
-		// (float, date)		=> (float, float)
-		// (float, datetime) 	=> (float, float)
-		// (decimal, int)		=> (decimal, int)
-		// (decimal, uint)		=> (decimal, uint)
-		// (decimal, float)		=> (decimal, float)
-		// (decimal, decimal)	=> (decimal, decimal)
-		// (decimal, bool)		=> (decimal, decimal)
-		// (decimal, str)		=> (decimal, decimal)
-		// (decimal, date)		=> (decimal, decimal)
-		// (decimal, datetime)	=> (decimal, decimal)
-		// (bool, int)			=> (int, int)
-		// (bool, uint)			=> (uint, uint)
-		// (bool, float)		=> (float, float)
-		// (bool, decimal)		=> (decimal, decimal)
-		// (bool, bool)			=> (bool, bool)
-		// (bool, str)			=> (str, str)
-		// (bool, date)			=> (date, date)
-		// (bool, datetime)		=> (datetime, datetime)
-		// (str, int)			=> (int, int)
-		// (str, uint)			=> (uint, uint)
-		// (str, float)			=> (float, float)
-		// (str, decimal)		=> (decimal, decimal)
-		// (str, bool)			=> (str, str)
-		// (str, str)			=> (str, str)
-		// (str, date)			=> (date, date)
-		// (str, datetime)		=> (datetime, datetime)
-		// (date, int)			=> (int, int)
-		// (date, uint)			=> (uint, uint)
-		// (date, float)		=> (float, float)
-		// (date, decimal)		=> (decimal, decimal)
-		// (date, bool)			=> (date, date)
-		// (date, str)			=> (date, date)
-		// (date, date)			=> (date, date)
-		// (date, datetime)		=> (datetime, datetime)
-		// (datetime, int)		=> (int, int)
-		// (datetime, uint)		=> (uint, uint)
-		// (datetime, float)	=> (float, float)
-		// (datetime, decimal)	=> (decimal, decimal)
-		// (datetime, bool)		=> (datetime, datetime)
-		// (datetime, str)		=> (datetime, datetime)
-		// (datetime, date)		=> (datetime, datetime)
-		// (datetime, datetime)	=> (datetime, datetime)
-
-		// equal.
-		{"eq(int,int)", NewSQLEqualsExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(int,uint)", NewSQLEqualsExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"eq(int,float)", NewSQLEqualsExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"eq(int,decimal)", NewSQLEqualsExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"eq(int,bool)", NewSQLEqualsExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(int,str)", NewSQLEqualsExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(int,date)", NewSQLEqualsExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(int,datetime)", NewSQLEqualsExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(uint,int)", NewSQLEqualsExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"eq(uint,uint)", NewSQLEqualsExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(uint,float)", NewSQLEqualsExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"eq(uint,decimal)", NewSQLEqualsExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"eq(uint,bool)", NewSQLEqualsExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(uint,str)", NewSQLEqualsExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(uint,date)", NewSQLEqualsExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(uint,datetime)", NewSQLEqualsExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(float,int)", NewSQLEqualsExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"eq(float,uint)", NewSQLEqualsExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"eq(float,float)", NewSQLEqualsExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(float,decimal)", NewSQLEqualsExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"eq(float,bool)", NewSQLEqualsExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(float,str)", NewSQLEqualsExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(float,date)", NewSQLEqualsExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(float,datetime)", NewSQLEqualsExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(decimal,int)", NewSQLEqualsExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"eq(decimal,uint)", NewSQLEqualsExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"eq(decimal,float)", NewSQLEqualsExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"eq(decimal,decimal)", NewSQLEqualsExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(decimal,bool)", NewSQLEqualsExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(decimal,str)", NewSQLEqualsExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(decimal,date)", NewSQLEqualsExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(decimal,datetime)", NewSQLEqualsExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(bool,int)", NewSQLEqualsExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(bool,uint)", NewSQLEqualsExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(bool,float)", NewSQLEqualsExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(bool,decimal)", NewSQLEqualsExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(bool,bool)", NewSQLEqualsExpr(boolVal, boolVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"eq(bool,str)", NewSQLEqualsExpr(boolVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"eq(bool,date)", NewSQLEqualsExpr(boolVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"eq(bool,datetime)", NewSQLEqualsExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"eq(str,int)", NewSQLEqualsExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(str,uint)", NewSQLEqualsExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(str,float)", NewSQLEqualsExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(str,decimal)", NewSQLEqualsExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(str,bool)", NewSQLEqualsExpr(strVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"eq(str,str)", NewSQLEqualsExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"eq(str,date)", NewSQLEqualsExpr(strVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"eq(str,datetime)", NewSQLEqualsExpr(strVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"eq(date,int)", NewSQLEqualsExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(date,uint)", NewSQLEqualsExpr(dateVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(date,float)", NewSQLEqualsExpr(dateVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(date,decimal)", NewSQLEqualsExpr(dateVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(date,bool)", NewSQLEqualsExpr(dateVal, boolVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"eq(date,str)", NewSQLEqualsExpr(dateVal, strVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"eq(date,date)", NewSQLEqualsExpr(dateVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"eq(date,datetime)", NewSQLEqualsExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"eq(datetime,int)", NewSQLEqualsExpr(datetimeVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(datetime,uint)", NewSQLEqualsExpr(datetimeVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"eq(datetime,float)", NewSQLEqualsExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"eq(datetime,decimal)", NewSQLEqualsExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"eq(datetime,bool)", NewSQLEqualsExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"eq(datetime,str)", NewSQLEqualsExpr(datetimeVal, strVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"eq(datetime,date)", NewSQLEqualsExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"eq(datetime,datetime)", NewSQLEqualsExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-
 		// equals special case: a boolean column expr and a 1 or 0 (number) result in bool conversions.
 		{"eq(bool column,1)", NewSQLEqualsExpr(boolColVal, intVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
 		{"eq(1,bool column)", NewSQLEqualsExpr(intVal, boolColVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
@@ -1660,270 +1053,6 @@ func TestReconcile(t *testing.T) {
 		{"eq(0,bool column)", NewSQLEqualsExpr(NewSQLValueExpr(values.NewSQLInt64(knd, 0)), boolColVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
 		{"eq(bool column,2)", NewSQLEqualsExpr(boolColVal, NewSQLValueExpr(values.NewSQLInt64(knd, 2))), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 		{"eq(2,bool column)", NewSQLEqualsExpr(NewSQLValueExpr(values.NewSQLInt64(knd, 2)), boolColVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-
-		// greater than.
-		{"gt(int,int)", NewSQLGreaterThanExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(int,uint)", NewSQLGreaterThanExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"gt(int,float)", NewSQLGreaterThanExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"gt(int,decimal)", NewSQLGreaterThanExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"gt(int,bool)", NewSQLGreaterThanExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(int,str)", NewSQLGreaterThanExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(int,date)", NewSQLGreaterThanExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(int,datetime)", NewSQLGreaterThanExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(uint,int)", NewSQLGreaterThanExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"gt(uint,uint)", NewSQLGreaterThanExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(uint,float)", NewSQLGreaterThanExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"gt(uint,decimal)", NewSQLGreaterThanExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"gt(uint,bool)", NewSQLGreaterThanExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(uint,str)", NewSQLGreaterThanExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(uint,date)", NewSQLGreaterThanExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(uint,datetime)", NewSQLGreaterThanExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(float,int)", NewSQLGreaterThanExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"gt(float,uint)", NewSQLGreaterThanExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"gt(float,float)", NewSQLGreaterThanExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(float,decimal)", NewSQLGreaterThanExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"gt(float,bool)", NewSQLGreaterThanExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(float,str)", NewSQLGreaterThanExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(float,date)", NewSQLGreaterThanExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(float,datetime)", NewSQLGreaterThanExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(decimal,int)", NewSQLGreaterThanExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"gt(decimal,uint)", NewSQLGreaterThanExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"gt(decimal,float)", NewSQLGreaterThanExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"gt(decimal,decimal)", NewSQLGreaterThanExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(decimal,bool)", NewSQLGreaterThanExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(decimal,str)", NewSQLGreaterThanExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(decimal,date)", NewSQLGreaterThanExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(decimal,datetime)", NewSQLGreaterThanExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(bool,int)", NewSQLGreaterThanExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(bool,uint)", NewSQLGreaterThanExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(bool,float)", NewSQLGreaterThanExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(bool,decimal)", NewSQLGreaterThanExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(bool,bool)", NewSQLGreaterThanExpr(boolVal, boolVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"gt(bool,str)", NewSQLGreaterThanExpr(boolVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"gt(bool,date)", NewSQLGreaterThanExpr(boolVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gt(bool,datetime)", NewSQLGreaterThanExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gt(str,int)", NewSQLGreaterThanExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(str,uint)", NewSQLGreaterThanExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(str,float)", NewSQLGreaterThanExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(str,decimal)", NewSQLGreaterThanExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(str,bool)", NewSQLGreaterThanExpr(strVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"gt(str,str)", NewSQLGreaterThanExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"gt(str,date)", NewSQLGreaterThanExpr(strVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gt(str,datetime)", NewSQLGreaterThanExpr(strVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gt(date,int)", NewSQLGreaterThanExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(date,uint)", NewSQLGreaterThanExpr(dateVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(date,float)", NewSQLGreaterThanExpr(dateVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(date,decimal)", NewSQLGreaterThanExpr(dateVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(date,bool)", NewSQLGreaterThanExpr(dateVal, boolVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gt(date,str)", NewSQLGreaterThanExpr(dateVal, strVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gt(date,date)", NewSQLGreaterThanExpr(dateVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gt(date,datetime)", NewSQLGreaterThanExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gt(datetime,int)", NewSQLGreaterThanExpr(datetimeVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gt(datetime,uint)", NewSQLGreaterThanExpr(datetimeVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gt(datetime,float)", NewSQLGreaterThanExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gt(datetime,decimal)", NewSQLGreaterThanExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gt(datetime,bool)", NewSQLGreaterThanExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gt(datetime,str)", NewSQLGreaterThanExpr(datetimeVal, strVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gt(datetime,date)", NewSQLGreaterThanExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gt(datetime,datetime)", NewSQLGreaterThanExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-
-		// greater than or equal.
-		{"gte(int,int)", NewSQLGreaterThanOrEqualExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(int,uint)", NewSQLGreaterThanOrEqualExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"gte(int,float)", NewSQLGreaterThanOrEqualExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"gte(int,decimal)", NewSQLGreaterThanOrEqualExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"gte(int,bool)", NewSQLGreaterThanOrEqualExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(int,str)", NewSQLGreaterThanOrEqualExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(int,date)", NewSQLGreaterThanOrEqualExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(int,datetime)", NewSQLGreaterThanOrEqualExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(uint,int)", NewSQLGreaterThanOrEqualExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"gte(uint,uint)", NewSQLGreaterThanOrEqualExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(uint,float)", NewSQLGreaterThanOrEqualExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"gte(uint,decimal)", NewSQLGreaterThanOrEqualExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"gte(uint,bool)", NewSQLGreaterThanOrEqualExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(uint,str)", NewSQLGreaterThanOrEqualExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(uint,date)", NewSQLGreaterThanOrEqualExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(uint,datetime)", NewSQLGreaterThanOrEqualExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(float,int)", NewSQLGreaterThanOrEqualExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"gte(float,uint)", NewSQLGreaterThanOrEqualExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"gte(float,float)", NewSQLGreaterThanOrEqualExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(float,decimal)", NewSQLGreaterThanOrEqualExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"gte(float,bool)", NewSQLGreaterThanOrEqualExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(float,str)", NewSQLGreaterThanOrEqualExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(float,date)", NewSQLGreaterThanOrEqualExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(float,datetime)", NewSQLGreaterThanOrEqualExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(decimal,int)", NewSQLGreaterThanOrEqualExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"gte(decimal,uint)", NewSQLGreaterThanOrEqualExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"gte(decimal,float)", NewSQLGreaterThanOrEqualExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"gte(decimal,decimal)", NewSQLGreaterThanOrEqualExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(decimal,bool)", NewSQLGreaterThanOrEqualExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(decimal,str)", NewSQLGreaterThanOrEqualExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(decimal,date)", NewSQLGreaterThanOrEqualExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(decimal,datetime)", NewSQLGreaterThanOrEqualExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(bool,int)", NewSQLGreaterThanOrEqualExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(bool,uint)", NewSQLGreaterThanOrEqualExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(bool,float)", NewSQLGreaterThanOrEqualExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(bool,decimal)", NewSQLGreaterThanOrEqualExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(bool,bool)", NewSQLGreaterThanOrEqualExpr(boolVal, boolVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"gte(bool,str)", NewSQLGreaterThanOrEqualExpr(boolVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"gte(bool,date)", NewSQLGreaterThanOrEqualExpr(boolVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gte(bool,datetime)", NewSQLGreaterThanOrEqualExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gte(str,int)", NewSQLGreaterThanOrEqualExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(str,uint)", NewSQLGreaterThanOrEqualExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(str,float)", NewSQLGreaterThanOrEqualExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(str,decimal)", NewSQLGreaterThanOrEqualExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(str,bool)", NewSQLGreaterThanOrEqualExpr(strVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"gte(str,str)", NewSQLGreaterThanOrEqualExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"gte(str,date)", NewSQLGreaterThanOrEqualExpr(strVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gte(str,datetime)", NewSQLGreaterThanOrEqualExpr(strVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gte(date,int)", NewSQLGreaterThanOrEqualExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(date,uint)", NewSQLGreaterThanOrEqualExpr(dateVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(date,float)", NewSQLGreaterThanOrEqualExpr(dateVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(date,decimal)", NewSQLGreaterThanOrEqualExpr(dateVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(date,bool)", NewSQLGreaterThanOrEqualExpr(dateVal, boolVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gte(date,str)", NewSQLGreaterThanOrEqualExpr(dateVal, strVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gte(date,date)", NewSQLGreaterThanOrEqualExpr(dateVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"gte(date,datetime)", NewSQLGreaterThanOrEqualExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gte(datetime,int)", NewSQLGreaterThanOrEqualExpr(datetimeVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"gte(datetime,uint)", NewSQLGreaterThanOrEqualExpr(datetimeVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"gte(datetime,float)", NewSQLGreaterThanOrEqualExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"gte(datetime,decimal)", NewSQLGreaterThanOrEqualExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"gte(datetime,bool)", NewSQLGreaterThanOrEqualExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gte(datetime,str)", NewSQLGreaterThanOrEqualExpr(datetimeVal, strVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gte(datetime,date)", NewSQLGreaterThanOrEqualExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"gte(datetime,datetime)", NewSQLGreaterThanOrEqualExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-
-		// less than.
-		{"lt(int,int)", NewSQLLessThanExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(int,uint)", NewSQLLessThanExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"lt(int,float)", NewSQLLessThanExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"lt(int,decimal)", NewSQLLessThanExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"lt(int,bool)", NewSQLLessThanExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(int,str)", NewSQLLessThanExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(int,date)", NewSQLLessThanExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(int,datetime)", NewSQLLessThanExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(uint,int)", NewSQLLessThanExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"lt(uint,uint)", NewSQLLessThanExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(uint,float)", NewSQLLessThanExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"lt(uint,decimal)", NewSQLLessThanExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"lt(uint,bool)", NewSQLLessThanExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(uint,str)", NewSQLLessThanExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(uint,date)", NewSQLLessThanExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(uint,datetime)", NewSQLLessThanExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(float,int)", NewSQLLessThanExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"lt(float,uint)", NewSQLLessThanExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"lt(float,float)", NewSQLLessThanExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(float,decimal)", NewSQLLessThanExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"lt(float,bool)", NewSQLLessThanExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(float,str)", NewSQLLessThanExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(float,date)", NewSQLLessThanExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(float,datetime)", NewSQLLessThanExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(decimal,int)", NewSQLLessThanExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"lt(decimal,uint)", NewSQLLessThanExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"lt(decimal,float)", NewSQLLessThanExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"lt(decimal,decimal)", NewSQLLessThanExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(decimal,bool)", NewSQLLessThanExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(decimal,str)", NewSQLLessThanExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(decimal,date)", NewSQLLessThanExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(decimal,datetime)", NewSQLLessThanExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(bool,int)", NewSQLLessThanExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(bool,uint)", NewSQLLessThanExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(bool,float)", NewSQLLessThanExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(bool,decimal)", NewSQLLessThanExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(bool,bool)", NewSQLLessThanExpr(boolVal, boolVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"lt(bool,str)", NewSQLLessThanExpr(boolVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"lt(bool,date)", NewSQLLessThanExpr(boolVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lt(bool,datetime)", NewSQLLessThanExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lt(str,int)", NewSQLLessThanExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(str,uint)", NewSQLLessThanExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(str,float)", NewSQLLessThanExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(str,decimal)", NewSQLLessThanExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(str,bool)", NewSQLLessThanExpr(strVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"lt(str,str)", NewSQLLessThanExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"lt(str,date)", NewSQLLessThanExpr(strVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lt(str,datetime)", NewSQLLessThanExpr(strVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lt(date,int)", NewSQLLessThanExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(date,uint)", NewSQLLessThanExpr(dateVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(date,float)", NewSQLLessThanExpr(dateVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(date,decimal)", NewSQLLessThanExpr(dateVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(date,bool)", NewSQLLessThanExpr(dateVal, boolVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lt(date,str)", NewSQLLessThanExpr(dateVal, strVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lt(date,date)", NewSQLLessThanExpr(dateVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lt(date,datetime)", NewSQLLessThanExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lt(datetime,int)", NewSQLLessThanExpr(datetimeVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lt(datetime,uint)", NewSQLLessThanExpr(datetimeVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lt(datetime,float)", NewSQLLessThanExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lt(datetime,decimal)", NewSQLLessThanExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lt(datetime,bool)", NewSQLLessThanExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lt(datetime,str)", NewSQLLessThanExpr(datetimeVal, strVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lt(datetime,date)", NewSQLLessThanExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lt(datetime,datetime)", NewSQLLessThanExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-
-		// less than or equal.
-		{"lte(int,int)", NewSQLLessThanOrEqualExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(int,uint)", NewSQLLessThanOrEqualExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"lte(int,float)", NewSQLLessThanOrEqualExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"lte(int,decimal)", NewSQLLessThanOrEqualExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"lte(int,bool)", NewSQLLessThanOrEqualExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(int,str)", NewSQLLessThanOrEqualExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(int,date)", NewSQLLessThanOrEqualExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(int,datetime)", NewSQLLessThanOrEqualExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(uint,int)", NewSQLLessThanOrEqualExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"lte(uint,uint)", NewSQLLessThanOrEqualExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(uint,float)", NewSQLLessThanOrEqualExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"lte(uint,decimal)", NewSQLLessThanOrEqualExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"lte(uint,bool)", NewSQLLessThanOrEqualExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(uint,str)", NewSQLLessThanOrEqualExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(uint,date)", NewSQLLessThanOrEqualExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(uint,datetime)", NewSQLLessThanOrEqualExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(float,int)", NewSQLLessThanOrEqualExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"lte(float,uint)", NewSQLLessThanOrEqualExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"lte(float,float)", NewSQLLessThanOrEqualExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(float,decimal)", NewSQLLessThanOrEqualExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"lte(float,bool)", NewSQLLessThanOrEqualExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(float,str)", NewSQLLessThanOrEqualExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(float,date)", NewSQLLessThanOrEqualExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(float,datetime)", NewSQLLessThanOrEqualExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(decimal,int)", NewSQLLessThanOrEqualExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"lte(decimal,uint)", NewSQLLessThanOrEqualExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"lte(decimal,float)", NewSQLLessThanOrEqualExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"lte(decimal,decimal)", NewSQLLessThanOrEqualExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(decimal,bool)", NewSQLLessThanOrEqualExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(decimal,str)", NewSQLLessThanOrEqualExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(decimal,date)", NewSQLLessThanOrEqualExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(decimal,datetime)", NewSQLLessThanOrEqualExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(bool,int)", NewSQLLessThanOrEqualExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(bool,uint)", NewSQLLessThanOrEqualExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(bool,float)", NewSQLLessThanOrEqualExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(bool,decimal)", NewSQLLessThanOrEqualExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(bool,bool)", NewSQLLessThanOrEqualExpr(boolVal, boolVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"lte(bool,str)", NewSQLLessThanOrEqualExpr(boolVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"lte(bool,date)", NewSQLLessThanOrEqualExpr(boolVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lte(bool,datetime)", NewSQLLessThanOrEqualExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lte(str,int)", NewSQLLessThanOrEqualExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(str,uint)", NewSQLLessThanOrEqualExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(str,float)", NewSQLLessThanOrEqualExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(str,decimal)", NewSQLLessThanOrEqualExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(str,bool)", NewSQLLessThanOrEqualExpr(strVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"lte(str,str)", NewSQLLessThanOrEqualExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"lte(str,date)", NewSQLLessThanOrEqualExpr(strVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lte(str,datetime)", NewSQLLessThanOrEqualExpr(strVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lte(date,int)", NewSQLLessThanOrEqualExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(date,uint)", NewSQLLessThanOrEqualExpr(dateVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(date,float)", NewSQLLessThanOrEqualExpr(dateVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(date,decimal)", NewSQLLessThanOrEqualExpr(dateVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(date,bool)", NewSQLLessThanOrEqualExpr(dateVal, boolVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lte(date,str)", NewSQLLessThanOrEqualExpr(dateVal, strVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lte(date,date)", NewSQLLessThanOrEqualExpr(dateVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"lte(date,datetime)", NewSQLLessThanOrEqualExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lte(datetime,int)", NewSQLLessThanOrEqualExpr(datetimeVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"lte(datetime,uint)", NewSQLLessThanOrEqualExpr(datetimeVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"lte(datetime,float)", NewSQLLessThanOrEqualExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"lte(datetime,decimal)", NewSQLLessThanOrEqualExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"lte(datetime,bool)", NewSQLLessThanOrEqualExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lte(datetime,str)", NewSQLLessThanOrEqualExpr(datetimeVal, strVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lte(datetime,date)", NewSQLLessThanOrEqualExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"lte(datetime,datetime)", NewSQLLessThanOrEqualExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
 
 		// like expression
 		{"like(str, int)", NewSQLLikeExpr(strVal, intVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},
@@ -1990,138 +1119,6 @@ func TestReconcile(t *testing.T) {
 		{"like(datetime, str)", NewSQLLikeExpr(datetimeVal, strVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},
 		{"like(datetime, date)", NewSQLLikeExpr(datetimeVal, dateVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},
 		{"like(datetime, datetime)", NewSQLLikeExpr(datetimeVal, datetimeVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},
-
-		// not equal.
-		{"neq(int,int)", NewSQLNotEqualsExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(int,uint)", NewSQLNotEqualsExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"neq(int,float)", NewSQLNotEqualsExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"neq(int,decimal)", NewSQLNotEqualsExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"neq(int,bool)", NewSQLNotEqualsExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(int,str)", NewSQLNotEqualsExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(int,date)", NewSQLNotEqualsExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(int,datetime)", NewSQLNotEqualsExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(uint,int)", NewSQLNotEqualsExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"neq(uint,uint)", NewSQLNotEqualsExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(uint,float)", NewSQLNotEqualsExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"neq(uint,decimal)", NewSQLNotEqualsExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"neq(uint,bool)", NewSQLNotEqualsExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(uint,str)", NewSQLNotEqualsExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(uint,date)", NewSQLNotEqualsExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(uint,datetime)", NewSQLNotEqualsExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(float,int)", NewSQLNotEqualsExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"neq(float,uint)", NewSQLNotEqualsExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"neq(float,float)", NewSQLNotEqualsExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(float,decimal)", NewSQLNotEqualsExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"neq(float,bool)", NewSQLNotEqualsExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(float,str)", NewSQLNotEqualsExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(float,date)", NewSQLNotEqualsExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(float,datetime)", NewSQLNotEqualsExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(decimal,int)", NewSQLNotEqualsExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"neq(decimal,uint)", NewSQLNotEqualsExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"neq(decimal,float)", NewSQLNotEqualsExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"neq(decimal,decimal)", NewSQLNotEqualsExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(decimal,bool)", NewSQLNotEqualsExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(decimal,str)", NewSQLNotEqualsExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(decimal,date)", NewSQLNotEqualsExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(decimal,datetime)", NewSQLNotEqualsExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(bool,int)", NewSQLNotEqualsExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(bool,uint)", NewSQLNotEqualsExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(bool,float)", NewSQLNotEqualsExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(bool,decimal)", NewSQLNotEqualsExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(bool,bool)", NewSQLNotEqualsExpr(boolVal, boolVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"neq(bool,str)", NewSQLNotEqualsExpr(boolVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"neq(bool,date)", NewSQLNotEqualsExpr(boolVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"neq(bool,datetime)", NewSQLNotEqualsExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"neq(str,int)", NewSQLNotEqualsExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(str,uint)", NewSQLNotEqualsExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(str,float)", NewSQLNotEqualsExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(str,decimal)", NewSQLNotEqualsExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(str,bool)", NewSQLNotEqualsExpr(strVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"neq(str,str)", NewSQLNotEqualsExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"neq(str,date)", NewSQLNotEqualsExpr(strVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"neq(str,datetime)", NewSQLNotEqualsExpr(strVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"neq(date,int)", NewSQLNotEqualsExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(date,uint)", NewSQLNotEqualsExpr(dateVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(date,float)", NewSQLNotEqualsExpr(dateVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(date,decimal)", NewSQLNotEqualsExpr(dateVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(date,bool)", NewSQLNotEqualsExpr(dateVal, boolVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"neq(date,str)", NewSQLNotEqualsExpr(dateVal, strVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"neq(date,date)", NewSQLNotEqualsExpr(dateVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"neq(date,datetime)", NewSQLNotEqualsExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"neq(datetime,int)", NewSQLNotEqualsExpr(datetimeVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"neq(datetime,uint)", NewSQLNotEqualsExpr(datetimeVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"neq(datetime,float)", NewSQLNotEqualsExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"neq(datetime,decimal)", NewSQLNotEqualsExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"neq(datetime,bool)", NewSQLNotEqualsExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"neq(datetime,str)", NewSQLNotEqualsExpr(datetimeVal, strVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"neq(datetime,date)", NewSQLNotEqualsExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"neq(datetime,datetime)", NewSQLNotEqualsExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-
-		// null-safe equal.
-		{"nse(int,int)", NewSQLNullSafeEqualsExpr(intVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(int,uint)", NewSQLNullSafeEqualsExpr(intVal, uintVal), []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"nse(int,float)", NewSQLNullSafeEqualsExpr(intVal, floatVal), []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"nse(int,decimal)", NewSQLNullSafeEqualsExpr(intVal, decimalVal), []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"nse(int,bool)", NewSQLNullSafeEqualsExpr(intVal, boolVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(int,str)", NewSQLNullSafeEqualsExpr(intVal, strVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(int,date)", NewSQLNullSafeEqualsExpr(intVal, dateVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(int,datetime)", NewSQLNullSafeEqualsExpr(intVal, datetimeVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(uint,int)", NewSQLNullSafeEqualsExpr(uintVal, intVal), []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"nse(uint,uint)", NewSQLNullSafeEqualsExpr(uintVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(uint,float)", NewSQLNullSafeEqualsExpr(uintVal, floatVal), []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"nse(uint,decimal)", NewSQLNullSafeEqualsExpr(uintVal, decimalVal), []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"nse(uint,bool)", NewSQLNullSafeEqualsExpr(uintVal, boolVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(uint,str)", NewSQLNullSafeEqualsExpr(uintVal, strVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(uint,date)", NewSQLNullSafeEqualsExpr(uintVal, dateVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(uint,datetime)", NewSQLNullSafeEqualsExpr(uintVal, datetimeVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(float,int)", NewSQLNullSafeEqualsExpr(floatVal, intVal), []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"nse(float,uint)", NewSQLNullSafeEqualsExpr(floatVal, uintVal), []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"nse(float,float)", NewSQLNullSafeEqualsExpr(floatVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(float,decimal)", NewSQLNullSafeEqualsExpr(floatVal, decimalVal), []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"nse(float,bool)", NewSQLNullSafeEqualsExpr(floatVal, boolVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(float,str)", NewSQLNullSafeEqualsExpr(floatVal, strVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(float,date)", NewSQLNullSafeEqualsExpr(floatVal, dateVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(float,datetime)", NewSQLNullSafeEqualsExpr(floatVal, datetimeVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(decimal,int)", NewSQLNullSafeEqualsExpr(decimalVal, intVal), []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"nse(decimal,uint)", NewSQLNullSafeEqualsExpr(decimalVal, uintVal), []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"nse(decimal,float)", NewSQLNullSafeEqualsExpr(decimalVal, floatVal), []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"nse(decimal,decimal)", NewSQLNullSafeEqualsExpr(decimalVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(decimal,bool)", NewSQLNullSafeEqualsExpr(decimalVal, boolVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(decimal,str)", NewSQLNullSafeEqualsExpr(decimalVal, strVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(decimal,date)", NewSQLNullSafeEqualsExpr(decimalVal, dateVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(decimal,datetime)", NewSQLNullSafeEqualsExpr(decimalVal, datetimeVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(bool,int)", NewSQLNullSafeEqualsExpr(boolVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(bool,uint)", NewSQLNullSafeEqualsExpr(boolVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(bool,float)", NewSQLNullSafeEqualsExpr(boolVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(bool,decimal)", NewSQLNullSafeEqualsExpr(boolVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(bool,bool)", NewSQLNullSafeEqualsExpr(boolVal, boolVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"nse(bool,str)", NewSQLNullSafeEqualsExpr(boolVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"nse(bool,date)", NewSQLNullSafeEqualsExpr(boolVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"nse(bool,datetime)", NewSQLNullSafeEqualsExpr(boolVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"nse(str,int)", NewSQLNullSafeEqualsExpr(strVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(str,uint)", NewSQLNullSafeEqualsExpr(strVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(str,float)", NewSQLNullSafeEqualsExpr(strVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(str,decimal)", NewSQLNullSafeEqualsExpr(strVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(str,bool)", NewSQLNullSafeEqualsExpr(strVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"nse(str,str)", NewSQLNullSafeEqualsExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
-		{"nse(str,date)", NewSQLNullSafeEqualsExpr(strVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"nse(str,datetime)", NewSQLNullSafeEqualsExpr(strVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"nse(date,int)", NewSQLNullSafeEqualsExpr(dateVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(date,uint)", NewSQLNullSafeEqualsExpr(dateVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(date,float)", NewSQLNullSafeEqualsExpr(dateVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(date,decimal)", NewSQLNullSafeEqualsExpr(dateVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(date,bool)", NewSQLNullSafeEqualsExpr(dateVal, boolVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"nse(date,str)", NewSQLNullSafeEqualsExpr(dateVal, strVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"nse(date,date)", NewSQLNullSafeEqualsExpr(dateVal, dateVal), []types.EvalType{types.EvalDate, types.EvalDate}},
-		{"nse(date,datetime)", NewSQLNullSafeEqualsExpr(dateVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"nse(datetime,int)", NewSQLNullSafeEqualsExpr(datetimeVal, intVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"nse(datetime,uint)", NewSQLNullSafeEqualsExpr(datetimeVal, uintVal), []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"nse(datetime,float)", NewSQLNullSafeEqualsExpr(datetimeVal, floatVal), []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"nse(datetime,decimal)", NewSQLNullSafeEqualsExpr(datetimeVal, decimalVal), []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"nse(datetime,bool)", NewSQLNullSafeEqualsExpr(datetimeVal, boolVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"nse(datetime,str)", NewSQLNullSafeEqualsExpr(datetimeVal, strVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"nse(datetime,date)", NewSQLNullSafeEqualsExpr(datetimeVal, dateVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
-		{"nse(datetime,datetime)", NewSQLNullSafeEqualsExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
 
 		// is expression: right must always be boolean; does not convert the
 		// left if it is numeric or boolean; does convert the left to boolean
@@ -2192,9 +1189,12 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 	floatVal := NewSQLValueExpr(values.NewSQLFloat(knd, 1))
 	decimalVal := NewSQLValueExpr(values.NewSQLDecimal128(knd, decimal.NewFromFloat(1.0)))
 	boolVal := NewSQLValueExpr(values.NewSQLBool(knd, true))
-	strVal := NewSQLValueExpr(values.NewSQLVarchar(knd, "bar"))
 	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
 	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
+	objectIDVal := NewSQLValueExpr(values.NewSQLObjectID(knd, "000000000000000000000000"))
+
+	strVal := NewSQLValueExpr(values.NewSQLVarchar(knd, "bar"))
+	strColExpr := NewSQLColumnExpr(0, "db", "test", "s", types.EvalString, schema.MongoString, false, false)
 
 	intCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalInt64, schema.MongoInt, false, true)
 	uintCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalUint64, schema.MongoInt, false, true)
@@ -2204,15 +1204,19 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 	strCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalString, schema.MongoInt, false, true)
 	dateCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDate, schema.MongoInt, false, true)
 	datetimeCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalDatetime, schema.MongoInt, false, true)
+	objectIDCol := results.NewColumn(0, "", "", "", "", "", "", types.EvalObjectID, schema.MongoInt, false, true)
 
 	intPC := ProjectedColumn{intCol, intVal}
 	uintPC := ProjectedColumn{uintCol, uintVal}
 	floatPC := ProjectedColumn{floatCol, floatVal}
 	decimalPC := ProjectedColumn{decimalCol, decimalVal}
 	boolPC := ProjectedColumn{boolCol, boolVal}
-	strPC := ProjectedColumn{strCol, strVal}
 	datePC := ProjectedColumn{dateCol, dateVal}
 	datetimePC := ProjectedColumn{datetimeCol, datetimeVal}
+	objectIDPC := ProjectedColumn{objectIDCol, objectIDVal}
+
+	strColPC := ProjectedColumn{strCol, strColExpr}
+	strValPC := ProjectedColumn{strCol, strVal}
 
 	type test struct {
 		name                                  string
@@ -2276,7 +1280,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		},
 		{
 			"single(int,str)",
-			NewProjectStage(NewDualStage(), intPC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), intPC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalInt64}, []types.EvalType{types.EvalInt64},
 		},
 		{
@@ -2287,6 +1291,11 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		{
 			"single(int,datetime)",
 			NewProjectStage(NewDualStage(), intPC), NewProjectStage(NewDualStage(), datetimePC),
+			[]types.EvalType{types.EvalInt64}, []types.EvalType{types.EvalInt64},
+		},
+		{
+			"single(int,objectid)",
+			NewProjectStage(NewDualStage(), intPC), NewProjectStage(NewDualStage(), objectIDPC),
 			[]types.EvalType{types.EvalInt64}, []types.EvalType{types.EvalInt64},
 		},
 		{
@@ -2316,7 +1325,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		},
 		{
 			"single(uint,str)",
-			NewProjectStage(NewDualStage(), uintPC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), uintPC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalUint64}, []types.EvalType{types.EvalUint64},
 		},
 		{
@@ -2327,6 +1336,11 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		{
 			"single(uint,datetime)",
 			NewProjectStage(NewDualStage(), uintPC), NewProjectStage(NewDualStage(), datetimePC),
+			[]types.EvalType{types.EvalUint64}, []types.EvalType{types.EvalUint64},
+		},
+		{
+			"single(uint,objectid)",
+			NewProjectStage(NewDualStage(), uintPC), NewProjectStage(NewDualStage(), objectIDPC),
 			[]types.EvalType{types.EvalUint64}, []types.EvalType{types.EvalUint64},
 		},
 		{
@@ -2356,7 +1370,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		},
 		{
 			"single(float,str)",
-			NewProjectStage(NewDualStage(), floatPC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), floatPC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalDouble}, []types.EvalType{types.EvalDouble},
 		},
 		{
@@ -2367,6 +1381,11 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		{
 			"single(float,datetime)",
 			NewProjectStage(NewDualStage(), floatPC), NewProjectStage(NewDualStage(), datetimePC),
+			[]types.EvalType{types.EvalDouble}, []types.EvalType{types.EvalDouble},
+		},
+		{
+			"single(float,objectid)",
+			NewProjectStage(NewDualStage(), floatPC), NewProjectStage(NewDualStage(), objectIDPC),
 			[]types.EvalType{types.EvalDouble}, []types.EvalType{types.EvalDouble},
 		},
 		{
@@ -2396,7 +1415,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		},
 		{
 			"single(decimal,str)",
-			NewProjectStage(NewDualStage(), decimalPC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), decimalPC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalDecimal128}, []types.EvalType{types.EvalDecimal128},
 		},
 		{
@@ -2407,6 +1426,11 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		{
 			"single(decimal,datetime)",
 			NewProjectStage(NewDualStage(), decimalPC), NewProjectStage(NewDualStage(), datetimePC),
+			[]types.EvalType{types.EvalDecimal128}, []types.EvalType{types.EvalDecimal128},
+		},
+		{
+			"single(decimal,objectid)",
+			NewProjectStage(NewDualStage(), decimalPC), NewProjectStage(NewDualStage(), objectIDPC),
 			[]types.EvalType{types.EvalDecimal128}, []types.EvalType{types.EvalDecimal128},
 		},
 		{
@@ -2436,7 +1460,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		},
 		{
 			"single(bool,str)",
-			NewProjectStage(NewDualStage(), boolPC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), boolPC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalString}, []types.EvalType{types.EvalString},
 		},
 		{
@@ -2450,44 +1474,61 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 			[]types.EvalType{types.EvalDatetime}, []types.EvalType{types.EvalDatetime},
 		},
 		{
+			"single(bool,objectid)",
+			NewProjectStage(NewDualStage(), boolPC), NewProjectStage(NewDualStage(), objectIDPC),
+			[]types.EvalType{types.EvalBoolean}, []types.EvalType{types.EvalBoolean},
+		},
+		{
 			"single(str,int)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), intPC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), intPC),
 			[]types.EvalType{types.EvalInt64}, []types.EvalType{types.EvalInt64},
 		},
 		{
 			"single(str,uint)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), uintPC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), uintPC),
 			[]types.EvalType{types.EvalUint64}, []types.EvalType{types.EvalUint64},
 		},
 		{
 			"single(str,float)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), floatPC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), floatPC),
 			[]types.EvalType{types.EvalDouble}, []types.EvalType{types.EvalDouble},
 		},
 		{
 			"single(str,decimal)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), decimalPC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), decimalPC),
 			[]types.EvalType{types.EvalDecimal128}, []types.EvalType{types.EvalDecimal128},
 		},
 		{
 			"single(str,bool)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), boolPC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), boolPC),
 			[]types.EvalType{types.EvalString}, []types.EvalType{types.EvalString},
 		},
 		{
 			"single(str,str)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalString}, []types.EvalType{types.EvalString},
 		},
 		{
 			"single(str,date)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), datePC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), datePC),
 			[]types.EvalType{types.EvalDate}, []types.EvalType{types.EvalDate},
 		},
 		{
 			"single(str,datetime)",
-			NewProjectStage(NewDualStage(), strPC), NewProjectStage(NewDualStage(), datetimePC),
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), datetimePC),
 			[]types.EvalType{types.EvalDatetime}, []types.EvalType{types.EvalDatetime},
+		},
+		// str + objectid resolve to a objectids when the str is a literal (SQLValueExpr).
+		{
+			"single(strVal,objectid)",
+			NewProjectStage(NewDualStage(), strValPC), NewProjectStage(NewDualStage(), objectIDPC),
+			[]types.EvalType{types.EvalObjectID}, []types.EvalType{types.EvalObjectID},
+		},
+		// otherwise, resolves to a string.
+		{
+			"single(strCol,objectid)",
+			NewProjectStage(NewDualStage(), strColPC), NewProjectStage(NewDualStage(), objectIDPC),
+			[]types.EvalType{types.EvalString}, []types.EvalType{types.EvalString},
 		},
 		{
 			"single(date,int)",
@@ -2516,7 +1557,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		},
 		{
 			"single(date,str)",
-			NewProjectStage(NewDualStage(), datePC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), datePC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalDate}, []types.EvalType{types.EvalDate},
 		},
 		{
@@ -2528,6 +1569,11 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 			"single(date,datetime)",
 			NewProjectStage(NewDualStage(), datePC), NewProjectStage(NewDualStage(), datetimePC),
 			[]types.EvalType{types.EvalDatetime}, []types.EvalType{types.EvalDatetime},
+		},
+		{
+			"single(date,objectid)",
+			NewProjectStage(NewDualStage(), datePC), NewProjectStage(NewDualStage(), objectIDPC),
+			[]types.EvalType{types.EvalDate}, []types.EvalType{types.EvalDate},
 		},
 		{
 			"single(datetime,int)",
@@ -2556,7 +1602,7 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		},
 		{
 			"single(datetime,str)",
-			NewProjectStage(NewDualStage(), datetimePC), NewProjectStage(NewDualStage(), strPC),
+			NewProjectStage(NewDualStage(), datetimePC), NewProjectStage(NewDualStage(), strValPC),
 			[]types.EvalType{types.EvalDatetime}, []types.EvalType{types.EvalDatetime},
 		},
 		{
@@ -2569,6 +1615,64 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 			NewProjectStage(NewDualStage(), datetimePC), NewProjectStage(NewDualStage(), datetimePC),
 			[]types.EvalType{types.EvalDatetime}, []types.EvalType{types.EvalDatetime},
 		},
+		{
+			"single(datetime,objectid)",
+			NewProjectStage(NewDualStage(), datetimePC), NewProjectStage(NewDualStage(), objectIDPC),
+			[]types.EvalType{types.EvalDatetime}, []types.EvalType{types.EvalDatetime},
+		},
+		{
+			"single(objectid,int)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), intPC),
+			[]types.EvalType{types.EvalInt64}, []types.EvalType{types.EvalInt64},
+		},
+		{
+			"single(objectid,uint)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), uintPC),
+			[]types.EvalType{types.EvalUint64}, []types.EvalType{types.EvalUint64},
+		},
+		{
+			"single(objectid,float)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), floatPC),
+			[]types.EvalType{types.EvalDouble}, []types.EvalType{types.EvalDouble},
+		},
+		{
+			"single(objectid,decimal)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), decimalPC),
+			[]types.EvalType{types.EvalDecimal128}, []types.EvalType{types.EvalDecimal128},
+		},
+		{
+			"single(objectid,bool)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), boolPC),
+			[]types.EvalType{types.EvalBoolean}, []types.EvalType{types.EvalBoolean},
+		},
+		// str + objectid resolve to a objectids when the str is a literal (SQLValueExpr).
+		{
+			"single(objectid,strVal)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), strValPC),
+			[]types.EvalType{types.EvalObjectID}, []types.EvalType{types.EvalObjectID},
+		},
+		// otherwise, resolves to a string.
+		{
+			"single(objectid,strCol)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), strColPC),
+			[]types.EvalType{types.EvalString}, []types.EvalType{types.EvalString},
+		},
+		{
+			"single(objectid,date)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), datePC),
+			[]types.EvalType{types.EvalDate}, []types.EvalType{types.EvalDate},
+		},
+		{
+			"single(objectid,datetime)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), datetimePC),
+			[]types.EvalType{types.EvalDatetime}, []types.EvalType{types.EvalDatetime},
+		},
+		{
+			"single(objectid,objectid)",
+			NewProjectStage(NewDualStage(), objectIDPC), NewProjectStage(NewDualStage(), objectIDPC),
+			[]types.EvalType{types.EvalObjectID}, []types.EvalType{types.EvalObjectID},
+		},
+
 		{
 			"multiple all pairs same type",
 			NewProjectStage(NewDualStage(), intPC, boolPC, datePC),
@@ -2586,20 +1690,273 @@ func TestReconcileSubqueryPlans(t *testing.T) {
 		{
 			"multiple some pairs similar type",
 			NewProjectStage(NewDualStage(), intPC, boolPC, floatPC),
-			NewProjectStage(NewDualStage(), decimalPC, intPC, strPC),
+			NewProjectStage(NewDualStage(), decimalPC, intPC, strValPC),
 			[]types.EvalType{types.EvalInt64, types.EvalInt64, types.EvalDouble},
 			[]types.EvalType{types.EvalDecimal128, types.EvalInt64, types.EvalDouble},
 		},
 		{
 			"multiple no pairs similar type",
 			NewProjectStage(NewDualStage(), intPC, boolPC, floatPC),
-			NewProjectStage(NewDualStage(), strPC, intPC, datePC),
+			NewProjectStage(NewDualStage(), strValPC, intPC, datePC),
 			[]types.EvalType{types.EvalInt64, types.EvalInt64, types.EvalDouble},
 			[]types.EvalType{types.EvalInt64, types.EvalInt64, types.EvalDouble},
 		},
 	}
 
 	runTests(t, tests)
+}
+
+func TestReconcileArithmetic(t *testing.T) {
+	// Arguments to arithmetic expressions are converted using the following
+	// rules: do not convert numeric types; do convert non-numeric types to
+	// Decimal128 if either argument is a Datetime, non-numeric types to Int64
+	// if either argument is a Date, and other non-numeric types to Float or
+	// the numeric type of the other argument (if the other argument is a
+	// number).
+
+	type test struct {
+		name          string
+		binaryNode    sqlBinaryNode
+		expectedTypes []types.EvalType
+	}
+
+	knd := values.MySQLValueKind
+
+	intVal := NewSQLValueExpr(values.NewSQLInt64(knd, 1))
+	uintVal := NewSQLValueExpr(values.NewSQLUint64(knd, 1))
+	floatVal := NewSQLValueExpr(values.NewSQLFloat(knd, 1))
+	decimalVal := NewSQLValueExpr(values.NewSQLDecimal128(knd, decimal.NewFromFloat(1.0)))
+	boolVal := NewSQLValueExpr(values.NewSQLBool(knd, true))
+	strVal := NewSQLValueExpr(values.NewSQLVarchar(knd, "bar"))
+	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
+	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
+	objectIDVal := NewSQLValueExpr(values.NewSQLObjectID(knd, "000000000000000000000000"))
+
+	tests := []test{
+		{"sqlBinaryNode(int,int)", sqlBinaryNode{intVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,uint)", sqlBinaryNode{intVal, uintVal}, []types.EvalType{types.EvalInt64, types.EvalUint64}},
+		{"sqlBinaryNode(int,float)", sqlBinaryNode{intVal, floatVal}, []types.EvalType{types.EvalInt64, types.EvalDouble}},
+		{"sqlBinaryNode(int,decimal)", sqlBinaryNode{intVal, decimalVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
+		{"sqlBinaryNode(int,bool)", sqlBinaryNode{intVal, boolVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,str)", sqlBinaryNode{intVal, strVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,date)", sqlBinaryNode{intVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,datetime)", sqlBinaryNode{intVal, datetimeVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
+		{"sqlBinaryNode(int,objectid)", sqlBinaryNode{intVal, objectIDVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(uint,int)", sqlBinaryNode{uintVal, intVal}, []types.EvalType{types.EvalUint64, types.EvalInt64}},
+		{"sqlBinaryNode(uint,uint)", sqlBinaryNode{uintVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,float)", sqlBinaryNode{uintVal, floatVal}, []types.EvalType{types.EvalUint64, types.EvalDouble}},
+		{"sqlBinaryNode(uint,decimal}", sqlBinaryNode{uintVal, decimalVal}, []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
+		{"sqlBinaryNode(uint,bool)", sqlBinaryNode{uintVal, boolVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,str)", sqlBinaryNode{uintVal, strVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,date)", sqlBinaryNode{uintVal, dateVal}, []types.EvalType{types.EvalUint64, types.EvalInt64}},
+		{"sqlBinaryNode(uint,datetime)", sqlBinaryNode{uintVal, datetimeVal}, []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
+		{"sqlBinaryNode(uint,objectid)", sqlBinaryNode{uintVal, objectIDVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(float,int)", sqlBinaryNode{floatVal, intVal}, []types.EvalType{types.EvalDouble, types.EvalInt64}},
+		{"sqlBinaryNode(float,uint)", sqlBinaryNode{floatVal, uintVal}, []types.EvalType{types.EvalDouble, types.EvalUint64}},
+		{"sqlBinaryNode(float,float)", sqlBinaryNode{floatVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,decimal)", sqlBinaryNode{floatVal, decimalVal}, []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
+		{"sqlBinaryNode(float,bool)", sqlBinaryNode{floatVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,str)", sqlBinaryNode{floatVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,date)", sqlBinaryNode{floatVal, dateVal}, []types.EvalType{types.EvalDouble, types.EvalInt64}},
+		{"sqlBinaryNode(float,datetime)", sqlBinaryNode{floatVal, datetimeVal}, []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
+		{"sqlBinaryNode(float,objectid)", sqlBinaryNode{floatVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(decimal,int)", sqlBinaryNode{decimalVal, intVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
+		{"sqlBinaryNode(decimal,uint)", sqlBinaryNode{decimalVal, uintVal}, []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
+		{"sqlBinaryNode(decimal,float)", sqlBinaryNode{decimalVal, floatVal}, []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
+		{"sqlBinaryNode(decimal,decimal)", sqlBinaryNode{decimalVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,bool)", sqlBinaryNode{decimalVal, boolVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,str)", sqlBinaryNode{decimalVal, strVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,date)", sqlBinaryNode{decimalVal, dateVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
+		{"sqlBinaryNode(decimal,datetime)", sqlBinaryNode{decimalVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,objectid)", sqlBinaryNode{decimalVal, objectIDVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(bool,int)", sqlBinaryNode{boolVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(bool,uint)", sqlBinaryNode{boolVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(bool,float)", sqlBinaryNode{boolVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(bool,decimal)", sqlBinaryNode{boolVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(bool,bool)", sqlBinaryNode{boolVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(bool,str)", sqlBinaryNode{boolVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(bool,date)", sqlBinaryNode{boolVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(bool,datetime)", sqlBinaryNode{boolVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(bool,objectid)", sqlBinaryNode{boolVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(str,int)", sqlBinaryNode{strVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(str,uint)", sqlBinaryNode{strVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(str,float)", sqlBinaryNode{strVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(str,decimal)", sqlBinaryNode{strVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(str,bool)", sqlBinaryNode{strVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(str,str)", sqlBinaryNode{strVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(str,date)", sqlBinaryNode{strVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(str,datetime)", sqlBinaryNode{strVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(str,objectid)", sqlBinaryNode{strVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(date,int)", sqlBinaryNode{dateVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(date,uint)", sqlBinaryNode{dateVal, uintVal}, []types.EvalType{types.EvalInt64, types.EvalUint64}},
+		{"sqlBinaryNode(date,float)", sqlBinaryNode{dateVal, floatVal}, []types.EvalType{types.EvalInt64, types.EvalDouble}},
+		{"sqlBinaryNode(date,decimal)", sqlBinaryNode{dateVal, decimalVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
+		{"sqlBinaryNode(date,bool)", sqlBinaryNode{dateVal, boolVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(date,str)", sqlBinaryNode{dateVal, strVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(date,date)", sqlBinaryNode{dateVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(date,datetime)", sqlBinaryNode{dateVal, datetimeVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
+		{"sqlBinaryNode(date,objectid)", sqlBinaryNode{dateVal, objectIDVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(datetime,int)", sqlBinaryNode{datetimeVal, intVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
+		{"sqlBinaryNode(datetime,uint)", sqlBinaryNode{datetimeVal, uintVal}, []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
+		{"sqlBinaryNode(datetime,float)", sqlBinaryNode{datetimeVal, floatVal}, []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
+		{"sqlBinaryNode(datetime,decimal)", sqlBinaryNode{datetimeVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(datetime,bool)", sqlBinaryNode{datetimeVal, boolVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(datetime,str)", sqlBinaryNode{datetimeVal, strVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(datetime,date)", sqlBinaryNode{datetimeVal, dateVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
+		{"sqlBinaryNode(datetime,datetime)", sqlBinaryNode{datetimeVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(datetime,objectid)", sqlBinaryNode{datetimeVal, objectIDVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(objectid,int)", sqlBinaryNode{objectIDVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(objectid,uint)", sqlBinaryNode{objectIDVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(objectid,float)", sqlBinaryNode{objectIDVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(objectid,decimal)", sqlBinaryNode{objectIDVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(objectid,bool)", sqlBinaryNode{objectIDVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(objectid,str)", sqlBinaryNode{objectIDVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(objectid,date)", sqlBinaryNode{objectIDVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(objectid,datetime)", sqlBinaryNode{objectIDVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(objectid,objectid)", sqlBinaryNode{objectIDVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := require.New(t)
+
+			newNode := test.binaryNode.reconcileArithmetic()
+			leftType := newNode.left.EvalType()
+			rightType := newNode.right.EvalType()
+
+			req.Equal(test.expectedTypes[0], leftType, "incorrect EvalType for left: got %v, expected %v", types.EvalTypeToSQLType(leftType), types.EvalTypeToSQLType(test.expectedTypes[0]))
+			req.Equal(test.expectedTypes[1], rightType, "incorrect EvalType for right: got %v, expected %v", types.EvalTypeToSQLType(rightType), types.EvalTypeToSQLType(test.expectedTypes[1]))
+		})
+	}
+}
+
+func TestReconcileComparison(t *testing.T) {
+	// Arguments to comparison expressions are converted using the
+	// following rules: do not convert types if they are similar; do
+	// convert types that are not similar to the higher precedence type.
+
+	type test struct {
+		name          string
+		binaryNode    sqlBinaryNode
+		expectedTypes []types.EvalType
+	}
+
+	knd := values.MySQLValueKind
+
+	intVal := NewSQLValueExpr(values.NewSQLInt64(knd, 1))
+	uintVal := NewSQLValueExpr(values.NewSQLUint64(knd, 1))
+	floatVal := NewSQLValueExpr(values.NewSQLFloat(knd, 1))
+	decimalVal := NewSQLValueExpr(values.NewSQLDecimal128(knd, decimal.NewFromFloat(1.0)))
+	boolVal := NewSQLValueExpr(values.NewSQLBool(knd, true))
+	strVal := NewSQLValueExpr(values.NewSQLVarchar(knd, "bar"))
+	dateVal := NewSQLValueExpr(values.NewSQLDate(knd, time.Now()))
+	datetimeVal := NewSQLValueExpr(values.NewSQLTimestamp(knd, time.Now()))
+	objectIDVal := NewSQLValueExpr(values.NewSQLObjectID(knd, "000000000000000000000000"))
+
+	strCol := NewSQLColumnExpr(0, "db", "test", "s", types.EvalString, schema.MongoString, false, false)
+
+	tests := []test{
+		{"sqlBinaryNode(int,int)", sqlBinaryNode{intVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,uint)", sqlBinaryNode{intVal, uintVal}, []types.EvalType{types.EvalInt64, types.EvalUint64}},
+		{"sqlBinaryNode(int,float)", sqlBinaryNode{intVal, floatVal}, []types.EvalType{types.EvalInt64, types.EvalDouble}},
+		{"sqlBinaryNode(int,decimal)", sqlBinaryNode{intVal, decimalVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
+		{"sqlBinaryNode(int,bool)", sqlBinaryNode{intVal, boolVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,str)", sqlBinaryNode{intVal, strVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,date)", sqlBinaryNode{intVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,datetime)", sqlBinaryNode{intVal, datetimeVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(int,objectid)", sqlBinaryNode{intVal, objectIDVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(uint,int)", sqlBinaryNode{uintVal, intVal}, []types.EvalType{types.EvalUint64, types.EvalInt64}},
+		{"sqlBinaryNode(uint,uint)", sqlBinaryNode{uintVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,float)", sqlBinaryNode{uintVal, floatVal}, []types.EvalType{types.EvalUint64, types.EvalDouble}},
+		{"sqlBinaryNode(uint,decimal)", sqlBinaryNode{uintVal, decimalVal}, []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
+		{"sqlBinaryNode(uint,bool)", sqlBinaryNode{uintVal, boolVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,str)", sqlBinaryNode{uintVal, strVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,date)", sqlBinaryNode{uintVal, dateVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,datetime)", sqlBinaryNode{uintVal, datetimeVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(uint,objectid)", sqlBinaryNode{uintVal, objectIDVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(float,int)", sqlBinaryNode{floatVal, intVal}, []types.EvalType{types.EvalDouble, types.EvalInt64}},
+		{"sqlBinaryNode(float,uint)", sqlBinaryNode{floatVal, uintVal}, []types.EvalType{types.EvalDouble, types.EvalUint64}},
+		{"sqlBinaryNode(float,float)", sqlBinaryNode{floatVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,decimal)", sqlBinaryNode{floatVal, decimalVal}, []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
+		{"sqlBinaryNode(float,bool)", sqlBinaryNode{floatVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,str)", sqlBinaryNode{floatVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,date)", sqlBinaryNode{floatVal, dateVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,datetime)", sqlBinaryNode{floatVal, datetimeVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(float,objectid)", sqlBinaryNode{floatVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(decimal,int)", sqlBinaryNode{decimalVal, intVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
+		{"sqlBinaryNode(decimal,uint)", sqlBinaryNode{decimalVal, uintVal}, []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
+		{"sqlBinaryNode(decimal,float)", sqlBinaryNode{decimalVal, floatVal}, []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
+		{"sqlBinaryNode(decimal,decimal)", sqlBinaryNode{decimalVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,bool)", sqlBinaryNode{decimalVal, boolVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,str)", sqlBinaryNode{decimalVal, strVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,date)", sqlBinaryNode{decimalVal, dateVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,datetime)", sqlBinaryNode{decimalVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(decimal,objectid)", sqlBinaryNode{decimalVal, objectIDVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(bool,int)", sqlBinaryNode{boolVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(bool,uint)", sqlBinaryNode{boolVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(bool,float)", sqlBinaryNode{boolVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(bool,decimal)", sqlBinaryNode{boolVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(bool,bool)", sqlBinaryNode{boolVal, boolVal}, []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
+		{"sqlBinaryNode(bool,str)", sqlBinaryNode{boolVal, strVal}, []types.EvalType{types.EvalString, types.EvalString}},
+		{"sqlBinaryNode(bool,date)", sqlBinaryNode{boolVal, dateVal}, []types.EvalType{types.EvalDate, types.EvalDate}},
+		{"sqlBinaryNode(bool,datetime)", sqlBinaryNode{boolVal, datetimeVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(bool,objectid)", sqlBinaryNode{boolVal, objectIDVal}, []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
+		{"sqlBinaryNode(str,int)", sqlBinaryNode{strVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(str,uint)", sqlBinaryNode{strVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(str,float)", sqlBinaryNode{strVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(str,decimal)", sqlBinaryNode{strVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(str,bool)", sqlBinaryNode{strVal, boolVal}, []types.EvalType{types.EvalString, types.EvalString}},
+		{"sqlBinaryNode(str,str)", sqlBinaryNode{strVal, strVal}, []types.EvalType{types.EvalString, types.EvalString}},
+		{"sqlBinaryNode(str,date)", sqlBinaryNode{strVal, dateVal}, []types.EvalType{types.EvalDate, types.EvalDate}},
+		{"sqlBinaryNode(str,datetime)", sqlBinaryNode{strVal, datetimeVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		// str + objectid resolve to a objectids when the str is a literal (SQLValueExpr).
+		{"sqlBinaryNode(strVal,objectid)", sqlBinaryNode{strVal, objectIDVal}, []types.EvalType{types.EvalObjectID, types.EvalObjectID}},
+		// otherwise, resolves to a string.
+		{"sqlBinaryNode(strCol,objectid)", sqlBinaryNode{strCol, objectIDVal}, []types.EvalType{types.EvalString, types.EvalString}},
+		{"sqlBinaryNode(date,int)", sqlBinaryNode{dateVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(date,uint)", sqlBinaryNode{dateVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(date,float)", sqlBinaryNode{dateVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(date,decimal)", sqlBinaryNode{dateVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(date,bool)", sqlBinaryNode{dateVal, boolVal}, []types.EvalType{types.EvalDate, types.EvalDate}},
+		{"sqlBinaryNode(date,str)", sqlBinaryNode{dateVal, strVal}, []types.EvalType{types.EvalDate, types.EvalDate}},
+		{"sqlBinaryNode(date,date)", sqlBinaryNode{dateVal, dateVal}, []types.EvalType{types.EvalDate, types.EvalDate}},
+		{"sqlBinaryNode(date,datetime)", sqlBinaryNode{dateVal, datetimeVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(date,objectid)", sqlBinaryNode{dateVal, objectIDVal}, []types.EvalType{types.EvalDate, types.EvalDate}},
+		{"sqlBinaryNode(datetime,int)", sqlBinaryNode{datetimeVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(datetime,uint)", sqlBinaryNode{datetimeVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(datetime,float)", sqlBinaryNode{datetimeVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(datetime,decimal)", sqlBinaryNode{datetimeVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(datetime,bool)", sqlBinaryNode{datetimeVal, boolVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(datetime,str)", sqlBinaryNode{datetimeVal, strVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(datetime,date)", sqlBinaryNode{datetimeVal, dateVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(datetime,datetime)", sqlBinaryNode{datetimeVal, datetimeVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(datetime,objectid)", sqlBinaryNode{datetimeVal, objectIDVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(objectid,int)", sqlBinaryNode{objectIDVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"sqlBinaryNode(objectid,uint)", sqlBinaryNode{objectIDVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
+		{"sqlBinaryNode(objectid,float)", sqlBinaryNode{objectIDVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"sqlBinaryNode(objectid,decimal)", sqlBinaryNode{objectIDVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
+		{"sqlBinaryNode(objectid,bool)", sqlBinaryNode{objectIDVal, boolVal}, []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
+		// objectid + str resolve to a objectids when the str is a literal (SQLValueExpr).
+		{"sqlBinaryNode(objectid,strVal)", sqlBinaryNode{objectIDVal, strVal}, []types.EvalType{types.EvalObjectID, types.EvalObjectID}},
+		// otherwise, resolves to a string.
+		{"sqlBinaryNode(objectid,strCol)", sqlBinaryNode{objectIDVal, strCol}, []types.EvalType{types.EvalString, types.EvalString}},
+		{"sqlBinaryNode(objectid,date)", sqlBinaryNode{objectIDVal, dateVal}, []types.EvalType{types.EvalDate, types.EvalDate}},
+		{"sqlBinaryNode(objectid,datetime)", sqlBinaryNode{objectIDVal, datetimeVal}, []types.EvalType{types.EvalDatetime, types.EvalDatetime}},
+		{"sqlBinaryNode(objectid,objectid)", sqlBinaryNode{objectIDVal, objectIDVal}, []types.EvalType{types.EvalObjectID, types.EvalObjectID}},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := require.New(t)
+
+			newNode := test.binaryNode.reconcileComparison()
+			leftType := newNode.left.EvalType()
+			rightType := newNode.right.EvalType()
+
+			req.Equal(test.expectedTypes[0], leftType, "incorrect EvalType for left: got %v, expected %v", types.EvalTypeToSQLType(leftType), types.EvalTypeToSQLType(test.expectedTypes[0]))
+			req.Equal(test.expectedTypes[1], rightType, "incorrect EvalType for right: got %v, expected %v", types.EvalTypeToSQLType(rightType), types.EvalTypeToSQLType(test.expectedTypes[1]))
+		})
+	}
 }
 
 func TestConvertExprs(t *testing.T) {

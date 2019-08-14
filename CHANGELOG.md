@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2183: Fixed a bug that was blocking pushdown for some queries on the objectID field.
 BI-2243: New reserved words: INSERT, INTO
 BI-2290: No user-facing changes.
 BI-2117: Fix a bug that caused mongodrdl to fail to parse repl set seedlists for the `--host` flag.
