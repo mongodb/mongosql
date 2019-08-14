@@ -26,11 +26,12 @@ import (
 )
 
 var (
-	testSchema    = evaluator.MustLoadSchema(testSchema1)
-	testInfo      = evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
-	testVars      = evaluator.CreateTestVariables(testInfo)
-	testCatalog   = evaluator.GetCatalog(testSchema, testVars, testInfo)
-	defaultDbName = "test"
+	testSchema                = evaluator.MustLoadSchema(testSchema1)
+	testInfo                  = evaluator.GetMongoDBInfo(nil, testSchema, mongodb.AllPrivileges)
+	testVars                  = evaluator.CreateTestVariables(testInfo)
+	testCatalog               = evaluator.GetCatalog(testSchema, testVars, testInfo)
+	defaultDbName             = "test"
+	algebrizerUnitTestVersion = "5.7.12"
 )
 
 func setSystemVariable(vars *variable.Container, name variable.Name, value interface{}) {
@@ -88,9 +89,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
 			rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-				false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+				false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 
-			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, false)
@@ -117,9 +118,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
 			rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-				false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+				false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 
-			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			// Rebuild Catalog with new variables.
@@ -150,9 +151,9 @@ func TestAlgebrizeQuery(t *testing.T) {
 			req.Nil(err, fmt.Sprintf("failed to parse: %s", testCase.sql))
 
 			rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-				false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+				false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 
-			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, false)
@@ -4317,9 +4318,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 			req.Nil(err, "failed to parse")
 
 			rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-				false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+				false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 
-			rewritten, err := evaluator.RewriteCommand(rCfg, statement)
+			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			// run tests for algebrizing commands in --writeMode, except for the failure tests.
@@ -4341,9 +4342,9 @@ func TestAlgebrizeCommand(t *testing.T) {
 			req.Nil(err, "failed to parse")
 
 			rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-				false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+				false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 
-			rewritten, err := evaluator.RewriteCommand(rCfg, statement)
+			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			// run tests for failing algebrizing commands not in --writeMode.
@@ -4620,9 +4621,9 @@ func TestAlgebrizeExpr(t *testing.T) {
 			req.Nil(err, "failed to parse")
 
 			rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-				false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+				false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 
-			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			testCatalog = evaluator.GetCatalog(
@@ -4651,9 +4652,9 @@ func TestAlgebrizeExpr(t *testing.T) {
 			req.Nil(err, "failed to parse")
 
 			rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-				false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+				false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 
-			rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
 			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), "test", testCatalog, false)
@@ -5145,12 +5146,12 @@ func BenchmarkAlgebrizeQuery(b *testing.B) {
 		}
 
 		rCfg := evaluator.NewRewriterConfig(42, "algebrizer_unit_test_dbname", log.GlobalLogger(),
-			false, "algebrizer_unit_test_version", "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
+			false, algebrizerUnitTestVersion, "algebrizer_unit_test_remoteHost", "algebrizer_unit_test_user")
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+		rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 		if err != nil {
 			b.Fatal(err)
 		}

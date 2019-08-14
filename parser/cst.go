@@ -3202,3 +3202,40 @@ func (node ValueList) Copy() CST {
 }
 
 var _ CST = ValueList{}
+
+func (node UnexecutableComment) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node UnexecutableComment) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node UnexecutableComment) Copy() CST {
+	return node
+}
+
+var _ CST = UnexecutableComment("")
+
+// Children iterates through all direct children of this node.
+func (node *ConditionallyExecutableComment) Children() []CST {
+	return []CST{}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *ConditionallyExecutableComment) ReplaceChild(i int, child CST) {
+	panic("ReplaceChild out of bounds")
+}
+
+// Copy produces a deep copy of this node.
+func (node *ConditionallyExecutableComment) Copy() CST {
+
+	return &ConditionallyExecutableComment{
+		VersionCode: node.VersionCode,
+		SQL:         node.SQL,
+	}
+}
+
+var _ CST = (*ConditionallyExecutableComment)(nil)

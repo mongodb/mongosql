@@ -7,14 +7,15 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/option"
+	"github.com/10gen/sqlproxy/internal/versionutil"
 )
 
-// DesugarQuery is a compiler phase that occurs after parsing and before
+// DesugarStatement is a compiler phase that occurs after parsing and before
 // algebrization. This phase converts a CST from its input form to an equivalent
 // simpler from. Constructs that exist in the input can be wholly removed in the
 // output. Operations in this phase should be simple. CSTs leave the deeper
 // structure of the query obfuscated and no attempt to uncover it should be made.
-func DesugarQuery(statement Statement) (Statement, error) {
+func DesugarStatement(statement Statement, versionCode versionutil.MySQLFixedWidthVersionCode) (Statement, error) {
 	type desugarPass struct {
 		pass Walker
 		// prePassDebuggingMessage will be printed before the pass, if it is not NoneString.
@@ -24,6 +25,9 @@ func DesugarQuery(statement Statement) (Statement, error) {
 	}
 
 	desugarers := []desugarPass{
+		{&evaluateConditionalComment{versionCode}, option.NoneString(), option.NoneString()},
+		{&createTableTypeDesugarer{}, option.NoneString(), option.NoneString()},
+		{&namer{}, option.NoneString(), option.NoneString()},
 		{&isNotDesugarer{}, option.NoneString(), option.NoneString()},
 		{&unwrapSingleTuples{}, option.NoneString(), option.NoneString()},
 		{&someToAnyDesugarer{}, option.NoneString(), option.NoneString()},
@@ -52,6 +56,73 @@ func DesugarQuery(statement Statement) (Statement, error) {
 	}
 
 	return result.(Statement), nil
+}
+
+// createTableTypeDesugarer desugarers allowed type names into the type names we actually support.
+type createTableTypeDesugarer struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*createTableTypeDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*createTableTypeDesugarer) PostVisit(current CST) (CST, error) {
+	colDef, ok := current.(*ColumnDefinition)
+	if !ok {
+		return current, nil
+	}
+	switch colDef.Type.BaseType {
+	case "bool", "bit":
+		if !colDef.Type.Width.IsSome() || colDef.Type.Width.Unwrap() == 1 {
+			colDef.Type.BaseType = "boolean"
+		} else /* This case is impossible unless the base type was bit */ {
+			return nil, fmt.Errorf("bit(n) for n > 1 is not allowed at this time, found n = %d",
+				colDef.Type.Width.Unwrap())
+		}
+	case "datetime":
+		colDef.Type.BaseType = "timestamp"
+	case "tinyint", "smallint", "integer", "bigint":
+		colDef.Type.BaseType = "int"
+	case "char", "text", "tinytext", "mediumtext", "longtext":
+		colDef.Type.BaseType = "varchar"
+	case "double":
+		colDef.Type.BaseType = "float"
+	}
+	return current, nil
+}
+
+var _ Walker = (*evaluateConditionalComment)(nil)
+
+// evaluateConditionalComment replaces a ConditionallyExecutableComment with the underlying
+// Statement if the version code used is less than or equal to the server version code,
+// otherwise, it returns an IgnoredStatement.
+type evaluateConditionalComment struct {
+	versionCode versionutil.MySQLFixedWidthVersionCode
+}
+
+// PreVisit is called for every node before its children are walked.
+func (e *evaluateConditionalComment) PreVisit(current CST) (CST, error) {
+	if v, ok := current.(*ConditionallyExecutableComment); ok {
+		if v.VersionCode <= e.versionCode {
+			stmt, err := Parse(v.SQL)
+			if err != nil {
+				return nil, err
+			}
+			return stmt, nil
+		}
+		buf := NewTrackedBuffer(nil)
+		v.Format(buf)
+		return &IgnoredStatement{
+			Statement: UnexecutableComment(buf.String()),
+		}, nil
+	}
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*evaluateConditionalComment) PostVisit(current CST) (CST, error) {
+	return current, nil
 }
 
 var _ Walker = (*isNotDesugarer)(nil)

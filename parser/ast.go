@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/option"
+	"github.com/10gen/sqlproxy/internal/versionutil"
 	"github.com/10gen/sqlproxy/parser/sqltypes"
 )
 
@@ -32,6 +33,22 @@ type OptString = option.String
 // Parse parses the sql and returns a Statement, which
 // is the AST representation of the query.
 func Parse(sql string) (Statement, error) {
+	// First trim all white space.
+	sql = strings.Trim(sql, " \t\v\n\r")
+	if strings.HasPrefix(sql, "/*!") {
+		// This is a conditionally executable comment.
+		version := versionutil.MySQLFixedWidthVersionCode(sql[3:8])
+		sql = sql[8 : len(sql)-2]
+		// There is some temptation to parse the sql into a Statement apriori,
+		// however, we must preserve it as a string because MySQL allows
+		// broken statements inside conditional comments when the condition
+		// for the comment is not met. For instance:
+		// /*!99999 set @x='foo */ will not cause a parsing error in MySQL,
+		// because the version string is not met, even though `set @x='foo`
+		// is not a valid statement.
+		ret := &ConditionallyExecutableComment{VersionCode: version, SQL: sql}
+		return ret, nil
+	}
 	tokenizer := NewStringTokenizer(sql)
 	if yyParse(tokenizer) != 0 {
 		return nil, errors.New(tokenizer.LastError)
@@ -1235,7 +1252,13 @@ type Explain struct {
 func (*Explain) IStatement() {}
 
 func (node *Explain) Format(buf *TrackedBuffer) {
-	buf.Fprintf("explain %v %v", node.Table, node.Column)
+	buf.Fprintf("explain ")
+	if node.Table != nil {
+		node.Table.Format(buf)
+	}
+	if node.Column != nil {
+		node.Column.Format(buf)
+	}
 }
 
 const (
@@ -1500,4 +1523,24 @@ func (vl ValueList) Format(buf *TrackedBuffer) {
 		v.Format(buf)
 	}
 	buf.Fprintf(")")
+}
+
+type UnexecutableComment string
+
+func (UnexecutableComment) IStatement()          {}
+func (UnexecutableComment) IIgnorableStatement() {}
+
+func (e UnexecutableComment) Format(buf *TrackedBuffer) {
+	buf.Fprintf(string(e))
+}
+
+type ConditionallyExecutableComment struct {
+	VersionCode versionutil.MySQLFixedWidthVersionCode
+	SQL         string
+}
+
+func (*ConditionallyExecutableComment) IStatement() {}
+
+func (node *ConditionallyExecutableComment) Format(buf *TrackedBuffer) {
+	buf.Fprintf("/*!%s%s*/", string(node.VersionCode), node.SQL)
 }

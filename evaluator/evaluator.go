@@ -75,12 +75,7 @@ func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *Algebrizer
 
 	parsedStmt := stmt.Copy().(parser.Statement)
 
-	rewritten, err := RewriteCommand(rCfg, stmt)
-	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
-		return nil, err
-	}
-
-	cmd, err := AlgebrizeCommand(aCfg, rewritten)
+	cmd, err := AlgebrizeCommand(aCfg, stmt)
 	if err != nil {
 		return nil, err
 	}
@@ -108,19 +103,14 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 	qCfg.lg.Infof(log.Admin, "generating explain plan")
 	parsedStmt := stmt.Copy().(parser.Statement)
 
-	rewritten, err := RewriteQuery(qCfg.rCfg, stmt)
-	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
-		return nil, err
-	}
-
-	_, ok := rewritten.(parser.SelectStatement)
+	_, ok := stmt.(parser.SelectStatement)
 	if !ok {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no explain plan support for this statement for now")
 	}
 
 	var plan PlanStage
 
-	algebrized, err := AlgebrizeQuery(qCfg.aCfg, rewritten)
+	algebrized, err := AlgebrizeQuery(qCfg.aCfg, stmt)
 	if err != nil {
 		// We can't create a query plan, so we have to exit.
 		return nil, err
@@ -181,14 +171,8 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 	parsedStmt := stmt.Copy().(parser.Statement)
 	var plan PlanStage
 
-	// Step 1: Perform any syntactic rewrites
-	rewritten, err := RewriteQuery(qCfg.rCfg, stmt)
-	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
-		return nil, err
-	}
-
-	// Step 2: Algebrize
-	algebrized, err := AlgebrizeQuery(qCfg.aCfg, rewritten)
+	// Step 1: Algebrize
+	algebrized, err := AlgebrizeQuery(qCfg.aCfg, stmt)
 
 	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
@@ -196,7 +180,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 
 	plan = algebrized
 
-	// Step 3: Optimize
+	// Step 2: Optimize
 	optimized, err := OptimizePlan(ctx, qCfg.oCfg, plan)
 	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err
@@ -204,7 +188,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 
 	plan = optimized
 
-	// Step 4: Push Down
+	// Step 3: Push Down
 	pushedDown, err := PushdownPlan(ctx, qCfg.pCfg, plan)
 	err = procutil.CheckForContextCancellationAndError(ctx, err)
 	if err != nil && !IsNonFatalPushdownError(err) {
@@ -218,13 +202,13 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 		pushdownFailures = pde.Failures()
 	}
 
-	// Step 5: Gather query plan statistics
+	// Step 4: Gather query plan statistics
 	stats, err := getPlanStats(plan, pushdownFailures)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 6: Check if this query should be executed
+	// Step 5: Check if this query should be executed
 	maybeFastPlan, err := CheckPlanExecution(ctx, qCfg.eCfg, plan)
 	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err

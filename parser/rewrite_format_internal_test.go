@@ -1,12 +1,14 @@
-package parser_test
+package parser
 
 import (
 	"regexp"
 	"testing"
 
-	"github.com/10gen/sqlproxy/parser"
+	"github.com/10gen/sqlproxy/internal/versionutil"
 	"github.com/stretchr/testify/require"
 )
+
+const versionCode = "50712"
 
 func TestRewriteAndFormat(t *testing.T) {
 	// All of these tests call .Copy() on their inputs to give coverage for our
@@ -141,12 +143,12 @@ func testRewriteAndFormatConstantScalarFunctions(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			req := require.New(t)
 
-			tree, err := parser.Parse(tcase.query)
+			tree, err := Parse(tcase.query)
 			req.NoError(err)
 
-			newTree, err := parser.RewriteConstantScalarFunctions(tree.Copy().(parser.Statement), 42, "test_db_name", "test_version", "test_remoteHost", "test_user")
+			newTree, err := RewriteConstantScalarFunctions(tree.Copy().(Statement), 42, "test_db_name", "test_version", "test_remoteHost", "test_user")
 			req.NoError(err)
-			buf := parser.NewTrackedBuffer(nil)
+			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
 
@@ -301,11 +303,11 @@ func testRewriteAndFormatDistinct(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			req := require.New(t)
 
-			tree, err := parser.Parse(tcase.query)
+			tree, err := Parse(tcase.query)
 			req.NoError(err)
 
-			newTree := parser.RewriteDistinct(tree)
-			buf := parser.NewTrackedBuffer(nil)
+			newTree := RewriteDistinct(tree)
+			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
 			req.Equal(tcase.expected, newTreeStr)
@@ -464,12 +466,12 @@ func testRewriteAndFormatCommand(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			req := require.New(t)
 
-			tree, err := parser.Parse(tcase.command)
+			tree, err := Parse(tcase.command)
 			req.NoError(err)
 
-			newTree, err := parser.DesugarCommand(tree.Copy().(parser.Statement))
+			newTree, err := DesugarStatement(tree.Copy().(Statement), versionCode)
 			req.Nil(err)
-			buf := parser.NewTrackedBuffer(nil)
+			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
 			req.Equal(tcase.expected, newTreeStr)
@@ -478,10 +480,10 @@ func testRewriteAndFormatCommand(t *testing.T) {
 
 	t.Run("test that bit(n) for n > 1 fails", func(t *testing.T) {
 		req := require.New(t)
-		tree, err := parser.Parse("create table foo(x bit(12))")
+		tree, err := Parse("create table foo(x bit(12))")
 		req.NoError(err)
 
-		_, err = parser.DesugarCommand(tree.Copy().(parser.Statement))
+		_, err = DesugarStatement(tree.Copy().(Statement), versionCode)
 		req.NotNil(err)
 		req.Equal("bit(n) for n > 1 is not allowed at this time, found n = 12", err.Error())
 	})
@@ -529,11 +531,11 @@ func testNamer(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			req := require.New(t)
 
-			tree, err := parser.Parse(tcase.query)
+			tree, err := Parse(tcase.query)
 			req.NoError(err)
 
-			newTree := parser.NameColumns(tree)
-			buf := parser.NewTrackedBuffer(nil)
+			newTree := NameColumns(tree)
+			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
 			req.Equal(tcase.expected, newTreeStr)
@@ -733,18 +735,49 @@ func testRewriteAndFormatQuery(t *testing.T) {
 		t.Run(tcase.desc, func(t *testing.T) {
 			req := require.New(t)
 
-			tree, err := parser.Parse(tcase.query)
+			tree, err := Parse(tcase.query)
 			req.NoError(err)
 
-			newTree, err := parser.DesugarQuery(tree.Copy().(parser.Statement))
+			newTree, err := desugarStatementNoNaming(tree.Copy().(Statement), versionCode)
 			req.NoError(err)
 
-			buf := parser.NewTrackedBuffer(nil)
+			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
 			req.Equal(tcase.expected, newTreeStr)
 		})
 	}
+}
+
+// The naming pass makes it harder to write test cases. This is a testing only hack function
+// that skips the naming pass, but performs the other command and query desugarings. It does not
+// test constant scalar rewriting or distinct group rewriting.
+func desugarStatementNoNaming(statement Statement, versionCode versionutil.MySQLFixedWidthVersionCode) (Statement, error) {
+	desugarers := []Walker{
+		&evaluateConditionalComment{versionCode},
+		&createTableTypeDesugarer{},
+		&isNotDesugarer{},
+		&unwrapSingleTuples{},
+		&someToAnyDesugarer{},
+		&betweenDesugarer{},
+		&ifToCaseDesugarer{},
+		&inSubqueryDesugarer{},
+		&inListConverter{},
+		&subqueryComparisonConverter{},
+		&tupleComparisonDesugarer{},
+		&makeDualExplicit{},
+	}
+
+	result := statement.(CST)
+	var err error
+	for _, pass := range desugarers {
+		result, err = Walk(pass, result)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return result.(Statement), nil
 }
 
 func testRewriteAndFormatIgnored(t *testing.T) {
@@ -773,18 +806,43 @@ func testRewriteAndFormatIgnored(t *testing.T) {
 			command:  "DiSABLE KeYS",
 			expected: "/* IGNORED */ disable keys",
 		},
+		{
+			desc:     "conditional comment that is executable",
+			command:  "/*!50712 set @foo ='hello'*/",
+			expected: "set @foo = 'hello'",
+		},
+		{
+			desc:     "conditional comment with a query that is executable",
+			command:  "/*!50712 select * from bar*/",
+			expected: "select * from bar",
+		},
+		{
+			desc:     "conditional comment that is not executable",
+			command:  "/*!99999 set @foo='hello'*/",
+			expected: "/* IGNORED */ /*!99999 set @foo='hello'*/",
+		},
+		{
+			desc:     "conditional comment with a query that is not executable",
+			command:  "/*!99999 select * from bar */",
+			expected: "/* IGNORED */ /*!99999 select * from bar */",
+		},
+		{
+			desc:     "conditional comment with a query that is executable and namer",
+			command:  "/*!50712 select a+b from bar*/",
+			expected: "select a+b as a+b from bar",
+		},
 	}
 
 	for _, tcase := range tcases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			req := require.New(t)
 
-			tree, err := parser.Parse(tcase.command)
+			tree, err := Parse(tcase.command)
 			req.NoError(err)
 
-			newTree, err := parser.DesugarCommand(tree.Copy().(parser.Statement))
+			newTree, err := DesugarStatement(tree.Copy().(Statement), versionCode)
 			req.NoError(err)
-			buf := parser.NewTrackedBuffer(nil)
+			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)
 			newTreeStr := buf.String()
 			req.Equal(tcase.expected, newTreeStr)

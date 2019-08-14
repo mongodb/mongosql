@@ -122,3 +122,13 @@ func StringSliceToSet(strs []string) map[string]struct{} {
 func CaseInsensitiveEquals(a, b string) bool {
 	return strings.ToLower(a) == strings.ToLower(b)
 }
+
+// IsNumeric returns true if this string is purely numeric.
+func IsNumeric(s string) bool {
+	for _, c := range s {
+		if c <= '0' || c >= '9' {
+			return false
+		}
+	}
+	return true
+}

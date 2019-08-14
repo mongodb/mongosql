@@ -17,6 +17,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const evaluatorUnitTestVersion = "5.7.12"
+
 func TestPushdownPlan(t *testing.T) {
 	req := require.New(t)
 
@@ -531,9 +533,9 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	req.Nil(err, "failed to parse statement")
 
 	rCfg := evaluator.NewRewriterConfig(42, "evaluator_unit_test_dbname", log.GlobalLogger(),
-		false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
+		false, evaluatorUnitTestVersion, "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
 
-	rewritten, err := evaluator.RewriteQuery(rCfg, statement)
+	rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 	req.Nil(err, "failed to rewrite query")
 
 	aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)

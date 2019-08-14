@@ -496,9 +496,9 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					req.Nil(err, "failed to parse statement")
 
 					rCfg := NewRewriterConfig(42, "test_db_name", log.GlobalLogger(),
-						false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
+						false, evaluatorUnitTestVersion, "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
 
-					rewritten, err := RewriteQuery(rCfg, statement)
+					rewritten, err := RewriteStatement(rCfg, statement)
 					req.Nil(err, "failed to rewrite query")
 
 					aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)
@@ -757,9 +757,9 @@ func TestPushdownSharding(t *testing.T) {
 				req.NoError(err)
 
 				rCfg := NewRewriterConfig(42, "test_db", log.GlobalLogger(),
-					false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
+					false, evaluatorUnitTestVersion, "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
 
-				rewritten, err := RewriteQuery(rCfg, statement)
+				rewritten, err := RewriteStatement(rCfg, statement)
 				req.NoError(err, "failed to rewrite query")
 
 				aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)

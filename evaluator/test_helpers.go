@@ -19,6 +19,8 @@ import (
 	"github.com/10gen/sqlproxy/schema/drdl"
 )
 
+const evaluatorUnitTestVersion = "5.7.12"
+
 // CreateTestExecutionCfg returns a new ExecutionConfig for use in unit tests.
 // This function should only be called from evaluator unit tests.
 func CreateTestExecutionCfg(dbName string, maxStageSize uint64,
@@ -247,8 +249,8 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 	catalog := GetCatalog(schema, vars, info)
 
 	rCfg := NewRewriterConfig(42, "evaluator_unit_test_dbname", log.GlobalLogger(),
-		false, "evaluator_unit_test_version", "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
-	rewritten, err := RewriteQuery(rCfg, selectStatement)
+		false, evaluatorUnitTestVersion, "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
+	rewritten, err := RewriteStatement(rCfg, selectStatement)
 	if err != nil {
 		return nil, err
 	}

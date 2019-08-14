@@ -1163,6 +1163,18 @@ func TestComments(t *testing.T) {
 
 	sql = "select * from foo #comment;"
 	testParseError(t, sql)
+
+	// conditional comments.
+	sql = "/*!30122 set @foo = 'hello'*/"
+	testParse(t, sql)
+	sql = "/*!30122 set @foo = 'hel*/"
+	testParse(t, sql)
+	sql = "         /*!30122set @foo = 'hello'     */   "
+	testParse(t, sql)
+	sql = "           /*!50712              select @foo                 */"
+	testParse(t, sql)
+	sql = "         /*!99999select @foo*/   "
+	testParse(t, sql)
 }
 
 func TestGroupConcat(t *testing.T) {

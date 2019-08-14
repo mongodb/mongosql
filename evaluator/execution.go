@@ -35,7 +35,8 @@ type QueryConfig struct {
 func NewDefaultQueryConfig(mdbVersion, defaultDbName string, ctlg catalog.Catalog) *QueryConfig {
 	lgr := log.GlobalLogger()
 	vars := ctlg.Variables()
-	rCfg := NewRewriterConfig(uint64(0), defaultDbName, lgr, false, getMySQLVersion(vars), "localhost", "user")
+	mySQLVersion := getMySQLVersion(vars)
+	rCfg := NewRewriterConfig(uint64(0), defaultDbName, lgr, false, mySQLVersion, "localhost", "user")
 	// Default config will be writeMode = false
 	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg, false)
 	eCfg := NewExecutionConfig(lgr, vars, nil, nil, defaultDbName)
@@ -60,20 +61,25 @@ func NewQueryConfig(lg log.Logger, rCfg *RewriterConfig, aCfg *AlgebrizerConfig,
 
 // ExecuteSQL parses a query or command, evaluates it, and returns a *QueryResult to the server.
 func ExecuteSQL(ctx context.Context, qCfg *QueryConfig, sql string) (*QueryResult, error) {
-
-	var stmt parser.Statement
-	var err error
-
 	qCfg.lg.Infof(log.Dev, "parsing %q", sql)
 
-	stmt, err = parser.Parse(sql)
+	stmt, err := parser.Parse(sql)
 	if err != nil {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErParseError, `parse sql '%s' error: %s`, sql, err)
 	}
+	return executeSQLStatement(ctx, qCfg, stmt)
+}
 
+// executeSQLStatement executes a preparsed sql Statement.
+func executeSQLStatement(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement) (*QueryResult, error) {
 	qCfg.lg.Infof(log.Dev, "generating plan for sql...")
 
-	switch v := stmt.(type) {
+	rewritten, err := RewriteStatement(qCfg.rCfg, stmt)
+	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
+		return nil, err
+	}
+
+	switch v := rewritten.(type) {
 	case *parser.Select, *parser.Union:
 		return EvaluateQuery(ctx, qCfg, v)
 	case *parser.Show:
@@ -90,8 +96,11 @@ func ExecuteSQL(ctx context.Context, qCfg *QueryConfig, sql string) (*QueryResul
 		case "plan":
 			return handleExplainPlan(ctx, qCfg, v)
 		default:
+			// unreachable
+			buf := parser.NewTrackedBuffer(nil)
+			stmt.Format(buf)
 			return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet, "no support for explain (%s) "+
-				"for now", sql) // unreachable
+				"for now", buf.String())
 		}
 	case *parser.IgnoredStatement:
 		return handleIgnoredStatement(v)
