@@ -335,7 +335,7 @@ type killCursorsArgs struct {
 // It also returns the appropriate cursor ID, database, and collection
 // if this operation is a getMore.
 func (co currentOp) isGetMore() (killCursorsArgs, bool) {
-	if co.Op != "getMore" {
+	if co.Op != "getmore" {
 		return killCursorsArgs{0, "", ""}, false
 	}
 
