@@ -4,6 +4,9 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
+// D is the type of bson documents.
+type D = bson.D
+
 // NewDocElem returns a bson.E with Key key and Value value.
 func NewDocElem(key string, value interface{}) bson.E {
 	return bson.E{Key: key, Value: value}

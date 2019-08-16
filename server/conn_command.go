@@ -74,6 +74,10 @@ func (ch *commandHandler) CreateTable(ctx context.Context, db string, table *sch
 	return ch.conn.updateCatalog(ctx, sch)
 }
 
+func (ch *commandHandler) Insert(ctx context.Context, db, col string, docs []interface{}) error {
+	return ch.conn.session.Insert(ctx, db, col, docs)
+}
+
 func (ch *commandHandler) Kill(ctx context.Context, targetConnID uint32, killScope evaluator.KillScope) error {
 	user := ch.conn.user
 	if ch.conn.mongoDBInfo.IsSecurityEnabled() {

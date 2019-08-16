@@ -45,7 +45,8 @@ func RunSQL(conn *sql.Conn, qs []string, types []schema.SQLType, names []string)
 	for _, q := range qs[0 : len(qs)-1] {
 		_, err := conn.ExecContext(context.Background(), q)
 		if err != nil {
-			return nil, err
+			// We only allow errors to be reported on the last statement in the sql_list.
+			panic(err)
 		}
 	}
 	rows, err := conn.QueryContext(context.Background(), qs[len(qs)-1])
@@ -364,6 +365,13 @@ func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
 		}
 		if err.Error() != test.ExpectedError {
 			t.Fatal(fmt.Errorf("expected error '%s', got '%v'", test.ExpectedError, err.Error()))
+		}
+	} else if test.ExpectedErrorContains != "" {
+		if err == nil {
+			t.Fatal(fmt.Errorf("expected error, but query executed successfully"))
+		}
+		if !strings.Contains(err.Error(), test.ExpectedErrorContains) {
+			t.Fatal(fmt.Errorf("expected error to contain '%s', got '%v'", test.ExpectedErrorContains, err.Error()))
 		}
 	} else if err != nil {
 		t.Fatal(err)

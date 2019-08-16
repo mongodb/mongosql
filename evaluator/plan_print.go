@@ -71,6 +71,8 @@ func prettyPrint(b *bytes.Buffer, n Node, d int) {
 		} else {
 			b.WriteString(fmt.Sprintf("↳ CreateDatabase (%s)", typedN.dbName))
 		}
+	case *InsertCommand:
+		b.WriteString(fmt.Sprintf("↳ Insert (%s.%s)", typedN.dbName, typedN.tableName))
 	case *DynamicSourceStage:
 		b.WriteString(fmt.Sprintf("↳ DynamicSource (%s)", typedN.aliasName))
 	case *DualStage:

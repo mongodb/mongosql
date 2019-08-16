@@ -4335,7 +4335,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 		})
 	}
 
-	runFailureTest := func(t *testing.T, testCase failureTest) {
+	runFailureTest := func(t *testing.T, testCase failureTest, writeMode bool) {
 		t.Run(testCase.sql, func(t *testing.T) {
 			req := require.New(t)
 			statement, err := parser.Parse(testCase.sql)
@@ -4347,8 +4347,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
-			// run tests for failing algebrizing commands not in --writeMode.
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, false)
+			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, writeMode)
 
 			_, err = evaluator.AlgebrizeCommand(aCfg, rewritten)
 
@@ -4366,10 +4365,10 @@ func TestAlgebrizeCommand(t *testing.T) {
 
 	}
 
-	runFailureTestsAsSubtest := func(subTestName string, tests []failureTest) {
+	runFailureTestsAsSubtest := func(subTestName string, tests []failureTest, writeMode bool) {
 		t.Run(subTestName, func(t *testing.T) {
 			for _, testCase := range tests {
-				runFailureTest(t, testCase)
+				runFailureTest(t, testCase, writeMode)
 			}
 		})
 
@@ -4572,7 +4571,173 @@ func TestAlgebrizeCommand(t *testing.T) {
 	}
 	runTestsAsSubtest("Create Table", createTableTests)
 
-	ddlOutOfWriteModeTests := []failureTest{
+	// Insert tests. New scope is to constrain variable lifetimes.
+	{
+		req := require.New(t)
+		testDB, err := testCatalog.Database("test")
+		req.NoError(err)
+		fooTable, err := testDB.Table("foo")
+		req.NoError(err)
+		fooCols := fooTable.Columns()
+		nullRow := make(evaluator.SQLExprs, len(fooCols))
+		basicPositionMap := make(map[string]int, len(fooCols))
+		for i, col := range fooTable.Columns() {
+			nullRow[i] = evaluator.NewSQLValueExpr(values.NewSQLNull(values.MySQLValueKind))
+			basicPositionMap[col.MongoName] = i
+		}
+		gcPositionMap := map[string]int{
+			"g": 0,
+			"c": 1,
+		}
+		cgPositionMap := map[string]int{
+			"c": 0,
+			"g": 1,
+		}
+		testInts := make(evaluator.SQLExprs, 5)
+		for i := range testInts {
+			testInts[i] = evaluator.NewSQLValueExpr(values.NewSQLInt64(values.MySQLValueKind, int64(i)))
+		}
+		testTrue := evaluator.NewSQLValueExpr(values.NewSQLBool(values.MySQLValueKind, true))
+		testHello := evaluator.NewSQLValueExpr(values.NewSQLVarchar(values.MySQLValueKind, "hello"))
+		insertTests := []test{
+			{
+				"insert into foo values()",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), basicPositionMap, [][]evaluator.SQLExpr{nullRow})
+				},
+			},
+			{
+				"insert into foo values(),()",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), basicPositionMap,
+						[][]evaluator.SQLExpr{nullRow, nullRow})
+				},
+			},
+			{
+				"insert into foo values(0,1,2,3,4,true,'hello')",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), basicPositionMap,
+						[][]evaluator.SQLExpr{
+							{
+								testInts[0],
+								testInts[1],
+								testInts[2],
+								testInts[3],
+								testInts[4],
+								testTrue,
+								testHello,
+							},
+						})
+				},
+			},
+			{
+				"insert into foo values(0,1,2,3,4,true,'hello'), (0,1,2,3,4,true,'hello')",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), basicPositionMap,
+						[][]evaluator.SQLExpr{
+							{
+								testInts[0],
+								testInts[1],
+								testInts[2],
+								testInts[3],
+								testInts[4],
+								testTrue,
+								testHello,
+							},
+							{
+								testInts[0],
+								testInts[1],
+								testInts[2],
+								testInts[3],
+								testInts[4],
+								testTrue,
+								testHello,
+							},
+						})
+				},
+			},
+			{
+				"insert into foo(g,c) values(true, 3)",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), gcPositionMap,
+						[][]evaluator.SQLExpr{
+							{
+								testTrue,
+								testInts[3],
+							},
+						})
+				},
+			},
+			{
+				"insert into foo(g,c) values(true, 3), (true, 0)",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), gcPositionMap,
+						[][]evaluator.SQLExpr{
+							{
+								testTrue,
+								testInts[3],
+							},
+							{
+								testTrue,
+								testInts[0],
+							},
+						})
+				},
+			},
+			{
+				"insert into foo(c,g) values(3, true)",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), cgPositionMap,
+						[][]evaluator.SQLExpr{
+							{
+								testInts[3],
+								testTrue,
+							},
+						})
+				},
+			},
+			{
+				"insert into foo(c,g) values(3, true), (4, true)",
+				func() evaluator.Command {
+					return evaluator.NewInsertCommand("test", "foo", fooTable.Columns(), cgPositionMap,
+						[][]evaluator.SQLExpr{
+							{
+								testInts[3],
+								testTrue,
+							},
+							{
+								testInts[4],
+								testTrue,
+							},
+						})
+				},
+			},
+		}
+
+		runTestsAsSubtest("Insert", insertTests)
+	}
+
+	insertFailuresTests := []failureTest{
+		{
+			sql:           "insert into foo values(42, 23)",
+			expectedError: "ERROR 1136 (21S01): Column count doesn't match value count at row 1",
+		},
+		{
+			sql:           "insert into foo(c) values(42, 23)",
+			expectedError: "ERROR 1136 (21S01): Column count doesn't match value count at row 1",
+		},
+		{
+			sql:           "insert into foo(c, g) values(42, 23), (41)",
+			expectedError: "ERROR 1136 (21S01): Column count doesn't match value count at row 2",
+		},
+		{
+			sql:           "insert into foo(c, g) values(42, 23), (41, true), ()",
+			expectedError: "ERROR 1136 (21S01): Column count doesn't match value count at row 3",
+		},
+	}
+	runFailureTestsAsSubtest("Insert Failures", insertFailuresTests, true)
+
+	writesOutOfWriteModeTests := []failureTest{
 		{
 			sql:           "create table foo(x int)",
 			expectedError: "create table requires --writeMode",
@@ -4585,10 +4750,14 @@ func TestAlgebrizeCommand(t *testing.T) {
 			sql:           "drop database foo",
 			expectedError: "drop database requires --writeMode",
 		},
+		{
+			sql:           "insert into foo values()",
+			expectedError: "insert requires --writeMode",
+		},
 		// We allow `drop table` out of --writeMode to support Tableau.
 	}
 
-	runFailureTestsAsSubtest("DDL Must Fail Out of --writeMode", ddlOutOfWriteModeTests)
+	runFailureTestsAsSubtest("DDL and Insert Must Fail Out of --writeMode", writesOutOfWriteModeTests, false)
 }
 
 func testTable(tbl, col string,

@@ -104,43 +104,46 @@ type ddlTestCommandHandler struct {
 	catalog *catalog.SQLCatalog
 }
 
-func (tc ddlTestCommandHandler) Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error) {
+func (ddlTestCommandHandler) Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error) {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) Count(ctx context.Context, db, col string) (int, error) {
+func (ddlTestCommandHandler) Count(ctx context.Context, db, col string) (int, error) {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) DropTable(ctx context.Context, db, tbl string) error {
+func (ddlTestCommandHandler) DropTable(ctx context.Context, db, tbl string) error {
 	return fmt.Errorf("ran drop table")
 }
-func (tc ddlTestCommandHandler) DropDatabase(ctx context.Context, db string) error {
+func (ddlTestCommandHandler) DropDatabase(ctx context.Context, db string) error {
 	return fmt.Errorf("ran drop database")
 }
-func (tc ddlTestCommandHandler) CreateTable(ctx context.Context, db string, table *schema.Table) error {
+func (ddlTestCommandHandler) CreateTable(ctx context.Context, db string, table *schema.Table) error {
 	return fmt.Errorf("ran create table")
 }
-func (tc ddlTestCommandHandler) CreateDatabase(ctx context.Context, db string) error {
+func (ddlTestCommandHandler) CreateDatabase(ctx context.Context, db string) error {
 	return fmt.Errorf("ran create database")
 }
-func (tc ddlTestCommandHandler) Kill(ctx context.Context, targetConnID uint32, ks evaluator.KillScope) error {
+func (ddlTestCommandHandler) Insert(ctx context.Context, db, table string, docs []interface{}) error {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) Resample(context.Context) error {
+func (ddlTestCommandHandler) Kill(ctx context.Context, targetConnID uint32, ks evaluator.KillScope) error {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) RotateLogs() error {
+func (ddlTestCommandHandler) Resample(context.Context) error {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) Set(variable.Name, variable.Scope, variable.Kind, values.SQLValue) error {
+func (ddlTestCommandHandler) RotateLogs() error {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) SetDatabase(db string) error {
+func (ddlTestCommandHandler) Set(variable.Name, variable.Scope, variable.Kind, values.SQLValue) error {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) SetScopeAuthorized(variable.Scope) error {
+func (ddlTestCommandHandler) SetDatabase(db string) error {
 	panic("unimplemented")
 }
-func (tc ddlTestCommandHandler) UnsetDatabase() error {
+func (ddlTestCommandHandler) SetScopeAuthorized(variable.Scope) error {
+	panic("unimplemented")
+}
+func (ddlTestCommandHandler) UnsetDatabase() error {
 	panic("unimplemented")
 }
 

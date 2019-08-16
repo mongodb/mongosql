@@ -1,0 +1,360 @@
+testcases:
+
+  - db: "information_schema"
+    description: "insert all types no columns"
+    expected_names: ["a", "b", "c", "d", "e", "f"]
+    expected_results:
+      - [1, "2012-01-01 01:01:01", 42, "hello", 43.0, 540000]
+    expected_types: ["int", "varchar", "int", "varchar", "float", "float"]
+    id: "insert all types no cols"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a bool, b datetime, c int, d varchar, e decimal, f float)",
+      "insert into foo values(true, timestamp '2012-01-01 01:01:01', 42, 'hello', 43.0, 54.0e4)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "insert with columns and default"
+    expected_names: ["a", "b", "c", "d"]
+    expected_results:
+      - [42, ~, ~, "hello"]
+      - [43, ~, ~, "world"]
+      - [~, 16.0, "2016-01-01 23:23:23", ~]
+      - [~, ~, ~, ~]
+    expected_types: ["int", "float", "varchar", "varchar"]
+    id: "insert types with cols"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b double, c datetime, d varchar)",
+      "insert into foo(d, a) values('hello', 42),('world', 43)",
+      "insert into foo(c, b) values(timestamp '2016-01-01 23:23:23', 16.0e0)",
+      "insert into foo(a) values(DEFAULT)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "support type mismatch via conversion bool"
+    expected_names: ["a"]
+    expected_results:
+      - [1]
+    expected_types: ["int"]
+    id: "support type mismatch via conversion bool"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a bool)",
+      "insert into foo values(42)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "support type mismatch via conversion double"
+    expected_names: ["a"]
+    expected_results:
+      - [42.0]
+    expected_types: ["float"]
+    id: "support type mismatch via conversion double"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a double)",
+      "insert into foo values(42)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "support type mismatch via conversion decimal"
+    expected_names: ["a"]
+    expected_results:
+      - [42.0]
+    expected_types: ["float"]
+    id: "support type mismatch via conversion decimal"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a decimal)",
+      "insert into foo values(42)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "support type mismatch via conversion int"
+    expected_names: ["a"]
+    expected_results:
+      - [42]
+    expected_types: ["int"]
+    id: "support type mismatch via conversion int"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int)",
+      "insert into foo values(42.0)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "support type mismatch via conversion datetime"
+    expected_names: ["a"]
+    expected_results:
+      - [~]
+      - ["1970-01-01 00:00:00.042000"]
+    expected_types: [varchar]
+    id: "support type mismatch via conversion datetime"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a datetime unique)",
+      "set @@type_conversion_mode='mysql'",
+      "insert into foo values(42)",
+      "set @@type_conversion_mode='mongosql'",
+      "insert into foo values(42)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "type mismatch results in non-viable NULL value"
+    expected_error: "Error 1105: column a cannot be NULL"
+    id: "type mismatch results in non-viable NULL value"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a datetime not null)",
+      "set @@type_conversion_mode='mysql'",
+      "insert into foo values(42)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "explicit default results in non-viable NULL value"
+    expected_error: "Error 1105: column a cannot be NULL"
+    id: "explicit default results in non-viable NULL value"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a datetime not null)",
+      "insert into foo values(default)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "implicit default results in non-viable NULL value"
+    expected_error: "Error 1105: column a cannot be NULL"
+    id: "implicit default results in non-viable NULL value"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a datetime not null)",
+      "insert into foo values()"]
+    sync: true
+
+  - db: "information_schema"
+    description: "literal NULL is non-viable NULL value"
+    expected_error: "Error 1105: column a cannot be NULL"
+    id: "literal NULL is non-viable"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a datetime not null)",
+      "insert into foo values(NULL)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "violate uniqueness constraint, the error differs slightly depending on mongod version, so we use a expected_error_contains"
+    expected_error_contains: "duplicate key error collection: created_writes_db.foo index: a_unique"
+    id: "violate uniqueness constraint single row"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a datetime unique)",
+      "set @@type_conversion_mode='mongosql'",
+      "insert into foo values(42)",
+      "insert into foo values(43)",
+      "insert into foo values(42)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "violate uniqueness constraint, the error differs slightly depending on mongod version, so we use a expected_error_contains"
+    expected_error_contains: "duplicate key error collection: created_writes_db.foo index: a_unique"
+    id: "violate uniqueness constraint multi-row"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a datetime unique)",
+      "set @@type_conversion_mode='mongosql'",
+      "insert into foo values(42),(43),(42)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "violate uniqueness constraint, the error differs slightly depending on mongod version, so we use a expected_error_contains"
+    expected_error_contains: "duplicate key error collection: created_writes_db.foo index: a_1_b_1"
+    id: "violate uniqueness constraint multi-key unique index"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int, unique index(a,b))",
+      "set @@type_conversion_mode='mongosql'",
+      "insert into foo values(42, 43), (43, 42), (42, 42), (42, 43)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "pass mult-key uniqueness constraint despite non-unique single column values"
+    expected_names: ["a", "b"]
+    expected_results:
+      - [42, 43]
+      - [43, 42]
+      - [42, 42]
+      - [43, 43]
+    expected_types: ["int", "int"]
+    id: "pass uniqueness constraint multi-key unique index"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int, unique index(a,b))",
+      "set @@type_conversion_mode='mongosql'",
+      "insert into foo values(42, 43), (43, 42), (42, 42), (43, 43)",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "insert where number of values in row 2 changes from 2 to 1"
+    expected_error: "Error 1136: Column count doesn't match value count at row 2"
+    id: "insert where number of values in row 2 changes from 2 to 1"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int)",
+      "insert into foo values(42, 23), (41)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "insert where number of values in row 2 changes from 0 to 1"
+    expected_error: "Error 1136: Column count doesn't match value count at row 2"
+    id: "insert where number of values in row 2 changes from 0 to 1"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int)",
+      "insert into foo values(), (41)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "insert where number of values in row 3 changes"
+    expected_error: "Error 1136: Column count doesn't match value count at row 3"
+    id: "insert where number of values in row 3 changes"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int)",
+      "insert into foo values(), (), (41)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "insert 0 values where 1 is required with column list"
+    expected_error: "Error 1136: Column count doesn't match value count at row 1"
+    id: "insert 0 values where 1 is required with column list"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int)",
+      "insert into foo(a) values()"]
+    sync: true
+
+  - db: "information_schema"
+    description: "insert 1 value where 2 is required without column list"
+    expected_error: "Error 1136: Column count doesn't match value count at row 1"
+    id: "insert 1 value where 2 is required without column list"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int)",
+      "insert into foo values(42)"]
+    sync: true
+
+  - db: "information_schema"
+    description: "inserting an empty list of values is valid if there are no insert columns"
+    expected_names: ["a", "b"]
+    expected_results:
+      - [~, ~]
+    expected_types: ["int", "int"]
+    id: "inserting an empty list no insert columns"
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table foo(a int, b int)",
+      "insert into foo values()",
+      "select * from foo"]
+    sync: true
+
+  - db: "information_schema"
+    description: "ensure that 'STRICT_ALL_TABLES' is not set"
+    expected_names: [strict]
+    expected_results:
+      - [0]
+    expected_types: ["int"]
+    id: "ensure STRICT_ALL_TABLES is not set"
+    min_server_version: 3.6
+    sql: "select locate('STRICT_ALL_TABLES', variable_value) as strict from information_schema.global_variables where variable_name = 'sql_mode'"

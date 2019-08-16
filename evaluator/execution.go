@@ -87,7 +87,8 @@ func executeSQLStatement(ctx context.Context, qCfg *QueryConfig, stmt parser.Sta
 	case *parser.AlterTable, *parser.Flush, *parser.Kill,
 		*parser.RenameTable, *parser.Set, *parser.Use,
 		*parser.DropTable, *parser.DropDatabase,
-		*parser.CreateTable, *parser.CreateDatabase:
+		*parser.CreateTable, *parser.CreateDatabase,
+		*parser.Insert:
 		return EvaluateCommand(ctx, qCfg.rCfg, qCfg.aCfg, qCfg.eCfg, v)
 	case *parser.Explain:
 		switch strings.ToLower(v.Section) {
@@ -180,6 +181,8 @@ type CommandHandler interface {
 	CreateTable(ctx context.Context, db string, table *schema.Table) error
 	// CreateDatabase creates Databases.
 	CreateDatabase(ctx context.Context, db string) error
+	// Insert inserts documents into the specified namespace.
+	Insert(ctx context.Context, db, table string, docs []interface{}) error
 	// Kill kills a Connection or Query (the KillScope). The targetConnID is the
 	// ID of the connection that is to be killed. The targetConnID may be the
 	// current connection id.

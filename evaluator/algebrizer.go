@@ -93,6 +93,8 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig, stmt parser.Statement) (Command, er
 		return algebrizer.translateCreateDatabase(typedStmt)
 	case *parser.DropDatabase:
 		return algebrizer.translateDropDatabase(typedStmt)
+	case *parser.Insert:
+		return algebrizer.translateInsert(typedStmt)
 	default:
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErNotSupportedYet,
 			fmt.Sprintf("statement %T", typedStmt))
@@ -537,6 +539,147 @@ func (a *algebrizer) translateDropDatabase(ddl *parser.DropDatabase) (*DropDatab
 	return NewDropDatabaseCommand(a.cfg.catalog,
 		ddl.Name,
 		ddl.IfExists), nil
+}
+
+func (a *algebrizer) translateInsert(ins *parser.Insert) (*InsertCommand, error) {
+	if !a.cfg.isWriteMode {
+		return nil, fmt.Errorf("insert requires --writeMode")
+	}
+	// We need the dbName for the mongodb insert command.
+	dbName := ins.Table.Qualifier.Else(a.cfg.dbName)
+	db, err := a.cfg.catalog.Database(dbName)
+	if err != nil {
+		return nil, err
+	}
+	// We need the table name as well as other information from the table
+	// for the insert command and proper value type conversion.
+	table, err := db.Table(ins.Table.Name)
+	if err != nil {
+		return nil, err
+	}
+	// tableCols will be used for finding the appropriate type for
+	// a column as well the exact MongoName for generating the proper
+	// document to insert.
+	tableCols := table.Columns()
+	insertColNames := make([]string, len(ins.Columns))
+	// The ins.Columns are SQLColumn names, we need to map
+	// them to the underlying MongoNames through the catalog.
+	for i := range ins.Columns {
+		tableColRef, colErr := table.Column(ins.Columns[i].Name)
+		if colErr != nil {
+			return nil, colErr
+		}
+		insertColNames[i] = tableColRef.MongoName
+	}
+	// numInsertCols is the number of columns specified in the insert statement:
+	// for
+	//   insert into foo(x,y) values ...
+	// numInsertCols would be 2
+	numInsertCols := len(insertColNames)
+	// numTableCols is the number of columns in the table, e.g.:
+	// for
+	//   create table foo(x int, y int, z varchar(15))
+	// numTableCols would be 3
+	// numTableCols is used to decide how many []SQLExpr to put in a given row,
+	// and to check that the number of specified values in a row is correct
+	// when numInsertCols is 0.
+	numTableCols := len(tableCols)
+	// get the positionMap (see generatePositionMap comment for more details).
+	positionMap := a.generatePositionMap(insertColNames, tableCols)
+	// now convert the rows of values from parser.ValueListList to [][]SQLExpr.
+	exprs, err := a.valueListListsToSQLExprListLists(numInsertCols, numTableCols, ins.Values)
+	if err != nil {
+		return nil, err
+	}
+	return NewInsertCommand(dbName, ins.Table.Name, tableCols, positionMap, exprs), nil
+}
+
+// generatePositionMap generates a positionMap for sending to the InsertCommand.
+// A positionMap is a mapping from a given insert column's mongo name to a position index into each row
+// of the valuesListList. Any column that does not appear in the insert columns list will not appear
+// in this map unless _no_ columns are specified (in which case they will all appear with the
+// position index corresponding to the table position).
+//
+// This map is necessary because the insert columns list can be in a different order than the table
+// columns, e.g.:
+//   create table foo(x int, y int);
+//   insert into foo(y, x) values(3,4);
+func (a *algebrizer) generatePositionMap(insertColNames []string, tableCols results.Columns) map[string]int {
+	var positionMap map[string]int
+	if len(insertColNames) != 0 {
+		positionMap = make(map[string]int, len(insertColNames))
+		for i, colName := range insertColNames {
+			positionMap[colName] = i
+		}
+	} else {
+		// If the insert statement did not specify columns, the positionMap
+		// is just the same order as the columns in the table. e.g. tablePositions.
+		positionMap = make(map[string]int, len(tableCols))
+		for i, col := range tableCols {
+			positionMap[col.MongoName] = i
+		}
+	}
+	return positionMap
+}
+
+func (a *algebrizer) valueListListsToSQLExprListLists(numInsertCols, numTableCols int,
+	valLists parser.ValueListList) ([][]SQLExpr, error) {
+	exprListList := make([][]SQLExpr, len(valLists))
+	firstSize := len(valLists[0])
+	for i := range valLists {
+		// MySQL enforces that every row has the same size. This means you
+		// can't mix empty rows with non-empty rows even for an insert with
+		// no columns specified.
+		if len(valLists[i]) != firstSize {
+			return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongValueCountOnRow, i+1)
+		}
+		var err error
+		exprListList[i], err = a.valueListToSQLExprList(i, numInsertCols, numTableCols, valLists[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return exprListList, nil
+}
+
+func (a *algebrizer) valueListToSQLExprList(i, numInsertCols, numTableCols int, vals parser.ValueList) ([]SQLExpr, error) {
+	// If no columns are specified, and the row is empty, we insert a row
+	// of all default values.
+	if numInsertCols == 0 && len(vals) == 0 {
+		exprList := make([]SQLExpr, numTableCols)
+		for i := range exprList {
+			exprList[i] = NewSQLValueExpr(values.NewSQLNull(a.valueKind()))
+		}
+		return exprList, nil
+	}
+	// If columns are specified, there must be as many values as there are specified columns.
+	if numInsertCols > 0 && numInsertCols != len(vals) ||
+		// If no columns are specified, there must be as many values as there are columns in the table.
+		numInsertCols == 0 && numTableCols != len(vals) {
+		return nil, mysqlerrors.Defaultf(mysqlerrors.ErWrongValueCountOnRow, i+1)
+	}
+
+	exprList := make([]SQLExpr, len(vals))
+	for i, val := range vals {
+		// We just translate DEFAULT to NULL here. If we ever support non-NULL
+		// DEFAULTs, they will likewise be translated here.
+		if _, ok := val.(parser.Default); ok {
+			exprList[i] = NewSQLValueExpr(values.NewSQLNull(a.valueKind()))
+			continue
+		}
+		converted, err := a.translateExpr(val)
+		if err != nil {
+			panic(fmt.Sprintf("got error: %v in convertParserValue", err))
+		}
+		switch converted.(type) {
+		case SQLValueExpr:
+			exprList[i] = converted
+		default:
+			// This would suggest an error in the parser.
+			panic(fmt.Sprintf("insert only accepts values not %T", converted))
+		}
+	}
+	return exprList, nil
 }
 
 func (a *algebrizer) translateCreateDatabase(ddl *parser.CreateDatabase) (*CreateDatabaseCommand, error) {
@@ -2078,7 +2221,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		return NewSQLValueExpr(values.NewSQLNull(a.valueKind())), nil
 	default:
 		return nil, mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,
-			"No support for '%v'", parser.String(typedE))
+			"No support for '%v':%T", parser.String(typedE), typedE)
 	}
 }
 

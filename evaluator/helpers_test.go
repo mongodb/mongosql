@@ -51,6 +51,9 @@ func (*mockCmdHandler) CreateTable(ctx context.Context, db string, table *schema
 func (*mockCmdHandler) CreateDatabase(ctx context.Context, db string) error {
 	panic("unimplemented")
 }
+func (*mockCmdHandler) Insert(ctx context.Context, db, table string, docs []interface{}) error {
+	panic("unimplemented")
+}
 func (*mockCmdHandler) Kill(context.Context, uint32, evaluator.KillScope) error {
 	panic("unimplemented")
 }

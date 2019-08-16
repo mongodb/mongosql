@@ -202,7 +202,7 @@ var mySQLErrName = map[uint16]string{
 		"are not out of available memory, you can consult the manual for a possible OS-dependent" +
 		" bug",
 	ErWrongValueCountOnRow: "Column count doesn't match value count at " +
-		"row %ld",
+		"row %d",
 	ErCantReopenTable:  "Can't reopen table: '%-.192s'",
 	ErInvalidUseOfNull: "Invalid use of NULL value",
 	ErRegexpError:      "Got error '%-.64s' from regexp",

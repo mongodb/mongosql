@@ -35,7 +35,7 @@ testcases:
 
   - db: information_schema
     description: create table that already exists, should error
-    expected_error: "Error 1105: unable to execute command: (NamespaceExists) a collection 'created_writes_db.foo' already exists"
+    expected_error_contains: "already exists"
     id: 'create table create_writes_db.foo conflict'
     min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
@@ -67,6 +67,7 @@ testcases:
     min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
+      drop database if exists created_writes_db,
       create database created_writes_db,
       use created_writes_db,
       create table foo(x int),
