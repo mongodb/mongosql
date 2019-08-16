@@ -959,6 +959,17 @@
     - {maxInt: {$numberLong: "9223372036854775807"}, minInt: {$numberLong: "-9223372036854775808"}, a: {$numberLong: "2"}}
     - {maxInt: {$numberLong: "9223372036854775807"}, minInt: {$numberLong: "-9223372036854775808"}, a: {$numberLong: "3"}}
 
+- db: "select_sTest"
+  collection: "integer_division"
+  min_server_version: 3.4
+  docs:
+    - {_id: 1, i: 1, d: {$numberDecimal: "1.0"}, n1: 2, n2: {$numberDecimal: "2.2"}}
+    - {_id: 2, i: 2, d: {$numberDecimal: "2.5"}, n1: 2, n2: {$numberDecimal: "2.2"}}
+    - {_id: 3, i: 3, d: {$numberDecimal: "3.3"}, n1: 2, n2: {$numberDecimal: "2.2"}}
+    - {_id: 4, i: 5, d: {$numberDecimal: "6.25"}, n1: 2, n2: {$numberDecimal: "2.2"}}
+    - {_id: 5, i: 10, d: {$numberDecimal: "10"}, n1: 2, n2: {$numberDecimal: "2.2"}}
+    - {_id: 6, i: 24, d: {$numberDecimal: "25.3"}, n1: 2, n2: {$numberDecimal: "2.2"}}
+
 - db: "select_test"
   collection: "strings_as_floats"
   docs:

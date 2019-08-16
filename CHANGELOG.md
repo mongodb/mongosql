@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-1844: Fixed a bug in `div` evaluation that caused incorrect results.
 BI-1546: Support version-conditionally-executed comment statements.
 BI-1578: Fixed a bug that failed to correctly kill long-running queries.
 BI-2183: Fixed a bug that was blocking pushdown for some queries on the objectID field.

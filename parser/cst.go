@@ -3203,6 +3203,7 @@ func (node ValueList) Copy() CST {
 
 var _ CST = ValueList{}
 
+// Children iterates through all direct children of this node.
 func (node UnexecutableComment) Children() []CST {
 	return []CST{}
 }

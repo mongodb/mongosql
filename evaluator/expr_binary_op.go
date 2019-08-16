@@ -11,7 +11,6 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )
 
@@ -1077,6 +1076,18 @@ func (*SQLIDivideExpr) ExprName() string {
 	return "SQLIDivideExpr"
 }
 
+func idivide(knd values.SQLValueKind, leftVal, rightVal values.SQLValue) values.SQLValue {
+	dividend := values.Float64(leftVal)
+	divisor := values.Float64(rightVal)
+
+	if divisor == 0 || values.HasNullValue(leftVal, rightVal) {
+		// NOTE: this is per mysql manual
+		return values.NewSQLNull(knd)
+	}
+
+	return values.NewSQLInt64(knd, int64(dividend/divisor))
+}
+
 // Evaluate evaluates a SQLIDivideExpr into a values.SQLValue.
 func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
 	err := validateArgs(div)
@@ -1089,13 +1100,7 @@ func (div *SQLIDivideExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 		return nil, err
 	}
 
-	frightVal := values.Float64(rightVal)
-	if frightVal == 0.0 || values.HasNullValue(leftVal, rightVal) {
-		// NOTE: this is per the mysql manual.
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	return values.NewSQLInt64(cfg.sqlValueKind, int64(values.Float64(leftVal)/frightVal)), nil
+	return idivide(cfg.sqlValueKind, leftVal, rightVal), nil
 }
 
 // FoldConstants simplifies expressions containing constants when it is able to for *SQLIDivideExpr.
@@ -1115,19 +1120,15 @@ func (div *SQLIDivideExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 		if rightVal.IsNull() {
 			return NewSQLValueExpr(rightVal), nil
 		}
-		irightVal := values.Int64(rightVal)
-		if irightVal == 0 {
+		rightFloatVal := values.Float64(rightVal)
+		if rightFloatVal == 0 {
 			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
 		}
-		if irightVal == 1 {
-			return div.left, nil
+		if rightFloatVal == 1 {
+			return NewSQLScalarFunctionExpr("floor", []SQLExpr{div.left})
 		}
 	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		frightVal := values.Float64(rightVal)
-		return NewSQLValueExpr(values.NewSQLInt64(cfg.sqlValueKind, int64(values.Float64(leftVal)/frightVal))), nil
+		return NewSQLValueExpr(idivide(cfg.sqlValueKind, leftVal, rightVal)), nil
 	}
 	return div, nil
 }
@@ -1174,7 +1175,7 @@ func (div *SQLIDivideExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Ex
 
 // EvalType returns the EvalType associated with SQLIDivideExpr.
 func (div *SQLIDivideExpr) EvalType() types.EvalType {
-	return preferentialType(div.left, div.right)
+	return types.EvalInt64
 }
 
 // SQLIsExpr evaluates to true if the left is equal to the boolean value on the right.

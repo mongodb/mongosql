@@ -199,6 +199,186 @@ testcases:
     sql: select a DIV _id FROM select_1
 
   - db: select_sTest
+    description: integer division int column by literal int 1
+    expected_names: [i, i div 1]
+    expected_results:
+      - [1, 1]
+      - [2, 2]
+      - [3, 3]
+      - [5, 5]
+      - [10, 10]
+      - [24, 24]
+    expected_types: [int, int]
+    id: integer_division_int_column_by_literal_int_1
+    min_server_version: 3.4
+    sql: select i, i div 1 from integer_division
+
+  - db: select_sTest
+    description: integer division int column by literal int 2
+    expected_names: [i, i div 2]
+    expected_results:
+      - [1, 0]
+      - [2, 1]
+      - [3, 1]
+      - [5, 2]
+      - [10, 5]
+      - [24, 12]
+    expected_types: [int, int]
+    id: integer_division_int_column_by_literal_int_2
+    min_server_version: 3.4
+    sql: select i, i div 2 from integer_division
+
+  - db: select_sTest
+    description: integer division decimal column by literal int 1
+    expected_names: [d, d div 1]
+    expected_results:
+      - [1.0, 1]
+      - [2.5, 2]
+      - [3.3, 3]
+      - [6.25, 6]
+      - [10, 10]
+      - [25.3, 25]
+    expected_types: [decimal, int]
+    id: integer_division_decimal_column_by_literal_int_1
+    min_server_version: 3.4
+    sql: select d, d div 1 from integer_division
+
+  - db: select_sTest
+    description: integer division decimal column by literal int 2
+    expected_names: [d, d div 2]
+    expected_results:
+      - [1.0, 0]
+      - [2.5, 1]
+      - [3.3, 1]
+      - [6.25, 3]
+      - [10, 5]
+      - [25.3, 12]
+    expected_types: [decimal, int]
+    id: integer_division_decimal_column_by_literal_int_2
+    min_server_version: 3.4
+    sql: select d, d div 2 from integer_division
+
+  - db: select_sTest
+    description: integer division int column by literal decimal 1.2
+    expected_names: [i, i div 1.2]
+    expected_results:
+      - [1, 0]
+      - [2, 1]
+      - [3, 2]
+      - [5, 4]
+      - [10, 8]
+      - [24, 20]
+    expected_types: [int, int]
+    id: integer_division_int_column_by_literal_decimal_1.2
+    min_server_version: 3.4
+    sql: select i, i div 1.2 from integer_division
+
+  - db: select_sTest
+    description: integer division int column by literal decimal 2.2
+    expected_names: [i, i div 2.2]
+    expected_results:
+      - [1, 0]
+      - [2, 0]
+      - [3, 1]
+      - [5, 2]
+      - [10, 4]
+      - [24, 10]
+    expected_types: [int, int]
+    id: integer_division_int_column_by_literal_decimal_2.2
+    min_server_version: 3.4
+    sql: select i, i div 2.2 from integer_division
+
+  - db: select_sTest
+    description: integer division decimal column by literal decimal 1.2
+    expected_names: [d, d div 1.2]
+    expected_results:
+      - [1.0, 0]
+      - [2.5, 2]
+      - [3.3, 2]
+      - [6.25, 5]
+      - [10, 8]
+      - [25.3, 21]
+    expected_types: [decimal, int]
+    id: integer_division_decimal_column_by_literal_decimal_1.2
+    min_server_version: 3.4
+    sql: select d, d div 1.2 from integer_division
+
+  - db: select_sTest
+    description: integer division decimal column by literal decimal 2.2
+    expected_names: [d, d div 2.2]
+    expected_results:
+      - [1.0, 0]
+      - [2.5, 1]
+      - [3.3, 1]
+      - [6.25, 2]
+      - [10, 4]
+      - [25.3, 11]
+    expected_types: [decimal, int]
+    id: integer_division_decimal_column_by_literal_decimal_2.2
+    min_server_version: 3.4
+    sql: select d, d div 2.2 from integer_division
+
+  - db: select_sTest
+    description: integer division integer column by integer column
+    expected_names: [i, n1, i div n1]
+    expected_results:
+      - [1, 2, 0]
+      - [2, 2, 1]
+      - [3, 2, 1]
+      - [5, 2, 2]
+      - [10, 2, 5]
+      - [24, 2, 12]
+    expected_types: [int, int, int]
+    id: integer_division_integer_column_by_integer_column
+    min_server_version: 3.4
+    sql: select i, n1, i div n1 from integer_division
+
+  - db: select_sTest
+    description: integer division decimal column by integer column
+    expected_names: [d, n1, d div n1]
+    expected_results:
+      - [1.0, 2, 0]
+      - [2.5, 2, 1]
+      - [3.3, 2, 1]
+      - [6.25, 2, 3]
+      - [10, 2, 5]
+      - [25.3, 2, 12]
+    expected_types: [decimal, int, int]
+    id: integer_division_decimal_column_by_integer_column
+    min_server_version: 3.4
+    sql: select d, n1, d div n1 from integer_division
+
+  - db: select_sTest
+    description: integer division integer column by decimal column
+    expected_names: [i, n2, i div n2]
+    expected_results:
+      - [1, 2.2, 0]
+      - [2, 2.2, 0]
+      - [3, 2.2, 1]
+      - [5, 2.2, 2]
+      - [10, 2.2, 4]
+      - [24, 2.2, 10]
+    expected_types: [int, decimal, int]
+    id: integer_division_integer_column_by_decimal_column
+    min_server_version: 3.4
+    sql: select i, n2, i div n2 from integer_division
+
+  - db: select_sTest
+    description: integer division decimal column by decimal column
+    expected_names: [d, n2, d div n2]
+    expected_results:
+      - [1.0, 2.2, 0]
+      - [2.5, 2.2, 1]
+      - [3.3, 2.2, 1]
+      - [6.25, 2.2, 2]
+      - [10, 2.2, 4]
+      - [25.3, 2.2, 11]
+    expected_types: [decimal, decimal, int]
+    id: integer_division_decimal_column_by_decimal_column
+    min_server_version: 3.4
+    sql: select d, n2, d div n2 from integer_division
+
+  - db: select_sTest
     description: case
     expected_names: [p]
     expected_results:

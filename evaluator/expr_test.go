@@ -405,6 +405,7 @@ func TestEvaluates(t *testing.T) {
 			{"sql_divide_expr_3", "-5 DIV 2", NewSQLInt64(knd, -2)},
 			{"sql_divide_expr_4", "NULL DIV 1", NewSQLNull(knd)},
 			{"sql_divide_expr_5", "1 DIV NULL", NewSQLNull(knd)},
+			{"sql_divide_expr_6", "2 DIV 1.2", NewSQLInt64(knd, 1)},
 			{"sql_in_expr_0", "0 IN(0)", NewSQLBool(knd, true)},
 			{"sql_in_expr_1", "-1 IN(1)", NewSQLBool(knd, false)},
 			{"sql_in_expr_2", "0 IN(10, 0)", NewSQLBool(knd, true)},
