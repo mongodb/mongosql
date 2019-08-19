@@ -50,7 +50,11 @@ func (f baseScalarFunctionExpr) charEvaluate(sqlValueKind values.SQLValueKind, _
 		if elem.IsNull() {
 			continue
 		}
-		v := values.Int64(elem)
+
+		v, ok := elem.Value().(int64)
+		if !ok {
+			panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[0].Value()))
+		}
 
 		// This divides v by 256 and appends the remainder onto the output byte array,
 		// and repeats this process until v is < 256, and then appends v.
@@ -526,7 +530,11 @@ func (f baseScalarFunctionExpr) fromUnixtimeEvaluate(sqlValueKind values.SQLValu
 		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	value := mathutil.Round(values.Float64(vs[0]))
+	value, ok := vs[0].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[0].Value()))
+	}
+
 	if value < 0 {
 		return values.NewSQLNull(sqlValueKind), nil
 	}
@@ -627,8 +635,19 @@ func (f baseScalarFunctionExpr) insertEvaluate(sqlValueKind values.SQLValueKind,
 	}
 
 	s := vs[0].String()
-	pos := int(mathutil.Round(values.Float64(vs[1]))) - 1
-	length := int(mathutil.Round(values.Float64(vs[2])))
+
+	posVal, ok := vs[1].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[1].Value()))
+	}
+	pos := int(posVal) - 1
+
+	lengthVal, ok := vs[2].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[2].Value()))
+	}
+	length := int(lengthVal)
+
 	newstr := vs[3].String()
 
 	if pos < 0 || pos >= len(s) {
@@ -764,8 +783,18 @@ func (f baseScalarFunctionExpr) locateEvaluate(sqlValueKind values.SQLValueKind,
 	str := []rune(vs[1].String())
 	var result int
 	if len(vs) == 3 {
+		var posVal int64
 
-		pos := int(values.Float64(vs[2])+0.5) - 1 // MySQL uses 1 as a basis
+		_, ok := vs[2].(values.SQLNull)
+		if ok {
+			posVal = 0
+		} else {
+			posVal, ok = vs[2].Value().(int64)
+			if !ok {
+				panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[2].Value()))
+			}
+		}
+		pos := int(posVal) - 1
 
 		if pos < 0 || len(str) <= pos {
 			return values.NewSQLInt64(sqlValueKind, 0), nil
@@ -857,8 +886,11 @@ func (f baseScalarFunctionExpr) makeDateEvaluate(sqlValueKind values.SQLValueKin
 		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	// Floating arguments should be mathutil.Rounded.
-	y := mathutil.Round(values.Float64(vs[0]))
+	y, ok := vs[0].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[0].Value()))
+	}
+
 	if y < 0 || y > 9999 {
 		return values.NewSQLNull(sqlValueKind), nil
 	}
@@ -868,7 +900,10 @@ func (f baseScalarFunctionExpr) makeDateEvaluate(sqlValueKind values.SQLValueKin
 		y += 1900
 	}
 
-	d := mathutil.Round(values.Float64(vs[1]))
+	d, ok := vs[1].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[1].Value()))
+	}
 
 	if d <= 0 {
 		return values.NewSQLNull(sqlValueKind), nil
@@ -1048,7 +1083,12 @@ func (f baseScalarFunctionExpr) repeatEvaluate(sqlValueKind values.SQLValueKind,
 		return
 	}
 
-	rep := int(mathutil.RoundToDecimalPlaces(0, values.Float64(vs[1])))
+	repVal, ok := vs[1].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[1].Value()))
+	}
+	rep := int(repVal)
+
 	if rep < 1 {
 		v = values.NewSQLVarchar(sqlValueKind, "")
 		err = nil
@@ -1099,16 +1139,23 @@ func (f baseScalarFunctionExpr) rightEvaluate(sqlValueKind values.SQLValueKind, 
 	}
 
 	str := vs[0].String()
-	posFloat := values.Float64(vs[1])
 
-	if posFloat > float64(len(str)) {
+	pos, ok := vs[1].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[1].Value()))
+	}
+
+	if int(pos) > len(str) {
 		return values.NewSQLVarchar(sqlValueKind, str), nil
 	}
 
-	startPos := math.Min(0, -1.0*posFloat)
+	startPos := -1 * pos
+	if pos < 0 {
+		startPos = 0
+	}
 
 	return f.substringEvaluate(sqlValueKind, collation,
-		[]values.SQLValue{vs[0], values.NewSQLFloat(sqlValueKind, startPos)})
+		[]values.SQLValue{vs[0], values.NewSQLInt64(sqlValueKind, startPos)})
 }
 
 // nolint: unparam
@@ -1193,7 +1240,7 @@ func (f baseScalarFunctionExpr) signEvaluate(sqlValueKind values.SQLValueKind, _
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) singleArgFloatMathFuncEvaluate(sqlValueKind values.SQLValueKind,
-	vs []values.SQLValue, fn func(float64) float64) (values.SQLValue, error) {
+	vs []values.SQLValue, fn func(float64) float64, returnType types.EvalType) (values.SQLValue, error) {
 	if values.HasNullValue(vs...) {
 		return values.NewSQLNull(sqlValueKind), nil
 	}
@@ -1208,7 +1255,14 @@ func (f baseScalarFunctionExpr) singleArgFloatMathFuncEvaluate(sqlValueKind valu
 	if result == -0 {
 		result = 0
 	}
-	return values.NewSQLFloat(sqlValueKind, result), nil
+	switch returnType {
+	case types.EvalInt64:
+		return values.NewSQLInt64(sqlValueKind, int64(result)), nil
+	case types.EvalDouble:
+		return values.NewSQLFloat(sqlValueKind, result), nil
+	default:
+		panic(fmt.Sprintf("Invalid return type %v", returnType))
+	}
 }
 
 // nolint: unparam
@@ -1244,8 +1298,11 @@ func (f baseScalarFunctionExpr) spaceEvaluate(sqlValueKind values.SQLValueKind, 
 		return values.NewSQLNull(sqlValueKind), nil
 	}
 
-	flt := values.Float64(vs[0])
-	n := mathutil.Round(flt)
+	n, ok := vs[0].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[0].Value()))
+	}
+
 	if n < 1 {
 		return values.NewSQLVarchar(sqlValueKind, ""), nil
 	}
@@ -1340,13 +1397,11 @@ func (f baseScalarFunctionExpr) substringEvaluate(sqlValueKind values.SQLValueKi
 		return values.NewSQLVarchar(sqlValueKind, ""), nil
 	}
 
-	posFloat := values.Float64(vs[1])
-	var pos int
-	if posFloat >= 0 {
-		pos = int(posFloat + 0.5)
-	} else {
-		pos = int(posFloat - 0.5)
+	posVal, ok := vs[1].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[1].Value()))
 	}
+	pos := int(posVal)
 
 	if pos > len(str) || pos == 0 {
 		return values.NewSQLVarchar(sqlValueKind, ""), nil
@@ -1361,7 +1416,12 @@ func (f baseScalarFunctionExpr) substringEvaluate(sqlValueKind values.SQLValueKi
 	}
 
 	if len(vs) == 3 {
-		length := int(values.Float64(vs[2]) + 0.5)
+		lengthVal, ok := vs[2].Value().(int64)
+		if !ok {
+			panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[2].Value()))
+		}
+		length := int(lengthVal)
+
 		if length < 1 {
 			return values.NewSQLVarchar(sqlValueKind, ""), nil
 		}
@@ -1404,7 +1464,11 @@ func (f baseScalarFunctionExpr) substringIndexEvaluate(sqlValueKind values.SQLVa
 	r := []rune(vs[0].String())
 	delim := []rune(vs[1].String())
 
-	count := int(mathutil.Round(values.Float64(vs[2])))
+	countVal, ok := vs[2].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[2].Value()))
+	}
+	count := int(countVal)
 
 	if count == 0 {
 		return values.NewSQLVarchar(sqlValueKind, ""), nil
@@ -1982,14 +2046,18 @@ func (f baseScalarFunctionExpr) truncateEvaluate(sqlValueKind values.SQLValueKin
 
 	var truncated float64
 	x := values.Float64(vs[0])
-	d := values.Float64(vs[1])
+
+	d, ok := vs[1].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[1].Value()))
+	}
 
 	if d >= 0 {
-		pow := math.Pow(10, d)
+		pow := math.Pow(10, float64(d))
 		i, _ := math.Modf(x * pow)
 		truncated = i / pow
 	} else {
-		pow := math.Pow(10, math.Abs(d))
+		pow := math.Pow(10, math.Abs(float64(d)))
 		i, _ := math.Modf(x / pow)
 		truncated = i * pow
 	}
@@ -2137,67 +2205,67 @@ func (f baseScalarFunctionExpr) yearWeekEvaluate(sqlValueKind values.SQLValueKin
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) absEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Abs)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Abs, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) acosEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Acos)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Acos, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) asinEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Asin)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Asin, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) ceilEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Ceil)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Ceil, types.EvalInt64)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) cosEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Cos)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Cos, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) expEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Exp)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Exp, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) floorEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Floor)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Floor, types.EvalInt64)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) radiansEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, toRadians)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, toRadians, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) degreesEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, toDegrees)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, toDegrees, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) sinEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Sin)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Sin, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) sqrtEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Sqrt)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Sqrt, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) tanEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Tan)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Tan, types.EvalDouble)
 }
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) atanSingleArgEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Atan)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, vs, math.Atan, types.EvalDouble)
 }
 
 // nolint: unparam
@@ -2207,7 +2275,7 @@ func (f baseScalarFunctionExpr) atanDualArgEvaluate(sqlValueKind values.SQLValue
 
 // nolint: unparam
 func (f baseScalarFunctionExpr) atan2SingleArgEvaluate(sqlValueKind values.SQLValueKind, _ *collation.Collation, values []values.SQLValue) (values.SQLValue, error) {
-	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Atan)
+	return f.singleArgFloatMathFuncEvaluate(sqlValueKind, values, math.Atan, types.EvalDouble)
 }
 
 // nolint: unparam

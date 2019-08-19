@@ -320,10 +320,9 @@ func (f *baseScalarFunctionExpr) charToAggregationLanguage(t *PushdownTranslator
 	// which is then concatenated together into a string.
 
 	// The following is all special casing for decimal, non-positive or null inputs
-	val := astutil.WrapInRound(args[0])
 	valRef := ast.NewVariableRef("val")
 	valLetAssignment := []*ast.LetVariable{
-		ast.NewLetVariable("val", val),
+		ast.NewLetVariable("val", args[0]),
 	}
 
 	// If the argument is null, change the step input to $range to be -1
@@ -1297,7 +1296,7 @@ func (f *baseScalarFunctionExpr) fromDaysToAggregationLanguage(t *PushdownTransl
 	body := ast.NewBinary(bsonutil.OpAdd,
 		astutil.DateConstant(dayOne),
 		ast.NewBinary(bsonutil.OpMultiply,
-			astutil.WrapInRound(nRef), astutil.FloatValue(millisecondsPerDay),
+			nRef, astutil.FloatValue(millisecondsPerDay),
 		),
 	)
 
@@ -1337,7 +1336,7 @@ func (f *baseScalarFunctionExpr) fromUnixtimeToAggregationLanguage(t *PushdownTr
 	evaluation := ast.NewBinary(bsonutil.OpAdd,
 		astutil.DateConstant(dayOne),
 		ast.NewBinary(bsonutil.OpMultiply,
-			astutil.WrapInRound(unixTimestamp), astutil.Int32Value(1e3),
+			unixTimestamp, astutil.Int32Value(1e3),
 		),
 	)
 
@@ -1422,9 +1421,7 @@ func (f *baseScalarFunctionExpr) insertToAggregationLanguage(t *PushdownTranslat
 	}
 
 	// subtract 1 to account for difference between mongo and mysql string indexing
-	args[1] = astutil.WrapInRound(ast.NewBinary(bsonutil.OpSubtract, args[1], astutil.OneInt32Literal))
-
-	args[2] = astutil.WrapInRound(args[2])
+	args[1] = ast.NewBinary(bsonutil.OpSubtract, args[1], astutil.OneInt32Literal)
 
 	strRef, posRef := ast.NewVariableRef("str"), ast.NewVariableRef("pos")
 	lengthRef, newstrRef := ast.NewVariableRef("len"), ast.NewVariableRef("newstr")
@@ -1640,7 +1637,7 @@ func (f *baseScalarFunctionExpr) leftToAggregationLanguage(t *PushdownTranslator
 		ast.NewLetVariable("len", args[1]),
 	}
 
-	subStrLength := astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, lengthRef, astutil.ZeroInt32Literal))
+	subStrLength := astutil.WrapInOp(bsonutil.OpMax, lengthRef, astutil.ZeroInt32Literal)
 	subStrOp := astutil.WrapInOp(bsonutil.OpSubstr, strRef, astutil.ZeroInt32Literal, subStrLength)
 	evaluation := astutil.WrapInNullCheckedCond(astutil.NullLiteral, subStrOp, strRef, lengthRef)
 
@@ -1693,10 +1690,6 @@ func (f *baseScalarFunctionExpr) locateToAggregationLanguage(t *PushdownTranslat
 		// if the pos arg is null, we should return 0, not null
 		// this is the same result as when the arg is 0
 		pos := astutil.WrapInIfNull(args[2], astutil.ZeroInt32Literal)
-
-		// round to the nearest int
-		pos = ast.NewBinary(bsonutil.OpAdd, pos, astutil.FloatValue(0.5))
-		pos = ast.NewFunction(bsonutil.OpTrunc, pos)
 
 		// subtract 1 from the pos arg to reconcile indexing style
 		pos = ast.NewBinary(bsonutil.OpSubtract, pos, astutil.OneInt32Literal)
@@ -1831,8 +1824,8 @@ func (f *baseScalarFunctionExpr) makeDateToAggregationLanguage(t *PushdownTransl
 
 	year, day := ast.NewVariableRef("year"), ast.NewVariableRef("day")
 	inputLetStatement := []*ast.LetVariable{
-		ast.NewLetVariable("year", astutil.WrapInRound(args[0])),
-		ast.NewLetVariable("day", astutil.WrapInRound(args[1])),
+		ast.NewLetVariable("year", args[0]),
+		ast.NewLetVariable("day", args[1]),
 	}
 
 	branch1900 := astutil.WrapInCond(
@@ -2031,8 +2024,6 @@ func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator,
 		return nil, err
 	}
 
-	args[1] = astutil.WrapInRound(args[1])
-
 	strRef, lenRef, padStrRef := ast.NewVariableRef("str"), ast.NewVariableRef("len"), ast.NewVariableRef("padStr")
 	assignments := []*ast.LetVariable{
 		ast.NewLetVariable("str", args[0]),
@@ -2209,11 +2200,8 @@ func (f *baseScalarFunctionExpr) repeatToAggregationLanguage(t *PushdownTranslat
 
 	str := args[0]
 
-	// num must be rounded to match mysql
-	num := astutil.WrapInRound(args[1])
-
 	// create array w/ args[1] values e.g. [0,1,2]
-	rangeArr := astutil.WrapInRange(astutil.ZeroInt32Literal, num, astutil.OneInt32Literal)
+	rangeArr := astutil.WrapInRange(astutil.ZeroInt32Literal, args[1], astutil.OneInt32Literal)
 
 	// create array of len arg[1], with each item being arg[0]
 	m := ast.NewFunction(bsonutil.OpMap, ast.NewDocument(
@@ -2334,7 +2322,7 @@ func (f *baseScalarFunctionExpr) rightToAggregationLanguage(t *PushdownTranslato
 		ast.NewLetVariable("len", args[1]),
 	}
 
-	subStrLength := astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, lenRef))
+	subStrLength := astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, lenRef)
 	strLength := ast.NewFunction(bsonutil.OpStrlenCP, strRef)
 
 	// start = max(0, strLen - subStrLen)
@@ -2560,11 +2548,10 @@ func (f *baseScalarFunctionExpr) spaceToAggregationLanguage(t *PushdownTranslato
 		ast.NewLetVariable("n", args[0]),
 	}
 
-	n := astutil.WrapInRound(nRef)
 	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
 		astutil.WrapInReduce(
-			astutil.WrapInRange(astutil.ZeroInt32Literal, n, astutil.OneInt32Literal),
+			astutil.WrapInRange(astutil.ZeroInt32Literal, nRef, astutil.OneInt32Literal),
 			astutil.EmptyStringLiteral,
 			astutil.WrapInOp(bsonutil.OpConcat, astutil.ValueVarRef, astutil.StringValue(" ")),
 		),
@@ -2734,7 +2721,7 @@ func (f *baseScalarFunctionExpr) substringIndexToAggregationLanguage(t *Pushdown
 	splitAssignment := []*ast.LetVariable{
 		ast.NewLetVariable("split", astutil.WrapInOp(bsonutil.OpSlice,
 			astutil.WrapInOp(bsonutil.OpSplit, args[0], delim),
-			astutil.WrapInRound(args[2]),
+			args[2],
 		)),
 	}
 
@@ -2800,9 +2787,9 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 	// the position argument needs to be calculated
 	calculatedPos := ast.NewLet(
 		[]*ast.LetVariable{
-			ast.NewLetVariable("roundedPos", astutil.WrapInRound(args[1])),
-			ast.NewLetVariable("roundedNegPos", astutil.WrapInRound(
-				ast.NewBinary(bsonutil.OpMultiply, args[1], astutil.Int32Value(-1))),
+			ast.NewLetVariable("roundedPos", args[1]),
+			ast.NewLetVariable("roundedNegPos",
+				ast.NewBinary(bsonutil.OpMultiply, args[1], astutil.Int32Value(-1)),
 			),
 		},
 		astutil.WrapInCond(
@@ -2843,7 +2830,7 @@ func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTrans
 	} else {
 		lengthRef := ast.NewVariableRef("length")
 		subAssignments = append(subAssignments, ast.NewLetVariable("length", args[2]))
-		length = astutil.WrapInRound(astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, lengthRef))
+		length = astutil.WrapInOp(bsonutil.OpMax, astutil.ZeroInt32Literal, lengthRef)
 		subCondArgs = append(subCondArgs, lengthRef)
 	}
 
@@ -3377,8 +3364,7 @@ func (f *baseScalarFunctionExpr) truncateToAggregationLanguage(t *PushdownTransl
 	truncatePlaces := args[1]
 
 	if t.versionAtLeast(4, 1, 9) {
-		roundedPlaces := astutil.WrapInRound(truncatePlaces)
-		return astutil.WrapInOp(bsonutil.OpTrunc, numToTruncate, roundedPlaces), nil
+		return astutil.WrapInOp(bsonutil.OpTrunc, numToTruncate, truncatePlaces), nil
 	}
 
 	var d float64
@@ -3388,7 +3374,7 @@ func (f *baseScalarFunctionExpr) truncateToAggregationLanguage(t *PushdownTransl
 		d = values.Float64(dValueExpr.Value)
 		pow = astutil.FloatValue(math.Pow(10, math.Abs(math.Round(d))))
 	} else {
-		pow = astutil.WrapInOp(bsonutil.OpPow, astutil.Int32Value(10), astutil.WrapInOp(bsonutil.OpAbs, astutil.WrapInRound(truncatePlaces)))
+		pow = astutil.WrapInOp(bsonutil.OpPow, astutil.Int32Value(10), astutil.WrapInOp(bsonutil.OpAbs, truncatePlaces))
 	}
 
 	multiplyThenDivide := ast.NewBinary(bsonutil.OpDivide,
@@ -3419,7 +3405,7 @@ func (f *baseScalarFunctionExpr) truncateToAggregationLanguage(t *PushdownTransl
 	return astutil.WrapInCond(
 		multiplyThenDivide,
 		divideThenMultiply,
-		ast.NewBinary(bsonutil.OpGte, astutil.WrapInRound(truncatePlaces), astutil.ZeroInt32Literal),
+		ast.NewBinary(bsonutil.OpGte, truncatePlaces, astutil.ZeroInt32Literal),
 	), nil
 
 }

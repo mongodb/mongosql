@@ -966,18 +966,6 @@ testcases:
     sql: select a, char(a) from simple_char_test_int
 
   - db: functions_test
-    description: char from float values that result in one byte
-    expected_names: [a, 'char(a)']
-    expected_results:
-      - [99.0, "c"]
-      - [32.4, " "]
-      - [8.5, "\t"]
-      - [-159.0, "a"]
-    expected_types: [float, varchar]
-    id: simple_char_float
-    sql: select a, char(a) from simple_char_test_float
-
-  - db: functions_test
     description: char with values that give the 0 value
     expected_names: [a, b, c, 'ascii(char(a))', 'ascii(char(b))', 'ascii(char(c))']
     expected_results:
@@ -2186,45 +2174,6 @@ testcases:
     sql: select left(b, -2) from scalar
 
   - db: functions_test
-    description: w/ negative float length, return empty string for non-null strings
-    expected_names: ['left(b, -2.5)']
-    expected_results:
-      - ['']
-      - ['']
-      - [null]
-      - ['']
-      - [null]
-    expected_types: [varchar]
-    id: left_negative_float_length
-    sql: select left(b, -2.5) from scalar
-
-  - db: functions_test
-    description: float length rounded to closest int - round down
-    expected_names: [b, 'left(b, 2.4)']
-    expected_results:
-      - [hey, he]
-      - [yo, yo]
-      - [null, null]
-      - [this, th]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: left_float_length_round_down
-    sql: select b, left(b, 2.4) from scalar
-
-  - db: functions_test
-    description: float length rounded to closest int - round up
-    expected_names: [b, 'left(b, 2.5)']
-    expected_results:
-      - [hey, hey]
-      - [yo, yo]
-      - [null, null]
-      - [this, thi]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: left_float_length_round_up
-    sql: select b, left(b, 2.5) from scalar
-
-  - db: functions_test
     description: using 0 as length gives empty strings for non-null values
     expected_names: ['left(b, 0)']
     expected_results:
@@ -2488,25 +2437,6 @@ testcases:
     expected_types: [int, int]
     id: locate_pos_edge_cases_int
     sql: select i, locate('a', 'bar', i) from locatePos
-
-  - db: functions_test
-    expected_names: [f, 'locate(''a'', ''bar'', f)']
-    expected_results:
-      - [null, 0]
-      - [null, 0]
-      - [null, 0]
-      - [null, 0]
-      - [null, 0]
-      - [null, 0]
-      - [2.4, 2]
-      - [2.6, 0]
-      - [0, 0]
-      - [-2.4, 0]
-      - [-2.6, 0]
-      - [null, 0]
-    expected_types: [float, int]
-    id: locate_pos_edge_cases_float
-    sql: select f, locate('a', 'bar', f) from locatePos
 
   - db: functions_test
     expected_names: [a, log2(a)]
@@ -3054,45 +2984,6 @@ testcases:
     sql: select right(b, -2) from scalar
 
   - db: functions_test
-    description: w/ negative float length, return empty string for non-null strings
-    expected_names: ['right(b, -2.5)']
-    expected_results:
-      - ['']
-      - ['']
-      - [null]
-      - ['']
-      - [null]
-    expected_types: [varchar]
-    id: right_negative_float_length
-    sql: select right(b, -2.5) from scalar
-
-  - db: functions_test
-    description: float length rounded to closest int - round down
-    expected_names: [b, 'right(b, 2.4)']
-    expected_results:
-      - [hey, ey]
-      - [yo, yo]
-      - [null, null]
-      - [this, is]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: right_float_length_round_down
-    sql: select b, right(b, 2.4) from scalar
-
-  - db: functions_test
-    description: float length rounded to closest int - round up
-    expected_names: [b, 'right(b, 2.5)']
-    expected_results:
-      - [hey, hey]
-      - [yo, yo]
-      - [null, null]
-      - [this, his]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: right_float_length_round_up
-    sql: select b, right(b, 2.5) from scalar
-
-  - db: functions_test
     description: using 0 as length gives empty strings for non-null values
     expected_names: ['right(b, 0)']
     expected_results:
@@ -3258,18 +3149,6 @@ testcases:
     expected_types: [int, varchar]
     id: space
     sql: select a, space(a) from scalar
-
-  - db: functions_test
-    expected_names: [c, space(c)]
-    expected_results:
-      - [1.456, ' ']
-      - [-121.232, '']
-      - [56.7342, '                                                         ']
-      - [null, null]
-      - [null, null]
-    expected_types: [float, varchar]
-    id: space_floats
-    sql: select c, space(c) from scalar
 
   - db: functions_test
     expected_names: [b, res]
@@ -3510,102 +3389,6 @@ testcases:
     sql: select substring(null from null) from scalar
 
   - db: functions_test
-    expected_names: [b, subst]
-    expected_results:
-      - [hey, hey]
-      - [yo, yo]
-      - [null, null]
-      - [this, this]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: substring_float_round
-    sql: select b, substring(b, 1.212) as subst from scalar
-
-  - db: functions_test
-    expected_names: [b, subst]
-    expected_results:
-      - [hey, ey]
-      - [yo, o]
-      - [null, null]
-      - [this, his]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: substring_float_roundoff
-    sql: select b, substring(b, 1.632) as subst from scalar
-
-  - db: functions_test
-    expected_names: [b, subst]
-    expected_results:
-      - [hey, 'y']
-      - [yo, 'o']
-      - [null, null]
-      - [this, 's']
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: substring_negative_float
-    sql: select b, substring(b, -1.23) as subst from scalar
-
-  - db: functions_test
-    expected_names: [b, subst]
-    expected_results:
-      - [hey, ey]
-      - [yo, yo]
-      - [null, null]
-      - [this, is]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: substring_negative_float_roundoff
-    sql: select b, substring(b, -1.6) as subst from scalar
-
-  - db: functions_test
-    expected_names: [b, subst]
-    expected_results:
-      - [hey, 'h']
-      - [yo, 'y']
-      - [null, null]
-      - [this, 't']
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: substring_float_third_arg
-    sql: select b, substring(b, 1.2, 1.2) as subst from scalar
-
-  - db: functions_test
-    expected_names: [b, subst]
-    expected_results:
-      - [hey, ey]
-      - [yo, o]
-      - [null, null]
-      - [this, hi]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: substring_float_third_arg_roundoff
-    sql: select b, substring(b, 1.6, 1.6) as subst from scalar
-
-  - db: functions_test
-    expected_names: [subst]
-    expected_results:
-      - ['']
-      - ['']
-      - [null]
-      - ['']
-      - [null]
-    expected_types: [varchar]
-    id: substring_float_negative_third_arg
-    sql: select substring(b, -1.2, -1.4) as subst from scalar
-
-  - db: functions_test
-    expected_names: [b, subst]
-    expected_results:
-      - [hey, ey]
-      - [yo, yo]
-      - [null, null]
-      - [this, is]
-      - [null, null]
-    expected_types: [varchar, varchar]
-    id: substring_float_negative_roundoff
-    sql: select b, substring(b, -1.6, 1.6) as subst from scalar
-
-  - db: functions_test
     expected_names: [subst]
     expected_results:
       - ['']
@@ -3615,7 +3398,7 @@ testcases:
       - [null]
     expected_types: [varchar]
     id: substring_large_negative
-    sql: select substring(b, -11.2) as subst from scalar
+    sql: select substring(b, -11) as subst from scalar
 
   - db: functions_test
     expected_names: [subst]
@@ -3627,7 +3410,7 @@ testcases:
       - [null]
     expected_types: [varchar]
     id: substring_large_positive
-    sql: select substring(b, 11.2) as subst from scalar
+    sql: select substring(b, 11) as subst from scalar
 
   - db: functions_test
     expected_names: [b, a, subst]
@@ -5608,23 +5391,6 @@ testcases:
     sql: select s, lpad(s, -2, 'x') from lpadTest
 
   - db: functions_test
-    description: test padding strings to negative float length
-    expected_names: [s, 'lpad(s, -2.1, ''x'')']
-    expected_results:
-      - [hi, '~']
-      - [hey, '~']
-      - [yoyo, '~']
-      - [hello, '~']
-      - [banana, '~']
-      - [mongodb, '~']
-      - ['', '~']
-      - [' ', '~']
-      - ['. . .', '~']
-    expected_types: [varchar, varchar]
-    id: lpad_negative_float_length
-    sql: select s, lpad(s, -2.1, 'x') from lpadTest
-
-  - db: functions_test
     description: test padding strings to length 0
     expected_names: [s, 'lpad(s, 0, ''x'')']
     expected_results:
@@ -5642,40 +5408,6 @@ testcases:
     sql: select s, lpad(s, 0, 'x') from lpadTest
 
   - db: functions_test
-    description: test padding strings to float length - should round up
-    expected_names: [s, 'lpad(s, 4.5, ''x'')']
-    expected_results:
-      - [hi, xxxhi]
-      - [hey, xxhey]
-      - [yoyo, xyoyo]
-      - [hello, hello]
-      - [banana, banan]
-      - [mongodb, mongo]
-      - ['', xxxxx]
-      - [' ', 'xxxx ']
-      - ['. . .', . . .]
-    expected_types: [varchar, varchar]
-    id: lpad_positive_float_length_round_up
-    sql: select s, lpad(s, 4.5, 'x') from lpadTest
-
-  - db: functions_test
-    description: test padding strings to float length - should round down
-    expected_names: [s, 'lpad(s, 4.4, ''x'')']
-    expected_results:
-      - [hi, xxhi]
-      - [hey, xhey]
-      - [yoyo, yoyo]
-      - [hello, hell]
-      - [banana, bana]
-      - [mongodb, mong]
-      - ['', xxxx]
-      - [' ', 'xxx ']
-      - ['. . .', '. . ']
-    expected_types: [varchar, varchar]
-    id: lpad_positive_float_length_round_down
-    sql: select s, lpad(s, 4.4, 'x') from lpadTest
-
-  - db: functions_test
     description: pad strings using int length from a column
     expected_names: [s, i, 'lpad(s, i, ''x'')']
     expected_results:
@@ -5691,40 +5423,6 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: lpad_length_from_column
     sql: select s, i, lpad(s, i, 'x') from lpadTest
-
-  - db: functions_test
-    description: test rounding negative float length - round to -1
-    expected_names: [s, 'lpad(s, -0.5, ''x'')']
-    expected_results:
-      - [hi, '~']
-      - [hey, '~']
-      - [yoyo, '~']
-      - [hello, '~']
-      - [banana, '~']
-      - [mongodb, '~']
-      - ['', '~']
-      - [' ', '~']
-      - ['. . .', '~']
-    expected_types: [varchar, varchar]
-    id: lpad_negative_float_length_round_down
-    sql: select s, lpad(s, -0.5, 'x') from lpadTest
-
-  - db: functions_test
-    description: test rounding negative float length - round to 0
-    expected_names: [s, 'lpad(s, -0.49, ''x'')']
-    expected_results:
-      - [hi, '']
-      - [hey, '']
-      - [yoyo, '']
-      - [hello, '']
-      - [banana, '']
-      - [mongodb, '']
-      - ['', '']
-      - [' ', '']
-      - ['. . .', '']
-    expected_types: [varchar, varchar]
-    id: lpad_negative_float_length_round_to_zero
-    sql: select s, lpad(s, -0.49, 'x') from lpadTest
 
   - db: functions_test
     description: use column as padding
@@ -5924,23 +5622,6 @@ testcases:
     sql: select s, rpad(s, -2, 'x') from lpadTest
 
   - db: functions_test
-    description: test padding strings to negative float length
-    expected_names: [s, 'rpad(s, -2.1, ''x'')']
-    expected_results:
-      - [hi, '~']
-      - [hey, '~']
-      - [yoyo, '~']
-      - [hello, '~']
-      - [banana, '~']
-      - [mongodb, '~']
-      - ['', '~']
-      - [' ', '~']
-      - ['. . .', '~']
-    expected_types: [varchar, varchar]
-    id: rpad_negative_float_length
-    sql: select s, rpad(s, -2.1, 'x') from lpadTest
-
-  - db: functions_test
     description: test padding strings to length 0
     expected_names: [s, 'rpad(s, 0, ''x'')']
     expected_results:
@@ -5958,40 +5639,6 @@ testcases:
     sql: select s, rpad(s, 0, 'x') from lpadTest
 
   - db: functions_test
-    description: test padding strings to float length - should round up
-    expected_names: [s, 'rpad(s, 4.5, ''x'')']
-    expected_results:
-      - [hi, hixxx]
-      - [hey, heyxx]
-      - [yoyo, yoyox]
-      - [hello, hello]
-      - [banana, banan]
-      - [mongodb, mongo]
-      - ['', xxxxx]
-      - [' ', ' xxxx']
-      - ['. . .', . . .]
-    expected_types: [varchar, varchar]
-    id: rpad_positive_float_length_round_up
-    sql: select s, rpad(s, 4.5, 'x') from lpadTest
-
-  - db: functions_test
-    description: test padding strings to float length - should round down
-    expected_names: [s, 'rpad(s, 4.4, ''x'')']
-    expected_results:
-      - [hi, hixx]
-      - [hey, heyx]
-      - [yoyo, yoyo]
-      - [hello, hell]
-      - [banana, bana]
-      - [mongodb, mong]
-      - ['', xxxx]
-      - [' ', ' xxx']
-      - ['. . .', '. . ']
-    expected_types: [varchar, varchar]
-    id: rpad_positive_float_length_round_down
-    sql: select s, rpad(s, 4.4, 'x') from lpadTest
-
-  - db: functions_test
     description: pad strings using int length from a column
     expected_names: [s, i, 'rpad(s, i, ''x'')']
     expected_results:
@@ -6007,40 +5654,6 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: rpad_length_from_column
     sql: select s, i, rpad(s, i, 'x') from lpadTest
-
-  - db: functions_test
-    description: test rounding negative float length - round to -1
-    expected_names: [s, 'rpad(s, -0.5, ''x'')']
-    expected_results:
-      - [hi, '~']
-      - [hey, '~']
-      - [yoyo, '~']
-      - [hello, '~']
-      - [banana, '~']
-      - [mongodb, '~']
-      - ['', '~']
-      - [' ', '~']
-      - ['. . .', '~']
-    expected_types: [varchar, varchar]
-    id: rpad_negative_length_round_down
-    sql: select s, rpad(s, -0.5, 'x') from lpadTest
-
-  - db: functions_test
-    description: test rounding negative float length - round to 0
-    expected_names: [s, 'rpad(s, -0.49, ''x'')']
-    expected_results:
-      - [hi, '']
-      - [hey, '']
-      - [yoyo, '']
-      - [hello, '']
-      - [banana, '']
-      - [mongodb, '']
-      - ['', '']
-      - [' ', '']
-      - ['. . .', '']
-    expected_types: [varchar, varchar]
-    id: rpad_negative_length_round_to_zero
-    sql: select s, rpad(s, -0.49, 'x') from lpadTest
 
   - db: functions_test
     description: use column as padding

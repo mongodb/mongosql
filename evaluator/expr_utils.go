@@ -774,13 +774,11 @@ func handlePadding(kind values.SQLValueKind, vs []values.SQLValue, isLeftPad boo
 		return values.NewSQLNull(kind), nil
 	}
 
-	var length int
-	// length should be converted to float before we get to here
-	if floatLength := values.Float64(vs[1]); floatLength < float64(0) {
-		length = int(floatLength - 0.5)
-	} else {
-		length = int(floatLength + 0.5)
+	lengthVal, ok := vs[1].Value().(int64)
+	if !ok {
+		panic(fmt.Sprintf("Expected arg to be reconciled to type int64, got %T", vs[1].Value()))
 	}
+	length := int(lengthVal)
 
 	str := []rune(vs[0].String())
 	padStr := []rune(vs[2].String())
