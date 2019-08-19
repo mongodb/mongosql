@@ -85,16 +85,14 @@ testcases:
     id: 'conditional comment is executed with non-standard spacing and broken statement'
     sql_list: [
       "set @foo = 'default'",
-      "         /*!30122set @foo = 'hel     */   ",
-      "select @foo"]
+      "         /*!30122set @foo = 'hel     */   "]
 
   - db: information_schema
     expected_error: "Error 1105: unexpected NUMBER at position 2 near 4"
     id: 'conditional comment has bad version code format'
     sql_list: [
       "set @foo = 'default'",
-      "/*!301224set @foo = 'hel     */   ",
-      "select @foo"]
+      "/*!301224set @foo = 'hel     */   "]
 
   - db: information_schema
     expected_names: ['@foo']
