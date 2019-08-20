@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2304: Update catalog information to correctly show index and nullability information from --writeMode.
 BI-2106: Remove some unnecessary rounding from pushdown translations.
 BI-2244: Support basic INSERT statements in write mode.
 BI-1844: Fixed a bug in `div` evaluation that caused incorrect results.

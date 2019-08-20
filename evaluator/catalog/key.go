@@ -29,6 +29,7 @@ var (
 type Index struct {
 	columns        results.Columns
 	unique         bool
+	fullText       bool
 	constraintName string
 }
 

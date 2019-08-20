@@ -183,7 +183,7 @@ func GetBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
 
 // GetCatalog builds a catalog for a schema and container.
 func GetCatalog(schema *schema.Schema, variables *variable.Container, info *mongodb.Info) catalog.Catalog {
-	c, err := catalog.Build(schema, variables, info)
+	c, err := catalog.Build(schema, variables, info, false)
 	if err != nil {
 		panic(fmt.Sprintf("unable to build catalog: %v", err))
 	}

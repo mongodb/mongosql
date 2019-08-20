@@ -23,7 +23,7 @@ func TestMongoTable(t *testing.T) {
 	db := config.Databases()[0]
 	tbl := db.TablesSorted()[1]
 
-	mt := catalog.NewMongoTable(db.Name(), tbl, catalog.BaseTable, collation.Default)
+	mt := catalog.NewMongoTable(db.Name(), tbl, catalog.BaseTable, collation.Default, false)
 
 	req.Equal("foo", mt.Name(), "incorrect sql name for table")
 	req.Equal("fooCollection", mt.Collection(), "incorrect collection name for table")

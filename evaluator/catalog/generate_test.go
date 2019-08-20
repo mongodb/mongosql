@@ -24,12 +24,12 @@ func TestGenerateCreateTable(t *testing.T) {
 	tbls := db.TablesSorted()
 
 	tblConfig := tbls[1]
-	tbl := catalog.NewMongoTable("", tblConfig, catalog.BaseTable, collation.Default)
+	tbl := catalog.NewMongoTable("", tblConfig, catalog.BaseTable, collation.Default, false)
 	createTable := catalog.GenerateCreateTable(tbl, 0)
 	req.Equal(testSchemaCreateTableFoo, createTable, "create table statement is incorrect")
 
 	tblConfig = tbls[0]
-	tbl = catalog.NewMongoTable("", tblConfig, catalog.BaseTable, collation.Default)
+	tbl = catalog.NewMongoTable("", tblConfig, catalog.BaseTable, collation.Default, false)
 	createTable = catalog.GenerateCreateTable(tbl, 10)
 	req.Equal(testSchemaCreateTableBar, createTable, "create table statement is incorrect")
 }

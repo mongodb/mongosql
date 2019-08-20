@@ -16,7 +16,8 @@ import (
 )
 
 // NewMongoTable creates a new MongoTable.
-func NewMongoTable(databaseName string, t *schema.Table, tblType string, collation *collation.Collation) *MongoTable {
+func NewMongoTable(databaseName string, t *schema.Table, tblType string,
+	collation *collation.Collation, writeMode bool) *MongoTable {
 	var columns results.Columns
 	columnMap := make(map[string]*results.Column)
 	var primaryKeys results.Columns
@@ -40,13 +41,19 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string, collati
 		}
 		sort.Strings(tys)
 
-		var commentStr string
-		if len(tys) == 0 {
-			commentStr = fmt.Sprintf(`{ "name": "%s" }`,
-				c.MongoName())
+		// generate the defaultCommentStr that will be used if the user
+		// did not specify a comment string.
+		var defaultCommentStr string
+		if writeMode {
+			defaultCommentStr = ""
 		} else {
-			commentStr = fmt.Sprintf(`{ "name": "%s", "sampledTypes": ["%v"] }`,
-				c.MongoName(), strings.Join(tys, `", "`))
+			if len(tys) == 0 {
+				defaultCommentStr = fmt.Sprintf(`{ "name": "%s" }`,
+					c.MongoName())
+			} else {
+				defaultCommentStr = fmt.Sprintf(`{ "name": "%s", "sampledTypes": ["%v"] }`,
+					c.MongoName(), strings.Join(tys, `", "`))
+			}
 		}
 		isPrimaryKey := false
 		if t.IsMongoNamePrimaryKey(c.MongoName()) {
@@ -64,7 +71,7 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string, collati
 		cb.SetMappingRegistryName(c.SQLName())
 		cb.SetMongoName(c.MongoName())
 		cb.SetPrimaryKey(isPrimaryKey)
-		cb.SetComments(commentStr)
+		cb.SetComments(c.Comment().Else(defaultCommentStr))
 		cb.SetIsPolymorphic(isPolymorphic)
 		cb.SetHasAlteredType(c.HasTypeAlteration())
 		cb.SetNullable(c.Nullable())
@@ -76,12 +83,30 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string, collati
 		columnMap[strings.ToLower(c.SQLName())] = mc
 	}
 
-	var comment string
-	if t.UnwindPath() != "" {
-		comment = fmt.Sprintf(`{ "collectionName": "%s", "unwoundFrom": "%s" }`,
-			t.MongoName(), t.UnwindPath())
+	var defaultComment string
+	if writeMode {
+		defaultComment = ""
 	} else {
-		comment = fmt.Sprintf(`{ "collectionName": "%s" }`, t.MongoName())
+		if t.UnwindPath() != "" {
+			defaultComment = fmt.Sprintf(`{ "collectionName": "%s", "unwoundFrom": "%s" }`,
+				t.MongoName(), t.UnwindPath())
+		} else {
+			defaultComment = fmt.Sprintf(`{ "collectionName": "%s" }`, t.MongoName())
+		}
+	}
+
+	indexes := make([]Index, len(t.Indexes()))
+	for i, index := range t.Indexes() {
+		cols := make(results.Columns, len(index.Parts()))
+		for j, part := range index.Parts() {
+			cols[j] = columnMap[part.SQLName()]
+		}
+		indexes[i] = Index{
+			columns:        cols,
+			unique:         index.Unique(),
+			fullText:       index.FullText(),
+			constraintName: index.SQLName(),
+		}
 	}
 
 	pipeline, err := astutil.ParsePipeline(t.Pipeline())
@@ -98,7 +123,8 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string, collati
 		primaryKeys:    primaryKeys,
 		collectionName: t.MongoName(),
 		pipeline:       pipeline,
-		comments:       comment,
+		indexes:        indexes,
+		comments:       t.Comment().Else(defaultComment),
 	}
 }
 

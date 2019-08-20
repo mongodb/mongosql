@@ -68,7 +68,7 @@ func NewColumnWithSampledTypes(sqlName string, sqlType SQLType, mongoName string
 	for i, v := range sampledTypes {
 		stringSampledTypes[i] = string(v)
 	}
-	ret := NewColumn(sqlName, sqlType, mongoName, mongoType, false, option.NoneString())
+	ret := NewColumn(sqlName, sqlType, mongoName, mongoType, true, option.NoneString())
 	ret.sampledTypes = stringSampledTypes
 	return ret
 }
@@ -92,7 +92,7 @@ func NewColumnFromDRDL(drdlCol *drdl.Column) (*Column, error) {
 		sqlType,
 		drdlCol.MongoName,
 		mongoType,
-		false,
+		true,
 		option.NoneString(),
 	), nil
 }

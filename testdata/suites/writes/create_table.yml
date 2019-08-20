@@ -74,3 +74,79 @@ testcases:
       show tables
     ]
     sync: true
+
+  - db: information_schema
+    description: check describe table
+    expected_names: [Field, Type, Null, Key, Default, Extra]
+    expected_results:
+      - ["a", "bigint(20)", "YES", "UNI", ~, ""]
+      - ["b", "varchar(65535)", "NO", "MUL", ~, ""]
+      - ["c", "varchar(65535)", "YES", "", ~, ""]
+      - ["d", "bigint(20)", "YES", "MUL", ~, ""]
+    expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+    id: describe table
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table idxes(a int, b varchar not null, c varchar comment 'Im C!!!', d int, unique index aa(a), index(a, b), unique index(d, a), fulltext index (b, c)) COMMENT = 'hello!'",
+      "describe idxes"]
+    sync: true
+
+  - db: information_schema
+    description: check describe table showing that unique single column indexes take priority over multiKey
+    expected_names: [Field, Type, Null, Key, Default, Extra]
+    expected_results:
+      - ["a", "bigint(20)", "YES", "UNI", ~, ""]
+      - ["b", "varchar(65535)", "NO", "MUL", ~, ""]
+      - ["c", "varchar(65535)", "YES", "", ~, ""]
+      - ["d", "bigint(20)", "YES", "MUL", ~, ""]
+    expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+    id: describe table prefer unique single column index
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table idxes(a int, b varchar not null, c varchar comment 'Im C!!!', d int, index(a, b), unique index aa(a), unique index(d, a), fulltext index (b, c)) COMMENT = 'hello!'",
+      "describe idxes"]
+    sync: true
+
+  - db: information_schema
+    description: check show create table
+    expected_names: [Table, Create Table]
+    expected_results:
+      - ["idxes",
+         "CREATE TABLE `idxes` (\n  `a` bigint(20) DEFAULT NULL,\n  `b` varchar(65535) COLLATE utf8_bin NOT NULL,\n  `c` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT 'Im C!!!',\n  UNIQUE KEY `aa` (`a`),\n  FULLTEXT KEY `b_text_c_text` (`b`,`c`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='hello!'"]
+    expected_types: [varchar, varchar]
+    id: show create table
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table idxes(a int, b varchar not null, c varchar comment 'Im C!!!', unique index aa(a), fulltext index (b, c)) COMMENT = 'hello!'",
+      "show create table idxes"]
+    sync: true
+
+  - db: information_schema
+    description: check show create table no comment
+    expected_names: [Table, Create Table]
+    expected_results:
+      - ["idxes",
+         "CREATE TABLE `idxes` (\n  `a` bigint(20) DEFAULT NULL,\n  `b` varchar(65535) COLLATE utf8_bin NOT NULL,\n  `c` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT 'Im C!!!',\n  UNIQUE KEY `aa` (`a`),\n  FULLTEXT KEY `b_text_c_text` (`b`,`c`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin"]
+    expected_types: [varchar, varchar]
+    id: show create table no comment
+    min_server_version: 3.6
+    sql_cleanup: "drop database if exists created_writes_db"
+    sql_list: [
+      "drop database if exists created_writes_db",
+      "create database created_writes_db",
+      "use created_writes_db",
+      "create table idxes(a int, b varchar not null, c varchar comment 'Im C!!!', unique index aa(a), fulltext index (b, c))",
+      "show create table idxes"]
+    sync: true

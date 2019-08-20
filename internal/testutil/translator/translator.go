@@ -126,7 +126,7 @@ func createVariables(info *mongodb.Info) catalog.VariableContainer {
 }
 
 func createCatalog(schema *schema.Schema, vars catalog.VariableContainer, info *mongodb.Info) (*catalog.SQLCatalog, error) {
-	c, err := catalog.Build(schema, vars, info)
+	c, err := catalog.Build(schema, vars, info, false)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build catalog: %v", err)
 	}

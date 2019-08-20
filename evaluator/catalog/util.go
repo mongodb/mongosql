@@ -60,22 +60,29 @@ func getIndexKey(col *results.Column, tbl Table) string {
 		}
 	}
 
+	retVal := ""
 	for _, idx := range tbl.Indexes() {
 		if len(idx.columns) == 1 {
 			if colName == idx.columns[0].Name {
 				if idx.unique {
+					// uniqueKey has higher priority than multiKey,
+					// so we can just return.
 					return uniqueKey
 				}
-				return multiKey
+				// We cannot return for multiKey because there could
+				// be a single column unique key for this column.
+				retVal = multiKey
 			}
-		} else if !idx.unique {
+		} else {
 			if colName == idx.columns[0].Name {
-				return multiKey
+				// We cannot return for multiKey because there could
+				// be a single column unique key for this column.
+				retVal = multiKey
 			}
 		}
 	}
 
-	return ""
+	return retVal
 }
 
 // getUnwindPaths returns a list of unwind paths found in the aggregation pipeline

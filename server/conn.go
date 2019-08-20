@@ -230,7 +230,7 @@ func (c *conn) updateCatalog(ctx context.Context, s *schema.Schema) error {
 }
 
 func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
-	cat, err := catalog.Build(s, c.variables, c.mongoDBInfo)
+	cat, err := catalog.Build(s, c.variables, c.mongoDBInfo, c.server.cfg.Schema.WriteMode)
 	if err != nil {
 		return err
 	}

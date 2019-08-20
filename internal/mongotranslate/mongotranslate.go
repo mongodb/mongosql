@@ -212,7 +212,7 @@ func getCatalog(mongoVersion string, relationalSchema *schema.Schema) (catalog.C
 				tbl.AddColumn(lgr, col, false)
 			}
 
-			err = db.AddTable(catalog.NewMongoTable(string(db.Name()), tbl, catalog.BaseTable, collation.Default))
+			err = db.AddTable(catalog.NewMongoTable(string(db.Name()), tbl, catalog.BaseTable, collation.Default, false))
 			if err != nil {
 				return nil, err
 			}

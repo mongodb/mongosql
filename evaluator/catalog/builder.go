@@ -19,12 +19,13 @@ import (
 )
 
 // Build builds a catalog up from a schema and variables.
-func Build(schema *schema.Schema, variables VariableContainer, info *mongodb.Info) (*SQLCatalog, error) {
+func Build(schema *schema.Schema, variables VariableContainer, info *mongodb.Info, writeMode bool) (*SQLCatalog, error) {
 	builder := &catalogBuilder{
 		catalog:   New("def", variables),
 		schema:    schema,
 		variables: variables,
 		info:      info,
+		writeMode: writeMode,
 	}
 
 	err := builder.build()
@@ -39,6 +40,7 @@ type catalogBuilder struct {
 	info      *mongodb.Info
 	schema    *schema.Schema
 	variables VariableContainer
+	writeMode bool
 }
 
 func (b *catalogBuilder) build() error {
@@ -108,7 +110,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 				tableType = View
 			}
 
-			t := NewMongoTable(dbConfig.Name(), tblConfig, tableType, col)
+			t := NewMongoTable(dbConfig.Name(), tblConfig, tableType, col, b.writeMode)
 
 			t.isSharded = collection.IsSharded
 
@@ -118,20 +120,24 @@ func (b *catalogBuilder) buildFromSchema() error {
 				mongoNameToColumn[c.MongoName] = c
 			}
 
-			idx := 1
-			for _, i := range collection.Indexes {
-				index := addColumnToIndex(i, mongoNameToColumn)
-				if index != nil {
-					if i.Unique {
-						index.constraintName = createUniqueIndexName(
-							dbConfig.Name(),
-							tblConfig.SQLName(),
-							idx,
-						)
-						index.unique = true
-						idx++
+			// If we are not in --writeMode build the indexes the old way.
+			// In --writeMode we will get the indexes from the schema.
+			if !b.writeMode {
+				idx := 1
+				for _, i := range collection.Indexes {
+					index := addColumnToIndex(i, mongoNameToColumn)
+					if index != nil {
+						if i.Unique {
+							index.constraintName = createUniqueIndexName(
+								dbConfig.Name(),
+								tblConfig.SQLName(),
+								idx,
+							)
+							index.unique = true
+							idx++
+						}
+						t.indexes = append(t.indexes, *index)
 					}
-					t.indexes = append(t.indexes, *index)
 				}
 			}
 
@@ -427,6 +433,10 @@ func (b *catalogBuilder) addColumnsTable(d Database) error {
 					if idx := strings.Index(dataType, "("); idx >= 0 {
 						dataType = dataType[:idx]
 					}
+					nullable := "NO"
+					if col.Nullable {
+						nullable = "YES"
+					}
 					rows = append(rows, newInfoRow(
 						aliasName,
 						strv(columnNames[0], string(c.Name)),
@@ -435,7 +445,7 @@ func (b *catalogBuilder) addColumnsTable(d Database) error {
 						strv(columnNames[3], col.Name),
 						intv(columnNames[4], int64(i+1)),
 						nullv(columnNames[5]),
-						strv(columnNames[6], "YES"),
+						strv(columnNames[6], nullable),
 						strv(columnNames[7], dataType),
 						nullv(columnNames[8]),
 						nullv(columnNames[9]),

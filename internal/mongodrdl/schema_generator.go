@@ -126,7 +126,7 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts DrdlOptions, n
 		customField := opts.DrdlOutput.CustomFilterField
 		for _, t := range sqldSchema.Databases()[0].Tables() {
 			c := schema.NewColumn(customField, schema.SQLVarchar,
-				customField, mongoFilterMongoTypeName, false, option.NoneString())
+				customField, mongoFilterMongoTypeName, true, option.NoneString())
 			t.AddColumn(lg, c, false)
 		}
 	}

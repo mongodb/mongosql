@@ -642,7 +642,7 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	ctx.seenFields[ctx.table] = append(ctx.seenFields[ctx.table], indexName)
 
 	// create the array index column and add it to the current table
-	col := schema.NewColumn(indexName, schema.SQLInt, indexName, schema.MongoInt, false, option.NoneString())
+	col := schema.NewColumn(indexName, schema.SQLInt, indexName, schema.MongoInt, true, option.NoneString())
 	ctx.table.AddColumn(ctx.logger, col, true)
 
 	path := ctx.path

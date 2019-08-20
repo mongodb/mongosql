@@ -40,7 +40,11 @@ func GenerateCreateTable(table Table, maxVarcharLength uint64) string {
 		if strings.HasPrefix(colType, "varchar") {
 			buf.WriteString(" COLLATE " + string(col.Name))
 		}
-		buf.WriteString(" DEFAULT NULL")
+		if column.Nullable {
+			buf.WriteString(" DEFAULT NULL")
+		} else {
+			buf.WriteString(" NOT NULL")
+		}
 		if column.Comments != "" {
 			buf.WriteString(" COMMENT '" + strings.Replace(column.Comments, "'", "''", -1) + "'")
 		}
@@ -66,6 +70,8 @@ func GenerateCreateTable(table Table, maxVarcharLength uint64) string {
 			keyType := "KEY"
 			if idx.unique {
 				keyType = "UNIQUE " + keyType
+			} else if idx.fullText {
+				keyType = "FULLTEXT " + keyType
 			}
 			buf.WriteString("  " + keyType + " `" + idx.constraintName + "` (")
 			for j, col := range idx.columns {
