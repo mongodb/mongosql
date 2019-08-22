@@ -807,6 +807,16 @@ func testRewriteAndFormatIgnored(t *testing.T) {
 			expected: "/* IGNORED */ disable keys",
 		},
 		{
+			desc:     "alter table enable keys",
+			command:  "Alter table foo EnABLE KeYS",
+			expected: "/* IGNORED */ enable keys",
+		},
+		{
+			desc:     "alter table disable keys",
+			command:  "AltEr table bar DiSABLE KeYS",
+			expected: "/* IGNORED */ disable keys",
+		},
+		{
 			desc:     "conditional comment that is executable",
 			command:  "/*!50712 set @foo ='hello'*/",
 			expected: "set @foo = 'hello'",

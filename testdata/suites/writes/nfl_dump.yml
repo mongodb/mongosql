@@ -1,0 +1,280 @@
+testcases:
+  - db: information_schema
+    description: restore block table
+    expected_names: ["pid", "blk", "brcv", "type"]
+    expected_results:
+      - [1435, "JJ-4100", "TG-1500", "FG"]
+      - [2841, "OR-0200", "", "FG"]
+      - [3703, "GW-1200", "", "XP"]
+      - [4912, "TH-0300", "", "FG"]
+      - [4970, "EW-1050", "BK-1100", "PUNT"]
+      - [5100, "MW-1100", "RP-1000", "FG"]
+      - [5190, "MB-4100", "BM-0700", "FG"]
+      - [5430, "AS-1200", "RB-0700", "PUNT"]
+      - [6268, "SB-2000", "", "FG"]
+      - [6399, "RJ-2400", "", "PUNT"]
+      - [6860, "KM-2400", "DR-2700", "FG"]
+      - [7667, "MW-1100", "JJ-2300", "FG"]
+      - [10501, "DD-0100", "GD-0100", "PUNT"]
+      - [11276, "DT-0400", "", "FG"]
+      - [11313, "WS-0100", "", "FG"]
+      - [12376, "JT-2700", "", "FG"]
+      - [13012, "JG-1300", "LF-0400", "FG"]
+      - [13498, "BB-3200", "CS-3700", "PUNT"]
+      - [13645, "AD-1500", "EA-0200", "FG"]
+      - [13951, "WS-0100", "DA-0100", "FG"]
+      - [16347, "NW-0300", "RR-0500", "PUNT"]
+      - [16423, "MJ-2000", "TJ-0500", "FG"]
+      - [17626, "BW-0200", "MC-1600", "PUNT"]
+      - [19219, "SB-2000", "", "FG"]
+      - [19540, "GE-0200", "PS-0700", "FG"]
+      - [20712, "AD-1500", "", "FG"]
+      - [21104, "JM-3700", "DS-4900", "PUNT"]
+      - [25764, "IG-0200", "IG-0200", "PUNT"]
+      - [26556, "PW-0900", "HJ-0100", "FG"]
+      - [27384, "LF-0600", "CS-0800", "PUNT"]
+      - [35518, "PS-0200", "RH-2000", "PUNT"]
+      - [35808, "BB-3200", "", "PUNT"]
+    expected_types: ["int", "varchar", "varchar", "varchar"]
+    id: "restore block table"
+    min_server_version: 3.6
+    sql_cleanup: "drop database created_writes_db"
+    sql_list: [
+      "create database if not exists created_writes_db",
+      "use created_writes_db",
+      "DROP TABLE IF EXISTS `block`",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "CREATE TABLE `block` (`pid` int(7) NOT NULL, `blk` varchar(7) NOT NULL, `brcv` varchar(7) DEFAULT NULL, `type` varchar(4) NOT NULL, UNIQUE KEY `pid` (`pid`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Blocked Punts, Field Goal Attempts, etc.'",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "LOCK TABLES `block` WRITE",
+      "/*!40000 ALTER TABLE `block` DISABLE KEYS */",
+      "INSERT INTO `block` VALUES (1435, 'JJ-4100', 'TG-1500', 'FG'), (2841, 'OR-0200', '', 'FG'), (3703, 'GW-1200', '', 'XP'), (4912, 'TH-0300', '', 'FG'), (4970, 'EW-1050', 'BK-1100', 'PUNT'), (5100, 'MW-1100', 'RP-1000', 'FG'), (5190, 'MB-4100', 'BM-0700', 'FG'), (5430, 'AS-1200', 'RB-0700', 'PUNT'), (6268, 'SB-2000', '', 'FG'), (6399, 'RJ-2400', '', 'PUNT'), (6860, 'KM-2400', 'DR-2700', 'FG'), (7667, 'MW-1100', 'JJ-2300', 'FG'), (10501, 'DD-0100', 'GD-0100', 'PUNT'), (11276, 'DT-0400', '', 'FG'), (11313, 'WS-0100', '', 'FG'), (12376, 'JT-2700', '', 'FG'), (13012, 'JG-1300', 'LF-0400', 'FG'), (13498, 'BB-3200', 'CS-3700', 'PUNT'), (13645, 'AD-1500', 'EA-0200', 'FG'), (13951, 'WS-0100', 'DA-0100', 'FG'), (16347, 'NW-0300', 'RR-0500', 'PUNT'), (16423, 'MJ-2000', 'TJ-0500', 'FG'), (17626, 'BW-0200', 'MC-1600', 'PUNT'), (19219, 'SB-2000', '', 'FG'), (19540, 'GE-0200', 'PS-0700', 'FG'), (20712, 'AD-1500', '', 'FG'), (21104, 'JM-3700', 'DS-4900', 'PUNT'), (25764, 'IG-0200', 'IG-0200', 'PUNT'), (26556, 'PW-0900', 'HJ-0100', 'FG'), (27384, 'LF-0600', 'CS-0800', 'PUNT'), (35518, 'PS-0200', 'RH-2000', 'PUNT'), (35808, 'BB-3200', '', 'PUNT')",
+      "/*!40000 ALTER TABLE `block` ENABLE KEYS */",
+      "UNLOCK TABLES",
+      "select * from block"]
+    sync: true
+
+  - db: information_schema
+    description: restore conv table
+    expected_names: ["pid", "type", "bc", "psr", "trg", "conv"]
+    expected_results:
+      - [456, "PASS", "", "RC-2800", "RI-0200", 1]
+      - [1276, "RUSH", "KF-0200", "", "", 0]
+      - [1408, "RUSH", "JS-6500", "", "", 1]
+      - [1621, "PASS", "", "JP-3200", "DB-3100", 0]
+      - [1766, "PASS", "", "RL-0300", "FJ-0500", 0]
+      - [2412, "RUSH", "OG-0300", "", "", 0]
+      - [2422, "PASS", "", "KW-0500", "AH-0200", 0]
+      - [2528, "PASS", "", "TB-0200", "BC-1600", 1]
+      - [2779, "PASS", "", "BF-0100", "TD-0800", 1]
+      - [3052, "RUSH", "MA-1000", "", "", 1]
+      - [3738, "PASS", "", "DM-2200", "CJ-1400", 0]
+      - [3861, "PASS", "", "", "", 0]
+      - [3904, "PASS", "", "JB-3800", "WJ-0200", 0]
+      - [4071, "PASS", "", "RM-4300", "TO-0200", 1]
+    expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "int"]
+    id: "restore conv table"
+    min_server_version: 3.6
+    sql_cleanup: "drop database created_writes_db"
+    sql_list: [
+      "create database if not exists created_writes_db",
+      "use created_writes_db",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "CREATE TABLE `conv` (`pid` int(7) NOT NULL, `type` varchar(4) NOT NULL, `bc` varchar(7) DEFAULT NULL, `psr` varchar(7) DEFAULT NULL, `trg` varchar(7) DEFAULT NULL, `conv` tinyint(1) NOT NULL, UNIQUE KEY `pid` (`pid`)) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='2 Point Conversion Attempts (Y=Success, N=Fail)'",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "LOCK TABLES `conv` WRITE",
+      "/*!40000 ALTER TABLE `conv` DISABLE KEYS */",
+      "INSERT INTO `conv` VALUES (456, 'PASS', '', 'RC-2800', 'RI-0200', 1), (1276, 'RUSH', 'KF-0200', '', '', 0), (1408, 'RUSH', 'JS-6500', '', '', 1), (1621, 'PASS', '', 'JP-3200', 'DB-3100', 0), (1766, 'PASS', '', 'RL-0300', 'FJ-0500', 0), (2412, 'RUSH', 'OG-0300', '', '', 0), (2422, 'PASS', '', 'KW-0500', 'AH-0200', 0), (2528, 'PASS', '', 'TB-0200', 'BC-1600', 1), (2779, 'PASS', '', 'BF-0100', 'TD-0800', 1), (3052, 'RUSH', 'MA-1000', '', '', 1), (3738, 'PASS', '', 'DM-2200', 'CJ-1400', 0), (3861, 'PASS', '', '', '', 0), (3904, 'PASS', '', 'JB-3800', 'WJ-0200', 0), (4071, 'PASS', '', 'RM-4300', 'TO-0200', 1)",
+      "/*!40000 ALTER TABLE `conv` ENABLE KEYS */",
+      "UNLOCK TABLES",
+      "select * from conv"]
+    sync: true
+
+  - db: information_schema
+    description: restore conv table
+    expected_names: ["gid", "pid", "detail", "off", "def", "type", "dseq", "len", "qtr", "min", "sec", "ptso", "ptsd", "timo", "timd", "dwn", "ytg", "yfog", "zone", "yds", "succ", "fd", "sg", "nh", "pts", "bc", "kne", "dir", "rtck1", "rtck2", "psr", "comp", "spk", "loc", "trg", "dfb", "ptck1", "ptck2", "sk1", "sk2", "ptm1", "pen1", "desc1", "cat1", "pey1", "act1", "ptm2", "pen2", "desc2", "cat2", "pey2", "act2", "ptm3", "pen3", "desc3", "cat3", "pey3", "act3", "ints", "iry", "fum", "frcv", "fry", "forc", "saf", "blk", "brcv", "fgxp", "fkicker", "dist", "good", "punter", "pgro", "pnet", "ptb", "pr", "pry", "pfc", "kicker", "kgro", "knet", "ktb", "kr", "kry"]
+    expected_results:
+      - [1, 1, "M.Andersen kicks 65 yards from ATL 30 to SF 5. K.Williams to SF 26 for 21 yards (T.Cousin).", "SF", "ATL", "KOFF", 0, 6, 1, 15, 0, 0, 0, 3, 3, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "MA-0700", "65", "44", "", "KW-1500", "21"]
+    expected_types: ["int", "int", "varchar", "varchar", "varchar", "varchar", "int", "int", "int", "int", "int", "int", "int", "int", "int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
+    id: "restore conv table"
+    min_server_version: 3.6
+    sql_cleanup: "drop database created_writes_db"
+    sql_list: [
+      "create database if not exists created_writes_db",
+      "use created_writes_db",
+      "DROP TABLE IF EXISTS `pbp`",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "CREATE TABLE `pbp` (`gid` int(5) NOT NULL, `pid` int(7) NOT NULL, `detail` text NOT NULL, `off` varchar(3) NOT NULL, `def` varchar(3) NOT NULL, `type` varchar(4) NOT NULL, `dseq` tinyint(2) NOT NULL, `len` tinyint(2) NOT NULL, `qtr` tinyint(1) NOT NULL, `min` tinyint(2) NOT NULL, `sec` tinyint(2) NOT NULL, `ptso` tinyint(2) NOT NULL, `ptsd` tinyint(2) NOT NULL, `timo` tinyint(1) NOT NULL, `timd` tinyint(1) NOT NULL, `dwn` varchar(1) DEFAULT NULL, `ytg` varchar(2) DEFAULT NULL, `yfog` varchar(2) DEFAULT NULL, `zone` varchar(1) DEFAULT NULL, `yds` varchar(3) DEFAULT NULL, `succ` varchar(1) DEFAULT NULL, `fd` varchar(1) DEFAULT NULL, `sg` varchar(1) DEFAULT NULL, `nh` varchar(1) DEFAULT NULL, `pts` varchar(2) DEFAULT NULL, `bc` varchar(7) DEFAULT NULL, `kne` varchar(1) DEFAULT NULL, `dir` varchar(2) DEFAULT NULL, `rtck1` varchar(7) DEFAULT NULL, `rtck2` varchar(7) DEFAULT NULL, `psr` varchar(7) DEFAULT NULL, `comp` varchar(1) DEFAULT NULL, `spk` varchar(1) DEFAULT NULL, `loc` varchar(2) DEFAULT NULL, `trg` varchar(7) DEFAULT NULL, `dfb` varchar(7) DEFAULT NULL, `ptck1` varchar(7) DEFAULT NULL, `ptck2` varchar(7) DEFAULT NULL, `sk1` varchar(7) DEFAULT NULL, `sk2` varchar(7) DEFAULT NULL, `ptm1` varchar(3) DEFAULT NULL, `pen1` varchar(7) DEFAULT NULL, `desc1` varchar(40) DEFAULT NULL, `cat1` varchar(1) DEFAULT NULL, `pey1` varchar(2) DEFAULT NULL, `act1` varchar(1) DEFAULT NULL, `ptm2` varchar(3) DEFAULT NULL, `pen2` varchar(7) DEFAULT NULL, `desc2` varchar(40) DEFAULT NULL, `cat2` varchar(1) DEFAULT NULL, `pey2` varchar(2) DEFAULT NULL, `act2` varchar(1) DEFAULT NULL, `ptm3` varchar(3) DEFAULT NULL, `pen3` varchar(7) DEFAULT NULL, `desc3` varchar(40) DEFAULT NULL, `cat3` varchar(1) DEFAULT NULL, `pey3` varchar(2) DEFAULT NULL, `act3` varchar(1) DEFAULT NULL, `ints` varchar(7) DEFAULT NULL, `iry` varchar(3) DEFAULT NULL, `fum` varchar(7) DEFAULT NULL, `frcv` varchar(7) DEFAULT NULL, `fry` varchar(3) DEFAULT NULL, `forc` varchar(7) DEFAULT NULL, `saf` varchar(7) DEFAULT NULL, `blk` varchar(7) DEFAULT NULL, `brcv` varchar(7) DEFAULT NULL, `fgxp` varchar(2) DEFAULT NULL, `fkicker` varchar(7) DEFAULT NULL, `dist` varchar(2) DEFAULT NULL, `good` varchar(1) DEFAULT NULL, `punter` varchar(7) DEFAULT NULL, `pgro` varchar(3) DEFAULT NULL, `pnet` varchar(3) DEFAULT NULL, `ptb` varchar(1) DEFAULT NULL, `pr` varchar(7) DEFAULT NULL, `pry` varchar(3) DEFAULT NULL, `pfc` varchar(1) DEFAULT NULL, `kicker` varchar(7) DEFAULT NULL, `kgro` varchar(3) DEFAULT NULL, `knet` varchar(3) DEFAULT NULL, `ktb` varchar(1) DEFAULT NULL, `kr` varchar(7) DEFAULT NULL, `kry` varchar(3) DEFAULT NULL, UNIQUE KEY `pid` (`pid`), KEY `gid` (`gid`), FULLTEXT KEY `detail` (`detail`)) ENGINE=MyISAM DEFAULT CHARSET=latin1",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "INSERT INTO `pbp` VALUES(1, 1, 'M.Andersen kicks 65 yards from ATL 30 to SF 5. K.Williams to SF 26 for 21 yards (T.Cousin).', 'SF', 'ATL', 'KOFF', 0, 6, 1, 15, 0, 0, 0, 3, 3, '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 'MA-0700', '65', '44', '', 'KW-1500', '21')",
+      "select * from pbp"]
+    sync: true
+
+  - db: information_schema
+    description: all versioned statements in nfl_dump
+    expected_names: ['@OLD_SQL_NOTES']
+    expected_results:
+      - ['foo']
+    expected_types: [varchar]
+    id: 'versioned statements'
+    min_server_version: 3.6
+    sql_list: [
+      "/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */",
+      "/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */",
+      "/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */",
+      "/*!40101 SET NAMES utf8 */",
+      "/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */",
+      "/*!40103 SET TIME_ZONE='+00:00' */",
+      "/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */",
+      "/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */",
+      "/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */",
+      "/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `block` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `block` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `conv` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `conv` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `defense` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `defense` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `drive` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `drive` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `fgxp` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `fgxp` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `fumble` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `fumble` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `game` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `game` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `injury` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `injury` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `intercpt` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `intercpt` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `kicker` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `kicker` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `koff` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `koff` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `offense` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `offense` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `pass` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `pass` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `pbp` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `pbp` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `penalty` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `penalty` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `play` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `play` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `player` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `player` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `punt` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `punt` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `redzone` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `redzone` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `rush` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `rush` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `sack` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `sack` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `safety` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `safety` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `schedule` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `schedule` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `snap` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `snap` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `tackle` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `tackle` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `td` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `td` ENABLE KEYS */",
+      "/*!40101 SET @saved_cs_client     = @@character_set_client */",
+      "/*!40101 SET character_set_client = utf8 */",
+      "/*!40101 SET character_set_client = @saved_cs_client */",
+      "/*!40000 ALTER TABLE `team` DISABLE KEYS */",
+      "/*!40000 ALTER TABLE `team` ENABLE KEYS */",
+      "/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */",
+      "/*!40101 SET SQL_MODE=@OLD_SQL_MODE */",
+      "/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */",
+      "/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */",
+      "/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */",
+      "/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */",
+      "/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */",
+      "/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */",
+      "/*!40111 SET @OLD_SQL_NOTES='foo' */",
+      "select @OLD_SQL_NOTES"]
+    sync: true

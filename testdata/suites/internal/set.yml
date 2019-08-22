@@ -1436,3 +1436,77 @@ testcases:
     sql: SET @@global.anonymize_metrics = 0
     sync: true
     verify: SELECT @@global.anonymize_metrics
+
+  - db: set_test
+    description: SET character_set_client to utf8
+    expected_names: ['@@character_set_client']
+    expected_results:
+      - ['utf8']
+    expected_types: [varchar]
+    id: set character_set_client to utf8
+    sql: SET character_set_client = utf8
+    sync: true
+    verify: SELECT @@character_set_client
+
+  - db: set_test
+    description: SET character_set_client to latin1
+    expected_names: ['@@character_set_client']
+    expected_results:
+      - ['latin1']
+    expected_types: [varchar]
+    id: SET character_set_client to latin1
+    sql: SET character_set_client = laTiN1
+    sync: true
+    verify: SELECT @@character_set_client
+
+  - db: set_test
+    description: SET character_set_client to latin12, which doesn't exist
+    expected_error: "Error 1115: Unknown character set: 'latin12'"
+    id: SET character_set_client to latin12
+    sql: SET character_set_client = laTiN12
+    sync: true
+
+  - db: set_test
+    description: SET collation_connection to utf8_bin
+    expected_names: ['@@collation_connection']
+    expected_results:
+      - ['utf8_bin']
+    expected_types: [varchar]
+    id: SET collation_connection to utf8_bin
+    sql: SET collation_connection = uTf8_Bin
+    sync: true
+    verify: SELECT @@collation_connection
+
+  - db: set_test
+    description: SET collation_connection to utf8_bin through user variable
+    expected_names: ['@@collation_connection']
+    expected_results:
+      - ['utf8_bin']
+    expected_types: [varchar]
+    id: SET collation_connection to utf8_bin through user variable
+    sql_list: [
+      "SET @foo = 'utf8_bin'",
+      "SET collation_connection = @foo",
+      "select @@collation_connection"]
+    sync: true
+
+  - db: set_test
+    description: SET collation_connection to latin12, which doesn't exist
+    expected_error: "Error 1273: Unknown collation: 'name(latin12)'"
+    id: SET collation_connection to latin12
+    sql: SET collation_connection = laTiN12
+    sync: true
+
+  - db: set_test
+    description: SET @@global.anonymize_metrics to latin1, which is a character_set and not allowed
+    expected_error: "Error 1054: Unknown column 'laTiN1' in ''"
+    id: SET @@global.anonymize_metrics to latin1
+    sql: SET @@global.anonymize_metrics = laTiN1
+    sync: true
+
+  - db: set_test
+    description: SET @@global.anonymize_metrics to utf8_bin, which is a collation and not allowed
+    expected_error: "Error 1054: Unknown column 'utf8_bin' in ''"
+    id: SET @@global.anonymize_metrics to utf8_bin
+    sql: SET @@global.anonymize_metrics = utf8_bin
+    sync: true

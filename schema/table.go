@@ -29,6 +29,8 @@ type Table struct {
 	pipeline []bson.D
 	// columns is a map of normalized column names to the columns in this database.
 	columns map[normalizedName]*Column
+	// orderedColumns stores the columns in order.
+	orderedColumns []*Column
 	// primaryKey is a slice of all the columns that comprise the primary key.
 	primaryKey map[normalizedName]struct{}
 	// cachedSortedColumns is the cached result of the last call to
@@ -157,6 +159,7 @@ func (t *Table) AddColumn(lg log.Logger, c *Column, isPK bool) {
 func (t *Table) addColumn(c *Column, isPK bool) {
 	key := normalizeSQLName(c.SQLName())
 	t.columns[key] = c
+	t.orderedColumns = append(t.orderedColumns, c)
 
 	if isPK {
 		t.primaryKey[key] = struct{}{}
@@ -243,6 +246,11 @@ func (t *Table) Columns() []*Column {
 	return cols
 }
 
+// ColumnsDeclaredOrder returns the columns in declared order.
+func (t *Table) ColumnsDeclaredOrder() []*Column {
+	return t.orderedColumns
+}
+
 // NumColumns returns the number of columns in t.
 func (t *Table) NumColumns() int64 {
 	return int64(len(t.columns))
@@ -292,6 +300,11 @@ func (t *Table) DeepCopy() *Table {
 		cols[key] = col.DeepCopy()
 	}
 
+	orderedCols := make([]*Column, len(t.orderedColumns))
+	for i := range t.orderedColumns {
+		orderedCols[i] = t.orderedColumns[i].DeepCopy()
+	}
+
 	pkCols := map[normalizedName]struct{}{}
 	for colName := range t.primaryKey {
 		pkCols[colName] = struct{}{}
@@ -307,15 +320,16 @@ func (t *Table) DeepCopy() *Table {
 	pipeline := bsonutil.DeepCopyDSlice(t.pipeline)
 
 	return &Table{
-		sqlName:    t.sqlName,
-		mongoName:  t.mongoName,
-		pipeline:   pipeline,
-		columns:    cols,
-		parent:     parent,
-		primaryKey: pkCols,
-		unwindPath: t.unwindPath,
-		indexes:    indexes,
-		comment:    t.comment,
+		sqlName:        t.sqlName,
+		mongoName:      t.mongoName,
+		pipeline:       pipeline,
+		columns:        cols,
+		orderedColumns: orderedCols,
+		parent:         parent,
+		primaryKey:     pkCols,
+		unwindPath:     t.unwindPath,
+		indexes:        indexes,
+		comment:        t.comment,
 	}
 }
 
@@ -630,7 +644,7 @@ func (t *Table) Validate() error {
 
 // GenerateCreateCollection will generate the necessary createCollection command from a Table.
 func (t *Table) GenerateCreateCollection() (bson.D, error) {
-	sortedColumns := t.ColumnsSorted()
+	sortedColumns := t.ColumnsDeclaredOrder()
 	required := make(primitive.A, len(sortedColumns))
 	properties := make(bson.D, len(sortedColumns))
 	for i, col := range sortedColumns {

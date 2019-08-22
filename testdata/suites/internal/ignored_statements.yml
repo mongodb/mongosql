@@ -48,3 +48,13 @@ testcases:
     description: disable keys
     id: 'disable keys'
     sql: disable keys
+
+  - db: mysql
+    description: alter table enable keys
+    id: 'alter enable keys'
+    sql: alTer taBle foo enable keys
+
+  - db: mysql
+    description: alter table disable keys
+    id: 'alter disable keys'
+    sql: ALter table bar disable keys

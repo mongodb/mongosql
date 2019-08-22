@@ -1283,6 +1283,37 @@ func (a *algebrizer) translateSelectExprs(
 	return projectedColumns, nil
 }
 
+var charsetOrCollationVars = map[string]struct{}{
+	"character_set_client": {}, "@character_set_client": {}, "@@character_set_client": {},
+	"character_set_connection": {}, "@character_set_connection": {}, "@@character_set_connection": {},
+	"character_set_database": {}, "@character_set_database": {}, "@@character_set_database": {},
+	"character_set_file_system": {}, "@character_set_file_system": {}, "@@character_set_file_system": {},
+	"character_set_results": {}, "@character_set_results": {}, "@@character_set_results": {},
+	"character_set_server": {}, "@character_set_server": {}, "@@character_set_server": {},
+	"character_set_system": {}, "@character_set_system": {}, "@@character_set_system": {},
+	"collation_connection": {}, "@collation_connection": {}, "@@collation_connection": {},
+	"collation_database": {}, "@collation_database": {}, "@@collation_database": {},
+	"collation_server": {}, "@collation_server": {}, "@@collation_server": {},
+}
+
+// translateSetCollationOrCharsetExpr handles translating the SetExpr for a variable set
+// where the variable is one of our charset or collation variables denoted by the set above.
+func (a *algebrizer) translateSetCollationOrCharsetExpr(e parser.Expr) (SQLExpr, error) {
+	if col, ok := e.(*parser.ColName); ok && !strings.HasPrefix(col.Name, "@") {
+		// If the expression is a name that does not begin with @, we just create
+		// a new string representation of the collation name as the looked up value.
+		// This is necessary because MySQL allows identifiers as collations, and
+		// our variable setting code assumes string values for collations. If it begins with
+		// @ we will continue to treat it as a variable.
+		return NewSQLValueExpr(values.NewSQLVarchar(a.valueKind(), strings.ToLower(col.Name))), nil
+	}
+	expr, err := a.translateExpr(e)
+	if err != nil {
+		return nil, err
+	}
+	return expr, nil
+}
+
 func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 	assignments := []*SQLAssignmentExpr{}
 	for _, e := range set.Exprs {
@@ -1291,7 +1322,12 @@ func (a *algebrizer) translateSet(set *parser.Set) (*SetCommand, error) {
 			return nil, err
 		}
 
-		expr, err := a.translateExpr(e.Expr)
+		var expr SQLExpr
+		if _, ok := charsetOrCollationVars[e.Name.Name]; ok {
+			expr, err = a.translateSetCollationOrCharsetExpr(e.Expr)
+		} else {
+			expr, err = a.translateExpr(e.Expr)
+		}
 		if err != nil {
 			return nil, err
 		}

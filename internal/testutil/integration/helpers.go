@@ -42,11 +42,11 @@ const (
 // It expects the results to match the results of the last query in the list and
 // to have the provided column names and types, and returns a list of rows and an error.
 func RunSQL(conn *sql.Conn, qs []string, types []schema.SQLType, names []string) ([][]interface{}, error) {
-	for _, q := range qs[0 : len(qs)-1] {
+	for i, q := range qs[0 : len(qs)-1] {
 		_, err := conn.ExecContext(context.Background(), q)
 		if err != nil {
 			// We only allow errors to be reported on the last statement in the sql_list.
-			panic(err)
+			panic(fmt.Sprintf("In statement %d got error: %s", i, err.Error()))
 		}
 	}
 	rows, err := conn.QueryContext(context.Background(), qs[len(qs)-1])

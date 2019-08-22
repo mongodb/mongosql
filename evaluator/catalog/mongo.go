@@ -21,7 +21,14 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string,
 	var columns results.Columns
 	columnMap := make(map[string]*results.Column)
 	var primaryKeys results.Columns
-	for i, c := range t.ColumnsSorted() {
+	var colRange []*schema.Column
+	// In writeMode, we preserve the column order specified by table creation.
+	if writeMode {
+		colRange = t.ColumnsDeclaredOrder()
+	} else {
+		colRange = t.ColumnsSorted()
+	}
+	for i, c := range colRange {
 		tys := c.SampledTypes()
 		hasNull := false
 		for i := range tys {

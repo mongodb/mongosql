@@ -42,6 +42,7 @@ func TestWriteModeIntegration(t *testing.T) {
 		table1Name,
 		[]bson.D{},
 		[]*schema.Column{
+			schema.NewColumn("z", schema.SQLInt, "z", schema.MongoInt64, false, option.NoneString()),
 			schema.NewColumn("a", schema.SQLInt, "a", schema.MongoInt64, false, option.NoneString()),
 			schema.NewColumn("b", schema.SQLVarchar, "B", schema.MongoString, false, option.SomeString("fooo")),
 			schema.NewColumn("c", schema.SQLVarchar, "C", schema.MongoString, true, option.SomeString("HELLO!")),

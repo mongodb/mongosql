@@ -560,6 +560,11 @@ func TestIgnoredStatements(t *testing.T) {
 			errMessage: "",
 		},
 		{
+			name:       "alter table enable keys",
+			input:      "alter table foo.bar eNablE KEYS",
+			errMessage: "",
+		},
+		{
 			name:       "enable keys fail",
 			input:      "eNablE KEY",
 			errMessage: "unexpected KEY at position 11 near key",
@@ -572,6 +577,11 @@ func TestIgnoredStatements(t *testing.T) {
 			name:       "disable keys fail",
 			input:      "dIsABLE KEY",
 			errMessage: "unexpected KEY at position 12 near key",
+		},
+		{
+			name:       "alter table disable keys",
+			input:      "Alter Table bar.foo dIsABLE KEYs",
+			errMessage: "",
 		},
 	}
 
@@ -610,6 +620,9 @@ func TestSet(t *testing.T) {
 	testParse(t, sql)
 
 	sql = "set @temp = OFF"
+	testParse(t, sql)
+
+	sql = "SET character_set_client = utf8"
 	testParse(t, sql)
 }
 

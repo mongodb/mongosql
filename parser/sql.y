@@ -1038,6 +1038,14 @@ alter_statement:
   {
     $$ = &AlterTable{ Table: $3, Specs: $4 }
   }
+  | ALTER TABLE table_name ENABLE KEYS
+  {
+    $$ = &IgnoredStatement{ Statement: EnableKeys {} }
+  }
+  | ALTER TABLE table_name DISABLE KEYS
+  {
+	$$ = &IgnoredStatement{ Statement: DisableKeys {} }
+  }
 
 alter_spec_list:
   alter_spec

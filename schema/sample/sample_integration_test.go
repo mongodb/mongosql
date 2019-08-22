@@ -712,7 +712,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 }
 
 func TestWriteModeRoundTrip(t *testing.T) {
-	logger := log.NewComponentLogger(log.SchemaComponent, log.GlobalLogger())
+	logger := log.NoOpLogger()
 	req := require.New(t)
 
 	provider, err := mongodb.NewSqldSessionProvider(cfg)
@@ -766,7 +766,8 @@ func TestWriteModeRoundTrip(t *testing.T) {
 	schemaTable := schemaDB.Table(tableName)
 	// call ColumnsSorted to populated the cachedSortedColumns so the test succeeds.
 	_ = schemaTable.ColumnsSorted()
-	req.Equal(table1, schemaTable, "tables should be equal")
+	req.Nil(table1.Equals(schemaTable), "tables should be equal")
+	req.Equal(table1.ColumnsDeclaredOrder(), schemaTable.ColumnsDeclaredOrder())
 }
 
 func cleanupData(session *mongodb.Session, databases ...string) {

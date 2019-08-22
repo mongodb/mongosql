@@ -311,6 +311,7 @@ func TestGenerateCreateCollection(t *testing.T) {
 				"fOo",
 				[]bson.D{},
 				[]*schema.Column{
+					schema.NewColumn("z", schema.SQLInt, "z", schema.MongoInt64, false, option.NoneString()),
 					schema.NewColumn("a", schema.SQLInt, "a", schema.MongoInt64, true, option.NoneString()),
 					schema.NewColumn("B", schema.SQLVarchar, "B", schema.MongoString, true, option.SomeString("fooo")),
 					schema.NewColumn("C", schema.SQLVarchar, "c", schema.MongoString, false, option.SomeString("HELLO!")),
@@ -330,8 +331,9 @@ func TestGenerateCreateCollection(t *testing.T) {
 							"validator": {
 								"$jsonSchema": {
 									"bsonType": "object",
-									"required": ["a", "B", "c"],
+									"required": ["z", "a", "B", "c"],
 									"properties": {
+										"z": {"bsonType": "long"},
 										"a": {"oneOf": [
 												 {"bsonType": "long"},
 												 {"bsonType": "null"}
