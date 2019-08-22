@@ -2144,6 +2144,39 @@ testcases:
     id: '107'
     sql: select a REGEXP '^f.*$' from where_test.where_5
 
+  - db: where_test
+    description: regex filter on complex expression as input
+    expected_names: [a, test_col]
+    expected_results:
+      - ['abcde', 1]
+      - ['fofo', 0]
+      - ['ABC123', 0]
+    expected_types: [varchar, int]
+    id: 'regexp_complex_expression1'
+    sql: select a, concat(a, "f") REGEXP 'ef' as test_col from where_test.where_5
+
+  - db: where_test
+    description: regex filter on complex expression as pattern
+    expected_names: [a, test_col]
+    expected_results:
+      - ['abcde', 1]
+      - ['fofo', 0]
+      - ['ABC123', 0]
+    expected_types: [varchar, int]
+    id: 'regexp_complex_expression2'
+    sql: select a, 'abcdefgh' REGEXP concat(a, 'f') as test_col from where_test.where_5
+
+  - db: where_test
+    description: regex filter on select clauses
+    expected_names: [a regexp '^f.*$']
+    expected_results:
+      - [0]
+      - [1]
+      - [0]
+    expected_types: [int]
+    id: '107'
+    sql: select a REGEXP '^f.*$' from where_test.where_5
+
   - db: select_test
     description: proper NULLs in left join
     expected_names: [_id, a, c_idx, _id, c.y, c.y_idx, c_idx]

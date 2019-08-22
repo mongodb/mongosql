@@ -2217,6 +2217,8 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		if err != nil {
 			return nil, err
 		}
+
+		// BINARY Sting support will be added in BI-2327
 		return &SQLRegexExpr{operand, pattern}, nil
 	case *parser.RLikeExpr:
 		operand, err := a.translateExpr(typedE.Operand)

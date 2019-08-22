@@ -5768,30 +5768,30 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
             }
         }
     },
@@ -5814,8 +5814,8 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
             }
         },
         "predicate": {
@@ -5860,8 +5860,8 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
             }
         },
         "predicate": {
@@ -6182,8 +6182,8 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}"
             }
         },
         "predicate": {
@@ -6228,8 +6228,8 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}"
             }
         },
         "predicate": {
@@ -6274,30 +6274,30 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
             }
         }
     },

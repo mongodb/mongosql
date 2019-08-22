@@ -1625,10 +1625,30 @@ func (e *SQLRegexExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, 
 }
 
 // ToAggregationLanguage translates SQLRegexExpr into something that can
-// be used in an aggregation pipeline. If SQLRegexExpr cannot be translated,
-// it will return nil and error.
+// be used in an aggregation pipeline for MongoDB >= 4.1.11.
 func (e *SQLRegexExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newUntranslatableExprFailure(e)
+	if !t.versionAtLeast(4, 1, 11) {
+		return nil, newPushdownFailure(e.ExprName(), "cannot translate REGEXP expressions to the aggregation language for MongoDB < 4.1.11")
+	}
+
+	inputExpr, err := t.ToAggregationLanguage(e.operand)
+	if err != nil {
+		return nil, err
+	}
+
+	patternExpr, err := t.ToAggregationLanguage(e.pattern)
+	if err != nil {
+		return nil, err
+	}
+
+	// In MYSQL, REGEXP is not case sensitive unless using BINARY, BINARY string support will be added in BI-2327
+	opts := "si"
+
+	return ast.NewFunction(bsonutil.OpRegexMatch, ast.NewDocument(
+		ast.NewDocumentElement("input", inputExpr),
+		ast.NewDocumentElement("regex", patternExpr),
+		ast.NewDocumentElement("options", astutil.StringValue(opts)),
+	)), nil
 }
 
 // evaluatePlan converts a PlanStage into a table in memory, represented
