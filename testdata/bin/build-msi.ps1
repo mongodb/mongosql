@@ -24,7 +24,7 @@ $artifactsDir = "$sourceDir\testdata\artifacts\"
 $objDir = "$artifactsDir\out\"
 $binDir = "$artifactsDir\build\"
 
-if (-not ($VersionLabel -match "(\d\.\d).*")) {
+if (-not ($VersionLabel -match "(\d\.\d\d*).*")) {
     throw "invalid version specified: $VersionLabel"
 }
 $version = $matches[1]
