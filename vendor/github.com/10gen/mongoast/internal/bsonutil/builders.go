@@ -126,10 +126,16 @@ func Decimal128FromInt64(i int64) bsoncore.Value {
 }
 
 // Decimal128 creates a Decimal128 bsoncore.Value from a Decimal128.
-func Decimal128(v primitive.Decimal128) bsoncore.Value {
+func Decimal128(v Decimal) bsoncore.Value {
+	s := v.b.String()
+	d128, err := primitive.ParseDecimal128(s)
+	if err != nil {
+		panic(err.Error())
+	}
+
 	return bsoncore.Value{
 		Type: bsontype.Decimal128,
-		Data: bsoncore.AppendDecimal128(nil, v),
+		Data: bsoncore.AppendDecimal128(nil, d128),
 	}
 }
 

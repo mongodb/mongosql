@@ -200,8 +200,23 @@ func compressProjectionStages(top ast.Stage, bottom ast.Stage) (ast.Stage, bool)
 
 	// Get a list of all of the items from top and bottom in the order in which they appear
 	// in their respective stages.
-	orderedItems := append(getOrderedItemNames(top), getOrderedItemNames(bottom)...)
-
+	var orderedItems []string
+	// If the bottom stage is an inclusion projection, it should define the order of items first,
+	// otherwise the order of the original pipeline will change.
+	if bottomIsInclusionProjection {
+		orderedItems = append(getOrderedItemNames(bottom), getOrderedItemNames(top)...)
+	} else {
+		// If the bottom is an exclude projection or an $addFields, the top should take precedence
+		// for the order. To see this consider:
+		//   {$addFields: {a: 42}}
+		//   {$addFields: {b: 43}}
+		// should rewrite to:
+		//   {$addFields: {a:42, b:43}}
+		// with a before b. This is because the output documents should be of the
+		// form:
+		//   {... a:42, b:43} because $addFields always adds fields to the end of documents.
+		orderedItems = append(getOrderedItemNames(top), getOrderedItemNames(bottom)...)
+	}
 	// Put the top projection items into a map for easy access
 	// and manipulation. We will do this for the bottom projection
 	// items after we have replaced references in bottom with their definition
@@ -810,7 +825,7 @@ func ReplaceRef(root ast.Node, theta map[string]ast.Node) ast.Node {
 			if repl, ok := theta[ast.GetDottedFieldName(tn)]; ok {
 				return repl
 			}
-		case *ast.IncludeProjectItem:
+		case *ast.IncludeProjectItem, *ast.ExcludeProjectItem:
 			return n
 		default:
 			return n.Walk(v)

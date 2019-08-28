@@ -123,6 +123,8 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 		return makeDocStage("$lookup", doc)
 	case *ast.MatchStage:
 		return makeValueStage("$match", DeparseMatchExpr(tn.Expr))
+	case *ast.OutStage:
+		return makeStringStage("$out", tn.CollectionName)
 	case *ast.ProjectStage:
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		for _, i := range tn.Items {

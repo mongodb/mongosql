@@ -120,3 +120,21 @@ func ReferencedFieldRoots(n ast.Node) ([]string, bool) {
 
 	return result, complete
 }
+
+// ReferencedFieldNames returns the unique set of field names
+// as collected from ReferencedFields.
+func ReferencedFieldNames(n ast.Node) ([]string, bool) {
+	fields, complete := ReferencedFields(n, true)
+
+	m := stringutil.NewStringSet()
+	var result []string
+	for _, ref := range fields {
+		fieldName := ast.GetDottedFieldName(ref)
+		if !m.Contains(fieldName) {
+			result = append(result, fieldName)
+			m.Add(fieldName)
+		}
+	}
+
+	return result, complete
+}

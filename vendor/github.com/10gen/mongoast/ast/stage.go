@@ -232,6 +232,16 @@ type MatchStage struct {
 	Expr Expr
 }
 
+// NewOutStage makes an OutStage.
+func NewOutStage(collectionName string) *OutStage {
+	return &OutStage{CollectionName: collectionName}
+}
+
+// OutStage is an output stage.
+type OutStage struct {
+	CollectionName string
+}
+
 // ProjectItem is an item in a ProjectStage.
 type ProjectItem interface {
 	Node

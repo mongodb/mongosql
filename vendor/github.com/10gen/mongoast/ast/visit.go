@@ -336,6 +336,16 @@ func (n *MatchStage) WalkStage(v Visitor) Stage {
 }
 
 // Walk implements the Node interface.
+func (n *OutStage) Walk(v Visitor) Node {
+	return n.WalkStage(v)
+}
+
+// WalkStage implements the Stage interface.
+func (n *OutStage) WalkStage(v Visitor) Stage {
+	return n
+}
+
+// Walk implements the Node interface.
 func (n *ProjectStage) Walk(v Visitor) Node {
 	return n.WalkStage(v)
 }

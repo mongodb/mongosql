@@ -4,6 +4,7 @@ import (
 	"math"
 
 	"github.com/10gen/mongoast/internal/mathutil"
+
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -26,6 +27,13 @@ func Abs(a bsoncore.Value) (bsoncore.Value, error) {
 		return a, nil
 	case bsontype.Double:
 		return Double(math.Abs(a.Double())), nil
+	case bsontype.Decimal128:
+		d, err := NewDecimal(a.Decimal128())
+		if err != nil {
+			return Null(), err
+		}
+
+		return Decimal128(d.Abs()), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -42,6 +50,13 @@ func Ceil(a bsoncore.Value) (bsoncore.Value, error) {
 		return a, nil
 	case bsontype.Double:
 		return Double(math.Ceil(a.Double())), nil
+	case bsontype.Decimal128:
+		d, err := NewDecimal(a.Decimal128())
+		if err != nil {
+			return Null(), err
+		}
+
+		return Decimal128(d.Ceil()), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -58,6 +73,13 @@ func Floor(a bsoncore.Value) (bsoncore.Value, error) {
 		return a, nil
 	case bsontype.Double:
 		return Double(math.Floor(a.Double())), nil
+	case bsontype.Decimal128:
+		d, err := NewDecimal(a.Decimal128())
+		if err != nil {
+			return Null(), err
+		}
+
+		return Decimal128(d.Floor()), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -71,6 +93,13 @@ func Exp(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Int32, bsontype.Int64, bsontype.Double:
 		afloat64 := AsFloat64(a)
 		return Double(math.Exp(afloat64)), nil
+	case bsontype.Decimal128:
+		d, err := NewDecimal(a.Decimal128())
+		if err != nil {
+			return Null(), err
+		}
+
+		return Decimal128(d.Exp()), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -88,6 +117,13 @@ func Ln(a bsoncore.Value) (bsoncore.Value, error) {
 		}
 		// math.Log returns the natural logarithm
 		return Double(math.Log(afloat64)), nil
+	case bsontype.Decimal128:
+		d, err := NewDecimal(a.Decimal128())
+		if err != nil {
+			return Null(), err
+		}
+
+		return Decimal128(d.Log()), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -104,6 +140,13 @@ func Log10(a bsoncore.Value) (bsoncore.Value, error) {
 			return Null(), errors.Errorf("$log10's argument must be a positive number, but is %g", afloat64)
 		}
 		return Double(math.Log10(afloat64)), nil
+	case bsontype.Decimal128:
+		d, err := NewDecimal(a.Decimal128())
+		if err != nil {
+			return Null(), err
+		}
+
+		return Decimal128(d.Log10()), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -120,6 +163,13 @@ func Sqrt(a bsoncore.Value) (bsoncore.Value, error) {
 			return Null(), errors.Errorf("$sqrt's argument must be greater than or equal to 0")
 		}
 		return Double(math.Sqrt(afloat64)), nil
+	case bsontype.Decimal128:
+		d, err := NewDecimal(a.Decimal128())
+		if err != nil {
+			return Null(), err
+		}
+
+		return Decimal128(d.Sqrt()), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -156,6 +206,10 @@ func Add(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		return Double(AsFloat64(a) + AsFloat64(b)), nil
 	case bsontype.Double:
 		return Double(AsFloat64(a) + AsFloat64(b)), nil
+	case bsontype.Decimal128:
+		adec := AsDecimal(a)
+		bdec := AsDecimal(b)
+		return Decimal128(adec.Add(bdec)), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -194,6 +248,26 @@ func addDate(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		adouble := a.Double()
 		bint64 := b.DateTime()
 		return DateTime(int64(math.Round(adouble)) + bint64), nil
+	case bsontype.Decimal128:
+		aint64, _ := AsDecimal(a).RoundToInt().Int64()
+		switch b.Type {
+		case bsontype.Int32:
+			bint32 := b.Int32()
+			return DateTime(aint64 + int64(bint32)), nil
+		case bsontype.Int64:
+			bint64 := b.Int64()
+			return DateTime(aint64 + bint64), nil
+		case bsontype.Double:
+			bdouble := b.Double()
+			return DateTime(aint64 + int64(math.Round(bdouble))), nil
+		case bsontype.Decimal128:
+			bint64, _ := AsDecimal(b).RoundToInt().Int64()
+			return DateTime(aint64 + bint64), nil
+		case bsontype.DateTime:
+			return Null(), errors.New("only one date allowed in an $add expression")
+		default:
+			return Null(), errors.Errorf("$add only supports numeric or date types, not %s", b.Type)
+		}
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -229,6 +303,10 @@ func Sub(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		return Double(AsFloat64(a) - AsFloat64(b)), nil
 	case bsontype.Double:
 		return Double(AsFloat64(a) - AsFloat64(b)), nil
+	case bsontype.Decimal128:
+		adec := AsDecimal(a)
+		bdec := AsDecimal(b)
+		return Decimal128(adec.Sub(bdec)), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -252,6 +330,9 @@ func subDate(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Double:
 		bdouble := b.Double()
 		return DateTime(aint64 - int64(math.Round(bdouble))), nil
+	case bsontype.Decimal128:
+		bint64, _ := AsDecimal(b).RoundToInt().Int64()
+		return DateTime(aint64 - bint64), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -285,6 +366,10 @@ func Mul(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		return Double(AsFloat64(a) * AsFloat64(b)), nil
 	case bsontype.Double:
 		return Double(AsFloat64(a) * AsFloat64(b)), nil
+	case bsontype.Decimal128:
+		adec := AsDecimal(a)
+		bdec := AsDecimal(b)
+		return Decimal128(adec.Mul(bdec)), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -337,6 +422,10 @@ func Mod(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 			return Null(), errors.Errorf("can't $mod by zero")
 		}
 		return Double(math.Mod(afloat, bfloat)), nil
+	case bsontype.Decimal128:
+		adec := AsDecimal(a)
+		bdec := AsDecimal(b)
+		return Decimal128(adec.Mod(bdec)), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -359,6 +448,17 @@ func Log(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 			return Null(), errors.Errorf("$log's base must be a positive number not equal to 1, but is %g", bfloat)
 		}
 		return Double(math.Log(afloat) / math.Log(bfloat)), nil
+	case bsontype.Decimal128:
+		adec := AsDecimal(a)
+		if adec.Cmp(Decimal0) <= 0 {
+			return Null(), errors.Errorf("$log's argument must be a positive number, but is %v", adec.b)
+		}
+		bdec := AsDecimal(b)
+		if bdec.Cmp(Decimal0) <= 0 || bdec.Cmp(Decimal1) == 0 {
+			return Null(), errors.Errorf("$log's base must be a positive number not equal to 1, but is %v", bdec)
+		}
+
+		return Decimal128(adec.LogBase(bdec)), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -408,6 +508,10 @@ func Pow(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		}
 		floatResult := math.Pow(afloat, bfloat)
 		return Double(floatResult), nil
+	case bsontype.Decimal128:
+		adec := AsDecimal(a)
+		bdec := AsDecimal(b)
+		return Decimal128(adec.Pow(bdec)), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
@@ -422,6 +526,12 @@ func Pow(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 
 // Trunc truncates a numeric type to a precision of b
 func Trunc(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
+	if a.Type == bsontype.Decimal128 || b.Type == bsontype.Decimal128 {
+		adec := AsDecimal(a)
+		bint32 := AsInt32(b)
+		return Decimal128(adec.Trunc(int(bint32))), nil
+	}
+
 	var precision float64
 	switch b.Type {
 	case bsontype.Int32, bsontype.Int64:

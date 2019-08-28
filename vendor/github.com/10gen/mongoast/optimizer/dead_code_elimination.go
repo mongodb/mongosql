@@ -21,6 +21,7 @@ func DeadCodeElimination(pipeline *ast.Pipeline) *ast.Pipeline {
 		keepCount++
 		if analyzer.IsFieldKiller(pipeline.Stages[i]) {
 			keepList, _ := analyzer.ReferencedFieldRoots(pipeline.Stages[i])
+
 			liveFields.AddSlice(keepList)
 			i--
 			break

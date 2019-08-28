@@ -47,7 +47,11 @@ func (v *usesVariablesVisitor) Visit(node ast.Node) ast.Node {
 		v.Visit(tn.Input)
 		remaining := stringutil.NewStringSet()
 		remaining.AddSet(v.variables)
-		remaining.Remove(tn.As)
+		if tn.As != "" {
+			remaining.Remove(tn.As)
+		} else {
+			remaining.Remove("this")
+		}
 		v.usesVariables = v.usesVariables || UsesVariables(tn.In, remaining)
 		return node
 	case *ast.Filter:

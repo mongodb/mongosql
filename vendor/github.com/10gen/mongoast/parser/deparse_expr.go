@@ -34,6 +34,13 @@ func shouldPreserveLiteral(v bsoncore.Value) bool {
 func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 	mustIncludeLiteral := len(needsLiteral) != 0 && needsLiteral[0]
 	switch te := e.(type) {
+	// Until we get a clear distinction between Match and AggExprs, this needs to
+	// exist here or DeparseExpr can crash on an AggExpr.
+	case *ast.AggExpr:
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsonutil.AppendValueElement(doc, "$expr", DeparseExpr(te.Expr, mustIncludeLiteral))
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc)
 	case *ast.Array:
 		values := make([]bsoncore.Value, len(te.Elements))
 		for i, e := range te.Elements {
@@ -180,7 +187,7 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 			Data: bsoncore.AppendString(nil, "$$"+te.Name),
 		}
 	// This cannot actually exist in an AggExpr, but until we get a clear distinction
-	// between Match and AggExprs, this needs to exist here or PRE can crash.
+	// between Match and AggExprs, this needs to exist here or DeparseExpr can crash.
 	case *ast.MatchRegex:
 		name := deparseMatchFieldName(te.Expr)
 
@@ -195,7 +202,7 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 
 		return bsonutil.Document(doc)
 	// This cannot actually exist in an AggExpr, but until we get a clear distinction
-	// between Match and AggExprs, this needs to exist here or PRE can crash.
+	// between Match and AggExprs, this needs to exist here or DeparseExpr can crash.
 	case *ast.Exists:
 		name := deparseMatchFieldName(te.FieldRef)
 		_, subdoc := bsoncore.AppendDocumentStart(nil)

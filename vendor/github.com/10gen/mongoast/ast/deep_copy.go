@@ -216,6 +216,11 @@ func (n *MatchStage) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *OutStage) DeepCopy() DeepCopier {
+	return NewOutStage(n.CollectionName)
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *ProjectStage) DeepCopy() DeepCopier {
 	var newItems []ProjectItem
 

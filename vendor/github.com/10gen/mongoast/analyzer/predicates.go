@@ -5,13 +5,13 @@ import (
 )
 
 // SplitPredicate splits the expression into expressions that can be evaluated individually.
-func SplitPredicate(expr ast.Expr) []ast.Expr {
+func SplitPredicate(expr ast.Expr, op ast.BinaryOp) []ast.Expr {
 	var result []ast.Expr
 	switch exprT := expr.(type) {
 	case *ast.Binary:
-		if exprT.Op == ast.And {
-			result = append(result, SplitPredicate(exprT.Left)...)
-			result = append(result, SplitPredicate(exprT.Right)...)
+		if exprT.Op == op {
+			result = append(result, SplitPredicate(exprT.Left, op)...)
+			result = append(result, SplitPredicate(exprT.Right, op)...)
 		} else {
 			result = append(result, exprT)
 		}

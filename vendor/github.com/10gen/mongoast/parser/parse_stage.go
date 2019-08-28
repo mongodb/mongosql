@@ -77,6 +77,12 @@ func ParseStage(doc bsoncore.Document) (ast.Stage, error) {
 			return nil, errors.New("$lookup stage must have a document as its only argument")
 		}
 		return parseLookupStage(vdoc)
+	case "$out":
+		collectionName, ok := e.Value().StringValueOK()
+		if !ok {
+			return nil, errors.New("$out stage requires a string argument")
+		}
+		return ast.NewOutStage(collectionName), nil
 	case "$match":
 		vdoc, ok := e.Value().DocumentOK()
 		if !ok {

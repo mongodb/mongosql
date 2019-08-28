@@ -13,11 +13,10 @@ type Optimization = func(*ast.Pipeline) *ast.Pipeline
 func Optimize(ctx context.Context, pipeline *ast.Pipeline) *ast.Pipeline {
 	return RunPasses(ctx, pipeline,
 		DeadCodeElimination,
-		Reorder,
-		DeadCodeElimination,
 		ProjectionStageCompressionUp,
 		ProjectionStageCompressionDown,
 		DeadCodeElimination,
+		Reorder,
 		LetMinimization,
 		LetMerging,
 		PartialRedundancyElimination,
