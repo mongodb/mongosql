@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2288: Fix failures during foreign key creation with drdl files that have children tables with no _id column
 BI-2311: Fix Windows install directory version label to allow minor versions > 9.
 BI-1617: Pushdown regexp in aggregation language.
 BI-2245: Ensure that writeMode columns are sorted in declaration order. Add support for ALTER TABLE ENABLE/DISABLE KEYS

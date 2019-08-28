@@ -351,6 +351,12 @@ test-sample-size-ten: TABLE := sample_test
 test-sample-size-ten: NUM_COLUMNS := 11
 test-sample-size-ten: test-count-columns
 
+test-show-create-table-child-no-primary-key: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/drdl
+test-show-create-table-child-no-primary-key: build-mongosqld run-mongodb run-mongosqld _test-schema-available _test-connect-success _test-show-create-table-child-no-primary-key
+_test-show-create-table-child-no-primary-key: QUERY := show create table test.foo
+_test-show-create-table-child-no-primary-key: EXPECTED := CREATE TABLE \`foo\` (\n  \`a\` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\" }'\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"foo\" }'
+_test-show-create-table-child-no-primary-key: _test-mysql-query
+
 test-flush-new-collection: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
 test-flush-new-collection: build-mongosqld run-mongodb run-mongosqld _test-schema-available _test-connect-success _write-initial-docs _test-flush-and-count
 _test-flush-and-count: QUERY := flush sample,, select count(*) from information_schema.tables where table_name = 'sample_test'

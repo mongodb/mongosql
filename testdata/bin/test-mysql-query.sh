@@ -38,7 +38,7 @@
         exit 1
     fi
 
-    if [ "$result" != "$EXPECTED" ]; then
+    if [[ "$result" != *"$EXPECTED"* ]]; then
         echo "expected '$EXPECTED', got '$result'"
         exit 1
     fi

@@ -87,14 +87,12 @@ func (b *catalogBuilder) addForeignKeys() {
 					var columns []*results.Column
 					localToForeignColumn := make(map[string]string)
 
-					// First add _id.
+					// First add _id, if it exists.
 					column, err := mongoTable.Column(mongoPrimaryKey)
-					if err != nil {
-						panic(err)
+					if err == nil {
+						columns = append(columns, column)
+						localToForeignColumn[mongoPrimaryKey] = mongoPrimaryKey
 					}
-					columns = append(columns, column)
-					localToForeignColumn[mongoPrimaryKey] = mongoPrimaryKey
-
 					// Then add the columns from the parent's unwind paths.
 					for _, fieldName := range foreignPathsAndAliases.unwindPaths {
 						localColumnName := pathAliases[fieldName]
@@ -108,18 +106,23 @@ func (b *catalogBuilder) addForeignKeys() {
 						columns = append(columns, column)
 					}
 
-					// Construct the foreign key.
-					constraintName := createForeignKeyName(dbName, tblName, foreignTable)
-					newK := ForeignKey{
-						columns:              columns,
-						constraintName:       constraintName,
-						foreignDatabase:      dbName,
-						foreignTable:         foreignTable,
-						localToForeignColumn: localToForeignColumn,
+					// Add the foreignKey if it is not empty. We might miss some
+					// foreign keys due to a failure to have _id in a drdl file for
+					// an array table, but it is the best we can do since the user does not
+					// want to map the foreign key into the table.
+					if len(localToForeignColumn) != 0 {
+						// Construct the foreign key.
+						constraintName := createForeignKeyName(dbName, tblName, foreignTable)
+						newK := ForeignKey{
+							columns:              columns,
+							constraintName:       constraintName,
+							foreignDatabase:      dbName,
+							foreignTable:         foreignTable,
+							localToForeignColumn: localToForeignColumn,
+						}
+						// Add the foreign key to the table.
+						mongoTable.foreignKeys = append(mongoTable.foreignKeys, newK)
 					}
-
-					// Add the foreign key to the table.
-					mongoTable.foreignKeys = append(mongoTable.foreignKeys, newK)
 				}
 			}
 		}

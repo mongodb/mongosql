@@ -1463,6 +1463,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-show-create-table-child-no-primary-key
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-flush-new-collection
   tags: ["test", "config"]
 

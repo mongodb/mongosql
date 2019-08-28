@@ -1,0 +1,19 @@
+schema:
+
+  - db: test
+    tables:
+      - table: foo
+        collection: foo
+        columns:
+          - Name: a
+            MongoType: int
+            SqlName: a
+            SqlType: int
+      - table: foo_child
+        collection: foo
+        pipeline: [{$unwind: {path: '$b', includeArrayIndex: 'b_idx'}}]
+        columns:
+          - Name: b
+            MongoType: int
+            SqlName: b
+            SqlType: int
