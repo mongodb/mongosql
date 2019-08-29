@@ -555,7 +555,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	var actual string
 	ms, ok := pushedDown.(*evaluator.MongoSourceStage)
 	if ok {
-		actual = astprint.String(ms.Pipeline())
+		actual = astprint.ShellString(ms.Pipeline())
 	}
 
 	return actual

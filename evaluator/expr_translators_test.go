@@ -639,7 +639,7 @@ func translateExpr(t *testing.T, version []uint8, sql string, sqlValueKind value
 	translated, pf := translator.TranslateExpr(e)
 
 	if pf == nil {
-		return astprint.String(translated)
+		return astprint.ShellString(translated)
 	}
 
 	return ""
@@ -791,17 +791,17 @@ func TestTranslateSQLValue(t *testing.T) {
 	tests := []test{
 		{"SQLTrue", values.NewSQLBool(values.MySQLValueKind, true), `true`},
 		{"SQLFalse", values.NewSQLBool(values.MySQLValueKind, false), `false`},
-		{"SQLFloat", values.NewSQLFloat(values.MySQLValueKind, 1.1), `{"$numberDouble":"1.1"}`},
-		{"SQLInt", values.NewSQLInt64(values.MySQLValueKind, 11), `{"$numberLong":"11"}`},
-		{"SQLUint", values.NewSQLUint64(values.MySQLValueKind, 32), `{"$numberLong":"32"}`},
+		{"SQLFloat", values.NewSQLFloat(values.MySQLValueKind, 1.1), `1.1`},
+		{"SQLInt", values.NewSQLInt64(values.MySQLValueKind, 11), `NumberLong("11")`},
+		{"SQLUint", values.NewSQLUint64(values.MySQLValueKind, 32), `NumberLong("32")`},
 		{"SQLVarchar", values.NewSQLVarchar(values.MySQLValueKind, "vc"),
 			`"vc"`},
 		{"SQLNull", values.NewSQLNull(values.MySQLValueKind),
 			`null`},
 		{"SQLDate", values.NewSQLDate(values.MySQLValueKind, datetime),
-			`{"$date":{"$numberLong":"1354838400000"}}`},
+			`ISODate("2012-12-07T00:00:00")`},
 		{"SQLTimestamp", values.NewSQLTimestamp(values.MySQLValueKind, datetime),
-			`{"$date":{"$numberLong":"1354882530918"}}`},
+			`ISODate("2012-12-07T12:15:30.918")`},
 	}
 
 	// Should always translate on any server version.
@@ -819,7 +819,7 @@ func TestTranslateSQLValue(t *testing.T) {
 			translation, pf := translator.TranslateExpr(evaluator.NewSQLValueExpr(test.sqlValue))
 			req.Nil(pf)
 
-			jsonResult := astprint.String(translation)
+			jsonResult := astprint.ShellString(translation)
 
 			req.Equal(test.expected, jsonResult, "they should be equal")
 		})
