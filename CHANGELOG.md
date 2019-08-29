@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2232: No user-facing changes.
 BI-2312: Revendor mongoast to get the newest optimizations.
 BI-2289: Fix failing tpch-queries.
 BI-2288: Fix failures during foreign key creation with drdl files that have children tables with no _id column
