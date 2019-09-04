@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.12
 
+BI-2161: Fix bug that caused mongosqld to hang if an election occurred during sampling. Now, an error will be returned. Clients can continue to connect to mongosqld after the election.
 BI-2261: No user-facing changes.
 BI-2232: No user-facing changes.
 BI-2312: Revendor mongoast to get the newest optimizations.

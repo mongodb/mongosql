@@ -35,7 +35,7 @@ func NewTranslator(ctx context.Context, cfg *config.Schema, s *mongodb.SessionPr
 	lgr := log.GlobalLogger()
 	log.SetOutputWriter(ioutil.Discard)
 
-	session, err := s.AuthenticatedAdminSession(context.Background())
+	session, err := s.AuthenticatedAdminSession()
 	if err != nil {
 		return nil, err
 	}

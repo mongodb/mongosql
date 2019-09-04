@@ -8,7 +8,11 @@
 
     echo "creating view..."
 
-    "$ARTIFACTS_DIR/mongodb/bin/mongo" $MONGO_CLIENT_ARGS --eval "db.createView('$VIEW', '$SOURCE', [])" "$DATABASE"
+    if [[ -z $PIPELINE ]]; then
+        PIPELINE='[]'
+    fi
+
+    "$ARTIFACTS_DIR/mongodb/bin/mongo" $MONGO_CLIENT_ARGS --eval "db.createView('$VIEW', '$SOURCE', $PIPELINE)" "$DATABASE"
 
     echo "done creating view"
 

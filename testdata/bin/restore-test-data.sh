@@ -20,7 +20,8 @@
         -timeout 4h \
         -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
-        -automate $AUTOMATE_OPTS
+        -automate $AUTOMATE_OPTS \
+        $ADDITIONAL_TEST_FLAGS
     echo "done restoring test data"
 
 ) > $LOG_FILE 2>&1

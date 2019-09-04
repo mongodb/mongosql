@@ -365,3 +365,18 @@ _test-flush-and-count: _test-mysql-query
 
 _test-flush:
 	$(ENV) EXPECTED_STATUS='0' EXPECTED_ERROR='' testdata/bin/test-flush.sh
+
+# BI-2161: test that sampling does not hang if an election occurs during sampling.
+# The tableau data does not take long to sample, so we create a view which has a
+# pipeline that takes about 2 minutes.
+test-sampling-does-not-hang-after-election: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/replica-set
+test-sampling-does-not-hang-after-election: SUITE := tableau
+test-sampling-does-not-hang-after-election: DATABASE := tableau
+test-sampling-does-not-hang-after-election: VIEW := expensive_view
+test-sampling-does-not-hang-after-election: SOURCE := flights201406
+test-sampling-does-not-hang-after-election: PIPELINE := [{"$match": {"origin_airport_code": {"$ne": null}}}, {"$lookup": {"from": "attendees","localField": "origin_airport_code","foreignField": "airport_code","as": "__joined_b"}}, {"$unwind": "$__joined_b"}, {"$project": {"tableau_DOT_a_DOT__id": "$_id","tableau_DOT_b_DOT_airport_code": "$__joined_b.airport_code","_id": NumberInt("0")}}]
+test-sampling-does-not-hang-after-election: SQLPROXY_ARGS := --mongo-uri "mongodb://localhost:27017,localhost:27018,localhost:27019/?replicaSet=replset"
+test-sampling-does-not-hang-after-election: build-mongosqld run-mongodb run-mongosqld restore-data _create-view _trigger_election_during_sampling
+
+_trigger_election_during_sampling:
+	$(ENV) testdata/bin/test-election-during-sampling.sh

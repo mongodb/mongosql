@@ -51,7 +51,7 @@ func (s Sampler) Sample(ctx context.Context) (*schema.Schema, error) {
 }
 
 func (s Sampler) writeModeSample(ctx context.Context) (*schema.Schema, error) {
-	session, err := s.sp.AuthenticatedAdminSessionPrimary(ctx)
+	session, err := s.sp.AuthenticatedAdminSessionPrimary()
 	if err != nil {
 		return nil, err
 	}
@@ -94,7 +94,7 @@ func (s Sampler) writeModeSample(ctx context.Context) (*schema.Schema, error) {
 func (s Sampler) getWriteModeTables(ctx context.Context, session *mongodb.Session, db string) ([]*schema.Table, error) {
 	collectionCursor, err := session.ListCollections(ctx, db, driver.CursorOptions{})
 	if err != nil {
-		return nil, fmt.Errorf("can't get the collection for '%v': %v", db, err)
+		return nil, fmt.Errorf("can't get the collections for '%v': %v", db, err)
 	}
 
 	tables := []*schema.Table{}
@@ -364,7 +364,7 @@ func deserializeIndexParts(indexKey bson.D) []schema.IndexPart {
 // Sample samples the MongoDB namespaces indicated by the sampler config. It
 // returns the relational schema generated from the sampled schema.
 func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
-	session, err := s.sp.AuthenticatedAdminSessionPrimary(ctx)
+	session, err := s.sp.AuthenticatedAdminSessionPrimary()
 	if err != nil {
 		return nil, err
 	}

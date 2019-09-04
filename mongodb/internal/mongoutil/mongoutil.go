@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 )
@@ -15,6 +16,7 @@ func ExecuteWithDeployment(
 	ctx context.Context,
 	db string,
 	d driver.Deployment,
+	rp *readpref.ReadPref,
 	cmd bson.D,
 	result interface{},
 ) error {
@@ -23,7 +25,7 @@ func ExecuteWithDeployment(
 		return fmt.Errorf("unable to marshal command: %v", err)
 	}
 
-	c := operation.NewCommand(doc).Database(db).Deployment(d)
+	c := operation.NewCommand(doc).Database(db).Deployment(d).ReadPreference(rp)
 	if err = c.Execute(ctx); err != nil {
 		return fmt.Errorf("unable to execute command: %v", err)
 	}
@@ -42,9 +44,10 @@ func ExecuteWithConnection(
 	ctx context.Context,
 	db string,
 	c driver.Connection,
+	rp *readpref.ReadPref,
 	cmd bson.D,
 	result interface{},
 ) error {
 	d := driver.SingleConnectionDeployment{C: c}
-	return ExecuteWithDeployment(ctx, db, d, cmd, result)
+	return ExecuteWithDeployment(ctx, db, d, rp, cmd, result)
 }

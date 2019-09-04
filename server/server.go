@@ -200,7 +200,7 @@ func (s *Server) Resample(ctx context.Context) (*schema.Schema, error) {
 
 // loadMongoDBInfo loads MongoDB-specific information for the server.
 func (s *Server) loadMongoDBInfo(ctx context.Context) error {
-	adminSession, err := s.sessionProvider.AuthenticatedAdminSession(ctx)
+	adminSession, err := s.sessionProvider.AuthenticatedAdminSession()
 	if err != nil {
 		return fmt.Errorf("failed to create admin session for loading server cluster information: %v", err)
 	}
@@ -209,7 +209,7 @@ func (s *Server) loadMongoDBInfo(ctx context.Context) error {
 	}()
 
 	i := &mongodb.Info{}
-	if err = i.LoadVersionInfo(ctx, adminSession); err != nil {
+	if err := i.LoadVersionInfo(ctx, adminSession); err != nil {
 		return fmt.Errorf("failed to load server version information: %v", err)
 	}
 

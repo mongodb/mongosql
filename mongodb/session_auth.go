@@ -141,7 +141,7 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []driver.Conn
 		)
 
 		var saslResp SaslResponse
-		err = mongoutil.ExecuteWithConnection(ctx, source, conns[i], saslStartRequest, &saslResp)
+		err = mongoutil.ExecuteWithConnection(ctx, source, conns[i], nil, saslStartRequest, &saslResp)
 		if err != nil || saslResp.Code != 0 {
 			return fmt.Errorf("unable to saslStart conversation %d: %s", i, err)
 		}
@@ -173,7 +173,7 @@ func (a *SaslSessionAuthenticator) Auth(ctx context.Context, conns []driver.Conn
 			)
 
 			var saslResp SaslResponse
-			err = mongoutil.ExecuteWithConnection(ctx, source, conns[i], saslContinueRequest, &saslResp)
+			err = mongoutil.ExecuteWithConnection(ctx, source, conns[i], nil, saslContinueRequest, &saslResp)
 			if err != nil || saslResp.Code != 0 {
 				return fmt.Errorf("unable to saslContinue conversation %d: %s", i, err)
 			}

@@ -21,7 +21,7 @@ import (
 )
 
 // Session holds information used to create a connection
-// to MongoDB.
+// to MongoDB. See mongodb/README.md for more details.
 type Session struct {
 	clientAddresses []string
 	deployment      driver.Deployment
@@ -42,7 +42,9 @@ func (s *Session) AuthSource() string {
 // Close closes the direct server connection
 // associated with this session.
 func (s *Session) Close() error {
-	s.pool.Close()
+	if s.pool != nil {
+		s.pool.Close()
+	}
 	return nil
 }
 
@@ -135,7 +137,12 @@ func (s *Session) Aggregate(ctx context.Context, database, collection string, pi
 		return nil, fmt.Errorf("error converting aggregation pipeline to raw array: %v", err)
 	}
 
-	c := operation.NewAggregate(pipelineArr).Database(database).Collection(collection).Deployment(s.deployment).AllowDiskUse(true)
+	c := operation.NewAggregate(pipelineArr).
+		Database(database).
+		Collection(collection).
+		Deployment(s.deployment).
+		AllowDiskUse(true).
+		ReadPreference(s.rp)
 
 	// When the query context has a deadline then we supply the amount of
 	// time we have left as the max time to try to execute the query in.
@@ -197,7 +204,11 @@ func (s *Session) Delete(ctx context.Context, db, col string, query bson.D) erro
 	}
 
 	wc := writeconcern.New(writeconcern.WMajority())
-	c := operation.NewDelete(deleteDocBytes).Database(db).Collection(col).Deployment(s.deployment).WriteConcern(wc)
+	c := operation.NewDelete(deleteDocBytes).
+		Database(db).
+		Collection(col).
+		Deployment(s.deployment).
+		WriteConcern(wc)
 
 	err = c.Execute(ctx)
 	if err != nil {
@@ -220,7 +231,11 @@ func (s *Session) Insert(ctx context.Context, db, col string, docs []interface{}
 	}
 
 	wc := writeconcern.New(writeconcern.WMajority())
-	c := operation.NewInsert(docsToInsert...).Database(db).Collection(col).Deployment(s.deployment).WriteConcern(wc)
+	c := operation.NewInsert(docsToInsert...).
+		Database(db).
+		Collection(col).
+		Deployment(s.deployment).
+		WriteConcern(wc)
 
 	err = c.Execute(ctx)
 	if err != nil {
@@ -245,7 +260,11 @@ func (s *Session) Upsert(ctx context.Context, db, col string, query, update inte
 	}
 
 	wc := writeconcern.New(writeconcern.WMajority())
-	c := operation.NewUpdate(updateDocBytes).Database(db).Collection(col).Deployment(s.deployment).WriteConcern(wc)
+	c := operation.NewUpdate(updateDocBytes).
+		Database(db).
+		Collection(col).
+		Deployment(s.deployment).
+		WriteConcern(wc)
 
 	err = c.Execute(ctx)
 	if err != nil {
@@ -258,7 +277,10 @@ func (s *Session) Upsert(ctx context.Context, db, col string, query, update inte
 // ListCollections returns a cursor to iterate through the collections
 // present on the db database with options opts.
 func (s *Session) ListCollections(ctx context.Context, db string, opts driver.CursorOptions) (Cursor, error) {
-	cmd := operation.NewListCollections(nil).Database(db).Deployment(s.deployment)
+	cmd := operation.NewListCollections(nil).
+		Database(db).
+		Deployment(s.deployment).
+		ReadPreference(s.rp)
 	if err := cmd.Execute(ctx); err != nil {
 		return nil, fmt.Errorf("error listing collections for '%v': %v", db, err)
 	}
@@ -274,7 +296,10 @@ func (s *Session) ListCollections(ctx context.Context, db string, opts driver.Cu
 // ListDatabases returns a cursor to iterate through
 // the database names present on a server.
 func (s *Session) ListDatabases(ctx context.Context) (*operation.ListDatabasesResult, error) {
-	cmd := operation.NewListDatabases(nil).Database("admin").Deployment(s.deployment)
+	cmd := operation.NewListDatabases(nil).
+		Database("admin").
+		Deployment(s.deployment).
+		ReadPreference(s.rp)
 	if err := cmd.Execute(ctx); err != nil {
 		return nil, fmt.Errorf("error listing databases: %v", err)
 	}
@@ -286,7 +311,10 @@ func (s *Session) ListDatabases(ctx context.Context) (*operation.ListDatabasesRe
 // ListIndexes returns a cursor to iterate through the
 // indexes on the c collection within the db database.
 func (s *Session) ListIndexes(ctx context.Context, db, col string) (Cursor, error) {
-	cmd := operation.NewListIndexes().Database(db).Collection(col).Deployment(s.deployment)
+	cmd := operation.NewListIndexes().
+		Database(db).
+		Collection(col).
+		Deployment(s.deployment)
 	if err := cmd.Execute(ctx); err != nil {
 		return nil, fmt.Errorf("error listing indexes for '%v'.'%v': %v", db, col, err)
 	}
@@ -531,5 +559,5 @@ func (s *Session) DropDatabase(ctx context.Context, db string) error {
 
 // Run executes an arbitrary command against the given database.
 func (s *Session) Run(ctx context.Context, db string, cmd bson.D, result interface{}) error {
-	return mongoutil.ExecuteWithDeployment(ctx, db, s.deployment, cmd, result)
+	return mongoutil.ExecuteWithDeployment(ctx, db, s.deployment, s.rp, cmd, result)
 }

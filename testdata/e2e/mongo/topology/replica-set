@@ -1,2 +1,3 @@
 
 TOPOLOGY=replica_set
+ADDITIONAL_TEST_FLAGS="-mongoHost replset/localhost:27017,localhost:27018,localhost:27019"

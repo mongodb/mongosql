@@ -1467,6 +1467,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-sampling-does-not-hang-after-election
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-flush-new-collection
   tags: ["test", "config"]
 
@@ -2125,7 +2129,7 @@ buildvariants:
       os_full_matrix:
       - "osx"
     then:
-      remove_tasks: [".mongo-tls", "test-kill-queries-sharded", "test-kill-queries-replica-set"]
+      remove_tasks: [".mongo-tls", "test-kill-queries-sharded", "test-kill-queries-replica-set", "test-sampling-does-not-hang-after-election"]
 
 - name: race-detector
   display_name: Race Detector (RHEL 7.0)

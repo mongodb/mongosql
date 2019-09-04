@@ -17,7 +17,7 @@ test-mongo-auth-drdl-no-creds: test-connect-success
 # when auth is enabled on mongodb and sqlproxy but the provided admin credentials
 # are invalid, we expect the connection to be rejected
 test-mongo-auth-drdl-wrong-admin-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/auth/wrong-admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds,sqlproxy/schema/drdl
-test-mongo-auth-drdl-wrong-admin-creds: EXPECTED_ERROR := ERROR 1043 (08S01): error retrieving information from MongoDB: failed to create admin session for loading cluster information: unable to authenticate conversation 0: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.
+test-mongo-auth-drdl-wrong-admin-creds: EXPECTED_ERROR := ERROR 1043 (08S01): error retrieving information from MongoDB: failed to create admin session for loading cluster information: unable to execute command: connection() : auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.
 test-mongo-auth-drdl-wrong-admin-creds: test-connect-failure
 
 # when auth is enabled on mongodb and sqlproxy but the admin user does not have

@@ -141,7 +141,7 @@ func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userS
 		}
 	}()
 
-	adminSession, err := sp.AuthenticatedAdminSession(context.Background())
+	adminSession, err := sp.AuthenticatedAdminSession()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create admin session for loading cluster information: %v", err)
 	}

@@ -34,7 +34,7 @@ func NewPersistor(sp *mongodb.SessionProvider, schemaSourceDB string) Persistor 
 
 // FindNames retrieves all stored Names.
 func (p Persistor) FindNames(ctx context.Context) ([]Name, error) {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ type SchemaInfo struct {
 
 // FindSchemas retrieves info on all stored Schemas.
 func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return nil, err
 	}
@@ -97,7 +97,7 @@ func (p Persistor) FindSchemas(ctx context.Context) ([]SchemaInfo, error) {
 // FindSchemaByName returns the drdl.Schema corresponding to the provided name,
 // if the name and its corresponding schema both exist.
 func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Schema, error) {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (p Persistor) FindSchemaByName(ctx context.Context, name string) (*drdl.Sch
 // FindSchemaByID returns the drdl.Schema corresponding to the provided
 // ObjectId if it exists.
 func (p Persistor) FindSchemaByID(ctx context.Context, schemaID primitive.ObjectID) (*drdl.Schema, error) {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return nil, err
 	}
@@ -178,7 +178,7 @@ func (p Persistor) FindSchemaByID(ctx context.Context, schemaID primitive.Object
 // DeleteSchema deletes the drdl.Schema corresponding to the provided ObjectId
 // if it exists.
 func (p Persistor) DeleteSchema(ctx context.Context, schemaID primitive.ObjectID) error {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return err
 	}
@@ -190,7 +190,7 @@ func (p Persistor) DeleteSchema(ctx context.Context, schemaID primitive.ObjectID
 
 // DeleteName deletes the provided name if it exists.
 func (p Persistor) DeleteName(ctx context.Context, name string) error {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return err
 	}
@@ -203,7 +203,7 @@ func (p Persistor) DeleteName(ctx context.Context, name string) error {
 // InsertSchema inserts the provided drdl.Schema, returning the ObjectId by
 // which it can be referenced in the future.
 func (p Persistor) InsertSchema(ctx context.Context, drdlSchema *drdl.Schema) (primitive.ObjectID, error) {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return primitive.NilObjectID, err
 	}
@@ -223,7 +223,7 @@ func (p Persistor) InsertSchema(ctx context.Context, drdlSchema *drdl.Schema) (p
 // specified ObjectId. If the provided name does not exist, a new one is
 // created instead.
 func (p Persistor) UpsertName(ctx context.Context, name string, schemaID primitive.ObjectID) error {
-	s, err := p.session(ctx)
+	s, err := p.session()
 	if err != nil {
 		return err
 	}
@@ -235,6 +235,6 @@ func (p Persistor) UpsertName(ctx context.Context, name string, schemaID primiti
 	return s.Upsert(ctx, p.schemaSourceDB, namesCollection, query, update)
 }
 
-func (p Persistor) session(ctx context.Context) (*mongodb.Session, error) {
-	return p.sessionProvider.AuthenticatedAdminSessionPrimary(ctx)
+func (p Persistor) session() (*mongodb.Session, error) {
+	return p.sessionProvider.AuthenticatedAdminSessionPrimary()
 }
