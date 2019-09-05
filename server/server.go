@@ -183,13 +183,13 @@ func (s *Server) killQuery(ctx context.Context, targetConnID uint32, requestingC
 	// target connection's context. This is because the alternative of having the target query
 	// running without cancelling the context will prevent the user on the target connection from
 	// issuing subsequent queries until the current query is completed. It is preferable to allow
-	// subsequent queries to be issued, with the possiblity of no connections being available in the
+	// subsequent queries to be issued, with the possibility of no connections being available in the
 	// target connection's session to execute them, than to not allow any queries to be accepted.
 	clientAddresses := targetConn.session.GetClientAddresses()
 
 	// Cancel the query's context before doing KillOps for testing purposes to prevent receiving a
 	// QueryPlanKilled error from MongoDB.
-	targetConn.cancelQueryCtx()
+	defer targetConn.cancelQueryCtx()
 	return requestingConn.session.KillOps(ctx, clientAddresses)
 }
 

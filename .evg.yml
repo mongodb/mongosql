@@ -1499,6 +1499,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-config-test
+  name: test-kill-queries-wrong-user-continue-running
+  tags: ["test", "config"]
+
+- <<: *run-config-test
   name: test-kill-queries-admin-user
   tags: ["test", "config"]
 

@@ -6,11 +6,18 @@
 check_currentop() {
     # Check that no query is running on MongoDB
     currentOps=$($mongoBin $1 $MONGO_CLIENT_ARGS --quiet --eval "db.currentOp({'planSummary': {\$exists: 1}}).inprog")
-    if [[ $currentOps == *"$rand"* ]]; then
-        echo "The following MongoDB operation(s) for job $j is/are still runnning:"
-        echo $currentOps
-        exit 1
-    fi
+    numSleeps=0
+    while [[ $currentOps == *"$rand"* ]]; do
+        # To improve test reliability, wait up to 15 seconds for mongo to reflect the killed op
+        if [ $numSleeps -gt 15 ]; then
+            echo "The following MongoDB operation(s) for job $j is/are still runnning:"
+            echo $currentOps
+            exit 1
+        fi
+        sleep 1
+        numSleeps=$((numSleeps + 1))
+        currentOps=$($mongoBin $1 $MONGO_CLIENT_ARGS --quiet --eval "db.currentOp({'planSummary': {\$exists: 1}}).inprog")
+    done
 }
 
 get_shard_uri() {
@@ -102,7 +109,7 @@ run_test() {
     fi
 
     # If we do not expect user 2 to successfully kill the query, then user 1 should do it.
-    if [ "$KILLING_USER" != "2" ]; then
+    if [[ -z "$DO_NOT_KILL" && "$KILLING_USER" != "2" ]]; then
         echo "Attempting to kill query $j with user 1. Command: '$killQuery'"
         # Kill the query with user 1
         killResult=$(MYSQL_PWD=$user1Pwd mysql $user1ClientArgs -e "$killQuery" 2>&1)
@@ -122,26 +129,31 @@ run_test() {
     code=$?
     set -o errexit
 
-    endTime=$(date +%s)
-    killTime=$((endTime-startTime))
+    if [ -z "$DO_NOT_KILL" ]; then
+        endTime=$(date +%s)
+        killTime=$((endTime-startTime))
 
-    # If the exit code is 0, then the query completed too early
-    # The maximum acceptable time is 120 seconds to improve test reliability.
-    if [ $killTime -gt 120 ] && [ "$code" != "0" ]; then
-        echo "query $j took too long to kill: $killTime seconds"
-        exit 1
+        # If the exit code is 0, then the query completed too early
+        # The maximum acceptable time is 120 seconds to improve test reliability.
+        if [ $killTime -gt 120 ] && [ "$code" != "0" ]; then
+            echo "query $j took too long to kill: $killTime seconds"
+            exit 1
+        fi
     fi
 
-    # Read the second line of output from the target query
-    result=$(sed -n '2p' $outFile)
-    if [ "$code" == "1" ]; then
-        if [ "$result" != "$EXPECTED_ERROR" ]; then
-            echo "expected '$EXPECTED_ERROR', got '$result' for target query: '$targetQuery' output: $(cat $outFile)"
+    # Read output from the target query. The outFile's first line is the connection id.
+    # The second line and below is the output of the target query.
+    result=$(tail -n 1 $outFile)
+    if [ "$code" == "$EXPECTED_CODE" ]; then
+        if ! [[ "$result" =~ "$EXPECTED_RESULT"* ]]; then
+            echo "expected '$EXPECTED_RESULT', got '$result' for target query: '$targetQuery' output: $(cat $outFile)"
             exit 1
         fi
     else
-        echo "target query '$cmd' exited with code $code. Output: $result"
-        echo "WARNING: the query being testing didn't take as long as expected"
+        echo "target query '$cmd' exited with code $code, expected $EXPECTED_CODE. Output: $result"
+        if [ "$EXPECTED_CODE" == "1" ]; then
+            echo "WARNING: the query being testing didn't take as long as expected"
+        fi
     fi
     rm -rf $outFile
 
@@ -203,6 +215,10 @@ run_test() {
     fi
     if [ -z $PROCS ]; then
         PROCS=5
+    fi
+
+    if [ -z "$EXPECTED_CODE" ]; then
+        EXPECTED_CODE=1
     fi
 
     # Allow this test to be repeated multiple times
