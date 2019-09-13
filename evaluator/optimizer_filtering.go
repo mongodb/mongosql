@@ -172,6 +172,34 @@ func (v *filteringOptimizer) visit(n Node) (Node, error) {
 
 		return n, nil
 
+	case SQLDoubleSubqueryExpr:
+
+		leftPlan, err := optimizeFiltering(v.cfg, typedN.LeftPlan())
+		if err != nil {
+			return nil, err
+		}
+
+		rightPlan, err := optimizeFiltering(v.cfg, typedN.RightPlan())
+		if err != nil {
+			return nil, err
+		}
+
+		if !(leftPlan == typedN.LeftPlan() && rightPlan == typedN.RightPlan()) {
+			switch subtypedN := typedN.(type) {
+			case *SQLSubqueryCmpExpr:
+				n = NewSQLSubqueryCmpExpr(subtypedN.leftCorrelated, subtypedN.rightCorrelated,
+					leftPlan.(PlanStage), rightPlan.(PlanStage), subtypedN.operator)
+			case *SQLSubqueryAnyExpr:
+				n = NewSQLSubqueryAnyExpr(subtypedN.leftCorrelated, subtypedN.rightCorrelated,
+					leftPlan.(PlanStage), rightPlan.(PlanStage), subtypedN.operator)
+			case *SQLSubqueryAllExpr:
+				n = NewSQLSubqueryAllExpr(subtypedN.leftCorrelated, subtypedN.rightCorrelated,
+					leftPlan.(PlanStage), rightPlan.(PlanStage), subtypedN.operator)
+			}
+		}
+
+		return n, nil
+
 	case *SubquerySourceStage:
 		dbNames := generateDbSetFromColumns(typedN.Columns())
 		for dbName := range dbNames {

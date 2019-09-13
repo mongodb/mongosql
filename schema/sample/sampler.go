@@ -550,7 +550,7 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 				if err != nil {
 					return nil, fmt.Errorf("error including sample: %v", err)
 				}
-				doc = bsonutil.NewD()
+				doc = doc[:]
 				count++
 			}
 
