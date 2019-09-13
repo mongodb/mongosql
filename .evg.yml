@@ -707,7 +707,7 @@ tasks:
 
 - name: benchmark-tpch-micro
   tags: [ "benchmark" ]
-  exec_timeout_secs: 57600  # 16h
+  exec_timeout_secs: 302400  # 3.5 days
   commands:
     - func: "start mongodb"
       vars:
@@ -716,7 +716,7 @@ tasks:
     - func: "start mongosqld"
       vars:
         var_schema_mapping_mode: lattice
-    - func: "run benchmarks"
+    - func: "run tpch benchmarks"
       vars:
         var_type: tpch-micro
     - func: "process benchmark results"
