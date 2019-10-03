@@ -5,7 +5,7 @@ A line should be added to this file for each commit made to this repository.
 If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
-
+- BI-2272: Enables `select *,<expr>` functionality.
 - BI-2230: No user-facing changes
 
 ## 2.12
