@@ -1178,7 +1178,7 @@ func (a *algebrizer) translateSelectExprs(
 	selectExprs parser.SelectExprs) (ProjectedColumns, error) {
 	var projectedColumns ProjectedColumns
 	mode := a.cfg.polymorphicTypeConversionMode
-	
+
 	for _, selectExpr := range selectExprs {
 		switch typedE := selectExpr.(type) {
 
@@ -1205,9 +1205,9 @@ func (a *algebrizer) translateSelectExprs(
 					projectedColumns = append(projectedColumns, projectedColumn)
 				}
 			}
-			
+
 		case *parser.NonStarExpr:
-			
+
 			currentAggregateLength := len(a.aggregates)
 			translatedExpr, err := a.translateExpr(typedE.Expr)
 			if err != nil {
