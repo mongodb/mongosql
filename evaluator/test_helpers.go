@@ -152,35 +152,6 @@ func GetAllocatedMemorySizeAfterIteration(stage PlanStage) uint64 {
 	return mem
 }
 
-// GetBinaryExprLeaves gets the left and right leaves of binary SQLExprs.
-func GetBinaryExprLeaves(expr SQLExpr) (SQLExpr, SQLExpr) {
-	switch typedE := expr.(type) {
-	case *SQLAndExpr:
-		return typedE.left, typedE.right
-	case *SQLAddExpr:
-		return typedE.left, typedE.right
-	case *SQLSubtractExpr:
-		return typedE.left, typedE.right
-	case *SQLMultiplyExpr:
-		return typedE.left, typedE.right
-	case *SQLDivideExpr:
-		return typedE.left, typedE.right
-	case *SQLEqualsExpr:
-		return typedE.left, typedE.right
-	case *SQLLessThanExpr:
-		return typedE.left, typedE.right
-	case *SQLGreaterThanExpr:
-		return typedE.left, typedE.right
-	case *SQLLessThanOrEqualExpr:
-		return typedE.left, typedE.right
-	case *SQLGreaterThanOrEqualExpr:
-		return typedE.left, typedE.right
-	case *SQLLikeExpr:
-		return typedE.left, typedE.right
-	}
-	return nil, nil
-}
-
 // GetCatalog builds a catalog for a schema and container.
 func GetCatalog(schema *schema.Schema, variables *variable.Container, info *mongodb.Info) catalog.Catalog {
 	c, err := catalog.Build(schema, variables, info, false)

@@ -1710,13 +1710,11 @@ func TestReconcileArithmetic(t *testing.T) {
 	// Arguments to arithmetic expressions are converted using the following
 	// rules: do not convert numeric types; do convert non-numeric types to
 	// Decimal128 if either argument is a Datetime, non-numeric types to Int64
-	// if either argument is a Date, and other non-numeric types to Float or
-	// the numeric type of the other argument (if the other argument is a
-	// number).
+	// if either argument is a Date, and other non-numeric types to Float.
 
 	type test struct {
 		name          string
-		binaryNode    sqlBinaryNode
+		input         []SQLExpr
 		expectedTypes []types.EvalType
 	}
 
@@ -1733,99 +1731,25 @@ func TestReconcileArithmetic(t *testing.T) {
 	objectIDVal := NewSQLValueExpr(values.NewSQLObjectID(knd, "000000000000000000000000"))
 
 	tests := []test{
-		{"sqlBinaryNode(int,int)", sqlBinaryNode{intVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(int,uint)", sqlBinaryNode{intVal, uintVal}, []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"sqlBinaryNode(int,float)", sqlBinaryNode{intVal, floatVal}, []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"sqlBinaryNode(int,decimal)", sqlBinaryNode{intVal, decimalVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sqlBinaryNode(int,bool)", sqlBinaryNode{intVal, boolVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(int,str)", sqlBinaryNode{intVal, strVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(int,date)", sqlBinaryNode{intVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(int,datetime)", sqlBinaryNode{intVal, datetimeVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sqlBinaryNode(int,objectid)", sqlBinaryNode{intVal, objectIDVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(uint,int)", sqlBinaryNode{uintVal, intVal}, []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"sqlBinaryNode(uint,uint)", sqlBinaryNode{uintVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sqlBinaryNode(uint,float)", sqlBinaryNode{uintVal, floatVal}, []types.EvalType{types.EvalUint64, types.EvalDouble}},
-		{"sqlBinaryNode(uint,decimal}", sqlBinaryNode{uintVal, decimalVal}, []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"sqlBinaryNode(uint,bool)", sqlBinaryNode{uintVal, boolVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sqlBinaryNode(uint,str)", sqlBinaryNode{uintVal, strVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sqlBinaryNode(uint,date)", sqlBinaryNode{uintVal, dateVal}, []types.EvalType{types.EvalUint64, types.EvalInt64}},
-		{"sqlBinaryNode(uint,datetime)", sqlBinaryNode{uintVal, datetimeVal}, []types.EvalType{types.EvalUint64, types.EvalDecimal128}},
-		{"sqlBinaryNode(uint,objectid)", sqlBinaryNode{uintVal, objectIDVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sqlBinaryNode(float,int)", sqlBinaryNode{floatVal, intVal}, []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"sqlBinaryNode(float,uint)", sqlBinaryNode{floatVal, uintVal}, []types.EvalType{types.EvalDouble, types.EvalUint64}},
-		{"sqlBinaryNode(float,float)", sqlBinaryNode{floatVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(float,decimal)", sqlBinaryNode{floatVal, decimalVal}, []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"sqlBinaryNode(float,bool)", sqlBinaryNode{floatVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(float,str)", sqlBinaryNode{floatVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(float,date)", sqlBinaryNode{floatVal, dateVal}, []types.EvalType{types.EvalDouble, types.EvalInt64}},
-		{"sqlBinaryNode(float,datetime)", sqlBinaryNode{floatVal, datetimeVal}, []types.EvalType{types.EvalDouble, types.EvalDecimal128}},
-		{"sqlBinaryNode(float,objectid)", sqlBinaryNode{floatVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(decimal,int)", sqlBinaryNode{decimalVal, intVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sqlBinaryNode(decimal,uint)", sqlBinaryNode{decimalVal, uintVal}, []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"sqlBinaryNode(decimal,float)", sqlBinaryNode{decimalVal, floatVal}, []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"sqlBinaryNode(decimal,decimal)", sqlBinaryNode{decimalVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(decimal,bool)", sqlBinaryNode{decimalVal, boolVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(decimal,str)", sqlBinaryNode{decimalVal, strVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(decimal,date)", sqlBinaryNode{decimalVal, dateVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sqlBinaryNode(decimal,datetime)", sqlBinaryNode{decimalVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(decimal,objectid)", sqlBinaryNode{decimalVal, objectIDVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(bool,int)", sqlBinaryNode{boolVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(bool,uint)", sqlBinaryNode{boolVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sqlBinaryNode(bool,float)", sqlBinaryNode{boolVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(bool,decimal)", sqlBinaryNode{boolVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(bool,bool)", sqlBinaryNode{boolVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(bool,str)", sqlBinaryNode{boolVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(bool,date)", sqlBinaryNode{boolVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(bool,datetime)", sqlBinaryNode{boolVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(bool,objectid)", sqlBinaryNode{boolVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(str,int)", sqlBinaryNode{strVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(str,uint)", sqlBinaryNode{strVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sqlBinaryNode(str,float)", sqlBinaryNode{strVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(str,decimal)", sqlBinaryNode{strVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(str,bool)", sqlBinaryNode{strVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(str,str)", sqlBinaryNode{strVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(str,date)", sqlBinaryNode{strVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(str,datetime)", sqlBinaryNode{strVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(str,objectid)", sqlBinaryNode{strVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(date,int)", sqlBinaryNode{dateVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(date,uint)", sqlBinaryNode{dateVal, uintVal}, []types.EvalType{types.EvalInt64, types.EvalUint64}},
-		{"sqlBinaryNode(date,float)", sqlBinaryNode{dateVal, floatVal}, []types.EvalType{types.EvalInt64, types.EvalDouble}},
-		{"sqlBinaryNode(date,decimal)", sqlBinaryNode{dateVal, decimalVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sqlBinaryNode(date,bool)", sqlBinaryNode{dateVal, boolVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(date,str)", sqlBinaryNode{dateVal, strVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(date,date)", sqlBinaryNode{dateVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(date,datetime)", sqlBinaryNode{dateVal, datetimeVal}, []types.EvalType{types.EvalInt64, types.EvalDecimal128}},
-		{"sqlBinaryNode(date,objectid)", sqlBinaryNode{dateVal, objectIDVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(datetime,int)", sqlBinaryNode{datetimeVal, intVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sqlBinaryNode(datetime,uint)", sqlBinaryNode{datetimeVal, uintVal}, []types.EvalType{types.EvalDecimal128, types.EvalUint64}},
-		{"sqlBinaryNode(datetime,float)", sqlBinaryNode{datetimeVal, floatVal}, []types.EvalType{types.EvalDecimal128, types.EvalDouble}},
-		{"sqlBinaryNode(datetime,decimal)", sqlBinaryNode{datetimeVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(datetime,bool)", sqlBinaryNode{datetimeVal, boolVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(datetime,str)", sqlBinaryNode{datetimeVal, strVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(datetime,date)", sqlBinaryNode{datetimeVal, dateVal}, []types.EvalType{types.EvalDecimal128, types.EvalInt64}},
-		{"sqlBinaryNode(datetime,datetime)", sqlBinaryNode{datetimeVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(datetime,objectid)", sqlBinaryNode{datetimeVal, objectIDVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(objectid,int)", sqlBinaryNode{objectIDVal, intVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(objectid,uint)", sqlBinaryNode{objectIDVal, uintVal}, []types.EvalType{types.EvalUint64, types.EvalUint64}},
-		{"sqlBinaryNode(objectid,float)", sqlBinaryNode{objectIDVal, floatVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(objectid,decimal)", sqlBinaryNode{objectIDVal, decimalVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(objectid,bool)", sqlBinaryNode{objectIDVal, boolVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(objectid,str)", sqlBinaryNode{objectIDVal, strVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
-		{"sqlBinaryNode(objectid,date)", sqlBinaryNode{objectIDVal, dateVal}, []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"sqlBinaryNode(objectid,datetime)", sqlBinaryNode{objectIDVal, datetimeVal}, []types.EvalType{types.EvalDecimal128, types.EvalDecimal128}},
-		{"sqlBinaryNode(objectid,objectid)", sqlBinaryNode{objectIDVal, objectIDVal}, []types.EvalType{types.EvalDouble, types.EvalDouble}},
+		{"int", []SQLExpr{intVal}, []types.EvalType{types.EvalInt64}},
+		{"uint", []SQLExpr{uintVal}, []types.EvalType{types.EvalUint64}},
+		{"float", []SQLExpr{floatVal}, []types.EvalType{types.EvalDouble}},
+		{"decimal", []SQLExpr{decimalVal}, []types.EvalType{types.EvalDecimal128}},
+		{"bool", []SQLExpr{boolVal}, []types.EvalType{types.EvalInt64}},
+		{"str", []SQLExpr{strVal}, []types.EvalType{types.EvalDouble}},
+		{"date", []SQLExpr{dateVal}, []types.EvalType{types.EvalInt64}},
+		{"datetime", []SQLExpr{datetimeVal}, []types.EvalType{types.EvalDecimal128}},
+		{"objectid", []SQLExpr{objectIDVal}, []types.EvalType{types.EvalDouble}},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			req := require.New(t)
 
-			newNode := test.binaryNode.reconcileArithmetic()
-			leftType := newNode.left.EvalType()
-			rightType := newNode.right.EvalType()
+			children := reconcileArithmetic(test.input)
+			childType := children[0].EvalType()
 
-			req.Equal(test.expectedTypes[0], leftType, "incorrect EvalType for left: got %v, expected %v", types.EvalTypeToSQLType(leftType), types.EvalTypeToSQLType(test.expectedTypes[0]))
-			req.Equal(test.expectedTypes[1], rightType, "incorrect EvalType for right: got %v, expected %v", types.EvalTypeToSQLType(rightType), types.EvalTypeToSQLType(test.expectedTypes[1]))
+			req.Equal(test.expectedTypes[0], childType, "incorrect EvalType: got %v, expected %v", types.EvalTypeToSQLType(childType), types.EvalTypeToSQLType(test.expectedTypes[0]))
 		})
 	}
 }
@@ -1833,7 +1757,9 @@ func TestReconcileArithmetic(t *testing.T) {
 func TestReconcileComparison(t *testing.T) {
 	// Arguments to comparison expressions are converted using the
 	// following rules: do not convert types if they are similar; do
-	// convert types that are not similar to the higher precedence type.
+	// convert types that are not similar to the higher precedence type
+	// unless the operator is associative, in which case all types
+	// should be converted to float.
 
 	type test struct {
 		name          string

@@ -110,111 +110,25 @@ type columnData map[string]string
 
 var emptyDbData = make(dbData)
 
-// correlatedColumnDb is a map from database name to tableData.
-type correlatedColumnDb map[string]correlatedColumnTable
-
-// correlatedColumnTable is a map from table name to columnData.
-type correlatedColumnTable map[string]correlatedColumnName
-
-// correlatedColumnName is map from original column name to its new name
-type correlatedColumnName map[string]string
-
 type pushdownVisitor struct {
-	cfg    *PushdownConfig
-	logger log.Logger
-	// selectIDsInScope keeps track of which selectIDs are in scope at a given
-	// point in the query plan, this allows us to keep track of which referenced
-	// columns are actually defined at this current point in the query plan, which
-	// is needed for various things, such as figuring out which fields must be projected
-	// in the case of a partially pushed down ProjectStage.
-	selectIDsInScope []int
-	// tableNamesInScope keeps track of the table names visible at a current
-	// point in the query plan for each database.
-	tableNamesInScope map[string][]string
-	columnTracker     *columnTracker
-	// leftJoinOriginalNames keeps track of the original names of nullable columns in left joins that
-	// have been self-join optimized.  The reason for this is we need to know the original name when
-	// the column in used in a predicate for matching purposes. The renamed field only exists to add
-	// nulls where they should be added due to failure in an `on` clause.
+	cfg                   *PushdownConfig
+	logger                log.Logger
+	selectIDsInScope      []int
+	tableNamesInScope     map[string][]string
+	columnTracker         *columnTracker
 	leftJoinOriginalNames dbData
 	depth                 int
-	// pushdownFailures keeps track of the pushdownFailures associated with each PlanStage in a
-	// Plan.
-	pushdownFailures map[PlanStage][]PushdownFailure
-	// canPushdownCorrelated tells the ToAggregationLanguage method for SQLColumnExpr whether it is
-	// safe to push down when the column is correlated. This is necessary because we need to save
-	// the original subquery plan(s) in case push down fails at a higher level. The essential
-	// problem is that for every type of expression other than *correlated* subqueries, it is safe
-	// to pushdown in a completely bottom-up fashion, but for correlated subqueries it is not
-	// because the child plans must be returned to non-pushed down form (at least with respected to
-	// correlated columns) when the subquery itself fails to pushdown for some other reason (e.g., a
-	// lack of a `limit 1`).
-	canPushdownCorrelated bool
-	// correlatedColumns keeps track of the correlated columns that exist such that when we translate
-	// the subquery that uses the correlatedColumns we know if it can still be pushed down. That is,
-	// if a column in the subquery does not appear in the correlatedColumns map, the subquery cannot
-	// be pushed down.
-	correlatedColumns correlatedColumnDb
-	// freshCorrelatedVarCounter is a simple counter such that we may generate fresh variable names in each
-	// subquery expression.
-	freshCorrelatedVarCounter int
-}
-
-func (v *pushdownVisitor) savePushdownStateForSubquery() (bool, []int, map[string][]string) {
-	oldSelectIDsInScope := make([]int, len(v.selectIDsInScope))
-	copy(oldSelectIDsInScope, v.selectIDsInScope)
-	oldTableNamesInScope := make(map[string][]string, len(v.tableNamesInScope))
-	for key, value := range v.tableNamesInScope {
-		oldValue := make([]string, len(value))
-		copy(oldValue, value)
-		oldTableNamesInScope[key] = oldValue
-	}
-	return v.canPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope
-}
-
-func (v *pushdownVisitor) restorePushdownStateForSubquery(oldCanPushdownCorrelated bool,
-	oldSelectIDsInScope []int, oldTableNamesInScope map[string][]string) {
-	v.canPushdownCorrelated = oldCanPushdownCorrelated
-	v.selectIDsInScope = oldSelectIDsInScope
-	v.tableNamesInScope = oldTableNamesInScope
+	pushdownFailures      map[PlanStage][]PushdownFailure
 }
 
 func newPushdownVisitor(cfg *PushdownConfig) *pushdownVisitor {
 	return &pushdownVisitor{
-		cfg:                       cfg,
-		logger:                    cfg.lg,
-		depth:                     0,
-		columnTracker:             newColumnTracker(),
-		leftJoinOriginalNames:     make(dbData),
-		pushdownFailures:          make(map[PlanStage][]PushdownFailure),
-		canPushdownCorrelated:     false,
-		correlatedColumns:         make(correlatedColumnDb),
-		freshCorrelatedVarCounter: 0,
-	}
-}
-
-// addCorrelatedColumnName adds correlated columns as we see them.
-func (v *pushdownVisitor) addCorrelatedColumnName(dbName, tableName, columnName string) ast.Ref {
-	// ensure that the correlatedColumns datastructure is initialized for this dbName and tableName.
-	v.initCorrelatedColumns(dbName, tableName)
-
-	if correlatedColumnName, ok := v.correlatedColumns[dbName][tableName][columnName]; ok {
-		return ast.NewVariableRef(correlatedColumnName)
-	}
-
-	name := fmt.Sprintf("bic_correlated_var_%d", v.freshCorrelatedVarCounter)
-	v.freshCorrelatedVarCounter++
-	v.correlatedColumns[dbName][tableName][columnName] = name
-	return ast.NewVariableRef(name)
-}
-
-func (v *pushdownVisitor) initCorrelatedColumns(dbName, tableName string) {
-	if _, ok := v.correlatedColumns[dbName]; !ok {
-		v.correlatedColumns[dbName] = make(correlatedColumnTable)
-	}
-
-	if _, ok := v.correlatedColumns[dbName][tableName]; !ok {
-		v.correlatedColumns[dbName][tableName] = make(correlatedColumnName)
+		cfg:                   cfg,
+		logger:                cfg.lg,
+		depth:                 0,
+		columnTracker:         newColumnTracker(),
+		leftJoinOriginalNames: make(dbData),
+		pushdownFailures:      make(map[PlanStage][]PushdownFailure),
 	}
 }
 
@@ -317,7 +231,6 @@ func (v *pushdownVisitor) buildAddFieldsOrProject(body []*ast.AddFieldsItem, pre
 
 func (v *pushdownVisitor) visit(n Node) (Node, error) {
 	originalN := n
-	// first do some analysis.
 	switch typedN := n.(type) {
 	case *FilterStage:
 		v.columnTracker.add(typedN.matcher)
@@ -341,39 +254,10 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 			v.columnTracker.add(pc.Expr)
 		}
 	}
-
-	// second walk all child stages.
-	var err error
 	v.depth++
-	switch n.(type) {
-	case *SQLSubqueryExpr, SQLDoubleSubqueryExpr:
-		// The various SQLSubqueryExpr's only apply to non-from clauses. This means that any new
-		// selectIDs found inside a SQLSubqueryExpr are invalid outside of it. However, the
-		// selectIDs outside of it are valid inside. This is the definition of a correlated
-		// subquery. So, we'll save off the current selectIDs and restore them afterwards.
-
-		oldSelectIDsInScope := v.selectIDsInScope
-		oldTableNamesInScope := v.tableNamesInScope
-		oldLeftJoinOriginalNames := v.leftJoinOriginalNames
-		oldCanPushdownCorrelated := v.canPushdownCorrelated
-		oldCorrelatedColumns := v.correlatedColumns
-
-		v.canPushdownCorrelated = false
-		n, err = walk(v, n)
-		if err != nil {
-			return nil, err
-		}
-
-		v.correlatedColumns = oldCorrelatedColumns
-		v.canPushdownCorrelated = oldCanPushdownCorrelated
-		v.leftJoinOriginalNames = oldLeftJoinOriginalNames
-		v.tableNamesInScope = oldTableNamesInScope
-		v.selectIDsInScope = oldSelectIDsInScope
-	default:
-		n, err = walk(v, n)
-		if err != nil {
-			return nil, err
-		}
+	n, err := walk(v, n)
+	if err != nil {
+		return nil, err
 	}
 	v.depth--
 
@@ -389,6 +273,25 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 		v.addSelectIDsInScope(typedN.selectID)
 	case *DynamicSourceStage:
 		v.addSelectIDsInScope(typedN.selectID)
+	case *SQLSubqueryExpr:
+		// SQLSubqueryExpr only applies to non-from clauses. This means that
+		// any new selectIDs found inside a SQLSubqueryExpr are invalid outside
+		// of it. However, the selectIDs outside of it are valid inside. This is
+		// the definition of a correlated subquery. So, we'll save off the current
+		// selectIDs and restore them afterwards.
+
+		oldSelectIDsInScope := v.selectIDsInScope
+		oldTableNamesInScope := v.tableNamesInScope
+		oldLeftJoinOriginalNames := v.leftJoinOriginalNames
+
+		n, err = walk(v, n)
+		if err != nil {
+			return nil, err
+		}
+
+		v.selectIDsInScope = oldSelectIDsInScope
+		v.tableNamesInScope = oldTableNamesInScope
+		v.leftJoinOriginalNames = oldLeftJoinOriginalNames
 	// Pushdown
 	case *FilterStage:
 		n, err = v.visitFilter(typedN)
@@ -535,7 +438,6 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 		for _, pc := range typedN.projectedColumns {
 			v.columnTracker.remove(pc.Expr)
 		}
-
 	case *SubquerySourceStage:
 		oldSelectIDsInScope := v.selectIDsInScope
 		oldTableNamesInScope := v.tableNamesInScope
@@ -633,7 +535,7 @@ func (v *pushdownVisitor) extractPreUnwindMatch(mr *mappingRegistry, expr SQLExp
 		}
 	}
 
-	t := newInternalPushdownTranslator(v.cfg, lookupFieldRef, v)
+	t := NewPushdownTranslator(v.cfg, lookupFieldRef)
 
 	combined := combineExpressions(partsToMove)
 
@@ -673,7 +575,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 	pipeline := ast.NewPipeline(ms.pipeline.Stages...)
 	var t *PushdownTranslator
 	var localMatcher SQLExpr
-	t = newInternalPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldRef, v)
+	t = NewPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldRef)
 
 	if valueExpr, ok := filter.matcher.(SQLValueExpr); ok {
 		value := valueExpr.Value
@@ -816,14 +718,13 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 	pipeline.Stages = append(pipeline.Stages, subqueryCmpStages...)
 
 	// 2. Translate aggregations.
-	result, subqueryCmpStages, err := v.translateGroupByAggregates(keyNameMapping, gb.projectedColumns, ms.mappingRegistry.lookupFieldRef)
+	result, err := v.translateGroupByAggregates(keyNameMapping, gb.projectedColumns, ms.mappingRegistry.lookupFieldRef)
 	if err != nil {
 		v.logger.Warnf(log.Dev, "cannot translate group by aggregates: %v", err)
 		v.addPushdownFailure(gb, err)
 		return gb, nil
 	}
 
-	pipeline.Stages = append(pipeline.Stages, subqueryCmpStages...)
 	pipeline.Stages = append(pipeline.Stages, ast.NewGroupStage(keys, result.groupItems...))
 
 	// 3. Translate the final project if necessary.
@@ -920,7 +821,7 @@ func (v *pushdownVisitor) visitGroupBy(gb *GroupByStage) (PlanStage, error) {
 // All projected names are the fully qualified name from SQL, ignoring the mongodb name except for
 // when referencing the underlying field.
 func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldRef FieldRefLookup) (*ast.Document, map[SQLExpr]string, []ast.Stage, PushdownFailure) {
-	t := newInternalPushdownTranslator(v.cfg, lookupFieldRef, v)
+	t := NewPushdownTranslator(v.cfg, lookupFieldRef)
 
 	keyDocumentElements := make([]*ast.DocumentElement, len(keys))
 	keyNameMapping := make(map[SQLExpr]string)
@@ -973,8 +874,7 @@ type mappedProjectedColumn struct {
 // and return a new SQLAggFunctionExpr which refers to the newly created $addToSet field called
 // 'distinct foo_DOT_a'. This way, the subsequent $project now has the correct reference to the
 // field name in the $group.
-func (v *pushdownVisitor) translateGroupByAggregates(keys map[SQLExpr]string, projectedColumns ProjectedColumns,
-	lookupFieldRef FieldRefLookup) (*translateGroupByAggregatesResult, []ast.Stage, PushdownFailure) {
+func (v *pushdownVisitor) translateGroupByAggregates(keys map[SQLExpr]string, projectedColumns ProjectedColumns, lookupFieldRef FieldRefLookup) (*translateGroupByAggregatesResult, PushdownFailure) {
 
 	// This represents all the expressions that should be passed on to $project such that
 	// translateGroupByProject is able to do its work without redoing a bunch of the conditionals
@@ -984,17 +884,13 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys map[SQLExpr]string, pr
 	// translator will "accumulate" all the group fields. Below, we iterate over each select
 	// expressions, which account for all the fields that need to be present in the $group.
 	translator := &groupByAggregateTranslator{
-		cfg:               v.cfg,
-		groupItems:        []*ast.GroupItem{},
-		groupKeyNames:     keys,
-		lookupFieldRef:    lookupFieldRef,
-		mappingRegistry:   newMappingRegistry(),
-		requiresTwoSteps:  false,
-		logger:            v.logger,
-		correlatedColumns: v.correlatedColumns,
-		pushdownVisitor:   v,
-		pushdownTranslator: newInternalPushdownTranslator(v.cfg, lookupFieldRef,
-			v),
+		cfg:              v.cfg,
+		groupItems:       []*ast.GroupItem{},
+		groupKeyNames:    keys,
+		lookupFieldRef:   lookupFieldRef,
+		mappingRegistry:  newMappingRegistry(),
+		requiresTwoSteps: false,
+		logger:           v.logger,
 	}
 
 	for _, projectedColumn := range projectedColumns {
@@ -1002,7 +898,7 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys map[SQLExpr]string, pr
 		newExpr, err := translator.visit(projectedColumn.Expr)
 		if err != nil {
 			if pdf, ok := err.(PushdownFailure); ok {
-				return nil, nil, pdf
+				return nil, pdf
 			}
 			panic(fmt.Errorf("encountered fatal error while translating aggregates in %v: %v",
 				groupByStageName, err.Error()))
@@ -1017,20 +913,17 @@ func (v *pushdownVisitor) translateGroupByAggregates(keys map[SQLExpr]string, pr
 	}
 
 	return &translateGroupByAggregatesResult{translator.groupItems, mappedProjectedColumns,
-		translator.mappingRegistry, translator.requiresTwoSteps}, translator.pushdownTranslator.subqueryLookupStages, nil
+		translator.mappingRegistry, translator.requiresTwoSteps}, nil
 }
 
 type groupByAggregateTranslator struct {
-	cfg                *PushdownConfig
-	groupItems         []*ast.GroupItem
-	groupKeyNames      map[SQLExpr]string // a map from SQLExpr to group key names used in the _id document.
-	lookupFieldRef     FieldRefLookup
-	mappingRegistry    *mappingRegistry
-	requiresTwoSteps   bool
-	logger             log.Logger
-	correlatedColumns  correlatedColumnDb
-	pushdownVisitor    *pushdownVisitor
-	pushdownTranslator *PushdownTranslator
+	cfg              *PushdownConfig
+	groupItems       []*ast.GroupItem
+	groupKeyNames    map[SQLExpr]string // a map from SQLExpr to group key names used in the _id document.
+	lookupFieldRef   FieldRefLookup
+	mappingRegistry  *mappingRegistry
+	requiresTwoSteps bool
+	logger           log.Logger
 }
 
 const (
@@ -1065,6 +958,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 		}
 		return typedN, nil
 	case SQLAggFunctionExpr:
+		t := NewPushdownTranslator(v.cfg, v.lookupFieldRef)
 
 		dbName := getDatabaseName(typedN)
 
@@ -1103,7 +997,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			if isGroupConcat {
 				var translatedExprs []ast.Expr
 				for _, expr := range typedN.Exprs() {
-					trans, pushdownFail = v.pushdownTranslator.TranslateExpr(expr)
+					trans, pushdownFail = t.TranslateExpr(expr)
 					if pushdownFail != nil {
 						return nil, pushdownFail
 					}
@@ -1125,7 +1019,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 
 				v.groupItems = append(v.groupItems, ast.NewGroupItem(fieldName, ast.NewFunction(operator, concatenatedArguments)))
 			} else {
-				trans, pushdownFail = v.pushdownTranslator.TranslateExpr(typedN.Exprs()[0])
+				trans, pushdownFail = t.TranslateExpr(typedN.Exprs()[0])
 				if pushdownFail != nil {
 					return nil, pushdownFail
 				}
@@ -1172,7 +1066,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				if typedN.Exprs()[0].String() == "*" {
 					trans = ast.NewFunction(bsonutil.OpSum, astutil.OneInt32Literal)
 				} else {
-					trans, pushdownFail = v.pushdownTranslator.TranslateExpr(typedN.Exprs()[0])
+					trans, pushdownFail = t.TranslateExpr(typedN.Exprs()[0])
 					if pushdownFail != nil {
 						return nil, pushdownFail
 					}
@@ -1180,7 +1074,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 					trans = getCountAggregation(trans)
 				}
 			} else {
-				trans, pushdownFail = v.pushdownTranslator.TranslateExpr(typedN)
+				trans, pushdownFail = t.TranslateExpr(typedN)
 				if pushdownFail != nil {
 					return nil, pushdownFail
 				}
@@ -1197,7 +1091,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				// of non-nulls and, in the following $project, we'll check this to know whether
 				// or not to use the sum or to use null.
 				v.requiresTwoSteps = true
-				countTrans, pushdownFail := v.pushdownTranslator.TranslateExpr(typedN.Exprs()[0])
+				countTrans, pushdownFail := t.TranslateExpr(typedN.Exprs()[0])
 				if pushdownFail != nil {
 					return nil, pushdownFail
 				}
@@ -1206,7 +1100,7 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 				v.mappingRegistry.registerMapping(dbName, groupTempTable, countFieldName, countFieldName, false)
 
 				newExpr = NewSQLCaseExpr(
-					NewSQLValueExpr(values.NewSQLNull(v.pushdownTranslator.valueKind())),
+					NewSQLValueExpr(values.NewSQLNull(t.valueKind())),
 					newCaseCondition(
 						NewSQLColumnExpr(0, dbName, groupTempTable, countFieldName,
 							types.EvalInt64, schema.MongoNone, false, true),
@@ -1267,7 +1161,7 @@ func getCountAggregation(expr ast.Expr) *ast.Function {
 // $project, or completing two-step aggregations. Two-step aggregations that need completing are
 // expressions like 'sum(distinct a)' or 'a + b' where b was part of the group key.
 func (v *pushdownVisitor) translateGroupByProject(mappedProjectedColumns []*mappedProjectedColumn, lookupFieldRef FieldRefLookup) (*ast.ProjectStage, PushdownFailure) {
-	t := newInternalPushdownTranslator(v.cfg, lookupFieldRef, v)
+	t := NewPushdownTranslator(v.cfg, lookupFieldRef)
 
 	projectItems := make([]ast.ProjectItem, len(mappedProjectedColumns)+1)
 	projectItems[0] = ast.NewExcludeProjectItem(ast.NewFieldRef(groupID, nil))
@@ -1377,7 +1271,7 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 	fixedLookupFieldName := func(db, tbl, col string) (ast.Ref, bool) {
 		return v.getFixedLookupFieldRef(combinedMappingRegistry, db, tbl, col, asField, foreignIndex, preserveIndex)
 	}
-	t := newInternalPushdownTranslator(v.cfg, fixedLookupFieldName, v)
+	t := NewPushdownTranslator(v.cfg, fixedLookupFieldName)
 
 	cond, err := t.TranslateExpr(remainingPredicate)
 	if err != nil {
@@ -1866,7 +1760,8 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		}
 
 		// create the pushdown translator
-		t := newInternalPushdownTranslator(v.cfg, foreignPipelineRegistry.lookupFieldRef, v)
+		t := NewPushdownTranslator(v.cfg, foreignPipelineRegistry.lookupFieldRef)
+
 		matchPipeline = append([]ast.Stage{}, msForeign.pipeline.Stages...)
 
 		// When the join matcher is the bool `true`, like in a cross join,
@@ -2385,7 +2280,7 @@ func (v *pushdownVisitor) visitOrderBy(orderBy *OrderByStage) (PlanStage, error)
 			// that will allow us to push this down using aggregation language, then sort by the
 			// added columns.
 			if t == nil {
-				t = newInternalPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldRef, v)
+				t = NewPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldRef)
 			}
 
 			var translated ast.Expr
@@ -2439,7 +2334,7 @@ const (
 	emptyFieldNamePrefix = "__empty"
 )
 
-// hasColumnReference checks if any SQLColumnExpr is referenced
+// hasColumnReference checks if any SQLColumnExpr is referenceed
 // within any of the expressions in projectedColumns.
 func (v *pushdownVisitor) hasColumnReference(projectedColumns ProjectedColumns) (bool, error) {
 	for _, projectedColumn := range projectedColumns {
@@ -2516,7 +2411,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 	// If so, this Project node can be removed from the query plan tree.
 	canReplaceProject := true
 
-	t := newInternalPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldRef, v)
+	t := NewPushdownTranslator(v.cfg, ms.mappingRegistry.lookupFieldRef)
 
 	for _, projectedColumn := range project.projectedColumns {
 		// Convert the column's SQL expression into an expression in mongo query language.
@@ -2548,8 +2443,6 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				refdCol.PrimaryKey = projectedColumn.PrimaryKey
 				fieldName, ok := ms.mappingRegistry.lookupFieldName(refdCol.Database, refdCol.Table, refdCol.Name)
 				if !ok {
-					// TODO: BI-2339, change back to panic once we can.
-					//panic(fmt.Sprintf("cannot find referenced column %#v in registry", refdCol))
 					v.logger.Warnf(log.Dev, "cannot find referenced column %#v in registry",
 						refdCol)
 					return project, nil

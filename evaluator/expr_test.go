@@ -158,9 +158,9 @@ func TestEvaluates(t *testing.T) {
 			{"sql_add_expr_int_1", "-1 + 1", NewSQLInt64(knd, 0)},
 			{"sql_add_expr_int_2", "10 + 32", NewSQLInt64(knd, 42)},
 			{"sql_add_expr_int_3", "-10 + -32", NewSQLInt64(knd, -42)},
-			{"sql_add_expr_bool_0", "true + true", NewSQLFloat(knd, 2)},
-			{"sql_add_expr_bool_1", "true + true + false", NewSQLFloat(knd, 2)},
-			{"sql_add_expr_bool_2", "false + true + true", NewSQLFloat(knd, 2)},
+			{"sql_add_expr_bool_0", "true + true", NewSQLInt64(knd, 2)},
+			{"sql_add_expr_bool_1", "true + true + false", NewSQLInt64(knd, 2)},
+			{"sql_add_expr_bool_2", "false + true + true", NewSQLInt64(knd, 2)},
 			{"sql_add_expr_mixed_0", "true - '-1'", NewSQLFloat(knd, 2)},
 			{"sql_add_expr_mixed_1", "true + '0'", NewSQLFloat(knd, 1)},
 			{"sql_and_expr_0", "1 AND 1", NewSQLBool(knd, true)},
@@ -2556,8 +2556,8 @@ func TestEvaluates(t *testing.T) {
 					NewSQLNull(MongoSQLValueKind),
 				),
 				NewSQLAddExpr(
-					NewSQLValueExpr(NewSQLInt64(knd, 1)),
-					NewSQLValueExpr(NewSQLInt64(knd, 3)),
+					NewSQLValueExpr(NewSQLFloat(knd, 1)),
+					NewSQLValueExpr(NewSQLFloat(knd, 3)),
 				),
 			)
 
@@ -2565,7 +2565,7 @@ func TestEvaluates(t *testing.T) {
 			req.Nil(err, "unable to evaluate sql assignment expression")
 			req.Equal(
 				result,
-				NewSQLInt64(knd, 4),
+				NewSQLFloat(knd, 4),
 				"expected value of assignment does not match actual value",
 			)
 		})

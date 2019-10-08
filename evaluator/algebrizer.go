@@ -1177,6 +1177,7 @@ func (a *algebrizer) translateUnion(union *parser.Union) (PlanStage, error) {
 func (a *algebrizer) translateSelectExprs(
 	selectExprs parser.SelectExprs) (ProjectedColumns, error) {
 	var projectedColumns ProjectedColumns
+	hasGlobalStar := false
 	mode := a.cfg.polymorphicTypeConversionMode
 
 	for _, selectExpr := range selectExprs {
@@ -1185,6 +1186,10 @@ func (a *algebrizer) translateSelectExprs(
 		case *parser.StarExpr:
 			databaseName := typedE.DatabaseName.Else("")
 			tableName := typedE.TableName.Else("")
+
+			if tableName == "" && databaseName == "" {
+				hasGlobalStar = true
+			}
 
 			for _, column := range a.columns {
 				if column.MongoType == schema.MongoFilter {
@@ -1253,11 +1258,13 @@ func (a *algebrizer) translateSelectExprs(
 					Column: c,
 				}
 			}
+
 			if _, ok := translatedExpr.(*SQLVariableExpr); !ok {
 				if sqlCol, ok := typedE.Expr.(*parser.ColName); ok {
 					projectedColumn.Name = sqlCol.Name
 				}
 			}
+
 			if typedE.As.IsSome() {
 				projectedColumn.Name = typedE.As.Unwrap()
 			} else if projectedColumn.Name == "" {
@@ -1266,6 +1273,11 @@ func (a *algebrizer) translateSelectExprs(
 
 			projectedColumns = append(projectedColumns, *projectedColumn)
 		}
+	}
+
+	if hasGlobalStar && len(selectExprs) > 1 {
+		return nil, mysqlerrors.Newf(mysqlerrors.ErSyntaxError,
+			"Cannot have a '*' in conjunction with any other columns")
 	}
 
 	return projectedColumns, nil

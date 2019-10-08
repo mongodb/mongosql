@@ -15,20 +15,6 @@ testcases:
       show databases like 'created_writes_db']
     sync: true
 
-  - description: create new database named dbs
-    expected_names: ['Database']
-    expected_results:
-      - ['dbs']
-    expected_types: [varchar]
-    id: 'create database dbs'
-    min_server_version: 3.6
-    sql_cleanup: drop database if exists dbs
-    sql_list: [
-      drop database if exists dbs,
-      create database dbs,
-      show databases like 'dbs']
-    sync: true
-
   - db: information_schema
     description: create database that already exists with 'if not exists' set
     expected_names: ['Database']

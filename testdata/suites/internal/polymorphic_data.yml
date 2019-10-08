@@ -15,7 +15,7 @@ testcases:
     expected_names: [Field, Type, 'Null', Key, Default, Extra]
     expected_results:
       - [_id, bigint(20), 'YES', PRI, null, '']
-      - [doubleint, double, 'YES', '', null, '']
+      - [doubleint, 'double', 'YES', '', null, '']
       - [doublelong, 'decimal(65,20)', 'YES', '', null, '']
       - [mid, 'decimal(65,20)', 'YES', '', null, '']
       - [mixed, varchar(65535), 'YES', '', null, '']
@@ -43,7 +43,7 @@ testcases:
     description: show all the values in the scalar_types table
     expected_names: [_id, doubleint, doublelong, mid, mixed, supremum]
     expected_results:
-      - [0, 1, '1', '1', hello, 01020304-0506-0708-090a-0b0c0d0e0f10]
+      - [0, 1, '1', '1', 'hello', 01020304-0506-0708-090a-0b0c0d0e0f10]
       - [1, 2, '2', '1', '1', '314']
       - [2, 3.14, '3.14', '0', '0', '3.14']
       - [3, 4, '4', '3.14', '3.14', hello]

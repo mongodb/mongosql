@@ -184,6 +184,13 @@ testcases:
     id: '24'
     sql: select a + true from scalar
 
+  - db: functions_test
+    expected_results:
+      - [2.5]
+    expected_types: [float]
+    id: '25'
+    sql: select 1 + '1.5'
+
   - db: where_test
     expected_names: [s, x]
     expected_results:

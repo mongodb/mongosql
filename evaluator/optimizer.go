@@ -135,9 +135,12 @@ func splitExpression(e SQLExpr) []SQLExpr {
 		return []SQLExpr{e}
 	}
 
-	left := splitExpression(andE.left)
-	right := splitExpression(andE.right)
-	return append(left, right...)
+	exprs := make([]SQLExpr, 0, len(andE.children))
+	for _, child := range andE.children {
+		splitExprs := splitExpression(child)
+		exprs = append(exprs, splitExprs...)
+	}
+	return exprs
 }
 
 // getConjunctiveTerms splits hierarchical SQLAndExprs within e

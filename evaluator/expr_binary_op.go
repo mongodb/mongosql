@@ -19,50 +19,30 @@ type sqlBinaryNode struct {
 }
 
 // reconcileArithmetic is responsible for type reconciliation for all
-// arithmetic binary operators ($add, $multiply, $subtract, $divide, $mod, etc.).
+// arithmetic operators ($add, $multiply, $subtract, $divide, $mod, etc.).
 // The default conversion for an argument of type EvalDatetime is EvalDecimal128, while the
-// default conversion for an argument of type EvalDate is EvalInt64. If either side is
-// neither of those types AND isn't numeric, we try to reconcile it with the other type.
-// If that still results in a non-numeric type, we default to EvalDouble.
-func (bn sqlBinaryNode) reconcileArithmetic() sqlBinaryNode {
-	left := bn.left
-	right := bn.right
-
-	// If the child is of type EvalDatetime, it is reconciled to
-	// EvalDecimal128. If the child is of type EvalDate, it is reconciled
-	// to EvalInt64.
-	dateReconcileChild := func(child SQLExpr) SQLExpr {
-		switch child.EvalType() {
-		case types.EvalDatetime:
-			return NewSQLConvertExpr(child, types.EvalDecimal128)
-		case types.EvalDate:
-			return NewSQLConvertExpr(child, types.EvalInt64)
-		default:
-			return child
+// default conversion for an argument of type EvalDate is EvalInt64. If a child is of
+// numeric type, do nothing; otherwise, convert it to EvalDouble, unless it is a
+// boolean, in which case it should be converted to EvalInt64.
+func reconcileArithmetic(children []SQLExpr) []SQLExpr {
+	convertedChildren := make([]SQLExpr, len(children))
+	for i, child := range children {
+		if child.EvalType().IsNumeric() {
+			convertedChildren[i] = child
+		} else {
+			targetType := types.EvalDouble
+			switch child.EvalType() {
+			case types.EvalDatetime:
+				targetType = types.EvalDecimal128
+			case types.EvalDate, types.EvalBoolean:
+				targetType = types.EvalInt64
+			}
+			convertedChildren[i] = NewSQLConvertExpr(child, targetType)
 		}
+
 	}
 
-	left = dateReconcileChild(left)
-	right = dateReconcileChild(right)
-
-	leftType := left.EvalType()
-	rightType := right.EvalType()
-
-	// If both arguments are numeric, we are done with reconciliation.
-	// If one argument is numeric, we can safely use ReconcileSQLExprs to convert
-	// the non-numeric argument to the numeric argument's type.
-	// If neither argument is numeric, we convert both to EvalDouble.
-
-	switch {
-	case leftType.IsNumeric() && rightType.IsNumeric(): // do nothing
-	case leftType.IsNumeric() || rightType.IsNumeric():
-		left, right = ReconcileSQLExprs(left, right)
-	default:
-		left = NewSQLConvertExpr(left, types.EvalDouble)
-		right = NewSQLConvertExpr(right, types.EvalDouble)
-	}
-
-	return sqlBinaryNode{left, right}
+	return convertedChildren
 }
 
 // reconcileComparison behaves much as reconcileArithmetic does by checking to see if both arguments are numeric. If so, then there is no
@@ -103,10 +83,12 @@ func (bn *sqlBinaryNode) ReplaceChild(i int, n Node) {
 type valueArgsEnum int
 
 const (
-	noValueArgs       valueArgsEnum = 0
-	leftOnlyValueArg  valueArgsEnum = iota
-	rightOnlyValueArg valueArgsEnum = iota
-	bothValueArgs     valueArgsEnum = iota
+	noValueArgs valueArgsEnum = iota
+	leftOnlyValueArg
+	rightOnlyValueArg
+	bothValueArgs
+	allValueArgs
+	someValueArgs
 )
 
 // sqlValueArgEnum returns the left and right values.SQLValue arguments, if any, and a enum that tells us
@@ -192,375 +174,6 @@ func (bn *sqlBinaryNode) cmpOpToAggregationPredicate(t *PushdownTranslator, cmpO
 		ast.NewBinary(bsonutil.OpGt, right, astutil.NullLiteral)), nil
 }
 
-// eatChildren attempts to recursively consume the left and right children of the
-// current node. Consumption consists of removal of the node and adoption of its
-// children. Consumption of a node will succeed only if the consumer and consumed
-// are of the same type. The result of the operation is children for the current
-// node to adopt.
-// Invoking eatChildren with more than 2 SQLExprs will cause a panic.
-func eatChildren(opName string, leftAndRight []SQLExpr) []SQLExpr {
-	if len(leftAndRight) != 2 {
-		panic("eatChildren called with more than 2 children")
-	}
-
-	children := make([]SQLExpr, 0)
-
-	for _, c := range leftAndRight {
-		switch t := c.(type) {
-		// The only operators supported for eating children are Add, And, Multiply, Or, and Xor.
-		case *SQLAddExpr, *SQLAndExpr, *SQLMultiplyExpr, *SQLOrExpr, *SQLXorExpr:
-			if c.ExprName() == opName {
-				// if the child c is one of the same type as the parent (the opName
-				// argument), recursively consume its children.
-				children = append(children, eatChildren(opName, nodesToExprs(t.Children()))...)
-				continue
-			}
-		}
-
-		// if that is not the case, just include c in the list of children
-		children = append(children, c)
-	}
-
-	return children
-}
-
-// SQLAddExpr evaluates to the sum of two expressions.
-type SQLAddExpr struct{ sqlBinaryNode }
-
-// NewSQLAddExpr is a constructor for SQLAddExpr.
-func NewSQLAddExpr(left, right SQLExpr) *SQLAddExpr {
-	return &SQLAddExpr{sqlBinaryNode{left, right}}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLAddExpr) ExprName() string {
-	return "SQLAddExpr"
-}
-
-// Evaluate evaluates a SQLAddExpr into a values.SQLValue.
-func (add *SQLAddExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(add)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := add.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	return doArithmetic(leftVal, rightVal, ADD)
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLAddExpr.
-func (add *SQLAddExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(add); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := add.sqlValueArgEnum()
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal), nil
-		}
-		if values.IsZero(leftVal) {
-			return add.right, nil
-		}
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal), nil
-		}
-		if values.IsZero(rightVal) {
-			return add.left, nil
-		}
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		if out, err := doArithmetic(leftVal, rightVal, ADD); err == nil {
-			return NewSQLValueExpr(out), nil
-		}
-	}
-	return add, nil
-}
-
-// nolint: unparam
-func (add *SQLAddExpr) reconcile() (SQLExpr, error) {
-	return &SQLAddExpr{add.reconcileArithmetic()}, nil
-}
-
-func (add *SQLAddExpr) String() string {
-	return fmt.Sprintf("%v+%v", add.left, add.right)
-}
-
-// ToAggregationLanguage translates SQLAddExpr into something that can
-// be used in an aggregation pipeline. If SQLAddExpr cannot be translated,
-// it will return nil and error.
-func (add *SQLAddExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	children := eatChildren(add.ExprName(), nodesToExprs(add.Children()))
-	ops := make([]ast.Expr, len(children))
-
-	var err PushdownFailure
-	for i, c := range children {
-		if ops[i], err = t.ToAggregationLanguage(c); err != nil {
-			return nil, err
-		}
-	}
-
-	return astutil.WrapInOp(bsonutil.OpAdd, ops...), nil
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (add *SQLAddExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return add.ToAggregationLanguage(t)
-}
-
-// EvalType returns the EvalType associated with SQLAddExpr.
-func (add *SQLAddExpr) EvalType() types.EvalType {
-	return types.EvalDouble
-}
-
-// SQLAndExpr evaluates to true if and only if all its children evaluate to true.
-type SQLAndExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLAndExpr) ExprName() string {
-	return "SQLAndExpr"
-}
-
-var _ translatableToMatch = (*SQLAndExpr)(nil)
-
-// NewSQLAndExpr is a constructor for SQLAndExpr.
-func NewSQLAndExpr(left, right SQLExpr) *SQLAndExpr {
-	return &SQLAndExpr{
-		sqlBinaryNode{
-			left:  left,
-			right: right,
-		}}
-}
-
-// Evaluate evaluates a SQLAndExpr into a values.SQLValue.
-func (and *SQLAndExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(and)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := and.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.IsFalsy(leftVal) || values.IsFalsy(rightVal) {
-		return values.NewSQLBool(cfg.sqlValueKind, false), nil
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	return values.NewSQLBool(cfg.sqlValueKind, true), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLAndExpr.
-func (and *SQLAndExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(and); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := and.sqlValueArgEnum()
-
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if values.IsFalsy(leftVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
-		}
-		if values.Bool(leftVal) {
-			and.left = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
-		}
-	case rightOnlyValueArg:
-		if values.IsFalsy(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
-		}
-		if values.Bool(rightVal) {
-			and.right = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true))
-		}
-	case bothValueArgs:
-		if values.IsFalsy(leftVal) || values.IsFalsy(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
-		}
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
-	}
-	return and, nil
-}
-
-func (and *SQLAndExpr) String() string {
-	return fmt.Sprintf("%v and %v", and.left, and.right)
-}
-
-// nolint: unparam
-func (and *SQLAndExpr) reconcile() (SQLExpr, error) {
-	left := and.left
-	right := and.right
-
-	if !isBooleanComparable(left.EvalType()) {
-		left = NewSQLConvertExpr(left, types.EvalBoolean)
-	}
-	if !isBooleanComparable(right.EvalType()) {
-		right = NewSQLConvertExpr(right, types.EvalBoolean)
-	}
-	return NewSQLAndExpr(left, right), nil
-}
-
-// ToAggregationLanguage translates SQLAndExpr into something that can
-// be used in an aggregation pipeline. If SQLAndExpr cannot be translated,
-// it will return nil and error.
-func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	children := eatChildren(and.ExprName(), nodesToExprs(and.Children()))
-
-	args, err := t.translateArgs(children)
-	if err != nil {
-		return nil, err
-	}
-
-	numChildren := len(children)
-
-	assignments := make([]*ast.LetVariable, 0, numChildren)
-	nullChecks := make([]ast.Expr, 0, numChildren)
-	falsyChecks := make([]ast.Expr, 0, numChildren)
-
-	containsNullLiteral := false
-
-	for i, arg := range args {
-		switch a := arg.(type) {
-		case *ast.Constant:
-			// The constant can be Truthy, Falsy, or Null. Falsy constants
-			// would be caught by constant folding and would result in the
-			// $and evaluating to false. If the constant is null, all we
-			// need to do is set the flag. If the constant is not null, it
-			// must be truthy; we do not need to assign it and null-check/
-			// falsy-check it, we can just continue.
-			containsNullLiteral = containsNullLiteral || a.Value.Type == bsontype.Null
-
-		default:
-			binding := fmt.Sprintf("expr%d", i)
-			ref := ast.NewVariableRef(binding)
-
-			assignments = append(assignments, ast.NewLetVariable(binding, arg))
-			nullChecks = append(nullChecks, astutil.WrapInNullCheck(ref))
-			falsyChecks = append(falsyChecks,
-				ast.NewBinary(bsonutil.OpEq, ref, astutil.ZeroInt32Literal),
-				ast.NewBinary(bsonutil.OpEq, ref, astutil.FalseLiteral),
-			)
-		}
-
-	}
-
-	var evaluation ast.Expr
-	if containsNullLiteral {
-		// if there is a null literal, return false if any operand is false and null otherwise.
-		evaluation = astutil.WrapInCond(astutil.FalseLiteral, astutil.NullLiteral, falsyChecks...)
-	} else {
-		// contains no literals (or only truthy literals).
-		evaluation = astutil.WrapInCond(
-			// if any operand is false, return false.
-			astutil.FalseLiteral,
-			// else if any operand is null, return null; else return true.
-			astutil.WrapInCond(astutil.NullLiteral, astutil.TrueLiteral, nullChecks...),
-			falsyChecks...,
-		)
-	}
-
-	return ast.NewLet(assignments, evaluation), nil
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (and *SQLAndExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return and.ToAggregationLanguage(t)
-}
-
-// compressBooleanFunctionCalls checks the left and right arguments of
-// boolean operators and attempts to compress them if they are the same
-// type of operation. For example, in the following expression:
-//
-//    { $or: [{ $or: ["$a", "$b"] }, "$c"] }
-//
-// The left argument is `{ $or: ["$a", "$b"] }` and the right is `"$c"`.
-// This can be compressed into:
-//
-//    { $or: ["$a", "$b", "$c"] }
-//
-func compressBooleanFunctionCalls(op string, left, right ast.Expr) *ast.Function {
-	args := make([]ast.Expr, 0)
-
-	for _, arg := range []ast.Expr{left, right} {
-		switch t := arg.(type) {
-		case *ast.Binary:
-			if string(t.Op) == op {
-				args = append(args, t.Left, t.Right)
-			} else {
-				args = append(args, t)
-			}
-		case *ast.Function:
-			if t.Name == op {
-				args = append(args, t.Arg.(*ast.Array).Elements...)
-			} else {
-				args = append(args, t)
-			}
-		default:
-			args = append(args, t)
-		}
-	}
-
-	return astutil.WrapInOp(op, args...)
-}
-
-// ToMatchLanguage translates SQLAndExpr into something that can
-// be used in an match expression. If SQLAndExpr can be fully translated,
-// it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLAndExpr.
-func (and *SQLAndExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	left, exLeft := t.ToMatchLanguage(and.left)
-	right, exRight := t.ToMatchLanguage(and.right)
-
-	var match ast.Expr
-	if left == nil && right == nil {
-		return nil, and
-	} else if left != nil && right == nil {
-		match = left
-	} else if left == nil && right != nil {
-		match = right
-	} else {
-		match = compressBooleanFunctionCalls(bsonutil.OpAnd, left, right)
-	}
-
-	if exLeft == nil && exRight == nil {
-		return match, nil
-	} else if exLeft != nil && exRight == nil {
-		return match, exLeft
-	} else if exLeft == nil && exRight != nil {
-		return match, exRight
-	}
-	return match, NewSQLAndExpr(exLeft, exRight)
-}
-
-// EvalType returns the EvalType associated with SQLAndExpr.
-func (*SQLAndExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
-}
-
 // SQLDivideExpr evaluates to the quotient of the left expression divided by the right.
 type SQLDivideExpr struct{ sqlBinaryNode }
 
@@ -572,11 +185,6 @@ func NewSQLDivideExpr(left, right SQLExpr) *SQLDivideExpr {
 // NewSQLModExpr is a constructor for SQLModExpr.
 func NewSQLModExpr(left, right SQLExpr) *SQLModExpr {
 	return &SQLModExpr{sqlBinaryNode{left, right}}
-}
-
-// NewSQLMultiplyExpr is a constructor for SQLMultiplyExpr.
-func NewSQLMultiplyExpr(left, right SQLExpr) *SQLMultiplyExpr {
-	return &SQLMultiplyExpr{sqlBinaryNode{left, right}}
 }
 
 // NewSQLSubtractExpr is a constructor for SQLSubtractExpr.
@@ -645,7 +253,9 @@ func (div *SQLDivideExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 
 // nolint: unparam
 func (div *SQLDivideExpr) reconcile() (SQLExpr, error) {
-	return &SQLDivideExpr{div.reconcileArithmetic()}, nil
+	children := reconcileArithmetic([]SQLExpr{div.left, div.right})
+	node := sqlBinaryNode{children[0], children[1]}
+	return &SQLDivideExpr{node}, nil
 }
 
 func (div *SQLDivideExpr) String() string {
@@ -1135,7 +745,9 @@ func (div *SQLIDivideExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 
 // nolint: unparam
 func (div *SQLIDivideExpr) reconcile() (SQLExpr, error) {
-	return &SQLIDivideExpr{div.reconcileArithmetic()}, nil
+	children := reconcileArithmetic([]SQLExpr{div.left, div.right})
+	node := sqlBinaryNode{children[0], children[1]}
+	return &SQLIDivideExpr{node}, nil
 }
 
 func (div *SQLIDivideExpr) String() string {
@@ -1668,7 +1280,9 @@ func (mod *SQLModExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 
 // nolint: unparam
 func (mod *SQLModExpr) reconcile() (SQLExpr, error) {
-	return &SQLModExpr{mod.reconcileArithmetic()}, nil
+	children := reconcileArithmetic([]SQLExpr{mod.left, mod.right})
+	node := sqlBinaryNode{children[0], children[1]}
+	return &SQLModExpr{node}, nil
 }
 
 func (mod *SQLModExpr) String() string {
@@ -1696,105 +1310,6 @@ func (mod *SQLModExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, 
 // EvalType returns the EvalType associated with SQLModExpr.
 func (mod *SQLModExpr) EvalType() types.EvalType {
 	return preferentialType(mod.left, mod.right)
-}
-
-// SQLMultiplyExpr evaluates to the product of two expressions
-type SQLMultiplyExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLMultiplyExpr) ExprName() string {
-	return "SQLMultiplyExpr"
-}
-
-// Evaluate evaluates a SQLMultiplyExpr into a values.SQLValue.
-func (mult *SQLMultiplyExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(mult)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := mult.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	return doArithmetic(leftVal, rightVal, MULT)
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLMultiplyExpr.
-func (mult *SQLMultiplyExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(mult); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := mult.sqlValueArgEnum()
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal), nil
-		}
-		if values.IsOne(leftVal) {
-			return mult.right, nil
-		}
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal), nil
-		}
-		if values.IsOne(rightVal) {
-			return mult.left, nil
-		}
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		if out, err := doArithmetic(leftVal, rightVal, MULT); err == nil {
-			return NewSQLValueExpr(out), nil
-		}
-	}
-	return mult, nil
-}
-
-// nolint: unparam
-func (mult *SQLMultiplyExpr) reconcile() (SQLExpr, error) {
-	return &SQLMultiplyExpr{mult.reconcileArithmetic()}, nil
-
-}
-
-func (mult *SQLMultiplyExpr) String() string {
-	return fmt.Sprintf("%v*%v", mult.left, mult.right)
-}
-
-// ToAggregationLanguage translates SQLMultiplyExpr into something that can
-// be used in an aggregation pipeline. If SQLMultiplyExpr cannot be translated,
-// it will return nil and error.
-func (mult *SQLMultiplyExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	children := eatChildren(mult.ExprName(), nodesToExprs(mult.Children()))
-	ops := make([]ast.Expr, len(children))
-
-	var err PushdownFailure
-	for i, c := range children {
-		if ops[i], err = t.ToAggregationLanguage(c); err != nil {
-			return nil, err
-		}
-	}
-
-	return astutil.WrapInOp(bsonutil.OpMultiply, ops...), nil
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (mult *SQLMultiplyExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return mult.ToAggregationLanguage(t)
-}
-
-// EvalType returns the EvalType associated with SQLMultiplyExpr.
-func (mult *SQLMultiplyExpr) EvalType() types.EvalType {
-	return types.EvalDouble
 }
 
 // SQLNotEqualsExpr evaluates to true if the left does not equal the right.
@@ -2028,210 +1543,6 @@ func (*SQLNullSafeEqualsExpr) EvalType() types.EvalType {
 	return types.EvalBoolean
 }
 
-// SQLOrExpr evaluates to true if any of its children evaluate to true.
-type SQLOrExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLOrExpr) ExprName() string {
-	return "SQLOrExpr"
-}
-
-var _ translatableToMatch = (*SQLOrExpr)(nil)
-
-// NewSQLOrExpr is a constructor for SQLOrExpr.
-func NewSQLOrExpr(left, right SQLExpr) *SQLOrExpr {
-	return &SQLOrExpr{
-		sqlBinaryNode{
-			left:  left,
-			right: right,
-		}}
-}
-
-// Evaluate evaluates a SQLOrExpr into a values.SQLValue.
-func (or *SQLOrExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(or)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := or.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.Bool(leftVal) || values.Bool(rightVal) {
-		return values.NewSQLBool(cfg.sqlValueKind, true), nil
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	return values.NewSQLBool(cfg.sqlValueKind, false), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLOrExpr.
-func (or *SQLOrExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(or); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := or.sqlValueArgEnum()
-
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if values.Bool(leftVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
-		}
-		if values.IsFalsy(leftVal) {
-			or.left = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
-		}
-	case rightOnlyValueArg:
-		if values.Bool(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
-		}
-		if values.IsFalsy(rightVal) {
-			or.right = NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false))
-		}
-	case bothValueArgs:
-		if values.Bool(leftVal) || values.Bool(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
-		}
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
-	}
-	return or, nil
-}
-
-func (or *SQLOrExpr) String() string {
-	return fmt.Sprintf("%v or %v", or.left, or.right)
-}
-
-// nolint: unparam
-func (or *SQLOrExpr) reconcile() (SQLExpr, error) {
-	left := or.left
-	right := or.right
-
-	if !isBooleanComparable(left.EvalType()) {
-		left = NewSQLConvertExpr(left, types.EvalBoolean)
-	}
-	if !isBooleanComparable(right.EvalType()) {
-		right = NewSQLConvertExpr(right, types.EvalBoolean)
-	}
-	return NewSQLOrExpr(left, right), nil
-}
-
-// ToAggregationLanguage translates SQLOrExpr into something that can
-// be used in an aggregation pipeline. If SQLOrExpr cannot be translated,
-// it will return nil and error.
-func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	children := eatChildren(or.ExprName(), nodesToExprs(or.Children()))
-
-	args, err := t.translateArgs(children)
-	if err != nil {
-		return nil, err
-	}
-
-	numChildren := len(children)
-
-	// the operands of the OR
-	ops := make([]ast.Expr, 0, numChildren)
-
-	// the conditions of the OR
-	// if any condition is true, the OR will evaluate to null;
-	// if none of the conditions are true, the OR will evaluate.
-	conds := make([]ast.Expr, 0)
-
-	assignments := make([]*ast.LetVariable, 0, numChildren)
-	nullChecks := make([]ast.Expr, 0, numChildren)
-	notChecks := make([]ast.Expr, 0, numChildren)
-
-	containsLiteral := false
-	containsNullLiteral := false
-	containsFalsyLiteral := false
-
-	for i, arg := range args {
-		switch a := arg.(type) {
-		case *ast.Constant:
-			containsNullLiteral = containsNullLiteral || a.Value.Type == bsontype.Null
-			containsFalsyLiteral = containsFalsyLiteral || !values.Bool(children[i].(SQLValueExpr).Value)
-			containsLiteral = true
-		default:
-			binding := fmt.Sprintf("expr%d", i)
-			bindingRef := ast.NewVariableRef(binding)
-
-			assignments = append(assignments, ast.NewLetVariable(binding, arg))
-
-			ops = append(ops, bindingRef)
-			nullChecks = append(nullChecks, astutil.WrapInNullCheck(bindingRef))
-			notChecks = append(notChecks, ast.NewFunction(bsonutil.OpNot, bindingRef))
-		}
-	}
-
-	// if there is at least one literal, and there are no null or falsy literals, whole expression evaluates to true.
-	if containsLiteral && !containsNullLiteral && !containsFalsyLiteral {
-		return astutil.TrueLiteral, nil
-	}
-
-	// build the conditions
-	// if there is a null literal, return null if all other expressions are falsy.
-	if containsNullLiteral {
-		conds = []ast.Expr{astutil.WrapInOp(bsonutil.OpAnd, notChecks...)}
-	} else if containsFalsyLiteral { // if there is a falsy literal, return null if all other expressions are null.
-		conds = []ast.Expr{astutil.WrapInOp(bsonutil.OpAnd, nullChecks...)}
-	} else { // if there are no literals, return null using the following condition:
-		for i := range nullChecks {
-			// If the "i"th expression is null, and all of the others are falsy,
-			nots := append(append([]ast.Expr{}, notChecks[:i]...), notChecks[i+1:]...)
-			if len(nots) > 0 {
-				// need to include the null check along with all the other nots.
-				nots = append(nots, nullChecks[i])
-				conds = append(conds, astutil.WrapInOp(bsonutil.OpAnd, nots...))
-			} else {
-				conds = append(conds, nullChecks[i])
-			}
-		}
-	}
-
-	// build the expression
-	evaluation := astutil.WrapInCond(astutil.NullLiteral, astutil.WrapInOp(bsonutil.OpOr, ops...), conds...)
-
-	return ast.NewLet(assignments, evaluation), nil
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (or *SQLOrExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return or.ToAggregationLanguage(t)
-}
-
-// ToMatchLanguage translates SQLOrExpr into something that can
-// be used in an match expression. If SQLOrExpr can be fully translated,
-// it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLOrExpr.
-func (or *SQLOrExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	left, exLeft := t.ToMatchLanguage(or.left)
-	if exLeft != nil {
-		// cannot partially translate an OR
-		return nil, or
-	}
-	right, exRight := t.ToMatchLanguage(or.right)
-	if exRight != nil {
-		// cannot partially translate an OR
-		return nil, or
-	}
-
-	return compressBooleanFunctionCalls(bsonutil.OpOr, left, right), nil
-}
-
-// EvalType returns the EvalType associated with SQLOrExpr.
-func (*SQLOrExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
-}
-
 // SQLSubtractExpr evaluates to the difference of the left expression minus the right expressions.
 type SQLSubtractExpr struct{ sqlBinaryNode }
 
@@ -2305,7 +1616,9 @@ func (sub *SQLSubtractExpr) String() string {
 
 // nolint: unparam
 func (sub *SQLSubtractExpr) reconcile() (SQLExpr, error) {
-	return &SQLSubtractExpr{sub.reconcileArithmetic()}, nil
+	children := reconcileArithmetic([]SQLExpr{sub.left, sub.right})
+	node := sqlBinaryNode{children[0], children[1]}
+	return &SQLSubtractExpr{node}, nil
 }
 
 // ToAggregationLanguage translates SQLSubtractExpr into something that can
@@ -2324,182 +1637,4 @@ func (sub *SQLSubtractExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Ex
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (sub *SQLSubtractExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	return sub.ToAggregationLanguage(t)
-}
-
-// SQLXorExpr evaluates to true if and only if one of its children evaluates to true.
-type SQLXorExpr struct{ sqlBinaryNode }
-
-// NewSQLXorExpr is a constructor for SQLXorExprs.
-func NewSQLXorExpr(left, right SQLExpr) *SQLXorExpr {
-	return &SQLXorExpr{sqlBinaryNode{left, right}}
-}
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLXorExpr) ExprName() string {
-	return "SQLXorExpr"
-}
-
-// Evaluate evaluates a SQLXorExpr into a values.SQLValue.
-func (xor *SQLXorExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(xor)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := xor.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	if values.IsFalsy(leftVal) {
-		return rightVal.SQLBool(), nil
-	}
-
-	return values.NewSQLBool(cfg.sqlValueKind, !values.Bool(rightVal)), nil
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLXorExpr.
-func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(xor); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := xor.sqlValueArgEnum()
-
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
-		}
-		if values.IsFalsy(leftVal) {
-			// Type reconciliation only ensures that xor.right is boolean comparable.
-			// If it is actually boolean, we can return it.
-			if xor.right.EvalType() == types.EvalBoolean {
-				return xor.right, nil
-			}
-
-			// Otherwise, do not constant fold this expression (since we should not
-			// wrap in conversion during constant folding).
-			return xor, nil
-		}
-		return NewSQLNotExpr(xor.right), nil
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		if values.IsFalsy(rightVal) {
-			if xor.left.EvalType() == types.EvalBoolean {
-				return xor.left, nil
-			}
-			return xor, nil
-		}
-		return NewSQLNotExpr(xor.left), nil
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		if values.IsFalsy(leftVal) != values.IsFalsy(rightVal) {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, true)), nil
-		}
-		return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, false)), nil
-	}
-	return xor, nil
-}
-
-func (xor *SQLXorExpr) String() string {
-	return fmt.Sprintf("%v xor %v", xor.left, xor.right)
-}
-
-// nolint: unparam
-func (xor *SQLXorExpr) reconcile() (SQLExpr, error) {
-	left := xor.left
-	right := xor.right
-
-	if !isBooleanComparable(left.EvalType()) {
-		left = NewSQLConvertExpr(left, types.EvalBoolean)
-	}
-	if !isBooleanComparable(right.EvalType()) {
-		right = NewSQLConvertExpr(right, types.EvalBoolean)
-	}
-	return NewSQLXorExpr(left, right), nil
-}
-
-// ToAggregationLanguage translates SQLXorExpr into something that can
-// be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
-// it will return nil and error.
-func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLXorExpr",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
-	children := eatChildren(xor.ExprName(), nodesToExprs(xor.Children()))
-
-	args, err := t.translateArgs(children)
-	if err != nil {
-		return nil, err
-	}
-
-	numChildren := len(children)
-
-	ops := make([]ast.Expr, 0, numChildren)
-	assignments := make([]*ast.LetVariable, 0, numChildren)
-	nullChecks := make([]ast.Expr, 0, numChildren)
-
-	initialValue := false
-
-	for i, arg := range args {
-		switch a := arg.(type) {
-		case *ast.Constant:
-			if a.Value.Type == bsontype.Null {
-				return astutil.NullLiteral, nil
-			}
-
-			valueIsFalsy := !values.Bool(children[i].(SQLValueExpr).Value)
-			initialValue = initialValue == valueIsFalsy
-		default:
-			binding := fmt.Sprintf("expr%d", i)
-			bindingRef := ast.NewVariableRef(binding)
-
-			assignments = append(assignments, ast.NewLetVariable(binding, arg))
-
-			ops = append(ops, bindingRef)
-			nullChecks = append(nullChecks, astutil.WrapInNullCheck(bindingRef))
-		}
-	}
-
-	evaluation := astutil.WrapInCond(
-		astutil.NullLiteral,
-		astutil.WrapInReduce(
-			ast.NewArray(ops...),
-			astutil.BooleanValue(initialValue),
-			ast.NewBinary(bsonutil.OpAnd,
-				ast.NewBinary(bsonutil.OpOr, astutil.ThisVarRef, astutil.ValueVarRef),
-				ast.NewFunction(bsonutil.OpNot,
-					astutil.WrapInOp(bsonutil.OpAnd, astutil.ThisVarRef, astutil.ValueVarRef),
-				),
-			),
-		),
-		nullChecks...,
-	)
-
-	return ast.NewLet(assignments, evaluation), nil
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (xor *SQLXorExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return xor.ToAggregationLanguage(t)
-}
-
-// EvalType returns the EvalType associated with SQLXorExpr.
-func (*SQLXorExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
 }

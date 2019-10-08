@@ -785,36 +785,3 @@ testcases:
     expected_types: [varchar, varchar]
     id: '117'
     sql: SHOW CREATE TABLE `information_schema_5`
-
-  - expected_names: [Database]
-    expected_results:
-      - [bugs_database]
-      - [collation_test]
-      - [conversions_test]
-      - [cte_test]
-      - [explain_test]
-      - [functions_test]
-      - [groupby_test]
-      - [information_schema]
-      - [information_schema_test]
-      - [join_test]
-      - [limit_test]
-      - [manyColumns]
-      - [mysql]
-      - [odbc_test]
-      - [orderby_test]
-      - [polymorphic_data_test]
-      - [select_sTest]
-      - [select_test]
-      - [set_test]
-      - [subqueries_from_test]
-      - [subquery_cmp_pushdown_test]
-      - [test]
-      - [tuple_test]
-      - [union_test]
-      - [use_test]
-      - [use_test2]
-      - [where_test]
-    expected_types: [varchar]
-    id: '118'
-    sql: SHOW DBS

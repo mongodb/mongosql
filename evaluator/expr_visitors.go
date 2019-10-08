@@ -159,22 +159,6 @@ func (c *sqlColExprCollector) visit(n Node) (Node, error) {
 			return walk(c, n)
 		}
 		return n, nil
-	case SQLDoubleSubqueryExpr:
-		if typedN.LeftCorrelated() {
-			leftPlan, err := walk(c, typedN.LeftPlan())
-			if err != nil {
-				return nil, err
-			}
-			typedN.SetLeftPlan(leftPlan.(PlanStage))
-		}
-		if typedN.RightCorrelated() {
-			rightPlan, err := walk(c, typedN.RightPlan())
-			if err != nil {
-				return nil, err
-			}
-			typedN.SetRightPlan(rightPlan.(PlanStage))
-		}
-		return typedN.(Node), nil
 	default:
 		return walk(c, n)
 	}

@@ -59,7 +59,6 @@ var (
 	DAY_MINUTE_BYTES         = []byte("day_minute")
 	DAY_SECOND_BYTES         = []byte("day_second")
 	DAY_BYTES                = []byte("day")
-	DBS_BYTES                = []byte("dbs")
 	DECIMAL_BYTES            = []byte("decimal")
 	DEFAULT_BYTES            = []byte("default")
 	DELETE_BYTES             = []byte("delete")
@@ -327,7 +326,6 @@ var keywords = map[string]int{
 	"day_minute":         DAY_MINUTE,
 	"day_second":         DAY_SECOND,
 	"day":                DAY,
-	"dbs":                DBS,
 	"decimal":            DECIMAL,
 	"default":            DEFAULT,
 	"desc":               DESC,
@@ -557,7 +555,6 @@ var keywordAsID = map[string]struct{}{
 	string(DATE_BYTES):            {},
 	string(DATETIME_BYTES):        {},
 	string(DAY_BYTES):             {},
-	string(DBS_BYTES):             {},
 	string(DECIMAL_BYTES):         {},
 	string(DISABLE_BYTES):         {},
 	string(ENABLE_BYTES):          {},
