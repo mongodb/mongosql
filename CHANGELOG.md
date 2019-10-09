@@ -4,9 +4,15 @@ This file contains a list of user-facing changes.
 A line should be added to this file for each commit made to this repository.
 If no user-facing changes were made, the comment should reflect that fact.
 
+## 2.13
+- BI-2356: No user-facing changes.
+- BI-2038: Improve constant folding by using variadic nodes for associative operators.
+- BI-2306: Adds support for `show dbs`.
+- BI-2272: Enables `select *,<expr>` functionality.
+- BI-2230: No user-facing changes
+
 ## 2.12
 
-BI-2038: Improve constant folding by using variadic nodes for associative operators.
 BI-2271: No user facing changes.
 BI-2161: Fix bug that caused mongosqld to hang if an election occurred during sampling. Now, an error will be returned. Clients can continue to connect to mongosqld after the election.
 BI-2261: No user-facing changes.

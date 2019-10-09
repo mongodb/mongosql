@@ -99,6 +99,55 @@ test-integration: test-connect-success restore-data _test-integration
 _test-integration:
 	$(ENV) SUITE="$(SUITE)" testdata/bin/run-integration-tests.sh
 
+prepare-memory-limits: run-mongodb build-mongosqld
+
+test-memory-limits: prepare-memory-limits _test-memory-limits-control _test-memory-limits-large-documents _test-memory-limits-deeply-nested-sub-documents _test-memory-limits-many-fields _test-memory-limits-many-databases _test-memory-limits-many-collections _test-memory-limits-many-documents _test-memory-limits-many-arrays _test-memory-limits-deeply-nested-arrays
+
+test-memory-limits-control: prepare-memory-limits _test-memory-limits-control
+_test-memory-limits-control:
+	$(ENV) TEST_NAME='control' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='control' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-large-documents: prepare-memory-limits _test-memory-limits-large-documents
+_test-memory-limits-large-documents:
+	$(ENV) TEST_NAME='large-documents' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='large-documents' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-deeply-nested-sub-documents: prepare-memory-limits _test-memory-limits-deeply-nested-sub-documents
+_test-memory-limits-deeply-nested-sub-documents:
+	$(ENV) TEST_NAME='deeply-nested-sub-documents' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='deeply-nested-sub-documents' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-many-fields: prepare-memory-limits _test-memory-limits-many-fields
+_test-memory-limits-many-fields:
+	$(ENV) TEST_NAME='many-fields' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='many-fields' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-many-databases: prepare-memory-limits _test-memory-limits-many-databases
+_test-memory-limits-many-databases:
+	$(ENV) TEST_NAME='many-databases' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='many-databases' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-many-collections: prepare-memory-limits _test-memory-limits-many-collections
+_test-memory-limits-many-collections:
+	$(ENV) TEST_NAME='many-collections' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='many-collections' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-many-documents: prepare-memory-limits _test-memory-limits-many-documents
+_test-memory-limits-many-documents:
+	$(ENV) TEST_NAME='many-documents' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='many-documents' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-many-arrays: prepare-memory-limits _test-memory-limits-many-arrays
+_test-memory-limits-many-arrays:
+	$(ENV) TEST_NAME='many-arrays' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='many-arrays' testdata/bin/parse-memory-results.sh
+
+test-memory-limits-deeply-nested-arrays: prepare-memory-limits _test-memory-limits-deeply-nested-arrays
+_test-memory-limits-deeply-nested-arrays:
+	$(ENV) TEST_NAME='deeply-nested-arrays' testdata/bin/run-memory-tests.sh
+	$(ENV) TEST_NAME='deeply-nested-arrays' testdata/bin/parse-memory-results.sh
+
 test-writes: SUITE := writes
 test-writes: test-connect-success restore-data _test-integration
 

@@ -635,8 +635,7 @@ functions:
         display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.msi
 
 variables:
-  - &run-config-test
-    # runs test-simple-connect.sh against a particular config.
+  - &run-make-target
     # the task name in evg should correspond to a make target.
     type: test
     name: test
@@ -1106,779 +1105,815 @@ tasks:
         var_suite: tdvt
         var_nopushdown: true
 
-- <<: *run-config-test
+- <<: *run-make-target
+  name: test-memory-limits-control
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-large-documents
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-deeply-nested-sub-documents
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-many-fields
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-many-databases
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-many-collections
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-many-documents
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-many-arrays
+  tags: ["mem-test"]
+
+- <<: *run-make-target
+  name: test-memory-limits-deeply-nested-arrays
+  tags: ["mem-test"]
+
+- <<: *run-make-target
   name: test-atlas-connect-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-array-2d-index
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-schema-mapping-mode-updated
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-array-2dsphere-index
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-nested-array-2d-index
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-nested-array-2dsphere-index
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-require-ssl-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-require-ssl-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-disable-ssl-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-disable-ssl-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-allow-ssl-ssl
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-allow-ssl-nossl
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-cleartext-auth-nossl
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-cleartext-auth-allowssl-tcp-nossl
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-cleartext-auth-allowssl-unix-nossl
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-cleartext-auth-ssl
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-cleartext-auth-ssl-scram-sha-256
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-cleartext-auth-gssapi
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-flush-logs-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-flush-sample-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-set-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-set-global-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-set-session-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-global-variables-visible
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-global-status-visible
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-two-user
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-flush-logs-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-flush-sample-read-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-flush-sample-write-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-set-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-global-variables-still-visible
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-global-status-still-visible
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-cleartext-auth-wrong-creds
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-not-enabled-failure
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-success
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-ca-success
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-pem-success
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-pem-failure
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-fips
   tags: ["test", "config", "mongo-ssl", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-simple
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-auth
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-auth-no-creds
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-auth-wrong-creds
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-ssl
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-ssl-default
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-ssl-min-tls-1-0
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-ssl-min-tls-1-1
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-ssl-min-tls-1-2
   tags: ["test", "config", "mongo-ssl", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-replset-seedlist
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-rotation-none
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-rotation-once
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-rotation-twice
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-rotation-startup-rotate
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-rotation-startup-append
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-rotation-startup-dir
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-rotation-sigusr1
   tags: ["test", "config", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-log-newlines
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-read-simple
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-read-ssl
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-read-auth
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-read-updated
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-option-help
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-option-version
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-mixed-case-columns
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-with-prejoin
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-without-prejoin
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-simple
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-size-update
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-max-num-columns-per-table-update
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-max-nested-table-depth-update
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-size-respects-config
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-refresh-interval-update
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-refresh-interval-update-write
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-refresh-interval-respects-config
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-refresh-interval-updates-quickly
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-updated
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-empty
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-ssl
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-ssl-failure
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-auth
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-auth-failure-3.2
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-auth-failure-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-auth-failure-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-auth-failure-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-auth-failure-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-read-after-sampling
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-size-default
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-size-all
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-size-ten
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-show-create-table-child-no-primary-key
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sampling-does-not-hang-after-election
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-flush-new-collection
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-schema-mapping-mode-lattice
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-schema-mapping-mode-majority
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-ssl
   tags: ["test", "config", "mongo-ssl"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-auth
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-wrong-user
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-wrong-user-continue-running
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-admin-user
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-3.2
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-sharded
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-kill-queries-replica-set
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-collection-3.2
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-collection-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-collection-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-collection-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-collection-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-view-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-view-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-view-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-join-sharded-view-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-sample-auth-view-on-collection-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-collection-3.2
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-collection-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-collection-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-collection-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-collection-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-on-view-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-on-view-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-on-view-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-count-on-sharded-view-on-view-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-single-bind-ip-default-port
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-single-bind-ip-with-port
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-multiple-bind-ip-default-port
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-multiple-bind-ip-consistent-ports
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-multiple-bind-ip-inconsistent-ports
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-drdl-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-drdl-no-creds
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-drdl-wrong-admin-creds
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-drdl-no-roles
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-drdl-read-some-dbs
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-drdl-no-listindexes
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-roles-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-roles-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-roles-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-roles-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-literal-db
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-3.4
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-3.6
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-latest
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listcollections-literal-collection
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listcollections-wildcard-collection
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-admin-or-local-db
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-min-tls-default
   tags: ["test", "config", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-min-tls-1-0
   tags: ["test", "config", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-min-tls-1-1
   tags: ["test", "config", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-ssl-min-tls-1-2
   tags: ["test", "config", "mongo-tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-client-min-tls-default
   tags: ["test", "config", "tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-client-min-tls-1-0
   tags: ["test", "config", "tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-client-min-tls-1-1
   tags: ["test", "config", "tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-client-min-tls-1-2
   tags: ["test", "config", "tls"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-correct-username-and-password-wrong-keytab
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-correct-username-wrong-password-with-keytab
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-wrong-username-wrong-password-with-keytab
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-wrong-username-without-password-with-keytab
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-correct-username-and-password-without-cache
   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-correct-username-wrong-password-without-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-keytab-and-username
   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-correct-username-and-password-wrong-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-correct-username-without-password-with-cache
   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-correct-username-wrong-password-with-cache
   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-wrong-username-wrong-password-with-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-with-wrong-username-without-password-with-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-privilege-escalation
   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-gssapi-using-cred-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-gssapi
   tags: ["test", "config", "gssapi"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-gssapi-wrong-service-name
   tags: ["test", "config", "gssapi"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-drdl-gssapi-wrong-host-name
   tags: ["test", "config", "gssapi"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-gssapi-admin-authenticator-plain-user
   tags: ["test", "config", "gssapi"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-uri-read-preference-primary
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-mongo-uri-read-preference-secondary
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-query-max-execution-time-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-query-max-execution-time-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-query-max-execution-time-pushdown-success
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-query-max-execution-time-pushdown-failure
   tags: ["test", "config"]
 
-- <<: *run-config-test
+- <<: *run-make-target
   name: test-query-after-kill-success
   tags: ["test", "config"]
 
@@ -2210,3 +2245,13 @@ buildvariants:
   - amazon1-2018-test
   tasks:
   - name: release
+
+- name: mem-test
+  display_name: Memory Limits (RHEL 7.0)
+  expansions:
+    _variant: rhel70
+  run_on:
+  - rhel70
+  tasks:
+    - name: ".mem-test"
+
