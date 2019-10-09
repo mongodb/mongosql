@@ -63,8 +63,8 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		// Doing this before WithConnString makes these the defaults
 		topology.WithServerOptions(func(options ...topology.ServerOption) []topology.ServerOption {
 			return append(options,
-				topology.WithMaxConnections(func(uint16) uint16 { return 0 }),       // no upper limit per host
-				topology.WithMaxIdleConnections(func(uint16) uint16 { return 100 }), // pool 100 connections per host
+				topology.WithMaxConnections(func(uint64) uint64 { return 0 }),   // no upper limit per host
+				topology.WithMinConnections(func(uint64) uint64 { return 100 }), // pool 100 connections per host
 				topology.WithConnectionOptions(func(options ...topology.ConnectionOption) []topology.ConnectionOption {
 					return append(options,
 						topology.WithAppName(func(string) string { return "mongosqld" }),

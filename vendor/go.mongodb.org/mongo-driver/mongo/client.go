@@ -144,7 +144,7 @@ func (c *Client) Ping(ctx context.Context, rp *readpref.ReadPref) error {
 	db := c.Database("admin")
 	res := db.RunCommand(ctx, bson.D{
 		{"ping", 1},
-	})
+	}, options.RunCmd().SetReadPreference(rp))
 
 	return replaceErrors(res.Err())
 }
@@ -348,6 +348,7 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 		func(...string) []string { return hosts },
 	))
 	// LocalThreshold
+	c.localThreshold = defaultLocalThreshold
 	if opts.LocalThreshold != nil {
 		c.localThreshold = *opts.LocalThreshold
 	}
@@ -361,8 +362,21 @@ func (c *Client) configure(opts *options.ClientOptions) error {
 	if opts.MaxPoolSize != nil {
 		serverOpts = append(
 			serverOpts,
-			topology.WithMaxConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
-			topology.WithMaxIdleConnections(func(uint16) uint16 { return *opts.MaxPoolSize }),
+			topology.WithMaxConnections(func(uint64) uint64 { return *opts.MaxPoolSize }),
+		)
+	}
+	// MinPoolSize
+	if opts.MinPoolSize != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithMinConnections(func(uint64) uint64 { return *opts.MinPoolSize }),
+		)
+	}
+	// PoolMonitor
+	if opts.PoolMonitor != nil {
+		serverOpts = append(
+			serverOpts,
+			topology.WithConnectionPoolMonitor(func(*event.PoolMonitor) *event.PoolMonitor { return opts.PoolMonitor }),
 		)
 	}
 	// Monitor
@@ -484,10 +498,11 @@ func (c *Client) ListDatabases(ctx context.Context, filter interface{}, opts ...
 		return ListDatabasesResult{}, err
 	}
 
-	selector := makePinnedSelector(sess, description.CompositeSelector([]description.ServerSelector{
+	selector := description.CompositeSelector([]description.ServerSelector{
 		description.ReadPrefSelector(readpref.Primary()),
 		description.LatencySelector(c.localThreshold),
-	}))
+	})
+	selector = makeReadPrefSelector(sess, selector, c.localThreshold)
 
 	ldo := options.MergeListDatabasesOptions(opts...)
 	op := operation.NewListDatabases(filterDoc).

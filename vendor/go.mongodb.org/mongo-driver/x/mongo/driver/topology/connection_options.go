@@ -35,10 +35,6 @@ var DefaultDialer Dialer = &net.Dialer{}
 // initialization. Implementations must be goroutine safe.
 type Handshaker = driver.Handshaker
 
-// HandshakerFunc is an adapter to allow the use of ordinary functions as
-// connection handshakers.
-type HandshakerFunc = driver.HandshakerFunc
-
 type connectionConfig struct {
 	appName        string
 	connectTimeout time.Duration
@@ -105,7 +101,7 @@ func WithCompressors(fn func([]string) []string) ConnectionOption {
 }
 
 // WithConnectTimeout configures the maximum amount of time a dial will wait for a
-// connect to complete. The default is 30 seconds.
+// Connect to complete. The default is 30 seconds.
 func WithConnectTimeout(fn func(time.Duration) time.Duration) ConnectionOption {
 	return func(c *connectionConfig) error {
 		c.connectTimeout = fn(c.connectTimeout)

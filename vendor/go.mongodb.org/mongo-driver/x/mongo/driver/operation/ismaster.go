@@ -28,6 +28,8 @@ type IsMaster struct {
 	res bsoncore.Document
 }
 
+var _ driver.Handshaker = (*IsMaster)(nil)
+
 // NewIsMaster constructs an IsMaster.
 func NewIsMaster() *IsMaster { return &IsMaster{} }
 
@@ -66,7 +68,7 @@ func (im *IsMaster) Deployment(d driver.Deployment) *IsMaster {
 	return im
 }
 
-// Result returns the result of executing this operaiton.
+// Result returns the result of executing this operation.
 func (im *IsMaster) Result(addr address.Address) description.Server {
 	desc := description.Server{Addr: addr, CanonicalAddr: addr, LastUpdateTime: time.Now().UTC()}
 	elements, err := im.res.Elements()
@@ -132,13 +134,21 @@ func (im *IsMaster) Result(addr address.Address) description.Server {
 				desc.LastError = fmt.Errorf("expected 'isreplicaset' to be a boolean but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-		case "lastWriteDate":
-			dt, ok := element.Value().DateTimeOK()
+		case "lastWrite":
+			lastWrite, ok := element.Value().DocumentOK()
 			if !ok {
-				desc.LastError = fmt.Errorf("expected 'lastWriteDate' to be a datetime but it's a BSON %s", element.Value().Type)
+				desc.LastError = fmt.Errorf("expected 'lastWrite' to be a document but it's a BSON %s", element.Value().Type)
 				return desc
 			}
-			desc.LastWriteTime = time.Unix(dt/1000, dt%1000*1000000).UTC()
+			dateTime, err := lastWrite.LookupErr("lastWriteDate")
+			if err == nil {
+				dt, ok := dateTime.DateTimeOK()
+				if !ok {
+					desc.LastError = fmt.Errorf("expected 'lastWriteDate' to be a datetime but it's a BSON %s", dateTime.Type)
+					return desc
+				}
+				desc.LastWriteTime = time.Unix(dt/1000, dt%1000*1000000).UTC()
+			}
 		case "logicalSessionTimeoutMinutes":
 			i64, ok := element.Value().AsInt64OK()
 			if !ok {
@@ -393,8 +403,9 @@ func (im *IsMaster) Execute(ctx context.Context) error {
 	}.Execute(ctx, nil)
 }
 
-// Handshake implements the Handshaker interface.
-func (im *IsMaster) Handshake(ctx context.Context, _ address.Address, c driver.Connection) (description.Server, error) {
+// GetDescription retrieves the server description for the given connection. This function implements the Handshaker
+// interface.
+func (im *IsMaster) GetDescription(ctx context.Context, _ address.Address, c driver.Connection) (description.Server, error) {
 	err := driver.Operation{
 		Clock:      im.clock,
 		CommandFn:  im.handshakeCommand,
@@ -409,4 +420,10 @@ func (im *IsMaster) Handshake(ctx context.Context, _ address.Address, c driver.C
 		return description.Server{}, err
 	}
 	return im.Result(c.Address()), nil
+}
+
+// FinishHandshake implements the Handshaker interface. This is a no-op function because a non-authenticated connection
+// does not do anything besides the initial isMaster for a handshake.
+func (im *IsMaster) FinishHandshake(context.Context, driver.Connection) error {
+	return nil
 }

@@ -430,8 +430,8 @@ func (coll *Collection) DeleteMany(ctx context.Context, filter interface{},
 	return coll.delete(ctx, filter, false, rrMany, opts...)
 }
 
-func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool, expectedRr returnResult,
-	opts ...*options.UpdateOptions) (*UpdateResult, error) {
+func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Document, update interface{}, multi bool,
+	expectedRr returnResult, checkDollarKey bool, opts ...*options.UpdateOptions) (*UpdateResult, error) {
 
 	if ctx == nil {
 		ctx = context.Background()
@@ -441,16 +441,11 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 	uidx, updateDoc := bsoncore.AppendDocumentStart(nil)
 	updateDoc = bsoncore.AppendDocumentElement(updateDoc, "q", filter)
 
-	switch update.(type) {
-	case bsoncore.Document:
-		updateDoc = bsoncore.AppendDocumentElement(updateDoc, "u", update.(bsoncore.Document))
-	default:
-		u, err := transformUpdateValue(coll.registry, update, true)
-		if err != nil {
-			return nil, err
-		}
-		updateDoc = bsoncore.AppendValueElement(updateDoc, "u", u)
+	u, err := transformUpdateValue(coll.registry, update, checkDollarKey)
+	if err != nil {
+		return nil, err
 	}
+	updateDoc = bsoncore.AppendValueElement(updateDoc, "u", u)
 	if multi {
 		updateDoc = bsoncore.AppendBooleanElement(updateDoc, "multi", multi)
 	}
@@ -482,7 +477,7 @@ func (coll *Collection) updateOrReplace(ctx context.Context, filter bsoncore.Doc
 		defer sess.EndSession()
 	}
 
-	err := coll.client.validSession(sess)
+	err = coll.client.validSession(sess)
 	if err != nil {
 		return nil, err
 	}
@@ -546,7 +541,7 @@ func (coll *Collection) UpdateOne(ctx context.Context, filter interface{}, updat
 		return nil, err
 	}
 
-	return coll.updateOrReplace(ctx, f, update, false, rrOne, opts...)
+	return coll.updateOrReplace(ctx, f, update, false, rrOne, true, opts...)
 }
 
 // UpdateMany updates multiple documents in the collection.
@@ -562,7 +557,7 @@ func (coll *Collection) UpdateMany(ctx context.Context, filter interface{}, upda
 		return nil, err
 	}
 
-	return coll.updateOrReplace(ctx, f, update, true, rrMany, opts...)
+	return coll.updateOrReplace(ctx, f, update, true, rrMany, true, opts...)
 }
 
 // ReplaceOne replaces a single document in the collection.
@@ -596,7 +591,7 @@ func (coll *Collection) ReplaceOne(ctx context.Context, filter interface{},
 		updateOptions = append(updateOptions, uOpts)
 	}
 
-	return coll.updateOrReplace(ctx, f, r, false, rrOne, updateOptions...)
+	return coll.updateOrReplace(ctx, f, r, false, rrOne, false, updateOptions...)
 }
 
 // Aggregate runs an aggregation framework pipeline.
@@ -659,11 +654,10 @@ func aggregate(a aggregateParams) (*Cursor, error) {
 		sess = nil
 	}
 
-	defaultSelector := a.readSelector
-	if hasOutputStage {
-		defaultSelector = a.writeSelector
+	selector := makePinnedSelector(sess, a.writeSelector)
+	if !hasOutputStage {
+		selector = makeReadPrefSelector(sess, a.readSelector, a.client.localThreshold)
 	}
-	selector := makePinnedSelector(sess, defaultSelector)
 
 	ao := options.MergeAggregateOptions(a.opts...)
 	cursorOpts := driver.CursorOptions{
@@ -761,8 +755,7 @@ func (coll *Collection) CountDocuments(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
-
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewAggregate(pipelineArr).Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).ClusterClock(coll.client.clock).Database(coll.db.name).
 		Collection(coll.name).Deployment(coll.client.topology)
@@ -837,8 +830,7 @@ func (coll *Collection) EstimatedDocumentCount(ctx context.Context,
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
-
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewCount().Session(sess).ClusterClock(coll.client.clock).
 		Database(coll.db.name).Collection(coll.name).CommandMonitor(coll.client.monitor).
 		Deployment(coll.client.topology).ReadConcern(rc).ReadPreference(coll.readPreference).
@@ -893,8 +885,7 @@ func (coll *Collection) Distinct(ctx context.Context, fieldName string, filter i
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
-
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	option := options.MergeDistinctOptions(opts...)
 
 	op := operation.NewDistinct(fieldName, bsoncore.Document(f)).
@@ -976,8 +967,7 @@ func (coll *Collection) Find(ctx context.Context, filter interface{},
 		rc = nil
 	}
 
-	selector := makePinnedSelector(sess, coll.readSelector)
-
+	selector := makeReadPrefSelector(sess, coll.readSelector, coll.client.localThreshold)
 	op := operation.NewFind(f).
 		Session(sess).ReadConcern(rc).ReadPreference(coll.readPreference).
 		CommandMonitor(coll.client.monitor).ServerSelector(selector).
@@ -1425,4 +1415,15 @@ func makePinnedSelector(sess *session.Client, defaultSelector description.Server
 
 		return defaultSelector.SelectServer(t, svrs)
 	}
+}
+
+func makeReadPrefSelector(sess *session.Client, selector description.ServerSelector, localThreshold time.Duration) description.ServerSelectorFunc {
+	if sess != nil && sess.TransactionRunning() {
+		selector = description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(sess.CurrentRp),
+			description.LatencySelector(localThreshold),
+		})
+	}
+
+	return makePinnedSelector(sess, selector)
 }
