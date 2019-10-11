@@ -38,6 +38,7 @@ func DesugarStatement(statement Statement, versionCode versionutil.MySQLFixedWid
 		{&subqueryComparisonConverter{}, option.NoneString(), option.NoneString()},
 		{&tupleComparisonDesugarer{}, option.NoneString(), option.NoneString()},
 		{&makeDualExplicit{}, option.NoneString(), option.NoneString()},
+		{&gtDesugarer{}, option.NoneString(), option.NoneString()},
 	}
 
 	result := statement.(CST)
@@ -221,6 +222,55 @@ func (*betweenDesugarer) PostVisit(current CST) (CST, error) {
 }
 
 var _ Walker = (*betweenDesugarer)(nil)
+
+// gtDesugarer replaces GT with LT and GE with LE
+type gtDesugarer struct{}
+
+// PreVisit is called for every node before its children are walked.
+func (*gtDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// flip returns the appropriate operator after flipping its direction.
+// GT becomes LT and GE becomes LE.
+func flip(op string) string {
+	switch op {
+	case AST_GT:
+		return AST_LT
+	case AST_GE:
+		return AST_LE
+	}
+
+	panic(fmt.Sprintf("not supposed to flip %v in the desugarer", op))
+}
+
+// PostVisit is called for every node after its children are walked.
+// Desugaring is skipped if the current node is a subquery.
+func (*gtDesugarer) PostVisit(current CST) (CST, error) {
+	cmp, ok := current.(*ComparisonExpr)
+	if !ok {
+		return current, nil
+	}
+	switch cmp.Operator {
+	case AST_GT, AST_GE:
+		_, leftIsSubquery := cmp.Left.(*Subquery)
+		_, rightIsSubquery := cmp.Right.(*Subquery)
+
+		if leftIsSubquery || rightIsSubquery {
+			return current, nil
+		}
+
+		return &ComparisonExpr{
+			Left:     cmp.Right,
+			Operator: flip(cmp.Operator),
+			Right:    cmp.Left,
+		}, nil
+	default:
+		return current, nil
+	}
+}
+
+var _ Walker = (*gtDesugarer)(nil)
 
 // ifToCaseDesugarer replaces IF scalar functions with CaseExprs.
 type ifToCaseDesugarer struct{}

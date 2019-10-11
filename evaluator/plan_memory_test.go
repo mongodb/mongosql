@@ -129,7 +129,8 @@ func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 
 func testJoinMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfig, st *ExecutionState) {
 
-	criteria := NewSQLEqualsExpr(
+	criteria := NewSQLComparisonExpr(
+		EQ,
 		testSQLColumnExpr(
 			1,
 			BSONSourceDB,
@@ -225,7 +226,8 @@ func TestMemoryMonitor(t *testing.T) {
 }
 
 func testJoinMemoryMonitor(t *testing.T) {
-	criteria := NewSQLEqualsExpr(
+	criteria := NewSQLComparisonExpr(
+		EQ,
 		testSQLColumnExpr(
 			1,
 			BSONSourceDB,

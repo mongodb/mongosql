@@ -1047,12 +1047,12 @@ func TestReconcile(t *testing.T) {
 		{"xor(datetime,date)", NewSQLXorExpr(datetimeVal, dateVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
 		{"xor(datetime,datetime)", NewSQLXorExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
 		// equals special case: a boolean column expr and a 1 or 0 (number) result in bool conversions.
-		{"eq(bool column,1)", NewSQLEqualsExpr(boolColVal, intVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"eq(1,bool column)", NewSQLEqualsExpr(intVal, boolColVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"eq(bool column,0)", NewSQLEqualsExpr(boolColVal, NewSQLValueExpr(values.NewSQLInt64(knd, 0))), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"eq(0,bool column)", NewSQLEqualsExpr(NewSQLValueExpr(values.NewSQLInt64(knd, 0)), boolColVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
-		{"eq(bool column,2)", NewSQLEqualsExpr(boolColVal, NewSQLValueExpr(values.NewSQLInt64(knd, 2))), []types.EvalType{types.EvalInt64, types.EvalInt64}},
-		{"eq(2,bool column)", NewSQLEqualsExpr(NewSQLValueExpr(values.NewSQLInt64(knd, 2)), boolColVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"eq(bool column,1)", NewSQLComparisonExpr(EQ, boolColVal, intVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
+		{"eq(1,bool column)", NewSQLComparisonExpr(EQ, intVal, boolColVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
+		{"eq(bool column,0)", NewSQLComparisonExpr(EQ, boolColVal, NewSQLValueExpr(values.NewSQLInt64(knd, 0))), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
+		{"eq(0,bool column)", NewSQLComparisonExpr(EQ, NewSQLValueExpr(values.NewSQLInt64(knd, 0)), boolColVal), []types.EvalType{types.EvalBoolean, types.EvalBoolean}},
+		{"eq(bool column,2)", NewSQLComparisonExpr(EQ, boolColVal, NewSQLValueExpr(values.NewSQLInt64(knd, 2))), []types.EvalType{types.EvalInt64, types.EvalInt64}},
+		{"eq(2,bool column)", NewSQLComparisonExpr(EQ, NewSQLValueExpr(values.NewSQLInt64(knd, 2)), boolColVal), []types.EvalType{types.EvalInt64, types.EvalInt64}},
 
 		// like expression
 		{"like(str, int)", NewSQLLikeExpr(strVal, intVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},

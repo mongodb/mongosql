@@ -302,377 +302,6 @@ func (div *SQLDivideExpr) EvalType() types.EvalType {
 	return types.EvalDouble
 }
 
-// SQLEqualsExpr evaluates to true if the left equals the right.
-type SQLEqualsExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLEqualsExpr) ExprName() string {
-	return "SQLEqualsExpr"
-}
-
-var _ translatableToMatch = (*SQLEqualsExpr)(nil)
-
-// NewSQLEqualsExpr is a constructor for SQLEqualsExpr.
-func NewSQLEqualsExpr(left, right SQLExpr) *SQLEqualsExpr {
-	return &SQLEqualsExpr{
-		sqlBinaryNode{
-			left:  left,
-			right: right,
-		}}
-}
-
-// Evaluate evaluates a SQLEqualsExpr into a values.SQLValue.
-func (eq *SQLEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(eq)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := eq.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	c, err := values.CompareTo(leftVal, rightVal, st.collation)
-	if err == nil {
-		return values.NewSQLBool(cfg.sqlValueKind, c == 0), nil
-	}
-
-	return values.NewSQLBool(cfg.sqlValueKind, false), err
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLEqualsExpr.
-func (eq *SQLEqualsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(eq); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := eq.sqlValueArgEnum()
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal), nil
-		}
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal), nil
-		}
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
-		}
-		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
-		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c == 0)), nil
-		}
-	}
-	if shouldFlip(eq.sqlBinaryNode) {
-		left, right := eq.right, eq.left
-		eq.left, eq.right = left, right
-	}
-	return eq, nil
-}
-
-func (eq *SQLEqualsExpr) String() string {
-	return fmt.Sprintf("%v = %v", eq.left, eq.right)
-}
-
-// ToAggregationLanguage translates SQLEqualsExpr into something that can
-// be used in an aggregation pipeline. If SQLEqualsExpr cannot be translated,
-// it will return nil and error.
-func (eq *SQLEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return eq.cmpOpToAggregationLanguage(t, bsonutil.OpEq)
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (eq *SQLEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return eq.cmpOpToAggregationPredicate(t, bsonutil.OpEq)
-}
-
-// ToMatchLanguage translates SQLEqualsExpr into something that can
-// be used in an match expression. If SQLEqualsExpr can be fully translated,
-// it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLEqualsExpr.
-func (eq *SQLEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	match, ok := t.translateOperator(bsonutil.OpEq, eq.left, eq.right)
-	if !ok {
-		return nil, eq
-	}
-	return match, nil
-}
-
-// EvalType returns the EvalType associated with SQLEqualsExpr.
-func (*SQLEqualsExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
-}
-
-// nolint: unparam
-func (eq *SQLEqualsExpr) reconcile() (SQLExpr, error) {
-	var reconciled bool
-
-	left := eq.left
-	right := eq.right
-
-	if isBooleanColumnAndNumber(left, right) || isBooleanColumnAndNumber(right, left) {
-		var col SQLColumnExpr
-		var lit values.SQLNumber
-
-		switch left.EvalType() {
-		case types.EvalBoolean:
-			col = left.(SQLColumnExpr)
-			lit = right.(SQLValueExpr).Value.(values.SQLNumber)
-		default:
-			col = right.(SQLColumnExpr)
-			lit = left.(SQLValueExpr).Value.(values.SQLNumber)
-		}
-
-		if ilit := values.Int64(lit); ilit == 1 || ilit == 0 {
-			left = col
-			right = NewSQLConvertExpr(NewSQLValueExpr(lit), types.EvalBoolean)
-			reconciled = true
-		}
-	}
-
-	if !reconciled {
-		return &SQLEqualsExpr{eq.reconcileComparison()}, nil
-	}
-
-	return NewSQLEqualsExpr(left, right), nil
-}
-
-// SQLGreaterThanExpr evaluates to true when the left is greater than the right.
-type SQLGreaterThanExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLGreaterThanExpr) ExprName() string {
-	return "SQLGreaterThanExpr"
-}
-
-var _ translatableToMatch = (*SQLGreaterThanExpr)(nil)
-
-// NewSQLGreaterThanExpr is a constructor for SQLGreaterThanExpr.
-func NewSQLGreaterThanExpr(left, right SQLExpr) *SQLGreaterThanExpr {
-	return &SQLGreaterThanExpr{
-		sqlBinaryNode{
-			left:  left,
-			right: right,
-		}}
-}
-
-// Evaluate evaluates a SQLGreaterThanExpr into a values.SQLValue.
-func (gt *SQLGreaterThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(gt)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := gt.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	c, err := values.CompareTo(leftVal, rightVal, st.collation)
-	if err == nil {
-		return values.NewSQLBool(cfg.sqlValueKind, c > 0), nil
-	}
-	return values.NewSQLBool(cfg.sqlValueKind, false), err
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLGreaterThanExpr.
-func (gt *SQLGreaterThanExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(gt); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := gt.sqlValueArgEnum()
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal), nil
-		}
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal), nil
-		}
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
-		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c > 0)), nil
-		}
-	}
-	if shouldFlip(gt.sqlBinaryNode) {
-		left, right := gt.right, gt.left
-		return NewSQLLessThanExpr(left, right), nil
-	}
-	return gt, nil
-}
-
-// nolint: unparam
-func (gt *SQLGreaterThanExpr) reconcile() (SQLExpr, error) {
-	return &SQLGreaterThanExpr{gt.reconcileComparison()}, nil
-}
-
-func (gt *SQLGreaterThanExpr) String() string {
-	return fmt.Sprintf("%v>%v", gt.left, gt.right)
-}
-
-// ToAggregationLanguage translates SQLGreaterThanExpr into something that can
-// be used in an aggregation pipeline. If SQLGreaterThanExpr cannot be translated,
-// it will return nil and error.
-func (gt *SQLGreaterThanExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return gt.cmpOpToAggregationLanguage(t, bsonutil.OpGt)
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (gt *SQLGreaterThanExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return gt.cmpOpToAggregationPredicate(t, bsonutil.OpGt)
-}
-
-// ToMatchLanguage translates SQLGreaterThanExpr into something that can
-// be used in an match expression. If SQLGreaterThanExpr can be fully translated,
-// it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLGreaterThanExpr.
-func (gt *SQLGreaterThanExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	match, ok := t.translateOperator(bsonutil.OpGt, gt.left, gt.right)
-	if !ok {
-		return nil, gt
-	}
-	return match, nil
-}
-
-// EvalType returns the EvalType associated with SQLGreaterThanExpr.
-func (*SQLGreaterThanExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
-}
-
-// SQLGreaterThanOrEqualExpr evaluates to true when the left is greater than or equal to the right.
-type SQLGreaterThanOrEqualExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLGreaterThanOrEqualExpr) ExprName() string {
-	return "SQLGreaterThanOrEqualExpr"
-}
-
-// NewSQLGreaterThanOrEqualExpr is a constructor for SQLGreaterThanOrEqualExpr.
-func NewSQLGreaterThanOrEqualExpr(left, right SQLExpr) *SQLGreaterThanOrEqualExpr {
-	return &SQLGreaterThanOrEqualExpr{
-		sqlBinaryNode{
-			left:  left,
-			right: right,
-		}}
-}
-
-// Evaluate evaluates a SQLGreaterThanOrEqualExpr into a values.SQLValue.
-func (gte *SQLGreaterThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(gte)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := gte.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	c, err := values.CompareTo(leftVal, rightVal, st.collation)
-	if err == nil {
-		return values.NewSQLBool(cfg.sqlValueKind, c >= 0), nil
-	}
-
-	return values.NewSQLBool(cfg.sqlValueKind, false), err
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLGreaterThanOrEqualExpr.
-func (gte *SQLGreaterThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(gte); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := gte.sqlValueArgEnum()
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal), nil
-		}
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal), nil
-		}
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
-		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c >= 0)), nil
-		}
-	}
-	if shouldFlip(gte.sqlBinaryNode) {
-		left, right := gte.right, gte.left
-		return NewSQLLessThanOrEqualExpr(left, right), nil
-	}
-	return gte, nil
-}
-
-// nolint: unparam
-func (gte *SQLGreaterThanOrEqualExpr) reconcile() (SQLExpr, error) {
-	return &SQLGreaterThanOrEqualExpr{gte.reconcileComparison()}, nil
-}
-
-func (gte *SQLGreaterThanOrEqualExpr) String() string {
-	return fmt.Sprintf("%v>=%v", gte.left, gte.right)
-}
-
-// ToAggregationLanguage translates SQLGreaterThanOrEqualExpr into something
-// that can be used in an aggregation pipeline. If SQLGreaterThanOrEqualExpr
-// cannot be translated, it will return nil and error.
-func (gte *SQLGreaterThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return gte.cmpOpToAggregationLanguage(t, bsonutil.OpGte)
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (gte *SQLGreaterThanOrEqualExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return gte.cmpOpToAggregationPredicate(t, bsonutil.OpGte)
-}
-
-// ToMatchLanguage translates SQLGreaterThanOrEqualExpr into something that can
-// be used in an match expression. If SQLGreaterThanOrEqualExpr can be fully translated,
-// it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLGreaterThanOrEqualExpr.
-func (gte *SQLGreaterThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	match, ok := t.translateOperator(bsonutil.OpGte, gte.left, gte.right)
-	if !ok {
-		return nil, gte
-	}
-	return match, nil
-}
-
-// EvalType returns the EvalType associated with SQLGreaterThanOrEqualExpr.
-func (*SQLGreaterThanOrEqualExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
-}
-
 // SQLIDivideExpr evaluates the integer quotient of the left expression divided by the right.
 type SQLIDivideExpr struct{ sqlBinaryNode }
 
@@ -976,33 +605,66 @@ func (*SQLIsExpr) EvalType() types.EvalType {
 	return types.EvalBoolean
 }
 
-// SQLLessThanExpr evaluates to true when the left is less than the right.
-type SQLLessThanExpr struct{ sqlBinaryNode }
+// ComparisonOp is the type of the constants used in SQLComparisonExpr.
+type ComparisonOp byte
 
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLLessThanExpr) ExprName() string {
-	return "SQLLessThanExpr"
+// These constants are used in SQLComparisonExpr to identify the comparison
+// operation being used.
+const (
+	EQ ComparisonOp = iota
+	NEQ
+	LT
+	LTE
+)
+
+// SQLComparisonExpr evaluates 4 different kinds of comparison expressions:
+// <, <=, =, and !=. The > and >= operators are desugared in the parser and
+// rewritten as > and >=, respectively.
+type SQLComparisonExpr struct {
+	sqlBinaryNode
+	op ComparisonOp
 }
 
-var _ translatableToMatch = (*SQLLessThanExpr)(nil)
+// ExprName returns a string representing this SQLExpr's name.
+func (*SQLComparisonExpr) ExprName() string {
+	return "SQLComparisonExpr"
+}
 
-// NewSQLLessThanExpr is a constructor for SQLLessThanExpr.
-func NewSQLLessThanExpr(left, right SQLExpr) *SQLLessThanExpr {
-	return &SQLLessThanExpr{
+var _ translatableToMatch = (*SQLComparisonExpr)(nil)
+
+// NewSQLComparisonExpr is a constructor for SQLComparisonExpr.
+func NewSQLComparisonExpr(op ComparisonOp, left, right SQLExpr) *SQLComparisonExpr {
+	return &SQLComparisonExpr{
 		sqlBinaryNode{
 			left:  left,
 			right: right,
-		}}
+		}, op}
 }
 
-// Evaluate evaluates a SQLLessThanExpr into a values.SQLValue.
-func (lt *SQLLessThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(lt)
+// convertComparisonOpToBool converts the value of the comparison c into a bool and then
+// wraps that in a SQLValue.
+func convertComparisonOpToBool(op ComparisonOp, c int, kind values.SQLValueKind) values.SQLValue {
+	switch op {
+	case LT:
+		return values.NewSQLBool(kind, c < 0)
+	case LTE:
+		return values.NewSQLBool(kind, c <= 0)
+	case EQ:
+		return values.NewSQLBool(kind, c == 0)
+	case NEQ:
+		return values.NewSQLBool(kind, c != 0)
+	}
+	panic(fmt.Sprintf("unsupported operation in SQLComparisonExpr: %v\n", op))
+}
+
+// Evaluate evaluates a SQLComparisonExpr into a values.SQLValue.
+func (comp *SQLComparisonExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	err := validateArgs(comp)
 	if err != nil {
 		return nil, err
 	}
 
-	leftVal, rightVal, err := lt.evaluateArgs(ctx, cfg, st)
+	leftVal, rightVal, err := comp.evaluateArgs(ctx, cfg, st)
 	if err != nil {
 		return nil, err
 	}
@@ -1013,18 +675,19 @@ func (lt *SQLLessThanExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, s
 
 	c, err := values.CompareTo(leftVal, rightVal, st.collation)
 	if err == nil {
-		return values.NewSQLBool(cfg.sqlValueKind, c < 0), nil
+		return convertComparisonOpToBool(comp.op, c, cfg.sqlValueKind), nil
 	}
+
 	return values.NewSQLBool(cfg.sqlValueKind, false), err
 }
 
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLLessThanExpr.
-func (lt *SQLLessThanExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(lt); err != nil {
+// FoldConstants simplifies expressions containing constants when it is able to for *SQLComparisonExpr.
+func (comp *SQLComparisonExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(comp); err != nil {
 		return nil, err
 	}
 
-	leftVal, rightVal, valMask := lt.sqlValueArgEnum()
+	leftVal, rightVal, valMask := comp.sqlValueArgEnum()
 	switch valMask {
 	case noValueArgs:
 	case leftOnlyValueArg:
@@ -1041,166 +704,171 @@ func (lt *SQLLessThanExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) 
 		}
 		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
 		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c < 0)), nil
+			return NewSQLValueExpr(convertComparisonOpToBool(comp.op, c, cfg.sqlValueKind)), nil
 		}
 	}
-	if shouldFlip(lt.sqlBinaryNode) {
-		left, right := lt.right, lt.left
-		return NewSQLGreaterThanExpr(left, right), nil
-	}
-	return lt, nil
+
+	return comp, nil
 }
 
 // nolint: unparam
-func (lt *SQLLessThanExpr) reconcile() (SQLExpr, error) {
-	return &SQLLessThanExpr{lt.reconcileComparison()}, nil
+func (comp *SQLComparisonExpr) reconcile() (SQLExpr, error) {
+	switch comp.op {
+	case EQ:
+		var reconciled bool
+
+		left := comp.left
+		right := comp.right
+
+		if isBooleanColumnAndNumber(left, right) || isBooleanColumnAndNumber(right, left) {
+			var col SQLColumnExpr
+			var lit values.SQLNumber
+
+			switch left.EvalType() {
+			case types.EvalBoolean:
+				col = left.(SQLColumnExpr)
+				lit = right.(SQLValueExpr).Value.(values.SQLNumber)
+			default:
+				col = right.(SQLColumnExpr)
+				lit = left.(SQLValueExpr).Value.(values.SQLNumber)
+			}
+
+			if ilit := values.Int64(lit); ilit == 1 || ilit == 0 {
+				left = col
+				right = NewSQLConvertExpr(NewSQLValueExpr(lit), types.EvalBoolean)
+				reconciled = true
+			}
+		}
+
+		if !reconciled {
+			return &SQLComparisonExpr{comp.reconcileComparison(), EQ}, nil
+		}
+
+		return NewSQLComparisonExpr(EQ, left, right), nil
+	default:
+		return &SQLComparisonExpr{comp.reconcileComparison(), comp.op}, nil
+	}
 }
 
-func (lt *SQLLessThanExpr) String() string {
-	return fmt.Sprintf("%v<%v", lt.left, lt.right)
+func (comp *SQLComparisonExpr) String() string {
+	switch comp.op {
+	case LT:
+		return fmt.Sprintf("%v < %v", comp.left, comp.right)
+	case LTE:
+		return fmt.Sprintf("%v <= %v", comp.left, comp.right)
+	case EQ:
+		return fmt.Sprintf("%v = %v", comp.left, comp.right)
+	case NEQ:
+		return fmt.Sprintf("%v != %v", comp.left, comp.right)
+	}
+
+	panic(fmt.Sprintf("unsupported operation in SQLComparisonExpr: %v\n", comp.op))
 }
 
-// ToAggregationLanguage translates SQLLessThanExpr into something that can
-// be used in an aggregation pipeline. If SQLLessThanExpr cannot be translated,
+// flipAndGetOpName checks if a SQLComparisonExpr's children should be flipped,
+// flips them if necessary, and returns the appropriate comparison operation
+// name. Flipping is only ever necessary in toMatchLanguage.
+// If the operator is LT or LTE, we do not physically swap the left and right
+// children in the tree; we instead return swapped copies.
+func (comp *SQLComparisonExpr) flipAndGetOpName(isMatchLanguage bool) (string, SQLExpr, SQLExpr) {
+
+	flipped := false
+	var left, right SQLExpr
+	if shouldFlip(comp.sqlBinaryNode) && isMatchLanguage {
+		left, right = comp.right, comp.left
+		flipped = true
+	}
+
+	switch comp.op {
+	case LT:
+		if flipped {
+			return bsonutil.OpGt, left, right
+		}
+		return bsonutil.OpLt, comp.left, comp.right
+	case LTE:
+		if flipped {
+			return bsonutil.OpGte, left, right
+		}
+		return bsonutil.OpLte, comp.left, comp.right
+	case EQ:
+		if flipped {
+			comp.left, comp.right = left, right
+		}
+		return bsonutil.OpEq, comp.left, comp.right
+	case NEQ:
+		if flipped {
+			comp.left, comp.right = left, right
+		}
+		return bsonutil.OpNeq, comp.left, comp.right
+	default:
+		panic(fmt.Sprintf("unsupported operation in SQLComparisonExpr: %v\n", comp.op))
+	}
+}
+
+// ToAggregationLanguage translates SQLComparisonExpr into something that can
+// be used in an aggregation pipeline. If SQLComparisonExpr cannot be translated,
 // it will return nil and error.
-func (lt *SQLLessThanExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return lt.cmpOpToAggregationLanguage(t, bsonutil.OpLt)
+func (comp *SQLComparisonExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	opName, _, _ := comp.flipAndGetOpName(false)
+	return comp.cmpOpToAggregationLanguage(t, opName)
 }
 
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
-func (lt *SQLLessThanExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return lt.cmpOpToAggregationPredicate(t, bsonutil.OpLt)
+func (comp *SQLComparisonExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	opName, _, _ := comp.flipAndGetOpName(false)
+	return comp.cmpOpToAggregationPredicate(t, opName)
 }
 
-// ToMatchLanguage translates SQLLessThanExpr into something that can
-// be used in an match expression. If SQLLessThanExpr can be fully translated,
+// ToMatchLanguage translates SQLComparisonExpr into something that can
+// be used in an match expression. If SQLComparisonExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLLessThanExpr.
-func (lt *SQLLessThanExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	match, ok := t.translateOperator(bsonutil.OpLt, lt.left, lt.right)
-	if !ok {
-		return nil, lt
-	}
-	return match, nil
-}
+// a partial translation and the original SQLComparisonExpr.
+func (comp *SQLComparisonExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
+	var ok bool
+	var match *ast.Binary
 
-// EvalType returns the EvalType associated with SQLLessThanExpr.
-func (*SQLLessThanExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
-}
-
-// SQLLessThanOrEqualExpr evaluates to true when the left is less than or equal to the right.
-type SQLLessThanOrEqualExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLLessThanOrEqualExpr) ExprName() string {
-	return "SQLLessThanOrEqualExpr"
-}
-
-var _ translatableToMatch = (*SQLLessThanOrEqualExpr)(nil)
-
-// NewSQLLessThanOrEqualExpr is a constructor for SQLLessThanOrEqualExpr.
-func NewSQLLessThanOrEqualExpr(left, right SQLExpr) *SQLLessThanOrEqualExpr {
-	return &SQLLessThanOrEqualExpr{
-		sqlBinaryNode{
-			left:  left,
-			right: right,
-		}}
-}
-
-// Evaluate evaluates a SQLLessThanOrEqualExpr into a values.SQLValue.
-func (lte *SQLLessThanOrEqualExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(lte)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := lte.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	c, err := values.CompareTo(leftVal, rightVal, st.collation)
-	if err == nil {
-		return values.NewSQLBool(cfg.sqlValueKind, c <= 0), nil
-	}
-	return values.NewSQLBool(cfg.sqlValueKind, false), err
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLLessThanOrEqualExpr.
-func (lte *SQLLessThanOrEqualExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(lte); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := lte.sqlValueArgEnum()
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal), nil
+	switch comp.op {
+	case LT, LTE, EQ:
+		opName, left, right := comp.flipAndGetOpName(true)
+		match, ok = t.translateOperator(opName, left, right)
+		if !ok {
+			return nil, comp
 		}
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal), nil
+		return match, nil
+	case NEQ:
+		var match ast.Expr
+		opName, _, _ := comp.flipAndGetOpName(true)
+		match, ok = t.translateOperator(opName, comp.left, comp.right)
+		if !ok {
+			return nil, comp
 		}
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
+
+		value, err := t.getValue(comp.right)
+		if err != nil {
+			return nil, comp
 		}
-		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
-		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c <= 0)), nil
+
+		if value.Value.Type != bsontype.Null {
+			ref, ok := t.getFieldRef(comp.left)
+			if !ok {
+				return nil, comp
+			}
+			match = astutil.WrapInOp(bsonutil.OpAnd,
+				match,
+				ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral),
+			)
 		}
+
+		return match, nil
+
 	}
-	if shouldFlip(lte.sqlBinaryNode) {
-		left, right := lte.right, lte.left
-		return NewSQLGreaterThanOrEqualExpr(left, right), nil
-	}
-	return lte, nil
+
+	panic(fmt.Sprintf("unsupported operation in SQLComparisonExpr: %v\n", comp.op))
 }
 
-// nolint: unparam
-func (lte *SQLLessThanOrEqualExpr) reconcile() (SQLExpr, error) {
-	return &SQLLessThanOrEqualExpr{lte.reconcileComparison()}, nil
-}
-
-func (lte *SQLLessThanOrEqualExpr) String() string {
-	return fmt.Sprintf("%v<=%v", lte.left, lte.right)
-}
-
-// ToAggregationLanguage translates SQLLessThanOrEqualExpr into something that can
-// be used in an aggregation pipeline. If SQLLessThanOrEqualExpr cannot be translated,
-// it will return nil and error.
-func (lte *SQLLessThanOrEqualExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return lte.cmpOpToAggregationLanguage(t, bsonutil.OpLte)
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (lte *SQLLessThanOrEqualExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return lte.cmpOpToAggregationPredicate(t, bsonutil.OpLte)
-}
-
-// ToMatchLanguage translates SQLLessThanOrEqualExpr into something that can
-// be used in an match expression. If SQLLessThanOrEqualExpr can be fully translated,
-// it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLLessThanOrEqualExpr.
-func (lte *SQLLessThanOrEqualExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	match, ok := t.translateOperator(bsonutil.OpLte, lte.left, lte.right)
-	if !ok {
-		return nil, lte
-	}
-	return match, nil
-}
-
-// EvalType returns the EvalType associated with SQLLessThanOrEqualExpr.
-func (*SQLLessThanOrEqualExpr) EvalType() types.EvalType {
+// EvalType returns the EvalType associated with SQLComparisonExpr.
+func (*SQLComparisonExpr) EvalType() types.EvalType {
 	return types.EvalBoolean
 }
 
@@ -1310,139 +978,6 @@ func (mod *SQLModExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, 
 // EvalType returns the EvalType associated with SQLModExpr.
 func (mod *SQLModExpr) EvalType() types.EvalType {
 	return preferentialType(mod.left, mod.right)
-}
-
-// SQLNotEqualsExpr evaluates to true if the left does not equal the right.
-type SQLNotEqualsExpr struct{ sqlBinaryNode }
-
-// ExprName returns a string representing this SQLExpr's name.
-func (*SQLNotEqualsExpr) ExprName() string {
-	return "SQLNotEqualsExpr"
-}
-
-var _ translatableToMatch = (*SQLNotEqualsExpr)(nil)
-
-// NewSQLNotEqualsExpr is a constructor for SQLNotEqualsExpr.
-func NewSQLNotEqualsExpr(left, right SQLExpr) *SQLNotEqualsExpr {
-	return &SQLNotEqualsExpr{
-		sqlBinaryNode{
-			left:  left,
-			right: right,
-		}}
-}
-
-// Evaluate evaluates a SQLNotEqualsExpr into a values.SQLValue.
-func (neq *SQLNotEqualsExpr) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
-	err := validateArgs(neq)
-	if err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, err := neq.evaluateArgs(ctx, cfg, st)
-	if err != nil {
-		return nil, err
-	}
-
-	if values.HasNullValue(leftVal, rightVal) {
-		return values.NewSQLNull(cfg.sqlValueKind), nil
-	}
-
-	c, err := values.CompareTo(leftVal, rightVal, st.collation)
-	if err == nil {
-		return values.NewSQLBool(cfg.sqlValueKind, c != 0), nil
-	}
-
-	return values.NewSQLBool(cfg.sqlValueKind, false), err
-}
-
-// FoldConstants simplifies expressions containing constants when it is able to for *SQLNotEqualsExpr.
-func (neq *SQLNotEqualsExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
-	if err := validateArgs(neq); err != nil {
-		return nil, err
-	}
-
-	leftVal, rightVal, valMask := neq.sqlValueArgEnum()
-	switch valMask {
-	case noValueArgs:
-	case leftOnlyValueArg:
-		if leftVal.IsNull() {
-			return NewSQLValueExpr(leftVal), nil
-		}
-	case rightOnlyValueArg:
-		if rightVal.IsNull() {
-			return NewSQLValueExpr(rightVal), nil
-		}
-	case bothValueArgs:
-		if leftVal.IsNull() || rightVal.IsNull() {
-			return NewSQLValueExpr(values.NewSQLNull(rightVal.Kind())), nil
-		}
-		c, err := values.CompareTo(leftVal, rightVal, cfg.collation)
-		if err == nil {
-			return NewSQLValueExpr(values.NewSQLBool(cfg.sqlValueKind, c != 0)), nil
-		}
-	}
-	if shouldFlip(neq.sqlBinaryNode) {
-		left, right := neq.right, neq.left
-		neq.left, neq.right = left, right
-	}
-	return neq, nil
-}
-
-// nolint: unparam
-func (neq *SQLNotEqualsExpr) reconcile() (SQLExpr, error) {
-	return &SQLNotEqualsExpr{neq.reconcileComparison()}, nil
-}
-
-func (neq *SQLNotEqualsExpr) String() string {
-	return fmt.Sprintf("%v != %v", neq.left, neq.right)
-}
-
-// ToAggregationLanguage translates SQLNotEqualsExpr into something that can
-// be used in an aggregation pipeline. If SQLNotEqualsExpr cannot be translated,
-// it will return nil and error.
-func (neq *SQLNotEqualsExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return neq.cmpOpToAggregationLanguage(t, bsonutil.OpNeq)
-}
-
-// ToAggregationPredicate translates this expression to the aggregation language
-// to be evaluated as a predicate directly in a $match stage via $expr.
-func (neq *SQLNotEqualsExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return neq.cmpOpToAggregationPredicate(t, bsonutil.OpNeq)
-}
-
-// ToMatchLanguage translates SQLNotEqualsExpr into something that can
-// be used in an match expression. If SQLNotEqualsExpr can be fully translated,
-// it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLNotEqualsExpr.
-func (neq *SQLNotEqualsExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	var match ast.Expr
-	match, ok := t.translateOperator(bsonutil.OpNeq, neq.left, neq.right)
-	if !ok {
-		return nil, neq
-	}
-
-	value, err := t.getValue(neq.right)
-	if err != nil {
-		return nil, neq
-	}
-
-	if value.Value.Type != bsontype.Null {
-		ref, ok := t.getFieldRef(neq.left)
-		if !ok {
-			return nil, neq
-		}
-		match = astutil.WrapInOp(bsonutil.OpAnd,
-			match,
-			ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral),
-		)
-	}
-
-	return match, nil
-}
-
-// EvalType returns the EvalType associated with SQLNotEqualsExpr.
-func (*SQLNotEqualsExpr) EvalType() types.EvalType {
-	return types.EvalBoolean
 }
 
 // SQLNullSafeEqualsExpr behaves like the = operator,

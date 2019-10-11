@@ -1038,31 +1038,17 @@ func TestOptimizeEvaluations(t *testing.T) {
 		{"3 < '3'", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
 		{"3 > '3'", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
 		{"3 <=> '3'", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
-		{"3 = a", "a = 3", NewSQLEqualsExpr(
+		{"3 >= a", "a <= 3", NewSQLComparisonExpr(LTE,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false),
 			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
 		)},
-		{"3 < a", "a > 3", NewSQLGreaterThanExpr(
-			testSQLColumnExpr(1, "test", "bar", "a",
+		{"3 > a", "a < 3", NewSQLComparisonExpr(
+			LT, testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false),
 			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
 		)},
-		{"3 <= a", "a >= 3", NewSQLGreaterThanOrEqualExpr(
-			testSQLColumnExpr(1, "test", "bar", "a",
-				EvalInt64, schema.MongoInt, false),
-			NewSQLValueExpr(NewSQLInt64(valKind, 3)))},
-		{"3 > a", "a < 3", NewSQLLessThanExpr(
-			testSQLColumnExpr(1, "test", "bar", "a",
-				EvalInt64, schema.MongoInt, false),
-			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
-		)},
-		{"3 >= a", "a <= 3", NewSQLLessThanOrEqualExpr(
-			testSQLColumnExpr(1, "test", "bar", "a",
-				EvalInt64, schema.MongoInt, false),
-			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
-		)},
-		{"3 <> a", "a <> 3", NewSQLNotEqualsExpr(
+		{"3 >= a", "a <= 3", NewSQLComparisonExpr(LTE,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false),
 			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
@@ -1072,24 +1058,23 @@ func TestOptimizeEvaluations(t *testing.T) {
 		{"NULL <=> 3", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
 		{"3 <=> NULL", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
 		{"NULL <=> NULL", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
-		{"3 / (3 - 2) = a", "a = 3", NewSQLEqualsExpr(
+		{"3 / (3 - 2) = a", "3 = a", NewSQLComparisonExpr(
+			EQ,
+			NewSQLValueExpr(NewSQLFloat(valKind, 3)),
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false),
-			NewSQLValueExpr(NewSQLFloat(valKind, 3)),
 		)},
-		{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3",
-			NewSQLEqualsExpr(testSQLColumnExpr(
+		{"3 + 3 = 6 AND 1 >= 1 AND 3 = a", "a = 3", NewSQLComparisonExpr(
+			EQ,
+			NewSQLValueExpr(NewSQLInt64(valKind, 3)),
+			testSQLColumnExpr(
 				1, "test", "bar", "a", EvalInt64,
-				schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 3)))},
-		{"3 / (3 - 2) = a AND 4 - 2 = b", "a = 3 AND b = 2",
-			NewSQLAndExpr(
-				NewSQLEqualsExpr(testSQLColumnExpr(1, "test", "bar", "a",
-					EvalInt64, schema.MongoInt, false), NewSQLValueExpr(NewSQLFloat(valKind, 3))),
-				NewSQLEqualsExpr(testSQLColumnExpr(1, "test", "bar", "b",
-					EvalInt64, schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 2))))},
+				schema.MongoInt, false),
+		)},
 		{"3 + 3 = 6 OR a = 3", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
-		{"3 + 3 = 5 OR a = 3", "0 OR a = 3",
-			NewSQLEqualsExpr(testSQLColumnExpr(
+		{"3 + 3 = 5 OR a = 3", "a = 3", NewSQLComparisonExpr(
+			EQ,
+			testSQLColumnExpr(
 				1, "test", "bar", "a", EvalInt64,
 				schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 3)))},
 		{"0 OR NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
@@ -1100,34 +1085,35 @@ func TestOptimizeEvaluations(t *testing.T) {
 		{"0 AND NULL", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
 		{"1 AND NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
 		{"1 AND 6+0 = 6", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
-		{"3 + 3 = 6 AND a = 3", "1 and a = 3",
-			NewSQLEqualsExpr(testSQLColumnExpr(
+		{"3 + 3 = 6 AND a = 3", "1 and a = 3", NewSQLComparisonExpr(
+			EQ,
+			testSQLColumnExpr(
 				1, "test", "bar", "a", EvalInt64,
 				schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 3)))},
-		{"(3 + 3 = 5) XOR a = 3", "a = 3", NewSQLEqualsExpr(
+		{"(3 + 3 = 5) XOR a = 3", "a = 3", NewSQLComparisonExpr(EQ,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 3)))},
-		{"(3 + 3 = 6) XOR a = 3", "a <> 3", NewSQLNotExpr(NewSQLEqualsExpr(
+		{"(3 + 3 = 6) XOR a = 3", "a <> 3", NewSQLNotExpr(NewSQLComparisonExpr(EQ,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 3))))},
 		{"(13 + 9 > 6) XOR (a = 4)", "a <> 4", NewSQLNotExpr(
-			NewSQLEqualsExpr(testSQLColumnExpr(1, "test", "bar", "a",
+			NewSQLComparisonExpr(EQ, testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 4))))},
-		{"(8 / 5 = 9) XOR (a = 5)", "a = 5", NewSQLEqualsExpr(
+		{"(8 / 5 = 9) XOR (a = 5)", "a = 5", NewSQLComparisonExpr(EQ,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 5)))},
 		{"false XOR 23", "true", NewSQLValueExpr(NewSQLBool(valKind, true))},
 		{"true XOR 23", "false", NewSQLValueExpr(NewSQLBool(valKind, false))},
-		{"a = 23 XOR true", "a <> 23", NewSQLNotExpr(NewSQLEqualsExpr(
+		{"a = 23 XOR true", "a <> 23", NewSQLNotExpr(NewSQLComparisonExpr(EQ,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false), NewSQLValueExpr(NewSQLInt64(valKind, 23))))},
 		{"!3", "0", NewSQLValueExpr(NewSQLBool(valKind, false))},
 		{"!NULL", "null", NewSQLValueExpr(NewSQLNull(valKind))},
-		{"a = ~1", "a = 18446744073709551614", NewSQLEqualsExpr(
+		{"a = ~1", "a = 18446744073709551614", NewSQLComparisonExpr(EQ,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false),
 			NewSQLValueExpr(NewSQLUint64(valKind, uint64(18446744073709551614))))},
-		{"a = ~2398238912332232323", "a = 16048505161377319292", NewSQLEqualsExpr(
+		{"a = ~2398238912332232323", "a = 16048505161377319292", NewSQLComparisonExpr(EQ,
 			testSQLColumnExpr(1, "test", "bar", "a",
 				EvalInt64, schema.MongoInt, false),
 			NewSQLValueExpr(NewSQLUint64(valKind, uint64(16048505161377319292))))},

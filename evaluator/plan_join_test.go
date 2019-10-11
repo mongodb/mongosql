@@ -77,7 +77,8 @@ func setupJoinOperator(on SQLExpr, kind JoinKind) PlanStage {
 
 func TestJoinPlanStage(t *testing.T) {
 
-	criteria := NewSQLEqualsExpr(
+	criteria := NewSQLComparisonExpr(
+		EQ,
 		testSQLColumnExpr(
 			1,
 			BSONSourceDB,

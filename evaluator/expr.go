@@ -466,10 +466,11 @@ func (e *SQLCaseExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, Pu
 	thens := make([]ast.Expr, len(e.caseConditions))
 	for i, condition := range e.caseConditions {
 		var c ast.Expr
-		if matcher, ok := condition.matcher.(*SQLEqualsExpr); ok {
+
+		if matcher, ok := condition.matcher.(*SQLComparisonExpr); ok && matcher.op == EQ {
 			newMatcher := NewSQLOrExpr(
 				matcher,
-				NewSQLEqualsExpr(matcher.left, NewSQLValueExpr(values.NewSQLBool(t.valueKind(), true))))
+				NewSQLComparisonExpr(EQ, matcher.left, NewSQLValueExpr(values.NewSQLBool(t.valueKind(), true))))
 			c, err = t.ToAggregationLanguage(newMatcher)
 			if err != nil {
 				return nil, err

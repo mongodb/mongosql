@@ -1959,7 +1959,7 @@ func getLocalAndForeignColumns(localTable, foreignTable *MongoSourceStage, e SQL
 	// find a SQLEqualsExpr in the list of split exprs
 	for i, expr := range exprs {
 		errMsg = ""
-		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+		if equalExpr, ok := expr.(*SQLComparisonExpr); ok && equalExpr.op == EQ {
 			// the left and right sides of this SQLEqualsExpr must be columns
 			if column1, ok := equalExpr.left.(SQLColumnExpr); ok {
 				if column2, ok := equalExpr.right.(SQLColumnExpr); ok {
@@ -2807,7 +2807,7 @@ func (v *pushdownVisitor) remainingJoinPredicate(msLocal, msForeign *MongoSource
 	registries := []*mappingRegistry{msLocal.mappingRegistry,
 		msForeign.mappingRegistry}
 	for _, expr := range exprs {
-		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+		if equalExpr, ok := expr.(*SQLComparisonExpr); ok && equalExpr.op == EQ {
 			c1, _ := equalExpr.left.(SQLColumnExpr)
 			c2, _ := equalExpr.right.(SQLColumnExpr)
 			if c1.selectID == c2.selectID {
@@ -2950,7 +2950,7 @@ func meetsSelfJoinPKCriteria(logger log.Logger, local,
 	seenPrimaryKeys := make(map[string]struct{})
 
 	for _, expr := range exprs {
-		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+		if equalExpr, ok := expr.(*SQLComparisonExpr); ok && equalExpr.op == EQ {
 			column1, _ := equalExpr.left.(SQLColumnExpr)
 			column2, _ := equalExpr.right.(SQLColumnExpr)
 
@@ -3141,7 +3141,7 @@ func (v *pushdownVisitor) canPushdownForeignJoinSourcePipeline(join *JoinStage, 
 				// $unwinds as a $match or remaining left join predicate
 				// (see buildRemainingLeftJoinPredicate) and thus not
 				// cause any issues.
-				if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+				if equalExpr, ok := expr.(*SQLComparisonExpr); ok && equalExpr.op == EQ {
 					column1, _ := equalExpr.left.(SQLColumnExpr)
 					column2, _ := equalExpr.right.(SQLColumnExpr)
 					// It's possible that someone could use

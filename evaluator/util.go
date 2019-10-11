@@ -68,23 +68,23 @@ func comparisonExpr(left, right SQLExpr, op string) (SQLExpr, error) {
 			}
 			return &MongoFilterExpr{left.(SQLColumnExpr), right, filter}, nil
 		}
-		return NewSQLEqualsExpr(left, right), nil
+		return NewSQLComparisonExpr(EQ, left, right), nil
 	case sqlOpLT:
-		return NewSQLLessThanExpr(left, right), nil
-	case sqlOpGT:
-		return NewSQLGreaterThanExpr(left, right), nil
+		return NewSQLComparisonExpr(LT, left, right), nil
 	case sqlOpLTE:
-		return NewSQLLessThanOrEqualExpr(left, right), nil
-	case sqlOpGTE:
-		return NewSQLGreaterThanOrEqualExpr(left, right), nil
+		return NewSQLComparisonExpr(LTE, left, right), nil
 	case sqlOpNEQ:
-		return NewSQLNotEqualsExpr(left, right), nil
+		return NewSQLComparisonExpr(NEQ, left, right), nil
 	case sqlOpNSE:
 		return NewSQLNullSafeEqualsExpr(left, right), nil
 	case sqlOpIn:
 		panic("IN must be eliminated in the desugarer")
 	case sqlOpNotIn:
 		panic("NOT IN must be eliminated in the desugarer")
+	case sqlOpGT:
+		panic("GT must be eliminated in the desugarer")
+	case sqlOpGTE:
+		panic("GTE must be eliminated in the desugarer")
 	default:
 		return nil,
 			mysqlerrors.Newf(mysqlerrors.ErNotSupportedYet,

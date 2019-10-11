@@ -757,21 +757,24 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		},
 		{
 			"1", "a = 3 AND a < b", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
-			evaluator.NewSQLLessThanExpr(
+			evaluator.NewSQLComparisonExpr(
+				evaluator.LT,
 				testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
 				testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 			),
 		},
 		{
 			"2", "a = 3 AND a < b AND b = 4", `{"$and": [{"a": {"$eq": {"$numberLong":"3"}}},{"b": {"$eq": {"$numberLong":"4"}}}]}`, "a < b",
-			evaluator.NewSQLLessThanExpr(
+			evaluator.NewSQLComparisonExpr(
+				evaluator.LT,
 				testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
 				testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 			),
 		},
 		{
 			"3", "a < b AND a = 3", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
-			evaluator.NewSQLLessThanExpr(
+			evaluator.NewSQLComparisonExpr(
+				evaluator.LT,
 				testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
 				testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 			),
@@ -779,7 +782,8 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		{
 			"4", "NOT (a = 3 AND a < b)", `{"$and": [{"a": {"$ne": {"$numberLong":"3"}}},{"a": {"$ne": null}}]}`, "NOT a < b",
 			evaluator.NewSQLNotExpr(
-				evaluator.NewSQLLessThanExpr(
+				evaluator.NewSQLComparisonExpr(
+					evaluator.LT,
 					testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
 					testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
 				),

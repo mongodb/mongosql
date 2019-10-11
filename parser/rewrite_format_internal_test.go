@@ -597,12 +597,22 @@ func testRewriteAndFormatQuery(t *testing.T) {
 		{
 			desc:     "replace between with conjunction",
 			query:    "select x between 1 and 20 from DUAL",
-			expected: "select x >= 1 and x <= 20 from DUAL",
+			expected: "select 1 <= x and x <= 20 from DUAL",
 		},
 		{
 			desc:     "replace not between with disjunction",
 			query:    "select x not between 1 and 20 from DUAL",
-			expected: "select x < 1 or x > 20 from DUAL",
+			expected: "select x < 1 or 20 < x from DUAL",
+		},
+		{
+			desc:     "replace > with <",
+			query:    "select x > 1 and x = 3 and x > 2 from DUAL",
+			expected: "select 1 < x and x = 3 and 2 < x from DUAL",
+		},
+		{
+			desc:     "replace >= with <=",
+			query:    "select x >= 1 and x = 3 and x >= 2 from DUAL",
+			expected: "select 1 <= x and x = 3 and 2 <= x from DUAL",
 		},
 		{
 			desc:     "replace field with case",
@@ -632,12 +642,12 @@ func testRewriteAndFormatQuery(t *testing.T) {
 		{
 			desc:     "replace if with case",
 			query:    "select if(x>10,2,3) from DUAL",
-			expected: "select case when x > 10 then 2  else 3 end from DUAL",
+			expected: "select case when 10 < x then 2  else 3 end from DUAL",
 		},
 		{
 			desc:     "replace nested if with case",
 			query:    "select if(x>10,if(x<2,2,3),3) from DUAL",
-			expected: "select case when x > 10 then case when x < 2 then 2  else 3 end  else 3 end from DUAL",
+			expected: "select case when 10 < x then case when x < 2 then 2  else 3 end  else 3 end from DUAL",
 		},
 		{
 			desc:     "replace ifnull with case",
@@ -702,7 +712,7 @@ func testRewriteAndFormatQuery(t *testing.T) {
 		{
 			desc:     "non-uniform depth destructuring comparison",
 			query:    "select ((((a))), (b)) > ((((c))), (d)) from foo",
-			expected: "select a > c or a = c and b > d from foo",
+			expected: "select c < a or a = c and d < b from foo",
 		},
 		{
 			desc:     "subquery operator some",
@@ -766,6 +776,7 @@ func desugarStatementNoNaming(statement Statement, versionCode versionutil.MySQL
 		&subqueryComparisonConverter{},
 		&tupleComparisonDesugarer{},
 		&makeDualExplicit{},
+		&gtDesugarer{},
 	}
 
 	result := statement.(CST)

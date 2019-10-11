@@ -43,11 +43,20 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 			return bsonutil.Document(doc)
 		default:
-			name := deparseMatchFieldName(te.Left)
-
-			_, subdoc := bsoncore.AppendDocumentStart(nil)
-			subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), deparseMatchSubexpr(te.Right))
-			subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+			var name string;
+			var subdoc []byte;
+			switch te.Left.(type) {
+			case *ast.Constant:
+				name = deparseMatchFieldName(te.Right)
+				_, subdoc = bsoncore.AppendDocumentStart(nil)
+				subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), deparseMatchSubexpr(te.Left))
+				subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+			default:
+				name = deparseMatchFieldName(te.Left)
+				_, subdoc = bsoncore.AppendDocumentStart(nil)
+				subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), deparseMatchSubexpr(te.Right))
+				subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+			}
 
 			_, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendDocumentElement(doc, name, subdoc)

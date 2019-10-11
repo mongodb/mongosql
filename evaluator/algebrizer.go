@@ -2316,7 +2316,7 @@ func (a *algebrizer) translateCaseExpr(expr *parser.CaseExpr) (SQLExpr, error) {
 				return nil, err
 			}
 
-			matcher = NewSQLEqualsExpr(e, cond)
+			matcher = NewSQLComparisonExpr(EQ, e, cond)
 		}
 
 		var then SQLExpr

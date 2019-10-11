@@ -160,7 +160,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$a\",\"$b\"]},{\"$gt\": [\"$a\",null]},{\"$gt\": [\"$b\",null]}]}}},\n\t{\"$group\": {\"_id\": {\"group_key_0\": \"$c\"},\"test_DOT_foo_DOT_a\": {\"$first\": \"$a\"},\"test_DOT_foo_DOT_b\": {\"$first\": \"$b\"}}},\n\t{\"$sort\": {\"test_DOT_foo_DOT_b\": NumberInt(\"-1\")}},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\": \"$test_DOT_foo_DOT_b\",\"_id\": NumberInt(\"0\")}},\n]",
+			expectedOutput: "[\n\t{\"$match\": {\"$expr\": {\"$and\": [{\"$lt\": [\"$b\",\"$a\"]},{\"$gt\": [\"$b\",null]},{\"$gt\": [\"$a\",null]}]}}},\n\t{\"$group\": {\"_id\": {\"group_key_0\": \"$c\"},\"test_DOT_foo_DOT_b\": {\"$first\": \"$b\"},\"test_DOT_foo_DOT_a\": {\"$first\": \"$a\"}}},\n\t{\"$sort\": {\"test_DOT_foo_DOT_b\": NumberInt(\"-1\")}},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\": \"$test_DOT_foo_DOT_b\",\"_id\": NumberInt(\"0\")}},\n]",
 		},
 		{
 			desc:           "format flag, pipeline contains $lookup with pipeline field",
@@ -169,7 +169,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:   testMongoVersion4,
 			schema:         testSchema,
 			format:         "multiline",
-			expectedOutput: "[\n\t{\"$lookup\": {\"from\": \"baz\",\"let\": {\"local_table__a\": \"$a\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$$local_table__a\",\"$b\"]},{\"$gt\": [\"$$local_table__a\",null]},{\"$gt\": [\"$b\",null]}]}}}],\"as\": \"__joined_baz\"}},\n\t{\"$unwind\": \"$__joined_baz\"},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"test_DOT_baz_DOT_b\": \"$__joined_baz.b\",\"_id\": NumberInt(\"0\")}},\n]",
+			expectedOutput: "[\n\t{\"$lookup\": {\"from\": \"baz\",\"let\": {\"local_table__a\": \"$a\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$lt\": [\"$b\",\"$$local_table__a\"]},{\"$gt\": [\"$b\",null]},{\"$gt\": [\"$$local_table__a\",null]}]}}}],\"as\": \"__joined_baz\"}},\n\t{\"$unwind\": \"$__joined_baz\"},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"test_DOT_baz_DOT_b\": \"$__joined_baz.b\",\"_id\": NumberInt(\"0\")}},\n]",
 		},
 		{
 			desc:           "explain flag, no formatting, fully pushed down",

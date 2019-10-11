@@ -469,7 +469,7 @@ func (v *innerJoinOptimizer) getInnerJoinEqualities() []tableEdge {
 			continue
 		}
 
-		equalityExpr := e.expr.(*SQLEqualsExpr)
+		equalityExpr := e.expr.(*SQLComparisonExpr)
 		left := equalityExpr.left.(SQLColumnExpr)
 		right := equalityExpr.right.(SQLColumnExpr)
 		edge := tableEdge{
@@ -496,7 +496,7 @@ func (v *innerJoinOptimizer) getInnerJoinExprs(e SQLExpr) []innerJoinExpr {
 
 	for _, expr := range conjunctiveExprs {
 		hasEquality := false
-		if equalExpr, ok := expr.(*SQLEqualsExpr); ok {
+		if equalExpr, ok := expr.(*SQLComparisonExpr); ok && equalExpr.op == EQ {
 			if _, ok := equalExpr.left.(SQLColumnExpr); ok {
 				if _, ok = equalExpr.right.(SQLColumnExpr); ok {
 					hasEquality = true
@@ -525,7 +525,7 @@ func (v *innerJoinOptimizer) reconstructSubtree(p path) (Node, error) {
 		bound, idx := false, 0
 		for j, e := range v.exprs {
 			if e.isEquality {
-				eq := e.expr.(*SQLEqualsExpr)
+				eq := e.expr.(*SQLComparisonExpr)
 				leftColumn := eq.left.(SQLColumnExpr)
 				rightColumn := eq.right.(SQLColumnExpr)
 				left := fullyQualifiedTableName(leftColumn.databaseName, leftColumn.tableName)
