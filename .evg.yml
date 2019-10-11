@@ -216,6 +216,18 @@ functions:
         ${PREPARE_SHELL}
         ${SCRIPT_DIR}/install-dependencies.sh
 
+  "run mongo shell script":
+    - command: shell.exec
+      type: test
+      params:
+        script: |
+          ${PREPARE_SHELL}
+          export MONGO_SHELL_SCRIPT_HOST='${var_host}'
+          export MONGO_SHELL_SCRIPT_USER='${var_user}'
+          export MONGO_SHELL_SCRIPT_PASS='${var_pass}'
+          export MONGO_SHELL_SCRIPT_NAME='${var_script_name}'
+          ${SCRIPT_DIR}/run-mongo-shell-script.sh
+
   "process benchmark results":
     - command: shell.exec
       type: test
@@ -1923,6 +1935,30 @@ tasks:
     - func: "start mongodb"
     - func: "run unit tests"
 
+- name: generate-metrics-rollups
+  tags: ["metrics"]
+  exec_timeout_secs: 57600  # 16h
+  commands:
+    - func: "start mongodb"
+    - func: "run mongo shell script"
+      vars:
+        var_script_name: generate-metrics-rollups
+        var_host: ${bic_prod_host}
+        var_user: ${bic_prod_user}
+        var_pass: ${bic_prod_pass}
+
+- name: preaggregate-pushdown-failures
+  tags: ["metrics"]
+  exec_timeout_secs: 57600  # 16h
+  commands:
+    - func: "start mongodb"
+    - func: "run mongo shell script"
+      vars:
+        var_script_name: preaggregate-pushdown-failures
+        var_host: ${bic_prod_host}
+        var_user: ${bic_prod_user}
+        var_pass: ${bic_prod_pass}
+
 axes:
 
 - id: os_full_matrix
@@ -2236,6 +2272,15 @@ buildvariants:
   - amazon1-2018-test
   tasks:
     - name: ".code-quality"
+
+- name: metrics
+  display_name: Metrics
+  expansions:
+    _variant: ubuntu1604
+  run_on:
+    - ubuntu1604-test
+  tasks:
+    - name: ".metrics"
 
 - name: linux-64-amazon-ami-release
   display_name: ~ Release Manager

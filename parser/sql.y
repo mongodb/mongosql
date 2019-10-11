@@ -107,7 +107,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> LOW_PRIORITY LOCAL
 %token <bytes> REPEATABLE COMMITTED UNCOMMITTED SERIALIZABLE
 %token <empty> NAMES CHARACTER COLLATE
-%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET
+%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET DBS
 %token <empty> EXPLAIN DESCRIBE
 %token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
 %token <empty> KILL FLUSH SAMPLE
@@ -1490,6 +1490,10 @@ show_statement:
     $$ = &Show{Section: "count(*) errors"}
   }
 | SHOW DATABASES like_or_where_opt
+  {
+    $$ = &Show{Section: "databases", LikeOrWhere: $3}
+  }
+| SHOW DBS like_or_where_opt
   {
     $$ = &Show{Section: "databases", LikeOrWhere: $3}
   }
@@ -3166,6 +3170,10 @@ keyword_as_id:
 | DAY
   {
     $$ = string(DAY_BYTES)
+  }
+| DBS
+  {
+    $$ = string(DBS_BYTES)
   }
 | DECIMAL
   {

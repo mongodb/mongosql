@@ -3,6 +3,7 @@ package evaluator
 import (
 	"encoding/hex"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -147,15 +148,54 @@ type PushdownTranslator struct {
 	LookupFieldRef       FieldRefLookup
 	Cfg                  *PushdownConfig
 	subqueryLookupStages []ast.Stage
+	pushdownVisitor      *pushdownVisitor
 }
 
-// NewPushdownTranslator returns a new PushdownTranslator.
+// NewPushdownTranslator creates a PushdownTranslator with base support for correlation. This is safe to use publicly,
+// when wanting to translate an expression. But it will fail to translate anything using a
+// correlated column name that is not closed in the expression.
 func NewPushdownTranslator(cfg *PushdownConfig, lookupFieldRef FieldRefLookup) *PushdownTranslator {
+	v := newPushdownVisitor(cfg)
 	return &PushdownTranslator{
 		Cfg:                  cfg,
 		LookupFieldRef:       lookupFieldRef,
 		subqueryLookupStages: []ast.Stage{},
+		pushdownVisitor:      v,
 	}
+}
+
+// newInternalPushdownTranslator returns a new PushdownTranslator with support for configurable
+// support for correlated Subqueries. This does not need to be part of the public interface because
+// it should only be created during the middle of running push down optimization.
+func newInternalPushdownTranslator(cfg *PushdownConfig, lookupFieldRef FieldRefLookup, v *pushdownVisitor) *PushdownTranslator {
+	return &PushdownTranslator{
+		Cfg:                  cfg,
+		LookupFieldRef:       lookupFieldRef,
+		subqueryLookupStages: []ast.Stage{},
+		pushdownVisitor:      v,
+	}
+}
+
+func (t *PushdownTranslator) generateLetItemsForLookupStage() ([]*ast.LookupLetItem, error) {
+	letItems := []*ast.LookupLetItem{}
+
+	for dbName, tableMap := range t.pushdownVisitor.correlatedColumns {
+		for tableName, columnMap := range tableMap {
+			for columnName, variableName := range columnMap {
+				ref, ok := t.LookupFieldRef(dbName, tableName, columnName)
+				if !ok {
+					return nil, fmt.Errorf("cannot find correlated column")
+				}
+
+				letItems = append(letItems, ast.NewLookupLetItem(variableName, ref))
+			}
+		}
+	}
+
+	sort.Slice(letItems, func(i, j int) bool {
+		return letItems[i].Name < letItems[j].Name
+	})
+	return letItems, nil
 }
 
 func (t *PushdownTranslator) addExistsSubqueryLookupStage(subPlanMs *MongoSourceStage) error {
@@ -177,10 +217,15 @@ func (t *PushdownTranslator) addExistsSubqueryLookupStage(subPlanMs *MongoSource
 	newStages := append(clonedPipeline.Stages, ast.NewLimitStage(1))
 	newPipeline := ast.NewPipeline(newStages...)
 
+	letItems, err := t.generateLetItemsForLookupStage()
+	if err != nil {
+		return err
+	}
+
 	lookup := ast.NewLookupStage(
 		collName, nil, "",
 		getSubqueryLookupField(collName, subPlanMs.selectIDs),
-		[]*ast.LookupLetItem{},
+		letItems,
 		newPipeline,
 	)
 
@@ -200,11 +245,16 @@ func (t *PushdownTranslator) addSubqueryLookupStage(subPlanMs *MongoSourceStage)
 		return fmt.Errorf("cannot use expressive $lookup on a sharded collection")
 	}
 
+	letItems, err := t.generateLetItemsForLookupStage()
+	if err != nil {
+		return err
+	}
+
 	collName := subPlanMs.Collection()
 	lookup := ast.NewLookupStage(
 		collName, nil, "",
 		getSubqueryLookupField(collName, subPlanMs.selectIDs),
-		[]*ast.LookupLetItem{},
+		letItems,
 		subPlanMs.pipeline,
 	)
 

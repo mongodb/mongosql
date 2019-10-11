@@ -112,15 +112,22 @@ func releaseSubsequentBeta(v *version) {
 
 func releaseMinor(v *version) {
 	// checkout version branch
-	git("checkout", gitBranchName(v))
+	git("checkout", "-b", gitBranchName(v))
 
 	// validate:
 	//   - major.minor.patch matches new version
 	//   - pre-release is "betaN"
 	log("validating version on release branch")
-	bv := getCurrentVersion()
-	assert(bv.majorMinorPatchString() == v.majorMinorPatchString(), "expected same major, minor, and patch version as existing release branch")
-	assert(bv.preRelease.isBeta, "expected existing version to be a beta release")
+	cv := getCurrentVersion()
+	if cv.preRelease.isBeta {
+		log("releasing a minor version after a beta")
+		assert(cv.majorMinorPatchString() == v.majorMinorPatchString(), "expected same major, minor, and patch version as existing release branch")
+	} else {
+		log("releasing a minor without a prior beta")
+		assert(cv.majorMinorString() == v.majorMinorString(), "expected same major and minor version as existing release branch")
+		assert(cv.patch == 0, "expected existing release branch to have no patch version")
+		assert(cv.preRelease.isDev, "expected existing release branch to have a dev pre-release")
+	}
 
 	// write new version to version.txt
 	updateVersionTxt(v)

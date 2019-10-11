@@ -636,12 +636,16 @@ func (e SQLColumnExpr) String() string {
 // be used in an aggregation pipeline. If SQLColumnExpr cannot be translated,
 // it will return nil and error.
 func (e SQLColumnExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	if e.correlated {
+	if e.correlated && !t.pushdownVisitor.canPushdownCorrelated {
 		return nil, newPushdownFailure(e.ExprName(), "cannot push down correlated subquery column")
 	}
 
 	ref, ok := t.LookupFieldRef(e.databaseName, e.tableName, e.columnName)
 	if !ok {
+		if e.correlated {
+			return t.pushdownVisitor.addCorrelatedColumnName(e.databaseName, e.tableName, e.columnName), nil
+		}
+
 		return nil, newPushdownFailure(
 			e.ExprName(),
 			"failed to find field name",
@@ -1734,6 +1738,107 @@ func evaluatePlanToScalar(ctx context.Context, cfg *ExecutionConfig,
 	return valueRow, iter.Close()
 }
 
+// SQLDoubleSubqueryExpr is an interface abstracting all expressions that have
+// left and right plans.
+type SQLDoubleSubqueryExpr interface {
+	LeftCorrelated() bool
+	RightCorrelated() bool
+	LeftPlan() PlanStage
+	RightPlan() PlanStage
+	SetLeftPlan(PlanStage)
+	SetRightPlan(PlanStage)
+}
+
+// LeftCorrelated returns leftCorrelated.
+func (e *SQLSubqueryCmpExpr) LeftCorrelated() bool {
+	return e.leftCorrelated
+}
+
+// RightCorrelated returns rightCorrelated.
+func (e *SQLSubqueryCmpExpr) RightCorrelated() bool {
+	return e.rightCorrelated
+}
+
+// LeftPlan returns leftPlan.
+func (e *SQLSubqueryCmpExpr) LeftPlan() PlanStage {
+	return e.leftPlan
+}
+
+// RightPlan returns rightPlan.
+func (e *SQLSubqueryCmpExpr) RightPlan() PlanStage {
+	return e.rightPlan
+}
+
+// SetLeftPlan sets leftPlan.
+func (e *SQLSubqueryCmpExpr) SetLeftPlan(p PlanStage) {
+	e.leftPlan = p
+}
+
+// SetRightPlan sets rightPlan.
+func (e *SQLSubqueryCmpExpr) SetRightPlan(p PlanStage) {
+	e.rightPlan = p
+}
+
+// LeftCorrelated returns leftCorrelated.
+func (e *SQLSubqueryAnyExpr) LeftCorrelated() bool {
+	return e.leftCorrelated
+}
+
+// RightCorrelated returns rightCorrelated.
+func (e *SQLSubqueryAnyExpr) RightCorrelated() bool {
+	return e.rightCorrelated
+}
+
+// LeftPlan returns leftPlan.
+func (e *SQLSubqueryAnyExpr) LeftPlan() PlanStage {
+	return e.leftPlan
+}
+
+// RightPlan returns rightPlan.
+func (e *SQLSubqueryAnyExpr) RightPlan() PlanStage {
+	return e.rightPlan
+}
+
+// SetLeftPlan sets leftPlan.
+func (e *SQLSubqueryAnyExpr) SetLeftPlan(p PlanStage) {
+	e.leftPlan = p
+}
+
+// SetRightPlan sets rightPlan.
+func (e *SQLSubqueryAnyExpr) SetRightPlan(p PlanStage) {
+	e.rightPlan = p
+}
+
+// LeftCorrelated returns leftCorrelated.
+func (e *SQLSubqueryAllExpr) LeftCorrelated() bool {
+	return e.leftCorrelated
+}
+
+// RightCorrelated returns rightCorrelated.
+func (e *SQLSubqueryAllExpr) RightCorrelated() bool {
+	return e.rightCorrelated
+}
+
+// LeftPlan returns leftPlan.
+func (e *SQLSubqueryAllExpr) LeftPlan() PlanStage {
+	return e.leftPlan
+}
+
+// RightPlan returns rightPlan.
+func (e *SQLSubqueryAllExpr) RightPlan() PlanStage {
+	return e.rightPlan
+}
+
+// SetLeftPlan sets leftPlan.
+func (e *SQLSubqueryAllExpr) SetLeftPlan(p PlanStage) {
+	e.leftPlan = p
+}
+
+// SetRightPlan sets rightPlan.
+func (e *SQLSubqueryAllExpr) SetRightPlan(p PlanStage) {
+	e.rightPlan = p
+}
+
 // SQLSubqueryCmpExpr evaluates to true if the right subquery compares true to
 // the left subquery by a provided comparison operator.
 // The left and right subqueries need not be scalar but must produce only one
@@ -1895,10 +2000,42 @@ func (e *SQLSubqueryCmpExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.
 	return e.ToAggregationLanguage(t)
 }
 
-// ToAggregationLanguage translates SQLSubqueryCmpExpr into something that can
-// be used in an aggregation pipeline. If SQLSubqueryCmpExpr cannot be translated,
-// it will return nil and error.
+// ToAggregationLanguage translates SQLSubqueryCmpExpr into something
+// that can be used in an aggregation pipeline. If SQLSubqueryCmpExpr
+// cannot be translated, it will return nil and error.
+// toAggregationHelper does most of this work, ToAggregationLanguage
+// ensures that we still have a viable subplan when the
+// SQLSubqueryCmpExpr could not be pushed down for some other reason.
 func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	// clone e.plan so that we can set e's plan back to the clone, if
+	// pushdown fails. Otherwise, we can end up in a situation where
+	// the children of e pushdown, but e does not, which results in
+	// undefined VariableRefs when the subquery is correlated.
+	leftPlanClone, rightPlanClone := e.leftPlan.clone(), e.rightPlan.clone()
+	oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope := t.pushdownVisitor.savePushdownStateForSubquery()
+	t.pushdownVisitor.canPushdownCorrelated = true
+
+	out, err := e.toAggregationLanguageHelper(t)
+
+	t.pushdownVisitor.restorePushdownStateForSubquery(oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope)
+	if err != nil {
+		e.leftPlan, e.rightPlan = leftPlanClone, rightPlanClone
+		return nil, err
+	}
+	return out, nil
+}
+
+func (e *SQLSubqueryCmpExpr) toAggregationLanguageHelper(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	// Now we do a direct walk of the children plans with canPushdownCorrelated set to true (by the
+	// entry point), so that any correlated columns will be pushed down as VariableRefs. They would
+	// note be pushed down during the previous bottom-up walk because we purposefully turned them
+	// off so that we would be able to clone and save subquery plans in the case that pushdown fails
+	// for some other reason, and the $lookup that binds the correlated columns cannot be added.
+	n, err := walk(t.pushdownVisitor, e)
+	if err != nil {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+	e = n.(*SQLSubqueryCmpExpr)
 	subPlanRight := e.rightPlan
 	subPlanMsRight, ok := subPlanRight.(*MongoSourceStage)
 	if !ok {
@@ -1919,7 +2056,7 @@ func (e *SQLSubqueryCmpExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.E
 		return nil, multiRowSubqueryPushdownFailure(e)
 	}
 
-	err := t.addSubqueryLookupStage(subPlanMsRight)
+	err = t.addSubqueryLookupStage(subPlanMsRight)
 	if err != nil {
 		return nil, wrapExprErrWithPushdownFailure(e, err)
 	}
@@ -2138,16 +2275,48 @@ func (e *SQLSubqueryAllExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.
 	return e.ToAggregationLanguage(t)
 }
 
-// ToAggregationLanguage translates SQLSubqueryAllExpr into something that can
-// be used in an aggregation pipeline. If SQLSubqueryAllExpr cannot be translated,
-// it will return nil and error.
+// ToAggregationLanguage translates SQLSubqueryAllExpr into something
+// that can be used in an aggregation pipeline. If SQLSubqueryAllExpr
+// cannot be translated, it will return nil and error.
+// toAggregationHelper does most of this work, ToAggregationLanguage
+// ensures that we still have a viable subplan when the
+// SQLSubqueryAllExpr could not be pushed down for some other reason.
 func (e *SQLSubqueryAllExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	// clone e.plan so that we can see e's plan back to the clone, if
+	// pushdown fails. Otherwise, we can end up in a situation where
+	// the children of e pushdown, but e does not, which results in
+	// undefined VariableRefs when the subquery is correlated.
+	leftPlanClone, rightPlanClone := e.leftPlan.clone(), e.rightPlan.clone()
+	oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope := t.pushdownVisitor.savePushdownStateForSubquery()
+	t.pushdownVisitor.canPushdownCorrelated = true
+
+	out, err := e.toAggregationLanguageHelper(t)
+
+	t.pushdownVisitor.restorePushdownStateForSubquery(oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope)
+	if err != nil {
+		e.leftPlan, e.rightPlan = leftPlanClone, rightPlanClone
+		return nil, err
+	}
+	return out, nil
+}
+
+func (e *SQLSubqueryAllExpr) toAggregationLanguageHelper(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	// Now we do a direct walk of the children plans with canPushdownCorrelated set to true (by the
+	// entry point), so that any correlated columns will be pushed down as VariableRefs. They would
+	// note be pushed down during the previous bottom-up walk because we purposefully turned them
+	// off so that we would be able to clone and save subquery plans in the case that pushdown fails
+	// for some other reason, and the $lookup that binds the correlated columns cannot be added.
+	n, err := walk(t.pushdownVisitor, e)
+	if err != nil {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+	e = n.(*SQLSubqueryAllExpr)
 	leftPlan := e.leftPlan
 	rightPlan := e.rightPlan
 
-	mapCmp, err := t.mapCmpForDoubleSubquery(e, leftPlan, rightPlan, e.operator)
-	if err != nil {
-		return nil, err
+	mapCmp, pdErr := t.mapCmpForDoubleSubquery(e, leftPlan, rightPlan, e.operator)
+	if pdErr != nil {
+		return nil, pdErr
 	}
 
 	return astutil.WrapInOp(bsonutil.OpAllElementsTrue, mapCmp), nil
@@ -2333,16 +2502,48 @@ func (e *SQLSubqueryAnyExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.
 	return e.ToAggregationLanguage(t)
 }
 
-// ToAggregationLanguage translates SQLSubqueryAnyExpr into something that can
-// be used in an aggregation pipeline. If SQLSubqueryAnyExpr cannot be translated,
-// it will return nil and error.
+// ToAggregationLanguage translates SQLSubqueryAnyExpr into something
+// that can be used in an aggregation pipeline. If SQLSubqueryAnyExpr
+// cannot be translated, it will return nil and error.
+// toAggregationHelper does most of this work, ToAggregationLanguage
+// ensures that we still have a viable subplan when the
+// SQLSubqueryAnyExpr could not be pushed down for some other reason.
 func (e *SQLSubqueryAnyExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	// clone e.plan so that we can see e's plan back to the clone, if
+	// pushdown fails. Otherwise, we can end up in a situation where
+	// the children of e pushdown, but e does not, which results in
+	// undefined VariableRefs when the subquery is correlated.
+	leftPlanClone, rightPlanClone := e.leftPlan.clone(), e.rightPlan.clone()
+	oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope := t.pushdownVisitor.savePushdownStateForSubquery()
+	t.pushdownVisitor.canPushdownCorrelated = true
+
+	out, err := e.toAggregationLanguageHelper(t)
+
+	t.pushdownVisitor.restorePushdownStateForSubquery(oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope)
+	if err != nil {
+		e.leftPlan, e.rightPlan = leftPlanClone, rightPlanClone
+		return nil, err
+	}
+	return out, nil
+}
+
+func (e *SQLSubqueryAnyExpr) toAggregationLanguageHelper(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	// Now we do a direct walk of the children plans with canPushdownCorrelated set to true (by the
+	// entry point), so that any correlated columns will be pushed down as VariableRefs. They would
+	// note be pushed down during the previous bottom-up walk because we purposefully turned them
+	// off so that we would be able to clone and save subquery plans in the case that pushdown fails
+	// for some other reason, and the $lookup that binds the correlated columns cannot be added.
+	n, err := walk(t.pushdownVisitor, e)
+	if err != nil {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+	e = n.(*SQLSubqueryAnyExpr)
 	leftPlan := e.leftPlan
 	rightPlan := e.rightPlan
 
-	mapCmp, err := t.mapCmpForDoubleSubquery(e, leftPlan, rightPlan, e.operator)
-	if err != nil {
-		return nil, err
+	mapCmp, pdErr := t.mapCmpForDoubleSubquery(e, leftPlan, rightPlan, e.operator)
+	if pdErr != nil {
+		return nil, pdErr
 	}
 
 	return astutil.WrapInOp(bsonutil.OpAnyElementTrue, mapCmp), nil
@@ -2395,15 +2596,46 @@ func (e *SQLSubqueryExpr) reconcile() (SQLExpr, error) {
 	return e, nil
 }
 
-// ToAggregationLanguage translates SQLSubqueryExpr into something that can
-// be used in an aggregation pipeline. If SQLSubqueryExpr cannot be translated,
-// it will return nil and error.
+// ToAggregationLanguage translates SQLSubqueryExpr into something
+// that can be used in an aggregation pipeline. If SQLSubqueryExpr
+// cannot be translated, it will return nil and error.
+// toAggregationHelper does most of this work, ToAggregationLanguage
+// ensures that we still have a viable subplan when the
+// SQLSubqueryExpr could not be pushed down for some other reason.
 func (e *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	if e.correlated {
-		return nil, newPushdownFailure(
-			e.ExprName(),
-			"cannot push down correlated subqueries",
-		)
+	// clone e.plan so that we can see e's plan back to the clone, if
+	// pushdown fails. Otherwise, we can end up in a situation where
+	// the children of e pushdown, but e does not, which results in
+	// undefined VariableRefs when the subquery is correlated.
+	planClone := e.plan.clone()
+
+	oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope := t.pushdownVisitor.savePushdownStateForSubquery()
+	t.pushdownVisitor.canPushdownCorrelated = true
+
+	out, err := e.toAggregationLanguageHelper(t)
+
+	t.pushdownVisitor.restorePushdownStateForSubquery(oldPushdownCorrelated, oldSelectIDsInScope, oldTableNamesInScope)
+	if err != nil {
+		e.plan = planClone
+		return nil, err
+	}
+	return out, nil
+}
+
+func (e *SQLSubqueryExpr) toAggregationLanguageHelper(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	// Now we do a direct walk of the children plans with canPushdownCorrelated set to true (by the
+	// entry point), so that any correlated columns will be pushed down as VariableRefs. They would
+	// note be pushed down during the previous bottom-up walk because we purposefully turned them
+	// off so that we would be able to clone and save subquery plans in the case that pushdown fails
+	// for some other reason, and the $lookup that binds the correlated columns cannot be added.
+	n, err := walk(t.pushdownVisitor, e)
+	if err != nil {
+		return nil, innerSubqueryPushdownFailure(e)
+	}
+	var ok bool
+	e, ok = n.(*SQLSubqueryExpr)
+	if !ok {
+		panic("expected to be a sql subquery expr")
 	}
 
 	ms, ok := e.plan.(*MongoSourceStage)
@@ -2422,7 +2654,7 @@ func (e *SQLSubqueryExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr
 	}
 
 	// add a $lookup to the pipeline
-	err := t.addSubqueryLookupStage(ms)
+	err = t.addSubqueryLookupStage(ms)
 	if err != nil {
 		return nil, wrapExprErrWithPushdownFailure(e, err)
 	}
