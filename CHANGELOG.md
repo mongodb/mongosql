@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2360: Improved performance for mapping schemas that contain arrays.
 - BI-2230: No user-facing changes
 - BI-2328: No user-facing changes.
 - BI-2356: No user-facing changes.
