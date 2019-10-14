@@ -2,11 +2,43 @@ package server
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/10gen/sqlproxy/internal/config"
+	"github.com/10gen/sqlproxy/mongodb"
 )
+
+// TestCannotGetSession is a regression test for a panic when serving
+// a new connection. This panic occurs when an error (such as an
+// unreachable mongod) occurs during connection setup, and a client
+// connection write error occurs while trying to report that error
+// back to a client.
+func TestCannotGetSession(t *testing.T) {
+	req := require.New(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cfg := config.Default()
+	cfg.MongoDB.Net.URI = "mongodb://invalid:12345"
+
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	req.NoError(err)
+
+	srv, err := New(ctx, cancel, nil, sp, cfg)
+	req.NoError(err)
+
+	conn := newMockNetConn("host:port")
+	conn.writeErr = fmt.Errorf("failed to write to mock net conn")
+
+	// Prior to the bugfix, this function would have panicked. Now, it
+	// should exit successfully.
+	srv.serveConnection(ctx, conn)
+}
 
 func readHelper(t *testing.T, packets []byte, expLen int) []byte {
 
@@ -143,6 +175,13 @@ func TestReaderAndWriter(t *testing.T) {
 	}
 }
 
+func newMockNetConn(addr string) *mockNetConn {
+	return &mockNetConn{
+		dAddr:    &mockAddr{"addr"},
+		writeErr: nil,
+	}
+}
+
 type mockAddr struct {
 	addrString string
 }
@@ -152,18 +191,23 @@ func (d *mockAddr) String() string {
 }
 
 type mockNetConn struct {
-	dAddr *mockAddr
+	dAddr    *mockAddr
+	writeErr error
 }
 
 func (d *mockNetConn) RemoteAddr() net.Addr {
 	return d.dAddr
 }
 
+func (d *mockNetConn) Write(b []byte) (n int, err error) {
+	return -1, d.writeErr
+}
+
 func TestUserStringFunction(t *testing.T) {
 	c := &conn{}
 	c.user = "user"
 
-	nconn := &mockNetConn{&mockAddr{"host:port"}}
+	nconn := newMockNetConn("host:port")
 	c.conn = nconn
 	if c.user != "user" {
 		t.Fatal("User func should return exactly the user")
@@ -173,7 +217,7 @@ func TestUserStringFunction(t *testing.T) {
 		t.Fatal("RemoteHost func should return exactly the host")
 	}
 
-	nconn = &mockNetConn{&mockAddr{""}}
+	nconn = newMockNetConn("")
 	c.conn = nconn
 	if c.remoteHost() != "localhost" {
 		t.Fatal("RemoteHost func should return localhost if no host is provided")
@@ -184,7 +228,6 @@ func TestUserStringFunction(t *testing.T) {
 // These functions don't do anything and are here just to satisfy net.Conn and net.Addr interfaces
 func (*mockAddr) Network() string                       { return "" }
 func (*mockNetConn) Read(b []byte) (n int, err error)   { return -1, nil }
-func (*mockNetConn) Write(b []byte) (n int, err error)  { return -1, nil }
 func (*mockNetConn) Close() error                       { return nil }
 func (*mockNetConn) LocalAddr() net.Addr                { return nil }
 func (*mockNetConn) SetDeadline(t time.Time) error      { return nil }

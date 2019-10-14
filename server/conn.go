@@ -134,6 +134,7 @@ func newConn(ctx context.Context, cancelConnCtx context.CancelFunc, s *Server, c
 		process:       NewProcess(connID),
 		memoryMonitor: memoryMonitor,
 	}
+	newConn.logger = newConn.Logger(log.NetworkComponent)
 
 	if err != nil {
 		newConn.writeError(mysqlerrors.Defaultf(mysqlerrors.ErConnectToForeignDataSource, "MongoDB"))
@@ -158,8 +159,6 @@ func newConn(ctx context.Context, cancelConnCtx context.CancelFunc, s *Server, c
 		newConn.authPluginName = nativePasswordPluginName
 		newConn.authPluginData = buf
 	}
-
-	newConn.logger = newConn.Logger(log.NetworkComponent)
 
 	if s.cfg.Net.SSL.Mode != "disabled" {
 		newConn.capability |= ClientSSL
