@@ -177,7 +177,7 @@ func TestReaderAndWriter(t *testing.T) {
 
 func newMockNetConn(addr string) *mockNetConn {
 	return &mockNetConn{
-		dAddr:    &mockAddr{"addr"},
+		dAddr:    &mockAddr{addr},
 		writeErr: nil,
 	}
 }
