@@ -23,8 +23,8 @@ require (
 	github.com/lib/pq v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.2 // indirect
 	github.com/mattn/go-isatty v0.0.9 // indirect
-	github.com/mongodb/mongo-tools v0.0.0-20190515193408-25f23659be74
-	github.com/mongodb/mongo-tools-common v0.0.1-0.20190515193033-4316ec1965c6
+	github.com/mongodb/mongo-tools v0.0.0-20191008165040-976b41822808
+	github.com/mongodb/mongo-tools-common v1.0.2
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.1
@@ -58,8 +58,6 @@ replace (
 	github.com/jessevdk/go-flags => github.com/jessevdk/go-flags v0.0.0-20170722072952-6cf8f02b4ae8
 	github.com/kardianos/service => github.com/kardianos/service v0.0.0-20180302231109-0ab6efe2ea51
 	github.com/kr/pretty => github.com/kr/pretty v0.0.0-20160823170715-cfb55aafdaf3
-	github.com/mongodb/mongo-tools => github.com/mongodb/mongo-tools v0.0.0-20190515193408-25f23659be74
-	github.com/mongodb/mongo-tools-common => github.com/mattChiaravalloti/mongo-tools-common v0.0.1-0.20190604201556-7f6e09e401b6
 	github.com/pkg/errors => github.com/pkg/errors v0.8.1
 	github.com/satori/go.uuid => github.com/satori/go.uuid v0.0.0-20181028125025-b2ce2384e17b
 	github.com/shopspring/decimal => github.com/shopspring/decimal v0.0.0-20160918205201-d6f52241f332

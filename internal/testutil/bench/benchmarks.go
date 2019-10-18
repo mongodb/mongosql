@@ -147,6 +147,7 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 	}
 	defer func() {
 		_ = s.Close()
+		sp.Close()
 	}()
 
 	runAggBenchmark(b, s, dbName, coll, pipeline)

@@ -1,7 +1,6 @@
 package mongodrdl
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/10gen/sqlproxy/mongodb"
@@ -181,22 +180,6 @@ func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) 
 	timeout := mongodb.GetConnectTimeout(cs)
 
 	return mongodb.NewDrdlSessionProvider(readPref, t, timeout, numDrdlConnsPerSession), nil
-}
-
-// getSession returns a mongodb.Session with the connection options specified
-// by the provided DrdlOptions.
-func getSession(ctx context.Context, opts DrdlOptions) (*mongodb.Session, error) {
-	sp, err := newDrdlSessionProvider(opts)
-	if err != nil {
-		return nil, err
-	}
-
-	session, err := sp.Session(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("can't create session: %v", err)
-	}
-
-	return session, nil
 }
 
 // drdlDialer creates a mongodrdl dialer.

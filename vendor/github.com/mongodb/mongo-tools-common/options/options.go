@@ -85,6 +85,9 @@ type ToolOptions struct {
 	// WriteConcern, if specified, sets the client default
 	WriteConcern *writeconcern.WriteConcern
 
+	// RetryWrites, if specified, sets the client default.
+	RetryWrites *bool
+
 	// for caching the parser
 	parser *flags.Parser
 
@@ -136,8 +139,10 @@ type Connection struct {
 	Host string `short:"h" long:"host" value-name:"<hostname>" description:"mongodb host to connect to (setname/host1,host2 for replica sets)"`
 	Port string `long:"port" value-name:"<port>" description:"server port (can also use --host hostname:port)"`
 
-	Timeout             int `long:"dialTimeout" default:"3" hidden:"true" description:"dial timeout in seconds"`
-	TCPKeepAliveSeconds int `long:"TCPKeepAliveSeconds" default:"30" hidden:"true" description:"seconds between TCP keep alives"`
+	Timeout                int `long:"dialTimeout" default:"3" hidden:"true" description:"dial timeout in seconds"`
+	SocketTimeout          int `long:"socketTimeout" default:"0" hidden:"true" description:"socket timeout in seconds (0 for no timeout)"`
+	TCPKeepAliveSeconds    int `long:"TCPKeepAliveSeconds" default:"30" hidden:"true" description:"seconds between TCP keep alives"`
+	ServerSelectionTimeout int `long:"serverSelectionTimeout" hidden:"true" description:"seconds to wait for server selection; 0 means driver default"`
 }
 
 // Struct holding ssl-related options
@@ -162,13 +167,13 @@ type Auth struct {
 
 // Struct for Kerberos/GSSAPI-specific options
 type Kerberos struct {
-	Service     string `long:"gssapiServiceName" value-name:"<service-name>" description:"service name to use when authenticating using GSSAPI/Kerberos ('mongodb' by default)"`
-	ServiceHost string `long:"gssapiHostName" value-name:"<host-name>" description:"hostname to use when authenticating using GSSAPI/Kerberos (remote server's address by default)"`
+	Service     string `long:"gssapiServiceName" value-name:"<service-name>" description:"service name to use when authenticating using GSSAPI/Kerberos (default: mongodb)"`
+	ServiceHost string `long:"gssapiHostName" value-name:"<host-name>" description:"hostname to use when authenticating using GSSAPI/Kerberos (default: <remote server's address>)"`
 }
 type WriteConcern struct {
 	// Specifies the write concern for each write operation that mongofiles writes to the target database.
 	// By default, mongofiles waits for a majority of members from the replica set to respond before returning.
-	WriteConcern string `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}' (defaults to 'majority')"`
+	WriteConcern string `long:"writeConcern" value-name:"<write-concern>" default:"majority" default-mask:"-" description:"write concern options e.g. --writeConcern majority, --writeConcern '{w: 3, wtimeout: 500, fsync: true, j: true}'"`
 
 	w        int
 	wtimeout int
@@ -506,8 +511,11 @@ func (opts *ToolOptions) setOptionsFromURI(cs connstring.ConnString) error {
 			return fmt.Errorf(IncompatibleArgsErrorFormat, "--port")
 		case opts.Connection.Timeout != 3:
 			return fmt.Errorf(IncompatibleArgsErrorFormat, "--dialTimeout")
+		case opts.Connection.SocketTimeout != 0:
+			return fmt.Errorf(IncompatibleArgsErrorFormat, "--socketTimeout")
 		}
 		opts.Connection.Timeout = int(cs.ConnectTimeout / time.Millisecond)
+		opts.Connection.SocketTimeout = int(cs.SocketTimeout / time.Millisecond)
 	}
 
 	if opts.enabledOptions.Auth {

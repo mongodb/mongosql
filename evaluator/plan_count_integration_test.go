@@ -25,13 +25,14 @@ func TestCountPlanStage(t *testing.T) {
 	variablesOne := evaluator.CreateTestVariables(infoOne)
 	catalogOne := evaluator.GetCatalog(cfgOne, variablesOne, infoOne)
 	cfg := getConfig(t)
-	sessionProvider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 		return
 	}
+	defer sp.Close()
 
-	session, err := sessionProvider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	if err != nil {
 		t.Fatalf("failed to set up session to test server: %v", err)
 		return

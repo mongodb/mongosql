@@ -35,12 +35,13 @@ func init() {
 }
 
 func TestFetchNamespaces(t *testing.T) {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
+	defer sp.Close()
 
-	session, err := provider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	if err != nil {
 		t.Fatalf("failed to set up session to test server: %v", err)
 	}
@@ -93,12 +94,13 @@ func TestFetchNamespaces(t *testing.T) {
 }
 
 func TestGetViewPipelinesInDatabase(t *testing.T) {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
+	defer sp.Close()
 
-	session, err := provider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	if err != nil {
 		t.Fatalf("failed to set up session to test server: %v", err)
 	}
@@ -156,12 +158,13 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 }
 
 func TestSample(t *testing.T) {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
+	defer sp.Close()
 
-	session, err := provider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	if err != nil {
 		t.Fatalf("failed to set up session to test server: %v", err)
 	}
@@ -184,7 +187,7 @@ func TestSample(t *testing.T) {
 	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 1)), &struct{}{})
 
 	opts := NewMongosqldConfig(&cfg.Schema, nil)
-	sampler := NewSampler(opts, lgr, getSessionProvider(req))
+	sampler := NewSampler(opts, lgr, sp)
 	sampleSchema, err := sampler.Sample(context.Background())
 
 	req.Nilf(err, "did not expect error in sampling")
@@ -217,12 +220,13 @@ func TestSample(t *testing.T) {
 }
 
 func TestNamespaceSelectors(t *testing.T) {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
+	defer sp.Close()
 
-	session, err := provider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	if err != nil {
 		t.Fatalf("failed to set up session to test server: %v", err)
 	}
@@ -556,7 +560,7 @@ func TestNamespaceSelectors(t *testing.T) {
 			nsOpts.Sample.Namespaces = test.samplePattern
 
 			opts := NewMongosqldConfig(&nsOpts, nil)
-			sampler := NewSampler(opts, lgr, getSessionProvider(req))
+			sampler := NewSampler(opts, lgr, sp)
 			sampleSchema, err := sampler.Sample(context.Background())
 
 			req.Nilf(err, "did not expect error in sampling")
@@ -578,12 +582,13 @@ func TestNamespaceSelectors(t *testing.T) {
 }
 
 func TestSampleTableAndColumnCollisions(t *testing.T) {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
+	defer sp.Close()
 
-	session, err := provider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	if err != nil {
 		t.Fatalf("failed to set up session to test server: %v", err)
 	}
@@ -616,7 +621,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, t4, doc)
 
 	opts := NewMongosqldConfig(&cfg.Schema, nil)
-	sampler := NewSampler(opts, lgr, getSessionProvider(req))
+	sampler := NewSampler(opts, lgr, sp)
 	sampleSchema, err := sampler.Sample(context.Background())
 
 	req.Nil(err)
@@ -715,10 +720,11 @@ func TestWriteModeRoundTrip(t *testing.T) {
 	logger := log.NoOpLogger()
 	req := require.New(t)
 
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	req.Nil(err)
+	defer sp.Close()
 
-	session, err := provider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	req.Nil(err)
 	defer session.Close()
 
@@ -759,7 +765,7 @@ func TestWriteModeRoundTrip(t *testing.T) {
 	}
 	writeCfg := config.Default()
 	writeCfg.Schema.WriteMode = true
-	sampler := NewSampler(NewMongosqldConfig(&writeCfg.Schema, variable.NewGlobalContainer(writeCfg)), logger, provider)
+	sampler := NewSampler(NewMongosqldConfig(&writeCfg.Schema, variable.NewGlobalContainer(writeCfg)), logger, sp)
 	schema, err := sampler.Sample(ctx)
 	req.Nil(err)
 	schemaDB := schema.Database(dbName)

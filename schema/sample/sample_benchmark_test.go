@@ -52,6 +52,8 @@ func benchmarkViewSampling(b *testing.B, req *require.Assertions, viewName strin
 	cfg.Schema.Stored.Source = ""
 
 	sp := getSessionProvider(req)
+	defer sp.Close()
+
 	sampleCfg := NewMongosqldConfig(&cfg.Schema, nil)
 	sampler := NewSampler(sampleCfg, lgr, sp)
 
@@ -64,8 +66,14 @@ func benchmarkViewSampling(b *testing.B, req *require.Assertions, viewName strin
 
 func benchmarkViewSamplingWithLookupStages(b *testing.B, numLookups int) {
 	req := require.New(b)
-	session := getSession(req)
+
+	sp := getSessionProvider(req)
+	defer sp.Close()
+
+	session, err := sp.Session(context.Background())
+	req.NoError(err, "failed to set up session to test server")
 	defer session.Close()
+
 	dbutils.DropDatabase(session, sampleViewDb)
 	viewName, err := createViewWithLookupStages(session, sampleViewDb, numLookups)
 	req.NoError(err, "failed to create MongoDB schema")
@@ -74,8 +82,14 @@ func benchmarkViewSamplingWithLookupStages(b *testing.B, numLookups int) {
 
 func benchmarkViewSamplingWithMatchAnd10LookupStages(b *testing.B, nDocs int) {
 	req := require.New(b)
-	session := getSession(req)
+
+	sp := getSessionProvider(req)
+	defer sp.Close()
+
+	session, err := sp.Session(context.Background())
+	req.NoError(err, "failed to set up session to test server")
 	defer session.Close()
+
 	dbutils.DropDatabase(session, sampleViewDb)
 	viewName, err := createViewWithMatchAndLookupStages(session, sampleViewDb, nDocs)
 	req.NoError(err, "failed to create MongoDB schema")
@@ -161,15 +175,6 @@ func createView(session *mongodb.Session, db, col, viewName string, pipeline []b
 	}
 
 	return nil
-}
-
-func getSession(req *require.Assertions) *mongodb.Session {
-	provider := getSessionProvider(req)
-	session, err := provider.Session(context.Background())
-	if err != nil {
-		req.NoError(err, "failed to set up session to test server")
-	}
-	return session
 }
 
 func getSessionProvider(req *require.Assertions) *mongodb.SessionProvider {

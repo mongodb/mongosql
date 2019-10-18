@@ -24,10 +24,11 @@ func TestWriteModeIntegration(t *testing.T) {
 
 	cfg := config.Default()
 	cfg.Schema.WriteMode = true
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	req.Nil(err)
+	defer sp.Close()
 
-	session, err := provider.Session(context.Background())
+	session, err := sp.Session(context.Background())
 	req.Nil(err)
 	defer session.Close()
 
@@ -77,7 +78,7 @@ func TestWriteModeIntegration(t *testing.T) {
 	)
 
 	mangerCfg := NewMongosqldConfig(&cfg.Schema, variable.NewGlobalContainer(cfg), nil)
-	manager := NewManager(mangerCfg, log.NoOpLogger(), provider, "")
+	manager := NewManager(mangerCfg, log.NoOpLogger(), sp, "")
 	ctx := context.Background()
 
 	manager.Start()

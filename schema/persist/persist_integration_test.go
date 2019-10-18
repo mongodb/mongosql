@@ -27,6 +27,8 @@ func TestPersistSchema(t *testing.T) {
 	ctx := context.Background()
 
 	sp := getSessionProvider()
+	defer sp.Close()
+
 	p := persist.NewPersistor(sp, testDBName)
 
 	drdlSchema := new(drdl.Schema)

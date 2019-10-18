@@ -31,11 +31,11 @@ type Translator struct {
 
 // NewTranslator creates a new Translator by fetching and translating the latest
 // schema stored in the sampleSource database.
-func NewTranslator(ctx context.Context, cfg *config.Schema, s *mongodb.SessionProvider) (*Translator, error) {
+func NewTranslator(ctx context.Context, cfg *config.Schema, sp *mongodb.SessionProvider) (*Translator, error) {
 	lgr := log.GlobalLogger()
 	log.SetOutputWriter(ioutil.Discard)
 
-	session, err := s.AuthenticatedAdminSession()
+	session, err := sp.AuthenticatedAdminSession()
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func NewTranslator(ctx context.Context, cfg *config.Schema, s *mongodb.SessionPr
 	}()
 
 	sampleCfg := sample.NewMongosqldConfig(cfg, nil)
-	sampler := sample.NewSampler(sampleCfg, lgr, s)
+	sampler := sample.NewSampler(sampleCfg, lgr, sp)
 	sch, err := sampler.Sample(ctx)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func NewTranslator(ctx context.Context, cfg *config.Schema, s *mongodb.SessionPr
 	}
 
 	defaultCfg := config.Default()
-	info, err := mongodb.LoadInfo(ctx, lgr, s, session, sch, defaultCfg)
+	info, err := mongodb.LoadInfo(ctx, lgr, sp, session, sch, defaultCfg)
 	if err != nil {
 		return nil, err
 	}

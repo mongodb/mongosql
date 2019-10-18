@@ -95,7 +95,7 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts DrdlOptions, n
 	if err != nil {
 		return nil, err
 	}
-	// TODO ensure this is closed
+	defer sp.Close()
 
 	sampleCfg := newSampleConfig(opts, ns)
 	sampler := sample.NewSampler(sampleCfg, lg, sp)

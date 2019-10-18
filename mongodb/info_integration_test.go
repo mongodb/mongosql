@@ -52,6 +52,7 @@ func TestLoadInfo(t *testing.T) {
 
 	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	req.Nil(err, "failed to get NewSqldSessionProvider")
+	defer sp.Close()
 
 	s, err := sp.Session(context.Background())
 	req.NoError(err, "failed to get Session")

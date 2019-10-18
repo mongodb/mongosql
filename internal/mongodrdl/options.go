@@ -74,6 +74,7 @@ func (o *DrdlOptions) Run() error {
 	if err != nil {
 		return err
 	}
+	defer sp.Close()
 
 	persistor := persist.NewPersistor(sp, o.SchemaSource)
 

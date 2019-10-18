@@ -28,6 +28,7 @@ func TestCannotGetSession(t *testing.T) {
 
 	sp, err := mongodb.NewSqldSessionProvider(cfg)
 	req.NoError(err)
+	defer sp.Close()
 
 	srv, err := New(ctx, cancel, nil, sp, cfg)
 	req.NoError(err)

@@ -9,17 +9,21 @@
 package db
 
 import (
+	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/log"
 	"github.com/mongodb/mongo-tools-common/options"
 	"github.com/mongodb/mongo-tools-common/password"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	mopt "go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
@@ -45,9 +49,6 @@ const (
 const (
 	DefaultTestPort = "33333"
 )
-
-// Hard coded socket timeout in seconds
-const SocketTimeout = 600
 
 const (
 	ErrLostConnection     = "lost connection to server"
@@ -83,24 +84,6 @@ type SessionProvider struct {
 	client *mongo.Client
 }
 
-// ApplyOpsResponse represents the response from an 'applyOps' command.
-type ApplyOpsResponse struct {
-	Ok     bool   `bson:"ok"`
-	ErrMsg string `bson:"errmsg"`
-}
-
-// Oplog represents a MongoDB oplog document.
-type Oplog struct {
-	Timestamp primitive.Timestamp `bson:"ts"`
-	HistoryID int64               `bson:"h"`
-	Version   int                 `bson:"v"`
-	Operation string              `bson:"op"`
-	Namespace string              `bson:"ns"`
-	Object    bson.D              `bson:"o"`
-	Query     bson.D              `bson:"o2"`
-	UI        *primitive.Binary   `bson:"ui,omitempty"`
-}
-
 // Returns a mongo.Client connected to the database server for which the
 // session provider is configured.
 func (sp *SessionProvider) GetSession() (*mongo.Client, error) {
@@ -133,7 +116,11 @@ func (sp *SessionProvider) DB(name string) *mongo.Database {
 func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	// finalize auth options, filling in missing passwords
 	if opts.Auth.ShouldAskForPassword() {
-		opts.Auth.Password = password.Prompt()
+		pass, err := password.Prompt()
+		if err != nil {
+			return nil, fmt.Errorf("error reading password: %v", err)
+		}
+		opts.Auth.Password = pass
 	}
 
 	client, err := configureClient(opts)
@@ -153,9 +140,132 @@ func NewSessionProvider(opts options.ToolOptions) (*SessionProvider, error) {
 	return &SessionProvider{client: client}, nil
 }
 
+// addClientCertFromFile adds a client certificate to the configuration given a path to the
+// containing file and returns the certificate's subject name.
+func addClientCertFromFile(cfg *tls.Config, clientFile, keyPasswd string) (string, error) {
+	data, err := ioutil.ReadFile(clientFile)
+	if err != nil {
+		return "", err
+	}
+
+	var currentBlock *pem.Block
+	var certBlock, certDecodedBlock, keyBlock []byte
+
+	remaining := data
+	start := 0
+	for {
+		currentBlock, remaining = pem.Decode(remaining)
+		if currentBlock == nil {
+			break
+		}
+
+		if currentBlock.Type == "CERTIFICATE" {
+			certBlock = data[start : len(data)-len(remaining)]
+			certDecodedBlock = currentBlock.Bytes
+			start += len(certBlock)
+		} else if strings.HasSuffix(currentBlock.Type, "PRIVATE KEY") {
+			if keyPasswd != "" && x509.IsEncryptedPEMBlock(currentBlock) {
+				var encoded bytes.Buffer
+				buf, err := x509.DecryptPEMBlock(currentBlock, []byte(keyPasswd))
+				if err != nil {
+					return "", err
+				}
+
+				pem.Encode(&encoded, &pem.Block{Type: currentBlock.Type, Bytes: buf})
+				keyBlock = encoded.Bytes()
+				start = len(data) - len(remaining)
+			} else {
+				keyBlock = data[start : len(data)-len(remaining)]
+				start += len(keyBlock)
+			}
+		}
+	}
+	if len(certBlock) == 0 {
+		return "", fmt.Errorf("failed to find CERTIFICATE")
+	}
+	if len(keyBlock) == 0 {
+		return "", fmt.Errorf("failed to find PRIVATE KEY")
+	}
+
+	cert, err := tls.X509KeyPair(certBlock, keyBlock)
+	if err != nil {
+		return "", err
+	}
+
+	cfg.Certificates = append(cfg.Certificates, cert)
+
+	// The documentation for the tls.X509KeyPair indicates that the Leaf certificate is not
+	// retained.
+	crt, err := x509.ParseCertificate(certDecodedBlock)
+	if err != nil {
+		return "", err
+	}
+
+	return crt.Subject.String(), nil
+}
+
+// addCACertFromFile adds a root CA certificate to the configuration given a path
+// to the containing file.
+func addCACertFromFile(cfg *tls.Config, file string) error {
+	data, err := ioutil.ReadFile(file)
+	if err != nil {
+		return err
+	}
+
+	certBytes, err := loadCert(data)
+	if err != nil {
+		return err
+	}
+
+	cert, err := x509.ParseCertificate(certBytes)
+	if err != nil {
+		return err
+	}
+
+	if cfg.RootCAs == nil {
+		cfg.RootCAs = x509.NewCertPool()
+	}
+
+	cfg.RootCAs.AddCert(cert)
+
+	return nil
+}
+
+func loadCert(data []byte) ([]byte, error) {
+	var certBlock *pem.Block
+
+	for certBlock == nil {
+		if data == nil || len(data) == 0 {
+			return nil, errors.New(".pem file must have both a CERTIFICATE and an RSA PRIVATE KEY section")
+		}
+
+		block, rest := pem.Decode(data)
+		if block == nil {
+			return nil, errors.New("invalid .pem file")
+		}
+
+		switch block.Type {
+		case "CERTIFICATE":
+			if certBlock != nil {
+				return nil, errors.New("multiple CERTIFICATE sections in .pem file")
+			}
+
+			certBlock = block
+		}
+
+		data = rest
+	}
+
+	return certBlock.Bytes, nil
+}
+
 // configure the client according to the options set in the uri and in the provided ToolOptions, with ToolOptions having precedence.
 func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	clientopt := mopt.Client()
+
+	if opts.RetryWrites != nil {
+		clientopt.SetRetryWrites(*opts.RetryWrites)
+	}
 
 	if opts.URI == nil || opts.URI.ConnectionString == "" {
 		// XXX Normal operations shouldn't ever reach here because a URI should
@@ -169,10 +279,12 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 	if err := uriOpts.Validate(); err != nil {
 		return nil, fmt.Errorf("error parsing options from URI: %v", err)
 	}
-	timeout := time.Duration(opts.Timeout) * time.Second
 
-	clientopt.SetConnectTimeout(timeout)
-	clientopt.SetSocketTimeout(SocketTimeout * time.Second)
+	clientopt.SetConnectTimeout(time.Duration(opts.Timeout) * time.Second)
+	clientopt.SetSocketTimeout(time.Duration(opts.SocketTimeout) * time.Second)
+	if opts.Connection.ServerSelectionTimeout > 0 {
+		clientopt.SetServerSelectionTimeout(time.Duration(opts.Connection.ServerSelectionTimeout) * time.Second)
+	}
 	clientopt.SetReplicaSet(opts.ReplicaSetName)
 
 	clientopt.SetAppName(opts.AppName)
@@ -219,26 +331,22 @@ func configureClient(opts options.ToolOptions) (*mongo.Client, error) {
 			return nil, fmt.Errorf("CRL files are not supported on this platform")
 		}
 
-		tlsConfig := newTLSConfig()
+		tlsConfig := &tls.Config{}
 		if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
-			tlsConfig.setInsecure(true)
+			tlsConfig.InsecureSkipVerify = true
 		}
 		if opts.SSLPEMKeyFile != "" {
-			if opts.SSLPEMKeyPassword != "" {
-				tlsConfig.setClientCertDecryptPassword(func() string { return opts.SSLPEMKeyPassword })
-			}
-
-			_, err := tlsConfig.addClientCertFromFile(opts.SSLPEMKeyFile)
+			_, err := addClientCertFromFile(tlsConfig, opts.SSLPEMKeyFile, opts.SSLPEMKeyPassword)
 			if err != nil {
 				return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
 			}
 		}
 		if opts.SSLCAFile != "" {
-			if err := tlsConfig.addCACertFromFile(opts.SSLCAFile); err != nil {
+			if err := addCACertFromFile(tlsConfig, opts.SSLCAFile); err != nil {
 				return nil, fmt.Errorf("error configuring client, can't load CA file: %v", err)
 			}
 		}
-		clientopt.SetTLSConfig(tlsConfig.Config)
+		clientopt.SetTLSConfig(tlsConfig)
 	}
 
 	return mongo.NewClient(uriOpts, clientopt)

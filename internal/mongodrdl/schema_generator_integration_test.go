@@ -46,7 +46,11 @@ func testIgnoreSystemCollections(t *testing.T) {
 	req.NoError(err, "failed to create drdl options")
 
 	ctx := context.Background()
-	session, err := getSession(ctx, opts)
+	sp, err := newDrdlSessionProvider(opts)
+	req.NoError(err, "failed to create SessionProvider")
+	defer sp.Close()
+
+	session, err := sp.Session(ctx)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -126,7 +130,11 @@ func testViewNoGeoIndex(t *testing.T) {
 	req.NoError(err, "failed to create drdl options")
 
 	ctx := context.Background()
-	session, err := getSession(ctx, opts)
+	sp, err := newDrdlSessionProvider(opts)
+	req.NoError(err, "failed to create SessionProvider")
+	defer sp.Close()
+
+	session, err := sp.Session(ctx)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -184,7 +192,11 @@ func testViewGeoIndex(t *testing.T) {
 	req.NoError(err, "failed to create drdl options")
 
 	ctx := context.Background()
-	session, err := getSession(ctx, opts)
+	sp, err := newDrdlSessionProvider(opts)
+	req.NoError(err, "failed to create SessionProvider")
+	defer sp.Close()
+
+	session, err := sp.Session(ctx)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -244,7 +256,11 @@ func testSyntheticQueryField(t *testing.T) {
 	opts.DrdlOutput.CustomFilterField = "__MONGOQUERY"
 
 	ctx := context.Background()
-	session, err := getSession(ctx, opts)
+	sp, err := newDrdlSessionProvider(opts)
+	req.NoError(err, "failed to create SessionProvider")
+	defer sp.Close()
+
+	session, err := sp.Session(ctx)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -284,7 +300,11 @@ func testPolymorphicDataField(t *testing.T) {
 	req.NoError(err, "failed to create drdl options")
 
 	ctx := context.Background()
-	session, err := getSession(ctx, opts)
+	sp, err := newDrdlSessionProvider(opts)
+	req.NoError(err, "failed to create SessionProvider")
+	defer sp.Close()
+
+	session, err := sp.Session(ctx)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
@@ -331,7 +351,11 @@ func testUUIDSubtype3Field(t *testing.T) {
 	req.NoError(err, "failed to create drdl options")
 
 	ctx := context.Background()
-	session, err := getSession(ctx, opts)
+	sp, err := newDrdlSessionProvider(opts)
+	req.NoError(err, "failed to create SessionProvider")
+	defer sp.Close()
+
+	session, err := sp.Session(ctx)
 	req.NoError(err, "failed to get MongoDB session")
 	defer session.Close()
 	defer dbutils.DropDatabase(session, db)
