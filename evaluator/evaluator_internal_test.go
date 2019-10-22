@@ -743,7 +743,9 @@ func TestReconcile(t *testing.T) {
 				)
 
 				for i, child := range children {
-					req.Equal(test.expectedTypes[i], child.EvalType(), "incorrect EvalType for child %d", i)
+					req.Equal(test.expectedTypes[i], child.EvalType(),
+						"incorrect EvalType, %d, with SQLType %s, for child %d", child.EvalType(),
+						types.EvalTypeToSQLType(child.EvalType()), i)
 				}
 			})
 		}
@@ -1119,6 +1121,17 @@ func TestReconcile(t *testing.T) {
 		{"like(datetime, str)", NewSQLLikeExpr(datetimeVal, strVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},
 		{"like(datetime, date)", NewSQLLikeExpr(datetimeVal, dateVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},
 		{"like(datetime, datetime)", NewSQLLikeExpr(datetimeVal, datetimeVal, escapeVal, true), []types.EvalType{types.EvalString, types.EvalString, types.EvalString}},
+
+		// regexp expression
+		// the behavior here is to always convert everything to EvalString, so we only have one test with
+		// differing argument types.
+		{"regexp(string, string)", NewSQLRegexExpr(strVal, strVal), []types.EvalType{types.EvalString, types.EvalString}},
+		{"regexp(int, int)", NewSQLRegexExpr(intVal, intVal), []types.EvalType{types.EvalString, types.EvalString}},
+		{"regexp(float, float)", NewSQLRegexExpr(floatVal, floatVal), []types.EvalType{types.EvalString, types.EvalString}},
+		{"regexp(bool, bool)", NewSQLRegexExpr(boolVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
+		{"regexp(decimal, decimal)", NewSQLRegexExpr(decimalVal, decimalVal), []types.EvalType{types.EvalString, types.EvalString}},
+		{"regexp(datetime, datetime)", NewSQLRegexExpr(datetimeVal, datetimeVal), []types.EvalType{types.EvalString, types.EvalString}},
+		{"regexp(datetime, bool)", NewSQLRegexExpr(datetimeVal, boolVal), []types.EvalType{types.EvalString, types.EvalString}},
 
 		// is expression: right must always be boolean; does not convert the
 		// left if it is numeric or boolean; does convert the left to boolean

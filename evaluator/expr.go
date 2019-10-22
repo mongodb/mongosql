@@ -1481,6 +1481,14 @@ type SQLRegexExpr struct {
 	operand, pattern SQLExpr
 }
 
+// NewSQLRegexExpr is a constructor for SQLRegexExpr.
+func NewSQLRegexExpr(operand, pattern SQLExpr) *SQLRegexExpr {
+	return &SQLRegexExpr{
+		operand: operand,
+		pattern: pattern,
+	}
+}
+
 // Children returns a slice of all the Node children of the Node.
 func (e *SQLRegexExpr) Children() []Node {
 	return []Node{e.operand, e.pattern}
@@ -1575,6 +1583,14 @@ func (e *SQLRegexExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 
 // nolint: unparam
 func (e *SQLRegexExpr) reconcile() (SQLExpr, error) {
+	// The input operand must be reconciled to string.
+	if e.operand.EvalType() != types.EvalString {
+		e.operand = NewSQLConvertExpr(e.operand, types.EvalString)
+	}
+	// The pattern operand must be reconciled to string.
+	if e.pattern.EvalType() != types.EvalString {
+		e.pattern = NewSQLConvertExpr(e.pattern, types.EvalString)
+	}
 	return e, nil
 }
 

@@ -6366,30 +6366,76 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
-                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
+            }
+        }
+    },
+    "not_regexp_0_string": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
             }
         }
     },
@@ -6412,30 +6458,76 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
-                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
+            }
+        }
+    },
+    "not_regexp_1_string": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
             }
         }
     },
@@ -6458,30 +6550,76 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
-                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
+            }
+        }
+    },
+    "not_regexp_2_string": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
             }
         }
     },
@@ -6872,30 +7010,76 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}",
-                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"abc\",\"options\": \"si\"}}"
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+                "mongosql-mode": "{\"$expr\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}}",
+                "mysql-mode": "{\"$expr\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"abc\",\"options\": \"si\"}}}"
+            }
+        }
+    },
+    "regexp_0_string": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"abc\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"abc\",\"options\": \"si\"}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}"
             }
         }
     },
@@ -6918,30 +7102,76 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}",
-                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(.* )?\",\"options\": \"si\"}}"
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+                "mongosql-mode": "{\"$expr\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}}",
+                "mysql-mode": "{\"$expr\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(.* )?\",\"options\": \"si\"}}}"
+            }
+        }
+    },
+    "regexp_1_string": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(.* )?\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(.* )?\",\"options\": \"si\"}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}"
             }
         }
     },
@@ -6964,30 +7194,76 @@
                 "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}",
-                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$a\",\"regex\": \"(a|b)\",\"options\": \"si\"}}"
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}"
             }
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
-                "mysql-mode": "{\"a\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+                "mongosql-mode": "{\"$expr\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}}",
+                "mysql-mode": "{\"$expr\": {\"$regexMatch\": {\"input\": {\"$convert\": {\"input\": {\"$cond\": [{\"$eq\": [{\"$type\": \"$a\"},\"bool\"]},{\"$cond\": [\"$a\",\"1\",\"0\"]},\"$a\"]},\"to\": \"string\",\"onError\": null,\"onNull\": null}},\"regex\": \"(a|b)\",\"options\": \"si\"}}}"
+            }
+        }
+    },
+    "regexp_2_string": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(a|b)\",\"options\": \"si\"}}",
+                "mysql-mode": "{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(a|b)\",\"options\": \"si\"}}"
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+            },
+            "3.4": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+            },
+            "3.6": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+            },
+            "4.0": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
+            },
+            "4.2": {
+                "mongosql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}",
+                "mysql-mode": "{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}"
             }
         }
     },

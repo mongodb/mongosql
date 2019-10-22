@@ -255,3 +255,15 @@ testcases:
     expected_types: [int, varchar, int]
     id: BI-2262-numeric-unwind-path
     sql: "select _id, `a.0`, `a.0_idx` from BI_2262_a_0;"
+
+  - db: functions_test
+    description: BI-2379 Regular expression should work on non-string columns
+    exepected_names: [a, contains_2]
+    expected_results:
+      - [97, 0]
+      - [124, 1]
+      - [33, 0]
+      - [125, 1]
+    expected_types: [int, int]
+    id: BI-2379-regexp-int
+    sql: select a, a regexp 2 as contains_2 from simple_char_test_int
