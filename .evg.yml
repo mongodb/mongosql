@@ -1999,11 +1999,17 @@ axes:
       _variant: debian81
     batchtime: 10080 # 1 week
   - id: debian92
-    display_name: Debian 92
+    display_name: Debian 9.2
     run_on:
     - debian92-test
     variables:
       _variant: debian92
+  - id: debian10
+    display_name: Debian 10.0
+    run_on:
+    - debian10-test
+    variables:
+      _variant: debian10
     batchtime: 10080 # 1 week
   - id: linux-64-amazon-ami
     display_name: Amazon Linux
@@ -2011,6 +2017,12 @@ axes:
       _variant: amazon
     run_on:
     - amazon1-2018-test
+  - id: amazon2
+    display_name: Amazon Linux 2
+    variables:
+      _variant: amazon2
+    run_on:
+    - amazon2-test
   - id: rhel62
     display_name: RHEL 6.2
     variables:
@@ -2024,7 +2036,6 @@ axes:
       _variant: rhel70
     run_on:
     - rhel70-small
-    batchtime: 10080 # 1 week
   - id: rhel-71-ppc64le
     display_name: RHEL 7.1 PPC64LE
     variables:
@@ -2052,13 +2063,57 @@ axes:
       _variant: suse12
     run_on:
     - suse12-test
+  - id: rhel80
+    display_name: RHEL 8.0
+    variables:
+      _variant: rhel80
+    run_on:
+    - rhel80-test
     batchtime: 10080 # 1 week
+  - id: suse12-s390x
+    display_name: SLES 12 s390x
+    variables:
+      _variant: suse12-s390x
+    run_on:
+    - suse12-zseries-test
+  - id: suse15-64
+    display_name: SLES 15
+    variables:
+      _variant: suse15
+    run_on:
+    - suse15-test
+    batchtime: 10080 # 1 week
+  - id: suse15-s390x
+    display_name: SLES 15 s390x
+    variables:
+      _variant: suse15-s390x
+    run_on:
+    - suse15-zseries-build
+  - id: suse15-ppc64le
+    display_name: SLES 15 PPC64LE
+    run_on:
+    - suse15-power8-test
+    batchtime: 10080 # 1 week
+    variables:
+      _variant: suse15-ppc
   - id: ubuntu1604-64
     display_name: Ubuntu 16.04
     run_on:
     - ubuntu1604-test
     variables:
       _variant: ubuntu1604
+  - id: ubuntu1804-64
+    display_name: Ubuntu 18.04
+    run_on:
+    - ubuntu1804-test
+    variables:
+      _variant: ubuntu1804
+  - id: ubuntu1804-arm64
+    display_name: Ubuntu 18.04 arm
+    run_on:
+    - ubuntu1804-arm64-test
+    variables:
+      _variant: ubuntu1804-arm64
   - id: ubuntu1604-s390x
     display_name: Ubuntu 16.04 s390x
     run_on:
@@ -2066,6 +2121,13 @@ axes:
     batchtime: 10080 # 1 week
     variables:
       _variant: ubuntu1604-s390x
+  - id: ubuntu1804-s390x
+    display_name: Ubuntu 18.04 s390x
+    run_on:
+    - ubuntu1804-zseries-test
+    batchtime: 10080 # 1 week
+    variables:
+      _variant: ubuntu1804-s390x
   - id: ubuntu1604-ppc64le
     display_name: Ubuntu 16.04 PPC64LE
     run_on:
@@ -2073,6 +2135,13 @@ axes:
     batchtime: 10080 # 1 week
     variables:
       _variant: ubuntu1604-ppc
+  - id: ubuntu1804-ppc64le
+    display_name: Ubuntu 18.04 PPC64LE
+    run_on:
+    - ubuntu1804-power8-test
+    batchtime: 10080 # 1 week
+    variables:
+      _variant: ubuntu1804-ppc
 
 - id: mongodb_version
   display_name: MongoDB Version

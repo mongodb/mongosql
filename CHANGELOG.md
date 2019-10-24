@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2284: Add support for Ubuntu 1804, SLES 15, Rhel8.
 - BI-2379: Add type reconciliation for regexp, now regexp works with non-strings.
 - BI-2376: No user-facing changes.
 - BI-2355: Fix bug where some network errors during connection setup could cause panics.

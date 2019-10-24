@@ -75,6 +75,9 @@ BUILD_TAGS='integration'
 if [ "$BUILD_GSSAPI" = 'true' ]; then
     BUILD_TAGS="$BUILD_TAGS gssapi"
 fi
+if [ "$BUILD_FIPS" = 'false' ]; then
+	BUILD_TAGS="$BUILD_TAGS nofips"
+fi
 
 # assemble linker flags for building the binaries
 CONFIG_PATH="github.com/10gen/sqlproxy/internal/config"

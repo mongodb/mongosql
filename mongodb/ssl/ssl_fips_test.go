@@ -1,24 +1,14 @@
-// +build !darwin
+// +build !nofips
 
 package ssl
 
 import (
-	"os"
 	"testing"
 
 	"github.com/10gen/openssl"
 )
 
 func TestSetFIPSMode(t *testing.T) {
-
-	variant := os.Getenv("VARIANT")
-	switch variant {
-	case "amazon", "debian81", "debian92", "ubuntu1404",
-		"ubuntu1604", "ubuntu1604-ppc", "ubuntu1604-s390x":
-		t.Skip("skipping test on variant without FIPS-enabled OpenSSL")
-	default:
-		// we should run this test on any other variant
-	}
 
 	if openssl.FIPSMode() {
 		t.Fatal("Expected FIPS mode to be disabled, but was enabled")

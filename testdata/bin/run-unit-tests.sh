@@ -10,7 +10,8 @@ run_unit_tests() {
     SUITE=${PWD##*/}
     COVER_FLAG="-coverprofile=$ARTIFACTS_DIR/out/$SUITE-coverage.out"
 
-    echo "running $SUITE tests..."
+    echo "running $SUITE tests"
+	echo "with tags=$BUILD_TAGS..."
 
     go test -v \
         -tags="$BUILD_TAGS" \

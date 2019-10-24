@@ -16,39 +16,59 @@ amazon)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
+	BUILD_FIPS='false'
+    ;;
+amazon2)
+    PUSH_ARCH='x86_64-amazon2'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
+	BUILD_FIPS='true'
     ;;
 centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
     PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
+	BUILD_FIPS='true'
     ;;
 debian81)
     PUSH_ARCH='x86_64-debian81'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
     ;;
 debian92)
     PUSH_ARCH='x86_64-debian92'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+debian10)
+    PUSH_ARCH='x86_64-debian10'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
     ;;
 macos)
     PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
     ;;
 rhel71-ppc)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
     PUSH_ARCH='ppc64le-rhel71'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     ;;
 rhel62)
     PUSH_ARCH='x86_64-rhel62'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     PYTHON_PATH='/opt/python/2.7/bin'
     ;;
 rhel67-s390x)
@@ -57,12 +77,14 @@ rhel67-s390x)
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
     ;;
 rhel70)
     PUSH_ARCH='x86_64-rhel70'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     ;;
 rhel72-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
@@ -70,21 +92,74 @@ rhel72-s390x)
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+rhel80)
+    PUSH_ARCH='x86_64-rhel80'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+rhel80-s390x)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='s390x-rhel80'
+    PUSH_NAME='linux'
+    CC='s390x-mongodb-linux-gcc'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+suse12-s390x)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='s390x-suse12'
+    PUSH_NAME='linux'
+    CC='s390x-mongodb-linux-gcc'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+suse15)
+    PUSH_ARCH='x86_64-suse15'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+suse15-s390x)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='s390x-suse15'
+    PUSH_NAME='linux'
+    CC='s390x-mongodb-linux-gcc'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+suse15-ppc)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='ppc64le-suse15'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     ;;
 ubuntu1404)
     PUSH_ARCH='x86_64-ubuntu1404'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
     ;;
 ubuntu1604)
     PUSH_ARCH='x86_64-ubuntu1604'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu1604-ppc)
+    PUSH_ARCH='x86_64-ubuntu1604'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
     ;;
 ubuntu1604-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
@@ -92,12 +167,35 @@ ubuntu1604-s390x)
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
     ;;
-ubuntu1604-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='ppc64le-ubuntu1604'
+ubuntu1804)
+    PUSH_ARCH='x86_64-ubuntu1804'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu1804-arm64)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='arm64-ubuntu1804'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu1804-ppc)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='ppc64le-ubuntu1804'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu1804-s390x)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='s390x-ubuntu1804'
+    PUSH_NAME='linux'
+    CC='s390x-mongodb-linux-gcc'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
     ;;
 windows)
     PUSH_ARCH='x86_64'
@@ -109,7 +207,10 @@ windows)
     GOROOT='c:\golang\go1.12'
     GOBINDIR='/cygdrive/c/golang/go1.12/bin'
     BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     ;;
 *) # local
+	echo "$VARIANT is unknown variant, is this a LOCAL run?"
     BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
 esac

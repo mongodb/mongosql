@@ -1,4 +1,4 @@
-// +build aix darwin dragonfly freebsd js,wasm nacl netbsd openbsd solaris
+// +build linux
 
 package log
 
@@ -18,13 +18,13 @@ func (rf *rotatingFile) open() error {
 	}
 
 	// Redirect standard output to a file.
-	err = syscall.Dup2(int(file.Fd()), syscall.Stdout)
+	err = syscall.Dup3(int(file.Fd()), syscall.Stdout, 0)
 	if err != nil {
 		return err
 	}
 
 	// Redirect standard error to a file.
-	err = syscall.Dup2(int(file.Fd()), syscall.Stderr)
+	err = syscall.Dup3(int(file.Fd()), syscall.Stderr, 0)
 	if err != nil {
 		return err
 	}
