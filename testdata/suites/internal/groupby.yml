@@ -12,6 +12,12 @@ testcases:
     sql: select a from groupby_test.groupby group by a order by a
 
   - db: groupby_test
+    description: Group by uknown column reference
+    expected_error: "Error 1054: Unknown column '0' in 'group clause'"
+    id: 'unknown_column_groupBy'
+    sql: select a from groupby_test.groupby group by 0
+
+  - db: groupby_test
     description: Group by starred aggregation function that has been aliased
     expected_error: "Error 1056: Can't group on 'f'"
     id: 'aggregation_aliased_groupBy_1'

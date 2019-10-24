@@ -4316,6 +4316,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 		{"select a from foo where sum(a) = 10",
 			`ERROR 1111 (HY000): Invalid use of group function`},
 
+		{"select a from foo order by 0",
+			`ERROR 1054 (42S22): Unknown column '0' in 'order clause'`},
 		{"select a from foo order by 2",
 			`ERROR 1054 (42S22): Unknown column '2' in 'order clause'`},
 		{"select a from foo order by idk",
@@ -4337,6 +4339,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			`ERROR 1056 (42000): Can't group on 'd'`},
 		{"select a+sum(a) from foo group by 1",
 			`ERROR 1056 (42000): Can't group on 'sum(test.foo.a)'`},
+		{"select sum(a) from foo group by 0",
+			`ERROR 1054 (42S22): Unknown column '0' in 'group clause'`},
 		{"select sum(a) from foo group by 2",
 			`ERROR 1054 (42S22): Unknown column '2' in 'group clause'`},
 

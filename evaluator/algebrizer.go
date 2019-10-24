@@ -2258,12 +2258,12 @@ func (a *algebrizer) translatePossibleColumnRefExpr(expr parser.Expr) (SQLExpr, 
 			return nil, err
 		}
 
-		if int(n) > len(a.projectedColumns) {
+		if n == 0 || int(n) > len(a.projectedColumns) {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError,
 				strconv.Itoa(int(n)), a.currentClause)
 		}
 
-		if n >= 0 {
+		if n > 0 {
 			if a.currentClause == groupClause {
 				if agg, ok := a.projectedColumnAggregateMap[int(n)]; ok {
 					return nil,
