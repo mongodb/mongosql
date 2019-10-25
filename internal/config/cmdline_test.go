@@ -81,6 +81,7 @@ func TestParseArgs_Valid(t *testing.T) {
 		"--setParameter", "optimize_view_sampling=false",
 		"--setParameter", "polymorphic_type_conversion_mode=fast",
 		"--setParameter", "type_conversion_mode=mysql",
+		"--setParameter", "reconcile_arithmetic_agg_functions=false",
 
 		// Debug
 		"--enableProfiling", "cpu",
@@ -233,6 +234,7 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "fast", "cfg.SetParameter.PolymorphicTypeConversionMode")
 	testBool(t, cfg.SetParameter.Pushdown, false, "cfg.SetParameter.Pushdown")
 	testString(t, cfg.SetParameter.TypeConversionMode, "mysql", "cfg.SetParameter.TypeConversionMode")
+	testBool(t, cfg.SetParameter.ReconcileArithmeticAggFunctions, false, "cfg.SetParameter.ReconcileArithmeticAggFunctions")
 
 	testString(t, cfg.Debug.EnableProfiling, "cpu", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "all", "cfg.Debug.ProfileScope")

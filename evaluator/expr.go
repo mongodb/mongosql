@@ -779,16 +779,27 @@ func (e *SQLConvertExpr) EvalType() types.EvalType {
 	return e.targetType
 }
 
+func (t *PushdownTranslator) supportsConvertExpr() bool {
+	return t.versionAtLeast(4, 0, 0)
+}
+
+// translateMongoSQL translates the SQLConvertExpr e using mongosql type conversion mode
 func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	expr, err := t.ToAggregationLanguage(e.expr)
 	if err != nil {
 		return nil, err
 	}
 
-	if !t.versionAtLeast(4, 0, 0) {
-		fromType := e.expr.EvalType()
-		toType := e.targetType
+	fromType := e.expr.EvalType()
+	toType := e.targetType
 
+	if fromType == types.EvalDate && toType == types.EvalString {
+		// Need to special-case date-to-string.
+		converted := astutil.WrapInDateToString(expr, "%Y-%m-%d")
+		return converted, nil
+	}
+
+	if !t.supportsConvertExpr() {
 		switch fromType {
 		case types.EvalDecimal128, types.EvalDouble:
 			switch toType {
@@ -796,21 +807,36 @@ func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (ast.Expr, Pus
 				types.EvalUint32, types.EvalUint64:
 				return astutil.WrapInRound(expr), nil
 			}
+		case types.EvalBoolean:
+			switch toType {
+			case types.EvalInt32, types.EvalInt64,
+				types.EvalUint32, types.EvalUint64:
+				// return null if value is null, otherwise, 1 if true and 0 if false.
+				return astutil.WrapInNullCheckedCond(
+					astutil.NullLiteral,
+					astutil.WrapInCond(astutil.OneInt32Literal, astutil.ZeroInt32Literal, expr),
+					expr,
+				), nil
+			}
 		}
+
+		// We don't support other pushdown for conversion under version 4.0.0 in MongosqlMode
 		return nil, newPushdownFailure(
 			e.ExprName(),
 			"cannot push down mongosql-mode conversions to MongoDB < 4.0",
 		)
 	}
 
-	converted := translateConvert(expr, e.expr.EvalType(), e.targetType)
+	converted := translateConvert(expr, fromType, toType)
 	return converted, nil
 }
 
+// translateMySQL translates the SQLConvertExpr e using mysql type conversion mode
 func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
 	//
 	// The following type conversions are pushed down:
 	//
+	//     bool             -> int
 	//     any numeric type -> any numeric type
 	//     any numeric type -> string
 	//     any numeric type -> bool
@@ -832,24 +858,64 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 	}
 
 	switch fromType {
+	case types.EvalBoolean:
+		switch toType {
+		case types.EvalInt32, types.EvalInt64,
+			types.EvalUint32, types.EvalUint64:
+			if !t.supportsConvertExpr() {
+				return astutil.WrapInNullCheckedCond(
+					astutil.NullLiteral,
+					astutil.WrapInCond(astutil.OneInt32Literal, astutil.ZeroInt32Literal, expr),
+					expr,
+				), nil
+			}
+			return translateConvert(expr, fromType, toType), nil
+		case types.EvalDecimal128, types.EvalDouble,
+			types.EvalString, types.EvalBoolean:
+			if t.supportsConvertExpr() {
+				return translateConvert(expr, fromType, toType), nil
+			}
+		}
 	case types.EvalInt32, types.EvalInt64,
-		types.EvalUint32, types.EvalUint64,
-		types.EvalDecimal128, types.EvalBoolean:
+		types.EvalUint32, types.EvalUint64:
 
 		switch toType {
 		case types.EvalInt32, types.EvalInt64,
 			types.EvalUint32, types.EvalUint64,
 			types.EvalDecimal128, types.EvalDouble,
 			types.EvalString, types.EvalBoolean:
-			return e.translateMongoSQL(t)
+			if t.supportsConvertExpr() {
+				return translateConvert(expr, fromType, toType), nil
+			}
+		}
+
+	case types.EvalDecimal128:
+		switch toType {
+		case types.EvalInt32, types.EvalInt64,
+			types.EvalUint32, types.EvalUint64:
+			if !t.supportsConvertExpr() {
+				return astutil.WrapInRound(expr), nil
+			}
+			return translateConvert(expr, fromType, toType), nil
+		case types.EvalDecimal128, types.EvalDouble,
+			types.EvalString, types.EvalBoolean:
+			if t.supportsConvertExpr() {
+				return translateConvert(expr, fromType, toType), nil
+			}
 		}
 
 	case types.EvalDouble:
 		switch toType {
 		case types.EvalInt32, types.EvalInt64,
-			types.EvalUint32, types.EvalUint64,
-			types.EvalDecimal128, types.EvalBoolean:
-			return e.translateMongoSQL(t)
+			types.EvalUint32, types.EvalUint64:
+			if !t.supportsConvertExpr() {
+				return astutil.WrapInRound(expr), nil
+			}
+			return translateConvert(expr, fromType, toType), nil
+		case types.EvalDecimal128, types.EvalBoolean:
+			if t.supportsConvertExpr() {
+				return translateConvert(expr, fromType, toType), nil
+			}
 		}
 
 	case types.EvalDatetime:
@@ -910,7 +976,6 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 			))
 
 			return asString, nil
-
 		}
 
 	case types.EvalDate:
@@ -948,19 +1013,17 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 			return asNum, nil
 
 		case types.EvalString:
-			asString := ast.NewFunction(bsonutil.OpDateToString, ast.NewDocument(
-				ast.NewDocumentElement("date", expr),
-				ast.NewDocumentElement("format", astutil.StringValue("%Y-%m-%d")),
-			))
+			asString := astutil.WrapInDateToString(expr, "%Y-%m-%d")
 
 			return asString, nil
-
 		}
 
 	case types.EvalObjectID:
 		switch toType {
 		case types.EvalString:
-			return e.translateMongoSQL(t)
+			if t.supportsConvertExpr() {
+				return translateConvert(expr, fromType, toType), nil
+			}
 		}
 
 	default:
@@ -977,10 +1040,11 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 }
 
 // ToAggregationLanguage translates SQLConvertExpr into something that can
-// be used in an aggregation pipeline. At the moment, SQLConvertExpr cannot be
-// translated, so this function will always return nil and error.
+// be used in an aggregation pipeline.
 func (e *SQLConvertExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	if e.targetType == types.EvalObjectID {
+	// Some special cases apply to both mysql mode and mongosql mode
+	toType := e.targetType
+	if toType == types.EvalObjectID {
 		svexpr, ok := e.expr.(SQLValueExpr)
 		if !ok {
 			return nil, newPushdownFailure(

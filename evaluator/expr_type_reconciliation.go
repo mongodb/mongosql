@@ -25,9 +25,20 @@ func (v *reconciler) visit(n Node) (Node, error) {
 	}
 
 	if expr, ok := n.(SQLExpr); ok {
-		newN, err := expr.reconcile()
-		if err == nil {
-			return newN, nil
+		if !v.cfg.reconcileArithmeticAggFunctions {
+			switch expr.(type) {
+			case *SQLAvgFunctionExpr, *SQLSumFunctionExpr, *SQLStdDevFunctionExpr, *SQLStdDevSampleFunctionExpr:
+			default:
+				newN, reconcileError := expr.reconcile()
+				if reconcileError == nil {
+					return newN, nil
+				}
+			}
+		} else {
+			newN, reconcileError := expr.reconcile()
+			if reconcileError == nil {
+				return newN, nil
+			}
 		}
 		v.cfg.lg.Warnf(log.Admin, "error running reconcileExprs: %v", err)
 	} else if plan, ok := n.(PlanStage); ok {

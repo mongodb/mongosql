@@ -485,6 +485,7 @@ func TestTranslate(t *testing.T) {
 		{"aggregate_max_const", "max(8*8)"},
 		{"aggregate_avg_expr", "avg(a * (true + 2))"},
 		{"aggregate_avg_nested", "avg(exp(3))"},
+		{"aggregate_avg_string", "avg(s)"},
 		{"aggregate_std", "std(a)"},
 		{"aggregate_std_null", "std(null)"},
 		{"aggregate_stddev", "stddev(a)"},
@@ -492,9 +493,12 @@ func TestTranslate(t *testing.T) {
 		{"aggregate_stddev_pop", "stddev_pop(a)"},
 		{"aggregate_stddev_samp", "stddev_samp(a)"},
 		{"aggregate_stddev_samp_mixed", "stddev_samp(a + h)"},
+		{"aggregate_stddev_string_reconciled", "stddev(s)"},
+		{"aggregate_stddev_samp_string_reconciled", "stddev_samp(s)"},
 		{"aggregate_sum_0", "sum(a * b)"},
 		{"aggregate_sum_1", "sum(a < 1)"},
 		{"aggregate_sum_2", "sum(a)"},
+		{"aggregate_sum_string_reconciled", "sum(s)"},
 		{"aggregate_count", "count(h)"},
 		{"aggregate_count_nested", "count(pi())"},
 		{"aggregate_count_star", "count(*)"},
@@ -585,25 +589,26 @@ func TestTranslate(t *testing.T) {
 					// run a subtest for each version
 					for _, version := range versions {
 						v := formatVersion(version)
-						if cache[test.name][typ][v] == nil {
-							cache[test.name][typ][v] = make(map[string]string)
-						}
-						for _, sqlValueKind := range sqlValueKinds {
-							mode := formatSQLValueKind(sqlValueKind)
-							t.Run(v, func(t *testing.T) {
-								req = require.New(t)
-								actual := translator(t, version, test.sql, sqlValueKind)
-								if *update {
-									cache[test.name][typ][v][mode] = actual
-									return
-								}
-								expected, ok := cache[test.name][typ][v][mode]
-								req.True(ok, "test case not found in cache")
-								req.Equal(expected, actual, "result does not match cached result")
-							})
-						}
+						t.Run(v, func(t *testing.T) {
+							if cache[test.name][typ][v] == nil {
+								cache[test.name][typ][v] = make(map[string]string)
+							}
+							for _, sqlValueKind := range sqlValueKinds {
+								mode := formatSQLValueKind(sqlValueKind)
+								t.Run(mode, func(t *testing.T) {
+									req = require.New(t)
+									actual := translator(t, version, test.sql, sqlValueKind)
+									if *update {
+										cache[test.name][typ][v][mode] = actual
+										return
+									}
+									expected, ok := cache[test.name][typ][v][mode]
+									req.True(ok, "test case not found in cache")
+									req.Equal(expected, actual, "result does not match cached result: %s", mode)
+								})
+							}
+						})
 					}
-
 				})
 			}
 		})

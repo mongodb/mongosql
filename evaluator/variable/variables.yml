@@ -414,3 +414,10 @@ system_variables:
       enum:
         - {value: 'mongosql', variant: MongoSQL}
         - {value: 'mysql', variant: MySQL}
+
+  - _id: reconcileArithmeticAggFunctions
+    config_field: SetParameter.ReconcileArithmeticAggFunctions
+    default: false
+    name: 'reconcile_arithmetic_agg_functions'
+    set_scopes: [global, session]
+    type: SQLBool

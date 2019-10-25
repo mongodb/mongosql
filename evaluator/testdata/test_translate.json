@@ -6,12 +6,12 @@
                 "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$add\": [NumberDecimal(\"3.14\"),{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}",
+                "mysql-mode": "{\"$add\": [NumberDecimal(\"3.14\"),{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$add\": [NumberDecimal(\"3.14\"),{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}",
+                "mysql-mode": "{\"$add\": [NumberDecimal(\"3.14\"),{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$add\": [NumberDecimal(\"3.14\"),{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}]}",
@@ -32,8 +32,8 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$add\": [{\"$numberDecimal\":\"3.14\"},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]}}",
+                "mysql-mode": "{\"$expr\": {\"$add\": [{\"$numberDecimal\":\"3.14\"},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$expr\": {\"$add\": [{\"$numberDecimal\":\"3.14\"},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}]}}",
@@ -551,6 +551,52 @@
             }
         }
     },
+    "aggregate_avg_string": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$avg\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$avg\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$avg\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$avg\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            }
+        }
+    },
     "aggregate_count": {
         "expr": {
             "3.2": {
@@ -701,15 +747,16 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$avg\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$avg\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$avg\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$avg\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$avg\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
+
             }
         },
         "predicate": {
@@ -723,15 +770,15 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$expr\": {\"$avg\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$avg\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$avg\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$avg\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$avg\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             }
         }
     },
@@ -747,15 +794,16 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
+
             }
         },
         "predicate": {
@@ -769,15 +817,15 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             }
         }
     },
@@ -793,15 +841,15 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             }
         },
         "predicate": {
@@ -815,15 +863,16 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
+
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             }
         }
     },
@@ -839,15 +888,16 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
+
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             }
         },
         "predicate": {
@@ -861,15 +911,15 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             }
         }
     },
@@ -885,15 +935,15 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$stdDevSamp\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevSamp\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevSamp\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$stdDevSamp\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$stdDevSamp\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             }
         },
         "predicate": {
@@ -907,22 +957,22 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             }
         }
     },
-    "aggregate_date_sum": {
-        "expr": {
-            "3.2": {
-                "mongosql-mode": "",
+  "aggregate_date_sum": {
+    "expr": {
+      "3.2": {
+        "mongosql-mode": "",
                 "mysql-mode": ""
             },
             "3.4": {
@@ -931,15 +981,15 @@
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$sum\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$sum\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$sum\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$sum\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$sum\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
             }
         },
         "predicate": {
@@ -947,21 +997,21 @@
                 "mongosql-mode": "",
                 "mysql-mode": ""
             },
-            "3.4": {
+          "3.4": {
                 "mongosql-mode": "",
                 "mysql-mode": ""
             },
             "3.6": {
                 "mongosql-mode": "",
-                "mysql-mode": ""
+                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
             }
         }
     },
@@ -1655,6 +1705,98 @@
             }
         }
     },
+    "aggregate_stddev_string_reconciled": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode"  : "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            }
+        }
+    },
+    "aggregate_stddev_samp_string_reconciled": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode"  : "{\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            }
+        }
+    },
     "aggregate_sum_0": {
         "expr": {
             "3.2": {
@@ -1704,24 +1846,24 @@
     "aggregate_sum_1": {
         "expr": {
             "3.2": {
-                "mongosql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}",
-                "mysql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}"
+                "mongosql-mode": "{\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},NumberInt(\"1\"),NumberInt(\"0\")]}}}}",
+                "mysql-mode": "{\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},NumberInt(\"1\"),NumberInt(\"0\")]}}}}"
             },
             "3.4": {
-                "mongosql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}",
-                "mysql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}"
+                "mongosql-mode": "{\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},NumberInt(\"1\"),NumberInt(\"0\")]}}}}",
+                "mysql-mode": "{\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},NumberInt(\"1\"),NumberInt(\"0\")]}}}}"
             },
             "3.6": {
-                "mongosql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}",
-                "mysql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}"
+                "mongosql-mode": "{\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},NumberInt(\"1\"),NumberInt(\"0\")]}}}}",
+                "mysql-mode": "{\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},NumberInt(\"1\"),NumberInt(\"0\")]}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}",
-                "mysql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}"
+                "mongosql-mode": "{\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}",
-                "mysql-mode": "{\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}"
+                "mongosql-mode": "{\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": "{\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": NumberLong(\"1\")},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}"
             }
         },
         "predicate": {
@@ -1734,16 +1876,16 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}}",
-                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}}"
+                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}}}",
+                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$cond\": {\"if\": {\"$lte\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},null]},\"then\": null,\"else\": {\"$cond\": [{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}}",
-                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}}"
+                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}}",
-                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}}}"
+                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}"
             }
         }
     },
@@ -1790,6 +1932,52 @@
             "4.2": {
                 "mongosql-mode": "{\"$expr\": {\"$sum\": \"$a\"}}",
                 "mysql-mode": "{\"$expr\": {\"$sum\": \"$a\"}}"
+            }
+        }
+    },
+    "aggregate_sum_string_reconciled": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$sum\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$sum\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$sum\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
             }
         }
     },
@@ -2302,16 +2490,16 @@
     "convert_bool_to_signed": {
         "expr": {
             "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}"
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}",
+                "mysql-mode": "{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}",
@@ -2332,8 +2520,8 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$expr\": {\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}",
@@ -3038,16 +3226,16 @@
     "divide_by_bool_sum": {
         "expr": {
             "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}"
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}",
@@ -3068,8 +3256,8 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$add\": [{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}]}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}}}",
@@ -3226,12 +3414,12 @@
                 "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$let\": {\"vars\": {\"left\": {\"$multiply\": [NumberLong(\"5\"),\"$a\"]},\"right\": NumberDecimal(\"4.2\")},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},\"right\": {\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [NumberLong(\"3\"),\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$let\": {\"vars\": {\"left\": {\"$multiply\": [NumberLong(\"5\"),\"$a\"]},\"right\": NumberDecimal(\"4.2\")},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},\"right\": {\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [NumberLong(\"3\"),\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$let\": {\"vars\": {\"left\": {\"$multiply\": [NumberLong(\"5\"),\"$a\"]},\"right\": NumberDecimal(\"4.2\")},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},\"right\": {\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [NumberLong(\"3\"),\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$let\": {\"vars\": {\"left\": {\"$multiply\": [NumberLong(\"5\"),\"$a\"]},\"right\": NumberDecimal(\"4.2\")},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},\"right\": {\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [NumberLong(\"3\"),\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}}]}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$let\": {\"vars\": {\"left\": {\"$multiply\": [NumberLong(\"5\"),\"$a\"]},\"right\": NumberDecimal(\"4.2\")},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",NumberInt(\"0\")]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},\"right\": {\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [NumberLong(\"3\"),\"$a\"]}]},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}]}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}",
@@ -3252,8 +3440,8 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$and\": [{\"$eq\": [{\"$let\": {\"vars\": {\"left\": {\"$multiply\": [{\"$numberLong\":\"5\"},\"$a\"]},\"right\": {\"$numberDecimal\":\"4.2\"}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},{\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [{\"$numberLong\":\"3\"},\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]}]},{\"$gt\": [{\"$let\": {\"vars\": {\"left\": {\"$multiply\": [{\"$numberLong\":\"5\"},\"$a\"]},\"right\": {\"$numberDecimal\":\"4.2\"}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},null]},{\"$gt\": [{\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [{\"$numberLong\":\"3\"},\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]},null]}]}}",
+                "mysql-mode": "{\"$expr\": {\"$and\": [{\"$eq\": [{\"$let\": {\"vars\": {\"left\": {\"$multiply\": [{\"$numberLong\":\"5\"},\"$a\"]},\"right\": {\"$numberDecimal\":\"4.2\"}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},{\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [{\"$numberLong\":\"3\"},\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]}]},{\"$gt\": [{\"$let\": {\"vars\": {\"left\": {\"$multiply\": [{\"$numberLong\":\"5\"},\"$a\"]},\"right\": {\"$numberDecimal\":\"4.2\"}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},null]},{\"$gt\": [{\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [{\"$numberLong\":\"3\"},\"$a\"]}]},{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}}]},null]}]}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$expr\": {\"$and\": [{\"$eq\": [{\"$let\": {\"vars\": {\"left\": {\"$multiply\": [{\"$numberLong\":\"5\"},\"$a\"]},\"right\": {\"$numberDecimal\":\"4.2\"}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},{\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [{\"$numberLong\":\"3\"},\"$a\"]}]},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}]}]},{\"$gt\": [{\"$let\": {\"vars\": {\"left\": {\"$multiply\": [{\"$numberLong\":\"5\"},\"$a\"]},\"right\": {\"$numberDecimal\":\"4.2\"}},\"in\": {\"$cond\": [{\"$eq\": [\"$$right\",{\"$numberInt\":\"0\"}]},null,{\"$divide\": [\"$$left\",\"$$right\"]}]}}},null]},{\"$gt\": [{\"$add\": [{\"$multiply\": [\"$a\",\"$a\",\"$a\",{\"$add\": [{\"$numberLong\":\"3\"},\"$a\"]}]},{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}]},null]}]}}",
@@ -3452,16 +3640,16 @@
     "gt_bool": {
         "expr": {
             "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}"
             },
             "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}"
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",NumberInt(\"1\"),NumberInt(\"0\")]}}},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$let\": {\"vars\": {\"left\": {\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}",
@@ -3482,8 +3670,8 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$and\": [{\"$lt\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},\"$a\"]},{\"$gt\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},null]},{\"$gt\": [\"$a\",null]}]}}",
+                "mysql-mode": "{\"$expr\": {\"$and\": [{\"$lt\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},\"$a\"]},{\"$gt\": [{\"$cond\": {\"if\": {\"$lte\": [\"$t\",null]},\"then\": null,\"else\": {\"$cond\": [\"$t\",{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}}},null]},{\"$gt\": [\"$a\",null]}]}}"
             },
             "4.0": {
                 "mongosql-mode": "{\"$expr\": {\"$and\": [{\"$lt\": [{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}},\"$a\"]},{\"$gt\": [{\"$convert\": {\"input\": \"$t\",\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}},null]},{\"$gt\": [\"$a\",null]}]}}",

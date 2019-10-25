@@ -223,21 +223,30 @@
   collection: "datetime"
   docs:
     - {value: {$date: "2000-01-02T12:34:56Z"}}
+    - {value: null}
+    - {}
 
 - db: "conversions_test"
   collection: "date"
   docs:
     - {value: {$date: "2000-01-02T01:02:03Z"}}
-
-- db: "conversions_test"
-  collection: "dateTest"
-  docs:
-    - {value: {$date: "2000-01-02T10:11:12Z"}}
+    - {value: null}
+    - {}
 
 - db: "conversions_test"
   collection: "objectid"
   docs:
     - {value: {$oid: "53c2ab5e4291b17b666d742a"}}
+    - {value: null}
+    - {}
+
+- db: "conversions_test"
+  collection: "bool"
+  docs:
+    - {value: true}
+    - {value: false}
+    - {value: null}
+    - {}
 
 - db: "explain_test"
   collection: "set_1"

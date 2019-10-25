@@ -39,9 +39,7 @@ func reconcileArithmetic(children []SQLExpr) []SQLExpr {
 			}
 			convertedChildren[i] = NewSQLConvertExpr(child, targetType)
 		}
-
 	}
-
 	return convertedChildren
 }
 

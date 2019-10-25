@@ -45,10 +45,11 @@ func CreateTestOptimizerCfg(c *collation.Collation, eCfg *ExecutionConfig) *Opti
 		collation:    c,
 		sqlValueKind: values.MySQLValueKind,
 
-		optimizeCrossJoins:  true,
-		optimizeEvaluations: true,
-		optimizeFiltering:   true,
-		optimizeInnerJoins:  true,
+		optimizeCrossJoins:              true,
+		optimizeEvaluations:             true,
+		optimizeFiltering:               true,
+		optimizeInnerJoins:              true,
+		reconcileArithmeticAggFunctions: true,
 	}
 }
 

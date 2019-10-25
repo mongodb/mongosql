@@ -15,54 +15,55 @@ import (
 
 // These variables hold system variable names.
 const (
-	Autocommit                    Name = "autocommit"
-	CharacterSetClient            Name = "character_set_client"
-	CharacterSetConnection        Name = "character_set_connection"
-	CharacterSetDatabase          Name = "character_set_database"
-	CharacterSetResults           Name = "character_set_results"
-	CollationConnection           Name = "collation_connection"
-	CollationDatabase             Name = "collation_database"
-	CollationServer               Name = "collation_server"
-	GroupConcatMaxLen             Name = "group_concat_max_len"
-	InteractiveTimeoutSecs        Name = "interactive_timeout"
-	MaxAllowedPacket              Name = "max_allowed_packet"
-	MaxConnections                Name = "max_connections"
-	MaxTimeMS                     Name = "max_execution_time"
-	Socket                        Name = "socket"
-	SQLAutoIsNull                 Name = "sql_auto_is_null"
-	SQLSelectLimit                Name = "sql_select_limit"
-	Version                       Name = "version"
-	VersionComment                Name = "version_comment"
-	WaitTimeoutSecs               Name = "wait_timeout"
-	AnonymizeMetrics              Name = "anonymize_metrics"
-	EnableTableAlterations        Name = "enable_table_alterations"
-	FullPushdownExecMode          Name = "full_pushdown_exec_mode"
-	LogLevel                      Name = "log_level"
-	MaxNestedTableDepth           Name = "max_nested_table_depth"
-	MaxNumColumnsPerTable         Name = "max_num_columns_per_table"
-	MetricsBackend                Name = "metrics_backend"
-	MongoDBMaxServerSize          Name = "mongodb_max_server_size"
-	MongoDBMaxConnectionSize      Name = "mongodb_max_connection_size"
-	MongoDBMaxStageSize           Name = "mongodb_max_stage_size"
-	MongoDBMaxVarcharLength       Name = "mongodb_max_varchar_length"
-	MongoDBGitVersion             Name = "mongodb_git_version"
-	MongoDBTopology               Name = "mongodb_topology"
-	MongoDBVersion                Name = "mongodb_version"
-	MongoDBVersionCompatibility   Name = "mongodb_version_compatibility"
-	MongosqldVersion              Name = "mongosqld_version"
-	OptimizeCrossJoins            Name = "optimize_cross_joins"
-	OptimizeEvaluations           Name = "optimize_evaluations"
-	OptimizeFiltering             Name = "optimize_filtering"
-	OptimizeInnerJoins            Name = "optimize_inner_joins"
-	OptimizeSelfJoins             Name = "optimize_self_joins"
-	OptimizeViewSampling          Name = "optimize_view_sampling"
-	PolymorphicTypeConversionMode Name = "polymorphic_type_conversion_mode"
-	Pushdown                      Name = "pushdown"
-	RewriteDistinctAsGroup        Name = "rewrite_distinct_as_group"
-	SampleRefreshIntervalSecs     Name = "sample_refresh_interval_secs"
-	SampleSize                    Name = "sample_size"
-	SchemaMappingMode             Name = "schema_mapping_mode"
-	TypeConversionMode            Name = "type_conversion_mode"
+	Autocommit                      Name = "autocommit"
+	CharacterSetClient              Name = "character_set_client"
+	CharacterSetConnection          Name = "character_set_connection"
+	CharacterSetDatabase            Name = "character_set_database"
+	CharacterSetResults             Name = "character_set_results"
+	CollationConnection             Name = "collation_connection"
+	CollationDatabase               Name = "collation_database"
+	CollationServer                 Name = "collation_server"
+	GroupConcatMaxLen               Name = "group_concat_max_len"
+	InteractiveTimeoutSecs          Name = "interactive_timeout"
+	MaxAllowedPacket                Name = "max_allowed_packet"
+	MaxConnections                  Name = "max_connections"
+	MaxTimeMS                       Name = "max_execution_time"
+	Socket                          Name = "socket"
+	SQLAutoIsNull                   Name = "sql_auto_is_null"
+	SQLSelectLimit                  Name = "sql_select_limit"
+	Version                         Name = "version"
+	VersionComment                  Name = "version_comment"
+	WaitTimeoutSecs                 Name = "wait_timeout"
+	AnonymizeMetrics                Name = "anonymize_metrics"
+	EnableTableAlterations          Name = "enable_table_alterations"
+	FullPushdownExecMode            Name = "full_pushdown_exec_mode"
+	LogLevel                        Name = "log_level"
+	MaxNestedTableDepth             Name = "max_nested_table_depth"
+	MaxNumColumnsPerTable           Name = "max_num_columns_per_table"
+	MetricsBackend                  Name = "metrics_backend"
+	MongoDBMaxServerSize            Name = "mongodb_max_server_size"
+	MongoDBMaxConnectionSize        Name = "mongodb_max_connection_size"
+	MongoDBMaxStageSize             Name = "mongodb_max_stage_size"
+	MongoDBMaxVarcharLength         Name = "mongodb_max_varchar_length"
+	MongoDBGitVersion               Name = "mongodb_git_version"
+	MongoDBTopology                 Name = "mongodb_topology"
+	MongoDBVersion                  Name = "mongodb_version"
+	MongoDBVersionCompatibility     Name = "mongodb_version_compatibility"
+	MongosqldVersion                Name = "mongosqld_version"
+	OptimizeCrossJoins              Name = "optimize_cross_joins"
+	OptimizeEvaluations             Name = "optimize_evaluations"
+	OptimizeFiltering               Name = "optimize_filtering"
+	OptimizeInnerJoins              Name = "optimize_inner_joins"
+	OptimizeSelfJoins               Name = "optimize_self_joins"
+	OptimizeViewSampling            Name = "optimize_view_sampling"
+	PolymorphicTypeConversionMode   Name = "polymorphic_type_conversion_mode"
+	Pushdown                        Name = "pushdown"
+	RewriteDistinctAsGroup          Name = "rewrite_distinct_as_group"
+	SampleRefreshIntervalSecs       Name = "sample_refresh_interval_secs"
+	SampleSize                      Name = "sample_size"
+	SchemaMappingMode               Name = "schema_mapping_mode"
+	TypeConversionMode              Name = "type_conversion_mode"
+	ReconcileArithmeticAggFunctions Name = "reconcile_arithmetic_agg_functions"
 )
 
 // These are constants representing variants of enum-style variables.
@@ -88,105 +89,107 @@ const (
 
 // These are constants representing variables' default values.
 var (
-	defaultAutocommit                    values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultCharacterSetClient            values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
-	defaultCharacterSetConnection        values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
-	defaultCharacterSetDatabase          values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
-	defaultCharacterSetResults           values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
-	defaultCollationConnection           values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
-	defaultCollationDatabase             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
-	defaultCollationServer               values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
-	defaultGroupConcatMaxLen             values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1024)
-	defaultInteractiveTimeoutSecs        values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 28800)
-	defaultMaxAllowedPacket              values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1073741824)
-	defaultMaxConnections                values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
-	defaultMaxTimeMS                     values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
-	defaultSocket                        values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
-	defaultSQLAutoIsNull                 values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
-	defaultSQLSelectLimit                values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, math.MaxUint64)
-	defaultVersion                       values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "5.7.12")
-	defaultVersionComment                values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, fmt.Sprintf("mongosqld "+config.VersionStr))
-	defaultWaitTimeoutSecs               values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 28800)
-	defaultAnonymizeMetrics              values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultEnableTableAlterations        values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
-	defaultFullPushdownExecMode          values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
-	defaultLogLevel                      values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
-	defaultMaxNestedTableDepth           values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 50)
-	defaultMaxNumColumnsPerTable         values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
-	defaultMetricsBackend                values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, NoMetricsBackend)
-	defaultMongoDBMaxServerSize          values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
-	defaultMongoDBMaxConnectionSize      values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
-	defaultMongoDBMaxStageSize           values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
-	defaultMongoDBMaxVarcharLength       values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, math.MaxUint16)
-	defaultMongoDBGitVersion             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
-	defaultMongoDBTopology               values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
-	defaultMongoDBVersion                values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
-	defaultMongoDBVersionCompatibility   values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
-	defaultMongosqldVersion              values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, config.VersionStr)
-	defaultOptimizeCrossJoins            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultOptimizeEvaluations           values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultOptimizeFiltering             values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultOptimizeInnerJoins            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultOptimizeSelfJoins             values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultOptimizeViewSampling          values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultPolymorphicTypeConversionMode values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, OffPolymorphicTypeConversionMode)
-	defaultPushdown                      values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
-	defaultRewriteDistinctAsGroup        values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
-	defaultSampleRefreshIntervalSecs     values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
-	defaultSampleSize                    values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1000)
-	defaultSchemaMappingMode             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, LatticeSchemaMappingMode)
-	defaultTypeConversionMode            values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, MongoSQLTypeConversionMode)
+	defaultAutocommit                      values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultCharacterSetClient              values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCharacterSetConnection          values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCharacterSetDatabase            values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCharacterSetResults             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.DefaultCharset.Name))
+	defaultCollationConnection             values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
+	defaultCollationDatabase               values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
+	defaultCollationServer                 values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, string(collation.Default.Name))
+	defaultGroupConcatMaxLen               values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1024)
+	defaultInteractiveTimeoutSecs          values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 28800)
+	defaultMaxAllowedPacket                values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1073741824)
+	defaultMaxConnections                  values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultMaxTimeMS                       values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultSocket                          values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultSQLAutoIsNull                   values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultSQLSelectLimit                  values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, math.MaxUint64)
+	defaultVersion                         values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "5.7.12")
+	defaultVersionComment                  values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, fmt.Sprintf("mongosqld "+config.VersionStr))
+	defaultWaitTimeoutSecs                 values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 28800)
+	defaultAnonymizeMetrics                values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultEnableTableAlterations          values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultFullPushdownExecMode            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultLogLevel                        values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultMaxNestedTableDepth             values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 50)
+	defaultMaxNumColumnsPerTable           values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
+	defaultMetricsBackend                  values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, NoMetricsBackend)
+	defaultMongoDBMaxServerSize            values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
+	defaultMongoDBMaxConnectionSize        values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
+	defaultMongoDBMaxStageSize             values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
+	defaultMongoDBMaxVarcharLength         values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, math.MaxUint16)
+	defaultMongoDBGitVersion               values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongoDBTopology                 values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongoDBVersion                  values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongoDBVersionCompatibility     values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, "")
+	defaultMongosqldVersion                values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, config.VersionStr)
+	defaultOptimizeCrossJoins              values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeEvaluations             values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeFiltering               values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeInnerJoins              values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeSelfJoins               values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultOptimizeViewSampling            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultPolymorphicTypeConversionMode   values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, OffPolymorphicTypeConversionMode)
+	defaultPushdown                        values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, true)
+	defaultRewriteDistinctAsGroup          values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
+	defaultSampleRefreshIntervalSecs       values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
+	defaultSampleSize                      values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1000)
+	defaultSchemaMappingMode               values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, LatticeSchemaMappingMode)
+	defaultTypeConversionMode              values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, MongoSQLTypeConversionMode)
+	defaultReconcileArithmeticAggFunctions values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
 )
 
 type systemVariableContainer struct {
-	autocommit                    values.SQLBool
-	characterSetClient            values.SQLVarchar
-	characterSetConnection        values.SQLVarchar
-	characterSetDatabase          values.SQLVarchar
-	characterSetResults           values.SQLVarchar
-	collationConnection           values.SQLVarchar
-	collationDatabase             values.SQLVarchar
-	collationServer               values.SQLVarchar
-	groupConcatMaxLen             values.SQLInt64
-	interactiveTimeoutSecs        values.SQLInt64
-	maxAllowedPacket              values.SQLInt64
-	maxConnections                values.SQLInt64
-	maxTimeMS                     values.SQLInt64
-	socket                        values.SQLVarchar
-	sqlAutoIsNull                 values.SQLBool
-	sqlSelectLimit                values.SQLUint64
-	version                       values.SQLVarchar
-	versionComment                values.SQLVarchar
-	waitTimeoutSecs               values.SQLInt64
-	anonymizeMetrics              values.SQLBool
-	enableTableAlterations        values.SQLBool
-	fullPushdownExecMode          values.SQLBool
-	logLevel                      values.SQLInt64
-	maxNestedTableDepth           values.SQLInt64
-	maxNumColumnsPerTable         values.SQLInt64
-	metricsBackend                values.SQLVarchar
-	mongoDBMaxServerSize          values.SQLUint64
-	mongoDBMaxConnectionSize      values.SQLUint64
-	mongoDBMaxStageSize           values.SQLUint64
-	mongoDBMaxVarcharLength       values.SQLUint64
-	mongoDBGitVersion             values.SQLVarchar
-	mongoDBTopology               values.SQLVarchar
-	mongoDBVersion                values.SQLVarchar
-	mongoDBVersionCompatibility   values.SQLVarchar
-	mongosqldVersion              values.SQLVarchar
-	optimizeCrossJoins            values.SQLBool
-	optimizeEvaluations           values.SQLBool
-	optimizeFiltering             values.SQLBool
-	optimizeInnerJoins            values.SQLBool
-	optimizeSelfJoins             values.SQLBool
-	optimizeViewSampling          values.SQLBool
-	polymorphicTypeConversionMode values.SQLVarchar
-	pushdown                      values.SQLBool
-	rewriteDistinctAsGroup        values.SQLBool
-	sampleRefreshIntervalSecs     values.SQLInt64
-	sampleSize                    values.SQLInt64
-	schemaMappingMode             values.SQLVarchar
-	typeConversionMode            values.SQLVarchar
+	autocommit                      values.SQLBool
+	characterSetClient              values.SQLVarchar
+	characterSetConnection          values.SQLVarchar
+	characterSetDatabase            values.SQLVarchar
+	characterSetResults             values.SQLVarchar
+	collationConnection             values.SQLVarchar
+	collationDatabase               values.SQLVarchar
+	collationServer                 values.SQLVarchar
+	groupConcatMaxLen               values.SQLInt64
+	interactiveTimeoutSecs          values.SQLInt64
+	maxAllowedPacket                values.SQLInt64
+	maxConnections                  values.SQLInt64
+	maxTimeMS                       values.SQLInt64
+	socket                          values.SQLVarchar
+	sqlAutoIsNull                   values.SQLBool
+	sqlSelectLimit                  values.SQLUint64
+	version                         values.SQLVarchar
+	versionComment                  values.SQLVarchar
+	waitTimeoutSecs                 values.SQLInt64
+	anonymizeMetrics                values.SQLBool
+	enableTableAlterations          values.SQLBool
+	fullPushdownExecMode            values.SQLBool
+	logLevel                        values.SQLInt64
+	maxNestedTableDepth             values.SQLInt64
+	maxNumColumnsPerTable           values.SQLInt64
+	metricsBackend                  values.SQLVarchar
+	mongoDBMaxServerSize            values.SQLUint64
+	mongoDBMaxConnectionSize        values.SQLUint64
+	mongoDBMaxStageSize             values.SQLUint64
+	mongoDBMaxVarcharLength         values.SQLUint64
+	mongoDBGitVersion               values.SQLVarchar
+	mongoDBTopology                 values.SQLVarchar
+	mongoDBVersion                  values.SQLVarchar
+	mongoDBVersionCompatibility     values.SQLVarchar
+	mongosqldVersion                values.SQLVarchar
+	optimizeCrossJoins              values.SQLBool
+	optimizeEvaluations             values.SQLBool
+	optimizeFiltering               values.SQLBool
+	optimizeInnerJoins              values.SQLBool
+	optimizeSelfJoins               values.SQLBool
+	optimizeViewSampling            values.SQLBool
+	polymorphicTypeConversionMode   values.SQLVarchar
+	pushdown                        values.SQLBool
+	rewriteDistinctAsGroup          values.SQLBool
+	sampleRefreshIntervalSecs       values.SQLInt64
+	sampleSize                      values.SQLInt64
+	schemaMappingMode               values.SQLVarchar
+	typeConversionMode              values.SQLVarchar
+	reconcileArithmeticAggFunctions values.SQLBool
 }
 
 func (svc *systemVariableContainer) setDefaults() {
@@ -238,6 +241,7 @@ func (svc *systemVariableContainer) setDefaults() {
 	svc.sampleSize = defaultSampleSize
 	svc.schemaMappingMode = defaultSchemaMappingMode
 	svc.typeConversionMode = defaultTypeConversionMode
+	svc.reconcileArithmeticAggFunctions = defaultReconcileArithmeticAggFunctions
 }
 
 func (svc *systemVariableContainer) setFromConfig(cfg *config.Config) {
@@ -265,6 +269,7 @@ func (svc *systemVariableContainer) setFromConfig(cfg *config.Config) {
 	svc.sampleSize = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.Size)
 	svc.schemaMappingMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.Schema.Sample.SchemaMappingMode)
 	svc.typeConversionMode = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.TypeConversionMode)
+	svc.reconcileArithmeticAggFunctions = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.ReconcileArithmeticAggFunctions)
 }
 
 func init() {
@@ -699,6 +704,15 @@ func init() {
 		EvalType:         types.EvalString,
 		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.typeConversionMode },
 		SetValue:         setTypeConversionMode,
+	}
+
+	definitions[ReconcileArithmeticAggFunctions] = &definition{
+		Name:             ReconcileArithmeticAggFunctions,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope | SessionScope,
+		EvalType:         types.EvalBoolean,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.reconcileArithmeticAggFunctions },
+		SetValue:         setReconcileArithmeticAggFunctions,
 	}
 }
 
@@ -1163,5 +1177,15 @@ func setTypeConversionMode(c *Container, v values.SQLValue) error {
 	}
 
 	c.systemVariableContainer.typeConversionMode = val
+	return nil
+}
+
+func setReconcileArithmeticAggFunctions(c *Container, v values.SQLValue) error {
+	val, err := convertSQLBool(ReconcileArithmeticAggFunctions, v)
+	if err != nil {
+		return err
+	}
+
+	c.systemVariableContainer.reconcileArithmeticAggFunctions = val
 	return nil
 }

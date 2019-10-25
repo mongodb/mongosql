@@ -201,7 +201,8 @@ func (*SQLAvgFunctionExpr) Name() string {
 
 // nolint: unparam
 func (f *SQLAvgFunctionExpr) reconcile() (SQLExpr, error) {
-	return f, nil
+	reconciled := reconcileArithmetic(f.Exprs())
+	return NewSQLAvgFunctionExpr(f.Distinct(), reconciled), nil
 }
 
 // String converts to string.
@@ -893,7 +894,8 @@ func (*SQLSumFunctionExpr) Name() string {
 
 // nolint: unparam
 func (f *SQLSumFunctionExpr) reconcile() (SQLExpr, error) {
-	return f, nil
+	reconciled := reconcileArithmetic(f.Exprs())
+	return NewSQLSumFunctionExpr(f.Distinct(), reconciled), nil
 }
 
 // String converts to string.
@@ -1061,7 +1063,8 @@ func (f *SQLStdDevFunctionExpr) Name() string {
 
 // nolint: unparam
 func (f *SQLStdDevFunctionExpr) reconcile() (SQLExpr, error) {
-	return f, nil
+	reconciled := reconcileArithmetic(f.Exprs())
+	return NewSQLStdDevFunctionExpr(f.name, f.Distinct(), reconciled), nil
 }
 
 // String converts to string.
@@ -1230,7 +1233,8 @@ func (*SQLStdDevSampleFunctionExpr) Name() string {
 
 // nolint: unparam
 func (f *SQLStdDevSampleFunctionExpr) reconcile() (SQLExpr, error) {
-	return f, nil
+	reconciled := reconcileArithmetic(f.Exprs())
+	return NewSQLStdDevSampleFunctionExpr(f.Distinct(), reconciled), nil
 }
 
 // String converts to string.

@@ -147,6 +147,7 @@ func TestDefault(t *testing.T) {
 	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "off", "cfg.SetParameter.PolymorphicTypeConversionMode")
 	testBool(t, cfg.SetParameter.Pushdown, true, "cfg.SetParameter.Pushdown")
 	testString(t, cfg.SetParameter.TypeConversionMode, "mongosql", "cfg.SetParameter.TypeConversionMode")
+	testBool(t, cfg.SetParameter.ReconcileArithmeticAggFunctions, true, "cfg.SetParameter.ReconcileArithmeticAggFunctions")
 }
 
 func TestLoad(t *testing.T) {
@@ -253,6 +254,7 @@ func TestLoad(t *testing.T) {
 	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "fast", "cfg.SetParameter.PolymorphicTypeConversionMode")
 	testBool(t, cfg.SetParameter.Pushdown, false, "cfg.SetParameter.Pushdown")
 	testString(t, cfg.SetParameter.TypeConversionMode, "mysql", "cfg.SetParameter.TypeConversionMode")
+	testBool(t, cfg.SetParameter.ReconcileArithmeticAggFunctions, false, "cfg.SetParameter.ReconcileArithmeticAggFunctions")
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
@@ -362,6 +364,7 @@ func TestLoadWithSRVURI(t *testing.T) {
 	testString(t, cfg.SetParameter.PolymorphicTypeConversionMode, "fast", "cfg.SetParameter.PolymorphicTypeConversionMode")
 	testBool(t, cfg.SetParameter.Pushdown, false, "cfg.SetParameter.Pushdown")
 	testString(t, cfg.SetParameter.TypeConversionMode, "mysql", "cfg.SetParameter.TypeConversionMode")
+	testBool(t, cfg.SetParameter.ReconcileArithmeticAggFunctions, true, "cfg.SetParameter.ReconcileArithmeticAggFunctions")
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")

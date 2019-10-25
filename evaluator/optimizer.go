@@ -27,10 +27,11 @@ type OptimizerConfig struct {
 	sqlValueKind values.SQLValueKind
 
 	// flags for enabling/disabling individual optimizers
-	optimizeCrossJoins  bool
-	optimizeEvaluations bool
-	optimizeFiltering   bool
-	optimizeInnerJoins  bool
+	optimizeCrossJoins              bool
+	optimizeEvaluations             bool
+	optimizeFiltering               bool
+	optimizeInnerJoins              bool
+	reconcileArithmeticAggFunctions bool
 }
 
 // NewOptimizerConfig returns a new OptimizerConfig constructed from the
@@ -38,13 +39,14 @@ type OptimizerConfig struct {
 // function instead of via a struct literal.
 func NewOptimizerConfig(lg log.Logger, vars catalog.VariableContainer) *OptimizerConfig {
 	return &OptimizerConfig{
-		lg:                  lg,
-		collation:           vars.GetCollation(variable.CollationConnection),
-		sqlValueKind:        GetSQLValueKind(vars),
-		optimizeCrossJoins:  vars.GetBool(variable.OptimizeCrossJoins),
-		optimizeEvaluations: vars.GetBool(variable.OptimizeEvaluations),
-		optimizeFiltering:   vars.GetBool(variable.OptimizeFiltering),
-		optimizeInnerJoins:  vars.GetBool(variable.OptimizeInnerJoins),
+		lg:                              lg,
+		collation:                       vars.GetCollation(variable.CollationConnection),
+		sqlValueKind:                    GetSQLValueKind(vars),
+		optimizeCrossJoins:              vars.GetBool(variable.OptimizeCrossJoins),
+		optimizeEvaluations:             vars.GetBool(variable.OptimizeEvaluations),
+		optimizeFiltering:               vars.GetBool(variable.OptimizeFiltering),
+		optimizeInnerJoins:              vars.GetBool(variable.OptimizeInnerJoins),
+		reconcileArithmeticAggFunctions: vars.GetBool(variable.ReconcileArithmeticAggFunctions),
 	}
 }
 

@@ -489,6 +489,15 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 			default:
 				return invalidValueErr
 			}
+		case "reconcile_arithmetic_agg_functions":
+			switch val {
+			case "true":
+				cfg.SetParameter.ReconcileArithmeticAggFunctions = true
+			case "false":
+				cfg.SetParameter.ReconcileArithmeticAggFunctions = false
+			default:
+				return invalidValueErr
+			}
 		default:
 			return fmt.Errorf("invalid setParameter key: %s", key)
 		}

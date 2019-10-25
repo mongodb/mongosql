@@ -166,6 +166,7 @@ func Default() *Config {
 	cfg.SetParameter.OptimizeViewSampling = true
 	cfg.SetParameter.PolymorphicTypeConversionMode = "off"
 	cfg.SetParameter.TypeConversionMode = "mongosql"
+	cfg.SetParameter.ReconcileArithmeticAggFunctions = true
 
 	return cfg
 }
@@ -657,19 +658,20 @@ type Metrics struct {
 
 // SetParameter holds miscellaneous configuration options.
 type SetParameter struct {
-	AnonymizeMetrics              bool `config:"anonymize_metrics"`
-	EnableTableAlterations        bool
-	MetricsBackend                string `config:"metrics_backend"`
-	OptimizeCrossJoins            bool   `config:"optimize_cross_joins"`
-	OptimizeEvaluations           bool   `config:"optimize_evaluations"`
-	OptimizeFiltering             bool   `config:"optimize_filtering"`
-	OptimizeInnerJoins            bool   `config:"optimize_inner_joins"`
-	OptimizeSelfJoins             bool   `config:"optimize_self_joins"`
-	OptimizeViewSampling          bool   `config:"optimize_view_sampling"`
-	PolymorphicTypeConversionMode string `config:"polymorphic_type_conversion_mode"`
-	Pushdown                      bool   `config:"pushdown"`
-	RewriteDistinctAsGroup        bool   `config:"rewrite_distinct_as_group"`
-	TypeConversionMode            string `config:"type_conversion_mode"`
+	AnonymizeMetrics                bool `config:"anonymize_metrics"`
+	EnableTableAlterations          bool
+	MetricsBackend                  string `config:"metrics_backend"`
+	OptimizeCrossJoins              bool   `config:"optimize_cross_joins"`
+	OptimizeEvaluations             bool   `config:"optimize_evaluations"`
+	OptimizeFiltering               bool   `config:"optimize_filtering"`
+	OptimizeInnerJoins              bool   `config:"optimize_inner_joins"`
+	OptimizeSelfJoins               bool   `config:"optimize_self_joins"`
+	OptimizeViewSampling            bool   `config:"optimize_view_sampling"`
+	PolymorphicTypeConversionMode   string `config:"polymorphic_type_conversion_mode"`
+	Pushdown                        bool   `config:"pushdown"`
+	RewriteDistinctAsGroup          bool   `config:"rewrite_distinct_as_group"`
+	TypeConversionMode              string `config:"type_conversion_mode"`
+	ReconcileArithmeticAggFunctions bool   `config:"reconcile_arithmetic_agg_functions"`
 }
 
 // Debug holds options that are useful when debugging mongosqld.
