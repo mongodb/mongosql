@@ -25,3 +25,13 @@ func GetDottedFieldName(ref Expr) string {
 	}
 	return path[:len(path)-1]
 }
+
+// IsPureFieldRef returns true if a FieldRef doesn't contains other type of references.
+func IsPureFieldRef(fieldRef *FieldRef) bool {
+	if fieldRef.Parent == nil {
+		return true
+	} else if parentFieldRef, ok := fieldRef.Parent.(*FieldRef); ok {
+		return IsPureFieldRef(parentFieldRef)
+	}
+	return false
+}

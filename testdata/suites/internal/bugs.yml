@@ -267,3 +267,12 @@ testcases:
     expected_types: [int, int]
     id: BI-2379-regexp-int
     sql: select a, a regexp 2 as contains_2 from simple_char_test_int
+
+  - db: bugs_database
+    description: BI-2366 Pipeline optimizer incorrectly swapping a project and match stage
+    expected_names: [test, r]
+    expected_results:
+      - ["abc", 1]
+    expected_types: [varchar, int]
+    id: BI-2366-match-regexp
+    sql: select test, test regexp('abc') r from (select 'abc' as test) sub where test regexp('abc')

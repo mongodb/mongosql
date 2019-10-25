@@ -261,6 +261,16 @@ func (n *GroupStage) WalkStage(v Visitor) Stage {
 }
 
 // Walk implements the Node interface.
+func (n *IndexStatsStage) Walk(v Visitor) Node {
+	return n.WalkStage(v)
+}
+
+// WalkStage implements the Stage interface.
+func (n *IndexStatsStage) WalkStage(v Visitor) Stage {
+	return n
+}
+
+// Walk implements the Node interface.
 func (n *LimitStage) Walk(v Visitor) Node {
 	return n.WalkStage(v)
 }
@@ -656,7 +666,7 @@ func (n *Trunc) WalkExpr(v Visitor) Expr {
 
 // Walk implements the Node interface.
 func (n *MatchRegex) Walk(v Visitor) Node {
-	return n
+	return n.WalkExpr(v)
 }
 
 // WalkExpr implements Expr interface.

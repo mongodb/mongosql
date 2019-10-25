@@ -105,7 +105,10 @@ func definedFieldsHelper(stage ast.Stage) []string {
 		}
 	case *ast.ReplaceRootStage:
 		switch typedRoot := typedStage.NewRoot.(type) {
-		case *ast.FieldRef:
+		case *ast.FieldRef,
+			*ast.VariableRef,
+			*ast.ArrayIndexRef,
+			*ast.FieldOrArrayIndexRef:
 			// In this case we don't know what top level fields are defined.
 			ret = []string{}
 		case *ast.Document:

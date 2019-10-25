@@ -9,30 +9,54 @@ import (
 )
 
 // ParseMatchExpr parses a match expression.
+// This function is responsible for removing the earlier of duplicate match fields to be
+// consistent with mongod. It is consistent with mongod to perform this filtering only
+// within individual match stages, as opposed to across coalesced match stages.
 func ParseMatchExpr(doc bsoncore.Document) (ast.Expr, error) {
-	var expr ast.Expr
-	var err error
-
 	elems, _ := doc.Elements()
-	for _, e := range elems {
-		var right ast.Expr
-		right, err = parseMatchExprElement(e)
 
+	parsedElements := make([]ast.Expr, len(elems))
+	fieldsRefsSeen := make(map[string]int)
+	shouldSkipIndex := make(map[int]struct{})
+
+	for idx, e := range elems {
+		element, err := parseMatchExprElement(e)
 		if err != nil {
 			return nil, err
 		}
 
-		if expr == nil {
-			expr = right
-		} else {
-			expr = ast.NewBinary(ast.And, expr, right)
+		// Only check for duplicate match fields if this is a field match expression.
+		// mongod does not ignore duplicate match fields contained within other expressions like $and/$or.
+		if field := e.Key(); isFieldMatchExpr(field) {
+			if seenIndex, ok := fieldsRefsSeen[field]; ok {
+				shouldSkipIndex[seenIndex] = struct{}{}
+			}
+			fieldsRefsSeen[field] = idx
+		}
+
+		parsedElements[idx] = element
+	}
+
+	var expr ast.Expr
+	for i, e := range parsedElements {
+		if _, ok := shouldSkipIndex[i]; !ok {
+			if expr == nil {
+				expr = e
+			} else {
+				expr = ast.NewBinary(ast.And, expr, e)
+			}
 		}
 	}
 
 	if expr == nil {
 		return ast.NewConstant(bsonutil.True), nil
 	}
+
 	return expr, nil
+}
+
+func isFieldMatchExpr(elementKey string) bool {
+	return elementKey[0] != '$'
 }
 
 // ParseMatchExprJSON parses an ast.Expr from a string.
@@ -61,7 +85,7 @@ func parseMatchExprElement(e bsoncore.Element) (ast.Expr, error) {
 		return nil, errors.New("invalid match expression key")
 	}
 
-	if key[0] == '$' {
+	if !isFieldMatchExpr(key) {
 		return parseNonFieldMatchExpr(e)
 	}
 

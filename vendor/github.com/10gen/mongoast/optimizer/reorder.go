@@ -43,9 +43,9 @@ func Reorder(pipeline *ast.Pipeline) *ast.Pipeline {
 
 func shouldFlip(a, b ast.Stage, referencedFields [][]string) bool {
 	switch b.(type) {
-	case *ast.LimitStage, *ast.SkipStage:
+	case *ast.LimitStage, *ast.SampleStage, *ast.SkipStage:
 		switch a.(type) {
-		case *ast.ProjectStage:
+		case *ast.AddFieldsStage, *ast.ProjectStage, *ast.ReplaceRootStage:
 			return true
 		}
 	case *ast.MatchStage:

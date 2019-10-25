@@ -100,6 +100,10 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 		}
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return makeDocStage("$group", doc)
+	case *ast.IndexStatsStage:
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return makeDocStage("$indexStats", doc)
 	case *ast.LimitStage:
 		return makeInt64Stage("$limit", tn.Count)
 	case *ast.LookupStage:
@@ -113,7 +117,7 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 			doc = bsoncore.AppendStringElement(doc, "foreignField", tn.ForeignField)
 		}
 		if tn.Let != nil {
-			doc = bsoncore.AppendDocumentElement(doc, "let", deparseLookupLetItems(tn.Let))
+			doc = bsoncore.AppendDocumentElement(doc, "let", DeparseLookupLetItems(tn.Let))
 		}
 		if tn.Pipeline != nil {
 			doc = bsonutil.AppendValueElement(doc, "pipeline", DeparsePipeline(tn.Pipeline))
@@ -206,7 +210,7 @@ func DeparseStage(n ast.Stage) bsoncore.Value {
 	panic(fmt.Sprintf("unsupported node %T", n))
 }
 
-func deparseLookupLetItems(items []*ast.LookupLetItem) bsoncore.Document {
+func DeparseLookupLetItems(items []*ast.LookupLetItem) bsoncore.Document {
 	_, doc := bsoncore.AppendDocumentStart(nil)
 	for _, item := range items {
 		doc = bsonutil.AppendValueElement(doc, item.Name, DeparseExpr(item.Expr))

@@ -177,6 +177,11 @@ func (n *GroupStage) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *IndexStatsStage) DeepCopy() DeepCopier {
+	return NewIndexStatsStage()
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *LimitStage) DeepCopy() DeepCopier {
 	return NewLimitStage(n.Count)
 }

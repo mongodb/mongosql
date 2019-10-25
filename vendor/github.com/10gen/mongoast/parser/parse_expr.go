@@ -1,11 +1,12 @@
 package parser
 
 import (
-	"github.com/10gen/mongoast/internal/bsonutil"
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/internal/bsonutil"
 
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -224,6 +225,22 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 }
 
 func parseLogicalExpr(op ast.BinaryOp, values []bsoncore.Value) (ast.Expr, error) {
+	// Handle the special empty-values cases.
+	if len(values) == 0 {
+		switch op {
+		case ast.And:
+			return ast.NewConstant(bsonutil.Boolean(true)), nil
+		case ast.Or:
+			return ast.NewConstant(bsonutil.Boolean(false)), nil
+		case ast.Add: // Add and Multiply will become the identity.
+			return ast.NewConstant(bsonutil.Int32(0)), nil
+		case ast.Multiply:
+			return ast.NewConstant(bsonutil.Int32(1)), nil
+		default:
+			panic(fmt.Sprintf("no support for empty case of logical expr binary operator: %v", op))
+		}
+	}
+
 	var resultExpr ast.Expr
 	for i, v := range values {
 		expr, err := ParseExpr(v)

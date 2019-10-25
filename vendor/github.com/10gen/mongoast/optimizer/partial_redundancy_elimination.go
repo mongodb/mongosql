@@ -67,7 +67,7 @@ func removeRedundancies(e ast.Expr) ast.Expr {
 			// There is no reason to add this as a possibly redundant expression.
 			return typedExpr
 		case *ast.Binary:
-			if analyzer.HasLazyArgumentSemantics(typedExpr) || typedExpr.Op == ast.Add || typedExpr.Op == ast.Multiply {
+			if analyzer.HasLazyArgumentSemantics(typedExpr) {
 				typedExpr.Left = removeRedundancies(typedExpr.Left)
 				typedExpr.Right = removeRedundancies(typedExpr.Right)
 				addExpression(typedExpr)

@@ -1,15 +1,17 @@
 # github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5 => github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
 github.com/10gen/candiedyaml
-# github.com/10gen/mongoast v0.0.0-20190828180136-7b12fdc29f13
+# github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c
 github.com/10gen/mongoast/ast
 github.com/10gen/mongoast/optimizer
 github.com/10gen/mongoast/parser
 github.com/10gen/mongoast/astprint
 github.com/10gen/mongoast/analyzer
-github.com/10gen/mongoast/internal/stringutil
+github.com/10gen/mongoast/eval
 github.com/10gen/mongoast/internal/bsonutil
+github.com/10gen/mongoast/internal/stringutil
 github.com/10gen/mongoast/internal/decimalutil
 github.com/10gen/mongoast/internal/jsonutil
+github.com/10gen/mongoast/eval/bsoncompare
 github.com/10gen/mongoast/internal/mathutil
 # github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 => github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 github.com/10gen/openssl

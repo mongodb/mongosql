@@ -176,6 +176,14 @@ type GroupStage struct {
 	Items []*GroupItem
 }
 
+// NewIndexStatsStage makes an IndexStatsStage.
+func NewIndexStatsStage() *IndexStatsStage {
+	return &IndexStatsStage{}
+}
+
+// IndexStatsStage gets index statistics.
+type IndexStatsStage struct{}
+
 // NewLimitStage makes a LimitStage.
 func NewLimitStage(count int64) *LimitStage {
 	return &LimitStage{count}

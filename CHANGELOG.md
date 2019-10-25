@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2366: Fix bug in mongoast optimizer that incorrectly swapped project and match stages; introduce new mongoast optimizations including constant propagation, match splitting, stage reordering, and match coalescing.
 - BI-2202: Improved error message when issuing a group by 0 or order by 0.
 - BI-2284: Add support for Ubuntu 1804, SLES 15, Rhel8.
 - BI-2379: Add type reconciliation for regexp, now regexp works with non-strings.

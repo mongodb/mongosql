@@ -43,20 +43,11 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 			return bsonutil.Document(doc)
 		default:
-			var name string;
-			var subdoc []byte;
-			switch te.Left.(type) {
-			case *ast.Constant:
-				name = deparseMatchFieldName(te.Right)
-				_, subdoc = bsoncore.AppendDocumentStart(nil)
-				subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), deparseMatchSubexpr(te.Left))
-				subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
-			default:
-				name = deparseMatchFieldName(te.Left)
-				_, subdoc = bsoncore.AppendDocumentStart(nil)
-				subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), deparseMatchSubexpr(te.Right))
-				subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
-			}
+			name := deparseMatchFieldName(te.Left)
+
+			_, subdoc := bsoncore.AppendDocumentStart(nil)
+			subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), deparseMatchSubexpr(te.Right))
+			subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
 
 			_, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
@@ -79,7 +70,9 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 			subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
 
 		default:
-			panic("Unary operand must be either MatchRegex or Binary")
+			v := DeparseNode(tsub)
+
+			panic(fmt.Sprintf("Unary operand must be either MatchRegex or Binary, but got %T: %v", tsub, v.String()))
 		}
 
 		_, unarySubdoc := bsoncore.AppendDocumentStart(nil)

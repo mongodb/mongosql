@@ -8,6 +8,12 @@ github.com/10gen/mongoast v0.0.0-20190826214820-63580b9b8586 h1:BAlqaVPxmECB+sSm
 github.com/10gen/mongoast v0.0.0-20190826214820-63580b9b8586/go.mod h1:zXqiLsYUajwXaVbk7lwcs215QaCQoj2cS7i7TcbMV3c=
 github.com/10gen/mongoast v0.0.0-20190828180136-7b12fdc29f13 h1:VRXpwbVETTdDFgCCv9oMW8ToH+d7XoxiiXvZjgQ/ndc=
 github.com/10gen/mongoast v0.0.0-20190828180136-7b12fdc29f13/go.mod h1:zXqiLsYUajwXaVbk7lwcs215QaCQoj2cS7i7TcbMV3c=
+github.com/10gen/mongoast v0.0.0-20191022173548-783a4860400d h1:ObaXEiDxKPdNnF+ODKPnWjtZ4pxdVwhZ1qPqIS4nj8s=
+github.com/10gen/mongoast v0.0.0-20191022173548-783a4860400d/go.mod h1:zXqiLsYUajwXaVbk7lwcs215QaCQoj2cS7i7TcbMV3c=
+github.com/10gen/mongoast v0.0.0-20191025154940-1fddb3949072 h1:9OYWIbBk8F1LqxiS0hEvO5lfu8VS5akyN7VmaSGO4Ow=
+github.com/10gen/mongoast v0.0.0-20191025154940-1fddb3949072/go.mod h1:zXqiLsYUajwXaVbk7lwcs215QaCQoj2cS7i7TcbMV3c=
+github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c h1:pTq1/ohfKKd5YXzMEpGHsthkX9ieMIEEifsZFMyV3z0=
+github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c/go.mod h1:zXqiLsYUajwXaVbk7lwcs215QaCQoj2cS7i7TcbMV3c=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 h1:TbONlEzjFZ0K7a6dYca+3rwJugMwiRJLY+FSCO3C2CE=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847/go.mod h1:ngIUcWisavS+ezq2tBEu6vgSU981hsiJaalWLlpOcuE=
 github.com/apmckinlay/gsuneido v0.0.0-20190404155041-0b6cd442a18f/go.mod h1:JU2DOj5Fc6rol0yaT79Csr47QR0vONGwJtBNGRD7jmc=

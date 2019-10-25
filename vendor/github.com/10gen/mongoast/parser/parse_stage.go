@@ -62,6 +62,16 @@ func ParseStage(doc bsoncore.Document) (ast.Stage, error) {
 			return nil, errors.New("$group stage must have a document as its only argument")
 		}
 		return parseGroupStage(vdoc)
+	case "$indexStats":
+		vdoc, ok := e.Value().DocumentOK()
+		if !ok {
+			return nil, errors.New("the $indexStats stage specification must be an empty object")
+		}
+		elems, _ := vdoc.Elements()
+		if len(elems) != 0 {
+			return nil, errors.New("the $indexStats stage specification must be an empty object")
+		}
+		return ast.NewIndexStatsStage(), nil
 	case "$limit":
 		i64, ok := bsonutil.AsInt64OK(e.Value())
 		if !ok {
@@ -107,6 +117,12 @@ func ParseStage(doc bsoncore.Document) (ast.Stage, error) {
 			return nil, errors.New("$replaceRoot stage must have a document as its only argument")
 		}
 		return parseReplaceRootStage(vdoc)
+	case "$replaceWith":
+		expr, err := ParseExpr(e.Value())
+		if err != nil {
+			return nil, errors.Wrap(err, "$replaceWith stage must have an expression as its only argument")
+		}
+		return parseReplaceRootStageFromExpr(expr)
 	case "$sample":
 		vdoc, ok := e.Value().DocumentOK()
 		if !ok {
@@ -136,6 +152,8 @@ func ParseStage(doc bsoncore.Document) (ast.Stage, error) {
 			return nil, errors.New("$sortedMerge stage must have a document as its only argument")
 		}
 		return parseSortMergeStage(vdoc)
+	case "$unset":
+		return parseUnset(e.Value())
 	case "$unwind":
 		return parseUnwind(e.Value())
 	default:
@@ -473,7 +491,7 @@ func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 					e.Value().Type,
 				)
 			}
-			let, err = parseLookupLetItems(vdoc)
+			let, err = ParseLookupLetItems(vdoc)
 			if err != nil {
 				return nil, err
 			}
@@ -514,7 +532,7 @@ func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 	return ast.NewLookupStage(from, localField, foreignField, as, let, pipeline), nil
 }
 
-func parseLookupLetItems(doc bsoncore.Document) ([]*ast.LookupLetItem, error) {
+func ParseLookupLetItems(doc bsoncore.Document) ([]*ast.LookupLetItem, error) {
 	elems, _ := doc.Elements()
 	items := make([]*ast.LookupLetItem, len(elems))
 	for i, e := range elems {
@@ -651,8 +669,17 @@ func parseReplaceRootStage(doc bsoncore.Document) (*ast.ReplaceRootStage, error)
 	if newRoot == nil {
 		return nil, errors.New("no newRoot specified for the $replaceRoot stage")
 	}
+
+	return parseReplaceRootStageFromExpr(newRoot)
+}
+
+func parseReplaceRootStageFromExpr(newRoot ast.Expr) (*ast.ReplaceRootStage, error) {
 	switch newRoot.(type) {
-	case *ast.FieldRef, *ast.Document:
+	case *ast.FieldRef,
+		*ast.VariableRef,
+		*ast.ArrayIndexRef,
+		*ast.FieldOrArrayIndexRef,
+		*ast.Document:
 	default:
 		return nil, errors.New("'newRoot' expression must evaluate to an object")
 	}
@@ -771,6 +798,40 @@ func parseSortItems(doc bsoncore.Document) ([]*ast.SortItem, error) {
 	}
 
 	return items, nil
+}
+
+func parseUnset(v bsoncore.Value) (*ast.ProjectStage, error) {
+	switch v.Type {
+	case bsontype.String:
+		fieldName := v.StringValue()
+		fieldRef, err := ParseFieldRef(fieldName)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed parsing project field ref %s", fieldName)
+		}
+		return ast.NewProjectStage(
+			ast.NewExcludeProjectItem(fieldRef.(*ast.FieldRef)),
+		), nil
+	case bsontype.Array:
+		vals, _ := v.Array().Values()
+		if len(vals) == 0 {
+			return nil, errors.New("$unset specification must be a string or an array with at least one field")
+		}
+		items := make([]ast.ProjectItem, len(vals))
+		for i, v := range vals {
+			fieldName, ok := v.StringValueOK()
+			if !ok {
+				return nil, errors.New("$unset specification must be a string or an array containing only string values")
+			}
+			fieldRef, err := ParseFieldRef(fieldName)
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed parsing project field ref %s", fieldName)
+			}
+			items[i] = ast.NewExcludeProjectItem(fieldRef.(*ast.FieldRef))
+		}
+		return ast.NewProjectStage(items...), nil
+	default:
+		return nil, errors.New("$unset specification must be a string or an array")
+	}
 }
 
 func parseUnwind(v bsoncore.Value) (*ast.UnwindStage, error) {

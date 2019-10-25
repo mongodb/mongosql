@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
-	github.com/10gen/mongoast v0.0.0-20190828180136-7b12fdc29f13
+	github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c
 	github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 	github.com/apmckinlay/gsuneido v0.0.0-20190828171039-d059fc31c5ab // indirect
 	github.com/aws/aws-sdk-go v1.23.10 // indirect
