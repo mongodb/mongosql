@@ -4,7 +4,7 @@
 # number of fields:
 #
 # The `_id` field is a unique id for this system variable, and is used in all go
-# identifiers generated for this function.
+# identifiers generated for this variable.
 #
 # The `name` field specifies the name by which this variable can be referenced
 # in SQL statements.
@@ -18,7 +18,7 @@
 #
 # The `go_type` field specifies the go type that should be used to store this
 # variable's value. It only needs to be provided if the desired type is
-# different from the one chosed based on the `type` field.
+# different from the one chosen based on the `type` field.
 #
 # The `custom_setter` field specifies that this variable has a custom setter
 # function in `system_variables.go` that should be called instead of generating

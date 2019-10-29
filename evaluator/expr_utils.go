@@ -82,7 +82,7 @@ func ConvertSQLValueToPattern(value values.SQLValue, escapeChar rune) string {
 	return regex
 }
 
-// databaseFromPlanStage returns the database name from columns returned from the planStage.
+// databaseFromPlanStage returns the database name from columns returned from the PlanStage.
 // It returns the empty string if the columns come from more than one database or the dual database.
 func databaseFromPlanStage(plan PlanStage) string {
 	dbName := ""
@@ -111,21 +111,6 @@ func fast2Sum(a, b float64) (float64, float64) {
 	z = s - a
 	t = b - z
 	return s, t
-}
-
-func getPlanStats(plan PlanStage, pushdownFailures map[PlanStage][]PushdownFailure) (*PlanStats, error) {
-	pushedDown := IsFullyPushedDown(plan) == nil
-
-	explain, err := explainQuery(plan, pushdownFailures)
-	if err != nil {
-		return nil, err
-	}
-
-	stats := &PlanStats{
-		FullyPushedDown: pushedDown,
-		Explain:         explain,
-	}
-	return stats, nil
 }
 
 // hasNullExpr returns true if any of the expr in exprs

@@ -89,7 +89,7 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 		return nil, "", err
 	}
 
-	pushdownCfg := evaluator.NewPushdownConfig(lg, vars)
+	pushdownCfg := evaluator.NewPushdownConfig(lg, vars, false)
 	optimizerCfg := evaluator.NewOptimizerConfig(lg, vars)
 	optimizedPlan, err := evaluator.OptimizePlan(ctx, optimizerCfg, naivePlan)
 	if err != nil && !evaluator.IsNonFatalPushdownError(err) {

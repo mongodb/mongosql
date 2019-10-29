@@ -40,18 +40,20 @@ type PushdownConfig struct {
 	mongoDBVersion    []uint8
 	pushDownSelfJoins bool
 	sqlValueKind      values.SQLValueKind
+	unflattenResults  bool
 }
 
 // NewPushdownConfig returns a new PushdownConfig constructed from the
 // provided values. PushdownConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewPushdownConfig(lg log.Logger, vars catalog.VariableContainer) *PushdownConfig {
+func NewPushdownConfig(lg log.Logger, vars catalog.VariableContainer, unflattenResults bool) *PushdownConfig {
 	return &PushdownConfig{
 		lg:                lg,
 		mongoDBVersion:    getMongoDBVersion(vars),
 		shouldPushDown:    vars.GetBool(variable.Pushdown),
 		pushDownSelfJoins: vars.GetBool(variable.OptimizeSelfJoins),
 		sqlValueKind:      GetSQLValueKind(vars),
+		unflattenResults:  unflattenResults,
 	}
 }
 
@@ -74,6 +76,21 @@ func PushdownPlan(ctx context.Context, cfg *PushdownConfig, p PlanStage) (PlanSt
 		return nil, fatalPushdownError(err)
 	}
 	p = n.(PlanStage)
+
+	if cfg.unflattenResults {
+		cfg.lg.Debugf(log.Admin, "unflattening results")
+		if ms, ok := p.(*MongoSourceStage); ok {
+			var project *ast.ProjectStage
+			project, err = buildUnflattenedProject(ms)
+			if err != nil {
+				cfg.lg.Debugf(log.Admin, "failed to unflatten: %v", err)
+			} else {
+				ms.pipeline.Stages = append(ms.pipeline.Stages, project)
+			}
+		} else {
+			cfg.lg.Debugf(log.Admin, "cannot unflatten results; plan is not a MongoSourceStage")
+		}
+	}
 
 	cfg.lg.Debugf(log.Admin,
 		"plan before pipeline optimization: \n%v",
@@ -3504,4 +3521,74 @@ func flattenBinaryExprArgs(op ast.BinaryOp, left, right ast.Expr) []ast.Expr {
 	}
 
 	return args
+}
+
+// buildUnflattenedProject returns a rich $project stage for outputting
+// the resulting column data. Typically, the final $project stage of a
+// BIC translation is a flat document (i.e. no nesting). The namespace
+// information is condensed into key names and values are all scalar.
+//
+// For example,
+//     { $project: {"db_DOT_foo_DOT__id": "$_id", "db_DOT_foo_DOT_a": "$a", ... } }
+// returns "$foo._id" and "$foo.a" from the database "db" in a flat manner.
+//
+// This function returns a $project stage with rich, nested namespace data,
+// including alias information for the column and table. The $project stage
+// projects only one field, "values", which is an array of all selected
+// expressions, ordered by their select order in the original SQL query.
+func buildUnflattenedProject(ms *MongoSourceStage) (*ast.ProjectStage, error) {
+	columns := ms.Columns()
+	richFieldData := make([]ast.Expr, len(columns))
+
+	for i, c := range columns {
+		ref, ok := ms.mappingRegistry.lookupFieldRef(c.Database, c.Table, c.Name)
+		if !ok {
+			return nil, fmt.Errorf("failed to find field ref for column '%v.%v.%v'", c.Database, c.Table, c.Name)
+		}
+
+		db := astutil.StringValue(c.Database)
+		table := astutil.StringValue(c.OriginalTable)
+		tableAlias := astutil.StringValue(c.Table)
+		column := astutil.StringValue(c.OriginalName)
+		columnAlias := astutil.StringValue(c.Name)
+
+		// if db is empty, replace it with null
+		if c.Database == "" {
+			db = astutil.NullLiteral
+		}
+
+		// if table is empty, replace it with null
+		if c.OriginalTable == "" {
+			table = astutil.NullLiteral
+		}
+
+		// if tableAlias is empty, replace it with table
+		if c.Table == "" {
+			tableAlias = table
+		}
+
+		// if column is empty, replace it with null
+		if c.OriginalName == "" {
+			column = astutil.NullLiteral
+		}
+
+		// if columnAlias is empty, replace it with column
+		if c.Name == "" {
+			columnAlias = column
+		}
+
+		richFieldData[i] = ast.NewDocument(
+			ast.NewDocumentElement("db", db),
+			ast.NewDocumentElement("table", table),
+			ast.NewDocumentElement("tableAlias", tableAlias),
+			ast.NewDocumentElement("column", column),
+			ast.NewDocumentElement("columnAlias", columnAlias),
+			ast.NewDocumentElement("value", ref),
+		)
+	}
+
+	return ast.NewProjectStage(
+		ast.NewAssignProjectItem("values", ast.NewArray(richFieldData...)),
+		ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+	), nil
 }

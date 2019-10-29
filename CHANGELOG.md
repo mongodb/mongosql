@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2343: `mongotranslate` is now consumable as a library.
 - BI-2280: Add reconciliation to aggregate functions where necessary and add pushdown for multiple type conversions. Added a `reconcile_arithmetic_agg_functions` variable for opting back into the old reconciliation behavior.
 - BI-2366: Fix bug in mongoast optimizer that incorrectly swapped project and match stages; introduce new mongoast optimizations including constant propagation, match splitting, stage reordering, and match coalescing.
 - BI-2202: Improved error message when issuing a group by 0 or order by 0.

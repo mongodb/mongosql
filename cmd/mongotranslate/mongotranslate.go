@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/10gen/sqlproxy/internal/mongotranslate"
+	"github.com/10gen/sqlproxy/mongotranslate"
 )
 
 const (
@@ -47,7 +47,16 @@ func main() {
 		return
 	}
 
-	explainPlan, err := mongotranslate.TranslateSQLQuery(*sqlQuery, *queryFile, *dbName, *mongoVersion, *schema, *format, *explain)
+	var explainPlan string
+	var err error
+
+	switch {
+	case *sqlQuery != "":
+		explainPlan, _, err = mongotranslate.TranslateSQLQuery(*sqlQuery, *dbName, *mongoVersion, *schema, *format, *explain)
+	case *queryFile != "":
+		explainPlan, _, err = mongotranslate.TranslateSQLQueryFile(*queryFile, *dbName, *mongoVersion, *schema, *format, *explain)
+	}
+
 	if err != nil {
 		log.Fatal(err)
 	}

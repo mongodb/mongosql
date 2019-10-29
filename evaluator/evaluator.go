@@ -31,7 +31,7 @@ type QueryOp byte
 type QueryResult struct {
 	Stmt      parser.Statement // allows statement execution tracking in server
 	Columns   []*results.Column
-	planStage PlanStage
+	PlanStage PlanStage
 	Stats     *PlanStats
 	Op        QueryOp
 }
@@ -39,7 +39,7 @@ type QueryResult struct {
 // GetDocIter returns the Iter as a DocIter, if it is
 // a DocIter, otherwise nil.
 func (qr *QueryResult) GetDocIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
-	switch typedPlan := qr.planStage.(type) {
+	switch typedPlan := qr.PlanStage.(type) {
 	case FastPlanStage:
 		return typedPlan.FastOpen(ctx, cfg, st)
 	}
@@ -49,7 +49,7 @@ func (qr *QueryResult) GetDocIter(ctx context.Context, cfg *ExecutionConfig, st 
 // GetRowIter returns the Iter as a RowIter, if it is
 // a RowIter, otherwise nil.
 func (qr *QueryResult) GetRowIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
-	return qr.planStage.Open(ctx, cfg, st)
+	return qr.PlanStage.Open(ctx, cfg, st)
 }
 
 // NewQueryResult is a constructor for a QueryResult.
@@ -57,16 +57,10 @@ func NewQueryResult(stmt parser.Statement, columns []*results.Column, planStage 
 	return &QueryResult{
 		Stmt:      stmt,
 		Columns:   columns,
-		planStage: planStage,
+		PlanStage: planStage,
 		Stats:     stats,
 		Op:        op,
 	}
-}
-
-// PlanStats contains some statistics about a query plan.
-type PlanStats struct {
-	FullyPushedDown bool
-	Explain         []*ExplainRecord
 }
 
 // EvaluateCommand runs a command, returning a QueryResult containing Op=COMMAND
