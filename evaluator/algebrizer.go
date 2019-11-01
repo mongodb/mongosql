@@ -332,9 +332,16 @@ func (a *algebrizer) lookupColumn(databaseName, tableName, columnName string) (*
 func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn, bool, error) {
 	var result ProjectedColumn
 	found := false
+	isResultComputed := false
 	for index, pc := range a.projectedColumns {
 		if strings.EqualFold(pc.Name, columnName) {
-			if found {
+			// Two columns are ambiguous if the column aliases are the same but the original column
+			// names are not (and neither is a computed column like an aggregate function, value
+			// literal, + operator, etc.).
+			if found &&
+				!strings.EqualFold(pc.OriginalName, result.OriginalName) &&
+				!strings.EqualFold(pc.OriginalName, "") &&
+				!strings.EqualFold(result.OriginalName, "") {
 				return nil,
 					false,
 					mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
@@ -353,8 +360,14 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 							columnName)
 				}
 			}
-			result = pc
-			found = true
+			// Store current column if it's the first match, or if it's computed. Note that result
+			// can only be overwritten if we find a match for a non-computed column followed by a
+			// match for a computed column (aggregate function, value literal, + operator, etc.).
+			if !found || !isResultComputed {
+				result = pc
+				found = true
+				isResultComputed = strings.EqualFold(pc.OriginalName, "")
+			}
 		}
 	}
 
@@ -459,9 +472,13 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 		}
 	}
 
-	// the column was not available in the current scope, so it must be a correlated
-	// column. We will mark the column as correlated and search all parent scopes until
-	// we find the select that brings this column into scope.
+	// lookupColumn returns an error if the column referenced is ambiguous or if it doesn't exist
+	// in the current scope. If the column is ambiguous, we want to return that error to the user.
+	// Otherwise the column was not found in the current scope, so it could be a correlated column.
+	// We search parent scopes until we find the select that brings this column into scope, if any.
+	if errSQL, ok := err.(*mysqlerrors.MySQLError); ok && errSQL.Code == mysqlerrors.ErNonUniqError {
+		return nil, err
+	}
 	if a.parent != nil {
 		expr, parentErr := a.parent.resolveColumnExpr(databaseName, tableName, columnName)
 		if parentErr == nil {

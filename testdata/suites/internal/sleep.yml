@@ -119,7 +119,7 @@ testcases:
     id: select
     sql: select b, sleep(0.1), _id FROM select_Stest.select_1
 
-  - db: subqueries_from_test
+  - db: subqueries_test
     expected_names: [_id, a, b, sleep(0.1)]
     expected_results:
       - [0, 1, null, 0]
@@ -127,7 +127,7 @@ testcases:
       - [2, 3, null, 0]
     expected_types: [int, int, int, int]
     id: subquery
-    sql: select _id, a, b, sleep(0.1) from (select * from subqueries_from_test.subqueries_from) foo
+    sql: select _id, a, b, sleep(0.1) from (select * from subqueries_test.subqueries) foo
 
   - db: where_test
     expected_names: [a, sleep(0.1)]

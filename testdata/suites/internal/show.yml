@@ -807,7 +807,7 @@ testcases:
       - [select_sTest]
       - [select_test]
       - [set_test]
-      - [subqueries_from_test]
+      - [subqueries_test]
       - [subquery_cmp_pushdown_test]
       - [test]
       - [tuple_test]

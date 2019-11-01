@@ -263,3 +263,69 @@ testcases:
     expected_types: [int, int]
     id: '21'
     sql: select orderby_test.orderbyTable._id, orderby_test.orderbyTable.a from orderby_test.orderbyTable order by orderby_test.orderbyTable.a, orderby_test.orderbyTable._id desc
+
+  - db: orderby_test
+    description: same column chosen twice
+    expected_names: [a, a]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [2, 2]
+      - [2, 2]
+    expected_types: [int, int]
+    id: '22'
+    sql: select a, a from orderby_test.orderbyTable order by a
+
+  - db: orderby_test
+    description: same column aliased as itself
+    expected_names: [a, a]
+    expected_results:
+      - [0, 0]
+      - [1, 1]
+      - [2, 2]
+      - [2, 2]
+    expected_types: [int, int]
+    id: '23'
+    sql: select a as a, a from orderby_test.orderbyTable order by a
+
+  - db: orderby_test
+    description: order by chooses the column with the matching alias
+    expected_names: [a, _id]
+    expected_results:
+      - [1, 0]
+      - [2, 1]
+      - [0, 2]
+      - [3, 2]
+    expected_types: [int, int]
+    id: '24'
+    sql: select _id as a, a as _id from orderby_test.orderbyTable order by _id
+
+  - db: orderby_test
+    description: order by chooses the first unnamed column if multiple unnamed columns are provided
+    expected_names: [a, a, a, a]
+    expected_results:
+      - [1, 1, "a", 1]
+      - [0, 2, "a", 1]
+      - [2, 3, "a", 1]
+      - [3, 5, "a", 1]
+    expected_types: [int, int, varchar, int]
+    id: '25'
+    sql: select _id as a, _id+a as a, "a" as a, 1 as a from orderby_test.orderbyTable order by a
+
+  - db: orderby_test
+    description: order by existing column aliased as an existing column along with that column
+    expected_error: "Error 1052: Column 'a' in order clause is ambiguous"
+    id: '26'
+    sql: select _id as a, a from orderby_test.orderbyTable order by a
+
+  - db: orderby_test
+    description: order by existing column aliased as an existing column along with that column aliased as itself
+    expected_error: "Error 1052: Column 'a' in order clause is ambiguous"
+    id: '27'
+    sql: select _id as a, a as a from orderby_test.orderbyTable order by a
+
+  - db: orderby_test
+    description: order by two existing columns aliased to an ambiguous name
+    expected_error: "Error 1052: Column 'z' in order clause is ambiguous"
+    id: '28'
+    sql: select _id as z, a as z from orderby_test.orderbyTable order by z

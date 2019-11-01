@@ -614,6 +614,15 @@ testcases:
     id: '51'
     schema_mapping_heuristics:
       - drdl
+    sql: "select a from test where a = (select test10.a from test10 JOIN bool ON test10.b = bool.b GROUP BY bool.b);"
+  - db: subquery_cmp_pushdown_test
+    description: "ambiguous column in GROUP BY in subquery"
+    expected_error: "Error 1052: Column 'b' in group clause is ambiguous"
+    expected_names: ["a"]
+    expected_types: [int]
+    id: '52'
+    schema_mapping_heuristics:
+      - drdl
     sql: "select a from test where a = (select test10.a from test10 JOIN bool ON test10.b = bool.b GROUP BY b);"
   - db: subquery_cmp_pushdown_test
     description: "subquery full with predicate AND"
@@ -622,7 +631,7 @@ testcases:
       - [98]
       - [607]
     expected_types: [int]
-    id: '52'
+    id: '53'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select a from test where a < 10 LIMIT 1) < (select b from test10 LIMIT 1) and a > 80;"
@@ -634,7 +643,7 @@ testcases:
       - [0]
       - [1]
     expected_types: [int]
-    id: '53'
+    id: '54'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select a from test where a < 10 LIMIT 1) < (select b from test10 LIMIT 1) GROUP BY a ORDER BY a LIMIT 3;"
@@ -644,7 +653,7 @@ testcases:
     expected_results:
       - [0]
     expected_types: [int]
-    id: '54'
+    id: '55'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select a, b from test10 where a > 80 LIMIT 1) > (select a, b from test where a < 10 LIMIT 1) and a < 1 GROUP BY a ORDER BY a LIMIT 3;"
@@ -662,7 +671,7 @@ testcases:
       - [607]
       - [NULL]
     expected_types: [int]
-    id: '55'
+    id: '56'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 1 LIMIT 1) < ALL (select a from test10);"
@@ -670,7 +679,7 @@ testcases:
     description: "subquery - subquery ALL empty result set"
     expected_names: ["a"]
     expected_types: [int]
-    id: '56'
+    id: '57'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 50 LIMIT 1) > ALL (select a from test10);"
@@ -688,7 +697,7 @@ testcases:
       - [607]
       - [NULL]
     expected_types: [int]
-    id: '57'
+    id: '58'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 50 LIMIT 1) > ANY (select a from test10);"
@@ -696,7 +705,7 @@ testcases:
     description: "subquery - subquery ANY empty result set"
     expected_names: ["a"]
     expected_types: [int]
-    id: '58'
+    id: '59'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 1 LIMIT 1) > ANY (select a from test10);"
@@ -714,7 +723,7 @@ testcases:
       - [607]
       - [NULL]
     expected_types: [int]
-    id: '59'
+    id: '60'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 in (select a from test10);"
@@ -722,7 +731,7 @@ testcases:
     description: "literal scalar subquery cmp expr NOT IN"
     expected_names: ["a"]
     expected_types: [int]
-    id: '60'
+    id: '61'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 not in (select a from test10);"
@@ -740,7 +749,7 @@ testcases:
       - [607]
       - [NULL]
     expected_types: [int]
-    id: '61'
+    id: '62'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 in (select a from test10);"
@@ -748,7 +757,7 @@ testcases:
     description: "literal scalar subquery cmp expr NOT IN"
     expected_names: ["a"]
     expected_types: [int]
-    id: '62'
+    id: '63'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 not in (select a from test10);"
@@ -766,7 +775,7 @@ testcases:
       - [607]
       - [NULL]
     expected_types: [int]
-    id: '63'
+    id: '64'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 = ANY (select a from test10);"
@@ -774,7 +783,7 @@ testcases:
     description: "literal scalar subquery cmp expr ALL"
     expected_names: ["a"]
     expected_types: [int]
-    id: '64'
+    id: '65'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 = ALL (select a from test10);"
@@ -786,7 +795,7 @@ testcases:
       - [1]
       - [2]
     expected_types: [int]
-    id: '65'
+    id: '66'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 in (select a from test10 where a > 9 AND 50 in (select b from bool)) AND a < 80 LIMIT 3;"
@@ -799,7 +808,7 @@ testcases:
       - [2, NULL, 3]
       - [3, 1, 0]
     expected_types: [int, int, int]
-    id: '66'
+    id: '67'
     schema_mapping_heuristics:
       - drdl
     sql: "select * from missing_test where exists (select a, v from missing_test where v > 0);"
@@ -809,7 +818,7 @@ testcases:
     expected_results:
       - [799]
     expected_types: [int]
-    id: '67'
+    id: '68'
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) from test group by (98 in (select a from test10));"
@@ -827,7 +836,7 @@ testcases:
       - [607]
       - [NULL]
     expected_types: [int]
-    id: '68'
+    id: '69'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select a from three);"
@@ -835,7 +844,7 @@ testcases:
     description: "EXISTS with empty result"
     expected_names: ["a"]
     expected_types: [int]
-    id: '69'
+    id: '70'
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select a from test10 where a = 2);"
@@ -853,7 +862,7 @@ testcases:
       - [607, 1]
       - [NULL, 1]
     expected_types: [int, int]
-    id: '70'
+    id: '71'
     schema_mapping_heuristics:
       - drdl
     sql: "select a, EXISTS (select a from test10) as b from test;"
@@ -871,7 +880,7 @@ testcases:
       - [607, 4]
       - [NULL, 4]
     expected_types: [int, int]
-    id: '71'
+    id: '72'
     schema_mapping_heuristics:
       - drdl
     sql: "select a, (case when EXISTS (select a from test10) then 4 else 5 end) as b from test;"

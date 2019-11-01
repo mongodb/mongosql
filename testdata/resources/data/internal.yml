@@ -1135,14 +1135,14 @@
     - {_id: 2, a: 3, b: 3}
     - {_id: 3, a: 4, b: 1}
 
-- db: "subqueries_from_test"
-  collection: "subqueries_from"
+- db: "subqueries_test"
+  collection: "subqueries"
   docs:
     - {_id: 0, a: 1, b: ~}
     - {_id: 1, a: 2}
     - {_id: 2, a: 3}
 
-- db: "subqueries_from_test"
+- db: "subqueries_test"
   collection: "subqueries_BI-982"
   docs:
     - {_id: 1, name: "rec1", value: 3.0}

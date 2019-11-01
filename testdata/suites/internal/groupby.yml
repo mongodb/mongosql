@@ -12,7 +12,13 @@ testcases:
     sql: select a from groupby_test.groupby group by a order by a
 
   - db: groupby_test
-    description: Group by uknown column reference
+    description: Group by ambiguous column alias
+    expected_error: "Error 1052: Column 'z' in group clause is ambiguous"
+    id: 'ambiguous_column_groupBy'
+    sql: select a as z, b as z from groupby_test.groupby group by z
+
+  - db: groupby_test
+    description: Group by unknown column reference
     expected_error: "Error 1054: Unknown column '0' in 'group clause'"
     id: 'unknown_column_groupBy'
     sql: select a from groupby_test.groupby group by 0
@@ -49,7 +55,7 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '1'
+    id: 'no_aggregation_1'
     sql: select a from groupby_test.groupby group by 1 order by a
 
   - db: groupby_test
@@ -60,8 +66,92 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '2'
+    id: 'no_aggregation_2'
     sql: select a as f from groupby_test.groupby group by f order by a
+
+  - db: groupby_test
+    description: same column chosen twice
+    expected_names: [a, a]
+    expected_results:
+      - [1, 1]
+      - [2, 2]
+      - [3, 3]
+    expected_types: [int, int]
+    id: 'alias_1'
+    sql: select a, a from groupby_test.groupby group by a order by a
+
+  - db: groupby_test
+    description: same column aliased as itself
+    expected_names: [a, a]
+    expected_results:
+      - [1, 1]
+      - [2, 2]
+      - [3, 3]
+    expected_types: [int, int]
+    id: 'alias_2'
+    sql: select a as a, a from groupby_test.groupby group by a order by a
+
+  - db: groupby_test
+    description: same column aliased twice as a new column
+    expected_names: [z, z]
+    expected_results:
+      - [1, 1]
+      - [2, 2]
+      - [3, 3]
+    expected_types: [int, int]
+    id: 'alias_3'
+    sql: select a as z, a as z from groupby_test.groupby group by z order by z
+
+  - db: groupby_test
+    description: literal value aliased to existing column in table join
+    expected_names: [a]
+    expected_results:
+      - [1]
+    expected_types: [int]
+    id: 'alias_4'
+    sql: select 1 as a from groupby_test.groupby join groupby_test.groupby g group by a
+
+  - db: groupby_test
+    description: group by chooses the column with an existing name in the table
+    expected_names: [a, a]
+    expected_results:
+      - [0, 1]
+      - [1, 2]
+      - [3, 3]
+    expected_types: [int, int]
+    id: 'alias_5'
+    sql: select _id as a, a from groupby_test.groupby group by a order by _id
+
+  - db: groupby_test
+    description: group by chooses the column with an existing name in the table
+    expected_names: [a, _id]
+    expected_results:
+      - [0, 1]
+      - [1, 2]
+      - [3, 3]
+    expected_types: [int, int]
+    id: 'alias_6'
+    sql: select _id as a, a as _id from groupby_test.groupby group by a order by a
+
+  - db: groupby_test
+    description: group by chooses the first unnamed column (1 as z) if multiple unnamed columns are provided
+    expected_names: [z, z, z]
+    expected_results:
+      - [1, 1, 2]
+    expected_types: [int, int, int]
+    id: 'alias_7'
+    sql: select 1 as z, a as z, a+b as z from groupby_test.groupby group by z
+
+  - db: groupby_test
+    description: group by chooses the first unnamed column (a+0 as z) if multiple unnamed columns are provided
+    expected_names: [z, z, z]
+    expected_results:
+      - [0, 1, 1]
+      - [1, 2, 1]
+      - [3, 3, 1]
+    expected_types: [int, int, int]
+    id: 'alias_8'
+    sql: select _id as z, a+0 as z, 1 as z from groupby_test.groupby group by z order by z
 
   - db: groupby_test
     description: single aggregation
@@ -71,7 +161,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '3'
+    id: 'aggregation_1'
     sql: select a, sum(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -82,7 +172,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '4'
+    id: 'aggregation_2'
     sql: select a, sum(b) from groupby_test.groupby group by 1 order by a
 
   - db: groupby_test
@@ -93,7 +183,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '5'
+    id: 'aggregation_3'
     sql: select a as f, sum(b) from groupby_test.groupby group by f order by a
 
   - db: groupby_test
@@ -104,7 +194,7 @@ testcases:
       - [2, 5, 2]
       - [3, 3, 1]
     expected_types: [int, int, int]
-    id: '6'
+    id: 'aggregation_4'
     sql: select a, sum(b), count(*) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -115,7 +205,7 @@ testcases:
       - [2, 5, 2]
       - [3, 3, 1]
     expected_types: [int, int, int]
-    id: '7'
+    id: 'aggregation_5'
     sql: select a, sum(b), count(*) from groupby_test.groupby group by 1 order by a
 
   - db: groupby_test
@@ -126,7 +216,7 @@ testcases:
       - [2, 5, 2]
       - [3, 3, 1]
     expected_types: [int, int, int]
-    id: '8'
+    id: 'aggregation_6'
     sql: select a as f, sum(b), count(*) from groupby_test.groupby group by f order by a
 
   - db: groupby_test
@@ -137,7 +227,7 @@ testcases:
       - [2]
       - [5]
     expected_types: [int]
-    id: '9'
+    id: 'correlated_subquery_1'
     sql: select sum(a) from groupby f group by b order by (select b from groupby where f._id = _id)
 
   - db: groupby_test
@@ -148,7 +238,7 @@ testcases:
       - [2]
       - [1]
     expected_types: [int]
-    id: '10'
+    id: 'correlated_subquery_2'
     sql: select sum(a) from groupby f group by b order by (select -b from groupby where f._id = _id)
 
   - db: groupby_test
@@ -159,7 +249,7 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '11'
+    id: 'distinct_1'
     sql: select distinct a from groupby_test.groupby order by a
 
   - db: groupby_test
@@ -171,7 +261,7 @@ testcases:
       - [2, 3]
       - [3, 3]
     expected_types: [int, int]
-    id: '12'
+    id: 'distinct_2'
     sql: select distinct a, b from groupby_test.groupby order by a, b
 
   - db: groupby_test
@@ -182,7 +272,7 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '13'
+    id: 'distinct_3'
     sql: select distinct b from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -193,7 +283,7 @@ testcases:
       - [2, 2]
       - [3, 3]
     expected_types: [int, int]
-    id: '14'
+    id: 'distinct_4'
     sql: select distinct a, b from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -204,7 +294,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '15'
+    id: 'distinct_5'
     sql: select distinct a, sum(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -213,7 +303,7 @@ testcases:
     expected_results:
       - [1, 8]
     expected_types: [int, float]
-    id: '16'
+    id: 'correlated_aggregate_1'
     sql: select a, (select sum(f.a) from groupby limit 1) from groupby f
 
   - db: groupby_test
@@ -225,7 +315,7 @@ testcases:
       - [2, 16]
       - [3, 20]
     expected_types: [int, float]
-    id: '17'
+    id: 'correlated_aggregate_2'
     sql: select a, (select sum(a + f.a) from groupby) from groupby f
 
   - db: groupby_test
@@ -234,7 +324,7 @@ testcases:
     expected_results:
       - [1, 40]
     expected_types: [int, float]
-    id: '18'
+    id: 'correlated_aggregate_3'
     sql: select a, (select sum(a + sum(f.a)) from groupby) as b from groupby f
 
   - db: groupby_test
@@ -245,7 +335,7 @@ testcases:
       - [3]
       - [2]
     expected_types: [int]
-    id: '19'
+    id: 'correlated_aggregate_5'
     sql: select a from groupby f group by 1 order by (select sum(f.a) from groupby limit 1)
 
   - db: groupby_test
@@ -256,7 +346,7 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '20'
+    id: 'correlated_aggregate_6'
     sql: select a from groupby f group by 1 order by (select sum(a + f.a) from groupby)
 
   - db: groupby_test
@@ -265,7 +355,7 @@ testcases:
     expected_results:
       - [1]
     expected_types: [int]
-    id: '21'
+    id: 'correlated_aggregate_7'
     sql: select a from groupby f having 10 > (select sum(f.a) from groupby limit 1)
 
   - db: groupby_test
@@ -276,7 +366,7 @@ testcases:
       - [2]
       - [2]
     expected_types: [int]
-    id: '22'
+    id: 'correlated_aggregate_7'
     sql: select a from groupby f having 20 > (select sum(a + f.a) from groupby)
 
   - db: groupby_test
@@ -287,7 +377,7 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '23'
+    id: 'correlated_aggregate_8'
     sql: select a from groupby f group by (select sum(a + f.a) / b from groupby)
 
   - db: groupby_test
@@ -298,7 +388,7 @@ testcases:
       - [4]
       - [3]
     expected_types: [int]
-    id: '24'
+    id: 'correlated_aggregate_9'
     sql: select sum(a) from groupby f group by (select sum(a + f.a) / b from groupby)
 
   - db: groupby_test
@@ -308,7 +398,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '25'
+    id: 'having_1'
     sql: select a, sum(b) from groupby_test.groupby group by a having sum(b) > 1 order by a
 
   - db: groupby_test
@@ -317,7 +407,7 @@ testcases:
     expected_results:
       - [3, 3]
     expected_types: [int, int]
-    id: '26'
+    id: 'having_2'
     sql: select a, sum(b) from groupby_test.groupby group by a having a > 2 AND sum(b) > 1 order by a
 
   - db: groupby_test
@@ -326,7 +416,7 @@ testcases:
     expected_results:
       - [0]
     expected_types: [int]
-    id: '27'
+    id: 'having_3'
     sql: select _id from groupby_test.groupby having sum(a) > 4 order by _id
 
   - db: groupby_test
@@ -337,7 +427,7 @@ testcases:
       - [2]
       - [3]
     expected_types: [int]
-    id: '28'
+    id: 'having_4'
     sql: select _id from groupby_test.groupby group by _id having sum(a) > 1 order by _id
 
   - db: groupby_test
@@ -347,7 +437,7 @@ testcases:
       - [1]
       - [3]
     expected_types: [int]
-    id: '29'
+    id: 'having_5'
     sql: select _id from groupby_test.groupby group by a having sum(a) > 1 order by _id
 
   - db: groupby_test
@@ -357,7 +447,7 @@ testcases:
       - [1, 4]
       - [3, 3]
     expected_types: [int, int]
-    id: '30'
+    id: 'having_6'
     sql: select _id, sum(a) from groupby_test.groupby group by a having sum(a) > 1 order by _id
 
   - db: groupby_test
@@ -368,7 +458,7 @@ testcases:
       - [2, 2.5]
       - [3, 3.0]
     expected_types: [int, float]
-    id: '31'
+    id: 'avg_1'
     sql: select a, avg(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -379,7 +469,7 @@ testcases:
       - [2, 4.5]
       - [3, 6.0]
     expected_types: [int, float]
-    id: '32'
+    id: 'avg_2'
     sql: select a, avg(a+b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -390,7 +480,7 @@ testcases:
       - [2, 2.0]
       - [3, 3.0]
     expected_types: [int, float]
-    id: '33'
+    id: 'avg_3'
     sql: select a, avg(distinct a) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -401,7 +491,7 @@ testcases:
       - [2, 2.5]
       - [3, 3.0]
     expected_types: [int, float]
-    id: '34'
+    id: 'avg_4'
     sql: select a, avg(distinct b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -412,7 +502,7 @@ testcases:
       - [2, 2]
       - [3, 1]
     expected_types: [int, int]
-    id: '35'
+    id: 'count_1'
     sql: select a, count(*) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -423,7 +513,7 @@ testcases:
       - [2, 1]
       - [3, 1]
     expected_types: [int, int]
-    id: '36'
+    id: 'count_2'
     sql: select a, count(distinct a) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -434,7 +524,7 @@ testcases:
       - [2, 0]
       - [3, 0]
     expected_types: [int, int]
-    id: '37'
+    id: 'count_3'
     sql: select a, count(c) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -472,7 +562,7 @@ testcases:
       - [2, 3]
       - [3, 3]
     expected_types: [int, int]
-    id: '38'
+    id: 'max_1'
     sql: select a, max(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -483,7 +573,7 @@ testcases:
       - [2, 5]
       - [3, 6]
     expected_types: [int, int]
-    id: '39'
+    id: 'max_2'
     sql: select a, max(a+b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -494,7 +584,7 @@ testcases:
       - [2, 2]
       - [3, 3]
     expected_types: [int, int]
-    id: '40'
+    id: 'min_1'
     sql: select a, min(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -505,7 +595,7 @@ testcases:
       - [2, 4]
       - [3, 6]
     expected_types: [int, int]
-    id: '41'
+    id: 'min_2'
     sql: select a, min(a+b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -516,7 +606,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '42'
+    id: 'sum_1'
     sql: select a, sum(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -527,7 +617,7 @@ testcases:
       - [2, 9]
       - [3, 6]
     expected_types: [int, int]
-    id: '43'
+    id: 'sum_2'
     sql: select a, sum(a+b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -538,7 +628,7 @@ testcases:
       - [2, 2]
       - [3, 3]
     expected_types: [int, int]
-    id: '44'
+    id: 'sum_3'
     sql: select a, sum(distinct a) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -549,7 +639,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '45'
+    id: 'sum_4'
     sql: select a, sum(distinct b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -560,7 +650,7 @@ testcases:
       - [2, 0.5]
       - [3, 0]
     expected_types: [int, float]
-    id: '46'
+    id: 'std_1'
     sql: select a, std(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -571,7 +661,7 @@ testcases:
       - [2, 0]
       - [3, 0]
     expected_types: [int, float]
-    id: '47'
+    id: 'std_2'
     sql: select a, std(distinct a) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -582,7 +672,7 @@ testcases:
       - [2, 0.7071067811865476]
       - [3, null]
     expected_types: [int, float]
-    id: '48'
+    id: 'std_3'
     sql: select a, stddev_samp(b) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -593,7 +683,7 @@ testcases:
       - [2, null]
       - [3, null]
     expected_types: [int, float]
-    id: '49'
+    id: 'std_4'
     sql: select a, stddev_samp(distinct a) from groupby_test.groupby group by a order by a
 
   - db: groupby_test
@@ -604,7 +694,7 @@ testcases:
       - [2, 0.7071067811865476]
       - [3, null]
     expected_types: [int, float]
-    id: '50'
+    id: 'std_5'
     sql: select groupby_test.groupby.a, stddev_samp(groupby_test.groupby.b) from groupby_test.groupby group by groupby_test.groupby.a order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -615,7 +705,7 @@ testcases:
       - [2, null]
       - [3, null]
     expected_types: [int, float]
-    id: '51'
+    id: 'std_6'
     sql: select groupby_test.groupby.a, stddev_samp(distinct groupby_test.groupby.a) from groupby_test.groupby group by groupby_test.groupby.a order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -626,7 +716,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '52'
+    id: 'three_dot_notation_1'
     sql: select groupby_test.groupby.a, sum(groupby_test.groupby.b) from groupby_test.groupby group by groupby_test.groupby.a order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -637,7 +727,7 @@ testcases:
       - [2, 9]
       - [3, 6]
     expected_types: [int, int]
-    id: '53'
+    id: 'three_dot_notation_2'
     sql: select groupby_test.groupby.a, sum(groupby_test.groupby.a+groupby_test.groupby.b) from groupby_test.groupby group by groupby_test.groupby.a order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -648,7 +738,7 @@ testcases:
       - [2, 5]
       - [3, 3]
     expected_types: [int, int]
-    id: '54'
+    id: 'three_dot_notation_3'
     sql: select groupby_test.groupby.a as f, sum(groupby_test.groupby.b) from groupby_test.groupby group by f order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -659,7 +749,7 @@ testcases:
       - [2, 5, 2]
       - [3, 3, 1]
     expected_types: [int, int, int]
-    id: '55'
+    id: 'three_dot_notation_4'
     sql: select groupby_test.groupby.a, sum(groupby_test.groupby.b), count(*) from groupby_test.groupby group by groupby_test.groupby.a order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -670,7 +760,7 @@ testcases:
       - [2, 2.5]
       - [3, 3.0]
     expected_types: [int, float]
-    id: '56'
+    id: 'three_dot_notation_5'
     sql: select groupby_test.groupby.a, avg(groupby_test.groupby.b) from groupby_test.groupby group by groupby_test.groupby.a order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -681,7 +771,7 @@ testcases:
       - [2, 4.5]
       - [3, 6.0]
     expected_types: [int, float]
-    id: '57'
+    id: 'three_dot_notation_6'
     sql: select groupby_test.groupby.a, avg(groupby_test.groupby.a+groupby_test.groupby.b) from groupby_test.groupby group by groupby_test.groupby.a order by groupby_test.groupby.a
 
   - db: groupby_test
@@ -690,18 +780,18 @@ testcases:
     expected_results:
       - [1, 2]
     expected_types: [int, int]
-    id: '58'
+    id: 'group_by_constant'
     sql: select 1 as a, 2 as b from groupby_test.groupby group by 1
 
   - db: groupby_test
-    description: group by column ref with no column reference in field list
+    description: group by column ref with no column ref in field list
     expected_names: [a, b]
     expected_results:
       - [1, 2]
       - [1, 2]
       - [1, 2]
     expected_types: [int, int]
-    id: '59'
+    id: 'group_by_column_ref'
     sql: select 1 as a, 2 as b from groupby_test.groupby group by a
 
   - db: groupby_test

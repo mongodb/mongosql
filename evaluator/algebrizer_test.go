@@ -4292,6 +4292,10 @@ func TestAlgebrizeQuery(t *testing.T) {
 			`ERROR 1052 (23000): Column 'a' in field list is ambiguous`},
 		{"select a, b as a from foo order by a",
 			`ERROR 1052 (23000): Column 'a' in order clause is ambiguous`},
+		{"select a as b, b from foo order by b",
+			`ERROR 1052 (23000): Column 'b' in order clause is ambiguous`},
+		{"select a as z, b as z from foo order by z",
+			`ERROR 1052 (23000): Column 'z' in order clause is ambiguous`},
 
 		{"select (select a, b from foo) from foo",
 			`ERROR 1241 (21000): Operand should contain 1 column(s)`},
@@ -4343,6 +4347,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			`ERROR 1054 (42S22): Unknown column '0' in 'group clause'`},
 		{"select sum(a) from foo group by 2",
 			`ERROR 1054 (42S22): Unknown column '2' in 'group clause'`},
+		{"select a as z, b as z from foo group by z",
+			`ERROR 1052 (23000): Column 'z' in group clause is ambiguous`},
 
 		{"select a from foo, foo",
 			`ERROR 1066 (42000): Not unique table/alias: 'foo'`},
@@ -4382,6 +4388,8 @@ func TestAlgebrizeQuery(t *testing.T) {
 			"ERROR 1052 (23000): Column '_id' in from clause is ambiguous"},
 		{"select * from foo join bar using (b) natural join baz",
 			"ERROR 1052 (23000): Column '_id' in from clause is ambiguous"},
+		{"select * from bar where _id in (select _id from foo join baz)",
+			"ERROR 1052 (23000): Column '_id' in field list is ambiguous"},
 		{"select bar.d, biz.a from bar natural join (select * from baz join foo) as biz",
 			`ERROR 1060 (42S21): Duplicate column name 'biz._id'`},
 		{"select * from foo left join bar natural join baz using (id)",
