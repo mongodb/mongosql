@@ -156,8 +156,9 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, string, error) {
 	opts := &config.Schema{
 		Sample: config.NewSchemaSampleOptions(
-			1000,                       // maxNestedTableDepth
-			1000,                       // maxNumColumnsPerTable
+			50,                         // maxNestedTableDepth
+			2000,                       // maxNumColumnsPerTable
+			2000,                       // maxNumFieldsPerCollection
 			[]string{"*.*"},            // namespaces
 			true,                       // optimizeViewSampling
 			false,                      // preJoin

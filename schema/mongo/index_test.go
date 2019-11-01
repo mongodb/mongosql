@@ -13,6 +13,7 @@ import (
 func TestAddIndexes(t *testing.T) {
 	Convey("Given a new collection schema", t, func() {
 		schema := mongo.NewCollectionSchema()
+		ft := mongo.NewNoopFieldTracker()
 
 		Convey("with an included sample", func() {
 			err := schema.IncludeSample(bsonutil.NewD(
@@ -25,7 +26,7 @@ func TestAddIndexes(t *testing.T) {
 				bsonutil.NewDocElem("b", bsonutil.NewD(
 					bsonutil.NewDocElem("geo", true),
 				)),
-			))
+			), ft)
 			So(err, ShouldBeNil)
 
 			Convey("Adding some indexes", func() {

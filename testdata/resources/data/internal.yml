@@ -256,7 +256,7 @@
     - {_id: 2, a: 3, ab: 3}
 
 - db: "functions_test"
-  collection: "ascii" 
+  collection: "ascii"
   # The squares are actually different characters; they just can't be displayed properly
   docs:
     - {_id: 0, a: ~, b: "\0", c: true, d: {$date: "2006-12-04T12:30:25Z"}, e: " ", f: "☔"}
@@ -265,7 +265,7 @@
     - {_id: 3, a: 4, b: "~!", e: "ৗ", f: "ꝝ"}
     - {_id: 4, a: 0.5, b: "", e: "ÿ", f: "ࠀ"}
     - {_id: 5, b: "⚛", e: "￮", f: "߿"}
-    
+
 - db: "functions_test"
   collection: "scalar"
   docs:
@@ -942,6 +942,55 @@
     - {_id: 1, a: 0}
     - {_id: 2, a: 1}
     - {_id: 3, a: 2}
+
+- db: "sample_test"
+  collection: "simple"
+  docs:
+    - {_id: 0, int1: 1, int2: 2, int3: 3}
+
+- db: "sample_test"
+  collection: "many_docs"
+  docs:
+    - {_id: 0, int1: 1}
+    - {_id: 1, int2: 2}
+    - {_id: 2, int3: 3}
+
+- db: "sample_test"
+  collection: "nested_doc"
+  docs:
+    - {_id: 0, doc1: {int1: 2, int2: 3, int3: 4}}
+
+- db: "sample_test"
+  collection: "array_simple"
+  docs:
+    - {_id: 0, arr1: [1, 2, 3], int1: 2, int2: 3, int3: 4}
+
+- db: "sample_test"
+  collection: "array_sub_doc"
+  docs:
+    - {_id: 0, arr1: [{int1: 1, int2: 2, int3: 3, int4: 4}], int1: 2, int2: 3, int3: 4}
+
+- db: "sample_test"
+  collection: "deeply_nested_array"
+  docs:
+    - {_id: 0, arr1: [{int1: 1, arr2: [{int1: 2, int2: 3}]}]}
+
+- db: "sample_test"
+  collection: "unmappable_bson_type"
+  docs:
+      - {_id: 0, unmap1: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"}, int1: 1, int2: 2, int3: 3}
+
+- db: "sample_test"
+  collection: "array_scalar_conflict"
+  docs:
+    - {_id: 0, poly1: 1, int1: 2, int2: 3, int3: 4}
+    - {_id: 1, poly1: [1, 2, 3], int1: 2, int2: 3, int3: 4}
+
+- db: "sample_test"
+  collection: "unmappable_mappable_scalar_conflict"
+  docs:
+    - {_id: 0, poly1: 1, int1: 2, int2: 3, int3: 4}
+    - {_id: 1, poly1: {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "00"}, int1: 2, int2: 3, int3: 4}
 
 - db: "select_sTest"
   collection: "select_1"

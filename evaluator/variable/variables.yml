@@ -223,6 +223,15 @@ system_variables:
     validation:
       min: 0
 
+  - _id: maxNumFieldsPerCollection
+    config_field: Schema.Sample.MaxNumFieldsPerCollection
+    default: 2000
+    name: 'max_num_fields_per_collection'
+    set_scopes: [global]
+    type: SQLInt64
+    validation:
+      min: 1
+
   - _id: maxNumColumnsPerTable
     config_field: Schema.Sample.MaxNumColumnsPerTable
     default: 2000

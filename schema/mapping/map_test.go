@@ -152,7 +152,8 @@ func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
 
 	// create an empty json schema and include the sample doc
 	actual := mongo.NewCollectionSchema()
-	err = actual.IncludeSample(sample)
+	ft := mongo.NewNoopFieldTracker()
+	err = actual.IncludeSample(sample, ft)
 	if err != nil {
 		return err
 	}
@@ -177,7 +178,6 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 		[]uint8{4, 0, 0},
 		log.GlobalLogger(),
 		mappingMode,
-		1000,
 		50))
 	if err != nil {
 		return err

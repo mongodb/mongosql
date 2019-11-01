@@ -38,11 +38,12 @@ var (
 
 // These are the constants for default values of variables.
 const (
-	DefaultRefreshIntervalSecs   = 0
-	DefaultSampleSize            = 1000
-	DefaultMaxNumColumnsPerTable = 2000
-	DefaultMaxNestedTableDepth   = 50
-	DefaultMaxAllowedPacket      = 1073741824
+	DefaultRefreshIntervalSecs       = 0
+	DefaultSampleSize                = 1000
+	DefaultMaxNumColumnsPerTable     = 2000
+	DefaultMaxNumFieldsPerCollection = 2000
+	DefaultMaxNestedTableDepth       = 50
+	DefaultMaxAllowedPacket          = 1073741824
 )
 
 // These are constants for the allowed values of NumConnectionsPerSession.
@@ -139,6 +140,7 @@ func Default() *Config {
 
 	cfg.Schema.Sample.Size = DefaultSampleSize
 	cfg.Schema.Sample.MaxNumColumnsPerTable = DefaultMaxNumColumnsPerTable
+	cfg.Schema.Sample.MaxNumFieldsPerCollection = DefaultMaxNumFieldsPerCollection
 	cfg.Schema.Sample.MaxNestedTableDepth = DefaultMaxNestedTableDepth
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
 	cfg.Schema.Sample.OptimizeViewSampling = true
@@ -294,6 +296,10 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid sample max number of columns per table: %d", cfg.Schema.Sample.MaxNumColumnsPerTable)
 	}
 
+	if cfg.Schema.Sample.MaxNumFieldsPerCollection <= 0 {
+		return fmt.Errorf("invalid sample max number of fields per collection: %d", cfg.Schema.Sample.MaxNumFieldsPerCollection)
+	}
+
 	if cfg.Schema.Sample.MaxNestedTableDepth < 0 {
 		return fmt.Errorf("invalid sample max nested table depth: %d", cfg.Schema.Sample.MaxNestedTableDepth)
 	}
@@ -396,6 +402,9 @@ func checkForDissallowedWriteModeSettings(cfg *Config) error {
 	}
 	if cfg.Schema.Sample.MaxNumColumnsPerTable != defaultCfg.Schema.Sample.MaxNumColumnsPerTable {
 		return fmt.Errorf("write mode schema cannot have sample settings, found maxNumColumnsPerTable")
+	}
+	if cfg.Schema.Sample.MaxNumFieldsPerCollection != defaultCfg.Schema.Sample.MaxNumFieldsPerCollection {
+		return fmt.Errorf("write mode schema cannot have sample settings, found maxNumFieldsPerCollection")
 	}
 	for i := range cfg.Schema.Sample.Namespaces {
 		if cfg.Schema.Sample.Namespaces[i] != defaultCfg.Schema.Sample.Namespaces[i] {
@@ -521,6 +530,7 @@ type SchemaStorageOptions struct {
 type SchemaSampleOptions struct {
 	MaxNestedTableDepth           int64       `config:"-"`
 	MaxNumColumnsPerTable         int64       `config:"-"`
+	MaxNumFieldsPerCollection     int64       `config:"-"`
 	Namespaces                    []string    `config:"namespaces"`
 	OptimizeViewSampling          bool        `config:"optimizeViewSampling"`
 	PreJoin                       bool        `config:"prejoin"`
@@ -533,6 +543,7 @@ type SchemaSampleOptions struct {
 // NewSchemaSampleOptions creates a new schema sampling configuration with the given options.
 func NewSchemaSampleOptions(maxNestedTableDepth int64,
 	maxNumColumnsPerTable int64,
+	maxNumFieldsPerCollection int64,
 	namespaces []string,
 	optimizeViewSampling bool,
 	preJoin bool,
@@ -542,6 +553,7 @@ func NewSchemaSampleOptions(maxNestedTableDepth int64,
 	return SchemaSampleOptions{
 		MaxNestedTableDepth:           maxNestedTableDepth,
 		MaxNumColumnsPerTable:         maxNumColumnsPerTable,
+		MaxNumFieldsPerCollection:     maxNumFieldsPerCollection,
 		Namespaces:                    namespaces,
 		OptimizeViewSampling:          optimizeViewSampling,
 		PreJoin:                       preJoin,

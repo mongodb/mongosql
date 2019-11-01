@@ -17,6 +17,7 @@ import (
 func TestMergeSchema(t *testing.T) {
 	Convey("Given an empty object schema", t, func() {
 		schema := mongo.NewCollectionSchema()
+		ft := mongo.NewNoopFieldTracker()
 
 		Convey("Merging it with a schema of any other type should fail", func() {
 			otherTypes := []mongo.BSONType{
@@ -27,7 +28,7 @@ func TestMergeSchema(t *testing.T) {
 				other := &mongo.Schema{
 					BSONType: typ,
 				}
-				err := schema.Merge(other)
+				err := schema.Merge(other, ft)
 				So(err, ShouldNotBeNil)
 			}
 		})
@@ -39,7 +40,7 @@ func TestMergeSchema(t *testing.T) {
 			))
 			So(err, ShouldBeNil)
 
-			err = schema.Merge(other)
+			err = schema.Merge(other, ft)
 			So(err, ShouldBeNil)
 
 			Convey("Should give a schema resembling the non-empty one", func() {
@@ -58,7 +59,7 @@ func TestMergeSchema(t *testing.T) {
 				))
 				So(err, ShouldBeNil)
 
-				err = schema.Merge(other)
+				err = schema.Merge(other, ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should give a schema resembling the union of all three objects", func() {
@@ -70,6 +71,7 @@ func TestMergeSchema(t *testing.T) {
 							"c": mongo.NewSchemata(&mongo.Schema{BSONType: mongo.Int}),
 							"d": mongo.NewSchemata(&mongo.Schema{BSONType: mongo.Long}),
 						},
+						OrderedProps: []string{"a", "b", "c", "d"},
 					}
 					expected.Properties["b"].Counts["int"] = 2
 
@@ -86,6 +88,7 @@ func TestMergeSchema(t *testing.T) {
 	Convey("Given an empty array schema", t, func() {
 		schema, err := mongo.NewArraySchema([]interface{}{})
 		So(err, ShouldBeNil)
+		ft := mongo.NewNoopFieldTracker()
 
 		Convey("Merging it with a schema of any other type should fail", func() {
 			otherTypes := []mongo.BSONType{
@@ -96,7 +99,7 @@ func TestMergeSchema(t *testing.T) {
 				other := &mongo.Schema{
 					BSONType: typ,
 				}
-				err := schema.Merge(other)
+				err := schema.Merge(other, ft)
 				So(err, ShouldNotBeNil)
 			}
 		})
@@ -105,7 +108,7 @@ func TestMergeSchema(t *testing.T) {
 			other, err := mongo.NewArraySchema([]interface{}{true, true, false})
 			So(err, ShouldBeNil)
 
-			err = schema.Merge(other)
+			err = schema.Merge(other, ft)
 			So(err, ShouldBeNil)
 
 			jsonActual, err := schema.JSONSchema()
@@ -121,7 +124,7 @@ func TestMergeSchema(t *testing.T) {
 				other, err := mongo.NewArraySchema([]interface{}{"abc"})
 				So(err, ShouldBeNil)
 
-				err = schema.Merge(other)
+				err = schema.Merge(other, ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in a superposition of the two array schemas", func() {
@@ -136,6 +139,7 @@ func TestMergeSchema(t *testing.T) {
 								mongo.Boolean: 3,
 								mongo.String:  1,
 							},
+							HasScalarSchema: true,
 						},
 					}
 
@@ -153,7 +157,7 @@ func TestMergeSchema(t *testing.T) {
 				other, err := mongo.NewArraySchema([]interface{}{"abc", "def", "ghi", "jkl"})
 				So(err, ShouldBeNil)
 
-				err = schema.Merge(other)
+				err = schema.Merge(other, ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in a superposition of the two array schemas", func() {
@@ -168,6 +172,7 @@ func TestMergeSchema(t *testing.T) {
 								mongo.Boolean: 3,
 								mongo.String:  4,
 							},
+							HasScalarSchema: true,
 						},
 					}
 
@@ -186,6 +191,7 @@ func TestMergeSchema(t *testing.T) {
 
 func TestRenderJSONSchema(t *testing.T) {
 	schema := mongo.NewCollectionSchema()
+	ft := mongo.NewNoopFieldTracker()
 
 	err := schema.IncludeSample(bsonutil.NewD(
 		bsonutil.NewDocElem("scalar", int32(1)),
@@ -203,7 +209,7 @@ func TestRenderJSONSchema(t *testing.T) {
 			bsonutil.NewArray(true, false, false),
 			bsonutil.NewArray(true, true, true),
 		)),
-	))
+	), ft)
 	if err != nil {
 		t.Fatalf("Failed including sample: %v", err)
 	}
@@ -225,18 +231,22 @@ func TestRenderJSONSchema(t *testing.T) {
                     "items": {
                         "schemas": {
                             "string": {
-                                "bsonType": "string"
+                                "bsonType": "string",
+                                "OrderedProps": null
                             }
                         },
                         "counts": {
                             "string": 3
-                        }
-                    }
+                        },
+                        "HasScalarSchema": true
+                    },
+                    "OrderedProps": null
                 }
             },
             "counts": {
                 "array": 1
-            }
+            },
+            "HasScalarSchema": false
         },
         "nestedarray": {
             "schemas": {
@@ -249,34 +259,42 @@ func TestRenderJSONSchema(t *testing.T) {
                                 "items": {
                                     "schemas": {
                                         "bool": {
-                                            "bsonType": "bool"
+                                            "bsonType": "bool",
+                                            "OrderedProps": null
                                         }
                                     },
                                     "counts": {
                                         "bool": 6
-                                    }
-                                }
+                                    },
+                                    "HasScalarSchema": true
+                                },
+                                "OrderedProps": null
                             }
                         },
                         "counts": {
                             "array": 2
-                        }
-                    }
+                        },
+                        "HasScalarSchema": false
+                    },
+                    "OrderedProps": null
                 }
             },
             "counts": {
                 "array": 1
-            }
+            },
+            "HasScalarSchema": false
         },
         "nil": {
             "schemas": {
                 "null": {
-                    "bsonType": "null"
+                    "bsonType": "null",
+                    "OrderedProps": null
                 }
             },
             "counts": {
                 "null": 1
-            }
+            },
+            "HasScalarSchema": true
         },
         "object": {
             "schemas": {
@@ -286,42 +304,60 @@ func TestRenderJSONSchema(t *testing.T) {
                         "bool": {
                             "schemas": {
                                 "bool": {
-                                    "bsonType": "bool"
+                                    "bsonType": "bool",
+                                    "OrderedProps": null
                                 }
                             },
                             "counts": {
                                 "bool": 1
-                            }
+                            },
+                            "HasScalarSchema": true
                         }
-                    }
+                    },
+                    "OrderedProps": [
+                        "bool"
+                    ]
                 }
             },
             "counts": {
                 "object": 1
-            }
+            },
+            "HasScalarSchema": false
         },
         "scalar": {
             "schemas": {
                 "int": {
-                    "bsonType": "int"
+                    "bsonType": "int",
+                    "OrderedProps": null
                 }
             },
             "counts": {
                 "int": 1
-            }
+            },
+            "HasScalarSchema": true
         },
         "unique_id": {
             "schemas": {
                 "binData": {
                     "bsonType": "binData",
-                    "specialType": "uuid3"
+                    "specialType": "uuid3",
+                    "OrderedProps": null
                 }
             },
             "counts": {
                 "binData": 1
-            }
+            },
+            "HasScalarSchema": true
         }
-    }
+    },
+    "OrderedProps": [
+        "scalar",
+        "array",
+        "object",
+        "nil",
+        "unique_id",
+        "nestedarray"
+    ]
 }`
 
 	spacelessExpected := strings.Replace(expected, " ", "", -1)
@@ -336,12 +372,13 @@ func TestSampling(t *testing.T) {
 	Convey("Given an empty collection", t, func() {
 		collection := mongo.NewCollectionSchema()
 		So(collection, shouldHaveType, mongo.Object)
+		ft := mongo.NewNoopFieldTracker()
 
 		Convey("Including a flat document", func() {
 			err := collection.IncludeSample(bsonutil.NewD(
 				bsonutil.NewDocElem("a", int32(1)),
 				bsonutil.NewDocElem("b", int32(1)),
-			))
+			), ft)
 			So(err, ShouldBeNil)
 
 			Convey("Should result in 2 properties", func() {
@@ -358,7 +395,7 @@ func TestSampling(t *testing.T) {
 				err = collection.IncludeSample(bsonutil.NewD(
 					bsonutil.NewDocElem("a", int32(1)),
 					bsonutil.NewDocElem("b", int32(1)),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should increase the 2 properties' sample counts", func() {
@@ -376,7 +413,7 @@ func TestSampling(t *testing.T) {
 				err = collection.IncludeSample(bsonutil.NewD(
 					bsonutil.NewDocElem("c", int32(2)),
 					bsonutil.NewDocElem("d", int32(2)),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 4 properties", func() {
@@ -400,7 +437,7 @@ func TestSampling(t *testing.T) {
 				err = collection.IncludeSample(bsonutil.NewD(
 					bsonutil.NewDocElem("a", "string"),
 					bsonutil.NewDocElem("b", 3.2),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 				err = collection.IncludeSample(bsonutil.NewD(
 					bsonutil.NewDocElem("a", bsonutil.NewArray(
@@ -408,7 +445,7 @@ func TestSampling(t *testing.T) {
 						int32(1),
 					)),
 					bsonutil.NewDocElem("b", bsonutil.NewD(bsonutil.NewDocElem("c", int64(1)))),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 properties", func() {
@@ -438,7 +475,7 @@ func TestSampling(t *testing.T) {
 					bsonutil.NewDocElem("c", int32(1)),
 					bsonutil.NewDocElem("d", int32(1)),
 				)),
-			))
+			), ft)
 			So(err, ShouldBeNil)
 
 			Convey("Should result in 2 properties", func() {
@@ -471,7 +508,7 @@ func TestSampling(t *testing.T) {
 						bsonutil.NewDocElem("c", "string"),
 						bsonutil.NewDocElem("d", int64(1)),
 					)),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 properties", func() {
@@ -506,7 +543,7 @@ func TestSampling(t *testing.T) {
 						bsonutil.NewDocElem("c", "string"),
 						bsonutil.NewDocElem("e", int32(1)),
 					)),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 3 properties", func() {
@@ -549,7 +586,7 @@ func TestSampling(t *testing.T) {
 					"b",
 					"c",
 				)),
-			))
+			), ft)
 			So(err, ShouldBeNil)
 
 			Convey("Should result in 2 properties", func() {
@@ -578,7 +615,7 @@ func TestSampling(t *testing.T) {
 						"c",
 						"d",
 					)),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 2 properties", func() {
@@ -608,7 +645,7 @@ func TestSampling(t *testing.T) {
 					bsonutil.NewDocElem("b", bsonutil.NewArray(
 						time.Now(),
 					)),
-				))
+				), ft)
 				So(err, ShouldBeNil)
 
 				Convey("Should result in 3 properties", func() {
@@ -893,6 +930,7 @@ func TestValidateSchema(t *testing.T) {
 
 	Convey("Given a fresh schemata", t, func() {
 		schemata := mongo.NewSchemata(nil)
+		ft := mongo.NewNoopFieldTracker()
 
 		Convey("It should pass validation", func() {
 			So(schemata, shouldBeValidSchemata)
@@ -905,7 +943,7 @@ func TestValidateSchema(t *testing.T) {
 			s.SpecialType = mongo.UUID3
 			So(s, shouldBeInvalidSchema)
 
-			err = schemata.IncludeSchema(s, 1)
+			err = schemata.IncludeSchema(s, 1, ft)
 			So(err, ShouldBeNil)
 
 			Convey("Should yield an invalid schema", func() {
@@ -917,7 +955,7 @@ func TestValidateSchema(t *testing.T) {
 			s := mongo.NewCollectionSchema()
 			So(s, shouldBeValidSchema)
 
-			err := schemata.IncludeSchema(s, 1)
+			err := schemata.IncludeSchema(s, 1, ft)
 			So(err, ShouldBeNil)
 
 			Convey("Should yield a valid schema", func() {

@@ -140,8 +140,9 @@ func newSampleConfig(opts DrdlOptions, ns []string) sample.Config {
 			Source: "",
 		},
 		Sample: config.NewSchemaSampleOptions(
-			1000,                                 // maxNestedTableDepth
-			1000,                                 // maxNumColumnsPerTable
+			50,                                   // maxNestedTableDepth
+			2000,                                 // maxNumColumnsPerTable
+			2000,                                 // maxNumFieldsPerCollection
 			ns,                                   // namespaces
 			true,                                 // optimizeViewSampling
 			opts.DrdlOutput.PreJoined,            // preJoin

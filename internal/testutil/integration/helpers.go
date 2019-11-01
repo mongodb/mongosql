@@ -377,8 +377,18 @@ func RunTest(t *testing.T, test *TestCase, conn *sql.Conn) {
 		t.Fatal(err)
 	}
 
-	if test.CleanupSQL != "" {
-		if _, err = conn.ExecContext(context.Background(), test.CleanupSQL); err != nil {
+	var cleanupList []string
+	if len(test.CleanupSQLList) > 0 {
+		cleanupList = test.CleanupSQLList
+		if test.CleanupSQL != "" {
+			panic(fmt.Sprintf("cannot specify both 'sql_cleanup' and 'sql_cleanup_list' in the same test: %s", test.ID))
+		}
+	} else if test.CleanupSQL != "" {
+		cleanupList = []string{test.CleanupSQL}
+	}
+
+	for _, cleanupSQL := range cleanupList {
+		if _, err = conn.ExecContext(context.Background(), cleanupSQL); err != nil {
 			t.Fatal(err)
 		}
 	}

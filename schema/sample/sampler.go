@@ -545,8 +545,9 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 			// 3. create json schema and store it
 			count, doc := int64(0), bsonutil.NewD()
 
+			ft := mongo.NewSchemaFieldTracker(s.cfg.MaxNumFieldsPerCollection(), 0, s.lg, sampleCollection)
 			for cursor.Next(ctx, &doc) {
-				err = jsonSchema.IncludeSample(doc)
+				err = jsonSchema.IncludeSample(doc, ft)
 				if err != nil {
 					return nil, fmt.Errorf("error including sample: %v", err)
 				}
@@ -598,7 +599,6 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 				version.VersionArray,
 				s.lg,
 				s.cfg.SchemaMappingMode(),
-				s.cfg.MaxNumColumnsPerTable(),
 				s.cfg.MaxNestedTableDepth(),
 			))
 

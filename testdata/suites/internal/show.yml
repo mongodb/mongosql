@@ -804,6 +804,7 @@ testcases:
       - [odbc_test]
       - [orderby_test]
       - [polymorphic_data_test]
+      - [sample_test]
       - [select_sTest]
       - [select_test]
       - [set_test]

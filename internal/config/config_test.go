@@ -34,6 +34,8 @@ func TestDefault(t *testing.T) {
 		"cfg.Schema.Sample.OptimizeViewSampling")
 	testInt64(t, cfg.Schema.Sample.MaxNumColumnsPerTable, 2000,
 		"cfg.Schema.Sample.MaxNumColumnsPerTable")
+	testInt64(t, cfg.Schema.Sample.MaxNumFieldsPerCollection, 2000,
+		"cfg.Schema.Sample.MaxNumFieldsPerCollection")
 	testInt64(t, cfg.Schema.Sample.MaxNestedTableDepth, 50,
 		"cfg.Schema.Sample.MaxNestedTableDepth")
 	testStringSlice(t,
@@ -497,6 +499,22 @@ func TestValidate_Invalid_Sample_MaxNumColumnsPerTable(t *testing.T) {
 	}
 }
 
+func TestValidate_Invalid_Sample_MaxNumFieldsPerCollection(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.MaxNumFieldsPerCollection = 0
+	cfg.Schema.Stored.Source = "test"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "invalid sample max number of fields per collection: 0"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
 func TestValidate_Invalid_Sample_MaxNestedTableDepth(t *testing.T) {
 	cfg := Default()
 	cfg.Schema.Sample.MaxNestedTableDepth = -1
@@ -753,6 +771,9 @@ func TestValidate_WriteMode_SampleSettings(t *testing.T) {
 	cfg = getCfg()
 	cfg.Schema.Sample.MaxNumColumnsPerTable++
 	check("write mode schema cannot have sample settings, found maxNumColumnsPerTable")
+	cfg = getCfg()
+	cfg.Schema.Sample.MaxNumFieldsPerCollection++
+	check("write mode schema cannot have sample settings, found maxNumFieldsPerCollection")
 	cfg = getCfg()
 	cfg.Schema.Sample.Namespaces = []string{"*.foo"}
 	check("write mode schema cannot have sample settings, found namespaces")

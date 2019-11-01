@@ -38,7 +38,6 @@ func benchmarkMapWithColumnCount(b *testing.B, cols int) {
 				[]uint8{4, 0, 0},
 				log.GlobalLogger(),
 				config.MajorityMappingMode,
-				1000,
 				50))
 		req.NoError(err, "failed to map MongoDB schema to relational schema")
 	}
@@ -46,12 +45,13 @@ func benchmarkMapWithColumnCount(b *testing.B, cols int) {
 
 func createMongoSchema(cols int) (*mongo.Schema, error) {
 	schema := mongo.NewCollectionSchema()
+	ft := mongo.NewNoopFieldTracker()
 
 	var i int
 	for i < cols {
 		colName := fmt.Sprintf("field_%d", i)
 		doc := bsonutil.NewD(bsonutil.NewDocElem(colName, "value"))
-		err := schema.IncludeSample(doc)
+		err := schema.IncludeSample(doc, ft)
 		if err != nil {
 			return nil, err
 		}

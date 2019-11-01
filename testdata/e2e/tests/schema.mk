@@ -143,14 +143,6 @@ _test-cols-after-update: TABLE := sample_test
 _test-cols-after-update: NUM_COLUMNS := 11
 _test-cols-after-update: _test-count-columns2
 
-_test-cols-before-max-num-columns-per-table-update: TABLE := sample_test
-_test-cols-before-max-num-columns-per-table-update: NUM_COLUMNS := 11
-_test-cols-before-max-num-columns-per-table-update: _test-count-columns
-
-_test-cols-after-max-num-columns-per-table-update: TABLE := sample_test
-_test-cols-after-max-num-columns-per-table-update: NUM_COLUMNS := 3
-_test-cols-after-max-num-columns-per-table-update: _test-count-columns2
-
 _test-cols-before-max-nested-table-depth-update: DB := mongosqld_sample_test
 _test-cols-before-max-nested-table-depth-update: NUM_TABLES := 2
 _test-cols-before-max-nested-table-depth-update: _test-count-tables
@@ -165,7 +157,7 @@ test-sample-size-update: setup-sample _test-initial-cols-before-update _update-s
 
 # test that dynamically changing the same max_num_columns_per_table variable works correctly.
 test-max-num-columns-per-table-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority
-test-max-num-columns-per-table-update: setup-sample _test-cols-before-max-num-columns-per-table-update _update-sample-max-num-columns-per-table-to-three _test-flush _test-cols-after-max-num-columns-per-table-update
+test-max-num-columns-per-table-update: setup-sample _update-sample-max-num-columns-per-table-to-three _test-flush
 
 # test that dynamically changing the same max_num_columns_per_table variable works correctly.
 test-max-nested-table-depth-update: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority

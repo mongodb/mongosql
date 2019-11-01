@@ -1,0 +1,142 @@
+testcases:
+
+  - db: "sample_test"
+    description: "field limit simple"
+    expected_names: ["column_name"]
+    expected_results:
+      - ["_id"]
+      - ["int1"]
+      - ["int2"]
+    expected_types: [varchar]
+    id: 0
+    sql_cleanup_list: [
+      'set @@global.max_num_fields_per_collection=DEFAULT',
+      'flush sample'
+    ]
+    sql_list: [
+      'set @@global.max_num_fields_per_collection=3',
+      'flush sample',
+      'select column_name from information_schema.columns where table_name="simple"'
+    ]
+    sync: true
+
+    # For the following test, we just count the number of columns rather than checking their names.
+    # We use $sample to get documents from the server, which has no guaranteed order, so we can't know
+    # which fields we'll get.
+  - db: "sample_test"
+    description: "field limit works when fields distributed amongst several documents"
+    expected_names: ["numColumns"]
+    expected_results:
+      - [3]
+    expected_types: [int]
+    id: 1
+    sql_cleanup_list: [
+      'set @@global.max_num_fields_per_collection=DEFAULT',
+      'flush sample'
+    ]
+    sql_list: [
+      'set @@global.max_num_fields_per_collection=3',
+      'flush sample',
+      'select count(*) as numColumns from information_schema.columns where table_name="many_docs"'
+    ]
+    sync: true
+
+  - db: "sample_test"
+    description: "field limit works when some fields come from nested documents"
+    expected_names: ["column_name"]
+    expected_results:
+      - ["_id"]
+      - ["doc1.int1"]
+      - ["doc1.int2"]
+    expected_types: [varchar]
+    id: 2
+    sql_cleanup_list: [
+      'set @@global.max_num_fields_per_collection=DEFAULT',
+      'flush sample'
+    ]
+    sql_list: [
+      'set @@global.max_num_fields_per_collection=3',
+      'flush sample',
+      'select column_name from information_schema.columns where table_name="nested_doc"'
+    ]
+    sync: true
+
+  - db: "sample_test"
+    description: "field limit counts array field as a field"
+    expected_names: ["column_name"]
+    expected_results:
+      - ["_id"]
+      - ["int1"]
+    expected_types: [varchar]
+    id: 3
+    sql_cleanup_list: [
+      'set @@global.max_num_fields_per_collection=DEFAULT',
+      'flush sample'
+    ]
+    sql_list: [
+      'set @@global.max_num_fields_per_collection=3',
+      'flush sample',
+      'select column_name from information_schema.columns where table_name="array_simple"'
+    ]
+    sync: true
+
+  - db: "sample_test"
+    description: "field limit counts fields within array"
+    expected_names: ["column_name"]
+    expected_results:
+      - ["_id"]
+      - ["arr1.int1"]
+      - ["arr1.int2"]
+      - ["arr1_idx"]
+    expected_types: [varchar]
+    id: 4
+    sql_cleanup_list: [
+      'set @@global.max_num_fields_per_collection=DEFAULT',
+      'flush sample'
+    ]
+    sql_list: [
+      'set @@global.max_num_fields_per_collection=3',
+      'flush sample',
+      'select column_name from information_schema.columns where table_name="array_sub_doc_arr1"'
+    ]
+    sync: true
+
+  - db: "sample_test"
+    description: "field limit counts fields within deeply nested array"
+    expected_names: ["column_name"]
+    expected_results:
+      - ["_id"]
+      - ["arr1.arr2.int1"]
+      - ["arr1.arr2_idx"]
+      - ["arr1_idx"]
+    expected_types: [varchar]
+    id: 5
+    sql_cleanup_list: [
+      'set @@global.max_num_fields_per_collection=DEFAULT',
+      'flush sample'
+    ]
+    sql_list: [
+      'set @@global.max_num_fields_per_collection=3',
+      'flush sample',
+      'select column_name from information_schema.columns where table_name="deeply_nested_array_arr1_arr2"'
+    ]
+    sync: true
+
+  - db: "sample_test"
+    description: "field limit counts unmappable BSON type as a field"
+    expected_names: ["column_name"]
+    expected_results:
+      - ["_id"]
+      - ["int1"]
+    expected_types: [varchar]
+    id: 6
+    sql_cleanup_list: [
+      'set @@global.max_num_fields_per_collection=DEFAULT',
+      'flush sample'
+    ]
+    sql_list: [
+      'set @@global.max_num_fields_per_collection=3',
+      'flush sample',
+      'select column_name from information_schema.columns where table_name="unmappable_bson_type"'
+    ]
+    sync: true

@@ -13,7 +13,7 @@ import (
 type Config interface {
 	Source() string
 	Size() int64
-	MaxNumColumnsPerTable() int64
+	MaxNumFieldsPerCollection() int64
 	MaxNestedTableDepth() int64
 	OptimizeViewSampling() bool
 	PreJoin() bool
@@ -49,11 +49,11 @@ func (m mongosqldConfig) Size() int64 {
 	return m.cfg.Sample.Size
 }
 
-func (m mongosqldConfig) MaxNumColumnsPerTable() int64 {
+func (m mongosqldConfig) MaxNumFieldsPerCollection() int64 {
 	if m.vars != nil {
-		return m.vars.GetInt64(variable.MaxNumColumnsPerTable)
+		return m.vars.GetInt64(variable.MaxNumFieldsPerCollection)
 	}
-	return m.cfg.Sample.MaxNumColumnsPerTable
+	return m.cfg.Sample.MaxNumFieldsPerCollection
 }
 
 func (m mongosqldConfig) MaxNestedTableDepth() int64 {

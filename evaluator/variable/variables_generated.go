@@ -39,6 +39,7 @@ const (
 	FullPushdownExecMode            Name = "full_pushdown_exec_mode"
 	LogLevel                        Name = "log_level"
 	MaxNestedTableDepth             Name = "max_nested_table_depth"
+	MaxNumFieldsPerCollection       Name = "max_num_fields_per_collection"
 	MaxNumColumnsPerTable           Name = "max_num_columns_per_table"
 	MetricsBackend                  Name = "metrics_backend"
 	MongoDBMaxServerSize            Name = "mongodb_max_server_size"
@@ -113,6 +114,7 @@ var (
 	defaultFullPushdownExecMode            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
 	defaultLogLevel                        values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
 	defaultMaxNestedTableDepth             values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 50)
+	defaultMaxNumFieldsPerCollection       values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
 	defaultMaxNumColumnsPerTable           values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
 	defaultMetricsBackend                  values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, NoMetricsBackend)
 	defaultMongoDBMaxServerSize            values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
@@ -165,6 +167,7 @@ type systemVariableContainer struct {
 	fullPushdownExecMode            values.SQLBool
 	logLevel                        values.SQLInt64
 	maxNestedTableDepth             values.SQLInt64
+	maxNumFieldsPerCollection       values.SQLInt64
 	maxNumColumnsPerTable           values.SQLInt64
 	metricsBackend                  values.SQLVarchar
 	mongoDBMaxServerSize            values.SQLUint64
@@ -217,6 +220,7 @@ func (svc *systemVariableContainer) setDefaults() {
 	svc.fullPushdownExecMode = defaultFullPushdownExecMode
 	svc.logLevel = defaultLogLevel
 	svc.maxNestedTableDepth = defaultMaxNestedTableDepth
+	svc.maxNumFieldsPerCollection = defaultMaxNumFieldsPerCollection
 	svc.maxNumColumnsPerTable = defaultMaxNumColumnsPerTable
 	svc.metricsBackend = defaultMetricsBackend
 	svc.mongoDBMaxServerSize = defaultMongoDBMaxServerSize
@@ -249,6 +253,7 @@ func (svc *systemVariableContainer) setFromConfig(cfg *config.Config) {
 	svc.enableTableAlterations = values.NewSQLBool(values.VariableSQLValueKind, cfg.SetParameter.EnableTableAlterations)
 	svc.logLevel = values.NewSQLInt64(values.VariableSQLValueKind, cfg.SystemLog.Level())
 	svc.maxNestedTableDepth = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNestedTableDepth)
+	svc.maxNumFieldsPerCollection = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNumFieldsPerCollection)
 	svc.maxNumColumnsPerTable = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNumColumnsPerTable)
 	svc.metricsBackend = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.MetricsBackend)
 	svc.mongoDBMaxServerSize = values.NewSQLUint64(values.VariableSQLValueKind, cfg.Runtime.Memory.MaxPerServer)
@@ -488,6 +493,15 @@ func init() {
 		EvalType:         types.EvalInt64,
 		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxNestedTableDepth },
 		SetValue:         setMaxNestedTableDepth,
+	}
+
+	definitions[MaxNumFieldsPerCollection] = &definition{
+		Name:             MaxNumFieldsPerCollection,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxNumFieldsPerCollection },
+		SetValue:         setMaxNumFieldsPerCollection,
 	}
 
 	definitions[MaxNumColumnsPerTable] = &definition{
@@ -877,6 +891,20 @@ func setMaxNestedTableDepth(c *Container, v values.SQLValue) error {
 	}
 
 	c.systemVariableContainer.maxNestedTableDepth = val
+	return nil
+}
+
+func setMaxNumFieldsPerCollection(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxNumFieldsPerCollection, v)
+	if err != nil {
+		return err
+	}
+
+	if lessThan(val, 1) {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxNumFieldsPerCollection, val)
+	}
+
+	c.systemVariableContainer.maxNumFieldsPerCollection = val
 	return nil
 }
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/10gen/sqlproxy/log"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -16,10 +17,11 @@ import (
 // other complex types. Schema closely mirrors the structure of JSON Schema,
 // with a few extensions for sqlproxy-specific needs.
 type Schema struct {
-	BSONType    BSONType             `json:"bsonType,omitempty" bson:"bsonType,omitempty"`
-	Properties  map[string]*Schemata `json:"properties,omitempty" bson:"properties,omitempty"`
-	Items       *Schemata            `json:"items,omitempty" bson:"items,omitempty"`
-	SpecialType SpecialType          `json:"specialType,omitempty" bson:"specialType,omitempty"`
+	BSONType     BSONType             `json:"bsonType,omitempty" bson:"bsonType,omitempty"`
+	Properties   map[string]*Schemata `json:"properties,omitempty" bson:"properties,omitempty"`
+	Items        *Schemata            `json:"items,omitempty" bson:"items,omitempty"`
+	SpecialType  SpecialType          `json:"specialType,omitempty" bson:"specialType,omitempty"`
+	OrderedProps []string
 }
 
 // NewCollectionSchema returns an empty Schema that can describe a collection.
@@ -44,7 +46,11 @@ func NewArraySchema(values []interface{}) (*Schema, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = schemata.IncludeSchema(schema, 1)
+
+		// create a noop FieldTracker
+		ft := NewNoopFieldTracker()
+
+		err = schemata.IncludeSchema(schema, 1, ft)
 		if err != nil {
 			return nil, err
 		}
@@ -66,19 +72,22 @@ func NewEmptySchema() *Schema {
 // NewObjectSchema returns a Schema that describes the provided bson document.
 func NewObjectSchema(doc bson.D) (*Schema, error) {
 	props := make(map[string]*Schemata)
+	orderedProps := make([]string, len(doc))
 
 	// turn each doc element into a schemata
-	for _, elem := range doc {
+	for i, elem := range doc {
 		propSchema, err := NewSchemaFromValue(elem.Value)
 		if err != nil {
 			return nil, err
 		}
 		props[elem.Key] = NewSchemata(propSchema)
+		orderedProps[i] = elem.Key
 	}
 
 	return &Schema{
-		BSONType:   Object,
-		Properties: props,
+		BSONType:     Object,
+		Properties:   props,
+		OrderedProps: orderedProps,
 	}, nil
 }
 
@@ -196,12 +205,12 @@ func NewUUIDSchema(subtype SpecialType) (*Schema, error) {
 }
 
 // IncludeSample updates a Schema based on the provided document.
-func (s *Schema) IncludeSample(doc bson.D) error {
+func (s *Schema) IncludeSample(doc bson.D, ft FieldTracker) error {
 	other, err := NewObjectSchema(doc)
 	if err != nil {
 		return err
 	}
-	return s.Merge(other)
+	return s.Merge(other, ft)
 }
 
 // InferSpecialTypes calls InferSpecialType() for each Schemata in a Schema.
@@ -239,7 +248,7 @@ func (s *Schema) JSONSchema() (string, error) {
 // Merging two Array Schemas will combine their Item Schematas. Merging two
 // Object schemas will yield an object whose set of keys is the union of the
 // sets of keys of the two merged objects.
-func (s *Schema) Merge(other *Schema) error {
+func (s *Schema) Merge(other *Schema, ft FieldTracker) error {
 	if s.BSONType != other.BSONType {
 		return fmt.Errorf(
 			"Cannot merge Schemas of differing types '%s' and '%s'",
@@ -248,30 +257,42 @@ func (s *Schema) Merge(other *Schema) error {
 
 	switch s.BSONType {
 	case Object:
-		// merge each property in other into s
-		for prop, otherSchemata := range other.Properties {
+		// Merge each property in other into s. We iterate over the elements in
+		// the original document so the elements sample are ordered.
+		for _, prop := range other.OrderedProps {
+			otherSchemata := other.Properties[prop]
 
-			// get the existing Schemata for this prop, or initialize if missing
-			thisSchemata, ok := s.Properties[prop]
-			if !ok {
+			// Get the existing Schemata for this prop, or initialize if missing.
+			thisSchemata, haveSeenProp := s.Properties[prop]
+			if !haveSeenProp {
 				thisSchemata = NewSchemata(nil)
 			}
 
-			// merge the Schematas
-			err := thisSchemata.Merge(otherSchemata)
+			// If we've reached the field limit, we only want to merge in the
+			// new schema if we have seen the prop before, and at least one of
+			// the instances of that prop was a scalar.
+			if ft.HaveReachedMax() && (!haveSeenProp || (haveSeenProp && !thisSchemata.HasScalarSchema)) {
+				ft.LogFieldLimitWarning(prop)
+				continue
+			}
+
+			// Merge the Schematas.
+			err := thisSchemata.Merge(otherSchemata, ft)
 			if err != nil {
 				return err
 			}
 
-			// insert back into the map
 			s.Properties[prop] = thisSchemata
+			if !haveSeenProp {
+				s.OrderedProps = append(s.OrderedProps, prop)
+			}
 		}
 
 	case Array:
-		return s.Items.Merge(other.Items)
+		return s.Items.Merge(other.Items, ft)
 
 	default:
-		// if the schema type is unset or scalar, we have nothing to do
+		// If the schema type is unset or scalar, we have nothing to do.
 
 	}
 	return nil
@@ -418,9 +439,10 @@ func (s *Schema) Validate() error {
 // metadata that can be used to determine a "dominant" BSONType (and, by
 // extension, Schema) for the Schemata.
 type Schemata struct {
-	Schemas map[BSONType]*Schema `json:"schemas"`
-	Counts  map[BSONType]int     `json:"counts"`
-	Indexes []IndexType          `json:"-"`
+	Schemas         map[BSONType]*Schema `json:"schemas"`
+	Counts          map[BSONType]int     `json:"counts"`
+	Indexes         []IndexType          `json:"-"`
+	HasScalarSchema bool
 }
 
 // NewSchemata returns a new Schemata containing only the provided Schema. If
@@ -428,45 +450,148 @@ type Schemata struct {
 func NewSchemata(s *Schema) *Schemata {
 	schemas := make(map[BSONType]*Schema)
 	counts := make(map[BSONType]int)
+	hasScalarSchema := false
 
 	if s != nil {
 		schemas[s.BSONType] = s
 		counts[s.BSONType] = 1
+
+		if s.BSONType != Object && s.BSONType != Array {
+			hasScalarSchema = true
+		}
 	}
 
 	return &Schemata{
-		Schemas: schemas,
-		Counts:  counts,
+		Schemas:         schemas,
+		Counts:          counts,
+		HasScalarSchema: hasScalarSchema,
 	}
 }
 
-// IncludeSchema will add the provided Schema in a Schemata. If the Schemata
-// already contains a Schema of the same BSONType, the provided Schema will be
-// merged with the existing Schema and the BSONType's count will be increased
-// by the provided count. If a Schema of the provided type does not yet exist,
-// the provided Schema will be used, with a starting count equal to the
-// provided count.
-func (s *Schemata) IncludeSchema(other *Schema, count int) error {
-
+// IncludeSchema will add the provided Schema in a Schemata while also tracking
+// the fields it sees using the methods provided by the FieldTracker.
+func (s *Schemata) IncludeSchema(other *Schema, count int, ft FieldTracker) error {
 	// check if the schemata already has a schema of this type
 	schemaType := other.BSONType
 	schema, ok := s.Schemas[schemaType]
 
-	if ok {
-		// if so, increment the counter and merge the schemas
-		s.Counts[schemaType] += count
-		err := schema.Merge(other)
+	// If we don't already have a schema of this type, create an empty schema
+	// of the given type so we can merge it with the new schema. We only do
+	// this so we can recursively call Merge on any array and object elements,
+	// since we need to traverse those to correctly track the fields.
+	if !ok {
+		var err error
+		switch schemaType {
+		case Object:
+			schema, err = NewObjectSchema(nil)
+		case Array:
+			schema, err = NewArraySchema(nil)
+		default:
+			schema, err = NewScalarSchema(schemaType)
+		}
 		if err != nil {
 			return err
 		}
+		// include the SpecialType as well
+		schema.SpecialType = other.SpecialType
+	}
+
+	// merge the schemas
+	err := schema.Merge(other, ft)
+	if err != nil {
+		return err
+	}
+
+	if ok {
+		// if so, increment the counter
+		s.Counts[schemaType] += count
 	} else {
 		// if not, add a new schema describing this sample to the schemata
 		s.Counts[schemaType] = count
-		s.Schemas[schemaType] = other
+		s.Schemas[schemaType] = schema
+
+		// increase field count if this is the first scalar field we've seen for
+		// this Schemata
+		if !s.HasScalarSchema && schemaType != Object && schemaType != Array {
+			s.HasScalarSchema = true
+			ft.Increment()
+		}
 	}
 
 	return nil
 }
+
+// FieldTracker keeps track of the number of unique fields we've encountered
+// thus far during sampling.
+type FieldTracker interface {
+	// Increment adds a count to the total field count.
+	Increment()
+	// HaveReachedMax tells us whether the current field count has reached the
+	// maximum allowed number of fields.
+	HaveReachedMax() bool
+	// LogFieldLimitWarning logs that we have reached the field limit.
+	LogFieldLimitWarning(string)
+}
+
+// SchemaFieldTracker holds the max_num_fields_per_collection system variable
+// to be used during schema construction. It also has a numSeenFields field,
+// which keeps track of how many distinct fields we've encountered thus far
+// during sampling.
+type SchemaFieldTracker struct {
+	maxNumFieldsPerCollection int64
+	numSeenFields             int64
+	logger                    log.Logger
+	collectionName            string
+}
+
+// NewSchemaFieldTracker constructs a field tracker to be used during schema
+// construction.
+func NewSchemaFieldTracker(maxNumFieldsPerCollection, numSeenFields int64, logger log.Logger, collectionName string) *SchemaFieldTracker {
+	return &SchemaFieldTracker{
+		maxNumFieldsPerCollection: maxNumFieldsPerCollection,
+		numSeenFields:             numSeenFields,
+		logger:                    logger,
+		collectionName:            collectionName,
+	}
+}
+
+// Increment adds a count to the total field count.
+func (s *SchemaFieldTracker) Increment() {
+	s.numSeenFields++
+}
+
+// LogFieldLimitWarning warns the user that the field could not be mapped
+// because we've reached the field limit.
+func (s *SchemaFieldTracker) LogFieldLimitWarning(fieldName string) {
+	s.logger.Warnf(log.Dev,
+		`cannot map field "%v" - collection "%v" has reached configured field limit %v`,
+		fieldName, s.collectionName, s.maxNumFieldsPerCollection,
+	)
+}
+
+// HaveReachedMax tells us whether the current field count has reached the
+// maximum allowed number of fields.
+func (s *SchemaFieldTracker) HaveReachedMax() bool {
+	return s.numSeenFields >= s.maxNumFieldsPerCollection
+}
+
+// NoopFieldTracker is an empty struct.
+type NoopFieldTracker struct{}
+
+// NewNoopFieldTracker constructs a field tracker that can be used as a
+// placeholder when we don't actually need to track fields.
+func NewNoopFieldTracker() *NoopFieldTracker {
+	return &NoopFieldTracker{}
+}
+
+// Increment does nothing.
+func (n *NoopFieldTracker) Increment() {}
+
+// HaveReachedMax returns false.
+func (n *NoopFieldTracker) HaveReachedMax() bool { return false }
+
+// LogFieldLimitWarning does nothing.
+func (n *NoopFieldTracker) LogFieldLimitWarning(fieldName string) {}
 
 // InferSpecialTypes sets the SpecialType field (if appropriate) for each Schema
 // it contains, based on its Indexes.
@@ -492,10 +617,10 @@ func (s *Schemata) InferSpecialTypes() {
 
 // Merge combines the Schema from two Schematas into a single Schemata. Merge
 // is equivalent to calling IncludeSchema on each of other's Schemas.
-func (s *Schemata) Merge(other *Schemata) error {
+func (s *Schemata) Merge(other *Schemata, ft FieldTracker) error {
 	for key, schema := range other.Schemas {
 		count := other.Counts[key]
-		err := s.IncludeSchema(schema, count)
+		err := s.IncludeSchema(schema, count, ft)
 		if err != nil {
 			return err
 		}

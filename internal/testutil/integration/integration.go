@@ -36,6 +36,7 @@ type TestCase struct {
 	SQL                   string                 `yaml:"sql"`
 	SQLList               []string               `yaml:"sql_list"`
 	CleanupSQL            string                 `yaml:"sql_cleanup"`
+	CleanupSQLList        []string               `yaml:"sql_cleanup_list"`
 	VerificationSQL       string                 `yaml:"verify"`
 	Description           string                 `yaml:"description"`
 	MinServerVersion      string                 `yaml:"min_server_version"`
