@@ -12,6 +12,7 @@ import (
 )
 
 func init() {
+	testing.Init()
 	flag.Parse()
 }
 

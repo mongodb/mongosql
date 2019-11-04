@@ -315,7 +315,7 @@ func testPrecedence(t *testing.T) {
 		}
 	})
 
-	t.Run("ssl flags have higher precendence than uri", func(t *testing.T) {
+	t.Run("ssl flags have higher precedence than uri", func(t *testing.T) {
 		tests := []struct {
 			description                 string
 			args                        []string

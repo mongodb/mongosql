@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2353: No user facing changes.
 - BI-2389: Fix bug that caused DRDL Tables to incorrectly marshal to BSON if the pipeline was empty.
 - BI-2362: Made max_num_columns_per_table system variable a no-op and added max_num_fields_per_collection. Enhanced performance while sampling collections with many fields by reducing the amount of memory used.
 - BI-1899: Improved ambiguous column behavior in subqueries, group by and order by clauses.
