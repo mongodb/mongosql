@@ -62,6 +62,25 @@ func TestPersistSchema(t *testing.T) {
 		schemaEquals(req, drdlSchema, foundSchema)
 	})
 
+	t.Run("create named schema with no pipeline in drdl", func(t *testing.T) {
+		setup(sp)
+		req := require.New(t)
+
+		drdlSch := new(drdl.Schema)
+		drdlErr := drdlSch.LoadFile("testdata/schema_no_pipeline.drdl")
+		req.NoError(drdlErr, "failed to load DRDL schema from file")
+
+		sid, err := p.InsertSchema(ctx, drdlSch)
+		req.NoError(err, "failed to insert schema")
+
+		err = p.UpsertName(ctx, "defaultSchema", sid)
+		req.NoError(err, "failed to insert name")
+
+		foundSchema, err := p.FindSchemaByName(ctx, "defaultSchema")
+		req.NoError(err, "failed to find previously-inserted schema by name")
+		schemaEquals(req, drdlSch, foundSchema)
+	})
+
 	t.Run("create name referencing nonexistent schema", func(t *testing.T) {
 		setup(sp)
 		req := require.New(t)

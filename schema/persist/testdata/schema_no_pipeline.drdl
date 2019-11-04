@@ -1,0 +1,14 @@
+schema:
+  - db: my_db
+    tables:
+      - table: tbl_one
+        collection: col_one
+        columns:
+          - Name: a
+            MongoType: int
+            SqlName: a
+            SqlType: int64
+          - Name: b
+            MongoType: int
+            SqlName: b
+            SqlType: int64

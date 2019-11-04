@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/mongodb/mongo-tools-common/util"
@@ -106,22 +107,22 @@ func DocSliceToCoreArray(docs []bson.D) (bsoncore.Array, error) {
 
 // DocSliceToString turns a slice of bson.Ds into an extended JSON string.
 func DocSliceToString(docs []bson.D) (string, error) {
-	b := []byte{'['}
-
-	for _, doc := range docs {
-		dBytes, err := bson.MarshalExtJSON(doc, false, false)
+	docStrings := make([]string, len(docs))
+	for i, doc := range docs {
+		docBytes, err := bson.MarshalExtJSON(doc, false, false)
 		if err != nil {
 			return "", err
 		}
 
-		b = append(b, dBytes...)
-		b = append(b, ',')
+		docStrings[i] = string(docBytes)
 	}
 
-	// replace the last comma with a closing bracket
-	b[len(b)-1] = ']'
+	var sb strings.Builder
+	sb.WriteByte('[')
+	sb.WriteString(strings.Join(docStrings, ","))
+	sb.WriteByte(']')
 
-	return string(b), nil
+	return sb.String(), nil
 }
 
 // NormalizeBSON converts bson.Ds that represent extended JSON types

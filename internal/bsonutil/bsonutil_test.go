@@ -285,6 +285,42 @@ func TestDocSliceToCoreArray(t *testing.T) {
 	}
 }
 
+func TestDocSliceToString(t *testing.T) {
+	type test struct {
+		name     string
+		docs     []bson.D
+		expected string
+	}
+
+	tests := []test{
+		{
+			"empty slice",
+			[]bson.D{},
+			"[]",
+		},
+		{
+			"single doc",
+			[]bson.D{{bson.E{Key: "a", Value: 1}}},
+			`[{"a":1}]`,
+		},
+		{
+			"many docs",
+			[]bson.D{{bson.E{Key: "a", Value: 1}}, {bson.E{Key: "b", Value: true}}, {bson.E{Key: "c", Value: "3"}}},
+			`[{"a":1},{"b":true},{"c":"3"}]`,
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := require.New(t)
+
+			actual, err := DocSliceToString(test.docs)
+			req.NoError(err)
+			req.Equal(test.expected, actual, "incorrect array string")
+		})
+	}
+}
+
 func TestNormalizeBSON(t *testing.T) {
 	type test struct {
 		name                   string

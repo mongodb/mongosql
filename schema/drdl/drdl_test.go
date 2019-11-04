@@ -9,6 +9,8 @@ import (
 
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestSchema(t *testing.T) {
@@ -343,5 +345,102 @@ func TestReadFile(t *testing.T) {
 
 	if len(cfg.Databases) != 3 {
 		t.Fatalf("num RawDatabases wrong: %d", len(cfg.Databases))
+	}
+}
+
+func TestTable_MarshalBSON(t *testing.T) {
+	type mongoStorableTable struct {
+		SQLName   string         `bson:"sql_name"`
+		MongoName string         `bson:"mongo_name"`
+		Pipeline  string         `bson:"pipeline"`
+		Columns   []*drdl.Column `bson:"columns"`
+	}
+
+	tests := []struct {
+		name     string
+		table    *drdl.Table
+		expected mongoStorableTable
+	}{
+		{
+			"table with empty pipeline and no columns",
+			&drdl.Table{
+				SQLName:   "foo",
+				MongoName: "foo",
+				Pipeline:  []bson.D{},
+				Columns:   []*drdl.Column{},
+			},
+			mongoStorableTable{
+				SQLName:   "foo",
+				MongoName: "foo",
+				Pipeline:  "[]",
+				Columns:   []*drdl.Column{},
+			},
+		},
+		{
+			"table with empty pipeline and some columns",
+			&drdl.Table{
+				SQLName:   "foo",
+				MongoName: "foo",
+				Pipeline:  []bson.D{},
+				Columns: []*drdl.Column{
+					{"a", "int", "a", "int32"},
+					{"a", "int", "a", "int32"},
+				},
+			},
+			mongoStorableTable{
+				SQLName:   "foo",
+				MongoName: "foo",
+				Pipeline:  "[]",
+				Columns: []*drdl.Column{
+					{"a", "int", "a", "int32"},
+					{"a", "int", "a", "int32"},
+				},
+			},
+		},
+		{
+			"table with pipeline and columns",
+			&drdl.Table{
+				SQLName:   "foo",
+				MongoName: "foo",
+				Pipeline:  []bson.D{{bson.E{Key: "$unwind", Value: "$x"}}},
+				Columns: []*drdl.Column{
+					{"a", "int", "a", "int32"},
+					{"a", "int", "a", "int32"},
+				},
+			},
+			mongoStorableTable{
+				SQLName:   "foo",
+				MongoName: "foo",
+				Pipeline:  `[{"$unwind":"$x"}]`,
+				Columns: []*drdl.Column{
+					{"a", "int", "a", "int32"},
+					{"a", "int", "a", "int32"},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			actual, err := test.table.MarshalBSON()
+			if err != nil {
+				t.Fatalf("failed to marshal actual table: %v", err)
+			}
+
+			expected, err := bson.Marshal(test.expected)
+			if err != nil {
+				t.Fatalf("failed to marshal expected table: %v", err)
+			}
+
+			if len(actual) != len(expected) {
+				t.Fatalf("actual != expected:\nlen(actual) = len(expected) (%v != %v)\n", len(actual), len(expected))
+			}
+
+			for i, b := range actual {
+				if b != expected[i] {
+					t.Fatalf("actual != expected:\nactual[%v] != expected[%v] (%v != %v)\nactual:   %v\nexpected: %v\n", i, i, b, expected[i], actual, expected)
+				}
+			}
+		})
 	}
 }
