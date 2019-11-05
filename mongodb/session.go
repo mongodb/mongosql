@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
@@ -28,6 +29,7 @@ type Session struct {
 	numConns        int
 	pool            *sessionConnPool
 	rp              *readpref.ReadPref
+	errLock         sync.Mutex
 
 	err        error
 	authSource string
@@ -57,7 +59,7 @@ func (s *Session) TopologyKind() description.TopologyKind {
 func (s *Session) Connection(ctx context.Context) (driver.Connection, error) {
 	c, err := s.pool.Get(ctx)
 	if err == topology.ErrPoolDisconnected {
-		s.err = err
+		s.setError(err)
 	}
 	return c, err
 }
@@ -79,6 +81,13 @@ func (s *Session) Err() error {
 	}
 
 	return s.pool.Err()
+}
+
+// setError synchronizes error assignment to the session.
+func (s *Session) setError(err error) {
+	s.errLock.Lock()
+	s.err = err
+	s.errLock.Unlock()
 }
 
 // Validate checks that the established Session meets the read preference
@@ -117,7 +126,7 @@ func (s *Session) Validate(ctx context.Context) error {
 	// meet the read preference requirements.
 	servers, err := selector.SelectServer(t, []description.Server{server})
 	if err != nil || len(servers) == 0 {
-		s.err = fmt.Errorf("current session does not satisfy read preference")
+		s.setError(fmt.Errorf("current session does not satisfy read preference"))
 		return s.err
 	}
 
@@ -513,7 +522,7 @@ func (s *Session) Login(ctx context.Context, a SessionAuthenticator) error {
 	for i := 0; i < s.numConns; i++ {
 		c, err := s.Connection(ctx)
 		if err != nil {
-			s.err = err
+			s.setError(err)
 			return s.err
 		}
 		defer func() {
@@ -523,7 +532,8 @@ func (s *Session) Login(ctx context.Context, a SessionAuthenticator) error {
 		conns[i] = c
 	}
 
-	s.err = a.Auth(ctx, conns)
+	err := a.Auth(ctx, conns)
+	s.setError(err)
 	return s.err
 }
 

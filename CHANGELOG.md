@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2380: No user-facing changes.
 - BI-2392: No user-facing changes.
 - BI-2353: No user facing changes.
 - BI-2389: Fix bug that caused DRDL Tables to incorrectly marshal to BSON if the pipeline was empty.
