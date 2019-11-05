@@ -1004,6 +1004,7 @@ testcases:
     expected_types: [varchar]
     id: schema_mapping_mode_lattice
     sql: SET @@global.schema_mapping_mode = 'lattice'
+    sql_cleanup: set @@global.schema_mapping_mode = DEFAULT
     sync: true
     verify: SELECT @@global.schema_mapping_mode
 
@@ -1015,6 +1016,7 @@ testcases:
     expected_types: [varchar]
     id: schema_mapping_mode_majority
     sql: SET @@global.schema_mapping_mode = 'majority'
+    sql_cleanup: set @@global.schema_mapping_mode = DEFAULT
     sync: true
     verify: SELECT @@global.schema_mapping_mode
 
