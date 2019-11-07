@@ -4,7 +4,6 @@ if [ "$VARIANT" != "" ]; then
     ARCHIVE_FORMAT='tgz'
     JAVA_HOME='/opt/java/jdk8'
     GOROOT='/opt/golang/go1.13'
-    GOBINDIR="$GOROOT"/bin
 fi
 
 ARCHIVE_CONTENT_TYPE='x-gzip'
@@ -49,6 +48,7 @@ debian10)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
+    GOROOT='/opt/golang/go1.12'
     ;;
 macos)
     PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
@@ -113,6 +113,7 @@ suse12)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
+    GOROOT='/opt/golang/go1.12'
     ;;
 suse12-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
@@ -196,6 +197,7 @@ ubuntu1804-s390x)
     CC='s390x-mongodb-linux-gcc'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
+    GOROOT='/opt/golang/go1.12'
     ;;
 windows)
     PUSH_ARCH='x86_64'
