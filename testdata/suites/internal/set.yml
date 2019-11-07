@@ -1211,7 +1211,7 @@ testcases:
 
   - db: set_test
     expected_results:
-      - [50]
+      - [10]
     expected_types: [int]
     id: max_nested_table_depth_select_default
     sql: select @@global.max_nested_table_depth
@@ -1219,12 +1219,46 @@ testcases:
 
   - db: set_test
     expected_results:
-      - [50]
+      - [10]
     expected_types: [int]
     id: max_nested_table_depth_set_default
     sql: set @@global.max_nested_table_depth = DEFAULT
     sync: true
     verify: select @@global.max_nested_table_depth
+
+  - db: set_test
+    expected_results:
+      - [200]
+    expected_types: [int]
+    id: max_num_tables_per_collection
+    sql: select @@global.max_num_tables_per_collection
+    sync: true
+
+  - db: set_test
+    expected_results:
+      - [200]
+    expected_types: [int]
+    id: max_num_tables_per_collection_set_default
+    sql: set @@global.max_num_tables_per_collection = DEFAULT
+    sync: true
+    verify: select @@global.max_num_tables_per_collection
+
+  - db: set_test
+    expected_results:
+      - [1000]
+    expected_types: [int]
+    id: max_num_global_tables
+    sql: select @@global.max_num_global_tables
+    sync: true
+
+  - db: set_test
+    expected_results:
+      - [1000]
+    expected_types: [int]
+    id: max_num_global_tables_set_default
+    sql: set @@global.max_num_global_tables = DEFAULT
+    sync: true
+    verify: select @@global.max_num_global_tables
 
   - db: set_test
     expected_results:

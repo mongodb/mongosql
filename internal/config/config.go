@@ -42,7 +42,9 @@ const (
 	DefaultSampleSize                = 1000
 	DefaultMaxNumColumnsPerTable     = 2000
 	DefaultMaxNumFieldsPerCollection = 2000
-	DefaultMaxNestedTableDepth       = 50
+	DefaultMaxNumTablesPerCollection = 200
+	DefaultMaxNumGlobalTables        = 1000
+	DefaultMaxNestedTableDepth       = 10
 	DefaultMaxAllowedPacket          = 1073741824
 )
 
@@ -141,6 +143,8 @@ func Default() *Config {
 	cfg.Schema.Sample.Size = DefaultSampleSize
 	cfg.Schema.Sample.MaxNumColumnsPerTable = DefaultMaxNumColumnsPerTable
 	cfg.Schema.Sample.MaxNumFieldsPerCollection = DefaultMaxNumFieldsPerCollection
+	cfg.Schema.Sample.MaxNumTablesPerCollection = DefaultMaxNumTablesPerCollection
+	cfg.Schema.Sample.MaxNumGlobalTables = DefaultMaxNumGlobalTables
 	cfg.Schema.Sample.MaxNestedTableDepth = DefaultMaxNestedTableDepth
 	cfg.Schema.Sample.Namespaces = []string{"*.*"}
 	cfg.Schema.Sample.OptimizeViewSampling = true
@@ -300,6 +304,14 @@ func Validate(cfg *Config) error {
 		return fmt.Errorf("invalid sample max number of fields per collection: %d", cfg.Schema.Sample.MaxNumFieldsPerCollection)
 	}
 
+	if cfg.Schema.Sample.MaxNumTablesPerCollection <= 0 {
+		return fmt.Errorf("invalid sample max number of global tables: %d", cfg.Schema.Sample.MaxNumTablesPerCollection)
+	}
+
+	if cfg.Schema.Sample.MaxNumGlobalTables <= 0 {
+		return fmt.Errorf("invalid sample max number of global tables: %d", cfg.Schema.Sample.MaxNumGlobalTables)
+	}
+
 	if cfg.Schema.Sample.MaxNestedTableDepth < 0 {
 		return fmt.Errorf("invalid sample max nested table depth: %d", cfg.Schema.Sample.MaxNestedTableDepth)
 	}
@@ -403,9 +415,19 @@ func checkForDissallowedWriteModeSettings(cfg *Config) error {
 	if cfg.Schema.Sample.MaxNumColumnsPerTable != defaultCfg.Schema.Sample.MaxNumColumnsPerTable {
 		return fmt.Errorf("write mode schema cannot have sample settings, found maxNumColumnsPerTable")
 	}
+
 	if cfg.Schema.Sample.MaxNumFieldsPerCollection != defaultCfg.Schema.Sample.MaxNumFieldsPerCollection {
 		return fmt.Errorf("write mode schema cannot have sample settings, found maxNumFieldsPerCollection")
 	}
+
+	if cfg.Schema.Sample.MaxNumTablesPerCollection != defaultCfg.Schema.Sample.MaxNumTablesPerCollection {
+		return fmt.Errorf("write mode schema cannot have sample settings, found maxNumTablesPerCollection")
+	}
+
+	if cfg.Schema.Sample.MaxNumGlobalTables != defaultCfg.Schema.Sample.MaxNumGlobalTables {
+		return fmt.Errorf("write mode schema cannot have sample settings, found maxNumGlobalTables")
+	}
+
 	for i := range cfg.Schema.Sample.Namespaces {
 		if cfg.Schema.Sample.Namespaces[i] != defaultCfg.Schema.Sample.Namespaces[i] {
 			return fmt.Errorf("write mode schema cannot have sample settings, found namespaces")
@@ -531,6 +553,8 @@ type SchemaSampleOptions struct {
 	MaxNestedTableDepth           int64       `config:"-"`
 	MaxNumColumnsPerTable         int64       `config:"-"`
 	MaxNumFieldsPerCollection     int64       `config:"-"`
+	MaxNumTablesPerCollection     int64       `config:"-"`
+	MaxNumGlobalTables            int64       `config:"-"`
 	Namespaces                    []string    `config:"namespaces"`
 	OptimizeViewSampling          bool        `config:"optimizeViewSampling"`
 	PreJoin                       bool        `config:"prejoin"`
@@ -542,8 +566,7 @@ type SchemaSampleOptions struct {
 
 // NewSchemaSampleOptions creates a new schema sampling configuration with the given options.
 func NewSchemaSampleOptions(maxNestedTableDepth int64,
-	maxNumColumnsPerTable int64,
-	maxNumFieldsPerCollection int64,
+	maxNumFieldsPerCollection, maxNumColumnsPerTable, maxNumTablesPerCollection, maxNumGlobalTables int64,
 	namespaces []string,
 	optimizeViewSampling bool,
 	preJoin bool,
@@ -554,6 +577,8 @@ func NewSchemaSampleOptions(maxNestedTableDepth int64,
 		MaxNestedTableDepth:           maxNestedTableDepth,
 		MaxNumColumnsPerTable:         maxNumColumnsPerTable,
 		MaxNumFieldsPerCollection:     maxNumFieldsPerCollection,
+		MaxNumTablesPerCollection:     maxNumTablesPerCollection,
+		MaxNumGlobalTables:            maxNumGlobalTables,
 		Namespaces:                    namespaces,
 		OptimizeViewSampling:          optimizeViewSampling,
 		PreJoin:                       preJoin,

@@ -36,7 +36,11 @@ func TestDefault(t *testing.T) {
 		"cfg.Schema.Sample.MaxNumColumnsPerTable")
 	testInt64(t, cfg.Schema.Sample.MaxNumFieldsPerCollection, 2000,
 		"cfg.Schema.Sample.MaxNumFieldsPerCollection")
-	testInt64(t, cfg.Schema.Sample.MaxNestedTableDepth, 50,
+	testInt64(t, cfg.Schema.Sample.MaxNumTablesPerCollection, 200,
+		"cfg.Schema.Sample.MaxNumColumnsPerTable")
+	testInt64(t, cfg.Schema.Sample.MaxNumGlobalTables, 1000,
+		"cfg.Schema.Sample.MaxNumColumnsPerTable")
+	testInt64(t, cfg.Schema.Sample.MaxNestedTableDepth, 10,
 		"cfg.Schema.Sample.MaxNestedTableDepth")
 	testStringSlice(t,
 		cfg.Schema.Sample.Namespaces,
@@ -515,6 +519,38 @@ func TestValidate_Invalid_Sample_MaxNumFieldsPerCollection(t *testing.T) {
 	}
 }
 
+func TestValidate_Invalid_Sample_MaxNumTablesPerCollection(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.MaxNumTablesPerCollection = 0
+	cfg.Schema.Stored.Source = "test"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "invalid sample max number of global tables: 0"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_Invalid_Sample_MaxNumGlobalTables(t *testing.T) {
+	cfg := Default()
+	cfg.Schema.Sample.MaxNumGlobalTables = 0
+	cfg.Schema.Stored.Source = "test"
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "invalid sample max number of global tables: 0"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
 func TestValidate_Invalid_Sample_MaxNestedTableDepth(t *testing.T) {
 	cfg := Default()
 	cfg.Schema.Sample.MaxNestedTableDepth = -1
@@ -774,6 +810,12 @@ func TestValidate_WriteMode_SampleSettings(t *testing.T) {
 	cfg = getCfg()
 	cfg.Schema.Sample.MaxNumFieldsPerCollection++
 	check("write mode schema cannot have sample settings, found maxNumFieldsPerCollection")
+	cfg = getCfg()
+	cfg.Schema.Sample.MaxNumTablesPerCollection++
+	check("write mode schema cannot have sample settings, found maxNumTablesPerCollection")
+	cfg = getCfg()
+	cfg.Schema.Sample.MaxNumGlobalTables++
+	check("write mode schema cannot have sample settings, found maxNumGlobalTables")
 	cfg = getCfg()
 	cfg.Schema.Sample.Namespaces = []string{"*.foo"}
 	check("write mode schema cannot have sample settings, found namespaces")

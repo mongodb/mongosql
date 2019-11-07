@@ -2,11 +2,13 @@ package schema
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/memdebug"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -53,6 +55,26 @@ type Table struct {
 	indexes Indexes
 	// comment is the comment associated with this table.
 	comment option.String
+}
+
+// SizeDump dumps the size of this Table.
+func (t *Table) SizeDump(padding ...string) {
+	p := ""
+	if len(padding) != 0 {
+		p = padding[0]
+	}
+	fmt.Fprintf(os.Stderr, "%vsqlName %v KB\n", p, memdebug.SizeofKB(t.sqlName))
+	fmt.Fprintf(os.Stderr, "%vmongoName %v KB\n", p, memdebug.SizeofKB(t.mongoName))
+	fmt.Fprintf(os.Stderr, "%vpipeline %v KB\n", p, memdebug.SizeofKB(t.pipeline))
+	fmt.Fprintf(os.Stderr, "%vcolumns %v KB\n", p, memdebug.SizeofKB(t.columns))
+	fmt.Fprintf(os.Stderr, "%vorderedColumns %v KB\n", p, float64(8*len(t.orderedColumns))/memdebug.KB)
+	fmt.Fprintf(os.Stderr, "%vprimaryKey %v KB\n", p, memdebug.SizeofKB(t.primaryKey))
+	fmt.Fprintf(os.Stderr, "%vcachedSortedColumns %v KB\n", p, float64(8*len(t.cachedSortedColumns))/memdebug.KB)
+	fmt.Fprintf(os.Stderr, "%vparent %v KB\n", p, 8.0/memdebug.KB)
+	fmt.Fprintf(os.Stderr, "%visPostProcessed %v KB\n", p, memdebug.SizeofKB(t.isPostProcessed))
+	fmt.Fprintf(os.Stderr, "%vunwindPath %v KB\n", p, memdebug.SizeofKB(t.unwindPath))
+	fmt.Fprintf(os.Stderr, "%vindexes %v KB\n", p, memdebug.SizeofKB(t.indexes))
+	fmt.Fprintf(os.Stderr, "%vcomment %v KB\n", p, memdebug.SizeofKB(t.comment))
 }
 
 // NewTable creates a table without normalizing and uniquing indexes.
@@ -252,8 +274,8 @@ func (t *Table) ColumnsDeclaredOrder() []*Column {
 }
 
 // NumColumns returns the number of columns in t.
-func (t *Table) NumColumns() int64 {
-	return int64(len(t.columns))
+func (t *Table) NumColumns() int {
+	return len(t.columns)
 }
 
 // ColumnsSorted returns a sorted slice of all the columns in this Table. _id columns
@@ -288,8 +310,8 @@ func (t *Table) ColumnsSorted() []*Column {
 	return cols
 }
 
-// DeepCopy returns a copy of this table. All fields except for the table's
-// pipeline will be deep copies.
+// DeepCopy returns a copy of this table. All fields except for the Table's
+// parent will be copied..
 func (t *Table) DeepCopy() *Table {
 	if t == nil {
 		return nil
@@ -315,7 +337,7 @@ func (t *Table) DeepCopy() *Table {
 		indexes[i] = index.DeepCopy()
 	}
 
-	parent := t.parent.DeepCopy()
+	parent := t.parent
 
 	pipeline := bsonutil.DeepCopyDSlice(t.pipeline)
 
@@ -525,7 +547,7 @@ func (t *Table) PostProcess(lg log.Logger, preJoin bool) {
 	}
 
 	// prepend parent pipeline
-	pipeline := bsonutil.DeepCopyDSlice(t.parent.Pipeline())
+	pipeline := t.parent.Pipeline()
 	pipeline = append(pipeline, t.pipeline...)
 	t.pipeline = pipeline
 

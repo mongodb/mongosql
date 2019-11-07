@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2361: Add variable to set max number global tables (default 1000). Add variable to set max num tables per collection (default 200). Change max table nesting depth default to 10.
 - BI-2380: No user-facing changes.
 - BI-2392: No user-facing changes.
 - BI-2353: No user facing changes.

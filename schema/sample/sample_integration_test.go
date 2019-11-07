@@ -23,8 +23,8 @@ import (
 )
 
 const (
-	db1, db2, db3 = "sampleTest1", "sampleTest2", "sampleTest3"
-	c1, c2        = "c1", "c2"
+	db1, db2, db3  = "sampleTest1", "sampleTest2", "sampleTest3"
+	c1, c2, c3, c4 = "c1", "c2", "c3", "c4"
 )
 
 func init() {
@@ -32,6 +32,8 @@ func init() {
 	cfg.Schema.Sample.Namespaces = []string{
 		"sampleTest*.*", "sampleStore.*",
 	}
+	cfg.Schema.Sample.MaxNumGlobalTables = 8
+	cfg.Schema.Sample.MaxNumTablesPerCollection = 2
 }
 
 func TestFetchNamespaces(t *testing.T) {
@@ -63,7 +65,7 @@ func TestFetchNamespaces(t *testing.T) {
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
 
-	mappings, err := fetchNamespaces(context.Background(), session, lgr, matcher)
+	mappings, err := fetchNamespaceMap(context.Background(), session, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 
 	req.Equal(len(mappings[db1]), 1)
@@ -71,7 +73,7 @@ func TestFetchNamespaces(t *testing.T) {
 	req.Equal(len(mappings[db2]), 2)
 
 	dbutils.DropDatabase(session, db2)
-	mappings, err = fetchNamespaces(context.Background(), session, lgr, matcher)
+	mappings, err = fetchNamespaceMap(context.Background(), session, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 	_, found := mappings[db1]
 
@@ -176,10 +178,20 @@ func TestSample(t *testing.T) {
 	defer cleanupData(session)
 
 	doc := bsonutil.NewDArray(bsonutil.NewD(bsonutil.NewDocElem("a", bsonutil.NewM())))
+	arrayDoc := bsonutil.NewDArray(bsonutil.NewD(
+		bsonutil.NewDocElem("a", []interface{}{1, 2, 3}),
+		bsonutil.NewDocElem("b", []interface{}{1, 2, 3}),
+		bsonutil.NewDocElem("c", []interface{}{1, 2, 3}),
+		bsonutil.NewDocElem("d", []interface{}{1, 2, 3}),
+		bsonutil.NewDocElem("e", []interface{}{1, 2, 3}),
+		bsonutil.NewDocElem("f", []interface{}{1, 2, 3}),
+	))
 
-	dbutils.InsertDocuments(session, db1, c1, doc)
+	dbutils.InsertDocuments(session, db1, c1, arrayDoc)
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
+	dbutils.InsertDocuments(session, db2, c3, doc)
+	dbutils.InsertDocuments(session, db2, c4, arrayDoc)
 	dbutils.InsertDocuments(session, cfg.Schema.Stored.Source, c1, doc)
 
 	// enabling profiling should introduce an additional system.profile
@@ -195,6 +207,23 @@ func TestSample(t *testing.T) {
 	dbutils.RunCmd(session, db2, bsonutil.NewD(bsonutil.NewDocElem("profile", 0)), &struct{}{})
 
 	req.NotZero(countTables(sampleSchema), "found no sampled namespaces")
+	req.Equal(countTables(sampleSchema), int(cfg.Schema.Sample.MaxNumGlobalTables),
+		"maxNumGlobalTables not respected")
+	tblNames := map[string]struct{}{
+		"c1":   {},
+		"c1_e": {},
+		"c1_f": {},
+		"c2":   {},
+		"c3":   {},
+		"c4":   {},
+		"c4_f": {},
+	}
+	for _, db := range sampleSchema.Databases() {
+		for _, tbl := range db.Tables() {
+			_, ok := tblNames[tbl.SQLName()]
+			req.True(ok, fmt.Sprintf("unexpected table name: %s", tbl.SQLName()))
+		}
+	}
 
 	errMsg := "whitelisted namespaces should be present"
 	req.True(containsNS(sampleSchema, formatNamespace(db1, c1, false)), errMsg)
@@ -582,7 +611,8 @@ func TestNamespaceSelectors(t *testing.T) {
 }
 
 func TestSampleTableAndColumnCollisions(t *testing.T) {
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	defaultCfg := config.Default()
+	sp, err := mongodb.NewSqldSessionProvider(defaultCfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
@@ -620,7 +650,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 	dbutils.InsertDocuments(session, db1, t3, doc)
 	dbutils.InsertDocuments(session, db1, t4, doc)
 
-	opts := NewMongosqldConfig(&cfg.Schema, nil)
+	opts := NewMongosqldConfig(&defaultCfg.Schema, nil)
 	sampler := NewSampler(opts, lgr, sp)
 	sampleSchema, err := sampler.Sample(context.Background())
 
@@ -643,7 +673,7 @@ func TestSampleTableAndColumnCollisions(t *testing.T) {
 
 	dbs := sampleSchema.DatabasesSorted()
 	req.Equal(dbs[0].Name(), db1)
-	req.Equal(len(dbs[0].Tables()), 6)
+	req.Equal(6, len(dbs[0].Tables()))
 
 	type sqlTableMapping struct {
 		Table, Collection string

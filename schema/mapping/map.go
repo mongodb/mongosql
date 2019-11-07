@@ -22,15 +22,18 @@ const renameSeparator = "_DOT_"
 // SchemaMappingConfig holds all the configuration
 // necessary to perform schema mapping.
 type SchemaMappingConfig struct {
-	CollectionName       string
-	Database             *schema.Database
-	mode                 config.MappingMode
-	Logger               log.Logger
-	MaxNestedTableDepth  int64
-	PreJoin              bool
-	Schema               *mongo.Schema
-	UUIDSubtype3Encoding string
-	Version              []uint8
+	CollectionName            string
+	Database                  *schema.Database
+	mode                      config.MappingMode
+	Logger                    log.Logger
+	MaxNestedTableDepth       int64
+	MaxNumTablesPerCollection int64
+	MaxNumGlobalTables        int64
+	PreJoin                   bool
+	Schema                    *mongo.Schema
+	UUIDSubtype3Encoding      string
+	Version                   []uint8
+	CurrentNumTotalTables     *int64
 }
 
 // NewSchemaMappingConfig is a constructor that builds
@@ -44,20 +47,24 @@ func NewSchemaMappingConfig(
 	version []uint8,
 	logger log.Logger,
 	mode config.MappingMode,
-	maxNestedTableDepth int64,
+	currentNumTotalTables *int64,
+	maxNestedTableDepth, maxNumTablesPerCollection, maxNumGlobalTables int64,
 ) SchemaMappingConfig {
 	component := fmt.Sprintf("%-10v [mapping]", log.SchemaComponent)
 	logger = log.NewComponentLogger(component, logger)
 	return SchemaMappingConfig{
-		Database:             database,
-		Schema:               schema,
-		CollectionName:       collectionName,
-		PreJoin:              preJoin,
-		UUIDSubtype3Encoding: uuidSubtype3Encoding,
-		Version:              version,
-		Logger:               logger,
-		mode:                 mode,
-		MaxNestedTableDepth:  maxNestedTableDepth,
+		Database:                  database,
+		Schema:                    schema,
+		CollectionName:            collectionName,
+		PreJoin:                   preJoin,
+		UUIDSubtype3Encoding:      uuidSubtype3Encoding,
+		Version:                   version,
+		Logger:                    logger,
+		mode:                      mode,
+		CurrentNumTotalTables:     currentNumTotalTables,
+		MaxNestedTableDepth:       maxNestedTableDepth,
+		MaxNumTablesPerCollection: maxNumTablesPerCollection,
+		MaxNumGlobalTables:        maxNumGlobalTables,
 	}
 }
 
@@ -101,9 +108,11 @@ func Map(cfg SchemaMappingConfig) error {
 	seenFields := make([]string, 0)
 	uniqueColumns := make(map[string]struct{})
 	uniqueFields := make(map[string]struct{})
+	currentNumCollectionTables := int64(1)
 
 	// initialize the top-level mapping context
-	ctx := newMappingContext(cfg.Logger,
+	ctx := newMappingContext(cfg.CollectionName,
+		cfg.Logger,
 		cfg.Database,
 		t,
 		cfg.UUIDSubtype3Encoding,
@@ -118,8 +127,15 @@ func Map(cfg SchemaMappingConfig) error {
 		false,
 		false,
 		-1,
+		&currentNumCollectionTables,
+		cfg.CurrentNumTotalTables,
 		cfg.MaxNestedTableDepth,
+		cfg.MaxNumTablesPerCollection,
+		cfg.MaxNumGlobalTables,
 	)
+
+	// The top level document will always add a table:
+	*cfg.CurrentNumTotalTables++
 
 	// map the collection schema to a relational schema
 	err = ctx.mapObjectSchema(cfg.Schema)
@@ -146,6 +162,8 @@ func Map(cfg SchemaMappingConfig) error {
 // mappingContext maintains state that describes the context into which a mongo
 // schema should be mapped.
 type mappingContext struct {
+	// collectionName is the name of the current collection for logging purposes.
+	collectionName string
 
 	// logger is the logger used to output warnings and other information during
 	// the mapping process
@@ -184,7 +202,17 @@ type mappingContext struct {
 	// context is. For non-array contexts and top-level array contexts, its
 	// value should be zero. It should be incremented once for each level of
 	// array nesting inside the top-level array context.
-	nestedArrayDepth int
+	nestedArrayDepth int64
+
+	// numCollectionTables keeps track of how many tables we have mapped from this collection,
+	// e.g., the number of array fields + 1 for the root collection. It must be a pointer to be global across
+	// all paths + 1 for the root collection.
+	numCollectionTables *int64
+
+	// numTotalTables keeps track of how many tables we have mapped for the entire schema,
+	// e.g., the number of array fields + number of collections. It must be a pointer to be global across
+	// all paths.
+	numTotalTables *int64
 
 	// isAtLeastVersion34 is true if the MongoDB server version is >= 3.4.0.
 	// This, in particular, means the server has the $type expression and
@@ -219,43 +247,58 @@ type mappingContext struct {
 	// maxNestedTableDepth is the maximum number of nested tables that will be mapped for any
 	// given heritage within a table.
 	maxNestedTableDepth int64
+
+	// maxNumTablesPerCollection is the maximum number of tables that we allow to be generated
+	// during the sampling and mapping process for a given collection.
+	maxNumTablesPerCollection int64
+
+	// maxNumGlobalTables is the maximum number of tables that we allow to be generated
+	// during the sampling and mapping process. It must be tracked here because
+	// we cannot know, a priori, how many tables will be mapped from a given
+	// collection.
+	maxNumGlobalTables int64
 }
 
 // newMappingContext constructs a new mappingContext.
-func newMappingContext(logger log.Logger,
+func newMappingContext(
+	collectionName string,
+	logger log.Logger,
 	db *schema.Database,
 	table *schema.Table,
 	uuidSubtype3Encoding string,
 	isAtLeastVersion34 bool,
-	mongoNames map[string]string,
-	mongoNamePrefixes map[string]string,
+	mongoNames, mongoNamePrefixes map[string]string,
 	seenFields []string,
-	uniqueColumns map[string]struct{},
-	uniqueFields map[string]struct{},
+	uniqueColumns, uniqueFields map[string]struct{},
 	heuristic SchemataHeuristic,
 	path string,
-	inPrimaryKey bool,
-	hasConflict bool,
-	nestedArrayDepth int,
-	maxNestedTableDepth int64,
+	inPrimaryKey, hasConflict bool,
+	nestedArrayDepth int64,
+	numCollectionTables, numTotalTables *int64,
+	maxNestedTableDepth, maxNumTablesPerCollection, maxNumGlobalTables int64,
 ) *mappingContext {
 	return &mappingContext{
-		logger:               logger,
-		db:                   db,
-		table:                table,
-		uuidSubtype3Encoding: uuidSubtype3Encoding,
-		isAtLeastVersion34:   isAtLeastVersion34,
-		mongoNames:           mongoNames,
-		mongoNamePrefixes:    mongoNamePrefixes,
-		seenFields:           seenFields,
-		uniqueColumns:        uniqueColumns,
-		uniqueFields:         uniqueFields,
-		heuristic:            heuristic,
-		path:                 path,
-		inPrimaryKey:         inPrimaryKey,
-		hasConflict:          hasConflict,
-		nestedArrayDepth:     nestedArrayDepth,
-		maxNestedTableDepth:  maxNestedTableDepth,
+		collectionName:            collectionName,
+		logger:                    logger,
+		db:                        db,
+		table:                     table,
+		uuidSubtype3Encoding:      uuidSubtype3Encoding,
+		isAtLeastVersion34:        isAtLeastVersion34,
+		mongoNames:                mongoNames,
+		mongoNamePrefixes:         mongoNamePrefixes,
+		seenFields:                seenFields,
+		uniqueColumns:             uniqueColumns,
+		uniqueFields:              uniqueFields,
+		heuristic:                 heuristic,
+		path:                      path,
+		inPrimaryKey:              inPrimaryKey,
+		hasConflict:               hasConflict,
+		nestedArrayDepth:          nestedArrayDepth,
+		numCollectionTables:       numCollectionTables,
+		numTotalTables:            numTotalTables,
+		maxNestedTableDepth:       maxNestedTableDepth,
+		maxNumTablesPerCollection: maxNumTablesPerCollection,
+		maxNumGlobalTables:        maxNumGlobalTables,
 	}
 }
 
@@ -610,7 +653,6 @@ func (ctx *mappingContext) buildIfNotArray(v interface{}) interface{} {
 
 // mapArraySchema maps the provided array schema into a mappingContext.
 func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
-
 	// calculate the name of the array index column
 	indexName := ctx.path + "_idx"
 	if ctx.nestedArrayDepth > -1 {
@@ -791,6 +833,16 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 		return nil, nil
 	}
 
+	// If we have exceeded the global number of tables, or we have exceeded the number of tables per
+	// collection, we do not create a new array context.
+	if *ctx.numTotalTables >= ctx.maxNumGlobalTables || *ctx.numCollectionTables >= ctx.maxNumTablesPerCollection {
+		return nil, nil
+	}
+	// increment the number of global and collection level tables so that we can exit in the future if we
+	// exceed the max allowed of either.
+	*ctx.numTotalTables++
+	*ctx.numCollectionTables++
+
 	// calculate the name for this array's table
 	arrayTableName := root.SQLName() + "_" + strings.Replace(newCtx.path, ".", "_", -1)
 
@@ -888,6 +940,7 @@ func (ctx *mappingContext) withSubpath(subPath string) *mappingContext {
 // context's fields.
 func (ctx *mappingContext) copy() *mappingContext {
 	return newMappingContext(
+		ctx.collectionName,
 		ctx.logger,
 		ctx.db,
 		ctx.table,
@@ -903,7 +956,11 @@ func (ctx *mappingContext) copy() *mappingContext {
 		ctx.inPrimaryKey,
 		ctx.hasConflict,
 		ctx.nestedArrayDepth,
+		ctx.numCollectionTables,
+		ctx.numTotalTables,
 		ctx.maxNestedTableDepth,
+		ctx.maxNumTablesPerCollection,
+		ctx.maxNumGlobalTables,
 	)
 }
 

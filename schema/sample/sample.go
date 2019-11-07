@@ -3,6 +3,7 @@ package sample
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
@@ -23,29 +24,60 @@ var (
 	}
 )
 
-// NSMapping is a mapping of database names to NSCollections.
-type NSMapping map[string]NSCollections
-
 // NSCollections is a list of collection names.
 type NSCollections []string
 
-// fetchNamespaces returns a map of databases that exist in the MongoDB cluster
+// NSPair is a pair of Database name and slice of Collections in that Database.
+type NSPair struct {
+	Database    string
+	Collections NSCollections
+}
+
+// NSMapping is a map from string to slice of Collections.
+type NSMapping map[string]NSCollections
+
+// fetchSortedNamespaces returns the fetched namespaces sorted by database name.
+// We need this to ensure a stable schema in the face of hitting the global table limit.
+func fetchSortedNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
+	namespaces, err := fetchNamespaces(ctx, s, lgr, match)
+	if err != nil {
+		return nil, err
+	}
+	sort.Slice(namespaces, func(i, j int) bool { return namespaces[i].Database < namespaces[j].Database })
+	return namespaces, nil
+}
+
+// fetchNamespaceMap provides the same data as fetchNamespaces in a map form
+func fetchNamespaceMap(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) (NSMapping, error) {
+	namespaces, err := fetchNamespaces(ctx, s, lgr, match)
+	if err != nil {
+		return nil, err
+	}
+	ret := make(NSMapping, len(namespaces))
+	for _, ns := range namespaces {
+		ret[ns.Database] = ns.Collections
+	}
+	return ret, nil
+}
+
+// fetchNamespaces returns a slice of database, collections pairs that exist in the MongoDB cluster
 // to the collection(s) within each database.
-func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) (NSMapping, error) {
+func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
 
 	// If the matcher's inclusionary patterns don't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB.
 	if match.CanEnumerateAllNamespaces() {
 		lgr.Debugf(log.Dev, "only literal namespaces provided, skipping listDatabases and "+
 			"listCollections")
-		var mappings NSMapping = map[string]NSCollections{}
+		namespaces := match.Namespaces()
+		mappings := make([]NSPair, 0, len(namespaces))
 		for db, cols := range match.Namespaces() {
-			mappings[db] = cols
+			mappings = append(mappings, NSPair{Database: db, Collections: cols})
 		}
 		return mappings, nil
 	}
 
-	mappings := map[string]NSCollections{}
+	mappings := []NSPair{}
 	dbs := []string{}
 
 	// If the matcher's inclusionary patterns used a wildcard to specify databases then we need to
@@ -90,7 +122,7 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 		if match.CanEnumerateAllCollections(db) {
 			lgr.Debugf(log.Dev, "only literal collection names provided for database %q, skipping "+
 				"listCollections", db)
-			mappings[db] = NSCollections(match.Collections(db))
+			mappings = append(mappings, NSPair{Database: db, Collections: NSCollections(match.Collections(db))})
 			continue
 		}
 
@@ -122,7 +154,7 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 			lgr.Warnf(log.Dev, "error closing collection iterator: %v", err)
 		}
 
-		mappings[db] = NSCollections(collections)
+		mappings = append(mappings, NSPair{Database: db, Collections: NSCollections(collections)})
 	}
 
 	return mappings, nil

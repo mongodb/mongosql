@@ -41,6 +41,8 @@ const (
 	MaxNestedTableDepth             Name = "max_nested_table_depth"
 	MaxNumFieldsPerCollection       Name = "max_num_fields_per_collection"
 	MaxNumColumnsPerTable           Name = "max_num_columns_per_table"
+	MaxNumTablesPerCollection       Name = "max_num_tables_per_collection"
+	MaxNumGlobalTables              Name = "max_num_global_tables"
 	MetricsBackend                  Name = "metrics_backend"
 	MongoDBMaxServerSize            Name = "mongodb_max_server_size"
 	MongoDBMaxConnectionSize        Name = "mongodb_max_connection_size"
@@ -113,9 +115,11 @@ var (
 	defaultEnableTableAlterations          values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
 	defaultFullPushdownExecMode            values.SQLBool    = values.NewSQLBool(values.VariableSQLValueKind, false)
 	defaultLogLevel                        values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 0)
-	defaultMaxNestedTableDepth             values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 50)
+	defaultMaxNestedTableDepth             values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 10)
 	defaultMaxNumFieldsPerCollection       values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
 	defaultMaxNumColumnsPerTable           values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
+	defaultMaxNumTablesPerCollection       values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 200)
+	defaultMaxNumGlobalTables              values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1000)
 	defaultMetricsBackend                  values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, NoMetricsBackend)
 	defaultMongoDBMaxServerSize            values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
 	defaultMongoDBMaxConnectionSize        values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
@@ -169,6 +173,8 @@ type systemVariableContainer struct {
 	maxNestedTableDepth             values.SQLInt64
 	maxNumFieldsPerCollection       values.SQLInt64
 	maxNumColumnsPerTable           values.SQLInt64
+	maxNumTablesPerCollection       values.SQLInt64
+	maxNumGlobalTables              values.SQLInt64
 	metricsBackend                  values.SQLVarchar
 	mongoDBMaxServerSize            values.SQLUint64
 	mongoDBMaxConnectionSize        values.SQLUint64
@@ -222,6 +228,8 @@ func (svc *systemVariableContainer) setDefaults() {
 	svc.maxNestedTableDepth = defaultMaxNestedTableDepth
 	svc.maxNumFieldsPerCollection = defaultMaxNumFieldsPerCollection
 	svc.maxNumColumnsPerTable = defaultMaxNumColumnsPerTable
+	svc.maxNumTablesPerCollection = defaultMaxNumTablesPerCollection
+	svc.maxNumGlobalTables = defaultMaxNumGlobalTables
 	svc.metricsBackend = defaultMetricsBackend
 	svc.mongoDBMaxServerSize = defaultMongoDBMaxServerSize
 	svc.mongoDBMaxConnectionSize = defaultMongoDBMaxConnectionSize
@@ -255,6 +263,8 @@ func (svc *systemVariableContainer) setFromConfig(cfg *config.Config) {
 	svc.maxNestedTableDepth = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNestedTableDepth)
 	svc.maxNumFieldsPerCollection = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNumFieldsPerCollection)
 	svc.maxNumColumnsPerTable = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNumColumnsPerTable)
+	svc.maxNumTablesPerCollection = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNumTablesPerCollection)
+	svc.maxNumGlobalTables = values.NewSQLInt64(values.VariableSQLValueKind, cfg.Schema.Sample.MaxNumGlobalTables)
 	svc.metricsBackend = values.NewSQLVarchar(values.VariableSQLValueKind, cfg.SetParameter.MetricsBackend)
 	svc.mongoDBMaxServerSize = values.NewSQLUint64(values.VariableSQLValueKind, cfg.Runtime.Memory.MaxPerServer)
 	svc.mongoDBMaxConnectionSize = values.NewSQLUint64(values.VariableSQLValueKind, cfg.Runtime.Memory.MaxPerConnection)
@@ -511,6 +521,24 @@ func init() {
 		EvalType:         types.EvalInt64,
 		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxNumColumnsPerTable },
 		SetValue:         setMaxNumColumnsPerTable,
+	}
+
+	definitions[MaxNumTablesPerCollection] = &definition{
+		Name:             MaxNumTablesPerCollection,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxNumTablesPerCollection },
+		SetValue:         setMaxNumTablesPerCollection,
+	}
+
+	definitions[MaxNumGlobalTables] = &definition{
+		Name:             MaxNumGlobalTables,
+		Kind:             SystemKind,
+		AllowedSetScopes: GlobalScope,
+		EvalType:         types.EvalInt64,
+		GetValue:         func(c *Container) values.SQLValue { return c.systemVariableContainer.maxNumGlobalTables },
+		SetValue:         setMaxNumGlobalTables,
 	}
 
 	definitions[MetricsBackend] = &definition{
@@ -919,6 +947,34 @@ func setMaxNumColumnsPerTable(c *Container, v values.SQLValue) error {
 	}
 
 	c.systemVariableContainer.maxNumColumnsPerTable = val
+	return nil
+}
+
+func setMaxNumTablesPerCollection(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxNumTablesPerCollection, v)
+	if err != nil {
+		return err
+	}
+
+	if lessThan(val, 1) {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxNumTablesPerCollection, val)
+	}
+
+	c.systemVariableContainer.maxNumTablesPerCollection = val
+	return nil
+}
+
+func setMaxNumGlobalTables(c *Container, v values.SQLValue) error {
+	val, err := convertSQLInt64(MaxNumGlobalTables, v)
+	if err != nil {
+		return err
+	}
+
+	if lessThan(val, 1) {
+		return mysqlerrors.Defaultf(mysqlerrors.ErWrongValueForVar, MaxNumGlobalTables, val)
+	}
+
+	c.systemVariableContainer.maxNumGlobalTables = val
 	return nil
 }
 

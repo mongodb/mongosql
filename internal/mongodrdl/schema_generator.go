@@ -135,14 +135,17 @@ func schemaForNamespaces(ctx context.Context, lg log.Logger, opts DrdlOptions, n
 }
 
 func newSampleConfig(opts DrdlOptions, ns []string) sample.Config {
+	defaultCfg := config.Default()
 	cfg := &config.Schema{
 		Stored: config.SchemaStorageOptions{
 			Source: "",
 		},
 		Sample: config.NewSchemaSampleOptions(
-			50,                                   // maxNestedTableDepth
-			2000,                                 // maxNumColumnsPerTable
-			2000,                                 // maxNumFieldsPerCollection
+			defaultCfg.Schema.Sample.MaxNestedTableDepth,       // maxNestedTableDepth
+			defaultCfg.Schema.Sample.MaxNumFieldsPerCollection, // maxNumFieldsPerCollection
+			defaultCfg.Schema.Sample.MaxNumColumnsPerTable,     // maxNumColumnsPerTable
+			defaultCfg.Schema.Sample.MaxNumTablesPerCollection, // maxNumTablesPerCollection
+			defaultCfg.Schema.Sample.MaxNumGlobalTables,        // maxNumGlobalTables
 			ns,                                   // namespaces
 			true,                                 // optimizeViewSampling
 			opts.DrdlOutput.PreJoined,            // preJoin

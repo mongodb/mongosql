@@ -168,6 +168,8 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	// create a test database schema
 	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
 
+	numTables := int64(0)
+
 	// map the json schema into the database
 	err := mapping.Map(mapping.NewSchemaMappingConfig(
 		db,
@@ -178,7 +180,11 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 		[]uint8{4, 0, 0},
 		log.GlobalLogger(),
 		mappingMode,
-		50))
+		&numTables,
+		10,
+		200,
+		1000,
+	))
 	if err != nil {
 		return err
 	}

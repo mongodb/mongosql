@@ -28,6 +28,7 @@ require (
 	github.com/onsi/ginkgo v1.8.0 // indirect
 	github.com/onsi/gomega v1.5.0 // indirect
 	github.com/pkg/errors v0.8.1
+	github.com/pkg/profile v1.3.0 // indirect
 	github.com/satori/go.uuid v0.0.0-20181028125025-b2ce2384e17b
 	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24
 	github.com/smartystreets/assertions v0.0.0-20160225170624-e9a2f6771d97 // indirect

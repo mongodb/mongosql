@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/sqlproxy/internal/memdebug"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/mongo"
@@ -31,6 +32,21 @@ type Column struct {
 	nullable bool
 	// comment is a string added by the user during table creation.
 	comment option.String
+}
+
+// SizeDump dumps the size of this Column.
+func (c *Column) SizeDump(padding ...string) {
+	if len(padding) != 0 {
+		fmt.Printf("%vsqlName %v KB\n", padding[0], memdebug.SizeofKB(c.sqlName))
+		fmt.Printf("%vsqlType %v KB\n", padding[0], memdebug.SizeofKB(c.sqlType))
+		fmt.Printf("%vmongoName %v KB\n", padding[0], memdebug.SizeofKB(c.mongoName))
+		fmt.Printf("%vmongoType %v KB\n", padding[0], memdebug.SizeofKB(c.mongoType))
+		fmt.Printf("%vsampledTypes %v KB\n", padding[0], memdebug.SizeofKB(c.sampledTypes))
+		fmt.Printf("%vhasAlteredType %v KB\n", padding[0], memdebug.SizeofKB(c.hasAlteredType))
+		fmt.Printf("%vnullable %v KB\n", padding[0], memdebug.SizeofKB(c.nullable))
+		fmt.Printf("%vcomment %v KB\n", padding[0], memdebug.SizeofKB(c.comment))
+		fmt.Printf("%vcomment was %v KB\n", padding[0], c.comment)
+	}
 }
 
 // NewColumn returns a new Column with the provided fields.

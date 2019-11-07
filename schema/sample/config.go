@@ -15,6 +15,8 @@ type Config interface {
 	Size() int64
 	MaxNumFieldsPerCollection() int64
 	MaxNestedTableDepth() int64
+	MaxNumTablesPerCollection() int64
+	MaxNumGlobalTables() int64
 	OptimizeViewSampling() bool
 	PreJoin() bool
 	Namespaces() []string
@@ -61,6 +63,20 @@ func (m mongosqldConfig) MaxNestedTableDepth() int64 {
 		return m.vars.GetInt64(variable.MaxNestedTableDepth)
 	}
 	return m.cfg.Sample.MaxNestedTableDepth
+}
+
+func (m mongosqldConfig) MaxNumTablesPerCollection() int64 {
+	if m.vars != nil {
+		return m.vars.GetInt64(variable.MaxNumTablesPerCollection)
+	}
+	return m.cfg.Sample.MaxNumTablesPerCollection
+}
+
+func (m mongosqldConfig) MaxNumGlobalTables() int64 {
+	if m.vars != nil {
+		return m.vars.GetInt64(variable.MaxNumGlobalTables)
+	}
+	return m.cfg.Sample.MaxNumGlobalTables
 }
 
 func (m mongosqldConfig) OptimizeViewSampling() bool {

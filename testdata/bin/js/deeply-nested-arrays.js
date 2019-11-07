@@ -1,6 +1,7 @@
-// Dataset 8: Deeply nested arrays (20 layers of nesting)
+// Dataset 8: Deeply nested arrays (30 layers of nesting), across 4 collections in 2 databases.
 
-const db = connect('127.0.0.1:27017/memtest');
+const db1 = connect('127.0.0.1:27017/memtest1');
+const db2 = connect('127.0.0.1:27017/memtest2');
 
 function nestarray (depth) {
     const arr = [];
@@ -16,9 +17,16 @@ function nestarray (depth) {
     return arr;
 }
 
-const array = nestarray(10)
-for (let i = 0; i < 1000; i++) {
-    const doc = {};
-    doc[i] = array;
-    db.test.insert(doc);
+function insert_in_collection(col, num) {
+    for (let i = 0; i < num; i++) {
+        const doc = {};
+        doc[i] = array;
+        col.insert(doc);
+    }
 }
+
+const array = nestarray(30)
+insert_in_collection(db1.test1, 10)
+insert_in_collection(db1.test2, 10)
+insert_in_collection(db2.test1, 10)
+insert_in_collection(db2.test2, 10)

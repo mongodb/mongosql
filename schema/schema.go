@@ -2,9 +2,11 @@ package schema
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"sync"
 
+	"github.com/10gen/sqlproxy/internal/memdebug"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
 )
@@ -35,6 +37,15 @@ func New(dbs []*Database) (*Schema, error) {
 		}
 	}
 	return s, nil
+}
+
+// SizeDump dumps the size of this Schema.
+func (s *Schema) SizeDump(padding ...string) {
+	p := ""
+	if len(padding) != 0 {
+		p = padding[0]
+	}
+	fmt.Fprintf(os.Stderr, "%vdatabases %v KB\n", p, memdebug.SizeofKB(s.databases))
 }
 
 // NewFromDRDL returns a new schema that is built from the provided DRDL schema.

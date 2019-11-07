@@ -32,6 +32,7 @@ func Build(schema *schema.Schema, variables VariableContainer, info *mongodb.Inf
 	if err != nil {
 		return nil, err
 	}
+	builder.schema = nil
 	return builder.catalog, nil
 }
 
@@ -59,7 +60,9 @@ func (b *catalogBuilder) build() error {
 
 func (b *catalogBuilder) buildFromSchema() error {
 	info := b.info
-	for _, dbConfig := range b.schema.DatabasesSorted() {
+
+	dbs := b.schema.DatabasesSorted()
+	for _, dbConfig := range dbs {
 		if !info.IsVisibleDatabase(mongodb.DatabaseName(dbConfig.Name())) {
 			b.catalog.containsAuthRestrictedNamespaces = true
 			continue
@@ -78,7 +81,8 @@ func (b *catalogBuilder) buildFromSchema() error {
 			continue
 		}
 
-		for _, tblConfig := range dbConfig.TablesSorted() {
+		tbls := dbConfig.TablesSorted()
+		for _, tblConfig := range tbls {
 			allowed := info.IsVisibleCollection(
 				mongodb.DatabaseName(dbConfig.Name()),
 				mongodb.CollectionName(tblConfig.MongoName()),
@@ -114,15 +118,15 @@ func (b *catalogBuilder) buildFromSchema() error {
 
 			t.isSharded = collection.IsSharded
 
-			mongoNameToColumn := make(map[string]*results.Column)
-
-			for _, c := range t.columns {
-				mongoNameToColumn[c.MongoName] = c
-			}
-
 			// If we are not in --writeMode build the indexes the old way.
 			// In --writeMode we will get the indexes from the schema.
 			if !b.writeMode {
+				mongoNameToColumn := make(map[string]*results.Column, len(t.columns))
+
+				for _, c := range t.columns {
+					mongoNameToColumn[c.MongoName] = c
+				}
+
 				idx := 1
 				for _, i := range collection.Indexes {
 					index := addColumnToIndex(i, mongoNameToColumn)

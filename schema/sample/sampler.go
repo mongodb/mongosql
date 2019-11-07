@@ -3,7 +3,6 @@ package sample
 import (
 	"context"
 	"fmt"
-	"runtime"
 	"sort"
 	"strings"
 
@@ -380,8 +379,7 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 
 	s.lg.Infof(log.Always, "sampling MongoDB for schema...")
 
-	var mappings NSMapping
-	mappings, err = fetchNamespaces(ctx, session, s.lg, nsMatcher)
+	fetchedNSes, err := fetchSortedNamespaces(ctx, session, s.lg, nsMatcher)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +405,9 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 		formatNamespace(s.cfg.Source(), mongodb.LockCollection, true),
 	}
 
-	for db, collections := range mappings {
+	currentNumTables := int64(0)
+	for _, ns := range fetchedNSes {
+		db, collections := ns.Database, ns.Collections
 		if _, ok := dbSampleBlacklist[db]; ok {
 			s.lg.Debugf(log.Dev, "skipping %q database", db)
 			continue
@@ -471,6 +471,11 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 		}
 
 		for _, col := range collections {
+			if currentNumTables >= s.cfg.MaxNumGlobalTables() {
+				s.lg.Infof(log.Always, fmt.Sprintf("max num global tables (%d) reached: not mapping any more tables", s.cfg.MaxNumGlobalTables()))
+				break
+			}
+
 			sampleCollection := col
 			quotedNs := formatNamespace(db, col, true)
 			unquotedNs := formatNamespace(db, col, false)
@@ -599,15 +604,15 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 				version.VersionArray,
 				s.lg,
 				s.cfg.SchemaMappingMode(),
+				&currentNumTables,
 				s.cfg.MaxNestedTableDepth(),
+				s.cfg.MaxNumTablesPerCollection(),
+				s.cfg.MaxNumGlobalTables(),
 			))
 
 			if err != nil {
 				return nil, fmt.Errorf("error mapping schema: %v", err)
 			}
-			// Mapping a schema can cause us to create significant amounts of garbage so we
-			// block and allow the GC to complete before proceeding.
-			runtime.GC()
 
 			sampledNamespaceCount++
 			addSampledNamespace(db, col)

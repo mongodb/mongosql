@@ -14,6 +14,8 @@ This is a description of the [BIC](https://www.mongodb.com)'s exposed system var
 |max_nested_table_depth|50|integer|The maximum number of unique MongoDB nested array field paths (when any non-json mapping mode is used) that mongosqld will map to a relational table for any given collection.|
 |max_num_columns_per_table|2000|integer|The maximum number of unique MongoDB fields that mongosqld will map to relational columns for any given collection.|
 |max_num_fields_per_collection|2000|integer|The maximum number of unique MongoDB fields that mongosqld will sample for any given collection, regardless of whether the fields map to a relational column.|
+|max_num_tables_per_collection|200|integer|The maximum number of unique SQL Tables (arrays + 1) that mongosqld will map per colletion.|
+|max_num_global_tables|1000|integer|The maximum number of unique SQL Tables that mongosqld will map.|
 |metrics_backend|off|log, stitch, off|Determines where the BIC will store metrics related to queries issued.|
 |mongodb_max_server_size|0|integer|The maximum size in bytes of memory that will be allocated for evaluating any query on the BIC. If the value is 0 (default) no limit is imposed.|
 |mongodb_max_connection_size|0|integer|The maximum size in bytes of memory that will be allocated for evaluating any query on any given client connection. If the value is 0 (default) no limit is imposed.|

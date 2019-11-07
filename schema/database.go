@@ -2,10 +2,12 @@ package schema
 
 import (
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
 
+	"github.com/10gen/sqlproxy/internal/memdebug"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema/drdl"
 )
@@ -53,6 +55,17 @@ func NewDatabaseFromDRDL(lg log.Logger, drdlDb *drdl.Database) (*Database, error
 		tbls = append(tbls, tbl)
 	}
 	return NewDatabase(lg, drdlDb.Name, tbls), nil
+}
+
+// SizeDump dumps the size of this Database.
+func (d *Database) SizeDump(padding ...string) {
+	p := ""
+	if len(padding) != 0 {
+		p = padding[0]
+	}
+	fmt.Fprintf(os.Stderr, "%vname %v KB\n", p, memdebug.SizeofKB(d.name))
+	fmt.Fprintf(os.Stderr, "%vtables %v KB\n", p, memdebug.SizeofKB(d.tables))
+	fmt.Fprintf(os.Stderr, "%vcachedSort %v KB\n", p, float64(8*len(d.cachedSort))/memdebug.KB)
 }
 
 // AddTable adds the provided table to the database. If the table's name

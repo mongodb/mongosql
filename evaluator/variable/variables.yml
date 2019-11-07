@@ -216,7 +216,7 @@ system_variables:
 
   - _id: maxNestedTableDepth
     config_field: Schema.Sample.MaxNestedTableDepth
-    default: 50
+    default: 10
     name: 'max_nested_table_depth'
     set_scopes: [global]
     type: SQLInt64
@@ -236,6 +236,24 @@ system_variables:
     config_field: Schema.Sample.MaxNumColumnsPerTable
     default: 2000
     name: 'max_num_columns_per_table'
+    set_scopes: [global]
+    type: SQLInt64
+    validation:
+      min: 1
+
+  - _id: maxNumTablesPerCollection
+    config_field: Schema.Sample.MaxNumTablesPerCollection
+    default: 200
+    name: 'max_num_tables_per_collection'
+    set_scopes: [global]
+    type: SQLInt64
+    validation:
+      min: 1
+
+  - _id: maxNumGlobalTables
+    config_field: Schema.Sample.MaxNumGlobalTables
+    default: 1000
+    name: 'max_num_global_tables'
     set_scopes: [global]
     type: SQLInt64
     validation:

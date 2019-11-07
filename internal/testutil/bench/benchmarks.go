@@ -154,11 +154,14 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 }
 
 func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, string, error) {
+	defaultCfg := config.Default()
 	opts := &config.Schema{
 		Sample: config.NewSchemaSampleOptions(
-			50,                         // maxNestedTableDepth
-			2000,                       // maxNumColumnsPerTable
-			2000,                       // maxNumFieldsPerCollection
+			defaultCfg.Schema.Sample.MaxNestedTableDepth,       // maxNestedTableDepth
+			defaultCfg.Schema.Sample.MaxNumFieldsPerCollection, // maxNumFieldsPerCollection
+			defaultCfg.Schema.Sample.MaxNumColumnsPerTable,     // maxNumColumnsPerTable
+			defaultCfg.Schema.Sample.MaxNumTablesPerCollection, // maxNumTablesPerCollection
+			defaultCfg.Schema.Sample.MaxNumGlobalTables,        // maxNumGlobalTables
 			[]string{"*.*"},            // namespaces
 			true,                       // optimizeViewSampling
 			false,                      // preJoin
