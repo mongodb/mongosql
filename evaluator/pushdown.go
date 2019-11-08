@@ -1661,22 +1661,52 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		return replace, nil
 	}
 
-	// Ensure our local and foreign join sources are able to be pushed down.
-	if failure := v.canPushdownJoinSources(join.left, join.right); failure != nil {
-		v.addPushdownFailure(join, failure)
+	// Make sure the local table is a MongoSourceStage.
+	msLocal, ok := join.left.(*MongoSourceStage)
+	if !ok {
+		v.addTransitivePushdownFailure(join, joinStageName)
 		return join, nil
 	}
 
-	msLocal := join.left.(*MongoSourceStage)
-	msForeign := join.right.(*MongoSourceStage)
+	// Make sure the foreign table is a MongoSourceStage.
+	msForeign, ok := join.right.(*MongoSourceStage)
+	if !ok {
+		v.addTransitivePushdownFailure(join, joinStageName)
+		return join, nil
+	}
 
-	// See if we can optimize self joins.
+	// We can't push down cross-database joins.
+	if msLocal.dbName != msForeign.dbName {
+		v.logger.Warnf(log.Dev,
+			"cannot pushdown join stage, local database is different from foreign database")
+		v.addNewPushdownFailure(join, joinStageName, "local and foreign databases are different")
+		return join, nil
+	}
+
+	// See if we can push down self-joins without using $lookup.
 	optimizedJoinPlanStage, err := v.attemptToOptimizeSelfJoins(join, msLocal, msForeign)
 	if err != nil {
 		return nil, err
 	}
 	if optimizedJoinPlanStage != nil {
 		return optimizedJoinPlanStage, nil
+	}
+
+	// If a foreign table is sharded, we can't push down the join to a $lookup.
+	for i, collection := range msForeign.collectionNames {
+		var isSharded bool
+		isSharded, ok = msForeign.isShardedCollection[collection]
+		if !ok {
+			// If this happens, there is a serious programming error.
+			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
+		}
+		if isSharded {
+			v.logger.Warnf(log.Dev,
+				"unable to translate join stage to lookup: foreign table %q is sharded",
+				msForeign.tableNames[i])
+			v.addNewPushdownFailure(join, joinStageName, "foreign table's collection is sharded")
+			return join, nil
+		}
 	}
 
 	// When the foreign source has a pipeline, ensure we can push it down.
@@ -3058,41 +3088,6 @@ func (v *pushdownVisitor) canPushdownJoinKind(kind JoinKind) PushdownFailure {
 	default:
 		return newPushdownFailure(joinStageName, fmt.Sprintf("regular $lookup cannot push down join kind '%v' - join kind is not inner, left, or straight", kind))
 	}
-}
-
-func (v *pushdownVisitor) canPushdownJoinSources(localSource, foreignSource PlanStage) PushdownFailure {
-	msLocal, ok := localSource.(*MongoSourceStage)
-	if !ok {
-		return newTransitivePushdownFailure(joinStageName)
-	}
-
-	msForeign, ok := foreignSource.(*MongoSourceStage)
-	if !ok {
-		return newTransitivePushdownFailure(joinStageName)
-	}
-
-	if msLocal.dbName != msForeign.dbName {
-		v.logger.Warnf(log.Dev,
-			"cannot pushdown join stage, local database is different from foreign database")
-		return newPushdownFailure(joinStageName, "local and foreign databases are different")
-	}
-
-	for i, collection := range msForeign.collectionNames {
-		var isSharded bool
-		isSharded, ok = msForeign.isShardedCollection[collection]
-		if !ok {
-			// If this happens, there is a serious programming error.
-			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
-		}
-		if isSharded {
-			v.logger.Warnf(log.Dev,
-				"unable to translate join stage to lookup: foreign table %q is sharded",
-				msForeign.tableNames[i])
-			return newPushdownFailure(joinStageName, "foreign table's collection is sharded")
-		}
-	}
-
-	return nil
 }
 
 func (v *pushdownVisitor) attemptToOptimizeSelfJoins(join *JoinStage, msLocal, msForeign *MongoSourceStage) (PlanStage, error) {

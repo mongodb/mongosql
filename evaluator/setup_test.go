@@ -374,6 +374,27 @@ schema:
         SqlName: filter
         SqlType: varchar
   -
+     table: foo_array
+     collection: foo
+     pipeline:
+     - $unwind:
+         includeArrayIndex: array_idx
+         path: $array
+         preserveNullAndEmptyArrays: false
+     columns:
+     -
+        Name: _id
+        MongoType: bson.ObjectId
+        SqlType: varchar
+     -
+        Name: array
+        MongoType: int
+        SqlType: int
+     -
+        Name: array_idx
+        MongoType: int
+        SqlType: int
+  -
      table: bar
      collection: bar
      columns:

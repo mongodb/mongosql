@@ -815,6 +815,21 @@ func TestPushdownSharding(t *testing.T) {
 	}
 
 	tests := []test{
+		// should push down self-joins on sharded collections
+		{
+			sql: "select a._id, array from foo a join foo_array b on a._id = b._id",
+			expected: []*ast.Pipeline{
+				ast.NewPipeline(
+					ast.NewUnwindStage(ast.NewFieldRef("array", nil), "", false),
+					ast.NewProjectStage(
+						ast.NewAssignProjectItem("test_DOT_a_DOT__id", ast.NewFieldRef("_id", nil)),
+						ast.NewAssignProjectItem("test_DOT_b_DOT_array", ast.NewFieldRef("array", nil)),
+						ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+					),
+				),
+			},
+		},
+
 		// should not push down because the from collection is sharded.
 		{
 			sql: "select * from bar left join foo on bar.a=foo.a and bar.a=foo.f",

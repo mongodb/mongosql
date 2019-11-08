@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2394: Allow self-join optimization to be applied to sharded collections
 - BI-2397: Fix bug that caused unix_timestamp to return incorrect results when pushed down because it did not previously handle DST when necessary.
 - BI-2401: No user-facing changes.
 - BI-2361: Add variable to set max number global tables (default 1000). Add variable to set max num tables per collection (default 200). Change max table nesting depth default to 10.
