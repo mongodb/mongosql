@@ -325,13 +325,18 @@ func TestTranslate(t *testing.T) {
 		{"scalar_truncate_negative_pos", "truncate(a, -3)"},
 		{"scalar_truncate_column_pos", "truncate(a,a)"},
 		{"scalar_ucase", "ucase(s)"},
-		// These tests rely on the current time, so they cannot be tested without
+		// This test relies on the current time, so it cannot be tested without
 		// at-runtime checks. Hardcoded result values don't work because the
 		// correct result will be different depending on when the test is ran.
 		//{"scalar_unix_timestamp", "unix_timestamp()"},
-		//{"scalar_unix_timestamp_int", "unix_timestamp(null)"},
+		// These tests rely on the current timezone, so they cannot be tested
+		// without at-runtime checks. Hardcoded result values don't work because
+		// the correct result will be different depending on where the test is ran.
+		//{"scalar_unix_timestamp_int", "unix_timestamp(a)"},
 		//{"scalar_unix_timestamp_null", "unix_timestamp(null)"},
 		//{"scalar_unix_timestamp_string", "unix_timestamp(s)"},
+		//{"scalar_unix_timestamp_date", "unix_timestamp(h)"},
+		//{"scalar_unix_timestamp_timestamp", "unix_timestamp(g)"},
 		{"scalar_upper", "upper(s)"},
 		{"scalar_upper_useless", "upper('UPPER')"},
 		{"scalar_week_0", "week(a,5)"},

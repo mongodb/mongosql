@@ -1,18 +1,18 @@
 # github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5 => github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
 github.com/10gen/candiedyaml
 # github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c
-github.com/10gen/mongoast/ast
-github.com/10gen/mongoast/optimizer
-github.com/10gen/mongoast/parser
-github.com/10gen/mongoast/astprint
 github.com/10gen/mongoast/analyzer
+github.com/10gen/mongoast/ast
+github.com/10gen/mongoast/astprint
 github.com/10gen/mongoast/eval
+github.com/10gen/mongoast/eval/bsoncompare
 github.com/10gen/mongoast/internal/bsonutil
-github.com/10gen/mongoast/internal/stringutil
 github.com/10gen/mongoast/internal/decimalutil
 github.com/10gen/mongoast/internal/jsonutil
-github.com/10gen/mongoast/eval/bsoncompare
 github.com/10gen/mongoast/internal/mathutil
+github.com/10gen/mongoast/internal/stringutil
+github.com/10gen/mongoast/optimizer
+github.com/10gen/mongoast/parser
 # github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 => github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 github.com/10gen/openssl
 github.com/10gen/openssl/utils
@@ -20,9 +20,9 @@ github.com/10gen/openssl/utils
 github.com/davecgh/go-spew/spew
 # github.com/ericlagergren/decimal v0.0.0-20190729173012-f05d33913e5a
 github.com/ericlagergren/decimal
-github.com/ericlagergren/decimal/math
 github.com/ericlagergren/decimal/internal/arith
 github.com/ericlagergren/decimal/internal/c
+github.com/ericlagergren/decimal/math
 github.com/ericlagergren/decimal/misc
 # github.com/go-sql-driver/mysql v1.4.1 => github.com/go-sql-driver/mysql v1.4.1
 github.com/go-sql-driver/mysql
@@ -55,20 +55,20 @@ github.com/kr/text
 github.com/mongodb/mongo-tools/mongorestore
 github.com/mongodb/mongo-tools/mongorestore/ns
 # github.com/mongodb/mongo-tools-common v1.0.2
-github.com/mongodb/mongo-tools-common/util
-github.com/mongodb/mongo-tools-common/db
-github.com/mongodb/mongo-tools-common/options
-github.com/mongodb/mongo-tools-common/json
-github.com/mongodb/mongo-tools-common/log
-github.com/mongodb/mongo-tools-common/password
-github.com/mongodb/mongo-tools-common/failpoint
 github.com/mongodb/mongo-tools-common/archive
 github.com/mongodb/mongo-tools-common/auth
 github.com/mongodb/mongo-tools-common/bsonutil
+github.com/mongodb/mongo-tools-common/db
+github.com/mongodb/mongo-tools-common/failpoint
 github.com/mongodb/mongo-tools-common/intents
+github.com/mongodb/mongo-tools-common/json
+github.com/mongodb/mongo-tools-common/log
+github.com/mongodb/mongo-tools-common/options
+github.com/mongodb/mongo-tools-common/password
 github.com/mongodb/mongo-tools-common/progress
-github.com/mongodb/mongo-tools-common/txn
 github.com/mongodb/mongo-tools-common/text
+github.com/mongodb/mongo-tools-common/txn
+github.com/mongodb/mongo-tools-common/util
 # github.com/pkg/errors v0.8.1 => github.com/pkg/errors v0.8.1
 github.com/pkg/errors
 # github.com/pmezard/go-difflib v1.0.0
@@ -83,77 +83,79 @@ github.com/smartystreets/assertions/internal/go-render/render
 github.com/smartystreets/assertions/internal/oglematchers
 # github.com/smartystreets/goconvey v0.0.0-20160503033757-d4c757aa9afd => github.com/smartystreets/goconvey v0.0.0-20160503033757-d4c757aa9afd
 github.com/smartystreets/goconvey/convey
-github.com/smartystreets/goconvey/convey/reporting
 github.com/smartystreets/goconvey/convey/gotest
+github.com/smartystreets/goconvey/convey/reporting
 # github.com/spacemonkeygo/spacelog v0.0.0-20170706210657-b6d9bf7bf3eb
 github.com/spacemonkeygo/spacelog
 # github.com/stretchr/testify v1.4.0 => github.com/stretchr/testify v1.3.0
 github.com/stretchr/testify/assert
 github.com/stretchr/testify/require
+# github.com/tkuchiki/go-timezone v0.1.4
+github.com/tkuchiki/go-timezone
 # github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c
 github.com/xdg/scram
 # github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc => github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
 github.com/xdg/stringprep
 # go.mongodb.org/mongo-driver v1.1.2
 go.mongodb.org/mongo-driver/bson
+go.mongodb.org/mongo-driver/bson/bsoncodec
+go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
-go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-go.mongodb.org/mongo-driver/x/mongo/driver/connstring
-go.mongodb.org/mongo-driver/x/mongo/driver/topology
+go.mongodb.org/mongo-driver/event
+go.mongodb.org/mongo-driver/internal
 go.mongodb.org/mongo-driver/mongo
-go.mongodb.org/mongo-driver/x/mongo/driver
-go.mongodb.org/mongo-driver/x/mongo/driver/operation
+go.mongodb.org/mongo-driver/mongo/options
+go.mongodb.org/mongo-driver/mongo/readconcern
 go.mongodb.org/mongo-driver/mongo/readpref
 go.mongodb.org/mongo-driver/mongo/writeconcern
 go.mongodb.org/mongo-driver/tag
-go.mongodb.org/mongo-driver/x/mongo/driver/auth
-go.mongodb.org/mongo-driver/x/mongo/driver/description
-go.mongodb.org/mongo-driver/bson/bsonrw
-go.mongodb.org/mongo-driver/bson/bsoncodec
-go.mongodb.org/mongo-driver/internal
-go.mongodb.org/mongo-driver/x/mongo/driver/dns
-go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
-go.mongodb.org/mongo-driver/event
-go.mongodb.org/mongo-driver/x/mongo/driver/address
-go.mongodb.org/mongo-driver/x/mongo/driver/session
-go.mongodb.org/mongo-driver/mongo/options
-go.mongodb.org/mongo-driver/mongo/readconcern
-go.mongodb.org/mongo-driver/x/bsonx
-go.mongodb.org/mongo-driver/x/mongo/driver/uuid
 go.mongodb.org/mongo-driver/version
+go.mongodb.org/mongo-driver/x/bsonx
+go.mongodb.org/mongo-driver/x/bsonx/bsoncore
+go.mongodb.org/mongo-driver/x/mongo/driver
+go.mongodb.org/mongo-driver/x/mongo/driver/address
+go.mongodb.org/mongo-driver/x/mongo/driver/auth
 go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi
+go.mongodb.org/mongo-driver/x/mongo/driver/connstring
+go.mongodb.org/mongo-driver/x/mongo/driver/description
+go.mongodb.org/mongo-driver/x/mongo/driver/dns
+go.mongodb.org/mongo-driver/x/mongo/driver/operation
+go.mongodb.org/mongo-driver/x/mongo/driver/session
+go.mongodb.org/mongo-driver/x/mongo/driver/topology
+go.mongodb.org/mongo-driver/x/mongo/driver/uuid
+go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage
 # golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586 => golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
-golang.org/x/crypto/ssh/terminal
 golang.org/x/crypto/pbkdf2
+golang.org/x/crypto/ssh/terminal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/semaphore
 # golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+golang.org/x/sys/unix
+golang.org/x/sys/windows
 golang.org/x/sys/windows/registry
 golang.org/x/sys/windows/svc
 golang.org/x/sys/windows/svc/eventlog
 golang.org/x/sys/windows/svc/mgr
-golang.org/x/sys/unix
-golang.org/x/sys/windows
 # golang.org/x/text v0.3.2 => golang.org/x/text v0.3.0
 golang.org/x/text/collate
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
+golang.org/x/text/encoding/internal
+golang.org/x/text/encoding/internal/identifier
 golang.org/x/text/encoding/japanese
 golang.org/x/text/encoding/korean
 golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
 golang.org/x/text/encoding/unicode/utf32
-golang.org/x/text/language
 golang.org/x/text/internal/colltab
-golang.org/x/text/unicode/norm
-golang.org/x/text/encoding/internal/identifier
-golang.org/x/text/transform
-golang.org/x/text/encoding/internal
-golang.org/x/text/internal/utf8internal
-golang.org/x/text/runes
 golang.org/x/text/internal/tag
+golang.org/x/text/internal/utf8internal
+golang.org/x/text/language
+golang.org/x/text/runes
+golang.org/x/text/transform
+golang.org/x/text/unicode/norm
 # google.golang.org/appengine v1.6.0
 google.golang.org/appengine/cloudsql
 # gopkg.in/yaml.v2 v2.2.1 => gopkg.in/yaml.v2 v2.2.1

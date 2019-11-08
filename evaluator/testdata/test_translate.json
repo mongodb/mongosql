@@ -756,7 +756,6 @@
             "4.2": {
                 "mongosql-mode": "{\"$avg\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
                 "mysql-mode": "{\"$avg\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
-
             }
         },
         "predicate": {
@@ -803,7 +802,6 @@
             "4.2": {
                 "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
                 "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
-
             }
         },
         "predicate": {
@@ -868,7 +866,6 @@
             "4.0": {
                 "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
                 "mysql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},{\"$numberInt\":\"100\"}]},{\"$multiply\": [{\"$year\": \"$h\"},{\"$numberInt\":\"10000\"}]}]}}}"
-
             },
             "4.2": {
                 "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
@@ -893,7 +890,6 @@
             "4.0": {
                 "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
                 "mysql-mode": "{\"$stdDevPop\": {\"$add\": [{\"$dayOfMonth\": \"$h\"},{\"$multiply\": [{\"$month\": \"$h\"},NumberInt(\"100\")]},{\"$multiply\": [{\"$year\": \"$h\"},NumberInt(\"10000\")]}]}}"
-
             },
             "4.2": {
                 "mongosql-mode": "{\"$stdDevPop\": {\"$convert\": {\"input\": {\"$dateFromParts\": {\"year\": {\"$year\": \"$h\"},\"month\": {\"$month\": \"$h\"},\"day\": {\"$dayOfMonth\": \"$h\"}}},\"to\": \"long\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
@@ -969,10 +965,10 @@
             }
         }
     },
-  "aggregate_date_sum": {
-    "expr": {
-      "3.2": {
-        "mongosql-mode": "",
+    "aggregate_date_sum": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
                 "mysql-mode": ""
             },
             "3.4": {
@@ -997,7 +993,7 @@
                 "mongosql-mode": "",
                 "mysql-mode": ""
             },
-          "3.4": {
+            "3.4": {
                 "mongosql-mode": "",
                 "mysql-mode": ""
             },
@@ -1705,6 +1701,52 @@
             }
         }
     },
+    "aggregate_stddev_samp_string_reconciled": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
+                "mysql-mode": ""
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mysql-mode": ""
+            }
+        }
+    },
     "aggregate_stddev_string_reconciled": {
         "expr": {
             "3.2": {
@@ -1742,57 +1784,11 @@
                 "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode"  : "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
+                "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
                 "mysql-mode": ""
             },
             "4.2": {
                 "mongosql-mode": "{\"$expr\": {\"$stdDevPop\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
-                "mysql-mode": ""
-            }
-        }
-    },
-    "aggregate_stddev_samp_string_reconciled": {
-        "expr": {
-            "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "4.0": {
-                "mongosql-mode"  : "{\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
-                "mysql-mode": ""
-            },
-            "4.2": {
-                "mongosql-mode": "{\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": NumberInt(\"0\"),\"onNull\": null}}}",
-                "mysql-mode": ""
-            }
-        },
-        "predicate": {
-            "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "4.0": {
-                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
-                "mysql-mode": ""
-            },
-            "4.2": {
-                "mongosql-mode": "{\"$expr\": {\"$stdDevSamp\": {\"$convert\": {\"input\": \"$s\",\"to\": \"double\",\"onError\": {\"$numberInt\":\"0\"},\"onNull\": null}}}}",
                 "mysql-mode": ""
             }
         }

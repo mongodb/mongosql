@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
+	"github.com/10gen/sqlproxy/internal/dateutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -3133,6 +3134,13 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 		return astutil.Int64Value(now.Unix()), nil
 	}
 
+	if !t.versionAtLeast(3, 6, 0) {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(unix_timestamp)",
+			"cannot push down to MongoDB < 3.6",
+		)
+	}
+
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
@@ -3143,15 +3151,26 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 	// MongoDB, the number of milliseconds between the two
 	// timestamps is returned.
 	epoch := time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
-	_, tzCompensation := now.Zone()
+	tz, tzErr := dateutil.GetIANATimezoneName(now)
+	if tzErr != nil {
+		return nil, newPushdownFailure(f.ExprName(), "failed to get timezone name", tzErr.Error())
+	}
 
 	diffRef := ast.NewVariableRef("diff")
 	assignments := []*ast.LetVariable{
 		ast.NewLetVariable("diff", ast.NewFunction(bsonutil.OpTrunc,
 			ast.NewBinary(bsonutil.OpDivide,
 				ast.NewBinary(bsonutil.OpSubtract,
-					ast.NewBinary(bsonutil.OpSubtract, args[0], astutil.DateConstant(epoch)),
-					astutil.Int64Value(int64(tzCompensation*1000)),
+					ast.NewFunction(bsonutil.OpDateFromString, ast.NewDocument(
+						ast.NewDocumentElement("dateString",
+							ast.NewFunction(bsonutil.OpDateToString, ast.NewDocument(
+								ast.NewDocumentElement("date", args[0]),
+								ast.NewDocumentElement("format", astutil.StringConstant("%Y-%m-%dT%H:%M:%S.%L")),
+							)),
+						),
+						ast.NewDocumentElement("timezone", astutil.StringConstant(tz)),
+					)),
+					astutil.DateConstant(epoch),
 				),
 				astutil.Int32Value(1000),
 			),

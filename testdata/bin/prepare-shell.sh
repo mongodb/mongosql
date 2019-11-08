@@ -19,6 +19,9 @@ else
     SQLPROXY_TEST_CACHE_DIR="$PROJECT_DIR/.sqlproxy-test-cache"
 fi
 
+# set ZONEINFO for timezone data
+ZONEINFO="$PROJECT_DIR/testdata/resources/time/zoneinfo.zip"
+
 # set GOPATH, GOBIN, GOCACHE
 GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
 GOBIN="$GOPATH/bin/"
@@ -149,6 +152,7 @@ export SQLPROXY_MEMORY_MANAGER_FAILPOINT_OFF
 export SQLPROXY_SSLTEST
 export GO_TEST_CLIENT_SSL
 export TZ
+export ZONEINFO
 
 # define the function that prints the exit message at the end of each script
 print_exit_msg() {
