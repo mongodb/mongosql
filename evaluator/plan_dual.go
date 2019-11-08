@@ -33,7 +33,7 @@ func (DualStage) ReplaceChild(i int, n Node) {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (d *DualStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (RowIter, error) {
+func (d *DualStage) Open(_ context.Context, _ *ExecutionConfig, _ *ExecutionState) (results.RowIter, error) {
 	return &DualIter{}, nil
 }
 

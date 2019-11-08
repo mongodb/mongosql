@@ -80,7 +80,7 @@ func (es *ExplainStage) clone() PlanStage {
 
 // Open creates a visitor that will walk through the explain plan
 // and return an iterator with the rows for the table.
-func (es *ExplainStage) Open(ctx context.Context, eCfg *ExecutionConfig, _ *ExecutionState) (RowIter, error) {
+func (es *ExplainStage) Open(ctx context.Context, eCfg *ExecutionConfig, _ *ExecutionState) (results.RowIter, error) {
 	explainRecords, err := explainQuery(es.plan, es.pushdownFailures)
 	if err != nil {
 		return nil, err

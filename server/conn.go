@@ -442,6 +442,10 @@ func (c *conn) handshake(ctx context.Context) error {
 		return mysqlerrors.Newf(mysqlerrors.ErHandshakeError, "write ok: %v", err)
 	}
 
+	// Creating a user connection and generating schema can cause us to create significant amounts of garbage so we
+	// block and allow the GC to complete before proceeding.
+	// At this point the user connection has been created, so there shouldn't be significant impact on performance
+	runtime.GC()
 	c.sequence = 0
 	c.compressionSequence = 0
 
@@ -1028,44 +1032,54 @@ func (c *conn) updateWithProcessListTable(d catalog.Database) error {
 	time := "TIME"
 	state := "STATE"
 	info := "INFO"
-	t := catalog.NewDynamicTable(pl, catalog.SystemView, func(aliasName string) results.Rows {
-		var rows results.Rows
+	t := catalog.NewDynamicTable(pl, catalog.SystemView,
+		func(aliasName string) results.RowIter {
+			s := c.server
 
-		s := c.server
+			// Grab a snapshot of the active processes.
+			s.activeConnectionsMx.RLock()
+			processList := make([]*Process, len(s.activeConnections))
 
-		// Grab a snapshot of the active processes.
-		s.activeConnectionsMx.RLock()
-		processList := make([]*Process, len(s.activeConnections))
-		i := 0
-		for _, currConn := range s.activeConnections {
-			processList[i] = currConn.process
-			i++
-		}
-		s.activeConnectionsMx.RUnlock()
+			// The channel buffer size is set to the size of processList, since we don't want the channel to be
+			// blocking inside the loop below. The channel is by default blocking until all the data have been consumed
+			// by the downstream. Setting the buffer size as the same as the number of the data downstream will consume
+			// avoids blocking. This kinda defeated the purpose of creating a streaming channel. But it has to
+			// be done here because we lock the Process object inside the loop, waiting on the channel will cause the
+			// Lock being held as well.
+			rowChan := make(chan results.Row, len(processList))
+			defer close(rowChan)
+			// done channel is a Noop here because the data channel is non-blocking below
+			done := make(chan struct{})
 
-		for _, p := range processList {
-			// If this is the current users process we can show it. If it is
-			// not, we need to check that either security is disabled, the
-			// user has the `inprog` privilege, or the user is the admin user.
-			p.lock.RLock()
-			if !c.server.cfg.Security.Enabled || c.canListProcess(p.user) {
-				rows = append(rows, results.NewNamedRow(
-					"information_schema",
-					aliasName,
-					intv(id, int64(p.id)),
-					strv(user, p.user),
-					strv(host, p.host),
-					strv(db, p.db),
-					strv(command, p.command),
-					intv(time, int64(p.ComputeUptime())),
-					strv(state, p.state),
-					strv(info, p.info)))
+			i := 0
+			for _, currConn := range s.activeConnections {
+				processList[i] = currConn.process
+				i++
 			}
-			p.lock.RUnlock()
-		}
-		return rows
-	})
+			s.activeConnectionsMx.RUnlock()
 
+			for _, p := range processList {
+				// If this is the current users process we can show it. If it is
+				// not, we need to check that either security is disabled, the
+				// user has the `inprog` privilege, or the user is the admin user.
+				p.lock.RLock()
+				if !c.server.cfg.Security.Enabled || c.canListProcess(p.user) {
+					rowChan <- results.NewNamedRow(
+						"information_schema",
+						aliasName,
+						intv(id, int64(p.id)),
+						strv(user, p.user),
+						strv(host, p.host),
+						strv(db, p.db),
+						strv(command, p.command),
+						intv(time, int64(p.ComputeUptime())),
+						strv(state, p.state),
+						strv(info, p.info))
+				}
+				p.lock.RUnlock()
+			}
+			return results.NewRowChanIter(rowChan, done)
+		})
 	t.AddColumns(pl,
 		catalog.NewDynamicColumnDeclaration(id, types.EvalInt64),
 		catalog.NewDynamicColumnDeclaration(user, types.EvalString),

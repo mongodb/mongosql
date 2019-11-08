@@ -64,7 +64,7 @@ type BSONSourceIter struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (bs *BSONSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (bs *BSONSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	return &BSONSourceIter{
 		cfg:          cfg,
 		selectID:     bs.selectID,

@@ -38,7 +38,7 @@ type QueryResult struct {
 
 // GetDocIter returns the Iter as a DocIter, if it is
 // a DocIter, otherwise nil.
-func (qr *QueryResult) GetDocIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
+func (qr *QueryResult) GetDocIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.DocIter, error) {
 	switch typedPlan := qr.PlanStage.(type) {
 	case FastPlanStage:
 		return typedPlan.FastOpen(ctx, cfg, st)
@@ -48,7 +48,7 @@ func (qr *QueryResult) GetDocIter(ctx context.Context, cfg *ExecutionConfig, st 
 
 // GetRowIter returns the Iter as a RowIter, if it is
 // a RowIter, otherwise nil.
-func (qr *QueryResult) GetRowIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (qr *QueryResult) GetRowIter(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	return qr.PlanStage.Open(ctx, cfg, st)
 }
 

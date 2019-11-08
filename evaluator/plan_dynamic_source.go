@@ -59,46 +59,42 @@ func (s *DynamicSourceStage) Collation() *collation.Collation {
 }
 
 // Open creates an Iter to loop over the results.
-func (s *DynamicSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (s *DynamicSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	i := &dynamicDataSourceIter{
-		cfg:        cfg,
-		currentRow: 0,
-		selectID:   s.selectID,
-		dbName:     s.dbName,
-		tableName:  s.aliasName,
-		columns:    s.table.Columns(),
-		rows:       s.table.Rows(s.aliasName),
+		cfg:       cfg,
+		selectID:  s.selectID,
+		dbName:    s.dbName,
+		tableName: s.aliasName,
+		columns:   s.table.Columns(),
+		rowIter:   s.table.Rows(s.aliasName),
 	}
 	return i, nil
 }
 
 type dynamicDataSourceIter struct {
-	cfg        *ExecutionConfig
-	currentRow int
-	selectID   int
-	dbName     string
-	tableName  string
-	columns    results.Columns
-	rows       results.Rows
-	err        error
+	cfg       *ExecutionConfig
+	selectID  int
+	dbName    string
+	tableName string
+	columns   results.Columns
+	rowIter   results.RowIter
+	err       error
 }
 
 func (i *dynamicDataSourceIter) Next(ctx context.Context, row *results.Row) bool {
 	if i.err != nil {
 		return false
 	}
-	if i.currentRow == len(i.rows) {
+	if !i.rowIter.Next(ctx, row) {
 		return false
 	}
-	*row = i.rows[i.currentRow]
-	i.currentRow++
 
 	i.err = i.cfg.memoryMonitor.Acquire(row.Data.Size())
 	return i.err == nil
 }
 
 func (i *dynamicDataSourceIter) Close() error {
-	return nil
+	return i.rowIter.Close()
 }
 
 func (i *dynamicDataSourceIter) Err() error {

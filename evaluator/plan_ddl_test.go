@@ -36,7 +36,7 @@ func TestPlanDDLStage(t *testing.T) {
 	req.NoError(err)
 	catDB, err := cat.Database(dbName)
 	req.NoError(err)
-	err = catDB.AddTable(catalog.NewDynamicTable(tableName, "", func(string) results.Rows { return results.Rows{} }))
+	err = catDB.AddTable(catalog.NewDynamicTable(tableName, "", results.NewEmptyRowChanIter))
 	req.NoError(err)
 
 	exeCfg := evaluator.NewExecutionConfig(lg, vars, newTestCommandHandler(cat), nil, "information_schema")

@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2363: Reduce DynamicSourceStage memory usage
 - BI-2398: No user-facing changes.
 - BI-2394: Allow self-join optimization to be applied to sharded collections
 - BI-2397: Fix bug that caused unix_timestamp to return incorrect results when pushed down because it did not previously handle DST when necessary.

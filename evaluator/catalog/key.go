@@ -254,85 +254,10 @@ func (b *catalogBuilder) getRowForForeignKey(tableName, aliasName string, ck key
 	panic(fmt.Sprintf("unknown foreign key table: %v", tableName))
 }
 
-func (b *catalogBuilder) getRowsForPrimaryKey(tableName, aliasName string, ck key, primaryKeys results.Columns, columnNames []string) results.Rows {
+func (b *catalogBuilder) getRowIterForPrimaryKey(tableName, aliasName string, ck key, primaryKeys results.Columns, columnNames []string) results.RowIter {
 	pkConstraintName, pkConstraintType := "PRIMARY", "PRIMARY KEY"
 	catalog, database, table := ck.catalog, ck.database, ck.table
 
-	var rows results.Rows
-
-	nullv, strv, intv := getValueCreators(b.variables)
-	checkColumnNumber := func(num int) {
-		if len(columnNames) != num {
-			panic(fmt.Sprintf("table: %s must be passed %d columnNames, but got %d", tableName, num, len(columnNames)))
-		}
-	}
-	for position, key := range primaryKeys {
-		switch tableName {
-		case KeyColumnUsageTable:
-			checkColumnNumber(12)
-			rows = append(rows, newInfoRow(aliasName,
-				strv(columnNames[0], catalog),
-				strv(columnNames[1], database),
-				strv(columnNames[2], pkConstraintName),
-				strv(columnNames[3], catalog),
-				strv(columnNames[4], database),
-				strv(columnNames[5], table),
-				strv(columnNames[6], key.Name),
-				intv(columnNames[7], int64(position+1)),
-				nullv(columnNames[8]),  // position in unique constraint
-				nullv(columnNames[9]),  // referenced table schema
-				nullv(columnNames[10]), // referenced table name
-				nullv(columnNames[11]), // referenced column name
-			))
-		case ReferentialConstraintsTable:
-		case StatisticsTable:
-			checkColumnNumber(16)
-			rows = append(rows, newInfoRow(aliasName,
-				strv(columnNames[0], catalog),
-				strv(columnNames[1], database),
-				strv(columnNames[2], table),
-				intv(columnNames[3], 0),
-				strv(columnNames[4], database),
-				strv(columnNames[5], pkConstraintName),
-				intv(columnNames[6], int64(position+1)),
-				strv(columnNames[7], key.Name),
-				strv(columnNames[8], "A"),
-				intv(columnNames[9], 0),
-				nullv(columnNames[10]),
-				nullv(columnNames[11]),
-				strv(columnNames[12], "YES"),
-				strv(columnNames[13], defaultIndexType),
-				strv(columnNames[14], ""),
-				strv(columnNames[15], ""),
-			))
-		case TableConstraintsTable:
-			checkColumnNumber(6)
-			// table constraints should only have one entry
-			// per key (simple/compound) relationship
-			rows = append(rows, newInfoRow(aliasName,
-				strv(columnNames[0], catalog),
-				strv(columnNames[1], database),
-				strv(columnNames[2], pkConstraintName),
-				strv(columnNames[3], database),
-				strv(columnNames[4], table),
-				strv(columnNames[5], pkConstraintType),
-			))
-			return rows
-		default:
-			panic(fmt.Sprintf("unknown primary key table: %v", tableName))
-		}
-	}
-
-	return rows
-}
-
-func (b *catalogBuilder) getRowsForUniqueIndexes(tableName, aliasName string, ck key, indexes []Index, columnNames []string) results.Rows {
-	uniqueKeyConstraint, catalog := "UNIQUE", ck.catalog
-	database, table := ck.database, ck.table
-
-	position := 0
-	var rows results.Rows
-
 	nullv, strv, intv := getValueCreators(b.variables)
 	checkColumnNumber := func(num int) {
 		if len(columnNames) != num {
@@ -340,43 +265,46 @@ func (b *catalogBuilder) getRowsForUniqueIndexes(tableName, aliasName string, ck
 		}
 	}
 
-	for _, index := range indexes {
-		if !index.unique {
-			continue
-		}
-		position++
-		switch tableName {
-		case KeyColumnUsageTable:
-			for ordinalPosition, column := range index.columns {
+	rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+	done := make(chan struct{})
+
+	go func() {
+		defer close(rowChan)
+		for position, key := range primaryKeys {
+			switch tableName {
+			case KeyColumnUsageTable:
 				checkColumnNumber(12)
-				rows = append(rows, newInfoRow(aliasName,
+				select {
+				case rowChan <- newInfoRow(aliasName,
 					strv(columnNames[0], catalog),
 					strv(columnNames[1], database),
-					strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),
+					strv(columnNames[2], pkConstraintName),
 					strv(columnNames[3], catalog),
 					strv(columnNames[4], database),
 					strv(columnNames[5], table),
-					strv(columnNames[6], column.Name),
-					intv(columnNames[7], int64(ordinalPosition+1)),
+					strv(columnNames[6], key.Name),
+					intv(columnNames[7], int64(position+1)),
 					nullv(columnNames[8]),  // position in unique constraint
 					nullv(columnNames[9]),  // referenced table schema
 					nullv(columnNames[10]), // referenced table name
 					nullv(columnNames[11]), // referenced column name
-				))
-			}
-		case ReferentialConstraintsTable:
-		case StatisticsTable:
-			for ordinalPosition, column := range index.columns {
+				):
+				case <-done:
+					return
+				}
+			case ReferentialConstraintsTable:
+			case StatisticsTable:
 				checkColumnNumber(16)
-				rows = append(rows, newInfoRow(aliasName,
+				select {
+				case rowChan <- newInfoRow(aliasName,
 					strv(columnNames[0], catalog),
 					strv(columnNames[1], database),
 					strv(columnNames[2], table),
 					intv(columnNames[3], 0),
 					strv(columnNames[4], database),
-					strv(columnNames[5], column.Name),
-					intv(columnNames[6], int64(ordinalPosition+1)),
-					strv(columnNames[7], column.Name),
+					strv(columnNames[5], pkConstraintName),
+					intv(columnNames[6], int64(position+1)),
+					strv(columnNames[7], key.Name),
 					strv(columnNames[8], "A"),
 					intv(columnNames[9], 0),
 					nullv(columnNames[10]),
@@ -385,21 +313,123 @@ func (b *catalogBuilder) getRowsForUniqueIndexes(tableName, aliasName string, ck
 					strv(columnNames[13], defaultIndexType),
 					strv(columnNames[14], ""),
 					strv(columnNames[15], ""),
-				))
+				):
+				case <-done:
+					return
+				}
+			case TableConstraintsTable:
+				checkColumnNumber(6)
+				// table constraints should only have one entry
+				// per key (simple/compound) relationship
+				rowChan <- newInfoRow(aliasName,
+					strv(columnNames[0], catalog),
+					strv(columnNames[1], database),
+					strv(columnNames[2], pkConstraintName),
+					strv(columnNames[3], database),
+					strv(columnNames[4], table),
+					strv(columnNames[5], pkConstraintType),
+				)
+				return
+			default:
+				panic(fmt.Sprintf("unknown primary key table: %v", tableName))
 			}
-		case TableConstraintsTable:
-			checkColumnNumber(6)
-			rows = append(rows, newInfoRow(aliasName,
-				strv(columnNames[0], catalog),
-				strv(columnNames[1], database),
-				strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),
-				strv(columnNames[3], database),
-				strv(columnNames[4], table),
-				strv(columnNames[5], uniqueKeyConstraint),
-			))
-		default:
-			panic(fmt.Sprintf("unknown unique key table: %v", tableName))
+		}
+	}()
+
+	return results.NewRowChanIter(rowChan, done)
+}
+
+func (b *catalogBuilder) getRowIterForUniqueIndexes(tableName, aliasName string, ck key, indexes []Index, columnNames []string) results.RowIter {
+	uniqueKeyConstraint, catalog := "UNIQUE", ck.catalog
+	database, table := ck.database, ck.table
+
+	position := 0
+
+	nullv, strv, intv := getValueCreators(b.variables)
+	checkColumnNumber := func(num int) {
+		if len(columnNames) != num {
+			panic(fmt.Sprintf("table: %s must be passed %d columnNames, but got %d", tableName, num, len(columnNames)))
 		}
 	}
-	return rows
+
+	rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+	done := make(chan struct{})
+	go func() {
+		defer close(rowChan)
+		for _, index := range indexes {
+			if !index.unique {
+				continue
+			}
+			position++
+			switch tableName {
+			case KeyColumnUsageTable:
+				for ordinalPosition, column := range index.columns {
+					checkColumnNumber(12)
+					select {
+					case rowChan <- newInfoRow(aliasName,
+						strv(columnNames[0], catalog),
+						strv(columnNames[1], database),
+						strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),
+						strv(columnNames[3], catalog),
+						strv(columnNames[4], database),
+						strv(columnNames[5], table),
+						strv(columnNames[6], column.Name),
+						intv(columnNames[7], int64(ordinalPosition+1)),
+						nullv(columnNames[8]),  // position in unique constraint
+						nullv(columnNames[9]),  // referenced table schema
+						nullv(columnNames[10]), // referenced table name
+						nullv(columnNames[11]), // referenced column name
+					):
+					case <-done:
+						return
+					}
+				}
+			case ReferentialConstraintsTable:
+			case StatisticsTable:
+				for ordinalPosition, column := range index.columns {
+					checkColumnNumber(16)
+					select {
+					case rowChan <- newInfoRow(aliasName,
+						strv(columnNames[0], catalog),
+						strv(columnNames[1], database),
+						strv(columnNames[2], table),
+						intv(columnNames[3], 0),
+						strv(columnNames[4], database),
+						strv(columnNames[5], column.Name),
+						intv(columnNames[6], int64(ordinalPosition+1)),
+						strv(columnNames[7], column.Name),
+						strv(columnNames[8], "A"),
+						intv(columnNames[9], 0),
+						nullv(columnNames[10]),
+						nullv(columnNames[11]),
+						strv(columnNames[12], "YES"),
+						strv(columnNames[13], defaultIndexType),
+						strv(columnNames[14], ""),
+						strv(columnNames[15], ""),
+					):
+					case <-done:
+						return
+					}
+				}
+			case TableConstraintsTable:
+				checkColumnNumber(6)
+				select {
+				case rowChan <- newInfoRow(aliasName,
+					strv(columnNames[0], catalog),
+					strv(columnNames[1], database),
+					strv(columnNames[2], createUniqueIndexName(ck.database, ck.table, position)),
+					strv(columnNames[3], database),
+					strv(columnNames[4], table),
+					strv(columnNames[5], uniqueKeyConstraint),
+				):
+				case <-done:
+					return
+				}
+			default:
+				panic(fmt.Sprintf("unknown unique key table: %v", tableName))
+			}
+		}
+	}()
+
+	return results.NewRowChanIter(rowChan, done)
 }

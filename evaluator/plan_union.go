@@ -113,7 +113,7 @@ func ensureFastPlanProjectInvariant(fastPlan FastPlanStage) {
 type fastUnionPacket struct {
 	// columnInfo is a slice representing the field names,
 	// in order, expected in the returned document.
-	columnInfo []ColumnInfo
+	columnInfo []results.ColumnInfo
 	// datum is the bson.Raw corresponding the a row from the
 	// left or right side of a union.
 	datum bson.Raw
@@ -126,13 +126,13 @@ type FastUnionAllIter struct {
 	cancelIter context.CancelFunc
 	// columnInfo is a slice representing the field names,
 	// in order, expected in the returned document.
-	columnInfo []ColumnInfo
+	columnInfo []results.ColumnInfo
 	// err holds any error that may occur during iteration.
 	err error
 	// errChan carries errors.
 	errChan chan error
 	// The left and right fast iter.
-	left, right DocIter
+	left, right results.DocIter
 	// leftChan and rightChan are channels returning bson.RawD results
 	// for the left and right of the union, respectively.
 	leftChan, rightChan chan fastUnionPacket
@@ -166,15 +166,15 @@ type UnionIter struct {
 	// errChan carries errors.
 	errChan chan error
 	// The left and right iter.
-	left, right Iter
-	// onChan returns the unified row results.
+	left, right results.Iter
+	// onChan returns the unified rowIter results.
 	onChan chan results.Row
 	// stageMonitor is the memory monitor for the current stage.
 	stageMonitor memory.Monitor
 }
 
 // FastOpen opens a DocIter for the UnionStage.
-func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
+func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.DocIter, error) {
 	fastPlanLeft, ok := union.left.(FastPlanStage)
 	if !ok {
 		panic(fmt.Sprintf("left child of UnionStage must be FastPlanStage, "+
@@ -236,7 +236,7 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 	iter.leftChan = make(chan fastUnionPacket)
 	iter.rightChan = make(chan fastUnionPacket)
 
-	iterateSide := func(it DocIter, channel chan fastUnionPacket) func() {
+	iterateSide := func(it results.DocIter, channel chan fastUnionPacket) func() {
 		return func() {
 			b := &bson.Raw{}
 		Loop:
@@ -457,7 +457,7 @@ func (iter *FastUnionDistinctIter32) Next(ctx context.Context, doc *bson.Raw) bo
 }
 
 // GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
-func (iter *FastUnionAllIter) GetColumnInfo() []ColumnInfo {
+func (iter *FastUnionAllIter) GetColumnInfo() []results.ColumnInfo {
 	return iter.columnInfo
 }
 
@@ -501,7 +501,7 @@ func (iter *FastUnionDistinctIter) Close() error {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	stageMonitor, err := cfg.memoryMonitor.CreateChild("UnionStage", cfg.maxStageSize)
 	if err != nil {
 		return nil, err
@@ -549,7 +549,7 @@ func (union *UnionStage) Open(ctx context.Context, cfg *ExecutionConfig, st *Exe
 	return iter, nil
 }
 
-func (iter *UnionIter) fetchRows(ctx context.Context, it RowIter, ch chan *results.Row, errChan chan error) {
+func (iter *UnionIter) fetchRows(ctx context.Context, it results.RowIter, ch chan *results.Row, errChan chan error) {
 	r := &results.Row{}
 
 	syncChan := make(chan *results.Row)

@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
@@ -300,18 +301,26 @@ func (b *catalogBuilder) addCharsetTable(d Database) error {
 	defaultCollateName := "DEFAULT_COLLATE_NAME"
 	description := "DESCRIPTION"
 	maxLen := "MAXLEN"
-	t := NewDynamicTable(CharacterSetsTable, SystemView, func(aliasName string) results.Rows {
+	t := NewDynamicTable(CharacterSetsTable, SystemView, func(aliasName string) results.RowIter {
+		rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+		done := make(chan struct{})
 		_, strv, intv := getValueCreators(b.variables)
-		var rows results.Rows
-		for _, c := range collation.GetAllCharsets() {
-			rows = append(rows, newInfoRow(aliasName,
-				strv(characterSetName, string(c.Name)),
-				strv(defaultCollateName, string(c.DefaultCollationName)),
-				strv(description, c.Description),
-				intv(maxLen, int64(c.MaxLen)),
-			))
-		}
-		return rows
+		go func() {
+			defer close(rowChan)
+			for _, c := range collation.GetAllCharsets() {
+				select {
+				case rowChan <- newInfoRow(aliasName,
+					strv(characterSetName, string(c.Name)),
+					strv(defaultCollateName, string(c.DefaultCollationName)),
+					strv(description, c.Description),
+					intv(maxLen, int64(c.MaxLen)),
+				):
+				case <-done:
+					return
+				}
+			}
+		}()
+		return results.NewRowChanIter(rowChan, done)
 	})
 
 	t.AddColumns(CharacterSetsTable,
@@ -325,33 +334,40 @@ func (b *catalogBuilder) addCharsetTable(d Database) error {
 }
 
 func (b *catalogBuilder) addCollationTable(d Database) error {
-
 	collationName := "COLLATION_NAME"
 	characterSetName := "CHARACTER_SET_NAME"
 	id := "ID"
 	isDefault := "IS_DEFAULT"
 	isCompiled := "IS_COMPILED"
 	sortlen := "SORTLEN"
-	t := NewDynamicTable(CollationsTable, SystemView, func(aliasName string) results.Rows {
-		var rows results.Rows
+	t := NewDynamicTable(CollationsTable, SystemView, func(aliasName string) results.RowIter {
+		rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+		done := make(chan struct{})
 		_, strv, intv := getValueCreators(b.variables)
-		for _, c := range collation.GetAll() {
-			def := "No"
+		go func() {
+			defer close(rowChan)
+			for _, c := range collation.GetAll() {
+				def := "No"
 
-			if c.Default {
-				def = "Yes"
+				if c.Default {
+					def = "Yes"
+				}
+
+				select {
+				case rowChan <- newInfoRow(aliasName,
+					strv(collationName, string(c.Name)),
+					strv(characterSetName, string(c.CharsetName)),
+					intv(id, int64(c.ID)),
+					strv(isDefault, def),
+					strv(isCompiled, "Yes"),
+					intv(sortlen, int64(c.SortLen)),
+				):
+				case <-done:
+					return
+				}
 			}
-
-			rows = append(rows, newInfoRow(aliasName,
-				strv(collationName, string(c.Name)),
-				strv(characterSetName, string(c.CharsetName)),
-				intv(id, int64(c.ID)),
-				strv(isDefault, def),
-				strv(isCompiled, "Yes"),
-				intv(sortlen, int64(c.SortLen)),
-			))
-		}
-		return rows
+		}()
+		return results.NewRowChanIter(rowChan, done)
 	})
 
 	t.AddColumns(CollationsTable,
@@ -371,17 +387,26 @@ func (b *catalogBuilder) addCollationCharacterSetApplicabilityTable(d Database) 
 	characterSetName := "CHARACTER_SET_NAME"
 
 	t := NewDynamicTable(CollationCharacterSetApplicabilityTable, SystemView,
-		func(aliasName string) results.Rows {
-			var rows results.Rows
+		func(aliasName string) results.RowIter {
+			rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+			done := make(chan struct{})
 			_, strv, _ := getValueCreators(b.variables)
-			for _, c := range collation.GetAll() {
-				rows = append(rows, newInfoRow(
-					aliasName,
-					strv(collationName, string(c.Name)),
-					strv(characterSetName, string(c.CharsetName)),
-				))
-			}
-			return rows
+			go func() {
+				defer close(rowChan)
+				for _, c := range collation.GetAll() {
+					select {
+					case rowChan <- newInfoRow(
+						aliasName,
+						strv(collationName, string(c.Name)),
+						strv(characterSetName, string(c.CharsetName)),
+					):
+					case <-done:
+						return
+					}
+				}
+			}()
+
+			return results.NewRowChanIter(rowChan, done)
 		})
 
 	t.AddColumns(CollationCharacterSetApplicabilityTable,
@@ -424,51 +449,60 @@ func (b *catalogBuilder) addColumnsTable(d Database) error {
 		columnNames[i] = columnDecls[i].columnName
 	}
 
-	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.Rows {
-		var rows results.Rows
+	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.RowIter {
+		rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+		done := make(chan struct{})
 		nullv, strv, intv := getValueCreators(b.variables)
-		for _, db := range c.Databases() {
-			for _, tbl := range db.Tables() {
-				for i, col := range tbl.Columns() {
-					columnKey := getIndexKey(col, tbl)
-					maxVarcharLength := b.variables.GetUint64(variable.MongoDBMaxVarcharLength)
-					columnType := translateColumnType(col.EvalType, maxVarcharLength)
-					dataType := columnType
-					if idx := strings.Index(dataType, "("); idx >= 0 {
-						dataType = dataType[:idx]
+
+		go func() {
+			defer close(rowChan)
+			for _, db := range c.Databases() {
+				for _, tbl := range db.Tables() {
+					for i, col := range tbl.Columns() {
+						columnKey := getIndexKey(col, tbl)
+						maxVarcharLength := b.variables.GetUint64(variable.MongoDBMaxVarcharLength)
+						columnType := translateColumnType(col.EvalType, maxVarcharLength)
+						dataType := columnType
+						if idx := strings.Index(dataType, "("); idx >= 0 {
+							dataType = dataType[:idx]
+						}
+						nullable := "NO"
+						if col.Nullable {
+							nullable = "YES"
+						}
+						select {
+						case rowChan <- newInfoRow(
+							aliasName,
+							strv(columnNames[0], string(c.Name)),
+							strv(columnNames[1], string(db.Name())),
+							strv(columnNames[2], tbl.Name()),
+							strv(columnNames[3], col.Name),
+							intv(columnNames[4], int64(i+1)),
+							nullv(columnNames[5]),
+							strv(columnNames[6], nullable),
+							strv(columnNames[7], dataType),
+							nullv(columnNames[8]),
+							nullv(columnNames[9]),
+							nullv(columnNames[10]),
+							nullv(columnNames[11]),
+							nullv(columnNames[12]),
+							strv(columnNames[13], string(tbl.Collation().CharsetName)),
+							strv(columnNames[14], string(tbl.Collation().Name)),
+							strv(columnNames[15], columnType),
+							strv(columnNames[16], columnKey),
+							strv(columnNames[17], ""),
+							strv(columnNames[18], "select"),
+							strv(columnNames[19], col.Comments),
+							strv(columnNames[20], ""),
+						):
+						case <-done:
+							return
+						}
 					}
-					nullable := "NO"
-					if col.Nullable {
-						nullable = "YES"
-					}
-					rows = append(rows, newInfoRow(
-						aliasName,
-						strv(columnNames[0], string(c.Name)),
-						strv(columnNames[1], string(db.Name())),
-						strv(columnNames[2], tbl.Name()),
-						strv(columnNames[3], col.Name),
-						intv(columnNames[4], int64(i+1)),
-						nullv(columnNames[5]),
-						strv(columnNames[6], nullable),
-						strv(columnNames[7], dataType),
-						nullv(columnNames[8]),
-						nullv(columnNames[9]),
-						nullv(columnNames[10]),
-						nullv(columnNames[11]),
-						nullv(columnNames[12]),
-						strv(columnNames[13], string(tbl.Collation().CharsetName)),
-						strv(columnNames[14], string(tbl.Collation().Name)),
-						strv(columnNames[15], columnType),
-						strv(columnNames[16], columnKey),
-						strv(columnNames[17], ""),
-						strv(columnNames[18], "select"),
-						strv(columnNames[19], col.Comments),
-						strv(columnNames[20], ""),
-					))
 				}
 			}
-		}
-		return rows
+		}()
+		return results.NewRowChanIter(rowChan, done)
 	})
 
 	t.AddColumns(tableName,
@@ -479,9 +513,7 @@ func (b *catalogBuilder) addColumnsTable(d Database) error {
 }
 
 func (b *catalogBuilder) addColumnPrivilegesTable(d Database) error {
-	t := NewDynamicTable(ColumnPrivilegesTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(ColumnPrivilegesTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(ColumnPrivilegesTable,
 		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
@@ -497,9 +529,7 @@ func (b *catalogBuilder) addColumnPrivilegesTable(d Database) error {
 }
 
 func (b *catalogBuilder) addEnginesTable(d Database) error {
-	t := NewDynamicTable(EnginesTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(EnginesTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(EnginesTable,
 		NewDynamicColumnDeclaration("ENGINE", types.EvalString),
@@ -514,9 +544,7 @@ func (b *catalogBuilder) addEnginesTable(d Database) error {
 }
 
 func (b *catalogBuilder) addEventsTable(d Database) error {
-	t := NewDynamicTable(EventsTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(EventsTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(EventsTable,
 		NewDynamicColumnDeclaration("EVENT_CATALOG", types.EvalString),
@@ -550,9 +578,7 @@ func (b *catalogBuilder) addEventsTable(d Database) error {
 
 func (b *catalogBuilder) addFilesTable(d Database) error {
 	files := "FILES"
-	t := NewDynamicTable(files, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(files, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(files,
 		NewDynamicColumnDeclaration("FILE_ID", types.EvalString),
@@ -620,7 +646,7 @@ func (b *catalogBuilder) addKeyColumnUsageTable(d Database) error {
 		columnNames[i] = columnDecls[i].columnName
 	}
 
-	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.Rows {
+	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.RowIter {
 		return b.getRowsForTableType(tableName, aliasName, columnNames)
 	})
 
@@ -632,9 +658,7 @@ func (b *catalogBuilder) addKeyColumnUsageTable(d Database) error {
 }
 
 func (b *catalogBuilder) addNdbTransidMysqlConnectionMapTable(d Database) error {
-	t := NewDynamicTable(NdbTransidMysqlConnectionMapTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(NdbTransidMysqlConnectionMapTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(NdbTransidMysqlConnectionMapTable,
 		NewDynamicColumnDeclaration("mysql_connection_id", types.EvalString),
@@ -646,9 +670,7 @@ func (b *catalogBuilder) addNdbTransidMysqlConnectionMapTable(d Database) error 
 }
 
 func (b *catalogBuilder) addParametersTable(d Database) error {
-	t := NewDynamicTable(ParametersTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(ParametersTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(ParametersTable,
 		NewDynamicColumnDeclaration("SPECIFIC_CATALOG", types.EvalString),
@@ -673,9 +695,7 @@ func (b *catalogBuilder) addParametersTable(d Database) error {
 }
 
 func (b *catalogBuilder) addPartitionsTable(d Database) error {
-	t := NewDynamicTable(PartitionsTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(PartitionsTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(PartitionsTable,
 		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
@@ -709,9 +729,7 @@ func (b *catalogBuilder) addPartitionsTable(d Database) error {
 }
 
 func (b *catalogBuilder) addPluginsTable(d Database) error {
-	t := NewDynamicTable(PluginsTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(PluginsTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(PluginsTable,
 		NewDynamicColumnDeclaration("PLUGIN_NAME", types.EvalString),
@@ -731,9 +749,7 @@ func (b *catalogBuilder) addPluginsTable(d Database) error {
 }
 
 func (b *catalogBuilder) addProfilingTable(d Database) error {
-	t := NewDynamicTable(ProfilingTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(ProfilingTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(ProfilingTable,
 		NewDynamicColumnDeclaration("QUERY_ID", types.EvalString),
@@ -778,7 +794,7 @@ func (b *catalogBuilder) addReferentialConstraintsTable(d Database) error {
 		"REFERENCED_TABLE_NAME",
 	}
 
-	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.Rows {
+	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.RowIter {
 		return b.getRowsForTableType(tableName, aliasName, columnNames)
 	})
 
@@ -795,9 +811,7 @@ func (b *catalogBuilder) addReferentialConstraintsTable(d Database) error {
 }
 
 func (b *catalogBuilder) addRoutinesTable(d Database) error {
-	t := NewDynamicTable(RoutinesTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(RoutinesTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(RoutinesTable,
 		NewDynamicColumnDeclaration("SPECIFIC_NAME", types.EvalString),
@@ -852,19 +866,28 @@ func (b *catalogBuilder) addSchemataTable(d Database) error {
 		columnNames[i] = columnDecls[i].columnName
 	}
 
-	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.Rows {
-		var rows results.Rows
+	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.RowIter {
+		rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+		done := make(chan struct{})
 		_, strv, _ := getValueCreators(b.variables)
-		for _, db := range c.Databases() {
-			rows = append(rows, newInfoRow(aliasName,
-				strv(columnNames[0], string(c.Name)),
-				strv(columnNames[1], string(db.Name())),
-				strv(columnNames[2], string(collation.DefaultCharset.Name)),
-				strv(columnNames[3], string(collation.Default.Name)),
-				strv(columnNames[4], ""),
-			))
-		}
-		return rows
+
+		go func() {
+			defer close(rowChan)
+			for _, db := range c.Databases() {
+				select {
+				case rowChan <- newInfoRow(aliasName,
+					strv(columnNames[0], string(c.Name)),
+					strv(columnNames[1], string(db.Name())),
+					strv(columnNames[2], string(collation.DefaultCharset.Name)),
+					strv(columnNames[3], string(collation.Default.Name)),
+					strv(columnNames[4], ""),
+				):
+				case <-done:
+					return
+				}
+			}
+		}()
+		return results.NewRowChanIter(rowChan, done)
 	})
 
 	t.AddColumns(tableName,
@@ -875,9 +898,7 @@ func (b *catalogBuilder) addSchemataTable(d Database) error {
 }
 
 func (b *catalogBuilder) addSchemaPrivileges(d Database) error {
-	t := NewDynamicTable(SchemaPrivilagesTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(SchemaPrivilagesTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(SchemaPrivilagesTable,
 		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
@@ -916,7 +937,7 @@ func (b *catalogBuilder) addStatisticsTable(d Database) error {
 		columnNames[i] = columnDecls[i].columnName
 	}
 
-	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.Rows {
+	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.RowIter {
 		return b.getRowsForTableType(tableName, aliasName, columnNames)
 	})
 
@@ -960,37 +981,46 @@ func (b *catalogBuilder) addTablesTable(d Database) error {
 		columnNames[i] = columnDecls[i].columnName
 	}
 
-	t := NewDynamicTable(TablesTable, SystemView, func(aliasName string) results.Rows {
-		var rows results.Rows
+	t := NewDynamicTable(TablesTable, SystemView, func(aliasName string) results.RowIter {
+		rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+		done := make(chan struct{})
+
 		nullv, strv, _ := getValueCreators(b.variables)
-		for _, db := range c.Databases() {
-			for _, tbl := range db.Tables() {
-				rows = append(rows, newInfoRow(aliasName,
-					strv(columnNames[0], string(c.Name)),
-					strv(columnNames[1], string(db.Name())),
-					strv(columnNames[2], tbl.Name()),
-					strv(columnNames[3], tbl.Type()),
-					strv(columnNames[4], ""),
-					strv(columnNames[5], ""),
-					strv(columnNames[6], ""),
-					nullv(columnNames[7]),
-					nullv(columnNames[8]),
-					nullv(columnNames[9]),
-					nullv(columnNames[10]),
-					nullv(columnNames[11]),
-					nullv(columnNames[12]),
-					strv(columnNames[13], "NO"),
-					nullv(columnNames[14]),
-					nullv(columnNames[15]),
-					nullv(columnNames[16]),
-					strv(columnNames[17], string(tbl.Collation().Name)),
-					nullv(columnNames[18]),
-					nullv(columnNames[19]),
-					strv(columnNames[20], tbl.Comments()),
-				))
+		go func() {
+			defer close(rowChan)
+			for _, db := range c.Databases() {
+				for _, tbl := range db.Tables() {
+					select {
+					case rowChan <- newInfoRow(aliasName,
+						strv(columnNames[0], string(c.Name)),
+						strv(columnNames[1], string(db.Name())),
+						strv(columnNames[2], tbl.Name()),
+						strv(columnNames[3], tbl.Type()),
+						strv(columnNames[4], ""),
+						strv(columnNames[5], ""),
+						strv(columnNames[6], ""),
+						nullv(columnNames[7]),
+						nullv(columnNames[8]),
+						nullv(columnNames[9]),
+						nullv(columnNames[10]),
+						nullv(columnNames[11]),
+						nullv(columnNames[12]),
+						strv(columnNames[13], "NO"),
+						nullv(columnNames[14]),
+						nullv(columnNames[15]),
+						nullv(columnNames[16]),
+						strv(columnNames[17], string(tbl.Collation().Name)),
+						nullv(columnNames[18]),
+						nullv(columnNames[19]),
+						strv(columnNames[20], tbl.Comments()),
+					):
+					case <-done:
+						return
+					}
+				}
 			}
-		}
-		return rows
+		}()
+		return results.NewRowChanIter(rowChan, done)
 	})
 
 	t.AddColumns(tableName,
@@ -1001,9 +1031,7 @@ func (b *catalogBuilder) addTablesTable(d Database) error {
 }
 
 func (b *catalogBuilder) addTableSpacesTable(d Database) error {
-	t := NewDynamicTable(TablespacesTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(TablespacesTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(TablespacesTable,
 		NewDynamicColumnDeclaration("TABLESPACE_NAME", types.EvalString),
@@ -1034,7 +1062,7 @@ func (b *catalogBuilder) addTableConstraintsTable(d Database) error {
 		"CONSTRAINT_TYPE",
 	}
 
-	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.Rows {
+	t := NewDynamicTable(tableName, SystemView, func(aliasName string) results.RowIter {
 		return b.getRowsForTableType(tableName, aliasName, columnNames)
 	})
 
@@ -1051,9 +1079,7 @@ func (b *catalogBuilder) addTableConstraintsTable(d Database) error {
 }
 
 func (b *catalogBuilder) addTablePrivilegesTable(d Database) error {
-	t := NewDynamicTable(TablePrivilagesTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(TablePrivilagesTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(TablePrivilagesTable,
 		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
@@ -1068,9 +1094,7 @@ func (b *catalogBuilder) addTablePrivilegesTable(d Database) error {
 }
 
 func (b *catalogBuilder) addTriggersTable(d Database) error {
-	t := NewDynamicTable(TriggersTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(TriggersTable, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(TriggersTable,
 		NewDynamicColumnDeclaration("TRIGGER_CATALOG", types.EvalString),
@@ -1101,11 +1125,9 @@ func (b *catalogBuilder) addTriggersTable(d Database) error {
 }
 
 func (b *catalogBuilder) addUserPrivilegesTable(d Database) error {
-	t := NewDynamicTable(UserPrivilagesTable, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(UserPrivilegesTable, SystemView, results.NewEmptyRowChanIter)
 
-	t.AddColumns(UserPrivilagesTable,
+	t.AddColumns(UserPrivilegesTable,
 		NewDynamicColumnDeclaration("GRANTEE", types.EvalString),
 		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
 		NewDynamicColumnDeclaration("PRIVILEGE_TYPE", types.EvalString),
@@ -1117,9 +1139,7 @@ func (b *catalogBuilder) addUserPrivilegesTable(d Database) error {
 
 func (b *catalogBuilder) addViewsTable(d Database) error {
 	views := "VIEWS"
-	t := NewDynamicTable(views, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(views, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(views,
 		NewDynamicColumnDeclaration("TABLE_CATALOG", types.EvalString),
@@ -1159,18 +1179,24 @@ func (b *catalogBuilder) addVariableTable(d Database, name string,
 	variableName := "VARIABLE_NAME"
 	variableValue := "VARIABLE_VALUE"
 
-	t := NewDynamicTable(name, SystemView, func(aliasName string) results.Rows {
-		var rows results.Rows
+	t := NewDynamicTable(name, SystemView, func(aliasName string) results.RowIter {
+		rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+		done := make(chan struct{})
 		_, strv, _ := getValueCreators(b.variables)
-		for _, v := range b.variables.List(scope, kind) {
-			// TODO: display actual value instead of nullv!!!
-			rows = append(rows,
-				newInfoRow(aliasName,
+		go func() {
+			defer close(rowChan)
+			for _, v := range b.variables.List(scope, kind) {
+				select {
+				// TODO: display actual value instead of nullv!!!
+				case rowChan <- newInfoRow(aliasName,
 					strv(variableName, v.Name),
-					values.NewNamedSQLValue(variableValue, v.Value)))
-		}
-
-		return rows
+					values.NewNamedSQLValue(variableValue, v.Value)):
+				case <-done:
+					return
+				}
+			}
+		}()
+		return results.NewRowChanIter(rowChan, done)
 	})
 
 	t.AddColumns(name,
@@ -1191,9 +1217,7 @@ func (b *catalogBuilder) buildMySQLDatabase() error {
 
 func (b *catalogBuilder) addMySQLProcTable(d Database) error {
 	proc := "proc"
-	t := NewDynamicTable(proc, SystemView, func(string) results.Rows {
-		return results.Rows{}
-	})
+	t := NewDynamicTable(proc, SystemView, results.NewEmptyRowChanIter)
 
 	t.AddColumns(proc,
 		NewDynamicColumnDeclaration("db", types.EvalString),
@@ -1221,51 +1245,73 @@ func (b *catalogBuilder) addMySQLProcTable(d Database) error {
 	return d.AddTable(t)
 }
 
-func (b *catalogBuilder) getRowsForTableType(systemTableName string, aliasName string, columnNames []string) results.Rows {
+func (b *catalogBuilder) getRowsForTableType(systemTableName string, aliasName string, columnNames []string) results.RowIter {
 	c := b.catalog
-
-	var rows results.Rows
 
 	ck := key{
 		catalog: string(c.Name),
 	}
 
-	for _, db := range c.databases {
-		ck.database = string(db.Name())
+	rowChan := make(chan results.Row, results.DefaultRowChannelBufSize)
+	done := make(chan struct{})
 
-		for _, tb := range db.Tables() {
-			ck.table = tb.Name()
+	go func() {
+		defer close(rowChan)
+		for _, db := range c.databases {
+			ck.database = string(db.Name())
 
-			primaryKeyRows := b.getRowsForPrimaryKey(systemTableName, aliasName, ck, tb.PrimaryKeys(), columnNames)
+			for _, tb := range db.Tables() {
+				ck.table = tb.Name()
 
-			rows = append(rows, primaryKeyRows...)
+				primaryKeyRowIter := b.getRowIterForPrimaryKey(systemTableName, aliasName, ck, tb.PrimaryKeys(), columnNames)
+				row := results.Row{}
+				for primaryKeyRowIter.Next(context.Background(), &row) {
+					select {
+					case rowChan <- row:
+					case <-done:
+						_ = primaryKeyRowIter.Close()
+						return
+					}
+				}
+				_ = primaryKeyRowIter.Close()
 
-			mongoTable, ok := tb.(*MongoTable)
-			if !ok {
-				continue
-			}
+				mongoTable, ok := tb.(*MongoTable)
+				if !ok {
+					continue
+				}
 
-			uniqueKeyRows := b.getRowsForUniqueIndexes(systemTableName, aliasName, ck, mongoTable.indexes, columnNames)
+				uniqueKeyRowIter := b.getRowIterForUniqueIndexes(systemTableName, aliasName, ck, mongoTable.indexes, columnNames)
+				for uniqueKeyRowIter.Next(context.Background(), &row) {
+					select {
+					case rowChan <- row:
+					case <-done:
+						_ = uniqueKeyRowIter.Close()
+						return
+					}
+				}
+				_ = uniqueKeyRowIter.Close()
 
-			rows = append(rows, uniqueKeyRows...)
-
-			for _, fk := range mongoTable.foreignKeys {
-				for position, col := range fk.columns {
-					ck.column = col.Name
-					foreignKeyRow := b.getRowForForeignKey(systemTableName, aliasName, ck, fk, position+1, columnNames)
-					rows = append(rows, foreignKeyRow)
-					// The break below occurs because only the name of the
-					// constraint needs to be recorded in the table constraints;
-					// it does not need to include every column as a row.
-					if systemTableName == TableConstraintsTable || systemTableName == ReferentialConstraintsTable {
-						break
+				for _, fk := range mongoTable.foreignKeys {
+					for position, col := range fk.columns {
+						ck.column = col.Name
+						foreignKeyRow := b.getRowForForeignKey(systemTableName, aliasName, ck, fk, position+1, columnNames)
+						select {
+						case rowChan <- foreignKeyRow:
+						case <-done:
+							return
+						}
+						// The break below occurs because only the name of the
+						// constraint needs to be recorded in the table constraints;
+						// it does not need to include every column as a row.
+						if systemTableName == TableConstraintsTable || systemTableName == ReferentialConstraintsTable {
+							break
+						}
 					}
 				}
 			}
-
 		}
-	}
-	return rows
+	}()
+	return results.NewRowChanIter(rowChan, done)
 }
 
 // collationFromMongoDB creates a Collation from a mongodb.Collation.

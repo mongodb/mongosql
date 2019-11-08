@@ -641,7 +641,7 @@ func (t *Table) Validate() error {
 
 	cmap := make(map[string]struct{})
 
-	for _, c := range t.Columns() {
+	for _, c := range t.columns {
 		err := c.Validate()
 		if err != nil {
 			return fmt.Errorf("failed to validate column '%s': %v", c.MongoName(), err)

@@ -33,7 +33,7 @@ type LimitIter struct {
 	memoryMonitor        memory.Monitor
 	limit, offset, total uint64
 
-	source RowIter
+	source results.RowIter
 	err    error
 }
 
@@ -54,7 +54,7 @@ func (l *LimitStage) ReplaceChild(i int, e Node) {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (l *LimitStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (l *LimitStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	sourceIter, err := l.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err

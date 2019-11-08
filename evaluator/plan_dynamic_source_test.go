@@ -13,10 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDynamicSourceStage(t *testing.T) {
-	tableName := "foo"
-	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func(string) Rows {
-		return Rows{
+func createTable(tableName string, t *testing.T) *catalog.DynamicTable {
+	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func(tableAlias string) RowIter {
+		rowChan := make(chan Row, DefaultRowChannelBufSize)
+		done := make(chan struct{})
+		rows := []Row{
 			NewNamedRow("", "foo", NewNamedSQLValue("one", NewSQLInt64(valKind, 1)),
 				NewNamedSQLValue("two", NewSQLInt64(valKind, 2))),
 			NewNamedRow("", "foo", NewNamedSQLValue("one", NewSQLInt64(valKind, 2)),
@@ -24,12 +25,33 @@ func TestDynamicSourceStage(t *testing.T) {
 			NewNamedRow("", "foo", NewNamedSQLValue("one", NewSQLInt64(valKind, 3)),
 				NewNamedSQLValue("two", NewSQLInt64(valKind, 4))),
 		}
+
+		// Since channel is blocking, it's put in a goroutine
+		go func() {
+			defer close(rowChan)
+			for _, row := range rows {
+				select {
+				case rowChan <- row:
+				case <-done:
+					return
+				}
+			}
+		}()
+
+		return NewRowChanIter(rowChan, done)
 	})
 
 	_, err := table.AddColumn(tableName, "one", types.EvalInt64)
 	require.NoError(t, err)
 	_, err = table.AddColumn(tableName, "two", types.EvalInt64)
 	require.NoError(t, err)
+
+	return table
+}
+
+func TestDynamicSourceStage(t *testing.T) {
+	tableName := "foo"
+	table := createTable(tableName, t)
 
 	expected := []RowValues{
 		{
@@ -69,5 +91,40 @@ func TestDynamicSourceStage(t *testing.T) {
 	}
 
 	require.NoError(t, iter.Close())
+	require.NoError(t, iter.Err())
+}
+
+func TestDynamicSourceStagePartialRead(t *testing.T) {
+	tableName := "foo"
+	table := createTable(tableName, t)
+
+	expected := []RowValues{
+		{
+			{SelectID: 1, Table: tableName, Name: "one", Data: NewSQLInt64(valKind, 1)},
+			{SelectID: 2, Table: tableName, Name: "two", Data: NewSQLInt64(valKind, 2)},
+		},
+	}
+
+	db, err := catalog.New("def", nil).AddDatabase("")
+	require.NoError(t, err)
+
+	source := NewDynamicSourceStage(db, table, 1, tableName)
+
+	bgCtx := context.Background()
+	execCfg := createTestExecutionCfg(MySQLValueKind)
+	execState := NewExecutionState()
+
+	iter, err := source.Open(bgCtx, execCfg, execState)
+	require.NoError(t, err)
+
+	row := &Row{}
+	iter.Next(bgCtx, row)
+	require.Equal(t, len(row.Data), len(expected[0]))
+	require.Equal(t, row.Data, expected[0])
+	row = &Row{}
+
+	require.NoError(t, iter.Close())
+	require.False(t, iter.Next(bgCtx, row))
+	require.Nil(t, row.Data)
 	require.NoError(t, iter.Err())
 }

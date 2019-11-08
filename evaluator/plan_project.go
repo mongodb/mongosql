@@ -54,14 +54,14 @@ type ProjectIter struct {
 	cfg              *ExecutionConfig
 	st               *ExecutionState
 	memoryMonitor    memory.Monitor
-	source           RowIter
+	source           results.RowIter
 	projectedColumns ProjectedColumns
 	// err holds any error that may have occurred during processing
 	err error
 }
 
 // Open returns an iterator over this PlanStage's returned rows.
-func (ps *ProjectStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (ps *ProjectStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	sourceIter, err := ps.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err

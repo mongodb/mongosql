@@ -45,13 +45,13 @@ type FilterIter struct {
 	cfg     *ExecutionConfig
 	st      *ExecutionState
 	matcher SQLExpr
-	source  RowIter
+	source  results.RowIter
 	err     error
 }
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (fs *FilterStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (fs *FilterStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	sourceIter, err := fs.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err

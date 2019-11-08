@@ -82,7 +82,7 @@ func (cs *CountStage) getCount(ctx context.Context, cfg *ExecutionConfig) (int, 
 }
 
 // Open creates a CountIter which iterates one row containing the count.
-func (cs *CountStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (cs *CountStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	count, err := cs.getCount(ctx, cfg)
 	if err != nil {
 		return nil, err

@@ -178,24 +178,6 @@ func (ms *MongoSourceStage) getAggregationCursor(ctx context.Context, cfg *Execu
 	return cursor, err
 }
 
-// ColumnInfo keeps track of the data needed to correctly deserialize data from
-// a MongoSourceStage.
-type ColumnInfo struct {
-	// Field is the name of the specific MongoDB field.
-	Field string
-	// Type is the byte corresponding to the type MongoDRDL specifies for
-	// the given column. The byte corresponds to the BSON kind byte, iff
-	// the column type is a BSON type. Some Column types are not BSON
-	// types: e.g., Date, which needs to drop the Time portions of a
-	// Timestamp for formatting purposes because BSON datetime objects
-	// store both the date and the time. This is represented using
-	// the type alias EvalType.
-	Type types.EvalType
-	// UUIDSubtype is needed to handle UUIDs written by the Java and CSharp
-	// drivers, which store UUIDs using different byte orders.
-	UUIDSubtype types.EvalType
-}
-
 // FastMongoSourceIter implements DocIter. It is an Iterator over raw BSON
 // Documents.
 type FastMongoSourceIter struct {
@@ -204,19 +186,19 @@ type FastMongoSourceIter struct {
 	cursor mongodb.Cursor
 	// columnInfo is a slice representing the field names,
 	// in order, expected in the returned document.
-	columnInfo []ColumnInfo
+	columnInfo []results.ColumnInfo
 	// err holds any error that may occur during iteration.
 	err error
 }
 
 // FastOpen opens a more optimized Iter over raw BSON documents returned from
 // MongoDB in cases where no in-memory evaluation is needed to handle a query.
-func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (DocIter, error) {
+func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.DocIter, error) {
 	columns := ms.mappingRegistry.columns
 	lenColumns := len(columns)
 	uniqueFields := make(map[string]struct{}, lenColumns)
 
-	columnInfo := make([]ColumnInfo, len(columns))
+	columnInfo := make([]results.ColumnInfo, len(columns))
 	for i, c := range columns {
 		if c.MappingRegistryName == "" {
 			c.MappingRegistryName = c.Name
@@ -240,7 +222,7 @@ func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, 
 		} else if c.MongoType == schema.MongoUUIDCSharp {
 			uuidSubType = types.EvalCSharpUUID
 		}
-		columnInfo[i] = ColumnInfo{
+		columnInfo[i] = results.ColumnInfo{
 			Field:       mappedFieldName,
 			Type:        c.EvalType,
 			UUIDSubtype: uuidSubType,
@@ -267,7 +249,7 @@ func (ms *FastMongoSourceIter) Next(ctx context.Context, doc *bson.Raw) bool {
 }
 
 // GetColumnInfo returns the slice of ColumnInfo necessary for streaming the results.
-func (ms *FastMongoSourceIter) GetColumnInfo() []ColumnInfo {
+func (ms *FastMongoSourceIter) GetColumnInfo() []results.ColumnInfo {
 	return ms.columnInfo
 }
 
@@ -344,7 +326,7 @@ func buildProjectBodyForMongoSource(
 }
 
 // Open creates an Iter over rows returned from MongoDB.
-func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	columns := ms.mappingRegistry.columns
 
 	// We need to add a last $project or $addFields stage to flatten any embedded

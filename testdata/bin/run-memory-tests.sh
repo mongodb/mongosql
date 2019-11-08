@@ -23,12 +23,21 @@
     # through the mysql shell.
     i=1
     exit_code=1
+
     while [ $i -lt 60 ]; do # timeout after 10 mins
         echo "loop $i"
-        output=$(mysql -e "exit" 2>&1)
+
+        # Connect to mongosqld using the mysql shell and issue a few basic
+        # commands. For some datasets, we observed normal memory usage during
+        # sampling but high memory usage when running simple commands.
+        echo "running mysql commands"
+        output=$(mysql -e "show databases; use memtest; describe test;" 2>&1)
+
         exit_code=$?
         echo "$exit_code"
-        if [ "$exit_code" = "0" ]; then
+        # When the sampling is not yet finished, exit_code will be 0 and the output will start with `Error`.
+        # in this case, we will try again in 10 seconds, otherwise we will break out the loop with actual result
+        if [[ ($exit_code = "0" && $output != ERROR*) ]]; then
             echo "break from loop";
             break;
         fi
@@ -36,22 +45,13 @@
         i=$[$i+1]
     done
 
-    if [ "$exit_code" != "0" ]; then
+    echo "killing mongosqld";
+    killall mongosqld
+
+    if [ "$exit_code" == "1" ]; then
         echo "test timed out - sampling took too long";
         exit 1;
     fi
-
-    # Now reconnect to mongosqld using the mysql shell and issue a few basic
-    # commands. For some datasets, we observed normal memory usage during
-    # sampling but high memory usage when running simple commands.
-    echo "running mysql commands"
-    cmdpid=$BASHPID
-    # We don't care whether the commands finish, so kill the process after 2 mins.
-    (sleep 120; kill $cmdpid) &
-    mysql -e "show databases; use memtest; describe test;" 2>&1
-
-    echo "killing mongosqld";
-    killall mongosqld
 
     echo "done with test for $TEST_NAME"
 

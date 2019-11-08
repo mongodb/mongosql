@@ -247,7 +247,7 @@ const (
 	TablespacesTable                        = "TABLESPACES"
 	TablesTable                             = "TABLES"
 	TriggersTable                           = "TRIGGERS"
-	UserPrivilagesTable                     = "USER_PRIVILEGES"
+	UserPrivilegesTable                     = "USER_PRIVILEGES"
 )
 
 // ForeignKey represents a foreign key in a SQL table.

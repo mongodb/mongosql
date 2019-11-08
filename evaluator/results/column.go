@@ -143,3 +143,21 @@ func (cs Columns) Unique() Columns {
 
 	return results
 }
+
+// ColumnInfo keeps track of the data needed to correctly deserialize data from
+// a MongoSourceStage.
+type ColumnInfo struct {
+	// Field is the name of the specific MongoDB field.
+	Field string
+	// Type is the byte corresponding to the type MongoDRDL specifies for
+	// the given column. The byte corresponds to the BSON kind byte, iff
+	// the column type is a BSON type. Some Column types are not BSON
+	// types: e.g., Date, which needs to drop the Time portions of a
+	// Timestamp for formatting purposes because BSON datetime objects
+	// store both the date and the time. This is represented using
+	// the type alias EvalType.
+	Type types.EvalType
+	// UUIDSubtype is needed to handle UUIDs written by the Java and CSharp
+	// drivers, which store UUIDs using different byte orders.
+	UUIDSubtype types.EvalType
+}

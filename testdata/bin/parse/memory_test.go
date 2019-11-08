@@ -23,6 +23,7 @@ func TestMemoryLimits(t *testing.T) {
 		"many-documents",
 		"many-arrays",
 		"deeply-nested-arrays",
+		"describe-table",
 	}
 
 	for _, test := range tests {
@@ -66,7 +67,7 @@ func getMaxMemory(testName string, t *testing.T) (float64, error) {
 
 		if strings.HasPrefix(line, "gc") {
 			parts := strings.Split(line, ",")
-			if len(parts) < 2 {
+			if len(parts) < 3 {
 				// Both mongosqld and the go gc write to this file, and
 				// sometimes there are races between the two programs. If the
 				// data is corrupted, we'd rather lose one of many data points

@@ -10,13 +10,13 @@ import (
 // MemoryIter is an iterator of rows of an InMemory table.
 type MemoryIter struct {
 	monitor memory.Monitor
-	source  RowIter
+	source  results.RowIter
 
 	err error
 }
 
 // NewMemoryIter creates a MemoryIter from a RowIter.
-func NewMemoryIter(cfg *ExecutionConfig, src RowIter) *MemoryIter {
+func NewMemoryIter(cfg *ExecutionConfig, src results.RowIter) *MemoryIter {
 	return &MemoryIter{
 		monitor: cfg.memoryMonitor,
 		source:  src,

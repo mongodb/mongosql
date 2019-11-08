@@ -13,14 +13,15 @@ import (
 const informationSchema = "information_schema"
 
 // NewDynamicTable creates a new DynamicTable.
-func NewDynamicTable(name string, tableType string, generator func(tableName string) results.Rows) *DynamicTable {
+func NewDynamicTable(name string, tableType string,
+	generator func(tableName string) results.RowIter) *DynamicTable {
 	columnMap := make(map[string]*results.Column)
 	return &DynamicTable{
 		currSelectID: 1,
 		name:         name,
 		tableType:    tableType,
-		generator:    generator,
 		columnMap:    columnMap,
+		generator:    generator,
 	}
 }
 
@@ -31,7 +32,7 @@ type DynamicTable struct {
 	columns      results.Columns
 	columnMap    map[string]*results.Column
 	tableType    string
-	generator    func(tableName string) results.Rows
+	generator    func(tableName string) results.RowIter
 }
 
 // Name returns the name for the DynamicTable, t.
@@ -143,9 +144,9 @@ func (t *DynamicTable) AddColumns(tableName string, args ...DynamicColumnDeclara
 	}
 }
 
-// Rows returns the rows. The tableName passed is the alias
+// Rows returns the row iterator. The tableName passed is the alias
 // for the table. Without that name, it will not be possible
 // to join dynamic tables with themselves or alias them.
-func (t *DynamicTable) Rows(tableName string) results.Rows {
+func (t *DynamicTable) Rows(tableName string) results.RowIter {
 	return t.generator(tableName)
 }

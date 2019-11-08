@@ -361,7 +361,7 @@ func (c *conn) writeHeaders(columns []*results.Column, colID collation.ID) error
 // streamRows receives packets from a packet producer across the packetChan and writes them to the
 // conn. It is also responsible for closing the Iter once the packetChan is closed.
 func (c *conn) streamRows(ctx context.Context, packetChan chan []byte, errChan chan error, columns []*results.Column,
-	iter evaluator.Iter) (err error) {
+	iter results.Iter) (err error) {
 	status := c.status()
 
 	var col *collation.Collation
@@ -433,7 +433,7 @@ streamer:
 // sendPackets is used to produce packets from the Rows returned by
 // the passed Iter. The results are passed as a []byte to the
 // packetChan channel.
-func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter evaluator.RowIter) {
+func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter results.RowIter) {
 	r := &results.Row{}
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
@@ -464,7 +464,7 @@ func (c *conn) sendPackets(ctx context.Context, packetChan chan []byte, iter eva
 // passed fastIter that have a guaranteed field order, which allows for more
 // optimally finding fields in the Document. The results are returned as a
 // []byte across the packetChan channel.
-func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fastIter evaluator.DocIter) {
+func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fastIter results.DocIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
@@ -561,7 +561,7 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 // passed fastIter. The results are returned as a []byte across the packetChan
 // channel. The Documents returned by the fastIter do not have a guaranteed
 // field order.
-func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fastIter evaluator.DocIter) {
+func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fastIter results.DocIter) {
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	charSet := c.variables.GetCharset(variable.CharacterSetResults)
 	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
@@ -622,7 +622,7 @@ func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fa
 // writes those byte packets to the client. This producer consumer relation
 // allows for query cancellation. It operates on a RowIter, which means the results
 // are coming from in memory evaluation.
-func (c *conn) streamRowResultset(ctx context.Context, columns []*results.Column, rowIter evaluator.RowIter) (err error) {
+func (c *conn) streamRowResultset(ctx context.Context, columns []*results.Column, rowIter results.RowIter) (err error) {
 	packetChan := make(chan []byte, 1)
 	errChan := make(chan error, 1)
 
@@ -652,7 +652,7 @@ func (c *conn) streamRowResultset(ctx context.Context, columns []*results.Column
 // writes those byte packets to the client. This producer consumer relation
 // allows for query cancellation. It operators on a DocIter, which means the results
 // are coming straight from MongoDB.
-func (c *conn) streamDocResultset(ctx context.Context, columns []*results.Column, docIter evaluator.DocIter) (err error) {
+func (c *conn) streamDocResultset(ctx context.Context, columns []*results.Column, docIter results.DocIter) (err error) {
 	packetChan := make(chan []byte, 1)
 	errChan := make(chan error, 1)
 

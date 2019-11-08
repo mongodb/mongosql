@@ -102,7 +102,7 @@ func (gb *GroupByStage) Collation() *collation.Collation {
 type GroupByIter struct {
 	cfg          *ExecutionConfig
 	st           *ExecutionState
-	source       RowIter
+	source       results.RowIter
 	stageMonitor memory.Monitor
 	collation    *collation.Collation
 
@@ -130,7 +130,7 @@ type GroupByIter struct {
 
 // Open returns an iterator that returns results from executing this plan stage
 // with the given ExecutionContext.
-func (gb *GroupByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (RowIter, error) {
+func (gb *GroupByStage) Open(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (results.RowIter, error) {
 	sourceIter, err := gb.source.Open(ctx, cfg, st)
 	if err != nil {
 		return nil, err

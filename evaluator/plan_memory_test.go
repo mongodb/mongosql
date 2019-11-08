@@ -483,12 +483,27 @@ func testLimitMemoryMonitor(t *testing.T) {
 
 func testDynamicSourceMemoryMonitor(t *testing.T) {
 	tableName := "foo"
-	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func(string) Rows {
-		return Rows{
+
+	table := catalog.NewDynamicTable(tableName, catalog.BaseTable, func(string) RowIter {
+		// Create an empty Channel
+		rowChan := make(chan Row, DefaultRowChannelBufSize)
+		done := make(chan struct{})
+		rows := Rows{
 			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 1), NewSQLInt64(MongoSQLValueKind, 2)),
 			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 2), NewSQLInt64(MongoSQLValueKind, 3)),
 			NewNamelessRow(NewSQLInt64(MongoSQLValueKind, 3), NewSQLInt64(MongoSQLValueKind, 4)),
 		}
+		go func() {
+			defer close(rowChan)
+			for _, row := range rows {
+				select {
+				case rowChan <- row:
+				case <-done:
+					return
+				}
+			}
+		}()
+		return NewRowChanIter(rowChan, done)
 	})
 
 	_, err := table.AddColumn(tableName, "one", EvalInt64)

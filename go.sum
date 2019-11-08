@@ -112,7 +112,6 @@ github.com/smartystreets/goconvey v0.0.0-20160503033757-d4c757aa9afd/go.mod h1:X
 github.com/spacemonkeygo/spacelog v0.0.0-20170706210657-b6d9bf7bf3eb h1:sXODNvRM5F75hq+gfq7tMP+Eh8317Vq2XuODZgjztaU=
 github.com/spacemonkeygo/spacelog v0.0.0-20170706210657-b6d9bf7bf3eb/go.mod h1:w0SWMsp6j9O/dk4/ZpIhL+3CkG8ofA2vuv7k+ltqUMc=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
-github.com/stretchr/objx v0.1.1/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/objx v0.2.0/go.mod h1:qt09Ya8vawLte6SNmTgCsAVtYtaKzEcn8ATUoHMkEqE=
 github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0Q=
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
