@@ -98,7 +98,7 @@ func (ch *commandHandler) Resample(ctx context.Context) error {
 	if info.IsSecurityEnabled() {
 		if !(info.IsAllowedSampleSource(mongodb.UpdatePrivilege|mongodb.InsertPrivilege) || ch.isAdminUser()) {
 			return fmt.Errorf("must have `insert` and `update` privileges on " +
-				"the 'sample source' or be admin user in order to flush sample")
+				"the schemaSource database or be admin user in order to flush sample")
 		}
 
 		// In Clustered Write Mode and Standalone Mode we ensure that the user
