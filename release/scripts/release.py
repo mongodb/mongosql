@@ -31,7 +31,7 @@ MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
 RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 HASH_TYPES = ["md5", "sha1", "sha256"]
-NUM_RELEASE_PLATFORMS = 15
+NUM_RELEASE_PLATFORMS = 24
 ZIP_SUFFIX = " (zip)"
 DEV_RUN = False
 USAGE = """
@@ -74,21 +74,21 @@ def run():
     try:
         opts, _ = getopt.getopt(sys.argv[1:], "hv:d", ["version="])
     except getopt.GetoptError:
-        print USAGE
+        print(USAGE)
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print USAGE
+            print(USAGE)
             sys.exit(0)
         elif opt in ("-v", "--version"):
             version = arg
         if opt == '-d':
-            print "Dev Run of release.py"
+            print("Dev Run of release.py")
             S3_BUCKET = S3_DEV_RUN_BUCKET
             S3_PATH = S3_DEV_RUN_PATH
             DEV_RUN = True
     if version == '':
-        print USAGE
+        print(USAGE)
         sys.exit(1)
     ensure_env()
     releaser = BIReleaser(version)
@@ -159,7 +159,7 @@ class BIReleaser(object):
         builds = versions["builds"]
 
         if not builds:
-            print "No builds found for version '%s'" % (self.__version)
+            print("No builds found for version '%s'" % (self.__version))
             sys.exit(0)
 
         for build_name in builds:
@@ -187,9 +187,9 @@ class BIReleaser(object):
                 sys.exit(1)
 
             if status != "success":
-                print("%s sign has status '%s', exiting..." % (build["name"], \
+                print("WARNING: %s sign task has status '%s': skipping..." % (build["name"], \
                     status))
-                sys.exit(1)
+                continue
 
             url = "%s/tasks/%s" % (EVG_BASE, sign["task_id"])
             print("Fetching task %s..." % (url))
@@ -267,7 +267,7 @@ class BIReleaser(object):
             hash_file.write("%s  %s" % (hashed, file_name))
             hash_file.close()
 
-            print "\t Uploading %s hash: %s" % (hash_type, hashed)
+            print("\t Uploading %s hash: %s" % (hash_type, hashed))
 
             key = self.__bucket.new_key("%s.%s" % (key_name, hash_type))
             key.set_contents_from_filename(hash_file_name)
@@ -277,7 +277,7 @@ class BIReleaser(object):
             upload_path = os.path.join(S3_PATH, "latest")
 
         for file_name in os.listdir(self.__temp_dir):
-            print "Uploading binary %s..." % (file_name)
+            print("Uploading binary %s..." % (file_name))
             key_name = os.path.join(upload_path, file_name)
             key = self.__bucket.new_key(key_name)
             file_location = os.path.join(self.__temp_dir, file_name)
@@ -439,7 +439,7 @@ class BIReleaser(object):
         with open(tmp, "w") as file_handle:
             json.dump(data, file_handle, sort_keys=True, indent=4)
 
-        print "Updating %s page for BI Connector" % (name)
+        print("Updating %s page for BI Connector" % (name))
 
         key_name = os.path.join(os.path.dirname(S3_PATH), name)
         self.__bucket.copy_key(key_name+".bk", S3_BUCKET, key_name)
@@ -531,7 +531,7 @@ class BIReleaser(object):
                 "git rev-list -n 1 v%s" % (self.__release_version),
                 shell=True, stdout=subprocess.PIPE).stdout.read().strip("\n")
         except subprocess.CalledProcessError as err:
-            print err
+            print(err)
             sys.exit(1)
 
         is_dev_release = "false"
