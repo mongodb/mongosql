@@ -6,12 +6,20 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~LINUX-64-AMAZON-AMI"
     },
     {
+      "name": "Amazon Linux 2 x64",
+	  "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~AMAZON2"
+    },
+    {
       "name": "Debian 8.1 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN81"
     },
     {
       "name": "Debian 9.2 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN92"
+    },
+    {
+      "name": "Debian 10.0 x64",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~DEBIAN10"
     },
     {
       "name": "OS X x64",
@@ -30,6 +38,10 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL70"
     },
     {
+      "name": "RedHat / CentOS 8.0+ x64",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL80"
+    },
+    {
       "name": "RedHat / CentOS 7.1 ppc64le (IBM POWER)",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-71-PPC64LE"
     },
@@ -40,6 +52,14 @@
     {
       "name": "SUSE 12 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE12-64"
+    },
+    {
+      "name": "SUSE 12 s390x (IBM Z Series)",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE12-S390X"
+    },
+    {
+      "name": "SUSE 15 x64",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE15-64"
     },
     {
       "name": "Ubuntu 14.04 x64",
@@ -56,6 +76,18 @@
     {
       "name": "Ubuntu 16.04 s390x (IBM Z Series)",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-S390X"
+    },
+    {
+      "name": "Ubuntu 18.04 x64",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-64"
+    },
+    {
+      "name": "Ubuntu 18.04 PPC64LE (IBM POWER)",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-PPC64LE"
+    },
+    {
+      "name": "Ubuntu 18.04 s390x (IBM Z Series)",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-S390X"
     },
     {
       "name": "Windows x64",
