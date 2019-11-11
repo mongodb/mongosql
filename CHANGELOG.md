@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2363: No user-facing changes.
 - BI-2363: Reduce DynamicSourceStage memory usage
 - BI-2349: Update schema mapping to skip empty field names and field names containing "." characters.
 - BI-2398: No user-facing changes.
