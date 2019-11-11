@@ -33,7 +33,7 @@ $version = $matches[1]
 # revise the minor version (2.2 -> 2.3). That way, we
 # will allow multiple minor versions to be installed 
 # side-by-side.
-if ([double]$version -gt 2.13) {
+if ([double]$version -gt 2.14) {
     throw "You must change the upgrade code for a minor revision. 
 Once that is done, change the version number above to
 account for the next revision that will require being
@@ -41,7 +41,7 @@ upgradeable."
 }
 
 # You can get an upgrade code from https://www.uuidgenerator.net/
-$upgradeCode = "e808424c-09d4-44d6-8c7b-180ff7dad811"
+$upgradeCode = "7d19b1fb-c083-48b2-9dde-e18b90285b52"
 
 # compile wxs into .wixobjs
 & $WixPath\candle.exe -wx `
