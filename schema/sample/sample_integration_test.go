@@ -806,6 +806,111 @@ func TestWriteModeRoundTrip(t *testing.T) {
 	req.Equal(table1.ColumnsDeclaredOrder(), schemaTable.ColumnsDeclaredOrder())
 }
 
+func TestSampleEmptyFieldNames(t *testing.T) {
+	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	if err != nil {
+		t.Fatalf("failed to set up session provider to test server: %v", err)
+	}
+	defer sp.Close()
+
+	session, err := sp.Session(context.Background())
+	if err != nil {
+		t.Fatalf("failed to set up session to test server: %v", err)
+	}
+	defer session.Close()
+
+	req := require.New(t)
+
+	cleanupData(session)
+	defer cleanupData(session)
+
+	// Sampling should exclude field paths that contain empty field names.
+	// For example:
+	// {
+	//   "": {
+	//     "x": 1,
+	//   },
+	//   "a": {
+	//     "": {
+	//       "x": 2
+	//     },
+	//     "y": {
+	//       "": {
+	//         "z": 3
+	//       }
+	//     }
+	//   },
+	//   "b": {
+	//     "": 4
+	//   },
+	//   "c": "valid"
+	// }
+	//
+	// These 4 field paths should all be skipped during sampling:
+	//   1: ".x"
+	//   2: "a..x"
+	//   3: "a.y..z"
+	//   4: "b."
+	// because they contain empty field names and cannot be queried.
+	//
+	// This example document is created below.
+	doc := bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("", bsonutil.NewD(
+				bsonutil.NewDocElem("x", 1),
+			)),
+			bsonutil.NewDocElem("a", bsonutil.NewD(
+				bsonutil.NewDocElem("", bsonutil.NewD(
+					bsonutil.NewDocElem("x", 2),
+				)),
+				bsonutil.NewDocElem("y", bsonutil.NewD(
+					bsonutil.NewDocElem("", bsonutil.NewD(
+						bsonutil.NewDocElem("z", 3),
+					)),
+				)),
+			)),
+			bsonutil.NewDocElem("b", bsonutil.NewD(
+				bsonutil.NewDocElem("", 4),
+			)),
+			bsonutil.NewDocElem("c", "valid"),
+		),
+	)
+
+	dbutils.InsertDocuments(session, db1, c1, doc)
+
+	opts := NewMongosqldConfig(&cfg.Schema, nil)
+	sampler := NewSampler(opts, lgr, sp)
+	sampleSchema, err := sampler.Sample(context.Background())
+	req.NoError(err, "did not expect error in sampling")
+	req.NotNil(sampleSchema, "did not expect sample schema to be nil")
+
+	req.Equal(1, countTables(sampleSchema), "incorrect number of sampled namespaces")
+	tblNames := map[string]struct{}{
+		"c1": {},
+	}
+	for _, db := range sampleSchema.Databases() {
+		for _, tbl := range db.Tables() {
+			_, ok := tblNames[tbl.SQLName()]
+			req.True(ok, fmt.Sprintf("unexpected table name: %s", tbl.SQLName()))
+		}
+	}
+
+	db := sampleSchema.Database(db1)
+	req.NotNil(db, "could not find expected db %v", db1)
+
+	tbl := db.Table(c1)
+	req.NotNil(tbl, "could not find expected table %v", tbl)
+
+	columns := tbl.Columns()
+
+	// 2 columns: "c" and "_id"
+	req.Equal(2, len(columns), "incorrect number of sampled columns")
+
+	cColumn, idColumn := tbl.Column("c"), tbl.Column("_id")
+	req.NotNil(cColumn, "expected 'c' column to exist")
+	req.NotNil(idColumn, "expected '_id' column to exist")
+}
+
 func cleanupData(session *mongodb.Session, databases ...string) {
 	dbutils.DropDatabase(session, cfg.Schema.Stored.Source)
 	dbutils.DropDatabase(session, db1)

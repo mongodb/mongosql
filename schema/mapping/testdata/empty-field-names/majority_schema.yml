@@ -1,0 +1,11 @@
+schema:
+- db: test
+  tables:
+  - table: empty-field-names
+    collection: empty-field-names
+    pipeline: []
+    columns:
+    - name: c
+      mongotype: string
+      sqlname: c
+      sqltype: varchar

@@ -1,0 +1,11 @@
+schema:
+- db: test
+  tables:
+  - table: dots-in-field-names
+    collection: dots-in-field-names
+    pipeline: []
+    columns:
+    - name: e
+      mongotype: string
+      sqlname: e
+      sqltype: varchar

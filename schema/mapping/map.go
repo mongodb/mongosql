@@ -513,6 +513,11 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 	props := make([]string, 0, len(js.Properties))
 
 	for prop := range js.Properties {
+		// Skip empty field names since these cannot be
+		// queried via agg language.
+		if prop == "" || strings.Contains(prop, ".") {
+			continue
+		}
 		props = append(props, prop)
 	}
 

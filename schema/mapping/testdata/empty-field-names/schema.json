@@ -1,0 +1,117 @@
+{
+  "bsonType": "object",
+  "properties": {
+    "": {
+      "schemas": {
+        "object": {
+          "bsonType": "object",
+          "properties": {
+            "x": {
+              "schemas": {
+                "int": { "bsonType":  "int" }
+              },
+              "counts": {
+                "int": 1
+              }
+            }
+          }
+        }
+      },
+      "counts": {
+        "object": 1
+      }
+    },
+    "a": {
+      "schemas": {
+        "object": {
+          "bsonType": "object",
+          "properties": {
+            "": {
+              "schemas": {
+                "object": {
+                  "bsonType": "object",
+                  "properties": {
+                    "x": {
+                      "schemas": {
+                        "int": { "bsonType": "int" }
+                      },
+                      "counts": {
+                        "int": 1
+                      }
+                    }
+                  }
+                }
+              },
+              "counts": {
+                "object": 1
+              }
+            },
+            "y": {
+              "schemas": {
+                "object": {
+                  "bsonType": "object",
+                  "properties": {
+                    "": {
+                      "schemas": {
+                        "object": {
+                          "bsonType": "object",
+                          "properties": {
+                            "z": {
+                              "schemas": {
+                                "int": { "bsonType": "int" }
+                              },
+                              "counts": {
+                                "int": 1
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "counts": {
+                        "object": 1
+                      }
+                    }
+                  }
+                }
+              },
+              "counts": {
+                "object": 1
+              }
+            }
+          }
+        }
+      },
+      "counts": {
+        "object": 1
+      }
+    },
+    "b": {
+      "schemas": {
+        "object": {
+          "bsonType": "object",
+          "properties": {
+            "": {
+              "schemas": {
+                "int": { "bsonType": "int" }
+              },
+              "counts": {
+                "int": 1
+              }
+            }
+          }
+        }
+      },
+      "counts": {
+        "object": 1
+      }
+    },
+    "c": {
+      "schemas": {
+        "string": { "bsonType": "string" }
+      },
+      "counts": {
+        "string": 1
+      }
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  ".a": "starts with dot",
+  "b..c": "contains dots",
+  "d.": "ends with dot",
+  "e": "valid"
+}

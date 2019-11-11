@@ -1,0 +1,37 @@
+{
+  "bsonType": "object",
+  "properties": {
+    ".a": {
+      "schemas": {
+        "string": { "bsonType": "string" }
+      },
+      "counts": {
+        "string": 1
+      }
+    },
+    "b..c": {
+      "schemas": {
+        "string": { "bsonType": "string" }
+      },
+      "counts": {
+        "string": 1
+      }
+    },
+    "d.": {
+      "schemas": {
+        "string": { "bsonType": "string" }
+      },
+      "counts": {
+        "string": 1
+      }
+    },
+    "e": {
+      "schemas": {
+        "string": { "bsonType": "string" }
+      },
+      "counts": {
+        "string": 1
+      }
+    }
+  }
+}
