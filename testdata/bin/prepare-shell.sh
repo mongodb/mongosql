@@ -24,7 +24,7 @@ ZONEINFO="$PROJECT_DIR/testdata/resources/time/zoneinfo.zip"
 
 # set GOPATH, GOBIN, GOCACHE
 GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
-GOBIN="$GOPATH/bin/"
+GOBIN="$GOPATH/bin"
 GOCACHE="$SQLPROXY_TEST_CACHE_DIR/go-build"
 
 # if we are using a non-default GOROOT, also set GOBINDIR
@@ -59,6 +59,7 @@ if [ "Windows_NT" = "$OS" ]; then
     SQLPROXY_TEST_CACHE_DIR="$(cygpath -m $SQLPROXY_TEST_CACHE_DIR)"
     LOG_FILE="$(cygpath -m $LOG_FILE)"
     GOPATH="$(cygpath -m $GOPATH)"
+    GOBIN="$(cygpath -m $GOBIN)"
     KRB5_TRACE="$(cygpath -m $KRB5_TRACE)"
     GOCACHE="$(cygpath -m $GOCACHE)"
     tzutil /s "Eastern Standard Time"
