@@ -155,7 +155,7 @@ ubuntu1604)
 	BUILD_FIPS='false'
     ;;
 ubuntu1604-ppc)
-    PUSH_ARCH='x86_64-ubuntu1604'
+    PUSH_ARCH='ppc64le-ubuntu1604'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'

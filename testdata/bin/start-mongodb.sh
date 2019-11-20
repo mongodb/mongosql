@@ -13,10 +13,8 @@
     # Functions to fetch MongoDB binaries
     . $DIR/download-mongodb.sh
 
-    get_distro
-    get_mongodb_download_url_for "$DISTRO" "$MONGODB_VERSION"
-    echo "downloading mongodb $MONGODB_VERSION for $DISTRO..."
-    set_mongodb_binaries "$MONGODB_DOWNLOAD_URL" "$EXTRACT" "$MONGODB_VERSION"
+    echo "downloading mongodb $MONGODB_VERSION..."
+    set_mongodb_binaries "$MONGODB_VERSION"
     echo "done downloading mongodb"
 
     mkdir -p "$ARTIFACTS_DIR/mlaunch"
@@ -52,7 +50,7 @@
       rm -rf mtools
       git clone git@github.com:rueckstiess/mtools
       cd mtools
-      # We should avoid checking out the master branch because it is a dev branch 
+      # We should avoid checking out the master branch because it is a dev branch
       # that has occasionally had bugs committed. This commit has worked well for us.
       git checkout e544bbced1a070d7024931e7c1736ced7d9bcdd6
       echo 'installing mtools...'

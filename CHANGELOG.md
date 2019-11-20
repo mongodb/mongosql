@@ -18,6 +18,8 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 - BI-2411: Increase default max_num_global_tables to 4000
 
+- BI-2248: No user-facing changes.
+
 ## 2.13
 
 - BI-2402: Update an error message for FLUSH SAMPLE authorization that was unclear.
