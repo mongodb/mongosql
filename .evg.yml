@@ -705,7 +705,7 @@ tasks:
         var_type: unit
         var_benchmark_set: sample
 
-- name: benchmark-tpch-micro
+- name: benchmark-tpch-micro-normalized
   tags: [ "benchmark" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
@@ -718,14 +718,14 @@ tasks:
         var_schema_mapping_mode: lattice
     - func: "run tpch benchmarks"
       vars:
-        var_type: tpch-micro
+        var_type: tpch-micro-normalized
     - func: "process benchmark results"
       vars:
         var_type: integration
-        var_benchmark_set: tpch-micro
+        var_benchmark_set: tpch-micro-normalized
 
-- name: benchmark-tpch-normalized
-  tags: [ "benchmark", "tpch_full" ]
+- name: benchmark-tpch-micro-denormalized
+  tags: [ "benchmark" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
     - func: "start mongodb"
@@ -737,14 +737,14 @@ tasks:
         var_schema_mapping_mode: lattice
     - func: "run tpch benchmarks"
       vars:
-        var_type: tpch-normalized
+        var_type: tpch-micro-denormalized
     - func: "process benchmark results"
       vars:
         var_type: integration
-        var_benchmark_set: tpch-normalized
+        var_benchmark_set: tpch-micro-denormalized
 
-- name: benchmark-tpch-denormalized
-  tags: [ "benchmark", "tpch_full" ]
+- name: benchmark-tpch-micro-handwritten-denormalized
+  tags: [ "benchmark" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
     - func: "start mongodb"
@@ -756,30 +756,11 @@ tasks:
         var_schema_mapping_mode: lattice
     - func: "run tpch benchmarks"
       vars:
-        var_type: tpch-denormalized
+        var_type: tpch-micro-handwritten-denormalized
     - func: "process benchmark results"
       vars:
         var_type: integration
-        var_benchmark_set: tpch-denormalized
-
-- name: benchmark-tpch-handwritten-denormalized
-  tags: [ "benchmark", "tpch_full" ]
-  exec_timeout_secs: 302400  # 3.5 days
-  commands:
-    - func: "start mongodb"
-      vars:
-        var_version: 3.6
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run tpch benchmarks"
-      vars:
-        var_type: tpch-handwritten-denormalized
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: tpch-handwritten-denormalized
+        var_benchmark_set: tpch-micro-handwritten-denormalized
 
 - name: benchmark-overhead-4.0
   tags: [ "benchmark" ]
@@ -2236,18 +2217,7 @@ buildvariants:
   run_on:
     - centos6-perf
   tasks:
-    - '.benchmark !.tpch_full'
-
-- name: benchmark-tpch-full
-  display_name: TPCH Benchmarks (Full Dataset)
-  batchtime: 43200  # 30 days
-  expansions:
-    _variant: centos6-perf
-    _in_memory: true
-  run_on:
-    - centos6-perf
-  tasks:
-    - '.benchmark .tpch_full'
+    - '.benchmark'
 
 # We are disabling .tls tests on Windows because currently there
 # is no built version of openssl that supports mysql with starttls.

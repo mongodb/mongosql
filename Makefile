@@ -26,8 +26,14 @@ _benchmark-evaluator:
 _benchmark:
 	$(ENV) TYPE="queries|overhead" testdata/bin/run-benchmarks.sh
 
-_benchmark-tpch:
-	$(ENV) TYPE="tpch-micro" testdata/bin/run-benchmarks.sh
+_benchmark-tpch-micro-normalized:
+	$(ENV) TYPE="tpch-micro-normalized" testdata/bin/run-benchmarks.sh
+
+_benchmark-tpch-micro-denormalized:
+	$(ENV) TYPE="tpch-micro-denormalized" testdata/bin/run-benchmarks.sh
+
+_benchmark-tpch-micro-handwritten-denormalized:
+	$(ENV) TYPE="tpch-micro-handwritten-denormalized" testdata/bin/run-benchmarks.sh
 
 _parse-benchmarks:
 	$(ENV) testdata/bin/parse-benchmark-results.sh

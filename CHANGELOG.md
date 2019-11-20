@@ -5,6 +5,7 @@ A line should be added to this file for each commit made to this repository.
 If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.14
+- BI-2382: No user-facing changes.
 
 - BI-2248: No user-facing changes.
 

@@ -10,9 +10,15 @@
     benchtimeout=${TIMEOUT:-16h}
     benchnames='^([^t]...|.[^p]..|..[^c].|...[^h])'
 
-    if [ "$benchtype" = "tpch-micro" ]; then
+    if [ "$benchtype" = "tpch-micro-normalized" ]; then
         benchtype='queries'
-        benchnames='^tpch_micro'
+        benchnames='^tpch_micro_normalized'
+    elif [ "$benchtype" = "tpch-micro-denormalized" ]; then
+        benchtype='queries'
+        benchnames='^tpch_micro_denormalized'
+    elif [ "$benchtype" = "tpch-micro-handwritten-denormalized" ]; then
+        benchtype='queries'
+        benchnames='^tpch_micro_handwritten_denormalized'
     elif [ "$benchtype" = "tpch-normalized" ]; then
         benchtype='queries'
         benchnames='^tpch_full_normalized'
