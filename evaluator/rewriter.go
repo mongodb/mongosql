@@ -45,7 +45,7 @@ func RewriteStatement(cfg *RewriterConfig, stmt parser.Statement) (parser.Statem
 		return nil, err
 	}
 
-	stmt, err = parser.DesugarStatement(stmt, versionCode)
+	stmt, err = parser.DesugarStatement(stmt, versionCode, cfg.dbName)
 	if err != nil {
 		return nil, err
 	}

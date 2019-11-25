@@ -2534,7 +2534,7 @@ var _ CST = (*UpdateExpr)(nil)
 func (node *Show) Children() []CST {
 	return []CST{
 		node.From,
-		node.LikeOrWhere,
+		node.Predicate,
 	}
 }
 
@@ -2549,9 +2549,9 @@ func (node *Show) ReplaceChild(i int, child CST) {
 		}
 	case 1:
 		if child == nil {
-			node.LikeOrWhere = nil
+			node.Predicate = nil
 		} else {
-			node.LikeOrWhere = child.(Expr)
+			node.Predicate = child.(*ShowPredicate)
 		}
 	default:
 		panic("ReplaceChild out of bounds")
@@ -2561,28 +2561,63 @@ func (node *Show) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Show) Copy() CST {
 	var from Expr
-	if node.From == nil {
-		from = nil
-	} else {
+	if node.From != nil {
 		from = node.From.Copy().(Expr)
 	}
-	var likeOrWhere Expr
-	if node.LikeOrWhere == nil {
-		likeOrWhere = nil
-	} else {
-		likeOrWhere = node.LikeOrWhere.Copy().(Expr)
+	var predicate *ShowPredicate
+	if node.Predicate != nil {
+		predicate = node.Predicate.Copy().(*ShowPredicate)
 	}
 
 	return &Show{
 		node.Section,
 		node.Key,
 		from,
-		likeOrWhere,
+		predicate,
 		node.Modifier,
 	}
 }
 
 var _ CST = (*Show)(nil)
+
+// Children iterates through all direct children of this node.
+func (node *ShowPredicate) Children() []CST {
+	return []CST{
+		node.Where,
+	}
+}
+
+// ReplaceChild changes the value of a particular child node.
+func (node *ShowPredicate) ReplaceChild(i int, child CST) {
+	switch i {
+	case 0:
+		if child == nil {
+			node.Where = nil
+		} else {
+			node.Where = child.(Expr)
+		}
+	default:
+		panic("ReplaceChild out of bounds")
+	}
+}
+
+// Copy produces a deep copy of this node.
+func (node *ShowPredicate) Copy() CST {
+	like := node.Like
+	var where Expr
+	if node.Where == nil {
+		where = nil
+	} else {
+		where = node.Where.Copy().(Expr)
+	}
+
+	return &ShowPredicate{
+		like,
+		where,
+	}
+}
+
+var _ CST = (*ShowPredicate)(nil)
 
 // Children iterates through all direct children of this node.
 func (node *Explain) Children() []CST {

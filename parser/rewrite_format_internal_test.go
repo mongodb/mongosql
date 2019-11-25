@@ -460,6 +460,316 @@ func testRewriteAndFormatCommand(t *testing.T) {
 			command:  `insert into foo() value(DeFault,2,DEFAULT, deFAULT)`,
 			expected: `insert into foo values(default, 2, default, default)`,
 		},
+		{
+			desc:     "show charset to select statement",
+			command:  `show charset`,
+			expected: `select Charset, Description, Default collation, Maxlen from (select CHARACTER_SET_NAME as Charset, DESCRIPTION as Description, DEFAULT_COLLATE_NAME as Default collation, MAXLEN as Maxlen from information_schema.CHARACTER_SETS) order by Charset asc`,
+		},
+		{
+			desc:     "show charset like 'x' to select statement",
+			command:  `show charset like 'x'`,
+			expected: `select Charset, Description, Default collation, Maxlen from (select CHARACTER_SET_NAME as Charset, DESCRIPTION as Description, DEFAULT_COLLATE_NAME as Default collation, MAXLEN as Maxlen from information_schema.CHARACTER_SETS) where Charset like 'x' order by Charset asc`,
+		},
+		{
+			desc:     "show charset where Charset = 'x' to select statement",
+			command:  `show charset where Charset = 'x'`,
+			expected: `select Charset, Description, Default collation, Maxlen from (select CHARACTER_SET_NAME as Charset, DESCRIPTION as Description, DEFAULT_COLLATE_NAME as Default collation, MAXLEN as Maxlen from information_schema.CHARACTER_SETS) where charset = 'x' order by Charset asc`,
+		},
+		{
+			desc:     "show collation to select statement",
+			command:  `show collation`,
+			expected: "select Collation, Charset, Id, `Default`, Compiled, Sortlen from (select COLLATION_NAME as Collation, CHARACTER_SET_NAME as Charset, ID as Id, IS_DEFAULT as Default, IS_COMPILED as Compiled, SORTLEN as Sortlen from information_schema.COLLATIONS) order by Collation asc",
+		},
+		{
+			desc:     "show collation like 'x' to select statement",
+			command:  `show collation like 'x'`,
+			expected: "select Collation, Charset, Id, `Default`, Compiled, Sortlen from (select COLLATION_NAME as Collation, CHARACTER_SET_NAME as Charset, ID as Id, IS_DEFAULT as Default, IS_COMPILED as Compiled, SORTLEN as Sortlen from information_schema.COLLATIONS) where Collation like 'x' order by Collation asc",
+		},
+		{
+			desc:     "show collation where Collation = 'x' to select statement",
+			command:  `show collation where Collation = 'x'`,
+			expected: "select Collation, Charset, Id, `Default`, Compiled, Sortlen from (select COLLATION_NAME as Collation, CHARACTER_SET_NAME as Charset, ID as Id, IS_DEFAULT as Default, IS_COMPILED as Compiled, SORTLEN as Sortlen from information_schema.COLLATIONS) where collation = 'x' order by Collation asc",
+		},
+		{
+			desc:     "explain tbl_name to select statement",
+			command:  `explain foo`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'testdb' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from foo to select statement",
+			command:  `show columns from foo`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'testdb' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns in foo to select statement",
+			command:  `show columns in foo`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'testdb' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from foo like 'x' to select statement",
+			command:  `show columns from foo like 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'testdb' and Field like 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from foo from bar like 'x' to select statement",
+			command:  `show columns from foo from bar like 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field like 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from foo in bar like 'x' to select statement",
+			command:  `show columns from foo in bar like 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field like 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns in foo from bar like 'x' to select statement",
+			command:  `show columns in foo from bar like 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field like 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns in foo in bar like 'x' to select statement",
+			command:  `show columns in foo in bar like 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field like 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from bar.foo like 'x' to select statement",
+			command:  `show columns from bar.foo like 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field like 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns in bar.foo like 'x' to select statement",
+			command:  `show columns in bar.foo like 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field like 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from foo where Field = 'x' to select statement",
+			command:  `show columns from foo where Field = 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'testdb' and Field = 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from foo from bar where Field = 'x' to select statement",
+			command:  `show columns from foo from bar where Field = 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field = 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from foo in bar where Field = 'x' to select statement",
+			command:  `show columns from foo in bar where Field = 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field = 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns in foo from bar where Field = 'x' to select statement",
+			command:  `show columns in foo from bar where Field = 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field = 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns in foo in bar where Field = 'x' to select statement",
+			command:  `show columns in foo in bar where Field = 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field = 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns from bar.foo where Field = 'x' to select statement",
+			command:  `show columns from bar.foo where Field = 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field = 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show columns in bar.foo where Field = 'x' to select statement",
+			command:  `show columns in bar.foo where Field = 'x'`,
+			expected: "select Field, Type, `Null`, `Key`, `Default`, Extra from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'bar' and Field = 'x' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show full columns from foo to select statement",
+			command:  `show full columns from foo`,
+			expected: "select Field, Type, Collation, `Null`, `Key`, `Default`, Extra, Privileges, Comment from (select COLUMN_NAME as Field, COLUMN_TYPE as Type, COLLATION_NAME as Collation, IS_NULLABLE as Null, COLUMN_KEY as Key, COLUMN_DEFAULT as Default, EXTRA as Extra, PRIVILEGES as Privileges, COLUMN_COMMENT as Comment, TABLE_NAME as TABLE_NAME, TABLE_SCHEMA as TABLE_SCHEMA, ORDINAL_POSITION as ORDINAL_POSITION from information_schema.COLUMNS) where TABLE_NAME like 'foo' and TABLE_SCHEMA like 'testdb' order by ORDINAL_POSITION asc",
+		},
+		{
+			desc:     "show databases to select statement",
+			command:  `show databases`,
+			expected: "select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) order by `Database` asc",
+		},
+		{
+			desc:     "show databases like 'x' to select statement",
+			command:  `show databases like 'x'`,
+			expected: "select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) where `Database` like 'x' order by `Database` asc",
+		},
+		{
+			desc:     "show databases where `Database` = 'x' to select statement",
+			command:  "show databases where `Database` = 'x'",
+			expected: "select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) where `Database` = 'x' order by `Database` asc",
+		},
+		{
+			desc:     "show schemas like 'x' to select statement",
+			command:  `show schemas like 'x'`,
+			expected: "select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) where `Database` like 'x' order by `Database` asc",
+		},
+		{
+			desc:     "show schemas where `Database` = 'x' to select statement",
+			command:  "show schemas where `Database` = 'x'",
+			expected: "select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) where `Database` = 'x' order by `Database` asc",
+		},
+		{
+			desc:     "show keys to select statement",
+			command:  `show keys from foo`,
+			expected: "select `Table`, Non_unique, Key_name, Seq_in_index, Column_name, Collation, Cardinality, Sub_part, Packed, `Null`, Index_type, Comment, Index_comment from (select TABLE_NAME as Table, NON_UNIQUE as Non_unique, INDEX_NAME as Key_name, SEQ_IN_INDEX as Seq_in_index, COLUMN_NAME as Column_name, COLLATION as Collation, CARDINALITY as Cardinality, SUB_PART as Sub_part, PACKED as Packed, NULLABLE as Null, INDEX_TYPE as Index_type, COMMENT as Comment, INDEX_COMMENT as Index_comment, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.STATISTICS) where `Table` like 'foo' and TABLE_SCHEMA like 'testdb' order by Non_unique asc",
+		},
+		{
+			desc:     "show index from foo to select statement",
+			command:  `show index from foo`,
+			expected: "select `Table`, Non_unique, Key_name, Seq_in_index, Column_name, Collation, Cardinality, Sub_part, Packed, `Null`, Index_type, Comment, Index_comment from (select TABLE_NAME as Table, NON_UNIQUE as Non_unique, INDEX_NAME as Key_name, SEQ_IN_INDEX as Seq_in_index, COLUMN_NAME as Column_name, COLLATION as Collation, CARDINALITY as Cardinality, SUB_PART as Sub_part, PACKED as Packed, NULLABLE as Null, INDEX_TYPE as Index_type, COMMENT as Comment, INDEX_COMMENT as Index_comment, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.STATISTICS) where `Table` like 'foo' and TABLE_SCHEMA like 'testdb' order by Non_unique asc",
+		},
+		{
+			desc:     "show indexes from foo to select statement",
+			command:  `show indexes from foo`,
+			expected: "select `Table`, Non_unique, Key_name, Seq_in_index, Column_name, Collation, Cardinality, Sub_part, Packed, `Null`, Index_type, Comment, Index_comment from (select TABLE_NAME as Table, NON_UNIQUE as Non_unique, INDEX_NAME as Key_name, SEQ_IN_INDEX as Seq_in_index, COLUMN_NAME as Column_name, COLLATION as Collation, CARDINALITY as Cardinality, SUB_PART as Sub_part, PACKED as Packed, NULLABLE as Null, INDEX_TYPE as Index_type, COMMENT as Comment, INDEX_COMMENT as Index_comment, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.STATISTICS) where `Table` like 'foo' and TABLE_SCHEMA like 'testdb' order by Non_unique asc",
+		},
+		{
+			desc:     "show processlist to select statement",
+			command:  `show processlist`,
+			expected: `select Id, User, Host, db, Command, Time, State, Info from (select ID as Id, USER as User, HOST as Host, DB as db, COMMAND as Command, TIME as Time, STATE as State, INFO as Info from information_schema.PROCESSLIST) order by Id asc`,
+		},
+		{
+			desc:     "show full processlist to select statement",
+			command:  `show full processlist`,
+			expected: "select Id, User, Host, db, Command, Time, State, Info from (select ID as Id, USER as User, HOST as Host, DB as db, COMMAND as Command, TIME as Time, STATE as State, INFO as Info from information_schema.PROCESSLIST) order by Id asc",
+		},
+		{
+			desc:     "show status to select statement",
+			command:  `show status`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_STATUS) order by Variable_name asc",
+		},
+		{
+			desc:     "show status like 'x' to select statement",
+			command:  `show status like 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_STATUS) where Variable_name like 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show status where Variable_name = 'x' to select statement",
+			command:  `show status where Variable_name = 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_STATUS) where Variable_name = 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show global status to select statement",
+			command:  `show global status`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.GLOBAL_STATUS) order by Variable_name asc",
+		},
+		{
+			desc:     "show global status like 'x' to select statement",
+			command:  `show global status like 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.GLOBAL_STATUS) where Variable_name like 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show global status where Variable_name = 'x' to select statement",
+			command:  `show global status where Variable_name = 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.GLOBAL_STATUS) where Variable_name = 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show session status to select statement",
+			command:  `show session status`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_STATUS) order by Variable_name asc",
+		},
+		{
+			desc:     "show session status like 'x' to select statement",
+			command:  `show session status like 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_STATUS) where Variable_name like 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show session status where Variable_name = 'x' to select statement",
+			command:  `show session status where Variable_name = 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_STATUS) where Variable_name = 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show tables to select statement",
+			command:  `show tables`,
+			expected: "select Tables_in_testdb from (select TABLE_NAME as Tables_in_testdb, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'testdb' order by Tables_in_testdb asc",
+		},
+		{
+			desc:     "show tables like 'x' to select statement",
+			command:  `show tables like 'x'`,
+			expected: "select Tables_in_testdb from (select TABLE_NAME as Tables_in_testdb, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'testdb' and Tables_in_testdb like 'x' order by Tables_in_testdb asc",
+		},
+		{
+			desc:     "show tables where Table_type = 'x' to select statement",
+			command:  `show tables where Table_type = 'x'`,
+			expected: "select Tables_in_testdb from (select TABLE_NAME as Tables_in_testdb, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'testdb' and Table_type = 'x' order by Tables_in_testdb asc",
+		},
+		{
+			desc:     "show tables from bar to select statement",
+			command:  `show tables from bar`,
+			expected: "select Tables_in_bar from (select TABLE_NAME as Tables_in_bar, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'bar' order by Tables_in_bar asc",
+		},
+		{
+			desc:     "show tables from bar like 'x' to select statement",
+			command:  `show tables from bar like 'x'`,
+			expected: "select Tables_in_bar from (select TABLE_NAME as Tables_in_bar, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'bar' and Tables_in_bar like 'x' order by Tables_in_bar asc",
+		},
+		{
+			desc:     "show tables from bar where Table_type = 'x' to select statement",
+			command:  `show tables from bar where Table_type = 'x'`,
+			expected: "select Tables_in_bar from (select TABLE_NAME as Tables_in_bar, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'bar' and Table_type = 'x' order by Tables_in_bar asc",
+		},
+		{
+			desc:     "show tables in bar to select statement",
+			command:  `show tables in bar`,
+			expected: "select Tables_in_bar from (select TABLE_NAME as Tables_in_bar, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'bar' order by Tables_in_bar asc",
+		},
+		{
+			desc:     "show tables in bar like 'x' to select statement",
+			command:  `show tables in bar like 'x'`,
+			expected: "select Tables_in_bar from (select TABLE_NAME as Tables_in_bar, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'bar' and Tables_in_bar like 'x' order by Tables_in_bar asc",
+		},
+		{
+			desc:     "show tables in bar where Table_type = 'x' to select statement",
+			command:  `show tables in bar where Table_type = 'x'`,
+			expected: "select Tables_in_bar from (select TABLE_NAME as Tables_in_bar, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'bar' and Table_type = 'x' order by Tables_in_bar asc",
+		},
+		{
+			desc:     "show full tables to select statement",
+			command:  `show full tables`,
+			expected: `select Tables_in_testdb, Table_type from (select TABLE_NAME as Tables_in_testdb, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'testdb' order by Tables_in_testdb asc`,
+		},
+		{
+			desc:     "show variables to select statement",
+			command:  `show variables`,
+			expected: `select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_VARIABLES) order by Variable_name asc`,
+		},
+		{
+			desc:     "show variables like 'x' to select statement",
+			command:  `show variables like 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_VARIABLES) where Variable_name like 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show variables where Variable_name = 'x' to select statement",
+			command:  `show variables where Variable_name = 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_VARIABLES) where Variable_name = 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show global variables to select statement",
+			command:  `show global variables`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.GLOBAL_VARIABLES) order by Variable_name asc",
+		},
+		{
+			desc:     "show global variables like 'x' to select statement",
+			command:  `show global variables like 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.GLOBAL_VARIABLES) where Variable_name like 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show global variables where Variable_name = 'x' to select statement",
+			command:  `show global variables where Variable_name = 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.GLOBAL_VARIABLES) where Variable_name = 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show session variables to select statement",
+			command:  `show session variables`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_VARIABLES) order by Variable_name asc",
+		},
+		{
+			desc:     "show session variables like 'x' to select statement",
+			command:  `show session variables like 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_VARIABLES) where Variable_name like 'x' order by Variable_name asc",
+		},
+		{
+			desc:     "show session variables where Variable_name = 'x' to select statement",
+			command:  `show session variables where Variable_name = 'x'`,
+			expected: "select Variable_name, Value from (select VARIABLE_NAME as Variable_name, VARIABLE_VALUE as Value from information_schema.SESSION_VARIABLES) where Variable_name = 'x' order by Variable_name asc",
+		},
 	}
 
 	for _, tcase := range tcases {
@@ -469,7 +779,7 @@ func testRewriteAndFormatCommand(t *testing.T) {
 			tree, err := Parse(tcase.command)
 			req.NoError(err)
 
-			newTree, err := DesugarStatement(tree.Copy().(Statement), versionCode)
+			newTree, err := DesugarStatement(tree.Copy().(Statement), versionCode, "testdb")
 			req.Nil(err)
 			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)
@@ -483,7 +793,7 @@ func testRewriteAndFormatCommand(t *testing.T) {
 		tree, err := Parse("create table foo(x bit(12))")
 		req.NoError(err)
 
-		_, err = DesugarStatement(tree.Copy().(Statement), versionCode)
+		_, err = DesugarStatement(tree.Copy().(Statement), versionCode, "")
 		req.NotNil(err)
 		req.Equal("bit(n) for n > 1 is not allowed at this time, found n = 12", err.Error())
 	})
@@ -861,7 +1171,7 @@ func testRewriteAndFormatIgnored(t *testing.T) {
 			tree, err := Parse(tcase.command)
 			req.NoError(err)
 
-			newTree, err := DesugarStatement(tree.Copy().(Statement), versionCode)
+			newTree, err := DesugarStatement(tree.Copy().(Statement), versionCode, "")
 			req.NoError(err)
 			buf := NewTrackedBuffer(nil)
 			newTree.Format(buf)

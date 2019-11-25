@@ -1214,11 +1214,16 @@ const (
 )
 
 type Show struct {
-	Section     string
-	Key         string
-	From        Expr
-	LikeOrWhere Expr
-	Modifier    string
+	Section   string
+	Key       string
+	From      Expr
+	Predicate *ShowPredicate
+	Modifier  string
+}
+
+type ShowPredicate struct {
+	Like  option.String
+	Where Expr
 }
 
 func (*Show) IStatement() {}
@@ -1226,12 +1231,18 @@ func (*Show) IStatement() {}
 func (node *Show) Format(buf *TrackedBuffer) {
 	buf.Fprintf("show %s %s", node.Section, node.Key)
 	if node.From != nil {
-		buf.Fprintf(" %v", node.From)
+		buf.Fprintf(" from %v", node.From)
 	}
-	if node.LikeOrWhere != nil {
-		buf.Fprintf(" %v", node.LikeOrWhere)
+	if node.Predicate != nil {
+		if node.Predicate.Like.IsSome() {
+			buf.Fprintf(" like %s", node.Predicate.Like.Unwrap())
+		} else if node.Predicate.Where != nil {
+			buf.Fprintf(" where %v", node.Predicate.Where)
+		}
 	}
 }
+
+func (*ShowPredicate) IExpr() {}
 
 const (
 	AST_EXPLAIN_EXTENDED           = "extended"

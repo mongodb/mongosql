@@ -800,7 +800,7 @@ func TestShow(t *testing.T) {
 	sql = "show tables from abc"
 	testParse(t, sql)
 
-	sql = "show tables from abc like a"
+	sql = "show tables from abc like 'a'"
 	testParse(t, sql)
 
 	sql = "show tables from abc where a = 1"

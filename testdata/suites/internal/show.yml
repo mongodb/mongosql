@@ -31,13 +31,10 @@ testcases:
     sql: SHOW COLUMNS FROM strings WHERE type = 'decimal(65,20)'
 
   - db: functions_test
-    expected_results:
-      - [_id, bigint(20), 'YES', 'PRI', null, '']
-      - [a, varchar(65535), 'YES', '', null, '']
-      - [b, 'decimal(65,20)', 'YES', '', null, '']
-    expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+    expected_results: []
+    expected_types: []
     id: '4'
-    sql: SHOW COLUMNS FROM functions_test.strings
+    sql: SHOW COLUMNS FROM strings WHERE 'decimal(65,20)'
 
   - db: functions_test
     expected_results:
@@ -46,7 +43,7 @@ testcases:
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '5'
-    sql: SHOW COLUMNS IN functions_test.strings
+    sql: SHOW COLUMNS FROM functions_test.strings
 
   - db: functions_test
     expected_results:
@@ -55,7 +52,7 @@ testcases:
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '6'
-    sql: SHOW COLUMNS IN .strings
+    sql: SHOW COLUMNS IN functions_test.strings
 
   - db: functions_test
     expected_results:
@@ -64,7 +61,7 @@ testcases:
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '7'
-    sql: SHOW COLUMNS FROM strings FROM functions_test
+    sql: SHOW COLUMNS IN .strings
 
   - db: functions_test
     expected_results:
@@ -73,6 +70,15 @@ testcases:
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '8'
+    sql: SHOW COLUMNS FROM strings FROM functions_test
+
+  - db: functions_test
+    expected_results:
+      - [_id, bigint(20), 'YES', 'PRI', null, '']
+      - [a, varchar(65535), 'YES', '', null, '']
+      - [b, 'decimal(65,20)', 'YES', '', null, '']
+    expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
+    id: '9'
     sql: SHOW COLUMNS IN strings IN functions_test
 
   - db: functions_test
@@ -81,7 +87,7 @@ testcases:
       - [a, varchar(65535), utf8_bin, 'YES', '', null, '', select, '{ "name": "a", "sampledTypes": ["string"] }']
       - [b, 'decimal(65,20)', utf8_bin, 'YES', '', null, '', select, '{ "name": "b", "sampledTypes": ["double", "long"] }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '9'
+    id: '10'
     sql: SHOW FULL COLUMNS FROM strings
 
   - db: union_test
@@ -92,7 +98,7 @@ testcases:
       - [union_4]
       - [union_5]
     expected_types: [varchar]
-    id: '10'
+    id: '11'
     sql: SHOW TABLES
 
   - db: union_test
@@ -103,14 +109,14 @@ testcases:
       - [union_4]
       - [union_5]
     expected_types: [varchar]
-    id: '11'
+    id: '12'
     sql: SHOW TABLES LIKE 'u%'
 
   - db: union_test
     expected_results:
       - [union_1]
     expected_types: [varchar]
-    id: '12'
+    id: '13'
     sql: SHOW TABLES WHERE Tables_in_union_test = 'union_1'
 
   - db: union_test
@@ -121,7 +127,7 @@ testcases:
       - [union_4]
       - [union_5]
     expected_types: [varchar]
-    id: '13'
+    id: '14'
     sql: SHOW TABLES FROM union_test
 
   - db: union_test
@@ -133,7 +139,7 @@ testcases:
       - [union_4, BASE TABLE]
       - [union_5, BASE TABLE]
     expected_types: [varchar, varchar]
-    id: '14'
+    id: '15'
     sql: SHOW FULL TABLES
 
   - db: use_test
@@ -141,7 +147,7 @@ testcases:
       - [use_test]
       - [use_test2]
     expected_types: [varchar]
-    id: '15'
+    id: '16'
     sql: SHOW DATABASES like 'use%'
 
   - db: use_test
@@ -149,14 +155,14 @@ testcases:
       - [use_test]
       - [use_test2]
     expected_types: [varchar]
-    id: '16'
+    id: '17'
     sql: SHOW DATABASES LIKE 'use_t%'
 
   - db: use_test
     expected_results:
       - [use_test]
     expected_types: [varchar]
-    id: '17'
+    id: '18'
     sql: SHOW DATABASES WHERE `Database` = 'use_test'
 
   - db: use_test
@@ -164,7 +170,7 @@ testcases:
       - [use_test]
       - [use_test2]
     expected_types: [varchar]
-    id: '18'
+    id: '19'
     sql: SHOW SCHEMAS like 'use%'
 
   - db: use_test
@@ -172,14 +178,14 @@ testcases:
       - [use_test]
       - [use_test2]
     expected_types: [varchar]
-    id: '19'
+    id: '20'
     sql: SHOW SCHEMAS LIKE 'use_t%'
 
   - db: use_test
     expected_results:
       - [use_test]
     expected_types: [varchar]
-    id: '20'
+    id: '21'
     sql: SHOW SCHEMAS WHERE `Database` = 'use_test'
 
   - db: use_test
@@ -187,7 +193,7 @@ testcases:
       - [auto_increment_increment, '1']
       - [auto_increment_offset, '1']
     expected_types: [varchar, varchar]
-    id: '21'
+    id: '22'
     sql: SHOW VARIABLES LIKE '%auto_incr%'
 
   - db: use_test
@@ -195,7 +201,7 @@ testcases:
       - [auto_increment_increment, '1']
       - [auto_increment_offset, '1']
     expected_types: [varchar, varchar]
-    id: '22'
+    id: '23'
     sql: SHOW SESSION VARIABLES LIKE '%auto_incr%'
 
   - db: use_test
@@ -203,7 +209,7 @@ testcases:
       - [auto_increment_increment, '1']
       - [auto_increment_offset, '1']
     expected_types: [varchar, varchar]
-    id: '23'
+    id: '24'
     sql: SHOW GLOBAL VARIABLES LIKE '%auto_incr%'
 
   - db: use_test
@@ -221,14 +227,14 @@ testcases:
       - [sync_master_info, '10000']
       - [sync_relay_log_info, '10000']
     expected_types: [varchar, varchar]
-    id: '24'
+    id: '25'
     sql: SHOW VARIABLES LIKE '%info%'
 
   - db: use_test
     expected_results:
       - [autocommit, '1']
     expected_types: [varchar, varchar]
-    id: '25'
+    id: '26'
     sql: SHOW GLOBAL VARIABLES WHERE Variable_name = 'autocommit'
 
   - db: use_test
@@ -236,7 +242,7 @@ testcases:
       - [Mysqlx_stmt_create_collection, '0']
       - [Mysqlx_stmt_create_collection_index, '0']
     expected_types: [varchar, varchar]
-    id: '26'
+    id: '27'
     sql: SHOW STATUS LIKE '%stmt_create_collection%'
 
   - db: use_test
@@ -244,7 +250,7 @@ testcases:
       - [Mysqlx_stmt_create_collection, '0']
       - [Mysqlx_stmt_create_collection_index, '0']
     expected_types: [varchar, varchar]
-    id: '27'
+    id: '28'
     sql: SHOW GLOBAL STATUS LIKE '%stmt_create_collection%'
 
   - db: use_test
@@ -252,14 +258,14 @@ testcases:
       - [Mysqlx_stmt_create_collection, '0']
       - [Mysqlx_stmt_create_collection_index, '0']
     expected_types: [varchar, varchar]
-    id: '28'
+    id: '29'
     sql: SHOW SESSION STATUS LIKE '%stmt_create_collection%'
 
   - db: use_test
     expected_results:
       - [Firewall_access_denied, 0]
     expected_types: [varchar, int]
-    id: '29'
+    id: '30'
     sql: SHOW SESSION STATUS WHERE Variable_name = 'Firewall_access_denied'
 
   - db: use_test
@@ -270,7 +276,7 @@ testcases:
       - [utf8_sinhala_ci, utf8, 211, 'No', 'Yes', 8]
       - [utf8mb4_sinhala_ci, utf8mb4, 243, 'No', 'Yes', 8]
     expected_types: [varchar, varchar, int, varchar, varchar, int]
-    id: '30'
+    id: '31'
     sql: SHOW COLLATION LIKE '%sinhala%'
 
   - db: use_test
@@ -280,49 +286,49 @@ testcases:
       - [cp1256, Windows Arabic, cp1256_general_ci, 1]
       - [cp1257, Windows Baltic, cp1257_general_ci, 1]
     expected_types: [varchar, varchar, varchar, int]
-    id: '31'
+    id: '32'
     sql: SHOW CHARSET LIKE '%cp1%'
 
   - db: use_test
     expected_results:
       - [macce, Mac Central European, macce_general_ci, 1]
     expected_types: [varchar, varchar, varchar, int]
-    id: '32'
+    id: '33'
     sql: SHOW CHARSET LIKE 'macce'
 
   - db: use_test
     expected_results: []
-    id: '33'
+    id: '34'
     sql: SHOW BINARY LOGS
 
   - db: use_test
     expected_results: []
-    id: '34'
+    id: '35'
     sql: SHOW MASTER LOGS
 
   - db: use_test
     expected_results: []
-    id: '35'
+    id: '36'
     sql: SHOW BINLOG EVENTS
 
   - db: use_test
     expected_results: []
-    id: '36'
+    id: '37'
     sql: SHOW BINLOG EVENTS IN `temp`
 
   - db: use_test
     expected_results: []
-    id: '37'
+    id: '38'
     sql: SHOW BINLOG EVENTS FROM 10
 
   - db: use_test
     expected_results: []
-    id: '38'
+    id: '39'
     sql: SHOW BINLOG EVENTS LIMIT 10, 12
 
   - db: use_test
     expected_results: []
-    id: '39'
+    id: '40'
     sql: SHOW RELAYLOG EVENTS
 
   - db: use_test
@@ -330,7 +336,7 @@ testcases:
     expected_results:
       - [use_test, CREATE DATABASE `use_test` /*!40100 DEFAULT CHARACTER SET utf8 */]
     expected_types: [varchar, varchar]
-    id: '40'
+    id: '41'
     sql: SHOW CREATE DATABASE use_test
 
   - db: use_test
@@ -338,132 +344,132 @@ testcases:
     expected_results:
       - [use_test, CREATE DATABASE /*!32312 IF NOT EXISTS*/ `use_test` /*!40100 DEFAULT CHARACTER SET utf8 */]
     expected_types: [varchar, varchar]
-    id: '41'
+    id: '42'
     sql: SHOW CREATE DATABASE IF NOT EXISTS use_test
 
   - db: use_test
     expected_results: []
-    id: '42'
+    id: '43'
     sql: SHOW CREATE SCHEMA schema_name
 
   - db: use_test
     expected_results: []
-    id: '43'
+    id: '44'
     sql: SHOW CREATE SCHEMA IF NOT EXISTS schema_name
 
   - db: use_test
     expected_results: []
-    id: '44'
+    id: '45'
     sql: SHOW CREATE EVENT event_name
 
   - db: use_test
     expected_results: []
-    id: '45'
+    id: '46'
     sql: SHOW CREATE FUNCTION func_name
 
   - db: use_test
     expected_results: []
-    id: '46'
+    id: '47'
     sql: SHOW CREATE PROCEDURE proc_name
 
   - db: use_test
     expected_results: []
-    id: '47'
+    id: '48'
     sql: SHOW CREATE TRIGGER trigger_name
 
   - db: use_test
     expected_results: []
-    id: '48'
+    id: '49'
     sql: SHOW CREATE USER user_name
 
   - db: use_test
     expected_results: []
-    id: '49'
+    id: '50'
     sql: SHOW CREATE VIEW view_name
 
   - db: use_test
     expected_results: []
-    id: '50'
+    id: '51'
     sql: SHOW ENGINE engine_name STATUS
 
   - db: use_test
     expected_results: []
-    id: '51'
+    id: '52'
     sql: SHOW ENGINE engine_name MUTEX
 
   - db: use_test
     expected_results: []
-    id: '52'
+    id: '53'
     sql: SHOW ENGINES
 
   - db: use_test
     expected_results: []
-    id: '53'
+    id: '54'
     sql: SHOW STORAGE ENGINES
 
   - db: use_test
     expected_results: []
-    id: '54'
+    id: '55'
     sql: SHOW ERRORS
 
   - db: use_test
     expected_results: []
-    id: '55'
+    id: '56'
     sql: SHOW ERRORS LIMIT 10, 12
 
   - db: use_test
     expected_results: []
-    id: '56'
+    id: '57'
     sql: SHOW COUNT(*) ERRORS
 
   - db: use_test
     expected_results: []
-    id: '57'
+    id: '58'
     sql: SHOW EVENTS
 
   - db: use_test
     expected_results: []
-    id: '58'
+    id: '59'
     sql: SHOW EVENTS FROM schema_name
 
   - db: use_test
     expected_results: []
-    id: '59'
+    id: '60'
     sql: SHOW EVENTS IN schema_name
 
   - db: use_test
     expected_results: []
-    id: '60'
+    id: '61'
     sql: SHOW EVENTS LIKE '%_'
 
   - db: use_test
     expected_results: []
-    id: '61'
+    id: '62'
     sql: SHOW EVENTS WHERE XXX = 12
 
   - db: use_test
     expected_results: []
-    id: '62'
+    id: '63'
     sql: SHOW FUNCTION STATUS
 
   - db: use_test
     expected_results: []
-    id: '63'
+    id: '64'
     sql: SHOW FUNCTION STATUS LIKE '%_'
 
   - db: use_test
     expected_results: []
-    id: '64'
+    id: '65'
     sql: SHOW FUNCTION STATUS WHERE XXX = 12
 
   - db: use_test
     expected_results: []
-    id: '65'
+    id: '66'
     sql: SHOW GRANTS
 
   - db: use_test
     expected_results: []
-    id: '66'
+    id: '67'
     sql: SHOW GRANTS FOR user_name
 
   - db: information_schema_test
@@ -472,7 +478,7 @@ testcases:
       - [information_schema_3, '0', PRIMARY, '1', _id, A, '0', null, null, 'YES', BTREE, '', '']
       - [information_schema_3, '0', a, '1', a, A, '0', null, null, 'YES', BTREE, '', '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '67'
+    id: '68'
     sql: SHOW INDEX FROM information_schema_3
 
   - db: information_schema_test
@@ -481,7 +487,7 @@ testcases:
       - [information_schema_3, '0', PRIMARY, '1', _id, A, '0', null, null, 'YES', BTREE, '', '']
       - [information_schema_3, '0', a, '1', a, A, '0', null, null, 'YES', BTREE, '', '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '68'
+    id: '69'
     sql: SHOW KEYS FROM information_schema_3 from information_schema_test;
 
   - db: information_schema_test
@@ -489,152 +495,152 @@ testcases:
     expected_results:
       - [information_schema_3, '0', PRIMARY, '1', _id, A, '0', null, null, 'YES', BTREE, '', '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '69'
+    id: '70'
     sql: SHOW INDEX FROM information_schema_3 WHERE Column_name = '_id'
 
   - db: use_test
     expected_results: []
-    id: '70'
+    id: '71'
     sql: SHOW MASTER STATUS
 
   - db: use_test
     expected_results: []
-    id: '71'
+    id: '72'
     sql: SHOW OPEN TABLES
 
   - db: use_test
     expected_results: []
-    id: '72'
+    id: '73'
     sql: SHOW OPEN TABLES FROM db_name
 
   - db: use_test
     expected_results: []
-    id: '73'
+    id: '74'
     sql: SHOW OPEN TABLES FROM db_name LIKE '%_'
 
   - db: use_test
     expected_results: []
-    id: '74'
+    id: '75'
     sql: SHOW OPEN TABLES WHERE XXX = 10
 
   - db: use_test
     expected_results: []
-    id: '75'
+    id: '76'
     sql: SHOW PLUGINS
 
   - db: use_test
     expected_results: []
-    id: '76'
+    id: '77'
     sql: SHOW PRIVILEGES
 
   - db: use_test
     expected_results: []
-    id: '77'
+    id: '78'
     sql: SHOW PROCEDURE STATUS
 
   - db: use_test
     expected_results: []
-    id: '78'
+    id: '79'
     sql: SHOW PROCEDURE STATUS LIKE '%_'
 
   - db: use_test
     expected_results: []
-    id: '79'
+    id: '80'
     sql: SHOW PROCEDURE STATUS WHERE XXX = 12
 
   - db: use_test
     expected_results: []
-    id: '82'
+    id: '81'
     sql: SHOW PROFILES
 
   - db: use_test
     expected_results: []
-    id: '83'
+    id: '82'
     sql: SHOW SLAVE HOSTS
 
   - db: use_test
     expected_results: []
-    id: '84'
+    id: '83'
     sql: SHOW SLAVE STATUS
 
   - db: use_test
     expected_results: []
-    id: '85'
+    id: '84'
     sql: SHOW SLAVE STATUS FOR CHANNEL channel_name
 
   - db: use_test
     expected_results: []
-    id: '86'
+    id: '85'
     sql: SHOW TABLE STATUS
 
   - db: use_test
     expected_results: []
-    id: '87'
+    id: '86'
     sql: SHOW TABLE STATUS FROM db_name
 
   - db: use_test
     expected_results: []
-    id: '88'
+    id: '87'
     sql: SHOW TABLE STATUS IN db_name
 
   - db: use_test
     expected_results: []
-    id: '89'
+    id: '88'
     sql: SHOW TABLE STATUS LIKE '%_'
 
   - db: use_test
     expected_results: []
-    id: '90'
+    id: '89'
     sql: SHOW TABLE STATUS WHERE XXX = 10
 
   - db: use_test
     expected_results: []
-    id: '91'
+    id: '90'
     sql: SHOW TABLE STATUS FROM db_name WHERE XXX = 10
 
   - db: use_test
     expected_results: []
-    id: '92'
+    id: '91'
     sql: SHOW TRIGGERS
 
   - db: use_test
     expected_results: []
-    id: '93'
+    id: '92'
     sql: SHOW TRIGGERS FROM db_name
 
   - db: use_test
     expected_results: []
-    id: '94'
+    id: '93'
     sql: SHOW TRIGGERS IN db_name
 
   - db: use_test
     expected_results: []
-    id: '95'
+    id: '94'
     sql: SHOW TRIGGERS LIKE '%_'
 
   - db: use_test
     expected_results: []
-    id: '96'
+    id: '95'
     sql: SHOW TRIGGERS WHERE XXX = 10
 
   - db: use_test
     expected_results: []
-    id: '97'
+    id: '96'
     sql: SHOW TRIGGERS FROM db_name WHERE XXX = 10
 
   - db: use_test
     expected_results: []
-    id: '98'
+    id: '97'
     sql: SHOW WARNINGS
 
   - db: use_test
     expected_results: []
-    id: '99'
+    id: '98'
     sql: SHOW WARNINGS LIMIT 10, 12
 
   - db: use_test
     expected_results: []
-    id: '100'
+    id: '99'
     sql: SHOW COUNT(*) WARNINGS
 
   - db: functions_test
@@ -643,28 +649,28 @@ testcases:
       - [a, varchar(65535), 'YES', '', null, '']
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '101'
+    id: '100'
     sql: SHOW FIELDS FROM strings
 
   - db: use_test
     expected_results:
       - [a, bigint(20), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '102'
+    id: '101'
     sql: SHOW FIELDS IN test1 IN use_test LIKE 'a%'
 
   - db: functions_test
     expected_results:
       - [a, varchar(65535), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '103'
+    id: '102'
     sql: SHOW FIELDS FROM strings FROM functions_test LIKE 'a%'
 
   - db: functions_test
     expected_results:
       - [a, varchar(65535), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '104'
+    id: '103'
     sql: SHOW FIELDS FROM strings WHERE type = 'varchar(65535)'
 
   - db: functions_test
@@ -673,7 +679,7 @@ testcases:
       - [a, varchar(65535), 'YES', '', null, '']
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '105'
+    id: '104'
     sql: SHOW FIELDS FROM functions_test.strings
 
   - db: functions_test
@@ -682,7 +688,7 @@ testcases:
       - [a, varchar(65535), 'YES', '', null, '']
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '106'
+    id: '105'
     sql: SHOW FIELDS IN functions_test.strings
 
   - db: functions_test
@@ -691,7 +697,7 @@ testcases:
       - [a, varchar(65535), 'YES', '', null, '']
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '107'
+    id: '106'
     sql: SHOW FIELDS IN .strings
 
   - db: functions_test
@@ -700,7 +706,7 @@ testcases:
       - [a, varchar(65535), 'YES', '', null, '']
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '108'
+    id: '107'
     sql: SHOW FIELDS FROM strings FROM functions_test
 
   - db: functions_test
@@ -709,7 +715,7 @@ testcases:
       - [a, varchar(65535), 'YES', '', null, '']
       - [b, 'decimal(65,20)', 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '109'
+    id: '108'
     sql: SHOW FIELDS IN strings IN functions_test
 
   - db: functions_test
@@ -718,7 +724,7 @@ testcases:
       - [a, varchar(65535), utf8_bin, 'YES', '', null, '', select, '{ "name": "a", "sampledTypes": ["string"] }']
       - [b, 'decimal(65,20)', utf8_bin, 'YES', '', null, '', select, '{ "name": "b", "sampledTypes": ["double", "long"] }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
-    id: '110'
+    id: '109'
     sql: SHOW FULL FIELDS FROM strings
 
   - db: use_test
@@ -726,7 +732,7 @@ testcases:
     expected_results:
       - [use_test, CREATE DATABASE `use_test` /*!40100 DEFAULT CHARACTER SET utf8 */]
     expected_types: [varchar, varchar]
-    id: '111'
+    id: '110'
     sql: SHOW CREATE DATABASE `use_test`
 
   - db: information_schema_test
@@ -734,7 +740,7 @@ testcases:
     expected_results:
       - [information_schema_4, "CREATE TABLE `information_schema_4` (\n  `_id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\", \"sampledTypes\": [\"long\"] }',\n  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\", \"sampledTypes\": [\"long\"] }',\n  PRIMARY KEY (`_id`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_4\" }'"]
     expected_types: [varchar, varchar]
-    id: '112'
+    id: '111'
     sql: SHOW CREATE TABLE `information_schema_4`
 
   - db: information_schema_test
@@ -742,7 +748,7 @@ testcases:
     expected_results:
       - [information_schema_3, "CREATE TABLE `information_schema_3` (\n  `_id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\", \"sampledTypes\": [\"long\"] }',\n  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\", \"sampledTypes\": [\"long\"] }',\n  PRIMARY KEY (`_id`),\n  UNIQUE KEY `information_schema_test_information_schema_3_1_UNIQUE` (`a`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_3\" }'"]
     expected_types: [varchar, varchar]
-    id: '113'
+    id: '112'
     sql: SHOW CREATE TABLE `information_schema_3`
 
   - expected_names: [Tables_in_union_test, Table_type]
@@ -753,7 +759,7 @@ testcases:
       - [union_4, BASE TABLE]
       - [union_5, BASE TABLE]
     expected_types: [varchar, varchar]
-    id: '114'
+    id: '113'
     sql: SHOW FULL TABLES FROM union_test
 
   - expected_names: [Tables_in_UNION_Test, Table_type]
@@ -764,7 +770,7 @@ testcases:
       - [union_4, BASE TABLE]
       - [union_5, BASE TABLE]
     expected_types: [varchar, varchar]
-    id: '115'
+    id: '114'
     sql: SHOW FULL TABLES FROM UNION_Test
 
   - expected_names: [Tables_in_uNiOn_Test, Table_type]
@@ -775,7 +781,7 @@ testcases:
       - [union_4, BASE TABLE]
       - [union_5, BASE TABLE]
     expected_types: [varchar, varchar]
-    id: '116'
+    id: '115'
     sql: SHOW FULL TABLES FROM uNiOn_Test
 
   - db: information_schema_test
@@ -783,7 +789,7 @@ testcases:
     expected_results:
       - [information_schema_5, "CREATE TABLE `information_schema_5` (\n  `_id` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"_id\", \"sampledTypes\": [\"long\"] }',\n  `a` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"a\", \"sampledTypes\": [\"long\"] }',\n  `b` bigint(20) DEFAULT NULL COMMENT '{ \"name\": \"b\", \"sampledTypes\": [\"long\"] }',\n  PRIMARY KEY (`_id`),\n  KEY `a_index` (`a`),\n  KEY `b_index` (`b`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='{ \"collectionName\": \"information_schema_5\" }'"]
     expected_types: [varchar, varchar]
-    id: '117'
+    id: '116'
     sql: SHOW CREATE TABLE `information_schema_5`
 
   - expected_names: [Database]
@@ -817,5 +823,5 @@ testcases:
       - [use_test2]
       - [where_test]
     expected_types: [varchar]
-    id: '118'
+    id: '117'
     sql: SHOW DBS

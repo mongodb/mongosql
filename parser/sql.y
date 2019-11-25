@@ -44,6 +44,7 @@ func ForceEOF(yylex interface{}) {
   stropt                OptString
   selectExprs           SelectExprs
   selectExpr            SelectExpr
+  showPredicate         *ShowPredicate
   columnOrIndexDefs     []ColumnOrIndexDefinition
   columnOrIndexDef      ColumnOrIndexDefinition
   columns               Columns
@@ -238,7 +239,7 @@ func ForceEOF(yylex interface{}) {
 %type <empty> equal_opt default_opt index_or_key index_type_opt comma_opt character_set
 %type <empty> storage_opt
 %type <expr> in_opt from_opt
-%type <expr> like_or_where_opt
+%type <showPredicate> like_or_where_opt
 %type <expr> show_from_in show_from_in_opt
 %type <str> show_full if_not_exists_opt_string
 %type <str> scope_modifier_opt explicit_scope_modifier_opt
@@ -487,7 +488,7 @@ table_option:
   }
 
 character_set:
-  CHARACTER SET 
+  CHARACTER SET
   {
     $$ = struct{}{}
   }
@@ -813,7 +814,7 @@ INDEX
     $$ = struct{}{}
   }
 
-index_name_opt: 
+index_name_opt:
   {
     $$ = option.NoneString()
   }
@@ -1417,17 +1418,17 @@ show_statement:
   {
     $$ = &Show{Section: "grants", Modifier: string($3)}
   }
-| SHOW INDEX show_from_in where_expression_opt
+| SHOW INDEX show_from_in like_or_where_opt
   {
-    $$ = &Show{Section: "indexes", From: $3, LikeOrWhere: $4}
+    $$ = &Show{Section: "indexes", From: $3, Predicate: $4}
   }
-| SHOW INDEXES show_from_in where_expression_opt
+| SHOW INDEXES show_from_in like_or_where_opt
   {
-    $$ = &Show{Section: "indexes", From: $3, LikeOrWhere: $4}
+    $$ = &Show{Section: "indexes", From: $3, Predicate: $4}
   }
-| SHOW KEYS show_from_in where_expression_opt
+| SHOW KEYS show_from_in like_or_where_opt
   {
-    $$ = &Show{Section: "keys", From: $3, LikeOrWhere: $4}
+    $$ = &Show{Section: "keys", From: $3, Predicate: $4}
   }
 | SHOW MASTER STATUS
   {
@@ -1491,31 +1492,31 @@ show_statement:
   }
 | SHOW DATABASES like_or_where_opt
   {
-    $$ = &Show{Section: "databases", LikeOrWhere: $3}
+    $$ = &Show{Section: "databases", Predicate: $3}
   }
 | SHOW DBS like_or_where_opt
   {
-    $$ = &Show{Section: "databases", LikeOrWhere: $3}
+    $$ = &Show{Section: "databases", Predicate: $3}
   }
 | SHOW SCHEMAS like_or_where_opt
   {
-    $$ = &Show{Section: "schemas", LikeOrWhere: $3}
+    $$ = &Show{Section: "schemas", Predicate: $3}
   }
 | SHOW scope_modifier_opt VARIABLES like_or_where_opt
   {
-    $$ = &Show{Section: "variables", Modifier: $2, LikeOrWhere: $4}
+    $$ = &Show{Section: "variables", Modifier: $2, Predicate: $4}
   }
 | SHOW show_full TABLES show_from_in_opt like_or_where_opt
   {
-    $$ = &Show{Section: "tables", Modifier: $2, From: $4, LikeOrWhere: $5}
+    $$ = &Show{Section: "tables", Modifier: $2, From: $4, Predicate: $5}
   }
 | SHOW PROXY ID from_opt like_or_where_opt
   {
-    $$ = &Show{Section: "proxy", Key: string($3), From: $4, LikeOrWhere: $5}
+    $$ = &Show{Section: "proxy", Key: string($3), From: $4, Predicate: $5}
   }
 | SHOW show_full COLUMNS show_from_in like_or_where_opt
   {
-    $$ = &Show{Section: "columns", From: $4, Modifier: $2, LikeOrWhere: $5}
+    $$ = &Show{Section: "columns", From: $4, Modifier: $2, Predicate: $5}
   }
 | SHOW show_full PROCESSLIST
   {
@@ -1523,19 +1524,19 @@ show_statement:
   }
 | SHOW scope_modifier_opt STATUS like_or_where_opt
   {
-    $$ = &Show{Section: "status", Modifier: $2, LikeOrWhere: $4}
+    $$ = &Show{Section: "status", Modifier: $2, Predicate: $4}
   }
 | SHOW CHARACTER SET like_or_where_opt
   {
-    $$ = &Show{Section: "charset", LikeOrWhere: $4}
+    $$ = &Show{Section: "charset", Predicate: $4}
   }
 | SHOW CHARSET like_or_where_opt
   {
-    $$ = &Show{Section: "charset", LikeOrWhere: $3}
+    $$ = &Show{Section: "charset", Predicate: $3}
   }
 | SHOW COLLATION like_or_where_opt
   {
-    $$ = &Show{Section: "collation", LikeOrWhere: $3}
+    $$ = &Show{Section: "collation", Predicate: $3}
   }
 
 format_name:
@@ -1948,13 +1949,13 @@ like_or_where_opt:
   {
     $$ = nil
   }
+| LIKE STRING
+  {
+    $$ = &ShowPredicate{Like: option.SomeString(string($2))}
+  }
 | WHERE expression
   {
-    $$ = $2
-  }
-| LIKE expression
-  {
-    $$ = $2
+    $$ = &ShowPredicate{Where: $2}
   }
 
 in_opt:
@@ -3495,7 +3496,7 @@ keyword_as_id:
   {
     $$ = string(USER_BYTES)
   }
-| VALUE 
+| VALUE
   {
     $$ = string(VALUE_BYTES)
   }

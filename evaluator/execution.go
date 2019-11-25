@@ -93,8 +93,6 @@ func executeSQLStatement(ctx context.Context, qCfg *QueryConfig, stmt parser.Sta
 		return EvaluateCommand(ctx, qCfg.rCfg, qCfg.aCfg, qCfg.eCfg, v)
 	case *parser.Explain:
 		switch strings.ToLower(v.Section) {
-		case "table":
-			return handleExplainTable(ctx, qCfg, v)
 		case "plan":
 			return handleExplainPlan(ctx, qCfg, v)
 		default:
@@ -109,18 +107,6 @@ func executeSQLStatement(ctx context.Context, qCfg *QueryConfig, stmt parser.Sta
 	default:
 		return nil, mysqlerrors.Unknownf("statement %T not supported", stmt)
 	}
-}
-
-func handleExplainTable(ctx context.Context, qCfg *QueryConfig, stmt *parser.Explain) (*QueryResult, error) {
-	show := &parser.Show{
-		Section: "columns",
-		From:    parser.StrVal(stmt.Table.Name),
-	}
-	if stmt.Column != nil {
-		show.LikeOrWhere = parser.StrVal(stmt.Column.Name)
-	}
-
-	return EvaluateShow(ctx, qCfg, show)
 }
 
 func handleExplainPlan(ctx context.Context, qCfg *QueryConfig, stmt *parser.Explain) (*QueryResult, error) {
