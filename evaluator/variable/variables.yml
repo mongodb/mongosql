@@ -252,7 +252,7 @@ system_variables:
 
   - _id: maxNumGlobalTables
     config_field: Schema.Sample.MaxNumGlobalTables
-    default: 1000
+    default: 4000
     name: 'max_num_global_tables'
     set_scopes: [global]
     type: SQLInt64

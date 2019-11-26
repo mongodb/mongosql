@@ -1245,7 +1245,7 @@ testcases:
 
   - db: set_test
     expected_results:
-      - [1000]
+      - [4000]
     expected_types: [int]
     id: max_num_global_tables
     sql: select @@global.max_num_global_tables

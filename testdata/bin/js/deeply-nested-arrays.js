@@ -26,7 +26,7 @@ function insert_in_collection(col, num) {
 }
 
 const array = nestarray(30)
-insert_in_collection(db1.test, 10)
-insert_in_collection(db1.test2, 10)
-insert_in_collection(db2.test, 10)
-insert_in_collection(db2.test2, 10)
+insert_in_collection(db1.test, 40)
+insert_in_collection(db1.test2, 40)
+insert_in_collection(db2.test, 40)
+insert_in_collection(db2.test2, 40)
