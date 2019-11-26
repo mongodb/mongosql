@@ -4,6 +4,10 @@ This file contains a list of user-facing changes.
 A line should be added to this file for each commit made to this repository.
 If no user-facing changes were made, the comment should reflect that fact.
 
+## 2.13.1
+
+- BI-2411: Increase default max_num_global_tables to 4000
+
 ## 2.13
 
 - BI-2402: Update an error message for FLUSH SAMPLE authorization that was unclear.

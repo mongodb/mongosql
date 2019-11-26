@@ -24,7 +24,7 @@
     i=1
     exit_code=1
 
-    while [ $i -lt 60 ]; do # timeout after 10 mins
+    while [ $i -lt 180 ]; do # timeout after 30 mins
         echo "loop $i"
 
         # Connect to mongosqld using the mysql shell and issue a few basic

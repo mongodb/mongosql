@@ -37,9 +37,9 @@ func TestDefault(t *testing.T) {
 	testInt64(t, cfg.Schema.Sample.MaxNumFieldsPerCollection, 2000,
 		"cfg.Schema.Sample.MaxNumFieldsPerCollection")
 	testInt64(t, cfg.Schema.Sample.MaxNumTablesPerCollection, 200,
-		"cfg.Schema.Sample.MaxNumColumnsPerTable")
-	testInt64(t, cfg.Schema.Sample.MaxNumGlobalTables, 1000,
-		"cfg.Schema.Sample.MaxNumColumnsPerTable")
+		"cfg.Schema.Sample.MaxNumTablesPerCollection")
+	testInt64(t, cfg.Schema.Sample.MaxNumGlobalTables, 4000,
+		"cfg.Schema.Sample.MaxNumGlobalTables")
 	testInt64(t, cfg.Schema.Sample.MaxNestedTableDepth, 10,
 		"cfg.Schema.Sample.MaxNestedTableDepth")
 	testStringSlice(t,

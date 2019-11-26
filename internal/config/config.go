@@ -43,7 +43,7 @@ const (
 	DefaultMaxNumColumnsPerTable     = 2000
 	DefaultMaxNumFieldsPerCollection = 2000
 	DefaultMaxNumTablesPerCollection = 200
-	DefaultMaxNumGlobalTables        = 1000
+	DefaultMaxNumGlobalTables        = 4000
 	DefaultMaxNestedTableDepth       = 10
 	DefaultMaxAllowedPacket          = 1073741824
 )
