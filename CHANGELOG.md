@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.14
 
+- BI-2407: No user-facing changes.
 - BI-2184: Fix bug that caused natural left joins to fail in some cases.
 - BI-2411: Increase default max_num_global_tables to 4000
 - BI-2103: No user-facing changes.

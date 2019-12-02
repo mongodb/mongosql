@@ -69,21 +69,15 @@ func (node *CTE) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *CTE) Copy() CST {
 	var tableName *TableName
-	if node.TableName == nil {
-		tableName = nil
-	} else {
+	if node.TableName != nil {
 		tableName = node.TableName.Copy().(*TableName)
 	}
 	var columnExprs ColumnExprs
-	if node.ColumnExprs == nil {
-		columnExprs = nil
-	} else {
+	if node.ColumnExprs != nil {
 		columnExprs = node.ColumnExprs.Copy().(ColumnExprs)
 	}
 	var query SelectStatement
-	if node.Query == nil {
-		query = nil
-	} else {
+	if node.Query != nil {
 		query = node.Query.Copy().(SelectStatement)
 	}
 
@@ -118,9 +112,7 @@ func (node CTEs) ReplaceChild(i int, child CST) {
 func (node CTEs) Copy() CST {
 	newNode := make(CTEs, len(node))
 	for i, cte := range node {
-		if cte == nil {
-			newNode[i] = nil
-		} else {
+		if cte != nil {
 			newNode[i] = cte.Copy().(*CTE)
 		}
 	}
@@ -153,9 +145,7 @@ func (node *With) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *With) Copy() CST {
 	var ctes CTEs
-	if node.CTEs == nil {
-		ctes = nil
-	} else {
+	if node.CTEs != nil {
 		ctes = node.CTEs.Copy().(CTEs)
 	}
 
@@ -255,63 +245,43 @@ func (node *Select) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Select) Copy() CST {
 	var with *With
-	if node.With == nil {
-		with = nil
-	} else {
+	if node.With != nil {
 		with = node.With.Copy().(*With)
 	}
 	var comments Comments
-	if node.Comments == nil {
-		comments = nil
-	} else {
+	if node.Comments != nil {
 		comments = node.Comments.Copy().(Comments)
 	}
 	var queryGlobals *QueryGlobals
-	if node.QueryGlobals == nil {
-		queryGlobals = nil
-	} else {
+	if node.QueryGlobals != nil {
 		queryGlobals = node.QueryGlobals.Copy().(*QueryGlobals)
 	}
 	var selectExprs SelectExprs
-	if node.SelectExprs == nil {
-		selectExprs = nil
-	} else {
+	if node.SelectExprs != nil {
 		selectExprs = node.SelectExprs.Copy().(SelectExprs)
 	}
 	var from TableExprs
-	if node.From == nil {
-		from = nil
-	} else {
+	if node.From != nil {
 		from = node.From.Copy().(TableExprs)
 	}
 	var where *Where
-	if node.Where == nil {
-		where = nil
-	} else {
+	if node.Where != nil {
 		where = node.Where.Copy().(*Where)
 	}
 	var groupBy GroupBy
-	if node.GroupBy == nil {
-		groupBy = nil
-	} else {
+	if node.GroupBy != nil {
 		groupBy = node.GroupBy.Copy().(GroupBy)
 	}
 	var having *Where
-	if node.Having == nil {
-		having = nil
-	} else {
+	if node.Having != nil {
 		having = node.Having.Copy().(*Where)
 	}
 	var orderBy OrderBy
-	if node.OrderBy == nil {
-		orderBy = nil
-	} else {
+	if node.OrderBy != nil {
 		orderBy = node.OrderBy.Copy().(OrderBy)
 	}
 	var limit *Limit
-	if node.Limit == nil {
-		limit = nil
-	} else {
+	if node.Limit != nil {
 		limit = node.Limit.Copy().(*Limit)
 	}
 
@@ -390,21 +360,15 @@ func (node *Union) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Union) Copy() CST {
 	var with *With
-	if node.With == nil {
-		with = nil
-	} else {
+	if node.With != nil {
 		with = node.With.Copy().(*With)
 	}
 	var left SelectStatement
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(SelectStatement)
 	}
 	var right SelectStatement
-	if node.Right == nil {
-		right = nil
-	} else {
+	if node.Right != nil {
 		right = node.Right.Copy().(SelectStatement)
 	}
 
@@ -449,15 +413,11 @@ func (node *Set) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Set) Copy() CST {
 	var comments Comments
-	if node.Comments == nil {
-		comments = nil
-	} else {
+	if node.Comments != nil {
 		comments = node.Comments.Copy().(Comments)
 	}
 	var exprs UpdateExprs
-	if node.Exprs == nil {
-		exprs = nil
-	} else {
+	if node.Exprs != nil {
 		exprs = node.Exprs.Copy().(UpdateExprs)
 	}
 
@@ -494,9 +454,7 @@ func (node *DropTable) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *DropTable) Copy() CST {
 	var name *TableName
-	if node.Name == nil {
-		name = nil
-	} else {
+	if node.Name != nil {
 		name = node.Name.Copy().(*TableName)
 	}
 
@@ -521,7 +479,6 @@ func (node *DropDatabase) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *DropDatabase) Copy() CST {
-
 	return &DropDatabase{
 		node.Name,
 		node.IfExists,
@@ -763,9 +720,7 @@ func (node SelectExprs) ReplaceChild(i int, child CST) {
 func (node SelectExprs) Copy() CST {
 	newNode := make(SelectExprs, len(node))
 	for i, se := range node {
-		if se == nil {
-			newNode[i] = nil
-		} else {
+		if se != nil {
 			newNode[i] = se.Copy().(SelectExpr)
 		}
 	}
@@ -818,9 +773,7 @@ func (node *NonStarExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *NonStarExpr) Copy() CST {
 	var expr Expr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(Expr)
 	}
 
@@ -854,9 +807,7 @@ func (node Columns) ReplaceChild(i int, child CST) {
 func (node Columns) Copy() CST {
 	newNode := make(Columns, len(node))
 	for i, se := range node {
-		if se == nil {
-			newNode[i] = nil
-		} else {
+		if se != nil {
 			newNode[i] = se.Copy().(SelectExpr)
 		}
 	}
@@ -887,9 +838,7 @@ func (node ColumnExprs) ReplaceChild(i int, child CST) {
 func (node ColumnExprs) Copy() CST {
 	newNode := make(ColumnExprs, len(node))
 	for i, cn := range node {
-		if cn == nil {
-			newNode[i] = nil
-		} else {
+		if cn != nil {
 			newNode[i] = cn.Copy().(*ColName)
 		}
 	}
@@ -920,9 +869,7 @@ func (node TableExprs) ReplaceChild(i int, child CST) {
 func (node TableExprs) Copy() CST {
 	newNode := make(TableExprs, len(node))
 	for i, te := range node {
-		if te == nil {
-			newNode[i] = nil
-		} else {
+		if te != nil {
 			newNode[i] = te.Copy().(TableExpr)
 		}
 	}
@@ -962,15 +909,11 @@ func (node *AliasedTableExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *AliasedTableExpr) Copy() CST {
 	var expr SimpleTableExpr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(SimpleTableExpr)
 	}
 	var hints *IndexHints
-	if node.Hints == nil {
-		hints = nil
-	} else {
+	if node.Hints != nil {
 		hints = node.Hints.Copy().(*IndexHints)
 	}
 
@@ -1027,9 +970,7 @@ func (node *ParenTableExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *ParenTableExpr) Copy() CST {
 	var expr TableExpr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(TableExpr)
 	}
 
@@ -1085,27 +1026,19 @@ func (node *JoinTableExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *JoinTableExpr) Copy() CST {
 	var leftExpr TableExpr
-	if node.LeftExpr == nil {
-		leftExpr = nil
-	} else {
+	if node.LeftExpr != nil {
 		leftExpr = node.LeftExpr.Copy().(TableExpr)
 	}
 	var rightExpr TableExpr
-	if node.RightExpr == nil {
-		rightExpr = nil
-	} else {
+	if node.RightExpr != nil {
 		rightExpr = node.RightExpr.Copy().(TableExpr)
 	}
 	var on Expr
-	if node.On == nil {
-		on = nil
-	} else {
+	if node.On != nil {
 		on = node.On.Copy().(Expr)
 	}
 	var using ColumnExprs
-	if node.Using == nil {
-		using = nil
-	} else {
+	if node.Using != nil {
 		using = node.Using.Copy().(ColumnExprs)
 	}
 
@@ -1166,9 +1099,7 @@ func (node *Where) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Where) Copy() CST {
 	var expr Expr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(Expr)
 	}
 
@@ -1211,15 +1142,11 @@ func (node *AndExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *AndExpr) Copy() CST {
 	var left Expr
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(Expr)
 	}
 	var right Expr
-	if node.Right == nil {
-		right = nil
-	} else {
+	if node.Right != nil {
 		right = node.Right.Copy().(Expr)
 	}
 
@@ -1262,15 +1189,11 @@ func (node *OrExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *OrExpr) Copy() CST {
 	var left Expr
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(Expr)
 	}
 	var right Expr
-	if node.Right == nil {
-		right = nil
-	} else {
+	if node.Right != nil {
 		right = node.Right.Copy().(Expr)
 	}
 
@@ -1313,15 +1236,11 @@ func (node *XorExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *XorExpr) Copy() CST {
 	var left Expr
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(Expr)
 	}
 	var right Expr
-	if node.Right == nil {
-		right = nil
-	} else {
+	if node.Right != nil {
 		right = node.Right.Copy().(Expr)
 	}
 
@@ -1357,9 +1276,7 @@ func (node *NotExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *NotExpr) Copy() CST {
 	var expr Expr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(Expr)
 	}
 
@@ -1401,15 +1318,11 @@ func (node *ComparisonExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *ComparisonExpr) Copy() CST {
 	var left Expr
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(Expr)
 	}
 	var right Expr
-	if node.Right == nil {
-		right = nil
-	} else {
+	if node.Right != nil {
 		right = node.Right.Copy().(Expr)
 	}
 
@@ -1461,21 +1374,15 @@ func (node *LikeExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *LikeExpr) Copy() CST {
 	var left Expr
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(Expr)
 	}
 	var right Expr
-	if node.Right == nil {
-		right = nil
-	} else {
+	if node.Right != nil {
 		right = node.Right.Copy().(Expr)
 	}
 	var escape Expr
-	if node.Escape == nil {
-		escape = nil
-	} else {
+	if node.Escape != nil {
 		escape = node.Escape.Copy().(Expr)
 	}
 
@@ -1527,21 +1434,15 @@ func (node *RangeCond) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *RangeCond) Copy() CST {
 	var left Expr
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(Expr)
 	}
 	var from Expr
-	if node.From == nil {
-		from = nil
-	} else {
+	if node.From != nil {
 		from = node.From.Copy().(Expr)
 	}
 	var to Expr
-	if node.To == nil {
-		to = nil
-	} else {
+	if node.To != nil {
 		to = node.To.Copy().(Expr)
 	}
 
@@ -1586,15 +1487,11 @@ func (node *RegexExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *RegexExpr) Copy() CST {
 	var operand Expr
-	if node.Operand == nil {
-		operand = nil
-	} else {
+	if node.Operand != nil {
 		operand = node.Operand.Copy().(Expr)
 	}
 	var pattern Expr
-	if node.Pattern == nil {
-		pattern = nil
-	} else {
+	if node.Pattern != nil {
 		pattern = node.Pattern.Copy().(Expr)
 	}
 
@@ -1637,15 +1534,11 @@ func (node *RLikeExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *RLikeExpr) Copy() CST {
 	var operand Expr
-	if node.Operand == nil {
-		operand = nil
-	} else {
+	if node.Operand != nil {
 		operand = node.Operand.Copy().(Expr)
 	}
 	var pattern Expr
-	if node.Pattern == nil {
-		pattern = nil
-	} else {
+	if node.Pattern != nil {
 		pattern = node.Pattern.Copy().(Expr)
 	}
 
@@ -1681,9 +1574,7 @@ func (node *ExistsExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *ExistsExpr) Copy() CST {
 	var subquery *Subquery
-	if node.Subquery == nil {
-		subquery = nil
-	} else {
+	if node.Subquery != nil {
 		subquery = node.Subquery.Copy().(*Subquery)
 	}
 
@@ -1910,9 +1801,7 @@ func (node ValTuple) ReplaceChild(i int, child CST) {
 func (node ValTuple) Copy() CST {
 	newNode := make(ValTuple, len(node))
 	for i, e := range node {
-		if e == nil {
-			newNode[i] = nil
-		} else {
+		if e != nil {
 			newNode[i] = e.Copy().(Expr)
 		}
 	}
@@ -1943,9 +1832,7 @@ func (node Exprs) ReplaceChild(i int, child CST) {
 func (node Exprs) Copy() CST {
 	newNode := make(ValTuple, len(node))
 	for i, e := range node {
-		if e == nil {
-			newNode[i] = nil
-		} else {
+		if e != nil {
 			newNode[i] = e.Copy().(Expr)
 		}
 	}
@@ -1978,9 +1865,7 @@ func (node *Subquery) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Subquery) Copy() CST {
 	var selectC SelectStatement
-	if node.Select == nil {
-		selectC = nil
-	} else {
+	if node.Select != nil {
 		selectC = node.Select.Copy().(SelectStatement)
 	}
 
@@ -2040,15 +1925,11 @@ func (node *BinaryExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *BinaryExpr) Copy() CST {
 	var left Expr
-	if node.Left == nil {
-		left = nil
-	} else {
+	if node.Left != nil {
 		left = node.Left.Copy().(Expr)
 	}
 	var right Expr
-	if node.Right == nil {
-		right = nil
-	} else {
+	if node.Right != nil {
 		right = node.Right.Copy().(Expr)
 	}
 
@@ -2085,9 +1966,7 @@ func (node *UnaryExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *UnaryExpr) Copy() CST {
 	var expr Expr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(Expr)
 	}
 
@@ -2123,15 +2002,11 @@ func (node *FuncExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *FuncExpr) Copy() CST {
 	var exprs SelectExprs
-	if node.Exprs == nil {
-		exprs = nil
-	} else {
+	if node.Exprs != nil {
 		exprs = node.Exprs.Copy().(SelectExprs)
 	}
 	var ord OrderBy
-	if node.OrderBy == nil {
-		ord = nil
-	} else {
+	if node.OrderBy != nil {
 		ord = node.OrderBy.Copy().(OrderBy)
 	}
 
@@ -2184,21 +2059,15 @@ func (node *CaseExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *CaseExpr) Copy() CST {
 	var expr Expr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(Expr)
 	}
 	var whens Whens
-	if node.Whens == nil {
-		whens = nil
-	} else {
+	if node.Whens != nil {
 		whens = node.Whens.Copy().(Whens)
 	}
 	var elseC Expr
-	if node.Else == nil {
-		elseC = nil
-	} else {
+	if node.Else != nil {
 		elseC = node.Else.Copy().(Expr)
 	}
 
@@ -2233,9 +2102,7 @@ func (node Whens) ReplaceChild(i int, child CST) {
 func (node Whens) Copy() CST {
 	newNode := make(Whens, len(node))
 	for i, w := range node {
-		if w == nil {
-			newNode[i] = nil
-		} else {
+		if w != nil {
 			newNode[i] = w.Copy().(*When)
 		}
 	}
@@ -2271,15 +2138,11 @@ func (node *When) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *When) Copy() CST {
 	var cond Expr
-	if node.Cond == nil {
-		cond = nil
-	} else {
+	if node.Cond != nil {
 		cond = node.Cond.Copy().(Expr)
 	}
 	var val Expr
-	if node.Val == nil {
-		val = nil
-	} else {
+	if node.Val != nil {
 		val = node.Val.Copy().(Expr)
 	}
 
@@ -2313,9 +2176,7 @@ func (node GroupBy) ReplaceChild(i int, child CST) {
 func (node GroupBy) Copy() CST {
 	newNode := make(GroupBy, len(node))
 	for i, e := range node {
-		if e == nil {
-			newNode[i] = nil
-		} else {
+		if e != nil {
 			newNode[i] = e.Copy().(Expr)
 		}
 	}
@@ -2346,9 +2207,7 @@ func (node OrderBy) ReplaceChild(i int, child CST) {
 func (node OrderBy) Copy() CST {
 	newNode := make(OrderBy, len(node))
 	for i, e := range node {
-		if e == nil {
-			newNode[i] = nil
-		} else {
+		if e != nil {
 			newNode[i] = e.Copy().(*Order)
 		}
 	}
@@ -2381,9 +2240,7 @@ func (node *Order) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Order) Copy() CST {
 	var expr Expr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(Expr)
 	}
 
@@ -2426,15 +2283,11 @@ func (node *Limit) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Limit) Copy() CST {
 	var offset Expr
-	if node.Offset == nil {
-		offset = nil
-	} else {
+	if node.Offset != nil {
 		offset = node.Offset.Copy().(Expr)
 	}
 	var rowcount Expr
-	if node.Rowcount == nil {
-		rowcount = nil
-	} else {
+	if node.Rowcount != nil {
 		rowcount = node.Rowcount.Copy().(Expr)
 	}
 
@@ -2468,9 +2321,7 @@ func (node UpdateExprs) ReplaceChild(i int, child CST) {
 func (node UpdateExprs) Copy() CST {
 	newNode := make(UpdateExprs, len(node))
 	for i, ue := range node {
-		if ue == nil {
-			newNode[i] = nil
-		} else {
+		if ue != nil {
 			newNode[i] = ue.Copy().(*UpdateExpr)
 		}
 	}
@@ -2510,15 +2361,11 @@ func (node *UpdateExpr) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *UpdateExpr) Copy() CST {
 	var name *ColName
-	if node.Name == nil {
-		name = nil
-	} else {
+	if node.Name != nil {
 		name = node.Name.Copy().(*ColName)
 	}
 	var expr Expr
-	if node.Expr == nil {
-		expr = nil
-	} else {
+	if node.Expr != nil {
 		expr = node.Expr.Copy().(Expr)
 	}
 
@@ -2605,9 +2452,7 @@ func (node *ShowPredicate) ReplaceChild(i int, child CST) {
 func (node *ShowPredicate) Copy() CST {
 	like := node.Like
 	var where Expr
-	if node.Where == nil {
-		where = nil
-	} else {
+	if node.Where != nil {
 		where = node.Where.Copy().(Expr)
 	}
 
@@ -2657,21 +2502,15 @@ func (node *Explain) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Explain) Copy() CST {
 	var table *TableName
-	if node.Table == nil {
-		table = nil
-	} else {
+	if node.Table != nil {
 		table = node.Table.Copy().(*TableName)
 	}
 	var column *ColName
-	if node.Column == nil {
-		column = nil
-	} else {
+	if node.Column != nil {
 		column = node.Column.Copy().(*ColName)
 	}
 	var statement Statement
-	if node.Statement == nil {
-		statement = nil
-	} else {
+	if node.Statement != nil {
 		statement = node.Statement.Copy().(Statement)
 	}
 
@@ -2711,9 +2550,7 @@ func (node *Kill) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *Kill) Copy() CST {
 	var id Expr
-	if node.ID == nil {
-		id = nil
-	} else {
+	if node.ID != nil {
 		id = node.ID.Copy().(Expr)
 	}
 
@@ -2775,15 +2612,11 @@ func (node *AlterTable) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *AlterTable) Copy() CST {
 	var table *TableName
-	if node.Table == nil {
-		table = nil
-	} else {
+	if node.Table != nil {
 		table = node.Table.Copy().(*TableName)
 	}
 	var specs AlterSpecs
-	if node.Specs == nil {
-		specs = nil
-	} else {
+	if node.Specs != nil {
 		specs = node.Specs.Copy().(AlterSpecs)
 	}
 
@@ -2833,21 +2666,15 @@ func (node *AlterSpec) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *AlterSpec) Copy() CST {
 	var column *ColName
-	if node.Column == nil {
-		column = nil
-	} else {
+	if node.Column != nil {
 		column = node.Column.Copy().(*ColName)
 	}
 	var newColumn *ColName
-	if node.NewColumn == nil {
-		newColumn = nil
-	} else {
+	if node.NewColumn != nil {
 		newColumn = node.NewColumn.Copy().(*ColName)
 	}
 	var newTable *TableName
-	if node.NewTable == nil {
-		newTable = nil
-	} else {
+	if node.NewTable != nil {
 		newTable = node.NewTable.Copy().(*TableName)
 	}
 
@@ -2884,9 +2711,7 @@ func (node AlterSpecs) ReplaceChild(i int, child CST) {
 func (node AlterSpecs) Copy() CST {
 	newNode := make(AlterSpecs, len(node))
 	for i, as := range node {
-		if as == nil {
-			newNode[i] = nil
-		} else {
+		if as != nil {
 			newNode[i] = as.Copy().(*AlterSpec)
 		}
 	}
@@ -2919,9 +2744,7 @@ func (node *RenameTable) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *RenameTable) Copy() CST {
 	var renames RenameSpecs
-	if node.Renames == nil {
-		renames = nil
-	} else {
+	if node.Renames != nil {
 		renames = node.Renames.Copy().(RenameSpecs)
 	}
 
@@ -2963,15 +2786,11 @@ func (node *RenameSpec) ReplaceChild(i int, child CST) {
 // Copy produces a deep copy of this node.
 func (node *RenameSpec) Copy() CST {
 	var table *TableName
-	if node.Table == nil {
-		table = nil
-	} else {
+	if node.Table != nil {
 		table = node.Table.Copy().(*TableName)
 	}
 	var newTable *TableName
-	if node.NewTable == nil {
-		newTable = nil
-	} else {
+	if node.NewTable != nil {
 		newTable = node.NewTable.Copy().(*TableName)
 	}
 
@@ -3005,9 +2824,7 @@ func (node RenameSpecs) ReplaceChild(i int, child CST) {
 func (node RenameSpecs) Copy() CST {
 	newNode := make(RenameSpecs, len(node))
 	for i, rs := range node {
-		if rs == nil {
-			newNode[i] = nil
-		} else {
+		if rs != nil {
 			newNode[i] = rs.Copy().(*RenameSpec)
 		}
 	}
@@ -3031,7 +2848,6 @@ func (node *IgnoredStatement) ReplaceChild(i int, child CST) {
 
 // Copy produces a deep copy of this node.
 func (node *IgnoredStatement) Copy() CST {
-
 	return &IgnoredStatement{
 		Statement: node.Statement.Copy().(IgnorableStatement),
 	}
