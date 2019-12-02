@@ -1616,7 +1616,11 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 		if err != nil {
 			return nil, nil, err
 		}
-		cols := append(leftCols, rightCols...)
+
+		// Ensure that any operations on cols don't affect leftCols or rightCols.
+		cols := make([]*results.Column, 0, len(leftCols)+len(rightCols))
+		cols = append(cols, leftCols...)
+		cols = append(cols, rightCols...)
 
 		var predicate SQLExpr = NewSQLValueExpr(values.NewSQLBool(a.valueKind(), true))
 		var filterCols parser.ColumnExprs
@@ -1680,6 +1684,7 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 					rightTables[fullyQualifiedTableName(column.Database,
 						column.Table)] = emptyStruct
 				}
+
 				sortableFilterableColumns := &columnsUsing{cols, filterCols, kind, rightTables}
 				sortableFilterableColumns.Sort()
 				cols = sortableFilterableColumns.Filter()
