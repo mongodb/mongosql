@@ -1433,8 +1433,19 @@ testcases:
       - [1, 2, 1, 11, 1]
       - [2, 3, null, null, null]
     expected_types: [int, int, int, int, int]
-    id: using_leftJoinCorrectColumn
+    id: using_leftJoinCorrectColumn_1
     sql: select * from join_1 left join join_2 using (_id)
+
+  - db: join_test
+    description: ''
+    expected_names: [_id, a, b, c, d, a, b]
+    expected_results:
+      - [0, 3, 5, 10, null, 1, null]
+      - [1, 2, 6, 11, 1, 2, 1]
+      - [20, null, null, 30, null, null, null]
+    expected_types: [int, int, int, int, int, int, int]
+    id: using_leftJoinCorrectColumn_2
+    sql: select * from join_4 left join join_1 using (_id)
 
   - db: join_test
     description: ''
@@ -1692,8 +1703,19 @@ testcases:
       - [1, 2, 1, 11, 1]
       - [2, 3, null, null, null]
     expected_types: [int, int, int, int, int]
-    id: natural_simpleLeft
+    id: natural_simpleLeft_1
     sql: select * from join_1 natural left join join_2
+
+  - db: join_test
+    description: ''
+    expected_names: [_id, a, b, c, d]
+    expected_results:
+      - [0, 3, 5, 10, null]
+      - [1, 2, 6, 11, 1]
+      - [20, null, null, 30, null]
+    expected_types: [int, int, int, int, int]
+    id: natural_simpleLeft_2
+    sql: select * from join_4 natural left join join_1
 
   - db: join_test
     description: ''
