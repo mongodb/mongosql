@@ -4,9 +4,13 @@ This file contains a list of user-facing changes.
 A line should be added to this file for each commit made to this repository.
 If no user-facing changes were made, the comment should reflect that fact.
 
+## 2.13.2
+
+- BI-2410: Fix `mongotranslate` not including pipelines defined on tables in DRDL schemas.
+- BI-2184: Fix bug that caused natural left joins to fail in some cases.
+
 ## 2.13.1
 
-- BI-2184: Fix bug that caused natural left joins to fail in some cases.
 - BI-2411: Increase default max_num_global_tables to 4000
 
 ## 2.13
