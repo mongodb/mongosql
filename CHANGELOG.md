@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13.2
 
+- BI-2398: No user-facing changes.
 - BI-2410: Fix `mongotranslate` not including pipelines defined on tables in DRDL schemas.
 - BI-2184: Fix bug that caused natural left joins to fail in some cases.
 

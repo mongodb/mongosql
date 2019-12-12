@@ -111,7 +111,7 @@ func (ch *commandHandler) Resample(ctx context.Context) error {
 			// Do not print out the namespaces the user does not have access to;
 			// that would be a minor security breach when namespace names are
 			// sensitive.
-			return fmt.Errorf("must have `find` privileges on the 'sample source' in order to flush sample")
+			return fmt.Errorf("must have `find` privileges on the schemaSource database in order to flush sample")
 		}
 	}
 

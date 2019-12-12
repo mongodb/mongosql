@@ -7,13 +7,12 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/10gen/sqlproxy/internal/testutil"
 	"github.com/10gen/sqlproxy/internal/testutil/bench"
 	util "github.com/10gen/sqlproxy/internal/testutil/integration"
 )
 
 func init() {
-	testutil.TestingInit()
+	testing.Init()
 	flag.Parse()
 }
 
