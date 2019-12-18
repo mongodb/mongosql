@@ -17,6 +17,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13
 
+- BI-2413: Fix connectivity bug caused by non-nil interface in custom go-driver dialer
 - BI-2402: Update an error message for FLUSH SAMPLE authorization that was unclear.
 - BI-2363: No user-facing changes.
 - BI-2363: Reduce DynamicSourceStage memory usage

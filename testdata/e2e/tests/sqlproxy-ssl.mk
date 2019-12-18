@@ -8,6 +8,11 @@ test-require-ssl-failure: test-connect-failure
 test-require-ssl-success: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/ssl/min_tls_1_1,sqlproxy/ssl/require,sqlproxy/ssl/pem,client/ssl/require
 test-require-ssl-success: test-connect-success
 
+# accept ssl connections when sslMode=requireSSL and mongod is started _after_ mongosqld. This is a
+# regression test for our SSLDialer.
+test-require-ssl-mongod-second-success: infrastructure_config := $(infrastructure_config),sqlproxy/ssl/min_tls_1_1,sqlproxy/ssl/require,sqlproxy/ssl/pem,client/ssl/require
+test-require-ssl-mongod-second-success: test-connect-mongod-second-success
+
 # reject ssl connections when sslMode=disabled
 test-disable-ssl-failure: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/ssl/disabled,client/ssl/require
 test-disable-ssl-failure: EXPECTED_ERROR = ERROR 2026 (HY000): SSL connection error: SSL is required but the server doesn't support it

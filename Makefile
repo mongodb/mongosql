@@ -86,6 +86,7 @@ shell:
 	mysql -P3307
 
 start-all: build-mongosqld run-mongodb run-mongosqld
+start-mongod-second: build-mongosqld run-mongosqld run-mongodb
 
 test: test-unit test-module-integration test-integration
 
@@ -99,6 +100,13 @@ _test-connect-success: EXPECTED_STATUS = 0
 _test-connect-success:
 	$(ENV) $(EXPECTED) testdata/bin/test-simple-connect.sh
 
+# test-connect-mongod-second ensures that we can still connect when mongodb is run
+# after mongosqld is started. test-simple-connect waits 15s before trying to
+# connect just to ensure things stablize (since start-mongosqld already waits 5s).
+test-connect-mongod-second-success: start-mongod-second _test-connect-mongod-second-success
+_test-connect-mongod-second-success: EXPECTED_STATUS = 0
+_test-connect-mongod-second-success:
+	$(ENV) $(EXPECTED) DELAY=15s testdata/bin/test-simple-connect.sh
 
 test-integration: SUITE := internal
 test-integration: test-connect-success restore-data _test-integration

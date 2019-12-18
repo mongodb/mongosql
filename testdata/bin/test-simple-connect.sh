@@ -4,6 +4,9 @@
 . "$(dirname $0)/prepare-shell.sh"
 
 (
+    if [ "$DELAY" != "" ]; then
+        sleep "$DELAY"
+    fi
 
     echo "running simple connection test..."
     set +o errexit

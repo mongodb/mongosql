@@ -302,8 +302,10 @@ func (sp *SessionProvider) adminSession(rp *readpref.ReadPref) (*Session, error)
 		session:    session,
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), sp.connectTimeout)
+	defer cancel()
 	// ping to check credentials
-	err := session.Run(context.Background(), "admin", bsonutil.NewD(bsonutil.NewDocElem("ping", 1)), &struct{}{})
+	err := session.Run(ctx, "admin", bsonutil.NewD(bsonutil.NewDocElem("ping", 1)), &struct{}{})
 	if err != nil {
 		return nil, err
 	}
