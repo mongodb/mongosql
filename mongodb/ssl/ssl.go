@@ -152,26 +152,28 @@ func createSqldSSLContext(cfg *config.Config, isClient bool) (*openssl.Ctx, erro
 // nolint: golint
 func Dialer(sslCtx *openssl.Ctx, flags openssl.DialFlags) topology.DialerFunc {
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
-		var c net.Conn
-		var err error
-		ch := make(chan struct{})
+		connChan := make(chan net.Conn)
 		errChan := make(chan error, 1)
 
 		procutil.PanicSafeGo(func() {
-			c, err = openssl.Dial(network, addr, sslCtx, flags)
-			ch <- struct{}{}
+			c, err := openssl.Dial(network, addr, sslCtx, flags)
+			if err != nil {
+				errChan <- err
+			} else {
+				connChan <- c
+			}
 		}, func(dialErr interface{}) {
 			errChan <- fmt.Errorf("openssl dial error: %v", dialErr)
 		})
 
 		select {
-		case <-ch:
+		case c := <-connChan:
+			return c, nil
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case chanErr := <-errChan:
 			return nil, chanErr
 		}
-		return c, err
 	}
 }
 

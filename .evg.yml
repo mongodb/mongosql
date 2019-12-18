@@ -1186,6 +1186,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-require-ssl-mongod-second-success
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-disable-ssl-failure
   tags: ["test", "config"]
 
