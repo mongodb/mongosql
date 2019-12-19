@@ -1,4 +1,4 @@
-package mongotranslate
+package mongosql
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ const (
 	testMongoVersion4 = "4.0.0"
 	testMongoVersion3 = "3.0.0"
 	testDBName        = "test"
-	testSchema        = "../testdata/resources/schema/mongotranslate.drdl"
+	testSchema        = "../testdata/resources/schema/mongosql.drdl"
 	testFormat        = "none"
 )
 

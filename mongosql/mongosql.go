@@ -1,4 +1,4 @@
-package mongotranslate
+package mongosql
 
 import (
 	"bytes"
