@@ -6,6 +6,7 @@ testcases:
     expected_results:
       - [def, information_schema, utf8, utf8_bin, '']
       - [def, information_schema_test, utf8, utf8_bin, '']
+      - [def, information_schema_test_Mixed_Case, utf8, utf8_bin, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: '0'
     sql: select * from information_schema.schemata where SCHEMA_NAME like 'information%' order by schema_name
@@ -53,6 +54,7 @@ testcases:
       - [def, information_schema_test, information_schema_4_b, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4", "unwoundFrom": "b" }']
       - [def, information_schema_test, information_schema_4_b_d_e, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_4", "unwoundFrom": "b.d.e" }']
       - [def, information_schema_test, information_schema_5, BASE TABLE, utf8_bin, '{ "collectionName": "information_schema_5" }']
+      - [def, information_schema_test_Mixed_Case, col, BASE TABLE, utf8_bin, '{ "collectionName": "col" }']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
     sql: select TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COLLATION, TABLE_COMMENT from information_schema.tables where TABLE_SCHEMA like 'information%' order by TABLE_SCHEMA, TABLE_NAME
@@ -101,6 +103,8 @@ testcases:
       - [def, information_schema_test, information_schema_5, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
       - [def, information_schema_test, information_schema_5, a, 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), MUL, '', select, '{ "name": "a", "sampledTypes": ["long"] }', '']
       - [def, information_schema_test, information_schema_5, b, 3, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), MUL, '', select, '{ "name": "b", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test_Mixed_Case, col, _id, 1, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), PRI, '', select, '{ "name": "_id", "sampledTypes": ["long"] }', '']
+      - [def, information_schema_test_Mixed_Case, col, a, 2, NULL, 'YES', bigint, NULL, NULL, NULL, NULL, NULL, utf8, utf8_bin, bigint(20), UNI, '', select, '{ "name": "a", "sampledTypes": ["long"] }', '']
     expected_types: [varchar, varchar, varchar, varchar, int, varchar, varchar, varchar, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
     sql: select * from information_schema.columns where table_schema like 'information_schema_test%' order by table_schema, table_name, ordinal_position

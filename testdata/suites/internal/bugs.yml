@@ -276,3 +276,12 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2366-match-regexp
     sql: select test, test regexp('abc') r from (select 'abc' as test) sub where test regexp('abc')
+
+  - db: bugs_database
+    description: BI-2412 Index information missing from mixed-case db names
+    expected_names: [c]
+    expected_results:
+      - [2]
+    expected_types: [int]
+    id: BI-2412-index-info
+    sql: select count(*) as c from information_schema.key_column_usage where constraint_schema = 'information_schema_test_Mixed_Case'

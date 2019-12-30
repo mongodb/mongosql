@@ -818,6 +818,13 @@
     - {key: {a: 1}, name: "a_index"}
     - {key: {b: 1}, name: "b_index"}
 
+- db: "information_schema_test_Mixed_Case"
+  collection: "col"
+  docs:
+    - {_id: 0, a: 1}
+  indexes:
+    - {key: {a: 1}, name: "a_index", unique: true}
+
 - db: "join_test"
   collection: "join_1"
   docs:
