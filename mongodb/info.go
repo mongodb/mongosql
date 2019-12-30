@@ -279,7 +279,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger,
 
 func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *Session) {
 	for _, colInfo := range dbInfo.Collections {
-		dbName := string(dbInfo.Name)
+		dbName := dbInfo.caseSensitiveName
 		colName := string(colInfo.Name)
 
 		if colInfo.IsView {

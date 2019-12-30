@@ -803,6 +803,7 @@ testcases:
       - [groupby_test]
       - [information_schema]
       - [information_schema_test]
+      - [information_schema_test_Mixed_Case]
       - [join_test]
       - [limit_test]
       - [manyColumns]
