@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.14
 
+- BI-2421: No user-facing changes.
 - BI-2423: Rename mongotranslate package to mongosql.
 - BI-2398: No user-facing changes.
 - BI-2410: Fix `mongotranslate` not including pipelines defined on tables in DRDL schemas.

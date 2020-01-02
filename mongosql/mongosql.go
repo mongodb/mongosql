@@ -47,7 +47,7 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 		return "", "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
 
-	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, false)
+	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, evaluator.NoOutputFormat, evaluator.NoOutputVersion)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
 	if err != nil {
@@ -103,7 +103,7 @@ func TranslateSQLQueryRaw(sqlQuery, dbName, mongoVersion string, sch *schema.Sch
 		return nil, "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
 
-	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, true)
+	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, "odbc", 1)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
 	if err != nil {

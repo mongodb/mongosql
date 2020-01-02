@@ -210,7 +210,7 @@ func (c *conn) getOptimizerConfig() *evaluator.OptimizerConfig {
 func (c *conn) getPushdownConfig() *evaluator.PushdownConfig {
 	lg := c.Logger(log.OptimizerComponent)
 	vars := c.variables
-	return evaluator.NewPushdownConfig(lg, vars, false)
+	return evaluator.NewPushdownConfig(lg, vars, evaluator.NoOutputFormat, evaluator.NoOutputVersion)
 }
 
 func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {

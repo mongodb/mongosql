@@ -33,7 +33,7 @@ type QueryConfig struct {
 }
 
 // NewQueryConfigFromCatalog returns a new default QueryConfig.
-func NewQueryConfigFromCatalog(defaultDbName string, ctlg catalog.Catalog, unflattenResults bool) *QueryConfig {
+func NewQueryConfigFromCatalog(defaultDbName string, ctlg catalog.Catalog, format string, formatVersion int) *QueryConfig {
 	lgr := log.GlobalLogger()
 	vars := ctlg.Variables()
 	mySQLVersion := getMySQLVersion(vars)
@@ -42,7 +42,7 @@ func NewQueryConfigFromCatalog(defaultDbName string, ctlg catalog.Catalog, unfla
 	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg, false)
 	eCfg := NewExecutionConfig(lgr, vars, errCommandHandler{}, nil, defaultDbName)
 	oCfg := NewOptimizerConfig(lgr, vars)
-	pCfg := NewPushdownConfig(lgr, vars, unflattenResults)
+	pCfg := NewPushdownConfig(lgr, vars, format, formatVersion)
 
 	return NewQueryConfig(lgr, rCfg, aCfg, oCfg, pCfg, eCfg)
 }
