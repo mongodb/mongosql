@@ -4,6 +4,8 @@ This file contains a list of user-facing changes.
 A line should be added to this file for each commit made to this repository.
 If no user-facing changes were made, the comment should reflect that fact.
 
+## 2.13.3
+
 ## 2.13.2
 
 - BI-2412: Fix bug that caused index loading to fail with mixed-case databases.
