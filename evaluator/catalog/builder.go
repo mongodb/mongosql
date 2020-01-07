@@ -37,6 +37,23 @@ func Build(schema *schema.Schema, variables VariableContainer, info *mongodb.Inf
 	return builder.catalog, nil
 }
 
+// BuildFromSchema builds a catalog from a schema.
+func BuildFromSchema(schema *schema.Schema, info *mongodb.Info, writeMode bool) (*SQLCatalog, error) {
+	builder := &catalogBuilder{
+		catalog:   New("def", nil),
+		schema:    schema,
+		info:      info,
+		writeMode: writeMode,
+	}
+
+	err := builder.buildFromSchema()
+	if err != nil {
+		return nil, err
+	}
+	builder.schema = nil
+	return builder.catalog, nil
+}
+
 type catalogBuilder struct {
 	catalog   *SQLCatalog
 	info      *mongodb.Info
