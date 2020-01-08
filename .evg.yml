@@ -2068,19 +2068,6 @@ axes:
     run_on:
     - suse15-test
     batchtime: 10080 # 1 week
-  - id: suse15-s390x
-    display_name: SLES 15 s390x
-    variables:
-      _variant: suse15-s390x
-    run_on:
-    - suse15-zseries-build
-  - id: suse15-ppc64le
-    display_name: SLES 15 PPC64LE
-    run_on:
-    - suse15-power8-test
-    batchtime: 10080 # 1 week
-    variables:
-      _variant: suse15-ppc
   - id: ubuntu1604-64
     display_name: Ubuntu 16.04
     run_on:
