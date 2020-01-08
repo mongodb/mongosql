@@ -33,13 +33,12 @@ type QueryConfig struct {
 }
 
 // NewQueryConfigFromCatalog returns a new default QueryConfig.
-func NewQueryConfigFromCatalog(defaultDbName string, ctlg catalog.Catalog, format string, formatVersion int) *QueryConfig {
+func NewQueryConfigFromCatalog(defaultDbName string, ctlg catalog.Catalog, vars *variable.Container, format string, formatVersion int) *QueryConfig {
 	lgr := log.GlobalLogger()
-	vars := ctlg.Variables()
 	mySQLVersion := getMySQLVersion(vars)
 	rCfg := NewRewriterConfig(uint64(0), defaultDbName, lgr, false, mySQLVersion, "localhost", "user")
 	// Default config will be writeMode = false
-	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg, false)
+	aCfg := NewAlgebrizerConfig(lgr, defaultDbName, ctlg, vars, false)
 	eCfg := NewExecutionConfig(lgr, vars, errCommandHandler{}, nil, defaultDbName)
 	oCfg := NewOptimizerConfig(lgr, vars)
 	pCfg := NewPushdownConfig(lgr, vars, format, formatVersion)
@@ -138,7 +137,7 @@ type ExecutionConfig struct {
 // NewExecutionConfig returns a new ExecutionConfig constructed from the
 // provided values. ExecutionConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewExecutionConfig(lg log.Logger, vars catalog.VariableContainer, cmds CommandHandler, mem memory.Monitor, dbName string) *ExecutionConfig {
+func NewExecutionConfig(lg log.Logger, vars *variable.Container, cmds CommandHandler, mem memory.Monitor, dbName string) *ExecutionConfig {
 	return &ExecutionConfig{
 		lg:               lg,
 		commandHandler:   cmds,

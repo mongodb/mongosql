@@ -9,7 +9,6 @@ import (
 	astparser "github.com/10gen/mongoast/parser"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -478,7 +477,7 @@ func GoValueToSQLValue(kind values.SQLValueKind, v interface{}) values.SQLValue 
 
 // GetSQLValueKind is a utility function that gets the values.SQLValueKind to use for new
 // SQLValues based on the type_conversion_mode variable in the provided container.
-func GetSQLValueKind(vars catalog.VariableContainer) values.SQLValueKind {
+func GetSQLValueKind(vars *variable.Container) values.SQLValueKind {
 	mode := vars.GetString(variable.TypeConversionMode)
 	switch mode {
 	case variable.MongoSQLTypeConversionMode:

@@ -1,6 +1,7 @@
 package mongosql
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
@@ -505,8 +506,7 @@ type ctlgTest struct {
 	relationalSchema *schema.Schema
 }
 
-func TestGetCatalog(t *testing.T) {
-
+func TestGetVariables(t *testing.T) {
 	// test that mongoVersion is set as expected
 	t.Run("correctly set MongoDB version", func(t *testing.T) {
 		tcases := []struct {
@@ -517,19 +517,11 @@ func TestGetCatalog(t *testing.T) {
 			{"4.0.2"},
 		}
 
-		sch, err := loadSchema(testSchema)
-		if err != nil {
-			t.Fatalf("unexpected error loading schema: %v", err)
-		}
-
 		for _, tc := range tcases {
-			ctlg, err := getCatalog(tc.mdbVersion, sch)
-			if err != nil {
-				t.Fatalf("unexpected error getting catalog: %v", err)
-			}
+			vars := getVariables(tc.mdbVersion)
 
 			for _, scope := range []variable.Scope{variable.GlobalScope, variable.SessionScope} {
-				actualMdbVersion, err := ctlg.Variables().Get(variable.MongoDBVersion, scope, variable.SystemKind)
+				actualMdbVersion, err := vars.Get(variable.MongoDBVersion, scope, variable.SystemKind)
 				if err != nil {
 					t.Fatalf("unexpected error getting MongoDB Version variable for %s scope: %v", scope, err)
 				}
@@ -540,6 +532,9 @@ func TestGetCatalog(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestGetCatalog(t *testing.T) {
 
 	lg := log.GlobalLogger()
 
@@ -605,7 +600,7 @@ func TestGetCatalog(t *testing.T) {
 		}
 
 		for _, tcase := range tcases {
-			ctlg, err := getCatalog("4.0.0", tcase.relationalSchema)
+			ctlg, err := getCatalog(tcase.relationalSchema)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %v", tcase.desc, err)
 			}
@@ -619,8 +614,9 @@ func TestGetCatalog(t *testing.T) {
 // validateCatalog ensures that the database, table, and collection names in the relational schema
 // match those in the catalog.
 func validateCatalog(t *testing.T, tcase ctlgTest, ctlg catalog.Catalog) {
+	testCtx := context.Background()
 	expectedDBs := tcase.relationalSchema.Databases()
-	actualDBs := ctlg.Databases()
+	actualDBs, _ := ctlg.Databases(testCtx)
 	if len(expectedDBs) != len(actualDBs) {
 		t.Fatalf("Catalog databases don't match expected value: want %v, got %v.", expectedDBs, actualDBs)
 	}
@@ -630,7 +626,7 @@ func validateCatalog(t *testing.T, tcase ctlgTest, ctlg catalog.Catalog) {
 		if !containsDB(actualDBs, expectedDB) {
 			t.Errorf("%s: expected database '%s' not included in catalog", tcase.desc, expectedDB.Name())
 		}
-		currentDB, err := ctlg.Database(expectedDB.Name())
+		currentDB, err := ctlg.Database(testCtx, expectedDB.Name())
 		if err != nil {
 			t.Fatalf("%s: unexpected error: %v", tcase.desc, err)
 		}
@@ -639,8 +635,9 @@ func validateCatalog(t *testing.T, tcase ctlgTest, ctlg catalog.Catalog) {
 }
 
 func validateDatabase(t *testing.T, tcase ctlgTest, db catalog.Database) {
+	testCtx := context.Background()
 	expectedTables := tcase.relationalSchema.Database(string(db.Name())).Tables()
-	actualTables := db.Tables()
+	actualTables, _ := db.Tables(testCtx)
 	if len(expectedTables) != len(actualTables) {
 		t.Fatalf("Catalog tables don't match expected value: want %v, got %v.", expectedTables, actualTables)
 	}
@@ -650,7 +647,7 @@ func validateDatabase(t *testing.T, tcase ctlgTest, db catalog.Database) {
 		if !containsTable(actualTables, expectedTable) {
 			t.Errorf("%s: expected table '%s.%s' not included in catalog", tcase.desc, db.Name(), expectedTable.SQLName())
 		}
-		currentTable, err := db.Table(expectedTable.SQLName())
+		currentTable, err := db.Table(testCtx, expectedTable.SQLName())
 		if err != nil {
 			t.Fatalf("%s: unexpected error: %v", tcase.desc, err)
 		}

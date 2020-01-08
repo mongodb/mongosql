@@ -1,6 +1,7 @@
 package evaluator_test
 
 import (
+	"context"
 	"testing"
 
 	. "github.com/10gen/sqlproxy/evaluator"
@@ -29,8 +30,8 @@ func TestGetMongoDBInfo(t *testing.T) {
 func TestIsFullyPushedDown(t *testing.T) {
 	ms := createMongoSource(0, "foo", "foo")
 	column := createProjectedColumn(0, ms, "foo", "a", "foo", "a", false)
-	db, _ := testCatalog.Database("INFORMATION_SCHEMA")
-	table, _ := db.Table("CHARACTER_SETS")
+	db, _ := testCatalog.Database(context.Background(), "INFORMATION_SCHEMA")
+	table, _ := db.Table(context.Background(), "CHARACTER_SETS")
 
 	tests := []struct {
 		description string

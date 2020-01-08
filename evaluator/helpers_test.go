@@ -76,8 +76,8 @@ func (*mockCmdHandler) UnsetDatabase() error {
 	panic("unimplemented")
 }
 
-func createAlgebrizerCfg(dbName string, cat catalog.Catalog) *evaluator.AlgebrizerConfig {
-	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat, false)
+func createAlgebrizerCfg(dbName string, cat catalog.Catalog, vars *variable.Container) *evaluator.AlgebrizerConfig {
+	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat, vars, false)
 }
 
 func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sqlValueKind values.SQLValueKind) *evaluator.ExecutionConfig {

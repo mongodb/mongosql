@@ -85,7 +85,7 @@ type conn struct {
 	bytesReceived uint64
 	bytesSent     uint64
 
-	catalog     catalog.Catalog
+	catalog     *catalog.SQLCatalog
 	currentDB   catalog.Database
 	variables   *variable.Container
 	mongoDBInfo *mongodb.Info
@@ -234,7 +234,7 @@ func (c *conn) setCatalogFromSchema(s *schema.Schema) error {
 		return err
 	}
 
-	infoSchema, err := cat.Database(catalog.InformationSchemaDatabase)
+	infoSchema, err := cat.Database(context.Background(), catalog.InformationSchemaDatabase)
 	if err != nil {
 		return err
 	}
@@ -970,7 +970,7 @@ func (c *conn) status() uint16 {
 }
 
 func (c *conn) useDB(dbName string) error {
-	db, err := c.catalog.Database(dbName)
+	db, err := c.catalog.Database(context.Background(), dbName)
 	if err != nil {
 		return err
 	}

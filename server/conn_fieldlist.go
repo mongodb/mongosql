@@ -2,6 +2,7 @@ package server
 
 import (
 	"bytes"
+	"context"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
@@ -19,12 +20,12 @@ func (c *conn) handleFieldList(data []byte) error {
 	tableName := strutil.String(charSetClient.Decode(data[0:index]))
 	wildcard := strutil.String(charSetClient.Decode(data[index+1:]))
 
-	db, err := c.catalog.Database(c.DB())
+	db, err := c.catalog.Database(context.Background(), c.DB())
 	if err != nil {
 		return err
 	}
 
-	tableSchema, err := db.Table(tableName)
+	tableSchema, err := db.Table(context.Background(), tableName)
 	if err != nil {
 		return err
 	}

@@ -38,7 +38,7 @@ func (a *algebrizer) translateShowCreateDatabase(show *parser.Show) (PlanStage, 
 		}
 	}
 
-	db, err := a.cfg.catalog.Database(dbName)
+	db, err := a.cfg.catalog.Database(a.ctx, dbName)
 	if err != nil {
 		return nil, err
 	}
@@ -104,9 +104,9 @@ func (a *algebrizer) translateShowCreateTable(show *parser.Show) (PlanStage, err
 
 	var table catalog.Table
 
-	if db, err := a.cfg.catalog.Database(dbName); err != nil {
+	if db, err := a.cfg.catalog.Database(a.ctx, dbName); err != nil {
 		return nil, err
-	} else if table, err = db.Table(tableName); err != nil {
+	} else if table, err = db.Table(a.ctx, tableName); err != nil {
 		return nil, err
 	}
 

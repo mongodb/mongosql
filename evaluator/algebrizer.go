@@ -1,6 +1,7 @@
 package evaluator
 
 import (
+	"context"
 	"fmt"
 	"math"
 	"sort"
@@ -27,6 +28,7 @@ import (
 // AlgebrizerConfig is a container for all the values needed to run the algebrizer.
 type AlgebrizerConfig struct {
 	catalog                       catalog.Catalog
+	variables                     *variable.Container
 	dbName                        string
 	groupConcatMaxLen             int64
 	isMongos                      bool
@@ -42,12 +44,12 @@ type AlgebrizerConfig struct {
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
 // provided values. AlgebrizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog, isWriteMode bool) *AlgebrizerConfig {
-	vars := c.Variables()
+func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog, vars *variable.Container, isWriteMode bool) *AlgebrizerConfig {
 	return &AlgebrizerConfig{
 		lg:                            lg,
 		dbName:                        dbName,
 		catalog:                       c,
+		variables:                     vars,
 		isMongos:                      vars.GetString(variable.MongoDBTopology) == "mongos",
 		isWriteMode:                   isWriteMode,
 		sqlValueKind:                  GetSQLValueKind(vars),
@@ -65,10 +67,11 @@ func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog, isWrit
 
 // AlgebrizeCommand takes a parsed SQL statement and returns an algebrized form
 // of the command.
-func AlgebrizeCommand(cfg *AlgebrizerConfig, stmt parser.Statement) (Command, error) {
+func AlgebrizeCommand(ctx context.Context, cfg *AlgebrizerConfig, stmt parser.Statement) (Command, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		cfg:                         cfg,
+		ctx:                         ctx,
 		selectID:                    g.current,
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
@@ -103,10 +106,11 @@ func AlgebrizeCommand(cfg *AlgebrizerConfig, stmt parser.Statement) (Command, er
 
 // AlgebrizeQuery translates a parsed SQL statement into a plan stage. If the
 // statement cannot be translated, it will return an error.
-func AlgebrizeQuery(cfg *AlgebrizerConfig, stmt parser.Statement) (PlanStage, error) {
+func AlgebrizeQuery(ctx context.Context, cfg *AlgebrizerConfig, stmt parser.Statement) (PlanStage, error) {
 	g := &selectIDGenerator{}
 	algebrizer := &algebrizer{
 		cfg:                         cfg,
+		ctx:                         ctx,
 		selectID:                    g.generate(),
 		selectIDGenerator:           g,
 		projectedColumnAggregateMap: make(map[int]SQLExpr),
@@ -171,15 +175,15 @@ func cloneCTEs(ctes ctePlanStages) ctePlanStages {
 
 // newMongoSourceOrDualStage returns a new MongoSource if at least one MongoTable is found in
 // the catalog, otherwise it returns a new Dual stage.
-func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
+func (a *algebrizer) newMongoSourceOrDualStage() (PlanStage, error) {
 	// Don't try to push down the dual stage if it is a top-level dual stage
 	if a.isTopLevel {
-		return NewDualStage()
+		return NewDualStage(), nil
 	}
 
 	// NewMongoSourceDualStage requires $collStats to work, which was only added in 3.4.
 	if !a.versionAtLeast(3, 4, 0) {
-		return NewDualStage()
+		return NewDualStage(), nil
 	}
 
 	// NewMongoSourceDualStage requires $collStats to work, but $collStats is unreliable in the
@@ -189,29 +193,60 @@ func (a *algebrizer) newMongoSourceOrDualStage() PlanStage {
 	// situation completely, we do not use MongoSource to push down dual stages if we are running
 	// against a mongos.
 	if a.cfg.isMongos {
-		return NewDualStage()
+		return NewDualStage(), nil
 	}
 
-	dualDb, dualTable, ok := findMongoDatabaseAndTable(a.cfg.catalog)
-	if !ok {
-		return NewDualStage()
+	dualDb, dualTable, err := findMongoDatabaseAndTable(a.ctx, a.cfg.catalog)
+	if err != nil && err.code != erNoMongoDBTableFound {
+		return nil, err
 	}
 
-	return NewMongoSourceDualStage(dualDb, dualTable, a.selectID, "")
+	return NewMongoSourceDualStage(dualDb, dualTable, a.selectID, ""), nil
+}
+
+type dualTableLookupError struct {
+	code    uint16
+	message string
+}
+
+const (
+	erNoMongoDBTableFound = iota
+	erDatabaseLookupFailed
+	erTableLookupFailed
+)
+
+func newDualTableLookupError(code uint16, message string) *dualTableLookupError {
+	return &dualTableLookupError{
+		code:    code,
+		message: message,
+	}
+}
+
+func (d *dualTableLookupError) Error() string {
+	return d.message
 }
 
 // findMongoDatabaseAndTable searches the catalog for a MongoDBTable and returns it along with its containing database
 // if found, otherwise the function returns nil for both.
-func findMongoDatabaseAndTable(cl catalog.Catalog) (catalog.Database, catalog.MongoDBTable, bool) {
-	for _, db := range cl.Databases() {
-		tables := db.Tables()
+func findMongoDatabaseAndTable(ctx context.Context, cl catalog.Catalog) (catalog.Database, catalog.MongoDBTable, *dualTableLookupError) {
+	dbs, err := cl.Databases(ctx)
+	if err != nil {
+		return nil, nil, newDualTableLookupError(erDatabaseLookupFailed, err.Error())
+	}
+
+	for _, db := range dbs {
+		tables, err := db.Tables(ctx)
+		if err != nil {
+			return nil, nil, newDualTableLookupError(erTableLookupFailed, err.Error())
+		}
+
 		for _, table := range tables {
 			if mongoTable, ok := table.(catalog.MongoDBTable); ok {
-				return db, mongoTable, true
+				return db, mongoTable, nil
 			}
 		}
 	}
-	return nil, nil, false
+	return nil, nil, newDualTableLookupError(erNoMongoDBTableFound, "")
 }
 
 type ctePlanStage struct {
@@ -224,6 +259,7 @@ type ctePlanStages map[string]*ctePlanStage
 
 type algebrizer struct {
 	cfg               *AlgebrizerConfig
+	ctx               context.Context
 	parent            *algebrizer
 	selectIDGenerator *selectIDGenerator
 	// the selectID to use for projected columns.
@@ -564,13 +600,13 @@ func (a *algebrizer) translateInsert(ins *parser.Insert) (*InsertCommand, error)
 	}
 	// We need the dbName for the mongodb insert command.
 	dbName := ins.Table.Qualifier.Else(a.cfg.dbName)
-	db, err := a.cfg.catalog.Database(dbName)
+	db, err := a.cfg.catalog.Database(a.ctx, dbName)
 	if err != nil {
 		return nil, err
 	}
 	// We need the table name as well as other information from the table
 	// for the insert command and proper value type conversion.
-	table, err := db.Table(ins.Table.Name)
+	table, err := db.Table(a.ctx, ins.Table.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -1759,12 +1795,12 @@ func (a *algebrizer) translateSimpleTableExpr(
 		}
 		dbName = strings.ToLower(dbName)
 
-		db, dbErr := a.cfg.catalog.Database(dbName)
+		db, dbErr := a.cfg.catalog.Database(a.ctx, dbName)
 		if dbErr != nil {
 			return nil, nil, dbErr
 		}
 
-		table, dbErr := db.Table(tableName)
+		table, dbErr := db.Table(a.ctx, tableName)
 		if dbErr != nil {
 			return nil, nil, dbErr
 		}
@@ -1827,7 +1863,11 @@ func (a *algebrizer) translateSimpleTableExpr(
 
 		return plan, columns, nil
 	case *parser.DualTableExpr:
-		plan := a.newMongoSourceOrDualStage()
+		plan, err := a.newMongoSourceOrDualStage()
+		if err != nil {
+			return nil, nil, err
+		}
+
 		columns := plan.Columns()
 		return plan, columns, nil
 	default:
@@ -2631,7 +2671,7 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 		}
 	}
 
-	value, err := a.cfg.catalog.Variables().Get(variable.Name(name), scope, kind)
+	value, err := a.cfg.variables.Get(variable.Name(name), scope, kind)
 	if err != nil {
 		return nil, err
 	}

@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.14
 
+- BI-2422: No user-facing changes.
 - BI-2437: No user-facing changes.
 - BI-2436: Fix bug that caused panics on document keys containing characters that need to be escaped, i.e. '"' or '\usb'.
 - BI-2435: No user-facing changes.

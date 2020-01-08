@@ -1,6 +1,7 @@
 package catalog
 
 import (
+	"context"
 	"fmt"
 	"sort"
 
@@ -45,13 +46,14 @@ func (b *catalogBuilder) addForeignKeys() {
 
 	// Iterate through each SQL table in each SQL database and construct the table's
 	// foreign key.
-	for _, db := range b.catalog.Databases() {
+	dbs, _ := b.catalog.Databases(context.Background())
+	for _, db := range dbs {
 		dbName := string(db.Name())
 
 		// Sort the tables based on the number of unwinds in their pipeline.  We do this
 		// so we will have already added a child table's parent by the time we encounter
 		// the child.
-		tables := db.Tables()
+		tables, _ := db.Tables(context.Background())
 		sortTablesByUnwinds(tables)
 		for _, tbl := range tables {
 			mongoTable, ok := tbl.(*MongoTable)

@@ -78,12 +78,12 @@ func TestMongoSourcePlanStage(t *testing.T) {
 	dbutils.InsertDocuments(session, dbOne, tableThreeName, rows)
 	defer dbutils.DropCollection(session, dbOne, tableThreeName)
 
-	db, err := catalogOne.Database(dbOne)
+	db, err := catalogOne.Database(context.Background(), dbOne)
 	if err != nil {
 		panic("database doesn't exist")
 	}
 
-	table, err := db.Table(tableThreeName)
+	table, err := db.Table(context.Background(), tableThreeName)
 	if err != nil {
 		panic("table doesn't exist")
 	}

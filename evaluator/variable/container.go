@@ -35,6 +35,11 @@ type Container struct {
 	AllocatedMemory func() uint64
 }
 
+// NewEmptyContainer creates an empty container.
+func NewEmptyContainer() *Container {
+	return &Container{}
+}
+
 // NewGlobalContainer creates a container with a GlobalScope.
 func NewGlobalContainer(cfg *config.Config) *Container {
 

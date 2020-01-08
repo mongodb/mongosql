@@ -501,8 +501,8 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					rewritten, err := RewriteStatement(rCfg, statement)
 					req.Nil(err, "failed to rewrite query")
 
-					aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)
-					plan, err := AlgebrizeQuery(aCfg, rewritten)
+					aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog, testVariables)
+					plan, err := AlgebrizeQuery(context.Background(), aCfg, rewritten)
 
 					req.Nil(err, "failed to algebrize query")
 
@@ -762,8 +762,8 @@ func TestPushdownSharding(t *testing.T) {
 				rewritten, err := RewriteStatement(rCfg, statement)
 				req.NoError(err, "failed to rewrite query")
 
-				aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog)
-				plan, err := AlgebrizeQuery(aCfg, rewritten)
+				aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog, testVariables)
+				plan, err := AlgebrizeQuery(bgCtx, aCfg, rewritten)
 
 				req.NoError(err)
 

@@ -8,7 +8,6 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/optimizer"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
@@ -47,7 +46,7 @@ type PushdownConfig struct {
 // NewPushdownConfig returns a new PushdownConfig constructed from the
 // provided values. PushdownConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewPushdownConfig(lg log.Logger, vars catalog.VariableContainer, format string, formatVersion int) *PushdownConfig {
+func NewPushdownConfig(lg log.Logger, vars *variable.Container, format string, formatVersion int) *PushdownConfig {
 	return &PushdownConfig{
 		lg:                lg,
 		mongoDBVersion:    getMongoDBVersion(vars),

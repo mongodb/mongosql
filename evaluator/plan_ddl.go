@@ -43,12 +43,12 @@ func (com *DropTableCommand) Execute(ctx context.Context, cfg *ExecutionConfig, 
 	// an error if, for example, the table or database does not exist.
 	if com.ifExists {
 		// check that database exists.
-		database, err := com.catalog.Database(com.dbName)
+		database, err := com.catalog.Database(ctx, com.dbName)
 		if err != nil {
 			return nil
 		}
 		// check that table exists.
-		_, err = database.Table(com.tableName)
+		_, err = database.Table(ctx, com.tableName)
 		if err != nil {
 			return nil
 		}
@@ -93,7 +93,7 @@ func (com *DropDatabaseCommand) Execute(ctx context.Context, cfg *ExecutionConfi
 	// an error if, for example, the database does not exist.
 	if com.ifExists {
 		// check that database exists.
-		_, err := com.catalog.Database(com.dbName)
+		_, err := com.catalog.Database(ctx, com.dbName)
 		if err != nil {
 			return nil
 		}
@@ -137,7 +137,7 @@ func (com *CreateDatabaseCommand) Execute(ctx context.Context, cfg *ExecutionCon
 	// an error if, for example, the database exists.
 	if com.ifNotExists {
 		// check that database exists.
-		_, err := com.catalog.Database(com.dbName)
+		_, err := com.catalog.Database(ctx, com.dbName)
 		if err == nil {
 			return nil
 		}
@@ -174,12 +174,12 @@ func (com *CreateTableCommand) Execute(ctx context.Context, cfg *ExecutionConfig
 	// an error if, for example, the table or database does not exist.
 	if com.ifNotExists {
 		// check that database exists. If it does not, return the err.
-		database, err := com.catalog.Database(com.dbName)
+		database, err := com.catalog.Database(ctx, com.dbName)
 		if err != nil {
 			return err
 		}
 		// check that does not table exist. If it does, return nil.
-		_, err = database.Table(com.table.SQLName())
+		_, err = database.Table(ctx, com.table.SQLName())
 		if err == nil {
 			return nil
 		}

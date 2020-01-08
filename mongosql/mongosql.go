@@ -42,12 +42,13 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 	// unexplainable (for example, a command), an error will be returned.
 	sqlQuery = "explain " + sqlQuery
 
-	ctlg, err := getCatalog(mongoVersion, sch)
+	vars := getVariables(mongoVersion)
+	ctlg, err := getCatalog(sch)
 	if err != nil {
 		return "", "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
 
-	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, evaluator.NoOutputFormat, evaluator.NoOutputVersion)
+	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, vars, evaluator.NoOutputFormat, evaluator.NoOutputVersion)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
 	if err != nil {
@@ -98,12 +99,13 @@ func TranslateSQLQueryFile(queryFile, dbName, mongoVersion, schemaPath, format s
 // to use as the MongoDB version for the aggregation language, and a schema to use for
 // translation.
 func TranslateSQLQueryRaw(sqlQuery, dbName, mongoVersion string, sch *schema.Schema) (bsoncore.Array, string, error) {
-	ctlg, err := getCatalog(mongoVersion, sch)
+	vars := getVariables(mongoVersion)
+	ctlg, err := getCatalog(sch)
 	if err != nil {
 		return nil, "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
 
-	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, "odbc", 1)
+	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, vars, "odbc", 1)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
 	if err != nil {
@@ -219,8 +221,8 @@ func loadSchema(path string) (*schema.Schema, error) {
 	return relationalSchema, nil
 }
 
-// getCatalog copies the schema into a Catalog and returns it.
-func getCatalog(mongoVersion string, relationalSchema *schema.Schema) (catalog.Catalog, error) {
+// getVariables constructs a variable container for mongosql.
+func getVariables(mongoVersion string) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
 	if mongoVersion == "latest" {
 		// set to an arbitrary large number so we don't have to update it every time we add features from a new MongoDB version
@@ -242,7 +244,13 @@ func getCatalog(mongoVersion string, relationalSchema *schema.Schema) (catalog.C
 	vars.SetSystemVariable(variable.TypeConversionMode,
 		values.NewSQLVarchar(values.VariableSQLValueKind, variable.MongoSQLTypeConversionMode))
 
-	ctlg := catalog.New("", vars)
+	return vars
+}
+
+// getCatalog copies the schema into a Catalog and returns it.
+func getCatalog(relationalSchema *schema.Schema) (catalog.Catalog, error) {
+
+	ctlg := catalog.New("")
 
 	var db catalog.Database
 	var err error

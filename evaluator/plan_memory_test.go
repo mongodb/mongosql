@@ -511,7 +511,7 @@ func testDynamicSourceMemoryMonitor(t *testing.T) {
 	_, err = table.AddColumn(tableName, "two", EvalInt64)
 	require.NoError(t, err)
 
-	db, err := catalog.New("def", nil).AddDatabase("db")
+	db, err := catalog.New("def").AddDatabase("db")
 	require.NoError(t, err)
 
 	source := NewDynamicSourceStage(db, table, 1, tableName)

@@ -64,11 +64,11 @@ func TestCountPlanStage(t *testing.T) {
 	execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 	execState := evaluator.NewExecutionState()
 
-	db, err := catalogOne.Database(dbOne)
+	db, err := catalogOne.Database(bgCtx, dbOne)
 	if err != nil {
 		panic("database doesn't exist")
 	}
-	table, err := db.Table(tableOneName)
+	table, err := db.Table(bgCtx, tableOneName)
 	if err != nil {
 		panic("table doesn't exist")
 	}

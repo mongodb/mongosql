@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
@@ -326,7 +325,7 @@ func strToTime(s string) (time.Duration, int, bool) {
 // getMongoDBVersion is a utility function that gets the MongoDB version to use for new
 // configurations based on the mongodb_version_compatibility or mongodb_version variable
 // in the provided container.
-func getMongoDBVersion(vars catalog.VariableContainer) []uint8 {
+func getMongoDBVersion(vars *variable.Container) []uint8 {
 	compatibilityVersion := vars.GetString(variable.MongoDBVersionCompatibility)
 	if len(compatibilityVersion) == 0 {
 		compatibilityVersion = vars.GetString(variable.MongoDBVersion)
@@ -338,7 +337,7 @@ func getMongoDBVersion(vars catalog.VariableContainer) []uint8 {
 	return version
 }
 
-func getMySQLVersion(vars catalog.VariableContainer) string {
+func getMySQLVersion(vars *variable.Container) string {
 	return vars.GetString(variable.Version)
 }
 

@@ -1,6 +1,7 @@
 package catalog_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator/catalog"
@@ -10,18 +11,21 @@ import (
 
 func TestCatalog(t *testing.T) {
 	req := require.New(t)
+	testCtx := context.Background()
 
-	c := catalog.New("def", nil)
+	c := catalog.New("def")
 
 	req.Equal(string(c.Name), "def")
-	req.Equal(len(c.Databases()), 0)
+	dbs, _ := c.Databases(testCtx)
+	req.Equal(len(dbs), 0)
 
-	_, err := c.Database("test")
+	_, err := c.Database(testCtx, "test")
 	req.NotNil(err)
 
 	_, err = c.AddDatabase("test")
 	req.Nil(err)
-	req.Equal(len(c.Databases()), 1)
+	dbs, _ = c.Databases(testCtx)
+	req.Equal(len(dbs), 1)
 
 	_, err = c.AddDatabase("test")
 	req.NotNil(err)
@@ -29,15 +33,15 @@ func TestCatalog(t *testing.T) {
 	_, err = c.AddDatabase("TEST")
 	req.NotNil(err)
 
-	_, err = c.Database("blah")
+	_, err = c.Database(testCtx, "blah")
 	req.NotNil(err)
 
-	d, err := c.Database("test")
+	d, err := c.Database(testCtx, "test")
 	req.Nil(err)
 	req.NotNil(d)
 	req.Equal(string(d.Name()), "test")
 
-	d, err = c.Database("TEST")
+	d, err = c.Database(testCtx, "TEST")
 	req.Nil(err)
 	req.NotNil(d)
 	req.Equal(string(d.Name()), "test")
@@ -51,37 +55,41 @@ func TestCatalog(t *testing.T) {
 	_, err = c.AddDatabase("test3")
 	req.Nil(err)
 
-	req.Equal(len(c.Databases()), 4)
+	dbs, _ = c.Databases(testCtx)
+	req.Equal(len(dbs), 4)
 }
 
 func TestDatabase(t *testing.T) {
 	req := require.New(t)
+	testCtx := context.Background()
 
-	d, err := catalog.New("def", nil).AddDatabase("test")
+	d, err := catalog.New("def").AddDatabase("test")
 	req.Nil(err)
 	req.NotNil(d)
 	req.Equal(string(d.Name()), "test")
-	req.Equal(len(d.Tables()), 0)
+	tbls, _ := d.Tables(testCtx)
+	req.Equal(len(tbls), 0)
 
-	_, err = d.Table("foo")
+	_, err = d.Table(testCtx, "foo")
 	req.NotNil(err)
 
 	t0 := catalog.NewInMemoryTable("foo")
 	err = d.AddTable(t0)
 	req.Nil(err)
-	req.Equal(len(d.Tables()), 1)
+	tbls, _ = d.Tables(testCtx)
+	req.Equal(len(tbls), 1)
 
 	t1 := catalog.NewInMemoryTable("foo")
 	req.NotNil(d.AddTable(t1))
 
-	_, err = d.Table("blah")
+	_, err = d.Table(testCtx, "blah")
 	req.NotNil(err)
 
-	t2, err := d.Table("foo")
+	t2, err := d.Table(testCtx, "foo")
 	req.Nil(err)
 	req.Equal(t2.Name(), "foo")
 
-	t3, err := d.Table("FOO")
+	t3, err := d.Table(testCtx, "FOO")
 	req.Nil(err)
 	req.NotNil(d)
 	req.Equal(t3.Name(), "foo")
@@ -90,5 +98,6 @@ func TestDatabase(t *testing.T) {
 	req.Nil(d.AddTable(catalog.NewInMemoryTable("foo2")))
 	req.Nil(d.AddTable(catalog.NewInMemoryTable("foo3")))
 
-	req.Equal(len(d.Tables()), 4)
+	tbls, _ = d.Tables(testCtx)
+	req.Equal(len(tbls), 4)
 }

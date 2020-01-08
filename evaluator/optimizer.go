@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/10gen/sqlproxy/collation"
-	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
@@ -37,7 +36,7 @@ type OptimizerConfig struct {
 // NewOptimizerConfig returns a new OptimizerConfig constructed from the
 // provided values. OptimizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewOptimizerConfig(lg log.Logger, vars catalog.VariableContainer) *OptimizerConfig {
+func NewOptimizerConfig(lg log.Logger, vars *variable.Container) *OptimizerConfig {
 	return &OptimizerConfig{
 		lg:                              lg,
 		collation:                       vars.GetCollation(variable.CollationConnection),

@@ -82,9 +82,9 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	}
 
 	// For now, assume no --writeMode.
-	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, catalog, false)
+	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, catalog, vars, false)
 
-	naivePlan, err := evaluator.AlgebrizeQuery(algebrizerCfg, stmt)
+	naivePlan, err := evaluator.AlgebrizeQuery(ctx, algebrizerCfg, stmt)
 	if err != nil {
 		return nil, "", err
 	}
@@ -115,7 +115,7 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	return bsonPipeline, ms.Collection(), nil
 }
 
-func createVariables(info *mongodb.Info) catalog.VariableContainer {
+func createVariables(info *mongodb.Info) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
 	version := values.NewSQLVarchar(values.VariableSQLValueKind, info.Version)
 	gbl.SetSystemVariable(variable.MongoDBVersion, version)
@@ -125,7 +125,7 @@ func createVariables(info *mongodb.Info) catalog.VariableContainer {
 	return ctn
 }
 
-func createCatalog(schema *schema.Schema, vars catalog.VariableContainer, info *mongodb.Info) (*catalog.SQLCatalog, error) {
+func createCatalog(schema *schema.Schema, vars *variable.Container, info *mongodb.Info) (*catalog.SQLCatalog, error) {
 	c, err := catalog.Build(schema, vars, info, false)
 	if err != nil {
 		return nil, fmt.Errorf("unable to build catalog: %v", err)

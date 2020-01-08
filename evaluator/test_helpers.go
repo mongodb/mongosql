@@ -219,6 +219,7 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 	info := GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
 	vars := CreateTestVariables(info)
 	catalog := GetCatalog(schema, vars, info)
+	ctx := context.Background()
 
 	rCfg := NewRewriterConfig(42, "evaluator_unit_test_dbname", log.GlobalLogger(),
 		false, evaluatorUnitTestVersion, "evaluator_unit_test_remoteHost", "evaluator_unit_test_user")
@@ -227,8 +228,8 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 		return nil, err
 	}
 
-	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, catalog, false)
-	actualPlan, err := AlgebrizeQuery(algebrizerCfg, rewritten)
+	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, catalog, vars, false)
+	actualPlan, err := AlgebrizeQuery(ctx, algebrizerCfg, rewritten)
 	if err != nil {
 		return nil, err
 	}

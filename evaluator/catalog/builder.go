@@ -20,9 +20,9 @@ import (
 )
 
 // Build builds a catalog up from a schema and variables.
-func Build(schema *schema.Schema, variables VariableContainer, info *mongodb.Info, writeMode bool) (*SQLCatalog, error) {
+func Build(schema *schema.Schema, variables *variable.Container, info *mongodb.Info, writeMode bool) (*SQLCatalog, error) {
 	builder := &catalogBuilder{
-		catalog:   New("def", variables),
+		catalog:   New("def"),
 		schema:    schema,
 		variables: variables,
 		info:      info,
@@ -40,7 +40,7 @@ func Build(schema *schema.Schema, variables VariableContainer, info *mongodb.Inf
 // BuildFromSchema builds a catalog from a schema.
 func BuildFromSchema(schema *schema.Schema, info *mongodb.Info, writeMode bool) (*SQLCatalog, error) {
 	builder := &catalogBuilder{
-		catalog:   New("def", nil),
+		catalog:   New("def"),
 		schema:    schema,
 		info:      info,
 		writeMode: writeMode,
@@ -58,7 +58,7 @@ type catalogBuilder struct {
 	catalog   *SQLCatalog
 	info      *mongodb.Info
 	schema    *schema.Schema
-	variables VariableContainer
+	variables *variable.Container
 	writeMode bool
 }
 
@@ -86,7 +86,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 			continue
 		}
 
-		d, err := b.catalog.Database(dbConfig.Name())
+		d, err := b.catalog.Database(context.Background(), dbConfig.Name())
 		if err != nil {
 			d, err = b.catalog.AddDatabase(dbConfig.Name())
 			if err != nil {
@@ -293,7 +293,7 @@ func newInfoRow(aliasName string, vs ...values.NamedSQLValue) results.Row {
 
 // getValueCreators returns three helper functions for creating NameSQLValues of type
 // SQLNull, SQLVarchar, and SQLInt64 respectively, each with the proper SQLValueKind.
-func getValueCreators(variables VariableContainer) (func(string) values.NamedSQLValue,
+func getValueCreators(variables *variable.Container) (func(string) values.NamedSQLValue,
 	func(string, string) values.NamedSQLValue,
 	func(string, int64) values.NamedSQLValue) {
 
@@ -473,8 +473,10 @@ func (b *catalogBuilder) addColumnsTable(d Database) error {
 
 		go func() {
 			defer close(rowChan)
-			for _, db := range c.Databases() {
-				for _, tbl := range db.Tables() {
+			dbs, _ := c.Databases(context.Background())
+			for _, db := range dbs {
+				tbls, _ := db.Tables(context.Background())
+				for _, tbl := range tbls {
 					for i, col := range tbl.Columns() {
 						columnKey := getIndexKey(col, tbl)
 						maxVarcharLength := b.variables.GetUint64(variable.MongoDBMaxVarcharLength)
@@ -890,7 +892,8 @@ func (b *catalogBuilder) addSchemataTable(d Database) error {
 
 		go func() {
 			defer close(rowChan)
-			for _, db := range c.Databases() {
+			dbs, _ := c.Databases(context.Background())
+			for _, db := range dbs {
 				select {
 				case rowChan <- newInfoRow(aliasName,
 					strv(columnNames[0], string(c.Name)),
@@ -1005,8 +1008,10 @@ func (b *catalogBuilder) addTablesTable(d Database) error {
 		nullv, strv, _ := getValueCreators(b.variables)
 		go func() {
 			defer close(rowChan)
-			for _, db := range c.Databases() {
-				for _, tbl := range db.Tables() {
+			dbs, _ := c.Databases(context.Background())
+			for _, db := range dbs {
+				tbls, _ := db.Tables(context.Background())
+				for _, tbl := range tbls {
 					select {
 					case rowChan <- newInfoRow(aliasName,
 						strv(columnNames[0], string(c.Name)),
@@ -1277,7 +1282,8 @@ func (b *catalogBuilder) getRowsForTableType(systemTableName string, aliasName s
 		for _, db := range c.databases {
 			ck.database = string(db.Name())
 
-			for _, tb := range db.Tables() {
+			tbls, _ := db.Tables(context.Background())
+			for _, tb := range tbls {
 				ck.table = tb.Name()
 
 				primaryKeyRowIter := b.getRowIterForPrimaryKey(systemTableName, aliasName, ck, tb.PrimaryKeys(), columnNames)

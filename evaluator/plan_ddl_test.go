@@ -31,10 +31,10 @@ func TestPlanDDLStage(t *testing.T) {
 	cfg.MongoDB.VersionCompatibility = "4.2.0"
 	vars := variable.NewGlobalContainer(cfg)
 	// set up a catalog with a database writes_test_1 and table foo
-	cat := catalog.New("def", vars)
+	cat := catalog.New("def")
 	_, err := cat.AddDatabase(dbName)
 	req.NoError(err)
-	catDB, err := cat.Database(dbName)
+	catDB, err := cat.Database(bgCtx, dbName)
 	req.NoError(err)
 	err = catDB.AddTable(catalog.NewDynamicTable(tableName, "", results.NewEmptyRowChanIter))
 	req.NoError(err)

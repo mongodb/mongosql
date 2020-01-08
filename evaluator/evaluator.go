@@ -69,7 +69,7 @@ func EvaluateCommand(ctx context.Context, rCfg *RewriterConfig, aCfg *Algebrizer
 
 	parsedStmt := stmt.Copy().(parser.Statement)
 
-	cmd, err := AlgebrizeCommand(aCfg, stmt)
+	cmd, err := AlgebrizeCommand(ctx, aCfg, stmt)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +104,7 @@ func EvaluateExplain(ctx context.Context, qCfg *QueryConfig, stmt parser.Stateme
 
 	var plan PlanStage
 
-	algebrized, err := AlgebrizeQuery(qCfg.aCfg, stmt)
+	algebrized, err := AlgebrizeQuery(ctx, qCfg.aCfg, stmt)
 	if err != nil {
 		// We can't create a query plan, so we have to exit.
 		return nil, err
@@ -166,7 +166,7 @@ func EvaluateQuery(ctx context.Context, qCfg *QueryConfig, stmt parser.Statement
 	var plan PlanStage
 
 	// Step 1: Algebrize
-	algebrized, err := AlgebrizeQuery(qCfg.aCfg, stmt)
+	algebrized, err := AlgebrizeQuery(ctx, qCfg.aCfg, stmt)
 
 	if err = procutil.CheckForContextCancellationAndError(ctx, err); err != nil {
 		return nil, err

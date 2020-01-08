@@ -1,13 +1,12 @@
 package catalog
 
 import (
+	"context"
 	"strings"
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/results"
-	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 )
 
@@ -22,32 +21,9 @@ type Name string
 // Catalog is the interface that wraps methods for getting a SQL schema catalog.
 type Catalog interface {
 	// Databases returns all the databases in the catalog.
-	Databases() []Database
+	Databases(ctx context.Context) ([]Database, error)
 	// Database returns the database associated with the given name (case-insensitive).
-	Database(databaseName string) (Database, error)
-	// HasAuthRestrictedNamespaces returns true if some namespaces require authentication for access
-	// and false otherwise.
-	HasAuthRestrictedNamespaces() bool
-	// Variables returns an interface that wraps methods for getting variables' values.
-	Variables() VariableContainer
-}
-
-// VariableContainer is the interface that wraps methods for accessing values of variables.
-type VariableContainer interface {
-	// Get returns the value of the variable, "name", of Kind "kind" in the given "scope".
-	Get(name variable.Name, scope variable.Scope, kind variable.Kind) (values.SQLValue, error)
-	// GetCollation gets the collation of the variable with the specified name.
-	GetCollation(name variable.Name) *collation.Collation
-	// GetInt64 returns the int64 value of the given system variable, "name".
-	GetInt64(name variable.Name) int64
-	// GetBool returns the bool value of the given system variable, "name".
-	GetBool(name variable.Name) bool
-	// GetString returns the string value of the given system variable, "name".
-	GetString(name variable.Name) string
-	// GetUint64 returns the uint64 value of the given system variable, "name".
-	GetUint64(name variable.Name) uint64
-	// List returns the value of all variables of Kind "kind" in the given "scope".
-	List(scope variable.Scope, kind variable.Kind) []values.NamedSQLValue
+	Database(ctx context.Context, databaseName string) (Database, error)
 }
 
 // SQLCatalog holds databases.
@@ -62,22 +38,16 @@ type SQLCatalog struct {
 	// restrict resampling in standalone mode.
 	containsAuthRestrictedNamespaces bool
 
-	// variables is a container of valid variables and their values, which
-	// can be used to validate variable references and insert values during
-	// algebrization.
-	variables VariableContainer
-
 	databases   []Database
 	databaseMap map[string]Database
 }
 
 // New creates a new Catalog.
-func New(name string, vars VariableContainer) *SQLCatalog {
+func New(name string) *SQLCatalog {
 	return &SQLCatalog{
 		Name:        Name(name),
 		databases:   []Database{},
 		databaseMap: make(map[string]Database),
-		variables:   vars,
 	}
 }
 
@@ -108,7 +78,7 @@ func (c *SQLCatalog) AddDatabase(name string) (Database, error) {
 }
 
 // Database gets the Database with the specified name.
-func (c *SQLCatalog) Database(name string) (Database, error) {
+func (c *SQLCatalog) Database(_ context.Context, name string) (Database, error) {
 	if d, ok := c.databaseMap[strings.ToLower(name)]; ok {
 		return d, nil
 	}
@@ -117,13 +87,8 @@ func (c *SQLCatalog) Database(name string) (Database, error) {
 }
 
 // Databases gets all the databases in the Catalog.
-func (c *SQLCatalog) Databases() []Database {
-	return c.databases
-}
-
-// Variables returns the variable.Container from the Catalog.
-func (c *SQLCatalog) Variables() VariableContainer {
-	return c.variables
+func (c *SQLCatalog) Databases(_ context.Context) ([]Database, error) {
+	return c.databases, nil
 }
 
 // Database is an interface describing an SQL database.
@@ -131,11 +96,11 @@ type Database interface {
 	// Name gets the name of the database.
 	Name() DatabaseName
 	// Tables gets the columns for the database.
-	Tables() []Table
+	Tables(ctx context.Context) ([]Table, error)
 	// Add a table to the database.
 	AddTable(t Table) error
 	// Lookup a table with the given name.
-	Table(name string) (Table, error)
+	Table(ctx context.Context, name string) (Table, error)
 }
 
 // DatabaseName is the name of a database.
@@ -150,7 +115,7 @@ type SQLDatabase struct {
 
 // AddTable adds the table to the database.
 func (d *SQLDatabase) AddTable(t Table) error {
-	if _, err := d.Table(t.Name()); err == nil {
+	if _, err := d.Table(context.Background(), t.Name()); err == nil {
 		return mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, t.Name())
 	}
 
@@ -165,7 +130,7 @@ func (d *SQLDatabase) Name() DatabaseName {
 }
 
 // Table gets a Table from the Database.
-func (d *SQLDatabase) Table(name string) (Table, error) {
+func (d *SQLDatabase) Table(_ context.Context, name string) (Table, error) {
 	if t, ok := d.tableMap[strings.ToLower(name)]; ok {
 		return t, nil
 	}
@@ -173,8 +138,8 @@ func (d *SQLDatabase) Table(name string) (Table, error) {
 }
 
 // Tables gets the tables in the Database.
-func (d *SQLDatabase) Tables() []Table {
-	return d.tables
+func (d *SQLDatabase) Tables(_ context.Context) ([]Table, error) {
+	return d.tables, nil
 }
 
 // Table is an interface describing an SQL table.
