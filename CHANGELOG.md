@@ -6,6 +6,8 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.13.3
 
+- BI-2436: Fix bug that caused panics on document keys containing characters that need to be escaped, i.e. '"' or '\usb'.
+
 ## 2.13.2
 
 - BI-2412: Fix bug that caused index loading to fail with mixed-case databases.

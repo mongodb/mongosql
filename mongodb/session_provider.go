@@ -64,9 +64,10 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		topology.WithServerOptions(func(options ...topology.ServerOption) []topology.ServerOption {
 			return append(options,
 				topology.WithMaxConnections(func(uint64) uint64 { return 0 }), // no upper limit per host
+				topology.WithServerAppName(func(string) string { return "mongosqld" }),
 				topology.WithConnectionOptions(func(options ...topology.ConnectionOption) []topology.ConnectionOption {
 					return append(options,
-						topology.WithAppName(func(string) string { return "mongosqld" }),
+						topology.WithConnectionAppName(func(string) string { return "mongosqld" }),
 						topology.WithLifeTimeout(func(time.Duration) time.Duration { return 0 }),
 						topology.WithIdleTimeout(func(time.Duration) time.Duration { return 0 }),
 					)
