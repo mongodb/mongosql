@@ -6,6 +6,7 @@ require (
 	github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
 	github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c
 	github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
+	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/apmckinlay/gsuneido v0.0.0-20190828171039-d059fc31c5ab // indirect
 	github.com/aws/aws-sdk-go v1.23.10 // indirect
 	github.com/craiggwilson/goke v0.0.0-20190811215818-c46ad960904c // indirect
@@ -40,7 +41,7 @@ require (
 	github.com/tkuchiki/go-timezone v0.1.4
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
-	go.mongodb.org/mongo-driver v1.1.2
+	go.mongodb.org/mongo-driver v1.2.1
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 // indirect
 	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect

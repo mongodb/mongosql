@@ -127,11 +127,12 @@ func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) 
 		// Doing this before WithConnString makes these the defaults
 		topology.WithServerOptions(
 			func(opts ...topology.ServerOption) []topology.ServerOption {
-				return append(opts, topology.WithConnectionOptions(
-					func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-						return append(opts, topology.WithAppName(func(string) string { return "mongodrdl" }))
-					},
-				))
+				return append(opts,
+					topology.WithServerAppName(func(string) string { return "mongodrdl" }),
+					topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
+						return append(opts, topology.WithConnectionAppName(func(string) string { return "mongodrdl" }))
+					}),
+				)
 			},
 		),
 		topology.WithConnString(func(connstring.ConnString) connstring.ConnString {
