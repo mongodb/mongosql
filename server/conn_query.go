@@ -186,38 +186,74 @@ func (c *conn) cleanupMemory() error {
 }
 
 func (c *conn) getRewriterConfig() *evaluator.RewriterConfig {
-	return evaluator.NewRewriterConfig(
-		uint64(c.connectionID),
-		c.DB(),
-		c.Logger(log.RewriterComponent),
-		c.variables.GetBool(variable.RewriteDistinctAsGroup),
-		c.variables.GetString(variable.Version),
-		c.remoteHost(),
-		c.user)
+	connID := uint64(c.connectionID)
+	lg := c.Logger(log.RewriterComponent)
+	dbName := c.DB()
+	rewriteDistinctAsGroup := c.variables.GetBool(variable.RewriteDistinctAsGroup)
+	mysqlVersion := c.variables.GetString(variable.Version)
+	remoteHost := c.remoteHost()
+	user := c.user
+
+	return evaluator.NewRewriterConfig(connID, dbName, lg,
+		rewriteDistinctAsGroup, mysqlVersion, remoteHost, user)
 }
 
 func (c *conn) getAlgebrizerConfig() *evaluator.AlgebrizerConfig {
 	lg := c.Logger(log.AlgebrizerComponent)
-	return evaluator.NewAlgebrizerConfig(lg, c.DB(), c.catalog, c.variables, c.server.cfg.Schema.WriteMode)
+	dbName := c.DB()
+	ctlg := c.catalog
+	vars := c.variables
+	mongoDBToplogy := c.variables.GetString(variable.MongoDBTopology)
+	isWriteMode := c.server.cfg.Schema.WriteMode
+	sqlValueKind := evaluator.GetSQLValueKind(c.variables)
+	sqlSelectLimit := c.variables.GetUint64(variable.SQLSelectLimit)
+	mongoDBMaxVarcharLength := c.variables.GetUint64(variable.MongoDBMaxVarcharLength)
+	groupConcatMaxLen := c.variables.GetInt64(variable.GroupConcatMaxLen)
+	polymorphicTypeConversionMode := c.variables.GetString(variable.PolymorphicTypeConversionMode)
+	mdbVersion := evaluator.GetMongoDBVersion(c.variables)
+
+	return evaluator.NewAlgebrizerConfig(lg, dbName, ctlg, vars, mongoDBToplogy, isWriteMode,
+		sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength, groupConcatMaxLen,
+		polymorphicTypeConversionMode, mdbVersion)
 }
 
 func (c *conn) getOptimizerConfig() *evaluator.OptimizerConfig {
 	lg := c.Logger(log.OptimizerComponent)
-	vars := c.variables
-	return evaluator.NewOptimizerConfig(lg, vars)
+	collation := c.variables.GetCollation(variable.CollationConnection)
+	sqlValueKind := evaluator.GetSQLValueKind(c.variables)
+	optimizeCrossJoins := c.variables.GetBool(variable.OptimizeCrossJoins)
+	optimizeEvaluations := c.variables.GetBool(variable.OptimizeEvaluations)
+	optimizeFiltering := c.variables.GetBool(variable.OptimizeFiltering)
+	optimizeInnerJoins := c.variables.GetBool(variable.OptimizeInnerJoins)
+	reconcileArithmeticAggFunctions := c.variables.GetBool(variable.ReconcileArithmeticAggFunctions)
+
+	return evaluator.NewOptimizerConfig(lg, collation, sqlValueKind, optimizeCrossJoins,
+		optimizeEvaluations, optimizeFiltering, optimizeInnerJoins, reconcileArithmeticAggFunctions)
 }
 
 func (c *conn) getPushdownConfig() *evaluator.PushdownConfig {
 	lg := c.Logger(log.OptimizerComponent)
-	vars := c.variables
-	return evaluator.NewPushdownConfig(lg, vars, evaluator.NoOutputFormat, evaluator.NoOutputVersion)
+	mdbVersion := evaluator.GetMongoDBVersion(c.variables)
+	shouldPushDown := c.variables.GetBool(variable.Pushdown)
+	pushDownSelfJoins := c.variables.GetBool(variable.OptimizeSelfJoins)
+	sqlValueKind := evaluator.GetSQLValueKind(c.variables)
+	format := evaluator.NoOutputFormat
+	formatVersion := evaluator.NoOutputVersion
+
+	return evaluator.NewPushdownConfig(lg, mdbVersion, shouldPushDown, pushDownSelfJoins,
+		sqlValueKind, format, formatVersion)
 }
 
 func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {
 	lg := c.Logger(log.ExecutorComponent)
-	vars := c.variables
+	dbName := c.DB()
+	mdbVersion := evaluator.GetMongoDBVersion(c.variables)
+	fullPushdownOnly := c.variables.GetBool(variable.FullPushdownExecMode)
+	maxStageSize := c.variables.GetUint64(variable.MongoDBMaxStageSize)
+	sqlValueKind := evaluator.GetSQLValueKind(c.variables)
 	cmds := c.getCommandHandler()
 	mem := c.memoryMonitor
-	dbName := c.DB()
-	return evaluator.NewExecutionConfig(lg, vars, cmds, mem, dbName)
+
+	return evaluator.NewExecutionConfig(lg, dbName, mdbVersion, fullPushdownOnly,
+		maxStageSize, sqlValueKind, cmds, mem)
 }

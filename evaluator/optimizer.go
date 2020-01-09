@@ -5,7 +5,6 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
 )
 
@@ -36,16 +35,25 @@ type OptimizerConfig struct {
 // NewOptimizerConfig returns a new OptimizerConfig constructed from the
 // provided values. OptimizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewOptimizerConfig(lg log.Logger, vars *variable.Container) *OptimizerConfig {
+func NewOptimizerConfig(
+	lg log.Logger,
+	collation *collation.Collation,
+	sqlValueKind values.SQLValueKind,
+	optimizeCrossJoins,
+	optimizeEvaluations,
+	optimizeFiltering,
+	optimizeInnerJoins,
+	reconcileArithmeticAggFunctions bool,
+) *OptimizerConfig {
 	return &OptimizerConfig{
 		lg:                              lg,
-		collation:                       vars.GetCollation(variable.CollationConnection),
-		sqlValueKind:                    GetSQLValueKind(vars),
-		optimizeCrossJoins:              vars.GetBool(variable.OptimizeCrossJoins),
-		optimizeEvaluations:             vars.GetBool(variable.OptimizeEvaluations),
-		optimizeFiltering:               vars.GetBool(variable.OptimizeFiltering),
-		optimizeInnerJoins:              vars.GetBool(variable.OptimizeInnerJoins),
-		reconcileArithmeticAggFunctions: vars.GetBool(variable.ReconcileArithmeticAggFunctions),
+		collation:                       collation,
+		sqlValueKind:                    sqlValueKind,
+		optimizeCrossJoins:              optimizeCrossJoins,
+		optimizeEvaluations:             optimizeEvaluations,
+		optimizeFiltering:               optimizeFiltering,
+		optimizeInnerJoins:              optimizeInnerJoins,
+		reconcileArithmeticAggFunctions: reconcileArithmeticAggFunctions,
 	}
 }
 

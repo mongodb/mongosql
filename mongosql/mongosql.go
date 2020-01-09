@@ -16,6 +16,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
@@ -42,13 +43,18 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 	// unexplainable (for example, a command), an error will be returned.
 	sqlQuery = "explain " + sqlQuery
 
-	vars := getVariables(mongoVersion)
 	ctlg, err := getCatalog(sch)
 	if err != nil {
 		return "", "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
 
-	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, vars, evaluator.NoOutputFormat, evaluator.NoOutputVersion)
+	mdbVersion, err := mongoDBVersionAsSlice(mongoVersion)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid MongoDB version (%v): %v", mongoVersion, err)
+	}
+
+	tCfg := NewTranslationConfig(ctlg, evaluator.NoOutputFormat, evaluator.NoOutputVersion, dbName, mdbVersion)
+	qCfg := NewQueryConfigFromTranslationConfig(tCfg)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
 	if err != nil {
@@ -98,33 +104,32 @@ func TranslateSQLQueryFile(queryFile, dbName, mongoVersion, schemaPath, format s
 // to use as the default database for unqualified tables in the query, a mongoVersion
 // to use as the MongoDB version for the aggregation language, and a schema to use for
 // translation.
-func TranslateSQLQueryRaw(sqlQuery, dbName, mongoVersion string, sch *schema.Schema) (bsoncore.Array, string, error) {
-	vars := getVariables(mongoVersion)
-	ctlg, err := getCatalog(sch)
-	if err != nil {
-		return nil, "", fmt.Errorf("fatal error creating catalog: %v", err)
-	}
+func TranslateSQLQueryRaw(
+	ctx context.Context,
+	cfg *TranslationConfig,
+	sqlQuery string,
+) (bsoncore.Array, string, string, error) {
+	qCfg := NewQueryConfigFromTranslationConfig(cfg)
 
-	qCfg := evaluator.NewQueryConfigFromCatalog(dbName, ctlg, vars, "odbc", 1)
-
-	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
+	res, err := evaluator.ExecuteSQL(ctx, qCfg, sqlQuery)
 	if err != nil {
-		return nil, "", fmt.Errorf("fatal error executing sql %q: %v", sqlQuery, err)
+		return nil, "", "", fmt.Errorf("fatal error executing sql %q: %v", sqlQuery, err)
 	}
 
 	if !res.Stats.FullyPushedDown {
-		return nil, "", errors.New("query not fully pushed down")
+		return nil, "", "", errors.New("query not fully pushed down")
 	}
 
 	ms, ok := res.PlanStage.(*evaluator.MongoSourceStage)
 	if !ok {
-		return nil, "", errors.New("query not fully pushed down")
+		return nil, "", "", errors.New("query not fully pushed down")
 	}
 
 	pipeline := parser.DeparsePipeline(ms.Pipeline()).Array()
+	database := ms.Database()
 	collection := ms.Collection()
 
-	return pipeline, collection, nil
+	return pipeline, database, collection, nil
 }
 
 func getExplainOutput(format string, explainRecords []*evaluator.ExplainRecord) (string, string, error) {
@@ -221,6 +226,14 @@ func loadSchema(path string) (*schema.Schema, error) {
 	return relationalSchema, nil
 }
 
+func mongoDBVersionAsSlice(version string) ([]uint8, error) {
+	if version == "latest" {
+		version = "100.0.0"
+	}
+
+	return procutil.VersionToSlice(version)
+}
+
 // getVariables constructs a variable container for mongosql.
 func getVariables(mongoVersion string) *variable.Container {
 	gbl := variable.NewGlobalContainer(nil)
@@ -249,7 +262,6 @@ func getVariables(mongoVersion string) *variable.Container {
 
 // getCatalog copies the schema into a Catalog and returns it.
 func getCatalog(relationalSchema *schema.Schema) (catalog.Catalog, error) {
-
 	ctlg := catalog.New("")
 
 	var db catalog.Database

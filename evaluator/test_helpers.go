@@ -218,7 +218,7 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 	selectStatement := statement.(parser.SelectStatement)
 	info := GetMongoDBInfo(nil, schema, mongodb.AllPrivileges)
 	vars := CreateTestVariables(info)
-	catalog := GetCatalog(schema, vars, info)
+	ctlg := GetCatalog(schema, vars, info)
 	ctx := context.Background()
 
 	rCfg := NewRewriterConfig(42, "evaluator_unit_test_dbname", log.GlobalLogger(),
@@ -228,7 +228,17 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 		return nil, err
 	}
 
-	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, catalog, vars, false)
+	mongoDBToplogy := vars.GetString(variable.MongoDBTopology)
+	sqlValueKind := GetSQLValueKind(vars)
+	sqlSelectLimit := vars.GetUint64(variable.SQLSelectLimit)
+	mongoDBMaxVarcharLength := vars.GetUint64(variable.MongoDBMaxVarcharLength)
+	groupConcatMaxLen := vars.GetInt64(variable.GroupConcatMaxLen)
+	polymorphicTypeConversionMode := vars.GetString(variable.PolymorphicTypeConversionMode)
+	mdbVersion := GetMongoDBVersion(vars)
+
+	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, ctlg, vars, mongoDBToplogy, false,
+		sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength, groupConcatMaxLen,
+		polymorphicTypeConversionMode, mdbVersion)
 	actualPlan, err := AlgebrizeQuery(ctx, algebrizerCfg, rewritten)
 	if err != nil {
 		return nil, err

@@ -76,8 +76,18 @@ func (*mockCmdHandler) UnsetDatabase() error {
 	panic("unimplemented")
 }
 
-func createAlgebrizerCfg(dbName string, cat catalog.Catalog, vars *variable.Container) *evaluator.AlgebrizerConfig {
-	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, cat, vars, false)
+func createAlgebrizerCfg(dbName string, ctlg catalog.Catalog, vars *variable.Container, isWriteMode bool) *evaluator.AlgebrizerConfig {
+	mongoDBToplogy := vars.GetString(variable.MongoDBTopology)
+	sqlValueKind := evaluator.GetSQLValueKind(vars)
+	sqlSelectLimit := vars.GetUint64(variable.SQLSelectLimit)
+	mongoDBMaxVarcharLength := vars.GetUint64(variable.MongoDBMaxVarcharLength)
+	groupConcatMaxLen := vars.GetInt64(variable.GroupConcatMaxLen)
+	polymorphicTypeConversionMode := vars.GetString(variable.PolymorphicTypeConversionMode)
+	mdbVersion := evaluator.GetMongoDBVersion(vars)
+
+	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, ctlg, vars, mongoDBToplogy,
+		isWriteMode, sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength,
+		groupConcatMaxLen, polymorphicTypeConversionMode, mdbVersion)
 }
 
 func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sqlValueKind values.SQLValueKind) *evaluator.ExecutionConfig {
@@ -85,8 +95,14 @@ func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sql
 }
 
 func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon memory.Monitor) *evaluator.ExecutionConfig {
+	mdbVersion := evaluator.GetMongoDBVersion(vars)
+	fullPushdownOnly := vars.GetBool(variable.FullPushdownExecMode)
+	maxStageSize := vars.GetUint64(variable.MongoDBMaxStageSize)
+	sqlValueKind := evaluator.GetSQLValueKind(vars)
+
 	return evaluator.NewExecutionConfig(
-		log.GlobalLogger(), vars, &mockCmdHandler{ses}, mon, dbOne,
+		log.GlobalLogger(), dbOne, mdbVersion, fullPushdownOnly,
+		maxStageSize, sqlValueKind, &mockCmdHandler{ses}, mon,
 	)
 }
 

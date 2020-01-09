@@ -95,7 +95,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, testVars, false)
+			aCfg := createAlgebrizerCfg(defaultDbName, testCatalog, testVars, false)
 
 			actual, err := evaluator.AlgebrizeQuery(testCtx, aCfg, rewritten)
 			req.Nil(err, "failed to algebrize")
@@ -127,7 +127,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			// Rebuild Catalog with new variables.
 			cat := evaluator.GetCatalog(testSchema, testCase.container(), testCase.info())
 
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, cat, testCase.container(), false)
+			aCfg := createAlgebrizerCfg(defaultDbName, cat, testCase.container(), false)
 
 			actual, err := evaluator.AlgebrizeQuery(testCtx, aCfg, rewritten)
 			req.Nil(err, "failed to algebrize")
@@ -157,7 +157,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, testVars, false)
+			aCfg := createAlgebrizerCfg(defaultDbName, testCatalog, testVars, false)
 
 			_, err = evaluator.AlgebrizeQuery(testCtx, aCfg, rewritten)
 
@@ -3305,7 +3305,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			req.Nil(err, "failed to rewrite query")
 
 			// run tests for algebrizing commands in --writeMode, except for the failure tests.
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, testVars, true)
+			aCfg := createAlgebrizerCfg(defaultDbName, testCatalog, testVars, true)
 
 			actual, err := evaluator.AlgebrizeCommand(testCtx, aCfg, rewritten)
 
@@ -3328,7 +3328,7 @@ func TestAlgebrizeCommand(t *testing.T) {
 			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, testCatalog, testVars, writeMode)
+			aCfg := createAlgebrizerCfg(defaultDbName, testCatalog, testVars, writeMode)
 
 			_, err = evaluator.AlgebrizeCommand(testCtx, aCfg, rewritten)
 
@@ -3776,13 +3776,12 @@ func TestAlgebrizeExpr(t *testing.T) {
 			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
-			testVars = evaluator.CreateTestVariables(
+			vars := evaluator.CreateTestVariables(
 				evaluator.GetMongoDBInfo(testCase.version, testSchema, mongodb.AllPrivileges),
 			)
-			testCatalog = evaluator.GetCatalog(
-				testSchema, testVars, testInfo)
+			testCatalog = evaluator.GetCatalog(testSchema, vars, testInfo)
 
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), "test", testCatalog, testVars, false)
+			aCfg := createAlgebrizerCfg("test", testCatalog, vars, false)
 
 			actual, err := evaluator.AlgebrizeQuery(testCtx, aCfg, rewritten)
 			actualExpr := actual.(*evaluator.ProjectStage).ProjectedColumns()[0].Expr
@@ -3808,7 +3807,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 			rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 			req.Nil(err, "failed to rewrite query")
 
-			aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), "test", testCatalog, testVars, false)
+			aCfg := createAlgebrizerCfg("test", testCatalog, testVars, false)
 
 			_, err = evaluator.AlgebrizeQuery(testCtx, aCfg, rewritten)
 
@@ -4327,7 +4326,7 @@ func BenchmarkAlgebrizeQuery(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		aCfg := evaluator.NewAlgebrizerConfig(log.GlobalLogger(), defaultDbName, ctlg, vars, false)
+		aCfg := createAlgebrizerCfg(defaultDbName, ctlg, vars, false)
 		if err != nil {
 			b.Fatal(err)
 		}

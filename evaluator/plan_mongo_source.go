@@ -521,6 +521,12 @@ func (ms *MongoSourceStage) Collection() string {
 	return ms.collectionNames[0]
 }
 
+// Database gets the name of the database against which this MongoSourceStage
+// will run its aggregation pipeline.
+func (ms *MongoSourceStage) Database() string {
+	return ms.dbName
+}
+
 // mappingRegistry provides a way to get a field name from a table/column.
 type mappingRegistry struct {
 	columns []*results.Column

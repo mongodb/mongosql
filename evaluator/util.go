@@ -16,6 +16,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -473,6 +474,21 @@ func GoValueToSQLValue(kind values.SQLValueKind, v interface{}) values.SQLValue 
 			"unexpected go type %T from dynamic source or system variable in GoValueToSQLValue",
 			vTyped))
 	}
+}
+
+// GetMongoDBVersion is a utility function that gets the MongoDB version to use for new
+// configurations based on the mongodb_version_compatibility or mongodb_version variable
+// in the provided container.
+func GetMongoDBVersion(vars *variable.Container) []uint8 {
+	compatibilityVersion := vars.GetString(variable.MongoDBVersionCompatibility)
+	if len(compatibilityVersion) == 0 {
+		compatibilityVersion = vars.GetString(variable.MongoDBVersion)
+	}
+	version, err := procutil.VersionToSlice(compatibilityVersion)
+	if err != nil {
+		panic(fmt.Sprintf("invalid version provided: %v", compatibilityVersion))
+	}
+	return version
 }
 
 // GetSQLValueKind is a utility function that gets the values.SQLValueKind to use for new

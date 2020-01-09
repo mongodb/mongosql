@@ -12,8 +12,6 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/evaluator/variable"
-	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -320,25 +318,6 @@ func strToTime(s string) (time.Duration, int, bool) {
 	return time.Duration(maxHour)*time.Hour +
 		time.Duration(maxMinute)*time.Minute +
 		time.Duration(maxSecond)*time.Second, returnHour, true
-}
-
-// getMongoDBVersion is a utility function that gets the MongoDB version to use for new
-// configurations based on the mongodb_version_compatibility or mongodb_version variable
-// in the provided container.
-func getMongoDBVersion(vars *variable.Container) []uint8 {
-	compatibilityVersion := vars.GetString(variable.MongoDBVersionCompatibility)
-	if len(compatibilityVersion) == 0 {
-		compatibilityVersion = vars.GetString(variable.MongoDBVersion)
-	}
-	version, err := procutil.VersionToSlice(compatibilityVersion)
-	if err != nil {
-		panic(fmt.Sprintf("invalid version provided: %v", compatibilityVersion))
-	}
-	return version
-}
-
-func getMySQLVersion(vars *variable.Container) string {
-	return vars.GetString(variable.Version)
 }
 
 // panicIfNotPlanStage returns a PlanStage from a Node n, or panics if the Node is not a PlanStage.

@@ -76,21 +76,49 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 
 	lg := log.GlobalLogger()
 	vars := createVariables(t.info)
-	catalog, err := createCatalog(t.schema, vars, t.info)
+	ctlg, err := createCatalog(t.schema, vars, t.info)
 	if err != nil {
 		return nil, "", err
 	}
 
+	// algebrizer settings
+	mongoDBToplogy := vars.GetString(variable.MongoDBTopology)
+	sqlValueKind := evaluator.GetSQLValueKind(vars)
+	sqlSelectLimit := vars.GetUint64(variable.SQLSelectLimit)
+	mongoDBMaxVarcharLength := vars.GetUint64(variable.MongoDBMaxVarcharLength)
+	groupConcatMaxLen := vars.GetInt64(variable.GroupConcatMaxLen)
+	polymorphicTypeConversionMode := vars.GetString(variable.PolymorphicTypeConversionMode)
+	mdbVersion := evaluator.GetMongoDBVersion(vars)
+
+	// pushdown settings
+	shouldPushDown := vars.GetBool(variable.Pushdown)
+	pushDownSelfJoins := vars.GetBool(variable.OptimizeSelfJoins)
+	format := evaluator.NoOutputFormat
+	formatVersion := evaluator.NoOutputVersion
+
+	// optimizer settings
+	collation := vars.GetCollation(variable.CollationConnection)
+	optimizeCrossJoins := vars.GetBool(variable.OptimizeCrossJoins)
+	optimizeEvaluations := vars.GetBool(variable.OptimizeEvaluations)
+	optimizeFiltering := vars.GetBool(variable.OptimizeFiltering)
+	optimizeInnerJoins := vars.GetBool(variable.OptimizeInnerJoins)
+	reconcileArithmeticAggFunctions := vars.GetBool(variable.ReconcileArithmeticAggFunctions)
+
 	// For now, assume no --writeMode.
-	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, catalog, vars, false)
+	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, ctlg, vars, mongoDBToplogy, false,
+		sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength, groupConcatMaxLen,
+		polymorphicTypeConversionMode, mdbVersion)
 
 	naivePlan, err := evaluator.AlgebrizeQuery(ctx, algebrizerCfg, stmt)
 	if err != nil {
 		return nil, "", err
 	}
 
-	pushdownCfg := evaluator.NewPushdownConfig(lg, vars, evaluator.NoOutputFormat, evaluator.NoOutputVersion)
-	optimizerCfg := evaluator.NewOptimizerConfig(lg, vars)
+	pushdownCfg := evaluator.NewPushdownConfig(lg, mdbVersion, shouldPushDown, pushDownSelfJoins,
+		sqlValueKind, format, formatVersion)
+	optimizerCfg := evaluator.NewOptimizerConfig(lg, collation, sqlValueKind, optimizeCrossJoins,
+		optimizeEvaluations, optimizeFiltering, optimizeInnerJoins, reconcileArithmeticAggFunctions)
+
 	optimizedPlan, err := evaluator.OptimizePlan(ctx, optimizerCfg, naivePlan)
 	if err != nil && !evaluator.IsNonFatalPushdownError(err) {
 		return nil, "", err

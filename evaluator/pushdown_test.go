@@ -538,7 +538,7 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 	rewritten, err := evaluator.RewriteStatement(rCfg, statement)
 	req.Nil(err, "failed to rewrite query")
 
-	aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog, testVariables)
+	aCfg := createAlgebrizerCfg(defaultDbName, testSchemaCatalog, testVariables, false)
 	plan, err := evaluator.AlgebrizeQuery(bgCtx, aCfg, rewritten)
 
 	req.Nil(err, "failed to algebrize query")

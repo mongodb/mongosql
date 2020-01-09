@@ -44,20 +44,33 @@ type AlgebrizerConfig struct {
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
 // provided values. AlgebrizerConfigs should always be constructed via this
 // function instead of via a struct literal.
-func NewAlgebrizerConfig(lg log.Logger, dbName string, c catalog.Catalog, vars *variable.Container, isWriteMode bool) *AlgebrizerConfig {
+func NewAlgebrizerConfig(
+	lg log.Logger,
+	dbName string,
+	c catalog.Catalog,
+	vars *variable.Container,
+	mongoDBTopology string,
+	isWriteMode bool,
+	sqlValueKind values.SQLValueKind,
+	sqlSelectLimit,
+	maxVarcharLength uint64,
+	groupConcatMaxLen int64,
+	polymorphicTypeConversionMode string,
+	mdbVersion []uint8,
+) *AlgebrizerConfig {
 	return &AlgebrizerConfig{
 		lg:                            lg,
 		dbName:                        dbName,
 		catalog:                       c,
 		variables:                     vars,
-		isMongos:                      vars.GetString(variable.MongoDBTopology) == "mongos",
+		isMongos:                      mongoDBTopology == "mongos",
 		isWriteMode:                   isWriteMode,
-		sqlValueKind:                  GetSQLValueKind(vars),
-		sqlSelectLimit:                vars.GetUint64(variable.SQLSelectLimit),
-		maxVarcharLength:              vars.GetUint64(variable.MongoDBMaxVarcharLength),
-		groupConcatMaxLen:             vars.GetInt64(variable.GroupConcatMaxLen),
-		polymorphicTypeConversionMode: vars.GetString(variable.PolymorphicTypeConversionMode),
-		version:                       getMongoDBVersion(vars),
+		sqlValueKind:                  sqlValueKind,
+		sqlSelectLimit:                sqlSelectLimit,
+		maxVarcharLength:              maxVarcharLength,
+		groupConcatMaxLen:             groupConcatMaxLen,
+		polymorphicTypeConversionMode: polymorphicTypeConversionMode,
+		version:                       mdbVersion,
 	}
 }
 

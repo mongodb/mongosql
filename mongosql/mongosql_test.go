@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
@@ -380,6 +381,7 @@ schema:
 		mongoVersion       string
 		expectedError      string
 		expectedOutput     string
+		expectedDatabase   string
 		expectedCollection string
 	}{
 		{
@@ -394,14 +396,14 @@ schema:
 			query:         "select char_length(foo.a) from foo",
 			dbName:        testDBName,
 			mongoVersion:  testMongoVersion3,
-			expectedError: "query not fully pushed down",
+			expectedError: `fatal error executing sql "select char_length(foo.a) from foo": query not fully pushed down`,
 		},
 		{
 			desc:          "query that can't be pushed down (cross join with local db different from foreign db)",
 			query:         "select foo.a, bar.b from test.foo, test2.bar",
 			dbName:        testDBName,
 			mongoVersion:  testMongoVersion4,
-			expectedError: "query not fully pushed down",
+			expectedError: `fatal error executing sql "select foo.a, bar.b from test.foo, test2.bar": query not fully pushed down`,
 		},
 		{
 			desc:          "database doesn't exist in schema",
@@ -430,6 +432,7 @@ schema:
 			dbName:             testDBName,
 			mongoVersion:       testMongoVersion4,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
 		},
 		{
@@ -438,7 +441,17 @@ schema:
 			dbName:             testDBName,
 			mongoVersion:       testMongoVersion4,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
+		},
+		{
+			desc:               "simple select query (qualified table with different name than default) correctly translated to pipeline",
+			query:              "select bar.b from test2.bar",
+			dbName:             testDBName,
+			mongoVersion:       testMongoVersion4,
+			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test2"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   "test2",
+			expectedCollection: "bar",
 		},
 		{
 			desc:               "simple select query with computed columns correctly translated to pipeline",
@@ -446,6 +459,7 @@ schema:
 			dbName:             testDBName,
 			mongoVersion:       testMongoVersion4,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"db": {"$literal": "test"},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "a+b"},"value": {"$add": ["$a","$b"]}}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
 		},
 		{
@@ -454,6 +468,7 @@ schema:
 			dbName:             testDBName,
 			mongoVersion:       testMongoVersion4,
 			expectedOutput:     `[{"$match": {"$expr": {"$and": [{"$gt": ["$c",null]},{"$gt": ["$b",null]},{"$lt": ["$b","$c"]}]}}},{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
 		},
 		{
@@ -462,13 +477,25 @@ schema:
 			dbName:             testDBName,
 			mongoVersion:       "latest",
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "t"},"column": {"$literal": "a"},"columnAlias": {"$literal": "my_a"},"value": "$a"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "t"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b_cool"},"value": "$b"},{"db": {"$literal": "test"},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "sum"},"value": {"$add": ["$a","$b"]}}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
 		},
 	}
 
 	for _, tcase := range tcases {
 		t.Run(tcase.desc, func(t *testing.T) {
-			actualOutputRaw, actualCollection, err := TranslateSQLQueryRaw(tcase.query, tcase.dbName, tcase.mongoVersion, testSchema)
+			ctlg, err := getCatalog(testSchema)
+			if err != nil {
+				t.Errorf("failed to create catalog: %v", err)
+			}
+
+			mdbVersion, err := mongoDBVersionAsSlice(tcase.mongoVersion)
+			if err != nil {
+				t.Errorf("failed to parse mongo version (%v): %v", tcase.mongoVersion, err)
+			}
+
+			tCfg := NewTranslationConfig(ctlg, evaluator.ODBCOutputFormat, 1, tcase.dbName, mdbVersion)
+			actualOutputRaw, actualDatabase, actualCollection, err := TranslateSQLQueryRaw(context.Background(), tCfg, tcase.query)
 
 			if tcase.expectedError != "" {
 				if err == nil {
@@ -492,6 +519,9 @@ schema:
 
 				if actualOutput != tcase.expectedOutput {
 					t.Fatalf("%s: actual output is not same as expected (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualOutput, tcase.expectedOutput)
+				}
+				if actualDatabase != tcase.expectedDatabase {
+					t.Fatalf("%s: actual database is not same as expected (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualDatabase, tcase.expectedDatabase)
 				}
 				if actualCollection != tcase.expectedCollection {
 					t.Fatalf("%s: actual collection is not same as expected (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualCollection, tcase.expectedCollection)

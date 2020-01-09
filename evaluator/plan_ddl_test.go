@@ -10,7 +10,6 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
-	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
@@ -27,9 +26,6 @@ func TestPlanDDLStage(t *testing.T) {
 	bgCtx := context.Background()
 	lg := log.NoOpLogger()
 
-	cfg := config.Default()
-	cfg.MongoDB.VersionCompatibility = "4.2.0"
-	vars := variable.NewGlobalContainer(cfg)
 	// set up a catalog with a database writes_test_1 and table foo
 	cat := catalog.New("def")
 	_, err := cat.AddDatabase(dbName)
@@ -39,7 +35,7 @@ func TestPlanDDLStage(t *testing.T) {
 	err = catDB.AddTable(catalog.NewDynamicTable(tableName, "", results.NewEmptyRowChanIter))
 	req.NoError(err)
 
-	exeCfg := evaluator.NewExecutionConfig(lg, vars, newTestCommandHandler(cat), nil, "information_schema")
+	exeCfg := evaluator.NewExecutionConfig(lg, "information_schema", []uint8{4, 2, 0}, false, 0, values.MongoSQLValueKind, newTestCommandHandler(cat), nil)
 
 	// create a database that already exists with 'if not exists' set, should not error.
 	dbc := evaluator.NewCreateDatabaseCommand(cat, dbName, true)
