@@ -9,7 +9,7 @@ import (
 var idRef = ast.NewFieldRef("_id", nil)
 
 // DeadCodeElimination removes dead code.
-func DeadCodeElimination(pipeline *ast.Pipeline) *ast.Pipeline {
+func DeadCodeElimination(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	// Indices of the stages to keep.
 	keepIndices := make([]bool, len(pipeline.Stages))
 	keepCount := 0

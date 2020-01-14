@@ -157,14 +157,14 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				"g.a=bar.a) y on x.a=y.a",
 			expected: []*ast.Pipeline{
 				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
 					ast.NewMatchStage(
 						ast.NewBinary(bsonutil.OpNeq,
-							ast.NewFieldRef("test_DOT_foo_DOT_a", nil),
+							ast.NewFieldRef("a", nil),
 							astutil.NullLiteral,
 						),
+					),
+					ast.NewProjectStage(
+						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
 					),
 					ast.NewLookupStage("bar", ast.NewFieldRef("test_DOT_foo_DOT_a", nil), "b", "__joined_bar",
 						nil, nil,
@@ -179,14 +179,14 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				),
 				// another pipeline
 				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
 					ast.NewMatchStage(
 						ast.NewBinary(bsonutil.OpNeq,
-							ast.NewFieldRef("test_DOT_foo_DOT_a", nil),
+							ast.NewFieldRef("a", nil),
 							astutil.NullLiteral,
 						),
+					),
+					ast.NewProjectStage(
+						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
 					),
 					ast.NewLookupStage("bar", ast.NewFieldRef("test_DOT_foo_DOT_a", nil), "a", "__joined_bar",
 						nil, nil,
@@ -219,15 +219,15 @@ func TestOptimizePartialPushdown(t *testing.T) {
 					),
 				),
 				ast.NewPipeline(
+					ast.NewMatchStage(
+						ast.NewBinary(bsonutil.OpNeq,
+							ast.NewFieldRef("a", nil),
+							astutil.NullLiteral,
+						),
+					),
 					ast.NewProjectStage(
 						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
 						ast.NewAssignProjectItem("test_DOT_bar_DOT_b", ast.NewFieldRef("b", nil)),
-					),
-					ast.NewMatchStage(
-						ast.NewBinary(bsonutil.OpNeq,
-							ast.NewFieldRef("test_DOT_bar_DOT_a", nil),
-							astutil.NullLiteral,
-						),
 					),
 					ast.NewLookupStage("foo", ast.NewFieldRef("test_DOT_bar_DOT_a", nil), "a", "__joined_f",
 						nil, nil,
@@ -248,16 +248,16 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				" on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
 			expected: []*ast.Pipeline{
 				ast.NewPipeline(
-					ast.NewUnwindStage(ast.NewFieldRef("d", nil), "d_idx", false),
-					ast.NewUnwindStage(
-						ast.NewFieldRef("a", ast.NewFieldRef("d", nil)),
-						"d.a_idx", false,
-					),
 					ast.NewMatchStage(
 						ast.NewBinary(bsonutil.OpNeq,
 							ast.NewFieldRef("_id", nil),
 							astutil.NullLiteral,
 						),
+					),
+					ast.NewUnwindStage(ast.NewFieldRef("d", nil), "d_idx", false),
+					ast.NewUnwindStage(
+						ast.NewFieldRef("a", ast.NewFieldRef("d", nil)),
+						"d.a_idx", false,
 					),
 					ast.NewLookupStage("foo", ast.NewFieldRef("_id", nil), "_id", "__joined_f",
 						nil, nil,

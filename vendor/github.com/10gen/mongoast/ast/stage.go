@@ -7,6 +7,7 @@ import (
 // Stage is implemented by all expressions in the AST.
 type Stage interface {
 	Node
+	StageName() string
 	WalkStage(v Visitor) Stage
 }
 
@@ -36,6 +37,11 @@ type AddFieldsStage struct {
 	Items []*AddFieldsItem
 }
 
+// StageName implements the Stage interface.
+func (*AddFieldsStage) StageName() string {
+	return "$addFields"
+}
+
 // NewBucketStage makes a BucketStage.
 func NewBucketStage(groupBy Expr, boundaries []bsoncore.Value, defaultID *bsoncore.Value, output []*GroupItem) *BucketStage {
 	return &BucketStage{
@@ -55,6 +61,11 @@ type BucketStage struct {
 	Output     []*GroupItem
 }
 
+// StageName implements the Stage interface.
+func (*BucketStage) StageName() string {
+	return "$bucket"
+}
+
 // NewBucketAutoStage makes a BucketAutoStage.
 func NewBucketAutoStage(groupBy Expr, buckets int64, output []*GroupItem, granularity string) *BucketAutoStage {
 	return &BucketAutoStage{
@@ -72,6 +83,11 @@ type BucketAutoStage struct {
 	Buckets     int64
 	Output      []*GroupItem
 	Granularity string
+}
+
+// StageName implements the Stage interface.
+func (*BucketAutoStage) StageName() string {
+	return "$bucketAuto"
 }
 
 // NewCollStatsStage makes a CollStatsStage.
@@ -118,6 +134,11 @@ type CollStatsStage struct {
 	Count        *CollStatsCount
 }
 
+// StageName implements the StageName interface.
+func (*CollStatsStage) StageName() string {
+	return "$collStats"
+}
+
 // NewCountStage makes a CountStage.
 func NewCountStage(fieldName string) *CountStage {
 	return &CountStage{fieldName}
@@ -126,6 +147,36 @@ func NewCountStage(fieldName string) *CountStage {
 // CountStage counts the documents and sets the fieldName to that value.
 type CountStage struct {
 	FieldName string
+}
+
+// StageName implements the Stage interface.
+func (*CountStage) StageName() string {
+	return "$count"
+}
+
+// NewCurrentOpStage makes a CurrentOpStage.
+func NewCurrentOpStage(allUsers, idleConnections, idleCursors, idleSessions, localOps bool) *CurrentOpStage {
+	return &CurrentOpStage{
+		AllUsers:        allUsers,
+		IdleConnections: idleConnections,
+		IdleCursors:     idleCursors,
+		IdleSessions:    idleSessions,
+		LocalOps:        localOps,
+	}
+}
+
+// CurrentOpStage returns a list of currently running queries.
+type CurrentOpStage struct {
+	AllUsers        bool
+	IdleConnections bool
+	IdleCursors     bool
+	IdleSessions    bool
+	LocalOps        bool
+}
+
+// StageName implements the Stage interface.
+func (*CurrentOpStage) StageName() string {
+	return "$currentOp"
 }
 
 // NewFacetStage makes a FacetStage.
@@ -154,6 +205,11 @@ type FacetStage struct {
 	Items []*FacetItem
 }
 
+// StageName implements the Stage interface.
+func (*FacetStage) StageName() string {
+	return "$facet"
+}
+
 // NewGroupStage makes a GroupStage.
 func NewGroupStage(by Expr, items ...*GroupItem) *GroupStage {
 	return &GroupStage{by, items}
@@ -176,6 +232,11 @@ type GroupStage struct {
 	Items []*GroupItem
 }
 
+// StageName implements the Stage interface.
+func (*GroupStage) StageName() string {
+	return "$group"
+}
+
 // NewIndexStatsStage makes an IndexStatsStage.
 func NewIndexStatsStage() *IndexStatsStage {
 	return &IndexStatsStage{}
@@ -183,6 +244,11 @@ func NewIndexStatsStage() *IndexStatsStage {
 
 // IndexStatsStage gets index statistics.
 type IndexStatsStage struct{}
+
+// StageName implements the Stage interface.
+func (*IndexStatsStage) StageName() string {
+	return "$indexStats"
+}
 
 // NewLimitStage makes a LimitStage.
 func NewLimitStage(count int64) *LimitStage {
@@ -194,6 +260,11 @@ type LimitStage struct {
 	Count int64
 }
 
+// StageName implements the Stage interface.
+func (*LimitStage) StageName() string {
+	return "$limit"
+}
+
 // NewLookupStage makes a LookupStage.
 func NewLookupStage(from string, localField *FieldRef, foreignField, as string, let []*LookupLetItem, pipeline *Pipeline) *LookupStage {
 	return &LookupStage{
@@ -203,6 +274,18 @@ func NewLookupStage(from string, localField *FieldRef, foreignField, as string, 
 		As:           as,
 		Let:          let,
 		Pipeline:     pipeline,
+	}
+}
+
+func NewLookupStageWithDB(db, coll string, localField *FieldRef, foreignField, as string, let []*LookupLetItem, pipeline *Pipeline) *LookupStage {
+	return &LookupStage{
+		From:         coll,
+		LocalField:   localField,
+		ForeignField: foreignField,
+		As:           as,
+		Let:          let,
+		Pipeline:     pipeline,
+		FromDB:       db,
 	}
 }
 
@@ -228,6 +311,12 @@ type LookupStage struct {
 	As           string
 	Let          []*LookupLetItem
 	Pipeline     *Pipeline
+	FromDB       string
+}
+
+// StageName implements the Stage interface.
+func (*LookupStage) StageName() string {
+	return "$lookup"
 }
 
 // NewMatchStage makes a MatchStage.
@@ -240,14 +329,59 @@ type MatchStage struct {
 	Expr Expr
 }
 
+// StageName implements the Stage interface.
+func (*MatchStage) StageName() string {
+	return "$match"
+}
+
 // NewOutStage makes an OutStage.
 func NewOutStage(collectionName string) *OutStage {
 	return &OutStage{CollectionName: collectionName}
 }
 
-// OutStage is an output stage.
+// OutToS3Fields defines the fields for output to S3.
+type OutToS3Fields struct {
+	Bucket           Expr
+	Filename         Expr
+	Region           string
+	Format           string
+	MaxFileSizeBytes int64
+}
+
+// OutStage is an output stage. This stage can take several different forms,
+// each of which is represented by a different field on this structure. Exactly
+// one field should be non-empty.
 type OutStage struct {
 	CollectionName string
+	S3             *OutToS3Fields
+	S3URL          string
+}
+
+// StageName implements the Stage interface.
+func (*OutStage) StageName() string {
+	return "$out"
+}
+
+// NewOutToS3Stage makes an OutStage for output to S3.
+// { $out: { s3: { bucket: "foo", filename: "bar" } } }
+func NewOutToS3Stage(bucket, filename Expr, region, format string, maxFileSizeBytes int64) *OutStage {
+	return &OutStage{
+		S3: &OutToS3Fields{
+			Bucket:           bucket,
+			Filename:         filename,
+			Region:           region,
+			Format:           format,
+			MaxFileSizeBytes: maxFileSizeBytes,
+		},
+	}
+}
+
+// NewOutToS3URLStage makes an OutStage for output to an S3 URL.
+// { $out: { s3: "s3://foo/bar" } }
+func NewOutToS3URLStage(url string) *OutStage {
+	return &OutStage{
+		S3URL: url,
+	}
 }
 
 // ProjectItem is an item in a ProjectStage.
@@ -279,36 +413,36 @@ func (pi *AssignProjectItem) GetName() string {
 
 // GetName returns the name of the item.
 func (pi *IncludeProjectItem) GetName() string {
-	return GetDottedFieldName(pi.FieldRef)
+	return GetDottedFieldName(pi.Ref)
 }
 
 // NewExcludeProjectItem makes an ExcludeProjectItem.
-func NewExcludeProjectItem(fieldRef *FieldRef) *ExcludeProjectItem {
+func NewExcludeProjectItem(ref FieldLikeRef) *ExcludeProjectItem {
 	return &ExcludeProjectItem{
-		FieldRef: fieldRef,
+		Ref: ref,
 	}
 }
 
 // ExcludeProjectItem is excluded from output.
 type ExcludeProjectItem struct {
-	FieldRef *FieldRef
+	Ref FieldLikeRef
 }
 
 // GetName returns the name of the item.
 func (pi *ExcludeProjectItem) GetName() string {
-	return GetDottedFieldName(pi.FieldRef)
+	return GetDottedFieldName(pi.Ref)
 }
 
 // NewIncludeProjectItem makes an IncludeProjectItem.
-func NewIncludeProjectItem(fieldRef *FieldRef) *IncludeProjectItem {
+func NewIncludeProjectItem(ref FieldLikeRef) *IncludeProjectItem {
 	return &IncludeProjectItem{
-		FieldRef: fieldRef,
+		Ref: ref,
 	}
 }
 
 // IncludeProjectItem is included in output.
 type IncludeProjectItem struct {
-	FieldRef *FieldRef
+	Ref FieldLikeRef
 }
 
 // NewProjectStage makes a ProjectStage.
@@ -321,6 +455,11 @@ func NewProjectStage(items ...ProjectItem) *ProjectStage {
 // ProjectStage is a projection Stage.
 type ProjectStage struct {
 	Items []ProjectItem
+}
+
+// StageName implements the Stage interface.
+func (*ProjectStage) StageName() string {
+	return "$project"
 }
 
 // IsExclusion returns true if this project is an exclusion.
@@ -343,7 +482,7 @@ func (n *ProjectStage) ExcludeItems() map[string]struct{} {
 	m := make(map[string]struct{})
 	for _, i := range n.Items {
 		if epi, ok := i.(*ExcludeProjectItem); ok {
-			m[GetDottedFieldName(epi.FieldRef)] = struct{}{}
+			m[GetDottedFieldName(epi.Ref)] = struct{}{}
 		}
 	}
 
@@ -387,6 +526,11 @@ type RedactStage struct {
 	Expr Expr
 }
 
+// StageName implements the RedactStage interface.
+func (*RedactStage) StageName() string {
+	return "$redact"
+}
+
 // NewReplaceRootStage makes a ReplaceRootStage.
 func NewReplaceRootStage(newRoot Expr) *ReplaceRootStage {
 	return &ReplaceRootStage{
@@ -400,6 +544,11 @@ type ReplaceRootStage struct {
 	NewRoot Expr
 }
 
+// StageName implements the Stage interface.
+func (*ReplaceRootStage) StageName() string {
+	return "$replaceRoot"
+}
+
 // NewSampleStage makes a SampleStage.
 func NewSampleStage(count int64) *SampleStage {
 	return &SampleStage{count}
@@ -410,6 +559,11 @@ type SampleStage struct {
 	Count int64
 }
 
+// StageName implements the Stage interface.
+func (*SampleStage) StageName() string {
+	return "$sample"
+}
+
 // NewSkipStage makes a SkipStage.
 func NewSkipStage(count int64) *SkipStage {
 	return &SkipStage{count}
@@ -418,6 +572,11 @@ func NewSkipStage(count int64) *SkipStage {
 // SkipStage skips the number of documents before returning results.
 type SkipStage struct {
 	Count int64
+}
+
+// StageName implements the Stage interface.
+func (*SkipStage) StageName() string {
+	return "$skip"
 }
 
 // NewSortItem makes a sort item.
@@ -441,6 +600,11 @@ type SortStage struct {
 	Items []*SortItem
 }
 
+// StageName implements the Stage interface.
+func (*SortStage) StageName() string {
+	return "$sort"
+}
+
 // NewSortByCountStage makes a sort by count stage.
 func NewSortByCountStage(expr Expr) *SortByCountStage {
 	return &SortByCountStage{
@@ -451,6 +615,11 @@ func NewSortByCountStage(expr Expr) *SortByCountStage {
 // SortByCountStage groups by the specified expression and then sorts by count.
 type SortByCountStage struct {
 	Expr Expr
+}
+
+// StageName implements the Stage interface.
+func (*SortByCountStage) StageName() string {
+	return "$sortByCount"
 }
 
 // NewSortedMergeStage makes a sorted merge stage.
@@ -464,6 +633,11 @@ type SortedMergeStage struct {
 	Items []*SortItem
 }
 
+// StageName implements the Stage interface.
+func (*SortedMergeStage) StageName() string {
+	return "$sortedMerge"
+}
+
 // NewUnwindStage makes an unwind stage.
 func NewUnwindStage(field Ref, arrayIndexField string, preserveNullAndEmptyArrays bool) *UnwindStage {
 	return &UnwindStage{field, arrayIndexField, preserveNullAndEmptyArrays}
@@ -474,4 +648,9 @@ type UnwindStage struct {
 	Path                       Ref
 	IncludeArrayIndex          string
 	PreserveNullAndEmptyArrays bool
+}
+
+// StageName implements the Stage interface.
+func (*UnwindStage) StageName() string {
+	return "$unwind"
 }

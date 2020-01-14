@@ -57,11 +57,14 @@ func CreateTestOptimizerCfg(c *collation.Collation, eCfg *ExecutionConfig) *Opti
 // This function should only be called from evaluator unit tests.
 func CreateTestPushdownCfg(mongoDBVersion []uint8, sqlValueKind values.SQLValueKind) *PushdownConfig {
 	return &PushdownConfig{
-		lg:                log.GlobalLogger(),
-		shouldPushDown:    true,
-		pushDownSelfJoins: true,
-		sqlValueKind:      sqlValueKind,
-		mongoDBVersion:    mongoDBVersion,
+		lg:                            log.GlobalLogger(),
+		allowCrossDBLookups:           false,
+		allowShardedLookups:           false,
+		allowRowGeneratorOptimization: true,
+		shouldPushDown:                true,
+		pushDownSelfJoins:             true,
+		sqlValueKind:                  sqlValueKind,
+		mongoDBVersion:                mongoDBVersion,
 	}
 }
 
@@ -238,7 +241,7 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 
 	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, ctlg, vars, mongoDBToplogy, false,
 		sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength, groupConcatMaxLen,
-		polymorphicTypeConversionMode, mdbVersion)
+		polymorphicTypeConversionMode, mdbVersion, true, false)
 	actualPlan, err := AlgebrizeQuery(ctx, algebrizerCfg, rewritten)
 	if err != nil {
 		return nil, err

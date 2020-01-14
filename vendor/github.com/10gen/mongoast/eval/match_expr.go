@@ -6,8 +6,12 @@ import (
 )
 
 // EvaluateMatchExpr applies the expression to the value.
-func EvaluateMatchExpr(expr ast.Expr, value bsoncore.Value) (bool, error) {
-	v, err := exprEvaluator{isMatchExpr: true}.evalToConstant(expr, value)
+func EvaluateMatchExpr(expr ast.Expr, value bsoncore.Value, memoryLimit uint64) (bool, error) {
+	ee := exprEvaluator{
+		isMatchLanguage: true,
+		memoryLimit:     memoryLimit,
+	}
+	v, err := ee.evalToConstant(expr, value)
 	if err != nil {
 		return false, err
 	}

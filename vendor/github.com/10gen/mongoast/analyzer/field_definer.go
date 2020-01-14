@@ -97,7 +97,7 @@ func definedFieldsHelper(stage ast.Stage) []string {
 		for _, item := range typedStage.Items {
 			switch typedItem := item.(type) {
 			case *ast.IncludeProjectItem:
-				field := ast.GetDottedFieldName(typedItem.FieldRef)
+				field := ast.GetDottedFieldName(typedItem.Ref)
 				ret = append(ret, field)
 			case *ast.AssignProjectItem:
 				ret = append(ret, typedItem.Name)

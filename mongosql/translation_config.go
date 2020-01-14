@@ -26,11 +26,13 @@ func NewQueryConfigFromTranslationConfig(tCfg *TranslationConfig) *evaluator.Que
 	rCfg := evaluator.NewRewriterConfig(0, tCfg.defaultDbName, lgr, false, "5.7.12", "localhost", "user")
 	aCfg := evaluator.NewAlgebrizerConfig(lgr, tCfg.defaultDbName, tCfg.ctlg,
 		variable.NewEmptyContainer(), "", false, values.MongoSQLValueKind, math.MaxUint64,
-		math.MaxUint16, 1024, variable.OffPolymorphicTypeConversionMode, tCfg.mdbVersion)
+		math.MaxUint16, 1024, variable.OffPolymorphicTypeConversionMode, tCfg.mdbVersion,
+		tCfg.allowCountOptimization, tCfg.useInformationSchemaDual)
 	oCfg := evaluator.NewOptimizerConfig(lgr, collation.Default, values.MongoSQLValueKind,
 		true, true, true, true, false)
-	pCfg := evaluator.NewPushdownConfig(lgr, tCfg.mdbVersion, true, true, values.MongoSQLValueKind,
-		tCfg.format, tCfg.formatVersion)
+	pCfg := evaluator.NewPushdownConfig(lgr, tCfg.mdbVersion, tCfg.allowShardedLookups,
+		tCfg.allowCrossDBLookups, tCfg.allowRowGeneratorOptimization, true, true,
+		values.MongoSQLValueKind, tCfg.format, tCfg.formatVersion)
 	eCfg := evaluator.NewExecutionConfig(lgr, tCfg.defaultDbName, tCfg.mdbVersion, true, 0,
 		values.MongoSQLValueKind, errCommandHandler{}, nil)
 
@@ -40,22 +42,56 @@ func NewQueryConfigFromTranslationConfig(tCfg *TranslationConfig) *evaluator.Que
 // TranslationConfig is a container for all the values needed to translate a SQL
 // query via the mongosql library.
 type TranslationConfig struct {
+	// user-configurable fields
 	ctlg          catalog.Catalog
 	format        string
 	formatVersion int
 	defaultDbName string
-	mdbVersion    []uint8
+
+	// mdbVersion is not configurable by clients of the mongosql library.
+	// Internally, this is configured for TranslateSQLQuery (the function
+	// used by mongotranslate) and is hard-coded for TranslateSQLQueryRaw
+	// (the function used by ADL).
+	mdbVersion []uint8
+
+	// non-user-configurable fields
+	allowShardedLookups           bool
+	allowCrossDBLookups           bool
+	allowRowGeneratorOptimization bool
+	allowCountOptimization        bool
+	useInformationSchemaDual      bool
 }
 
 // NewTranslationConfig returns a new TranslationConfig
 func NewTranslationConfig(ctlg catalog.Catalog, format string, formatVersion int,
-	defaultDbName string, mdbVersion []uint8) *TranslationConfig {
+	defaultDbName string) *TranslationConfig {
+	return newTranslationConfig(ctlg, format, formatVersion, defaultDbName,
+		[]uint8{100, 0, 0}, true, true, false, false, true)
+}
+
+func newTranslationConfig(
+	ctlg catalog.Catalog,
+	format string,
+	formatVersion int,
+	defaultDbName string,
+	mdbVersion []uint8,
+	allowShardedLookups,
+	allowCrossDBLookups,
+	allowRowGeneratorOptimization,
+	allowCountOptimization,
+	useInformationSchemaDual bool,
+) *TranslationConfig {
 	return &TranslationConfig{
-		ctlg:          ctlg,
-		format:        format,
-		formatVersion: formatVersion,
-		defaultDbName: defaultDbName,
-		mdbVersion:    mdbVersion,
+		ctlg:                          ctlg,
+		format:                        format,
+		formatVersion:                 formatVersion,
+		defaultDbName:                 defaultDbName,
+		mdbVersion:                    mdbVersion,
+		allowShardedLookups:           allowShardedLookups,
+		allowCrossDBLookups:           allowCrossDBLookups,
+		allowRowGeneratorOptimization: allowRowGeneratorOptimization,
+		allowCountOptimization:        allowCountOptimization,
+		useInformationSchemaDual:      useInformationSchemaDual,
 	}
 }
 

@@ -63,14 +63,14 @@ func createMongoSource(selectID int, tableName, aliasName string) evaluator.Plan
 	db, _ := testCatalog.Database(testCtx, defaultDbName)
 	tbl, _ := db.Table(testCtx, tableName)
 	table, _ := tbl.(catalog.MongoDBTable)
-	return evaluator.NewMongoSourceStage(db, table, selectID, aliasName)
+	return evaluator.NewMongoSourceStage(db.Name(), table, selectID, aliasName)
 }
 
 func createMongoDualSource(selectID int) evaluator.PlanStage {
 	db, _ := testCatalog.Database(testCtx, defaultDualDbName)
 	tbl, _ := db.Table(testCtx, defaultDualTableName)
 	table, _ := tbl.(catalog.MongoDBTable)
-	return evaluator.NewMongoSourceDualStage(db, table, selectID, defaultDualTableName)
+	return evaluator.NewMongoSourceDualStage(db.Name(), table, selectID, defaultDualTableName)
 }
 
 func TestAlgebrizeQuery(t *testing.T) {
@@ -3756,7 +3756,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 	testDB, _ := testCatalog.Database(testCtx, "test")
 	table, _ := testDB.Table(testCtx, "foo")
 	fooTable, _ := table.(catalog.MongoDBTable)
-	source := evaluator.NewMongoSourceStage(testDB, fooTable, 1, "foo")
+	source := evaluator.NewMongoSourceStage(testDB.Name(), fooTable, 1, "foo")
 
 	type test struct {
 		sql      string

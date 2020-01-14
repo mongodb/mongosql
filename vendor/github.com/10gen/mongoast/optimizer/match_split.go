@@ -6,7 +6,7 @@ import (
 )
 
 // MatchSplit splits a match into as many matches as possible.
-func MatchSplit(pipeline *ast.Pipeline) *ast.Pipeline {
+func MatchSplit(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	allStages := make([]ast.Stage, 0, len(pipeline.Stages))
 
 	for _, stage := range pipeline.Stages {

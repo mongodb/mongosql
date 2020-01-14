@@ -7,11 +7,11 @@ import (
 )
 
 // Optimization is the type of a pipeline optimization.
-type Optimization = func(*ast.Pipeline) *ast.Pipeline
+type Optimization = func(pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeline
 
 // Optimize handles optimizing a pipeline.
-func Optimize(ctx context.Context, pipeline *ast.Pipeline) *ast.Pipeline {
-	return RunPasses(ctx, pipeline,
+func Optimize(ctx context.Context, pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeline {
+	return RunPasses(ctx, pipeline, memoryLimit,
 		DeadCodeElimination,
 		ProjectionStageCompressionUp,
 		ProjectionStageCompressionDown,
@@ -29,7 +29,7 @@ func Optimize(ctx context.Context, pipeline *ast.Pipeline) *ast.Pipeline {
 }
 
 // RunPasses runs optimization passes, in order, on a pipeline (and all of its subpipelines.
-func RunPasses(ctx context.Context, pipeline *ast.Pipeline, opts ...Optimization) *ast.Pipeline {
+func RunPasses(ctx context.Context, pipeline *ast.Pipeline, memoryLimit uint64, opts ...Optimization) *ast.Pipeline {
 	checkCancel := func() bool {
 		select {
 		case <-ctx.Done():
@@ -43,7 +43,7 @@ func RunPasses(ctx context.Context, pipeline *ast.Pipeline, opts ...Optimization
 		if checkCancel() {
 			return pipeline
 		}
-		pipeline = opt(NormalizePipeline(pipeline))
+		pipeline = opt(NormalizePipeline(pipeline), memoryLimit)
 	}
 	pipeline = NormalizePipeline(pipeline)
 
@@ -51,11 +51,21 @@ func RunPasses(ctx context.Context, pipeline *ast.Pipeline, opts ...Optimization
 		switch typedStage := pipeline.Stages[i].(type) {
 		case *ast.LookupStage:
 			if typedStage.Pipeline != nil {
-				pipeline.Stages[i].(*ast.LookupStage).Pipeline = RunPasses(ctx, typedStage.Pipeline, opts...)
+				pipeline.Stages[i].(*ast.LookupStage).Pipeline = RunPasses(
+					ctx,
+					typedStage.Pipeline,
+					memoryLimit,
+					opts...,
+				)
 			}
 		case *ast.FacetStage:
 			for j := range typedStage.Items {
-				pipeline.Stages[i].(*ast.FacetStage).Items[j].Pipeline = RunPasses(ctx, typedStage.Items[j].Pipeline, opts...)
+				pipeline.Stages[i].(*ast.FacetStage).Items[j].Pipeline = RunPasses(
+					ctx,
+					typedStage.Items[j].Pipeline,
+					memoryLimit,
+					opts...,
+				)
 			}
 		}
 	}

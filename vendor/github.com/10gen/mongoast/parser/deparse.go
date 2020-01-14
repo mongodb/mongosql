@@ -9,12 +9,24 @@ import (
 
 // DeparsePipeline turns the pipeline into a bson.Array.
 func DeparsePipeline(pipeline *ast.Pipeline) bsoncore.Value {
+	v, err := DeparsePipelineErr(pipeline)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func DeparsePipelineErr(pipeline *ast.Pipeline) (bsoncore.Value, error) {
 	values := make([]bsoncore.Value, len(pipeline.Stages))
 	for i, s := range pipeline.Stages {
-		values[i] = DeparseStage(s)
+		v, err := DeparseStageErr(s)
+		if err != nil {
+			return bsoncore.Value{}, err
+		}
+		values[i] = v
 	}
 
-	return bsonutil.ArrayFromValues(values...)
+	return bsonutil.ArrayFromValues(values...), nil
 }
 
 // DeparseNode can deparse any node.

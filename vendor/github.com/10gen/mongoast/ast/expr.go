@@ -7,13 +7,26 @@ import (
 // Expr is implemented by all expressions in the AST.
 type Expr interface {
 	Node
+
+	// WalkExpr visit the expression node.
 	WalkExpr(v Visitor) Expr
+
+	// MemoryUsage returns a heuristic approximating the amount of memory used
+	// by the expression, including any subexpressions.
+	MemoryUsage() uint64
 }
 
 // Ref is implemented by reference expressions in the AST.
 type Ref interface {
 	Expr
 	WalkRef(v Visitor) Ref
+}
+
+// FieldLikeRef is implemented by reference expressions that refer to fields or indexes in documents.
+type FieldLikeRef interface {
+	Ref
+	WalkFieldLikeRef(v Visitor) FieldLikeRef
+	ParentExpr() Expr
 }
 
 // NewAggExpr makes an AggExpr.
@@ -50,6 +63,11 @@ func NewArrayIndexRef(index Expr, parent Expr) *ArrayIndexRef {
 type ArrayIndexRef struct {
 	Index  Expr
 	Parent Expr
+}
+
+// ParentExpr implements the FieldLikeRef interface.
+func (n *ArrayIndexRef) ParentExpr() Expr {
+	return n.Parent
 }
 
 // NewUnary makes a Unary.
@@ -112,6 +130,7 @@ const (
 	Subtract            BinaryOp = BinaryOp("$subtract")
 	Add                 BinaryOp = BinaryOp("$add")
 	Multiply            BinaryOp = BinaryOp("$multiply")
+	Concat              BinaryOp = BinaryOp("$concat")
 )
 
 // Flip flips the direction of a less than or greater than operator.
@@ -207,6 +226,11 @@ type FieldOrArrayIndexRef struct {
 	Parent Expr
 }
 
+// ParentExpr implements the FieldLikeRef interface.
+func (n *FieldOrArrayIndexRef) ParentExpr() Expr {
+	return n.Parent
+}
+
 // NewFieldRef makes a FieldRef.
 func NewFieldRef(name string, parent Expr) *FieldRef {
 	return &FieldRef{
@@ -219,6 +243,11 @@ func NewFieldRef(name string, parent Expr) *FieldRef {
 type FieldRef struct {
 	Name   string
 	Parent Expr
+}
+
+// ParentExpr implements the FieldLikeRef interface.
+func (n *FieldRef) ParentExpr() Expr {
+	return n.Parent
 }
 
 // NewLet makes a Let.
@@ -351,4 +380,14 @@ type Exists struct {
 // NewExists makes an Exists.
 func NewExists(fieldRef *FieldRef, exists bool) *Exists {
 	return &Exists{FieldRef: fieldRef, Exists: exists}
+}
+
+// NewMergeObjects makes a MergeObjects.
+func NewMergeObjects(exprs ...Expr) *MergeObjects {
+	return &MergeObjects{Exprs: exprs}
+}
+
+// MergeObjects combines multiple documents into one document.
+type MergeObjects struct {
+	Exprs []Expr
 }

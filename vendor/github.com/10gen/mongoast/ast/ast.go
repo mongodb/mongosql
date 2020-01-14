@@ -29,3 +29,10 @@ func NewUnknown(value bsoncore.Value) *Unknown {
 type Unknown struct {
 	Value bsoncore.Value
 }
+
+// StageName implements the Stage interface.
+func (n *Unknown) StageName() string {
+	doc, _ := n.Value.DocumentOK()
+	elems, _ := doc.Elements()
+	return elems[0].Key()
+}

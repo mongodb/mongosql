@@ -12,48 +12,75 @@ import (
 
 // DeparseMatchExpr turns an ast.Expr into a bson.Value suitable for using in a $match stage.
 func DeparseMatchExpr(e ast.Expr) bsoncore.Value {
-	value := deparseMatchSubexpr(e)
-	if b, ok := value.BooleanOK(); ok && b {
-		return bsonutil.EmptyDocument()
+	v, err := DeparseMatchExprErr(e)
+	if err != nil {
+		panic(err)
 	}
-	return value
+	return v
 }
 
-func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
+func DeparseMatchExprErr(e ast.Expr) (bsoncore.Value, error) {
+	value, err := deparseMatchSubexpr(e)
+	if err != nil {
+		return bsoncore.Value{}, err
+	}
+	if b, ok := value.BooleanOK(); ok && b {
+		return bsonutil.EmptyDocument(), nil
+	}
+	return value, nil
+}
+
+func deparseMatchSubexpr(e ast.Expr) (bsoncore.Value, error) {
 	switch te := e.(type) {
 	case *ast.AggExpr:
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsonutil.AppendValueElement(doc, "$expr", DeparseExpr(te.Expr))
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Binary:
 		switch te.Op {
 		case ast.And, ast.Or:
-			arr := bsonutil.ArrayFromValues(flattenMatchExprBinary(te.Op, te.Left, te.Right)...)
+			values, err := flattenMatchExprBinary(te.Op, te.Left, te.Right)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+			arr := bsonutil.ArrayFromValues(values...)
 
 			_, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendArrayElement(doc, string(te.Op), arr.Data)
 			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-			return bsonutil.Document(doc)
+			return bsonutil.Document(doc), nil
 		case ast.Nor:
-			arr := bsonutil.ArrayFromValues(flattenNor(te.Left, te.Right)...)
+			values, err := flattenNor(te.Left, te.Right)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+			arr := bsonutil.ArrayFromValues(values...)
 
 			_, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendArrayElement(doc, string(te.Op), arr.Data)
 			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-			return bsonutil.Document(doc)
+			return bsonutil.Document(doc), nil
 		default:
-			name := deparseMatchFieldName(te.Left)
+			name, err := deparseMatchFieldName(te.Left)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+
+			rightVal, err := deparseMatchSubexpr(te.Right)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
 
 			_, subdoc := bsoncore.AppendDocumentStart(nil)
-			subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), deparseMatchSubexpr(te.Right))
+			subdoc = bsonutil.AppendValueElement(subdoc, string(te.Op), rightVal)
 			subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
 
 			_, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
 			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 
-			return bsonutil.Document(doc)
+			return bsonutil.Document(doc), nil
 		}
 	case *ast.Unary:
 		var subdoc bsoncore.Document
@@ -65,47 +92,70 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 
 		case *ast.Binary:
 			left = tsub.Left
+
+			rightVal, err := deparseMatchSubexpr(tsub.Right)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+
 			_, subdoc = bsoncore.AppendDocumentStart(nil)
-			subdoc = bsonutil.AppendValueElement(subdoc, string(tsub.Op), deparseMatchSubexpr(tsub.Right))
+			subdoc = bsonutil.AppendValueElement(subdoc, string(tsub.Op), rightVal)
 			subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
 
 		default:
 			v := DeparseNode(tsub)
 
-			panic(fmt.Sprintf("Unary operand must be either MatchRegex or Binary, but got %T: %v", tsub, v.String()))
+			return bsoncore.Value{}, fmt.Errorf(
+				"Unary operand must be either MatchRegex or Binary, but got %T: %v",
+				tsub,
+				v.String(),
+			)
 		}
 
 		_, unarySubdoc := bsoncore.AppendDocumentStart(nil)
 		unarySubdoc = bsoncore.AppendDocumentElement(unarySubdoc, string(te.Op), subdoc)
 		unarySubdoc, _ = bsoncore.AppendDocumentEnd(unarySubdoc, 0)
 
-		name := deparseMatchFieldName(left)
+		name, err := deparseMatchFieldName(left)
+		if err != nil {
+			return bsoncore.Value{}, err
+		}
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, name, unarySubdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Constant:
-		return te.Value
+		return te.Value, nil
 	case *ast.Document:
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		for _, i := range te.Elements {
-			doc = bsonutil.AppendValueElement(doc, i.Name, deparseMatchSubexpr(i.Expr))
+			exprVal, err := deparseMatchSubexpr(i.Expr)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+			doc = bsonutil.AppendValueElement(doc, i.Name, exprVal)
 		}
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Function:
 		return deparseMatchExprFunction(te)
 	case *ast.MatchRegex:
-		name := deparseMatchFieldName(te.Expr)
+		name, err := deparseMatchFieldName(te.Expr)
+		if err != nil {
+			return bsoncore.Value{}, err
+		}
 		subdoc := deparseMatchRegex(te)
 
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Exists:
-		name := deparseMatchFieldName(te.FieldRef)
+		name, err := deparseMatchFieldName(te.FieldRef)
+		if err != nil {
+			return bsoncore.Value{}, err
+		}
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsonutil.AppendValueElement(subdoc, "$exists", bsonutil.Boolean(te.Exists))
 		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
@@ -113,12 +163,12 @@ func deparseMatchSubexpr(e ast.Expr) bsoncore.Value {
 		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Unknown:
-		return te.Value
+		return te.Value, nil
 	}
 
-	panic(fmt.Sprintf("unsupported expr %T", e))
+	return bsoncore.Value{}, fmt.Errorf("unsupported expr %T", e)
 }
 
 func deparseMatchRegex(expr *ast.MatchRegex) bsoncore.Document {
@@ -129,35 +179,51 @@ func deparseMatchRegex(expr *ast.MatchRegex) bsoncore.Document {
 	return doc
 }
 
-func flattenMatchExprBinary(op ast.BinaryOp, left, right ast.Expr) []bsoncore.Value {
+func flattenMatchExprBinary(op ast.BinaryOp, left, right ast.Expr) ([]bsoncore.Value, error) {
 	values := make([]bsoncore.Value, 0)
 
 	for _, e := range []ast.Expr{left, right} {
 		if b, isBinary := e.(*ast.Binary); isBinary && b.Op == op {
-			values = append(values, flattenMatchExprBinary(op, b.Left, b.Right)...)
+			subvalues, err := flattenMatchExprBinary(op, b.Left, b.Right)
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, subvalues...)
 			continue
 		}
 
-		values = append(values, deparseMatchSubexpr(e))
+		v, err := deparseMatchSubexpr(e)
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, v)
 	}
 
-	return values
+	return values, nil
 }
 
-func flattenNor(left, right ast.Expr) []bsoncore.Value {
+func flattenNor(left, right ast.Expr) ([]bsoncore.Value, error) {
 	values := make([]bsoncore.Value, 0)
 	for _, e := range []ast.Expr{left, right} {
 		if b, isBinary := e.(*ast.Binary); isBinary && b.Op == ast.Or {
-			values = append(values, flattenNor(b.Left, b.Right)...)
+			subvalues, err := flattenNor(b.Left, b.Right)
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, subvalues...)
 		} else {
-			values = append(values, deparseMatchSubexpr(e))
+			v, err := deparseMatchSubexpr(e)
+			if err != nil {
+				return nil, err
+			}
+			values = append(values, v)
 		}
 	}
 
-	return values
+	return values, nil
 }
 
-func deparseMatchFieldName(e ast.Expr) string {
+func deparseMatchFieldName(e ast.Expr) (string, error) {
 	switch te := e.(type) {
 	case *ast.ArrayIndexRef:
 		if ic, ok := te.Index.(*ast.Constant); ok {
@@ -166,36 +232,51 @@ func deparseMatchFieldName(e ast.Expr) string {
 			// parsed it correctly.
 			index := int(bsonutil.AsInt32(ic.Value))
 			if te.Parent != nil {
-				return deparseMatchFieldName(te.Parent) + "." + strconv.Itoa(index)
+				parentName, err := deparseMatchFieldName(te.Parent)
+				if err != nil {
+					return "", err
+				}
+				return parentName + "." + strconv.Itoa(index), nil
 			}
 
-			return strconv.Itoa(index)
+			return strconv.Itoa(index), nil
 		}
 	case *ast.FieldOrArrayIndexRef:
 		if te.Parent != nil {
-			return deparseMatchFieldName(te.Parent) + "." + strconv.Itoa(int(te.Number))
+			parentName, err := deparseMatchFieldName(te.Parent)
+			if err != nil {
+				return "", err
+			}
+			return parentName + "." + strconv.Itoa(int(te.Number)), nil
 		}
 
-		return strconv.Itoa(int(te.Number))
+		return strconv.Itoa(int(te.Number)), nil
 	case *ast.FieldRef:
 		if te.Parent != nil {
-			return deparseMatchFieldName(te.Parent) + "." + te.Name
+			parentName, err := deparseMatchFieldName(te.Parent)
+			if err != nil {
+				return "", err
+			}
+			return parentName + "." + te.Name, nil
 		}
 
-		return te.Name
+		return te.Name, nil
 	}
 
-	panic(fmt.Sprintf("unsupported expr %T", e))
+	return "", fmt.Errorf("unsupported expr %T", e)
 }
 
-func deparseMatchExprFunction(f *ast.Function) bsoncore.Value {
+func deparseMatchExprFunction(f *ast.Function) (bsoncore.Value, error) {
 	var arg bsoncore.Value
 	switch ta := f.Arg.(type) {
 	case *ast.Array:
 		if len(ta.Elements) == 2 {
 			if u, ok := ta.Elements[1].(*ast.Unknown); ok {
 				// we are of the form "fieldName": { "$op": <value> }
-				fieldName := deparseMatchFieldName(ta.Elements[0])
+				fieldName, err := deparseMatchFieldName(ta.Elements[0])
+				if err != nil {
+					return bsoncore.Value{}, err
+				}
 
 				_, opDoc := bsoncore.AppendDocumentStart(nil)
 				opDoc = bsonutil.AppendValueElement(opDoc, f.Name, u.Value)
@@ -204,22 +285,30 @@ func deparseMatchExprFunction(f *ast.Function) bsoncore.Value {
 				_, doc := bsoncore.AppendDocumentStart(nil)
 				doc = bsoncore.AppendDocumentElement(doc, fieldName, opDoc)
 				doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-				return bsonutil.Document(doc)
+				return bsonutil.Document(doc), nil
 			}
 		}
 
 		// we are of the form { "function": [<arg>, ...] }
 		values := make([]bsoncore.Value, len(ta.Elements))
 		for i, e := range ta.Elements {
-			values[i] = deparseMatchSubexpr(e)
+			v, err := deparseMatchSubexpr(e)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+			values[i] = v
 		}
 		arg = bsonutil.ArrayFromValues(values...)
 	default:
-		arg = deparseMatchSubexpr(f.Arg)
+		var err error
+		arg, err = deparseMatchSubexpr(f.Arg)
+		if err != nil {
+			return bsoncore.Value{}, err
+		}
 	}
 
 	_, doc := bsoncore.AppendDocumentStart(nil)
 	doc = bsonutil.AppendValueElement(doc, f.Name, arg)
 	doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-	return bsonutil.Document(doc)
+	return bsonutil.Document(doc), nil
 }

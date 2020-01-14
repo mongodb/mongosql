@@ -99,7 +99,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
-		plan := evaluator.NewMongoSourceStage(db, mongoTable, 1, "")
+		plan := evaluator.NewMongoSourceStage(db.Name(), mongoTable, 1, "")
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 
@@ -123,7 +123,7 @@ func TestMongoSourcePlanStage(t *testing.T) {
 		execCfg := createWorkingExecutionCfg(variablesOne, session, monitor)
 		execState := evaluator.NewExecutionState()
 
-		plan := evaluator.NewMongoSourceStage(db, mongoTable, 1, "")
+		plan := evaluator.NewMongoSourceStage(db.Name(), mongoTable, 1, "")
 		iter, err := plan.Open(bgCtx, execCfg, execState)
 		require.NoError(t, err)
 

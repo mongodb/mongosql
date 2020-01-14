@@ -240,3 +240,23 @@ func NewForeignKey(c *results.Column, name, db, tb, col string) ForeignKey {
 		},
 	}
 }
+
+// InformationSchemaDual is a MongoTable that represents the "dual table"
+// in the information_schema database. This is used for ADL translations.
+// "dual" does not traditionally exist as a specific table in a specific
+// database, however in ADL's execution engine, it is easiest to pretend
+// it does. We chose to represent dual as a table in information_schema.
+var InformationSchemaDual = MongoTable{
+	name:           "dual",
+	collation:      collation.Default,
+	columns:        results.Columns{},
+	columnMap:      map[string]*results.Column{},
+	primaryKeys:    results.Columns{},
+	indexes:        []Index{},
+	foreignKeys:    []ForeignKey{},
+	comments:       "",
+	tableType:      BaseTable,
+	isSharded:      false,
+	collectionName: "dual",
+	pipeline:       nil,
+}

@@ -6,11 +6,11 @@ import (
 	"github.com/10gen/mongoast/internal/bsonutil"
 )
 
-func ConstantPropagation(pipeline *ast.Pipeline) *ast.Pipeline {
-	return aggConstantPropagation(pipeline).(*ast.Pipeline)
+func ConstantPropagation(pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeline {
+	return aggConstantPropagation(pipeline, memoryLimit).(*ast.Pipeline)
 }
 
-func aggConstantPropagation(root ast.Node) ast.Node {
+func aggConstantPropagation(root ast.Node, memoryLimit uint64) ast.Node {
 	// We will use MinKey to signal to the evaluator that fields should
 	// be treated as errors rather than missing values. Anything during
 	// actual evaluation passed as the value in EvaluateExpr should
@@ -20,13 +20,13 @@ func aggConstantPropagation(root ast.Node) ast.Node {
 	out, _ := ast.Visit(root, func(v ast.Visitor, n ast.Node) ast.Node {
 		switch tn := n.(type) {
 		case *ast.MatchStage:
-			expr := matchConstantPropagation(tn.Expr)
+			expr := matchConstantPropagation(tn.Expr, memoryLimit)
 			if expr != tn.Expr {
 				return ast.NewMatchStage(expr)
 			}
 			return n
 		case ast.Expr:
-			if evaled, err := eval.PartialEvaluateExpr(tn, minKey); err == nil {
+			if evaled, err := eval.PartialEvaluateExpr(tn, minKey, memoryLimit); err == nil {
 				return evaled
 			}
 		}
@@ -35,13 +35,13 @@ func aggConstantPropagation(root ast.Node) ast.Node {
 	return out
 }
 
-func matchConstantPropagation(root ast.Expr) ast.Expr {
+func matchConstantPropagation(root ast.Expr, memoryLimit uint64) ast.Expr {
 	// The only place inside a $match stage where there can be expressions
 	// evaluating to constants that can be folded is inside a $expr clause.
 	out, _ := ast.Visit(root, func(v ast.Visitor, n ast.Node) ast.Node {
 		switch tn := n.(type) {
 		case *ast.AggExpr:
-			subexpr := aggConstantPropagation(tn.Expr).(ast.Expr)
+			subexpr := aggConstantPropagation(tn.Expr, memoryLimit).(ast.Expr)
 			if subexpr != tn.Expr {
 				return ast.NewAggExpr(subexpr)
 			}

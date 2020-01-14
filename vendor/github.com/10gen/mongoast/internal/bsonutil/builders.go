@@ -113,11 +113,24 @@ func DocumentFromElements(elems ...interface{}) bsoncore.Value {
 	return Document(doc)
 }
 
+// Decimal128FromFloat64 creates a Decimal128 bsoncore.Value from a given float64.
+func Decimal128FromFloat64(f float64) bsoncore.Value {
+	parsedDecimal128, err := primitive.ParseDecimal128(fmt.Sprintf("%g", f))
+	if err != nil {
+		panic(err)
+	}
+
+	return bsoncore.Value{
+		Type: bsontype.Decimal128,
+		Data: bsoncore.AppendDecimal128(nil, parsedDecimal128),
+	}
+}
+
 // Decimal128FromInt64 creates a Decimal128 bsoncore.Value from a given int64.
 func Decimal128FromInt64(i int64) bsoncore.Value {
 	parsedDecimal128, err := primitive.ParseDecimal128(fmt.Sprintf("%d", i))
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 	return bsoncore.Value{
 		Type: bsontype.Decimal128,

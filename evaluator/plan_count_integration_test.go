@@ -82,7 +82,7 @@ func TestCountPlanStage(t *testing.T) {
 		panic("table is not a MongoDB table")
 	}
 
-	mongoSourceStage := evaluator.NewMongoSourceStage(db, mongoTable, 1, "")
+	mongoSourceStage := evaluator.NewMongoSourceStage(db.Name(), mongoTable, 1, "")
 	countStage := evaluator.NewCountStage(mongoSourceStage, projectedColumn)
 
 	iter, err := countStage.Open(bgCtx, execCfg, execState)

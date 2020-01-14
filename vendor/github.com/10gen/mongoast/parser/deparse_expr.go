@@ -32,6 +32,14 @@ func shouldPreserveLiteral(v bsoncore.Value) bool {
 
 // DeparseExpr turns an expression into a bson.Value suitable for use in a non-match aggregation stage.
 func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
+	v, err := DeparseExprErr(e, needsLiteral...)
+	if err != nil {
+		panic(err)
+	}
+	return v
+}
+
+func DeparseExprErr(e ast.Expr, needsLiteral ...bool) (bsoncore.Value, error) {
 	mustIncludeLiteral := len(needsLiteral) != 0 && needsLiteral[0]
 	switch te := e.(type) {
 	// Until we get a clear distinction between Match and AggExprs, this needs to
@@ -40,13 +48,13 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsonutil.AppendValueElement(doc, "$expr", DeparseExpr(te.Expr, mustIncludeLiteral))
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Array:
 		values := make([]bsoncore.Value, len(te.Elements))
 		for i, e := range te.Elements {
 			values[i] = DeparseExpr(e, mustIncludeLiteral)
 		}
-		return bsonutil.ArrayFromValues(values...)
+		return bsonutil.ArrayFromValues(values...), nil
 	case *ast.ArrayIndexRef:
 		var parent bsoncore.Value
 		var index bsoncore.Value
@@ -69,33 +77,33 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendArrayElement(doc, "$arrayElemAt", arr)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Binary:
 		arr := bsonutil.ArrayFromValues(DeparseExpr(te.Left, mustIncludeLiteral), DeparseExpr(te.Right, mustIncludeLiteral))
 
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendArrayElement(doc, string(te.Op), arr.Data)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Constant:
 		if mustIncludeLiteral || shouldPreserveLiteral(te.Value) {
 			_, doc := bsoncore.AppendDocumentStart(nil)
 			doc = bsonutil.AppendValueElement(doc, "$literal", te.Value)
 			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-			return bsonutil.Document(doc)
+			return bsonutil.Document(doc), nil
 		}
-		return te.Value
+		return te.Value, nil
 	case *ast.Document:
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		for _, i := range te.Elements {
 			doc = bsonutil.AppendValueElement(doc, i.Name, DeparseExpr(i.Expr, mustIncludeLiteral))
 		}
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.FieldOrArrayIndexRef:
-		return deparseFieldOrArrayIndexRef(te)
+		return deparseFieldOrArrayIndexRef(te), nil
 	case *ast.FieldRef:
-		return deparseFieldRef(te)
+		return deparseFieldRef(te), nil
 	case *ast.Function:
 		// Temporary hack until we add LiteralExpr fix, this is to handle
 		// the format argument to $dateToString, which cannot be wrapped in
@@ -112,7 +120,7 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsonutil.AppendValueElement(doc, te.Name, arg)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Let:
 		_, vdoc := bsoncore.AppendDocumentStart(nil)
 		for _, variable := range te.Variables {
@@ -128,7 +136,7 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, "$let", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Conditional:
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsonutil.AppendValueElement(subdoc, "if", DeparseExpr(te.If, mustIncludeLiteral))
@@ -139,13 +147,13 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, "$cond", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Unary:
 		arr := bsonutil.ArrayFromValues(DeparseExpr(te.Expr))
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendArrayElement(doc, string(te.Op), arr.Data)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Map:
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
@@ -156,7 +164,7 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, "$map", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Filter:
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
@@ -167,7 +175,7 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, "$filter", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Reduce:
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
@@ -178,18 +186,21 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendDocumentElement(doc, "$reduce", subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Unknown:
-		return te.Value
+		return te.Value, nil
 	case *ast.VariableRef:
 		return bsoncore.Value{
 			Type: bsontype.String,
 			Data: bsoncore.AppendString(nil, "$$"+te.Name),
-		}
+		}, nil
 	// This cannot actually exist in an AggExpr, but until we get a clear distinction
 	// between Match and AggExprs, this needs to exist here or DeparseExpr can crash.
 	case *ast.MatchRegex:
-		name := deparseMatchFieldName(te.Expr)
+		name, err := deparseMatchFieldName(te.Expr)
+		if err != nil {
+			return bsoncore.Value{}, err
+		}
 
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsoncore.AppendStringElement(subdoc, "$regex", te.Pattern)
@@ -200,11 +211,15 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	// This cannot actually exist in an AggExpr, but until we get a clear distinction
 	// between Match and AggExprs, this needs to exist here or DeparseExpr can crash.
 	case *ast.Exists:
-		name := deparseMatchFieldName(te.FieldRef)
+		name, err := deparseMatchFieldName(te.FieldRef)
+		if err != nil {
+			return bsoncore.Value{}, err
+		}
+
 		_, subdoc := bsoncore.AppendDocumentStart(nil)
 		subdoc = bsonutil.AppendValueElement(subdoc, "$exists", bsonutil.Boolean(te.Exists))
 		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
@@ -212,7 +227,7 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		doc = bsoncore.AppendDocumentElement(doc, name, subdoc)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
 	case *ast.Trunc:
 		includePrecision := true
 		if c, ok := te.Precision.(*ast.Constant); ok {
@@ -236,10 +251,19 @@ func DeparseExpr(e ast.Expr, needsLiteral ...bool) bsoncore.Value {
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		doc = bsoncore.AppendArrayElement(doc, "$trunc", arr.Data)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc)
+		return bsonutil.Document(doc), nil
+	case *ast.MergeObjects:
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		exprs := make([]bsoncore.Value, len(te.Exprs))
+		for i, e := range te.Exprs {
+			exprs[i] = DeparseExpr(e, mustIncludeLiteral)
+		}
+		doc = bsonutil.AppendValueElement(doc, "$mergeObjects", bsonutil.ArrayFromValues(exprs...))
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc), nil
 	}
 
-	panic(fmt.Sprintf("unsupported expr %T", e))
+	return bsoncore.Value{}, fmt.Errorf("unsupported expr %T", e)
 }
 
 func deparseFieldOrArrayIndexRef(e *ast.FieldOrArrayIndexRef) bsoncore.Value {

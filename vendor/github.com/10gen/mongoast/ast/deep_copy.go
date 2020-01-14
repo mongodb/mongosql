@@ -136,6 +136,17 @@ func (n *CountStage) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *CurrentOpStage) DeepCopy() DeepCopier {
+	return NewCurrentOpStage(
+		n.AllUsers,
+		n.IdleConnections,
+		n.IdleCursors,
+		n.IdleSessions,
+		n.LocalOps,
+	)
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *FacetStage) DeepCopy() DeepCopier {
 	var newItems []*FacetItem
 
@@ -206,7 +217,7 @@ func (n *LookupStage) DeepCopy() DeepCopier {
 		}
 	}
 
-	return NewLookupStage(n.From, n.LocalField.DeepCopy().(*FieldRef), n.ForeignField, n.As, newLet, newPipeline)
+	return NewLookupStageWithDB(n.FromDB, n.From, n.LocalField.DeepCopy().(*FieldRef), n.ForeignField, n.As, newLet, newPipeline)
 }
 
 // DeepCopy implements the DeepCopier interface.
@@ -222,6 +233,28 @@ func (n *MatchStage) DeepCopy() DeepCopier {
 
 // DeepCopy implements the DeepCopier interface.
 func (n *OutStage) DeepCopy() DeepCopier {
+	if n.S3 != nil {
+		var newBucket Expr
+		var newFilename Expr
+
+		if n.S3.Bucket != nil {
+			newBucket = n.S3.Bucket.DeepCopy().(Expr)
+		}
+
+		if n.S3.Filename != nil {
+			newFilename = n.S3.Filename.DeepCopy().(Expr)
+		}
+
+		return NewOutToS3Stage(
+			newBucket,
+			newFilename,
+			n.S3.Region,
+			n.S3.Format,
+			n.S3.MaxFileSizeBytes,
+		)
+	} else if n.S3URL != "" {
+		return NewOutToS3URLStage(n.S3URL)
+	}
 	return NewOutStage(n.CollectionName)
 }
 
@@ -619,13 +652,13 @@ func (n *VariableRef) DeepCopy() DeepCopier {
 
 // DeepCopy implements the DeepCopier interface.
 func (n *ExcludeProjectItem) DeepCopy() DeepCopier {
-	var newFieldRef *FieldRef
+	var newRef FieldLikeRef
 
-	if n.FieldRef != nil {
-		newFieldRef = n.FieldRef.DeepCopy().(*FieldRef)
+	if n.Ref != nil {
+		newRef = n.Ref.DeepCopy().(FieldLikeRef)
 	}
 
-	return NewExcludeProjectItem(newFieldRef)
+	return NewExcludeProjectItem(newRef)
 }
 
 // DeepCopy implements the DeepCopier interface.
@@ -641,13 +674,13 @@ func (n *GroupItem) DeepCopy() DeepCopier {
 
 // DeepCopy implements the DeepCopier interface.
 func (n *IncludeProjectItem) DeepCopy() DeepCopier {
-	var newFieldRef *FieldRef
+	var newRef FieldLikeRef
 
-	if n.FieldRef != nil {
-		newFieldRef = n.FieldRef.DeepCopy().(*FieldRef)
+	if n.Ref != nil {
+		newRef = n.Ref.DeepCopy().(FieldLikeRef)
 	}
 
-	return NewIncludeProjectItem(newFieldRef)
+	return NewIncludeProjectItem(newRef)
 }
 
 // DeepCopy implements the DeepCopier interface.
@@ -725,4 +758,18 @@ func (n *Exists) DeepCopy() DeepCopier {
 	}
 
 	return NewExists(newFieldRef, n.Exists)
+}
+
+// DeepCopy implements the DeepCopier interface.
+func (n *MergeObjects) DeepCopy() DeepCopier {
+	var newExprs []Expr
+
+	if n.Exprs != nil {
+		newExprs = make([]Expr, len(n.Exprs))
+		for i, e := range n.Exprs {
+			newExprs[i] = e.DeepCopy().(Expr)
+		}
+	}
+
+	return NewMergeObjects(newExprs...)
 }

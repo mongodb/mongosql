@@ -197,6 +197,16 @@ func (n *CountStage) WalkStage(v Visitor) Stage {
 }
 
 // Walk implements the Node interface.
+func (n *CurrentOpStage) Walk(v Visitor) Node {
+	return n.WalkStage(v)
+}
+
+// WalkStage implements the Stage interface.
+func (n *CurrentOpStage) WalkStage(v Visitor) Stage {
+	return n
+}
+
+// Walk implements the Node interface.
 func (n *FacetStage) Walk(v Visitor) Node {
 	return n.WalkStage(v)
 }
@@ -352,6 +362,31 @@ func (n *OutStage) Walk(v Visitor) Node {
 
 // WalkStage implements the Stage interface.
 func (n *OutStage) WalkStage(v Visitor) Stage {
+	if n.S3 != nil {
+		changed := false
+		var newBucket Expr
+		if n.S3.Bucket != nil {
+			var bucketChanged bool
+			newBucket, bucketChanged = visitExpr(v, n.S3.Bucket)
+			changed = changed || bucketChanged
+		}
+		var newFilename Expr
+		if n.S3.Filename != nil {
+			var filenameChanged bool
+			newFilename, filenameChanged = visitExpr(v, n.S3.Filename)
+			changed = changed || filenameChanged
+		}
+		if changed {
+			cpy := *n
+			if newBucket != nil {
+				cpy.S3.Bucket = newBucket
+			}
+			if newFilename != nil {
+				cpy.S3.Filename = newFilename
+			}
+			return &cpy
+		}
+	}
 	return n
 }
 
@@ -590,16 +625,21 @@ func (n *Array) WalkExpr(v Visitor) Expr {
 
 // Walk implements the Node interface.
 func (n *ArrayIndexRef) Walk(v Visitor) Node {
-	return n.WalkRef(v)
+	return n.WalkFieldLikeRef(v)
 }
 
 // WalkExpr implements Expr interface.
 func (n *ArrayIndexRef) WalkExpr(v Visitor) Expr {
-	return n.WalkRef(v)
+	return n.WalkFieldLikeRef(v)
 }
 
 // WalkRef implements Ref interface.
 func (n *ArrayIndexRef) WalkRef(v Visitor) Ref {
+	return n.WalkFieldLikeRef(v)
+}
+
+// WalkFieldLikeRef implements FieldLikeRef interface.
+func (n *ArrayIndexRef) WalkFieldLikeRef(v Visitor) FieldLikeRef {
 	index, indexChanged := visitExpr(v, n.Index)
 	parent, parentChanged := visitExpr(v, n.Parent)
 	if indexChanged || parentChanged {
@@ -805,16 +845,21 @@ func (n *Document) WalkExpr(v Visitor) Expr {
 
 // Walk implements the Node interface.
 func (n *FieldOrArrayIndexRef) Walk(v Visitor) Node {
-	return n.WalkRef(v)
+	return n.WalkFieldLikeRef(v)
 }
 
 // WalkExpr implements Expr interface.
 func (n *FieldOrArrayIndexRef) WalkExpr(v Visitor) Expr {
-	return n.WalkRef(v)
+	return n.WalkFieldLikeRef(v)
 }
 
 // WalkRef implements Ref interface.
 func (n *FieldOrArrayIndexRef) WalkRef(v Visitor) Ref {
+	return n.WalkFieldLikeRef(v)
+}
+
+// WalkFieldLikeRef implements FieldLikeRef interface.
+func (n *FieldOrArrayIndexRef) WalkFieldLikeRef(v Visitor) FieldLikeRef {
 	parent, changed := visitExpr(v, n.Parent)
 	if changed {
 		cpy := *n
@@ -826,16 +871,21 @@ func (n *FieldOrArrayIndexRef) WalkRef(v Visitor) Ref {
 
 // Walk implements the Node interface.
 func (n *FieldRef) Walk(v Visitor) Node {
-	return n.WalkRef(v)
+	return n.WalkFieldLikeRef(v)
 }
 
 // WalkExpr implements Expr interface.
 func (n *FieldRef) WalkExpr(v Visitor) Expr {
-	return n.WalkRef(v)
+	return n.WalkFieldLikeRef(v)
 }
 
 // WalkRef implements Ref interface.
 func (n *FieldRef) WalkRef(v Visitor) Ref {
+	return n.WalkFieldLikeRef(v)
+}
+
+// WalkFieldLikeRef implements FieldLikeRef interface.
+func (n *FieldRef) WalkFieldLikeRef(v Visitor) FieldLikeRef {
 	if n.Parent != nil {
 		parent, changed := visitExpr(v, n.Parent)
 		if changed {
@@ -956,10 +1006,10 @@ func (n *ExcludeProjectItem) Walk(v Visitor) Node {
 
 // WalkProjectItem implements the ProjectItem interface.
 func (n *ExcludeProjectItem) WalkProjectItem(v Visitor) ProjectItem {
-	expr, changed := visitExpr(v, n.FieldRef)
+	expr, changed := visitExpr(v, n.Ref)
 	if changed {
 		cpy := *n
-		cpy.FieldRef = expr.(*FieldRef)
+		cpy.Ref = expr.(FieldLikeRef)
 		return &cpy
 	}
 	return n
@@ -983,10 +1033,10 @@ func (n *IncludeProjectItem) Walk(v Visitor) Node {
 
 // WalkProjectItem implements the ProjectItem interface.
 func (n *IncludeProjectItem) WalkProjectItem(v Visitor) ProjectItem {
-	expr, changed := visitExpr(v, n.FieldRef)
+	expr, changed := visitExpr(v, n.Ref)
 	if changed {
 		cpy := *n
-		cpy.FieldRef = expr.(*FieldRef)
+		cpy.Ref = expr.(FieldLikeRef)
 		return &cpy
 	}
 	return n
@@ -1038,6 +1088,37 @@ func (n *FacetItem) Walk(v Visitor) Node {
 
 // Walk implements the Node interface.
 func (n *Exists) Walk(v Visitor) Node {
+	return n.WalkExpr(v)
+}
+
+// WalkExpr implements the Expr interface.
+func (n *MergeObjects) WalkExpr(v Visitor) Expr {
+	changed := false
+	var newElements []Expr
+	for i, e := range n.Exprs {
+		expr, elemChanged := visitExpr(v, e)
+
+		changed = changed || elemChanged
+
+		if changed {
+			if newElements == nil {
+				newElements = make([]Expr, i, len(n.Exprs))
+				copy(newElements, n.Exprs[:i])
+			} else {
+				newElements = append(newElements, expr)
+			}
+		}
+	}
+	if changed {
+		cpy := *n
+		cpy.Exprs = newElements
+		return &cpy
+	}
+	return n
+}
+
+// Walk implements the Node interface.
+func (n *MergeObjects) Walk(v Visitor) Node {
 	return n.WalkExpr(v)
 }
 

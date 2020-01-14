@@ -13,7 +13,7 @@ import (
 // $addFields) by compressing adjacent projection stages into one. It also moves
 // projection stages next to each other wherever possible in order to increase the number
 // of adjacent projection stages by moving them lower in the pipeline.
-func ProjectionStageCompressionDown(pipeline *ast.Pipeline) *ast.Pipeline {
+func ProjectionStageCompressionDown(pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeline {
 	// First do a top to bottom compression pass.
 	var optimizedStages []ast.Stage
 	// The outer loop attempts to find projection stages to compress or move.
@@ -85,7 +85,7 @@ func ProjectionStageCompressionDown(pipeline *ast.Pipeline) *ast.Pipeline {
 // $addFields) by compressing adjacent projection stages into one. It also moves
 // projection stages next to each other wherever possible in order to increase the number
 // of adjacent projection stages by moving them higher in the pipeline.
-func ProjectionStageCompressionUp(pipeline *ast.Pipeline) *ast.Pipeline {
+func ProjectionStageCompressionUp(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	// First do a bottom to top compression pass.
 	var optimizedStages []ast.Stage
 	// The outer loop attempts to find projection stages to compress or move.
@@ -289,6 +289,10 @@ func compressProjectionStages(top ast.Stage, bottom ast.Stage) (ast.Stage, bool)
 	// have not yet been accounted for. If bottom is an inclusion $project, these fields
 	// are implicitly excluded, and we can ignore them. Otherwise, we add these fields to
 	// bottom.
+	// The exception is _id because it cannot be implicitly excluded like other fields. For
+	// example, if bottom is an inclusion $project but _id is explicitly excluded in top,
+	// we must preserve _id's explicit exclusion. In this case, it's acceptable for bottom
+	// to inherit _id from top if _id is projected in top and not projected in bottom.
 	if !bottomIsInclusionProjection {
 		for _, item := range seenItems {
 			switch top.(type) {
@@ -300,6 +304,10 @@ func compressProjectionStages(top ast.Stage, bottom ast.Stage) (ast.Stage, bool)
 		}
 		for k, v := range topItems {
 			bottomItems[k] = v
+		}
+	} else if _, okBottomID := bottomItems["_id"]; !okBottomID {
+		if _, okTopID := topItems["_id"]; okTopID {
+			bottomItems["_id"] = topItems["_id"]
 		}
 	}
 
@@ -412,7 +420,7 @@ func handleBottomExclude(bottomExclude *ast.ExcludeProjectItem, relatedItems []i
 		switch topTypedItem := item.(type) {
 		case *ast.IncludeProjectItem:
 			if topTypedItem.GetName() == bottomFieldName { // field
-				if bottomExclude.FieldRef.Parent != nil {
+				if bottomExclude.Ref.ParentExpr() != nil {
 					// Unlike a top-level field, including and excluding the same nested
 					// field does NOT merely exclude the field. When included in top and
 					// excluded in bottom, if "a" is a document containing "b", the top
@@ -464,7 +472,7 @@ func handleBottomExclude(bottomExclude *ast.ExcludeProjectItem, relatedItems []i
 			// defining it. If the field is "_id", we keep the exclude item. If the
 			// field is nested, there is no way for us to express this, so we cannot
 			// compress.
-			if bottomExclude.FieldRef.Parent != nil {
+			if bottomExclude.Ref.ParentExpr() != nil {
 				return false
 			} else if bottomFieldName != "_id" {
 				delete(bottomItems, bottomFieldName)
@@ -486,7 +494,7 @@ func handleBottomExclude(bottomExclude *ast.ExcludeProjectItem, relatedItems []i
 				// item.
 				if bottomFieldName != "_id" {
 					delete(bottomItems, bottomFieldName)
-					if bottomExclude.FieldRef.Parent != nil {
+					if bottomExclude.Ref.ParentExpr() != nil {
 						// Defining a nested field redefines all instances of the parent
 						// field that were literals as documents. Excluding the nested
 						// field in bottom leaves those parent fields as empty documents.
@@ -531,7 +539,7 @@ func handleBottomExclude(bottomExclude *ast.ExcludeProjectItem, relatedItems []i
 			// final compressed stage and return an error if we find mixed types in the
 			// compressed stage.
 			if topTypedItem.Name == bottomFieldName { // field
-				if bottomExclude.FieldRef.Parent != nil {
+				if bottomExclude.Ref.ParentExpr() != nil {
 					// Unlike $project, using $addFields to define a nested field does NOT
 					// exclude the rest of the fields in the parent document. Let's say we
 					// define "a.b" in the top $addFields. If "a" is a document, "a.b"
@@ -701,7 +709,7 @@ func handleBottomInclude(bottomInclude *ast.IncludeProjectItem, relatedItems []i
 			}
 		case *ast.ExcludeProjectItem:
 			if topTypedItem.GetName() == bottomFieldName { // field
-				if bottomInclude.FieldRef.Parent != nil {
+				if bottomInclude.Ref.ParentExpr() != nil {
 					// Unlike a top-level field, including & excluding the same nested
 					// field doesn't just cancel the operations. Say we're looking at
 					// nested field "a.b". The top exclude gets rid of field "b", but if

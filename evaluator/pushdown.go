@@ -33,13 +33,16 @@ const (
 // PushdownConfig is a container for all the values needed
 // to run the pushdown translator.
 type PushdownConfig struct {
-	lg                log.Logger
-	shouldPushDown    bool
-	mongoDBVersion    []uint8
-	pushDownSelfJoins bool
-	sqlValueKind      values.SQLValueKind
-	format            string
-	formatVersion     int
+	lg                            log.Logger
+	allowShardedLookups           bool
+	allowCrossDBLookups           bool
+	allowRowGeneratorOptimization bool
+	shouldPushDown                bool
+	mongoDBVersion                []uint8
+	pushDownSelfJoins             bool
+	sqlValueKind                  values.SQLValueKind
+	format                        string
+	formatVersion                 int
 }
 
 // NewPushdownConfig returns a new PushdownConfig constructed from the
@@ -48,20 +51,26 @@ type PushdownConfig struct {
 func NewPushdownConfig(
 	lg log.Logger,
 	mongoDBVersion []uint8,
-	shouldPushDown bool,
+	allowShardedLookups,
+	allowCrossDBLookups,
+	allowRowGeneratorOptimization,
+	shouldPushDown,
 	pushDownSelfJoins bool,
 	sqlValueKind values.SQLValueKind,
 	format string,
 	formatVersion int,
 ) *PushdownConfig {
 	return &PushdownConfig{
-		lg:                lg,
-		mongoDBVersion:    mongoDBVersion,
-		shouldPushDown:    shouldPushDown,
-		pushDownSelfJoins: pushDownSelfJoins,
-		sqlValueKind:      sqlValueKind,
-		format:            format,
-		formatVersion:     formatVersion,
+		lg:                            lg,
+		mongoDBVersion:                mongoDBVersion,
+		allowShardedLookups:           allowShardedLookups,
+		allowCrossDBLookups:           allowCrossDBLookups,
+		allowRowGeneratorOptimization: allowRowGeneratorOptimization,
+		shouldPushDown:                shouldPushDown,
+		pushDownSelfJoins:             pushDownSelfJoins,
+		sqlValueKind:                  sqlValueKind,
+		format:                        format,
+		formatVersion:                 formatVersion,
 	}
 }
 
@@ -1683,8 +1692,8 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		return join, nil
 	}
 
-	// We can't push down cross-database joins.
-	if msLocal.dbName != msForeign.dbName {
+	// Check if cross-database joins are disallowed.
+	if !v.cfg.allowCrossDBLookups && msLocal.dbName != msForeign.dbName {
 		v.logger.Warnf(log.Dev,
 			"cannot pushdown join stage, local database is different from foreign database")
 		v.addNewPushdownFailure(join, joinStageName, "local and foreign databases are different")
@@ -1700,20 +1709,22 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 		return optimizedJoinPlanStage, nil
 	}
 
-	// If a foreign table is sharded, we can't push down the join to a $lookup.
-	for i, collection := range msForeign.collectionNames {
-		var isSharded bool
-		isSharded, ok = msForeign.isShardedCollection[collection]
-		if !ok {
-			// If this happens, there is a serious programming error.
-			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
-		}
-		if isSharded {
-			v.logger.Warnf(log.Dev,
-				"unable to translate join stage to lookup: foreign table %q is sharded",
-				msForeign.tableNames[i])
-			v.addNewPushdownFailure(join, joinStageName, "foreign table's collection is sharded")
-			return join, nil
+	if !v.cfg.allowShardedLookups {
+		// If a foreign table is sharded, we can't push down the join to a $lookup.
+		for i, collection := range msForeign.collectionNames {
+			var isSharded bool
+			isSharded, ok = msForeign.isShardedCollection[collection]
+			if !ok {
+				// If this happens, there is a serious programming error.
+				panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
+			}
+			if isSharded {
+				v.logger.Warnf(log.Dev,
+					"unable to translate join stage to lookup: foreign table %q is sharded",
+					msForeign.tableNames[i])
+				v.addNewPushdownFailure(join, joinStageName, "foreign table's collection is sharded")
+				return join, nil
+			}
 		}
 	}
 
@@ -1808,8 +1819,8 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		return join, nil
 	}
 
-	// the tables must both belong to the same MongoDB database
-	if msLocal.dbName != msForeign.dbName {
+	// Check if cross-database joins are allowed.
+	if !v.cfg.allowCrossDBLookups && msLocal.dbName != msForeign.dbName {
 		if !msForeign.IsDual() {
 			v.addNewPushdownFailure(join, joinStageName, "local database is different from foreign database")
 			return join, nil
@@ -1822,18 +1833,20 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		msForeign.isShardedCollection = msLocal.isShardedCollection
 	}
 
-	// The foreign table must not be sharded.
-	for i, collection := range msForeign.collectionNames {
-		var isSharded bool
-		isSharded, ok = msForeign.isShardedCollection[collection]
-		if !ok {
-			// if this happens, there is a serious programming error
-			panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
-		}
-		if isSharded {
-			v.logger.Warnf(log.Dev, "unable to translate join stage to expressive lookup: right table %q is sharded", msForeign.tableNames[i])
-			v.addNewPushdownFailure(join, joinStageName, "right table's collection is sharded")
-			return join, nil
+	if !v.cfg.allowShardedLookups {
+		// The foreign table must not be sharded.
+		for i, collection := range msForeign.collectionNames {
+			var isSharded bool
+			isSharded, ok = msForeign.isShardedCollection[collection]
+			if !ok {
+				// if this happens, there is a serious programming error
+				panic(fmt.Errorf("could not determine whether collection %q is sharded", collection))
+			}
+			if isSharded {
+				v.logger.Warnf(log.Dev, "unable to translate join stage to expressive lookup: right table %q is sharded", msForeign.tableNames[i])
+				v.addNewPushdownFailure(join, joinStageName, "right table's collection is sharded")
+				return join, nil
+			}
 		}
 	}
 
@@ -1953,6 +1966,9 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		localMappings,
 		ast.NewPipeline(matchPipeline...),
 	)
+	if v.cfg.allowCrossDBLookups {
+		lookup.FromDB = msForeign.dbName
+	}
 
 	unwind := ast.NewUnwindStage(astutil.FieldRefFromFieldName(asField), "", kind == LeftJoin)
 
@@ -2107,9 +2123,9 @@ func getProjectedFieldNames(project *ast.ProjectStage) map[string]struct{} {
 		case *ast.AssignProjectItem:
 			names[t.Name] = struct{}{}
 		case *ast.IncludeProjectItem:
-			names[astutil.RefString(t.FieldRef)] = struct{}{}
+			names[astutil.RefString(t.Ref)] = struct{}{}
 		case *ast.ExcludeProjectItem:
-			names[astutil.RefString(t.FieldRef)] = struct{}{}
+			names[astutil.RefString(t.Ref)] = struct{}{}
 		}
 	}
 
@@ -2531,7 +2547,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 		}
 
 		// If no columns are referenced, we can apply the row generator optimization.
-		if !hasColumnRef {
+		if !hasColumnRef && v.cfg.allowRowGeneratorOptimization {
 			var stage ast.Stage
 			if procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
 				stage = ast.NewCountStage("rowCount")
@@ -3376,8 +3392,11 @@ func (v *pushdownVisitor) buildJoinPushdownPipeline(join *JoinStage, lookupInfo 
 		))
 	}
 
-	pipeline.Stages = append(pipeline.Stages, ast.NewLookupStage(
-		msForeign.collectionNames[0], localField, foreignFieldName, asField, nil, nil))
+	lookup := ast.NewLookupStage(msForeign.collectionNames[0], localField, foreignFieldName, asField, nil, nil)
+	if v.cfg.allowCrossDBLookups {
+		lookup.FromDB = msForeign.dbName
+	}
+	pipeline.Stages = append(pipeline.Stages, lookup)
 
 	if join.kind == LeftJoin {
 		pipeline.Stages = append(pipeline.Stages, createNullSafeLocalPipeline(msLocal, localFieldName, asField))
@@ -3482,7 +3501,7 @@ func (v *pipelineOptimizationVisitor) visit(n Node) (Node, error) {
 
 	switch typedN := n.(type) {
 	case *MongoSourceStage:
-		optimizedPipeline := optimizer.Optimize(v.ctx, typedN.pipeline)
+		optimizedPipeline := optimizer.Optimize(v.ctx, typedN.pipeline, 0)
 		typedN.pipeline = flattenBinaryExprs(optimizedPipeline)
 		return n, nil
 	}

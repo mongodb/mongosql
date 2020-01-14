@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/10gen/mongoast/internal/bsonutil"
 	"github.com/10gen/mongoast/internal/decimalutil"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -333,7 +334,11 @@ func Compare(a bsoncore.Value, b bsoncore.Value) (int, error) {
 		}
 	}
 
-	return 0, errors.Errorf("cannot compare %s to %s", a.Type, b.Type)
+	return 0, errors.Errorf(
+		"cannot compare %s to %s",
+		bsonutil.TypeToString(a.Type),
+		bsonutil.TypeToString(b.Type),
+	)
 }
 
 func canonicalizeType(t bsontype.Type) int {

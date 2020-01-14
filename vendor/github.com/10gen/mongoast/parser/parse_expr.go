@@ -109,9 +109,9 @@ func parseDocumentExpr(doc bsoncore.Document) (ast.Expr, error) {
 }
 
 // ParseFieldRef parses a string into a FieldRef or FieldOrArrayIndexRef.
-func ParseFieldRef(s string) (ast.Expr, error) {
+func ParseFieldRef(s string) (ast.FieldLikeRef, error) {
 	parts := strings.Split(s, ".")
-	var expr ast.Expr = ast.NewFieldRef(parts[0], nil)
+	var expr ast.FieldLikeRef = ast.NewFieldRef(parts[0], nil)
 	for _, part := range parts[1:] {
 		if len(part) == 0 {
 			return nil, errors.New("invalid field ref")
@@ -137,7 +137,7 @@ func parseVariableRef(s string) (ast.Expr, error) {
 
 func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 	switch key {
-	case "$and", "$or", "$add", "$multiply":
+	case "$and", "$or", "$add", "$multiply", "$concat":
 		arr, ok := v.ArrayOK()
 		var values []bsoncore.Value
 		if !ok {
@@ -145,7 +145,7 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 		} else {
 			values, _ = arr.Values()
 		}
-		return parseLogicalExpr(ast.BinaryOp(key), values)
+		return parseVarArgsExpr(ast.BinaryOp(key), values)
 	case "$not", "$abs", "$ceil", "$floor", "$exp", "$ln", "$log10":
 		var exprValue bsoncore.Value
 		arr, ok := v.ArrayOK()
@@ -214,6 +214,30 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 		return parseReduceExpr(v)
 	case "$literal":
 		return ast.NewConstant(v), nil
+	case "$mergeObjects":
+		var elements []ast.Expr
+
+		arr, ok := v.ArrayOK()
+		if !ok {
+			e, err := ParseExpr(v)
+			if err != nil {
+				return nil, err
+			}
+			elements = []ast.Expr{e}
+		} else {
+			values, _ := arr.Values()
+			elements = make([]ast.Expr, len(values))
+			for i, v := range values {
+				e, err := ParseExpr(v)
+				if err != nil {
+					return nil, err
+				}
+
+				elements[i] = e
+			}
+		}
+
+		return ast.NewMergeObjects(elements...), nil
 	default:
 		arg, err := ParseExpr(v)
 		if err != nil {
@@ -224,7 +248,7 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 	}
 }
 
-func parseLogicalExpr(op ast.BinaryOp, values []bsoncore.Value) (ast.Expr, error) {
+func parseVarArgsExpr(op ast.BinaryOp, values []bsoncore.Value) (ast.Expr, error) {
 	// Handle the special empty-values cases.
 	if len(values) == 0 {
 		switch op {
@@ -236,6 +260,8 @@ func parseLogicalExpr(op ast.BinaryOp, values []bsoncore.Value) (ast.Expr, error
 			return ast.NewConstant(bsonutil.Int32(0)), nil
 		case ast.Multiply:
 			return ast.NewConstant(bsonutil.Int32(1)), nil
+		case ast.Concat:
+			return ast.NewConstant(bsonutil.String("")), nil
 		default:
 			panic(fmt.Sprintf("no support for empty case of logical expr binary operator: %v", op))
 		}

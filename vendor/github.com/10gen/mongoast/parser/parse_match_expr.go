@@ -256,8 +256,13 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 			right := ast.NewConstant(op.Value())
 			expr = ast.NewBinary(ast.NotEquals, left, right)
 		case "$regex":
-			pattern, ok = op.Value().StringValueOK()
-			if !ok {
+			switch op.Value().Type {
+			case bsontype.String:
+				pattern = op.Value().StringValue()
+			case bsontype.Regex:
+				pattern, options = op.Value().Regex()
+				optionsFound = true
+			default:
 				return nil, errors.New("$regex has to be a string")
 			}
 			patternFound = true

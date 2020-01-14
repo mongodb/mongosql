@@ -53,7 +53,8 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 		return "", "", fmt.Errorf("invalid MongoDB version (%v): %v", mongoVersion, err)
 	}
 
-	tCfg := NewTranslationConfig(ctlg, evaluator.NoOutputFormat, evaluator.NoOutputVersion, dbName, mdbVersion)
+	tCfg := newTranslationConfig(ctlg, evaluator.NoOutputFormat, evaluator.NoOutputVersion,
+		dbName, mdbVersion, false, false, true, true, false)
 	qCfg := NewQueryConfigFromTranslationConfig(tCfg)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)

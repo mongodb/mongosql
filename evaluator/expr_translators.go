@@ -210,7 +210,7 @@ func (t *PushdownTranslator) addExistsSubqueryLookupStage(subPlanMs *MongoSource
 	}
 
 	collName := subPlanMs.Collection()
-	if subPlanMs.isShardedCollection[collName] {
+	if !t.Cfg.allowShardedLookups && subPlanMs.isShardedCollection[collName] {
 		return fmt.Errorf("cannot use expressive $lookup on a sharded collection")
 	}
 
@@ -245,7 +245,7 @@ func (t *PushdownTranslator) addSubqueryLookupStage(subPlanMs *MongoSourceStage)
 			"expressive lookup: expressive lookup not available")
 	}
 
-	if subPlanMs.isShardedCollection[subPlanMs.Collection()] {
+	if !t.Cfg.allowShardedLookups && subPlanMs.isShardedCollection[subPlanMs.Collection()] {
 		return fmt.Errorf("cannot use expressive $lookup on a sharded collection")
 	}
 

@@ -9,7 +9,7 @@ import (
 // LetMinimization removes any let binding that is used 0 or 1 times or
 // is a binding for a Constant or Ref. It removes any Let expression that
 // has 0 bindings.
-func LetMinimization(pipeline *ast.Pipeline) *ast.Pipeline {
+func LetMinimization(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	out, _ := ast.Visit(pipeline, func(v ast.Visitor, n ast.Node) ast.Node {
 		n = n.Walk(v)
 		switch typedN := n.(type) {

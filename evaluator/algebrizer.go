@@ -39,6 +39,8 @@ type AlgebrizerConfig struct {
 	maxVarcharLength              uint64
 	polymorphicTypeConversionMode string
 	version                       []uint8
+	allowCountOptimization        bool
+	useInformationSchemaDual      bool
 }
 
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
@@ -57,6 +59,8 @@ func NewAlgebrizerConfig(
 	groupConcatMaxLen int64,
 	polymorphicTypeConversionMode string,
 	mdbVersion []uint8,
+	allowCountOptimization,
+	useInformationSchemaDual bool,
 ) *AlgebrizerConfig {
 	return &AlgebrizerConfig{
 		lg:                            lg,
@@ -71,6 +75,8 @@ func NewAlgebrizerConfig(
 		groupConcatMaxLen:             groupConcatMaxLen,
 		polymorphicTypeConversionMode: polymorphicTypeConversionMode,
 		version:                       mdbVersion,
+		allowCountOptimization:        allowCountOptimization,
+		useInformationSchemaDual:      useInformationSchemaDual,
 	}
 }
 
@@ -189,6 +195,10 @@ func cloneCTEs(ctes ctePlanStages) ctePlanStages {
 // newMongoSourceOrDualStage returns a new MongoSource if at least one MongoTable is found in
 // the catalog, otherwise it returns a new Dual stage.
 func (a *algebrizer) newMongoSourceOrDualStage() (PlanStage, error) {
+	if a.cfg.useInformationSchemaDual {
+		return NewMongoSourceStage(catalog.InformationSchemaDatabase, &catalog.InformationSchemaDual, a.selectID, "dual"), nil
+	}
+
 	// Don't try to push down the dual stage if it is a top-level dual stage
 	if a.isTopLevel {
 		return NewDualStage(), nil
@@ -214,7 +224,7 @@ func (a *algebrizer) newMongoSourceOrDualStage() (PlanStage, error) {
 		return nil, err
 	}
 
-	return NewMongoSourceDualStage(dualDb, dualTable, a.selectID, ""), nil
+	return NewMongoSourceDualStage(dualDb.Name(), dualTable, a.selectID, ""), nil
 }
 
 type dualTableLookupError struct {
@@ -1089,27 +1099,29 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 			return nil, err
 		}
 
-		if mongoSource, ok := isCountOptimizable(sel, plan); ok {
-			a.currentClause = fieldList
-			pcs, translateErr := a.translateSelectExprs(sel.SelectExprs)
-			if translateErr != nil {
-				return nil, translateErr
-			}
-			a.projectedColumns = pcs
-
-			if sel.OrderBy != nil {
-				a.currentClause = orderClause
-				_, translateErr := a.translateOrderBy(sel.OrderBy)
+		if a.cfg.allowCountOptimization {
+			if mongoSource, ok := isCountOptimizable(sel, plan); ok {
+				a.currentClause = fieldList
+				pcs, translateErr := a.translateSelectExprs(sel.SelectExprs)
 				if translateErr != nil {
 					return nil, translateErr
 				}
-			}
+				a.projectedColumns = pcs
 
-			pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database,
-				pcs[0].Table, pcs[0].Name, pcs[0].EvalType, schema.MongoNone, false, pcs[0].Column.Nullable)
-			plan = NewCountStage(mongoSource, pcs[0])
-			plan = NewProjectStage(plan, pcs[0])
-			return plan, nil
+				if sel.OrderBy != nil {
+					a.currentClause = orderClause
+					_, translateErr := a.translateOrderBy(sel.OrderBy)
+					if translateErr != nil {
+						return nil, translateErr
+					}
+				}
+
+				pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database,
+					pcs[0].Table, pcs[0].Name, pcs[0].EvalType, schema.MongoNone, false, pcs[0].Column.Nullable)
+				plan = NewCountStage(mongoSource, pcs[0])
+				plan = NewProjectStage(plan, pcs[0])
+				return plan, nil
+			}
 		}
 
 		builder.from = plan
@@ -1820,7 +1832,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 
 		switch t := table.(type) {
 		case catalog.MongoDBTable:
-			plan = NewMongoSourceStage(db, t, a.selectID, aliasName)
+			plan = NewMongoSourceStage(db.Name(), t, a.selectID, aliasName)
 		case *catalog.DynamicTable:
 			plan = NewDynamicSourceStage(db, t, a.selectID, aliasName)
 		default:

@@ -12,7 +12,7 @@ import (
 // on the Variables of its direct ancestor Let expression will be moved
 // into the direct ancestor Let expression. LetMerging will remove any
 // Let expression that has 0 bindings.
-func LetMerging(pipeline *ast.Pipeline) *ast.Pipeline {
+func LetMerging(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	out, _ := ast.Visit(pipeline, func(v ast.Visitor, n ast.Node) ast.Node {
 		switch typedN := n.(type) {
 		case *ast.Let:

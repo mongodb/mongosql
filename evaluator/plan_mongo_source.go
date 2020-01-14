@@ -62,10 +62,10 @@ func (MongoSourceStage) ReplaceChild(i int, e Node) {
 	panicWithInvalidIndex("MongoSourceStage", i, -1)
 }
 
-func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, selectID int, aliasName string) *MongoSourceStage {
+func newMongoSourceStage(dbName catalog.DatabaseName, table catalog.MongoDBTable, selectID int, aliasName string) *MongoSourceStage {
 	ms := &MongoSourceStage{
 		selectIDs:     []int{selectID},
-		dbName:        string(db.Name()),
+		dbName:        string(dbName),
 		tableNames:    []string{table.Name()},
 		aliasNames:    []string{aliasName},
 		tableType:     table.Type(),
@@ -96,8 +96,8 @@ func newMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 }
 
 // NewMongoSourceStage creates a new MongoSourceStage from a catalog.MongoDBTable.
-func NewMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, selectID int, aliasName string) *MongoSourceStage {
-	ms := newMongoSourceStage(db, table, selectID, aliasName)
+func NewMongoSourceStage(dbName catalog.DatabaseName, table catalog.MongoDBTable, selectID int, aliasName string) *MongoSourceStage {
+	ms := newMongoSourceStage(dbName, table, selectID, aliasName)
 	ms.pipeline = astutil.DeepCopyPipeline(table.Pipeline())
 	return ms
 }
@@ -105,8 +105,8 @@ func NewMongoSourceStage(db catalog.Database, table catalog.MongoDBTable, select
 // NewMongoSourceDualStage creates a new MongoSourceStage that represents a dual stage from a given catalog.MongoDBTable.
 // Do not call if MongoDB version is less than 3.4, this function relies on the $collStats aggregation stage.
 // Do not call if the connected server is a mongos, as $collStats will return 0 documents if called on a nonexistent table.
-func NewMongoSourceDualStage(db catalog.Database, table catalog.MongoDBTable, selectID int, aliasName string) PlanStage {
-	ms := newMongoSourceStage(db, table, selectID, aliasName)
+func NewMongoSourceDualStage(dbName catalog.DatabaseName, table catalog.MongoDBTable, selectID int, aliasName string) PlanStage {
+	ms := newMongoSourceStage(dbName, table, selectID, aliasName)
 	ms.isDual = true
 	ms.LimitRowCount = 1
 

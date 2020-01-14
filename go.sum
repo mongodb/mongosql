@@ -14,6 +14,10 @@ github.com/10gen/mongoast v0.0.0-20191025154940-1fddb3949072 h1:9OYWIbBk8F1LqxiS
 github.com/10gen/mongoast v0.0.0-20191025154940-1fddb3949072/go.mod h1:zXqiLsYUajwXaVbk7lwcs215QaCQoj2cS7i7TcbMV3c=
 github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c h1:pTq1/ohfKKd5YXzMEpGHsthkX9ieMIEEifsZFMyV3z0=
 github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c/go.mod h1:zXqiLsYUajwXaVbk7lwcs215QaCQoj2cS7i7TcbMV3c=
+github.com/10gen/mongoast v0.0.0-20200108185947-2f4fe5c7a5c6 h1:vs46WFxG2xuIsb4ZtupisICpln4fLg8yjmoU8Ldw4Hc=
+github.com/10gen/mongoast v0.0.0-20200108185947-2f4fe5c7a5c6/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
+github.com/10gen/mongoast v0.0.0-20200110201401-06d9509f6ced h1:qYombOxcdbkNsOrSJYe3DBZx/3hHFSMBb4wDmNWlrxE=
+github.com/10gen/mongoast v0.0.0-20200110201401-06d9509f6ced/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 h1:TbONlEzjFZ0K7a6dYca+3rwJugMwiRJLY+FSCO3C2CE=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847/go.mod h1:ngIUcWisavS+ezq2tBEu6vgSU981hsiJaalWLlpOcuE=
 github.com/DataDog/zstd v1.4.4 h1:+IawcoXhCBylN7ccwdwf8LOH2jKq7NavGpEPanrlTzE=
@@ -119,6 +123,7 @@ github.com/stretchr/testify v1.3.0 h1:TivCn/peBQ7UY8ooIcPgZFpTNSz0Q2U6UrFlUfqbe0
 github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UVUgZn+9EI=
 github.com/tidwall/pretty v0.0.0-20190325153808-1166b9ac2b65 h1:rQ229MBgvW68s1/g6f1/63TgYwYxfF4E+bi/KC19P8g=
 github.com/tidwall/pretty v0.0.0-20190325153808-1166b9ac2b65/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
+github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/tkuchiki/go-timezone v0.1.4 h1:bqdCyQmMPO2vxCobv9nqHWgmkMksGZ/tNhROr2DKxPI=
 github.com/tkuchiki/go-timezone v0.1.4/go.mod h1:b1Ean9v2UXtxSq4TZF0i/TU9NuoWa9hOzOKoGCV2zqY=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c h1:u40Z8hqBAAQyv+vATcGgV0YCnDjqSL7/q/JyPhhJSPk=

@@ -37,7 +37,10 @@ func Abs(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$abs only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$abs only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -60,7 +63,10 @@ func Ceil(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$ceil only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$ceil only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -83,7 +89,10 @@ func Floor(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$floor only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$floor only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -103,7 +112,10 @@ func Exp(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$exp only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$exp only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -127,7 +139,10 @@ func Ln(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$ln only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$ln only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -150,7 +165,10 @@ func Log10(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$log10 only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$log10 only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -173,7 +191,10 @@ func Sqrt(a bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$sqrt only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$sqrt only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -213,7 +234,10 @@ func Add(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$add only supports numeric or date types, not %s", t)
+		return Null(), errors.Errorf(
+			"$add only supports numeric or date types, not %s",
+			TypeToString(t),
+		)
 	}
 }
 
@@ -234,7 +258,10 @@ func addDate(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		case bsontype.DateTime:
 			return Null(), errors.New("only one date allowed in an $add expression")
 		default:
-			return Null(), errors.Errorf("$add only supports numeric or date types, not %s", b.Type)
+			return Null(), errors.Errorf(
+				"$add only supports numeric or date types, not %s",
+				TypeToString(b.Type),
+			)
 		}
 	case bsontype.Int32:
 		aint32 := a.Int32()
@@ -266,12 +293,18 @@ func addDate(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		case bsontype.DateTime:
 			return Null(), errors.New("only one date allowed in an $add expression")
 		default:
-			return Null(), errors.Errorf("$add only supports numeric or date types, not %s", b.Type)
+			return Null(), errors.Errorf(
+				"$add only supports numeric or date types, not %s",
+				TypeToString(b.Type),
+			)
 		}
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$add only supports numeric or date types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$add only supports numeric or date types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -310,7 +343,11 @@ func Sub(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("can't $subtract a %s from a %s", b.Type, a.Type)
+		return Null(), errors.Errorf(
+			"can't $subtract a %s from a %s",
+			TypeToString(b.Type),
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -336,7 +373,11 @@ func subDate(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("can't $subtract a %s from a %s", b.Type, a.Type)
+		return Null(), errors.Errorf(
+			"can't $subtract a %s from a %s",
+			TypeToString(b.Type),
+			TypeToString(a.Type),
+		)
 	}
 }
 
@@ -373,7 +414,10 @@ func Mul(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$multiply only supports numeric types, not %s", t)
+		return Null(), errors.Errorf(
+			"$multiply only supports numeric types, not %s",
+			TypeToString(t),
+		)
 	}
 }
 
@@ -387,7 +431,11 @@ func Div(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		case bsontype.Null, bsontype.Undefined:
 			return Null(), nil
 		default:
-			return Null(), errors.Errorf("$divide only supports numeric types, not %s and %s", a.Type, b.Type)
+			return Null(), errors.Errorf(
+				"$divide only supports numeric types, not %s and %s",
+				TypeToString(a.Type),
+				TypeToString(b.Type),
+			)
 		}
 	}
 
@@ -395,7 +443,13 @@ func Div(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		return Null(), errors.Errorf("can't $divide by zero")
 	}
 
-	return Double(afloat64 / bfloat64), nil
+	divResult := afloat64 / bfloat64
+
+	if a.Type == bsontype.Decimal128 || b.Type == bsontype.Decimal128 {
+		return Decimal128FromFloat64(divResult), nil
+	}
+
+	return Double(divResult), nil
 }
 
 // Mod takes the mod of two numeric types
@@ -429,7 +483,11 @@ func Mod(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$mod only supports numeric types, not %s and %s", a.Type, b.Type)
+		return Null(), errors.Errorf(
+			"$mod only supports numeric types, not %s and %s",
+			TypeToString(a.Type),
+			TypeToString(b.Type),
+		)
 	}
 }
 
@@ -462,7 +520,10 @@ func Log(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$log's argument must be numeric, not %s", t)
+		return Null(), errors.Errorf(
+			"$log's argument must be numeric, not %s",
+			TypeToString(t),
+		)
 	}
 }
 
@@ -517,9 +578,15 @@ func Pow(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	default:
 		switch a.Type {
 		case bsontype.Int32, bsontype.Int64, bsontype.Double:
-			return Null(), errors.Errorf("$pow's exponent must be numeric, not %s", b.Type)
+			return Null(), errors.Errorf(
+				"$pow's exponent must be numeric, not %s",
+				TypeToString(b.Type),
+			)
 		default:
-			return Null(), errors.Errorf("$pow's base must be numeric, not %s", a.Type)
+			return Null(), errors.Errorf(
+				"$pow's base must be numeric, not %s",
+				TypeToString(a.Type),
+			)
 		}
 	}
 }
@@ -537,7 +604,10 @@ func Trunc(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Int32, bsontype.Int64:
 		precision = AsFloat64(b)
 	default:
-		return Null(), errors.Errorf("precision argument to $trunc must be an integral value, not %s", b.Type)
+		return Null(), errors.Errorf(
+			"precision argument to $trunc must be an integral value, not %s",
+			TypeToString(b.Type),
+		)
 	}
 
 	var n float64
@@ -547,7 +617,10 @@ func Trunc(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:
-		return Null(), errors.Errorf("$trunc only supports numeric types, not %s", a.Type)
+		return Null(), errors.Errorf(
+			"$trunc only supports numeric types, not %s",
+			TypeToString(a.Type),
+		)
 	}
 
 	var truncated float64

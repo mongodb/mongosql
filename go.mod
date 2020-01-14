@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
-	github.com/10gen/mongoast v0.0.0-20191025180923-3d290796045c
+	github.com/10gen/mongoast v0.0.0-20200110201401-06d9509f6ced
 	github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/apmckinlay/gsuneido v0.0.0-20190828171039-d059fc31c5ab // indirect
@@ -37,7 +37,6 @@ require (
 	github.com/spacemonkeygo/spacelog v0.0.0-20170706210657-b6d9bf7bf3eb // indirect
 	github.com/stretchr/objx v0.2.0 // indirect
 	github.com/stretchr/testify v1.4.0
-	github.com/tidwall/pretty v0.0.0-20190325153808-1166b9ac2b65 // indirect
 	github.com/tkuchiki/go-timezone v0.1.4
 	github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c // indirect
 	github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc

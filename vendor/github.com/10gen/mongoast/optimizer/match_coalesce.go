@@ -5,7 +5,7 @@ import (
 )
 
 // MatchCoalescing coalesces multiple adjacent matches into one.
-func MatchCoalescing(pipeline *ast.Pipeline) *ast.Pipeline {
+func MatchCoalescing(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	allStages := make([]ast.Stage, 0, len(pipeline.Stages))
 
 	var currentMatchStage *ast.MatchStage

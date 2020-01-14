@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 
@@ -354,6 +355,18 @@ schema:
       MongoType: int
       SqlName: c
       SqlType: int32
+  - table: bar
+    collection: bar
+    pipeline: []
+    columns:
+    - Name: a
+      MongoType: int
+      SQLName: a
+      SQLType: int32
+    - Name: d
+      MongoType: int
+      SQLName: d
+      SQLType: int32
 - db: test2
   tables:
   - table: bar
@@ -374,11 +387,21 @@ schema:
 		t.Fatalf("error creating test schema: %v", err)
 	}
 
+	testCatalogWithoutSharding, err := getCatalog(testSchema)
+	if err != nil {
+		t.Fatalf("error creating test catalog (no sharding): %v", err)
+	}
+
+	testCatalogWithSharding, err := makeTestCatalogWithShardedCollections(testSchema)
+	if err != nil {
+		t.Fatalf("error creating test catalog (sharding): %v", err)
+	}
+
 	tcases := []struct {
 		desc               string
 		query              string
 		dbName             string
-		mongoVersion       string
+		ctlg               catalog.Catalog
 		expectedError      string
 		expectedOutput     string
 		expectedDatabase   string
@@ -388,49 +411,42 @@ schema:
 			desc:          "query that can't be parsed/explained (command)",
 			query:         "drop table foo.t",
 			dbName:        testDBName,
-			mongoVersion:  testMongoVersion4,
+			ctlg:          testCatalogWithoutSharding,
 			expectedError: `fatal error executing sql "drop table foo.t": command not supported`,
 		},
 		{
-			desc:          "query that can't be pushed down (char_length with version < 3.4)",
-			query:         "select char_length(foo.a) from foo",
+			desc:          "query that can't be pushed down (rand cannot be pushed down)",
+			query:         "select rand(foo.a) from foo",
 			dbName:        testDBName,
-			mongoVersion:  testMongoVersion3,
-			expectedError: `fatal error executing sql "select char_length(foo.a) from foo": query not fully pushed down`,
-		},
-		{
-			desc:          "query that can't be pushed down (cross join with local db different from foreign db)",
-			query:         "select foo.a, bar.b from test.foo, test2.bar",
-			dbName:        testDBName,
-			mongoVersion:  testMongoVersion4,
-			expectedError: `fatal error executing sql "select foo.a, bar.b from test.foo, test2.bar": query not fully pushed down`,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "select rand(foo.a) from foo": query not fully pushed down`,
 		},
 		{
 			desc:          "database doesn't exist in schema",
 			query:         "select foo.a from foo",
 			dbName:        "invalidDatabase",
-			mongoVersion:  testMongoVersion4,
+			ctlg:          testCatalogWithoutSharding,
 			expectedError: `fatal error executing sql "select foo.a from foo": ERROR 1049 (42000): Unknown database 'invaliddatabase'`,
 		},
 		{
 			desc:          "table doesn't exist in schema",
 			query:         "select a from invalidTable",
 			dbName:        testDBName,
-			mongoVersion:  testMongoVersion4,
+			ctlg:          testCatalogWithoutSharding,
 			expectedError: `fatal error executing sql "select a from invalidTable": ERROR 1146 (42S02): Table 'test.invalidtable' doesn't exist`,
 		},
 		{
 			desc:          "column doesn't exist in schema",
 			query:         "select invalidColumn from foo",
 			dbName:        testDBName,
-			mongoVersion:  testMongoVersion4,
+			ctlg:          testCatalogWithoutSharding,
 			expectedError: `fatal error executing sql "select invalidColumn from foo": ERROR 1054 (42S22): Unknown column 'invalidColumn' in 'field list'`,
 		},
 		{
 			desc:               "simple select query (unqualified table) correctly translated to pipeline, using dbName",
 			query:              "select foo.a from foo",
 			dbName:             testDBName,
-			mongoVersion:       testMongoVersion4,
+			ctlg:               testCatalogWithoutSharding,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
@@ -439,7 +455,7 @@ schema:
 			desc:               "simple select query (qualified table) correctly translated to pipeline",
 			query:              "select foo.a from test.foo",
 			dbName:             testDBName,
-			mongoVersion:       testMongoVersion4,
+			ctlg:               testCatalogWithoutSharding,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
@@ -448,7 +464,7 @@ schema:
 			desc:               "simple select query (qualified table with different name than default) correctly translated to pipeline",
 			query:              "select bar.b from test2.bar",
 			dbName:             testDBName,
-			mongoVersion:       testMongoVersion4,
+			ctlg:               testCatalogWithoutSharding,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test2"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   "test2",
 			expectedCollection: "bar",
@@ -457,7 +473,7 @@ schema:
 			desc:               "simple select query with computed columns correctly translated to pipeline",
 			query:              "select a, b, a+b from foo",
 			dbName:             testDBName,
-			mongoVersion:       testMongoVersion4,
+			ctlg:               testCatalogWithoutSharding,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"db": {"$literal": "test"},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "a+b"},"value": {"$add": ["$a","$b"]}}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
@@ -466,7 +482,7 @@ schema:
 			desc:               "query with where clause correctly translated to pipeline",
 			query:              "select foo.a from foo where foo.b < foo.c",
 			dbName:             testDBName,
-			mongoVersion:       testMongoVersion4,
+			ctlg:               testCatalogWithoutSharding,
 			expectedOutput:     `[{"$match": {"$expr": {"$and": [{"$gt": ["$c",null]},{"$gt": ["$b",null]},{"$lt": ["$b","$c"]}]}}},{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
@@ -475,26 +491,61 @@ schema:
 			desc:               "query with column and table aliases correctly translated to pipeline",
 			query:              "select a as my_a, b as b_cool, a+b as sum from foo t",
 			dbName:             testDBName,
-			mongoVersion:       "latest",
+			ctlg:               testCatalogWithoutSharding,
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "t"},"column": {"$literal": "a"},"columnAlias": {"$literal": "my_a"},"value": "$a"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "t"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b_cool"},"value": "$b"},{"db": {"$literal": "test"},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "sum"},"value": {"$add": ["$a","$b"]}}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
+		},
+		{
+			desc:               "query with lookup in sharded collection",
+			query:              "select * from foo join bar on foo.a = bar.a",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithSharding,
+			expectedOutput:     `[{"$match": {"a": {"$ne": null}}},{"$lookup": {"from": {"db": "test","coll": "bar"},"localField": "a","foreignField": "a","as": "__joined_bar"}},{"$unwind": "$__joined_bar"},{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "c"},"columnAlias": {"$literal": "c"},"value": "$c"},{"db": {"$literal": "test"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$__joined_bar.a"},{"db": {"$literal": "test"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "d"},"columnAlias": {"$literal": "d"},"value": "$__joined_bar.d"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "query with cross-database lookup",
+			query:              "select * from test.foo join test2.bar",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$lookup": {"from": {"db": "test2","coll": "bar"},"let": {},"pipeline": [],"as": "__joined_bar"}},{"$unwind": "$__joined_bar"},{"$project": {"values": [{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"db": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "c"},"columnAlias": {"$literal": "c"},"value": "$c"},{"db": {"$literal": "test2"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$__joined_bar.b"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "no row generator optimization",
+			query:              "select 1 + 2 from test.foo",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": null},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "1+2"},"value": {"$literal": {"$numberLong":"3"}}}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "no count optimization",
+			query:              "select count(*) from foo",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$group": {"_id": {},"count(*)": {"$sum": {"$numberInt":"1"}}}},{"$project": {"values": [{"db": {"$literal": null},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "count(*)"},"value": "$count(*)"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "pushdown dual as information_schema table",
+			query:              "select 1+2",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": null},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "1+2"},"value": {"$literal": {"$numberLong":"3"}}}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   "information_schema",
+			expectedCollection: "dual",
 		},
 	}
 
 	for _, tcase := range tcases {
 		t.Run(tcase.desc, func(t *testing.T) {
-			ctlg, err := getCatalog(testSchema)
-			if err != nil {
-				t.Errorf("failed to create catalog: %v", err)
-			}
-
-			mdbVersion, err := mongoDBVersionAsSlice(tcase.mongoVersion)
-			if err != nil {
-				t.Errorf("failed to parse mongo version (%v): %v", tcase.mongoVersion, err)
-			}
-
-			tCfg := NewTranslationConfig(ctlg, evaluator.ODBCOutputFormat, 1, tcase.dbName, mdbVersion)
+			tCfg := NewTranslationConfig(tcase.ctlg, evaluator.ODBCOutputFormat, 1, tcase.dbName)
 			actualOutputRaw, actualDatabase, actualCollection, err := TranslateSQLQueryRaw(context.Background(), tCfg, tcase.query)
 
 			if tcase.expectedError != "" {
@@ -529,6 +580,40 @@ schema:
 			}
 		})
 	}
+}
+
+func makeTestCatalogWithShardedCollections(s *schema.Schema) (catalog.Catalog, error) {
+	databases := s.Databases()
+	dbInfos := make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo, len(databases))
+
+	for _, db := range databases {
+		tables := db.Tables()
+		collectionInfos := make(map[mongodb.CollectionName]*mongodb.CollectionInfo, len(tables))
+		for _, t := range tables {
+			collectionName := mongodb.CollectionName(t.MongoName())
+			collectionInfo := &mongodb.CollectionInfo{
+				Name:      collectionName,
+				IsSharded: true,
+			}
+
+			collectionInfos[collectionName] = collectionInfo
+		}
+
+		dbName := mongodb.DatabaseName(db.Name())
+		dbInfo := &mongodb.DatabaseInfo{
+			Name:        dbName,
+			Privileges:  mongodb.AllPrivileges,
+			Collections: collectionInfos,
+		}
+
+		dbInfos[dbName] = dbInfo
+	}
+
+	info := &mongodb.Info{
+		Databases: dbInfos,
+	}
+
+	return catalog.BuildFromSchema(s, info, false)
 }
 
 type ctlgTest struct {

@@ -9,7 +9,7 @@ import (
 )
 
 // PartialRedundancyElimination removes redundant expressions by binding them in $let expressions.
-func PartialRedundancyElimination(pipeline *ast.Pipeline) *ast.Pipeline {
+func PartialRedundancyElimination(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	out, _ := ast.Visit(pipeline, func(v ast.Visitor, n ast.Node) ast.Node {
 		switch typedN := n.(type) {
 		case ast.Expr:

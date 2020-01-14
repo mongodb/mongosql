@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
+	"github.com/10gen/mongoast/internal/bytesize"
 	"github.com/10gen/mongoast/internal/decimalutil"
 
 	"github.com/pkg/errors"
@@ -50,6 +51,12 @@ func ParseStage(doc bsoncore.Document) (ast.Stage, error) {
 			return nil, errors.New("$count stage must have a string as its only argument")
 		}
 		return ast.NewCountStage(fieldName), nil
+	case "$currentOp":
+		vdoc, ok := e.Value().DocumentOK()
+		if !ok {
+			return nil, errors.New("$currentOp stage must have a document as its only argument")
+		}
+		return parseCurrentOpStage(vdoc)
 	case "$facet":
 		vdoc, ok := e.Value().DocumentOK()
 		if !ok {
@@ -89,10 +96,14 @@ func ParseStage(doc bsoncore.Document) (ast.Stage, error) {
 		return parseLookupStage(vdoc)
 	case "$out":
 		collectionName, ok := e.Value().StringValueOK()
-		if !ok {
-			return nil, errors.New("$out stage requires a string argument")
+		if ok {
+			return ast.NewOutStage(collectionName), nil
 		}
-		return ast.NewOutStage(collectionName), nil
+		vdoc, ok := e.Value().DocumentOK()
+		if !ok {
+			return nil, errors.New("$out stage must have a string or a document as its only argument")
+		}
+		return parseOutStage(vdoc)
 	case "$match":
 		vdoc, ok := e.Value().DocumentOK()
 		if !ok {
@@ -354,6 +365,74 @@ func parseCollStatsStage(doc bsoncore.Document) (*ast.CollStatsStage, error) {
 	return ast.NewCollStatsStage(latencyStats, storageStats, count), nil
 }
 
+func parseCurrentOpStage(doc bsoncore.Document) (*ast.CurrentOpStage, error) {
+	var allUsers bool
+	var idleConnections bool
+	var idleCursors bool
+	var idleSessions bool
+	var localOps bool
+	var ok bool
+
+	elems, _ := doc.Elements()
+	for _, e := range elems {
+		switch e.Key() {
+		case "allUsers":
+			allUsers, ok = e.Value().BooleanOK()
+			if !ok {
+				return nil, errors.Errorf(
+					"the 'allUsers' parameter of the $currentOp stage must be a boolean value but found: %s",
+					bsonutil.TypeToString(e.Value().Type),
+				)
+			}
+		case "idleConnections":
+			idleConnections, ok = e.Value().BooleanOK()
+			if !ok {
+				return nil, errors.Errorf(
+					"the 'idleConnections' parameter of the $currentOp stage must be a boolean value but found: %s",
+					bsonutil.TypeToString(e.Value().Type),
+				)
+			}
+		case "idleCursors":
+			idleCursors, ok = e.Value().BooleanOK()
+			if !ok {
+				return nil, errors.Errorf(
+					"the 'idleCursors' parameter of the $currentOp stage must be a boolean value but found: %s",
+					bsonutil.TypeToString(e.Value().Type),
+				)
+			}
+		case "idleSessions":
+			idleSessions, ok = e.Value().BooleanOK()
+			if !ok {
+				return nil, errors.Errorf(
+					"the 'idleSessions' parameter of the $currentOp stage must be a boolean value but found: %s",
+					bsonutil.TypeToString(e.Value().Type),
+				)
+			}
+		case "localOps":
+			localOps, ok = e.Value().BooleanOK()
+			if !ok {
+				return nil, errors.Errorf(
+					"the 'localOps' parameter of the $currentOp stage must be a boolean value but found: %v",
+					bsonutil.TypeToString(e.Value().Type),
+				)
+			}
+		default:
+			return nil, errors.Errorf(
+				"unrecognized option '%s' in $currentOp stage",
+				e.Key(),
+			)
+		}
+	}
+
+	return ast.NewCurrentOpStage(
+		allUsers,
+		idleConnections,
+		idleCursors,
+		idleSessions,
+		localOps,
+	), nil
+}
+
 // ParseStageJSON parses an ast.Stage from a string.
 func ParseStageJSON(input string) (ast.Stage, error) {
 	v, err := parseJSON(input)
@@ -427,7 +506,8 @@ func parseGroupStage(doc bsoncore.Document) (*ast.GroupStage, error) {
 }
 
 func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
-	var from string
+	var fromDB string
+	var fromColl string
 	var localField *ast.FieldRef
 	var foreignField string
 	var as string
@@ -440,10 +520,17 @@ func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 	for _, e := range elems {
 		switch e.Key() {
 		case "from":
-			from, ok = e.Value().StringValueOK()
-			if !ok {
+			switch e.Value().Type {
+			case bsontype.String:
+				fromColl = e.Value().StringValue()
+			case bsontype.EmbeddedDocument:
+				fromDB, fromColl, err = parseLookupFromDoc(e.Value().Document())
+				if err != nil {
+					return nil, err
+				}
+			default:
 				return nil, errors.Errorf(
-					"$lookup argument 'from: %v' must be a string, is type %v",
+					"$lookup argument 'from: %v' must be a string or document, is type %v",
 					e.Value(),
 					e.Value().Type,
 				)
@@ -509,7 +596,7 @@ func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 		}
 	}
 
-	if from == "" {
+	if fromColl == "" {
 		return nil, errors.Errorf(
 			"missing 'from' option to $lookup stage specification: %v",
 			doc,
@@ -529,7 +616,42 @@ func parseLookupStage(doc bsoncore.Document) (*ast.LookupStage, error) {
 		)
 	}
 
-	return ast.NewLookupStage(from, localField, foreignField, as, let, pipeline), nil
+	return ast.NewLookupStageWithDB(fromDB, fromColl, localField, foreignField, as, let, pipeline), nil
+}
+
+func parseLookupFromDoc(doc bsoncore.Document) (string, string, error) {
+	var fromDB string
+	var fromColl string
+	var ok bool
+	elems, _ := doc.Elements()
+	for _, e := range elems {
+		switch e.Key() {
+		case "db":
+			fromDB, ok = e.Value().StringValueOK()
+			if !ok {
+				return "", "", errors.Errorf(
+					"$lookup argument 'from.db : %v' must be a string, is type %v",
+					e.Value(),
+					e.Value().Type,
+				)
+			}
+		case "coll":
+			fromColl, ok = e.Value().StringValueOK()
+			if !ok {
+				return "", "", errors.Errorf(
+					"$lookup argument 'from.coll : %v' must be a string, is type %v",
+					e.Value(),
+					e.Value().Type,
+				)
+			}
+		default:
+			return "", "", errors.Errorf("invalid field in $lookup 'from' document: %s", e.Key())
+		}
+	}
+	if fromColl == "" {
+		return "", "", errors.Errorf("$lookup 'from' document must have a 'coll' field")
+	}
+	return fromDB, fromColl, nil
 }
 
 func ParseLookupLetItems(doc bsoncore.Document) ([]*ast.LookupLetItem, error) {
@@ -555,6 +677,108 @@ func parseMatchStage(doc bsoncore.Document) (*ast.MatchStage, error) {
 	}
 
 	return ast.NewMatchStage(expr), nil
+}
+
+func parseOutStage(doc bsoncore.Document) (ast.Stage, error) {
+	elems, _ := doc.Elements()
+	if len(elems) != 1 {
+		return nil, errors.New("$out stage must be a document with a single element")
+	}
+
+	e := elems[0]
+	switch e.Key() {
+	case "s3":
+		url, ok := e.Value().StringValueOK()
+		if ok {
+			return ast.NewOutToS3URLStage(url), nil
+		}
+		vdoc, ok := e.Value().DocumentOK()
+		if !ok {
+			return nil, errors.New("$out option 's3' must be a string or a document")
+		}
+		return parseOutToS3Stage(vdoc)
+	default:
+		return nil, errors.Errorf(
+			"unrecognized option to $out stage: %s, only valid option is 's3'",
+			e.Key(),
+		)
+	}
+}
+
+func parseOutToS3Stage(doc bsoncore.Document) (*ast.OutStage, error) {
+	var err error
+	var ok bool
+	var bucketName ast.Expr
+	var prefixName ast.Expr
+	var formatName string
+	var regionName string
+	var maxFileSize int64
+
+	elems, _ := doc.Elements()
+	for _, e := range elems {
+		switch e.Key() {
+		case "bucket":
+			bucketName, err = ParseExpr(e.Value())
+			if err != nil {
+				return nil, errors.Wrap(err, "failed parsing $out option 's3.bucket'")
+			}
+		case "filename":
+			prefixName, err = ParseExpr(e.Value())
+			if err != nil {
+				return nil, errors.Wrap(err, "failed parsing $out option 's3.filename'")
+			}
+		case "region":
+			regionName, ok = e.Value().StringValueOK()
+			if !ok {
+				return nil, errors.New("$out option 's3.region' must be a string")
+			}
+		case "format":
+			formatDoc, ok := e.Value().DocumentOK()
+			if !ok {
+				return nil, errors.New("$out option 's3.format' must be a document")
+			}
+			formatElems, _ := formatDoc.Elements()
+			for _, fe := range formatElems {
+				switch fe.Key() {
+				case "name":
+					formatName, ok = fe.Value().StringValueOK()
+					if !ok {
+						return nil, errors.New("$out option 's3.format.name' must be a string")
+					}
+				case "maxFileSize":
+					maxFileSizeStr, ok := fe.Value().StringValueOK()
+					if ok {
+						maxFileSizeParsed, err := bytesize.Parse(maxFileSizeStr)
+						if err != nil {
+							return nil, errors.Wrap(err, "failed parsing $out option 's3.format.maxFileSize'")
+						}
+						maxFileSize = int64(maxFileSizeParsed)
+					} else {
+						maxFileSize, ok = bsonutil.AsInt64OK(fe.Value())
+						if !ok {
+							return nil, errors.New("$out option 's3.format.maxFileSize' must be a string or an integer")
+						}
+						if maxFileSize < 0 {
+							return nil, errors.New("$out option 's3.format.maxFileSize' must not be negative")
+						}
+					}
+				default:
+					return nil, errors.Errorf("unrecognized option to $out stage: s3.format.%s", fe.Key())
+				}
+			}
+		default:
+			return nil, errors.Errorf("unrecognized option to $out stage: s3.%s", e.Key())
+		}
+	}
+
+	if bucketName == nil {
+		return nil, errors.New("$out option 's3.bucket' must be specified")
+	}
+	if prefixName == nil {
+		return nil, errors.New("$out option 's3.filename' must be specified")
+	}
+
+	return ast.NewOutToS3Stage(bucketName, prefixName, regionName, formatName, maxFileSize), nil
 }
 
 func parseProjectStage(doc bsoncore.Document) (*ast.ProjectStage, error) {
@@ -588,7 +812,7 @@ func parseProjectStageItems(doc bsoncore.Document, prefix string) ([]ast.Project
 		fullKey := prefix + e.Key()
 		value := e.Value()
 		if value.IsNumber() || value.Type == bsontype.Boolean {
-			fieldRef, err := ParseFieldRef(fullKey)
+			ref, err := ParseFieldRef(fullKey)
 			if err != nil {
 				return nil, errors.Wrapf(err, "failed parsing project field ref %s", fullKey)
 			}
@@ -608,9 +832,9 @@ func parseProjectStageItems(doc bsoncore.Document, prefix string) ([]ast.Project
 			}
 
 			if exclude {
-				items = append(items, ast.NewExcludeProjectItem(fieldRef.(*ast.FieldRef)))
+				items = append(items, ast.NewExcludeProjectItem(ref))
 			} else {
-				items = append(items, ast.NewIncludeProjectItem(fieldRef.(*ast.FieldRef)))
+				items = append(items, ast.NewIncludeProjectItem(ref))
 			}
 		} else {
 			if isNestedDoc(value) {
@@ -679,7 +903,8 @@ func parseReplaceRootStageFromExpr(newRoot ast.Expr) (*ast.ReplaceRootStage, err
 		*ast.VariableRef,
 		*ast.ArrayIndexRef,
 		*ast.FieldOrArrayIndexRef,
-		*ast.Document:
+		*ast.Document,
+		*ast.MergeObjects:
 	default:
 		return nil, errors.New("'newRoot' expression must evaluate to an object")
 	}
