@@ -1,16 +1,19 @@
 package mapping
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mongo"
 
@@ -86,6 +89,97 @@ func getTypeNames(sc *mongo.Schemata) ([]mongo.BSONType, error) {
 		ret = append(ret, ty)
 	}
 	return ret, nil
+}
+
+// MapDataLake takes in a MongoDB schema for a single collection and uses the
+// existing mapping logic to construct a relational schema for that collection.
+// Since a single MongoDB collection can map onto multiple relational tables,
+// we return a list of *catalog.MongoTables.
+func MapDataLake(jsonSchema *mongo.Schema, db, collection string) ([]*catalog.MongoTable, error) {
+
+	lg := log.NoOpLogger()
+	databaseToMap := schema.NewDatabase(lg, db, nil)
+
+	currentNumTotalTables := int64(0)
+	cfg := NewSchemaMappingConfig(
+		databaseToMap,
+		jsonSchema,
+		collection,
+		false,
+		"old",
+		[]uint8{100, 0, 0},
+		lg,
+		config.LatticeMappingMode,
+		// Note that since Data Lake takes schemas one collection at a time,
+		// this "global table tracker" isn't really relevant. It's possible
+		// that the number of tables in this particular collection exceeds the
+		// global table limit, but we also have a limit on the number of tables
+		// generated per collection, so that would catch the issue first.
+		&currentNumTotalTables,
+		config.DefaultMaxNestedTableDepth,
+		config.DefaultMaxNumTablesPerCollection,
+		config.DefaultMaxNumGlobalTables,
+	)
+
+	// Map the MongoDB schema for the given database and collection onto a
+	// relational schema.
+	err := Map(cfg)
+	if err != nil {
+		return nil, err
+	}
+	schema, err := schema.New([]*schema.Database{databaseToMap})
+	if err != nil {
+		return nil, err
+	}
+
+	// Build a catalog from the relational schema.
+	info := getDataLakeMongoDBInfo(db, collection)
+	sqlCatalog, err := catalog.BuildFromSchema(schema, info, false)
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract list of mongo tables from the catalog.
+	var mongoTables []*catalog.MongoTable
+	database, err := sqlCatalog.Database(context.Background(), db)
+	if err != nil {
+		panic(fmt.Sprintf("catalog should contain database '%v', but got error %v", db, err))
+	}
+	tbls, _ := database.Tables(context.Background())
+	for _, tbl := range tbls {
+		mongoTables = append(mongoTables, tbl.(*catalog.MongoTable))
+	}
+	return mongoTables, nil
+}
+
+func getDataLakeMongoDBInfo(db, collection string) *mongodb.Info {
+	collectionInfo := make(map[mongodb.CollectionName]*mongodb.CollectionInfo)
+	collectionInfo[mongodb.CollectionName(collection)] = &mongodb.CollectionInfo{
+		Name: mongodb.CollectionName(collection),
+		// Add visibility privileges so catalog builder knows to add the
+		// database and collection to the catalog.
+		Privileges: mongodb.VisibilityPrivileges,
+		// Data Lake doesn't support indexes.
+		Indexes: []mongodb.Index{},
+		// Even though Data Lake supports views, this is used to indicate
+		// whether or not the table is a SQL view. We treat all MongoDB
+		// collections and views as SQL tables, so we set this to "false"
+		// unconditionally.
+		IsView: false,
+		// All Data Lake collections are sharded.
+		IsSharded: true,
+	}
+
+	databaseInfo := make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo)
+	databaseInfo[mongodb.DatabaseName(strings.ToLower(db))] = &mongodb.DatabaseInfo{
+		Name: mongodb.DatabaseName(strings.ToLower(db)),
+		// Add visibility privileges so catalog builder knows to add the
+		// database and collection to the catalog.
+		Privileges:  mongodb.VisibilityPrivileges,
+		Collections: collectionInfo,
+	}
+
+	return &mongodb.Info{Databases: databaseInfo}
 }
 
 // Map takes a mongo schema that describes a collection with the provided name
