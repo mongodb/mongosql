@@ -803,10 +803,24 @@ func (comp *SQLComparisonExpr) flipAndGetOpName(isMatchLanguage bool) (string, S
 	}
 }
 
+func isUUIDColumnAndLiteral(left, right SQLExpr) bool {
+	leftColumn, leftIsColumn := left.(SQLColumnExpr)
+	rightColumn, rightIsColumn := right.(SQLColumnExpr)
+
+	_, leftIsValue := left.(SQLValueExpr)
+	_, rightIsValue := right.(SQLValueExpr)
+
+	return (leftIsColumn && values.IsUUID(leftColumn.columnType.MongoType) && rightIsValue) ||
+		(rightIsColumn && values.IsUUID(rightColumn.columnType.MongoType) && leftIsValue)
+}
+
 // ToAggregationLanguage translates SQLComparisonExpr into something that can
 // be used in an aggregation pipeline. If SQLComparisonExpr cannot be translated,
 // it will return nil and error.
 func (comp *SQLComparisonExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	if !t.Cfg.allowUUIDLiteralComparisons && isUUIDColumnAndLiteral(comp.left, comp.right) {
+		return nil, newPushdownFailure(comp.ExprName(), "cannot pushdown comparison of UUID column and literal value")
+	}
 	opName, _, _ := comp.flipAndGetOpName(false)
 	return comp.cmpOpToAggregationLanguage(t, opName)
 }
@@ -814,6 +828,9 @@ func (comp *SQLComparisonExpr) ToAggregationLanguage(t *PushdownTranslator) (ast
 // ToAggregationPredicate translates this expression to the aggregation language
 // to be evaluated as a predicate directly in a $match stage via $expr.
 func (comp *SQLComparisonExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	if !t.Cfg.allowUUIDLiteralComparisons && isUUIDColumnAndLiteral(comp.left, comp.right) {
+		return nil, newPushdownFailure(comp.ExprName(), "cannot pushdown comparison of UUID column and literal value")
+	}
 	opName, _, _ := comp.flipAndGetOpName(false)
 	return comp.cmpOpToAggregationPredicate(t, opName)
 }
@@ -823,6 +840,9 @@ func (comp *SQLComparisonExpr) ToAggregationPredicate(t *PushdownTranslator) (as
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the original SQLComparisonExpr.
 func (comp *SQLComparisonExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
+	if !t.Cfg.allowUUIDLiteralComparisons && isUUIDColumnAndLiteral(comp.left, comp.right) {
+		return nil, comp
+	}
 	var ok bool
 	var match *ast.Binary
 

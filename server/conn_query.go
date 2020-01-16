@@ -240,8 +240,8 @@ func (c *conn) getPushdownConfig() *evaluator.PushdownConfig {
 	format := evaluator.NoOutputFormat
 	formatVersion := evaluator.NoOutputVersion
 
-	return evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, shouldPushDown,
-		pushDownSelfJoins, sqlValueKind, format, formatVersion)
+	return evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, true,
+		shouldPushDown, pushDownSelfJoins, sqlValueKind, format, formatVersion)
 }
 
 func (c *conn) getExecutionConfig() *evaluator.ExecutionConfig {

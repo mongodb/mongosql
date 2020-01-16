@@ -31,8 +31,8 @@ func NewQueryConfigFromTranslationConfig(tCfg *TranslationConfig) *evaluator.Que
 	oCfg := evaluator.NewOptimizerConfig(lgr, collation.Default, values.MongoSQLValueKind,
 		true, true, true, true, false)
 	pCfg := evaluator.NewPushdownConfig(lgr, tCfg.mdbVersion, tCfg.allowShardedLookups,
-		tCfg.allowCrossDBLookups, tCfg.allowRowGeneratorOptimization, true, true,
-		values.MongoSQLValueKind, tCfg.format, tCfg.formatVersion)
+		tCfg.allowCrossDBLookups, tCfg.allowRowGeneratorOptimization, tCfg.allowUUIDLiteralComparisons,
+		true, true, values.MongoSQLValueKind, tCfg.format, tCfg.formatVersion)
 	eCfg := evaluator.NewExecutionConfig(lgr, tCfg.defaultDbName, tCfg.mdbVersion, true, 0,
 		values.MongoSQLValueKind, errCommandHandler{}, nil)
 
@@ -58,6 +58,7 @@ type TranslationConfig struct {
 	allowShardedLookups           bool
 	allowCrossDBLookups           bool
 	allowRowGeneratorOptimization bool
+	allowUUIDLiteralComparisons   bool
 	allowCountOptimization        bool
 	useInformationSchemaDual      bool
 }
@@ -66,7 +67,7 @@ type TranslationConfig struct {
 func NewTranslationConfig(ctlg catalog.Catalog, format string, formatVersion int,
 	defaultDbName string) *TranslationConfig {
 	return newTranslationConfig(ctlg, format, formatVersion, defaultDbName,
-		[]uint8{100, 0, 0}, true, true, false, false, true)
+		[]uint8{100, 0, 0}, true, true, false, false, false, true)
 }
 
 func newTranslationConfig(
@@ -78,6 +79,7 @@ func newTranslationConfig(
 	allowShardedLookups,
 	allowCrossDBLookups,
 	allowRowGeneratorOptimization,
+	allowUUIDLiteralComparisons,
 	allowCountOptimization,
 	useInformationSchemaDual bool,
 ) *TranslationConfig {
@@ -90,6 +92,7 @@ func newTranslationConfig(
 		allowShardedLookups:           allowShardedLookups,
 		allowCrossDBLookups:           allowCrossDBLookups,
 		allowRowGeneratorOptimization: allowRowGeneratorOptimization,
+		allowUUIDLiteralComparisons:   allowUUIDLiteralComparisons,
 		allowCountOptimization:        allowCountOptimization,
 		useInformationSchemaDual:      useInformationSchemaDual,
 	}

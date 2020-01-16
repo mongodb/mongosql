@@ -37,6 +37,7 @@ type PushdownConfig struct {
 	allowShardedLookups           bool
 	allowCrossDBLookups           bool
 	allowRowGeneratorOptimization bool
+	allowUUIDLiteralComparisons   bool
 	shouldPushDown                bool
 	mongoDBVersion                []uint8
 	pushDownSelfJoins             bool
@@ -54,6 +55,7 @@ func NewPushdownConfig(
 	allowShardedLookups,
 	allowCrossDBLookups,
 	allowRowGeneratorOptimization,
+	allowUUIDLiteralComparisons,
 	shouldPushDown,
 	pushDownSelfJoins bool,
 	sqlValueKind values.SQLValueKind,
@@ -66,6 +68,7 @@ func NewPushdownConfig(
 		allowShardedLookups:           allowShardedLookups,
 		allowCrossDBLookups:           allowCrossDBLookups,
 		allowRowGeneratorOptimization: allowRowGeneratorOptimization,
+		allowUUIDLiteralComparisons:   allowUUIDLiteralComparisons,
 		shouldPushDown:                shouldPushDown,
 		pushDownSelfJoins:             pushDownSelfJoins,
 		sqlValueKind:                  sqlValueKind,

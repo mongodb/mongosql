@@ -114,8 +114,8 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 		return nil, "", err
 	}
 
-	pushdownCfg := evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, shouldPushDown,
-		pushDownSelfJoins, sqlValueKind, format, formatVersion)
+	pushdownCfg := evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, true,
+		shouldPushDown, pushDownSelfJoins, sqlValueKind, format, formatVersion)
 	optimizerCfg := evaluator.NewOptimizerConfig(lg, collation, sqlValueKind, optimizeCrossJoins,
 		optimizeEvaluations, optimizeFiltering, optimizeInnerJoins, reconcileArithmeticAggFunctions)
 

@@ -367,6 +367,14 @@ schema:
       MongoType: int
       SQLName: d
       SQLType: int32
+  - table: uuids
+    collection: uuids
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.UUID
+      SQLName: _id
+      SQLType: string
 - db: test2
   tables:
   - table: bar
@@ -540,6 +548,20 @@ schema:
 			expectedOutput:     `[{"$project": {"values": [{"db": {"$literal": null},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "1+2"},"value": {"$literal": {"$numberLong":"3"}}}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   "information_schema",
 			expectedCollection: "dual",
+		},
+		{
+			desc:          "cannot pushdown UUID-to-non-UUID comparison in select clause",
+			query:         `select _id = "123" from uuids`,
+			dbName:        testDBName,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "select _id = \"123\" from uuids": query not fully pushed down`,
+		},
+		{
+			desc:          "cannot pushdown UUID-to-non-UUID comparison in where clause",
+			query:         `select * from uuids where _id = "123"`,
+			dbName:        testDBName,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "select * from uuids where _id = \"123\"": query not fully pushed down`,
 		},
 	}
 
