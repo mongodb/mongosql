@@ -119,7 +119,7 @@ var (
 	defaultMaxNumFieldsPerCollection       values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
 	defaultMaxNumColumnsPerTable           values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 2000)
 	defaultMaxNumTablesPerCollection       values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 200)
-	defaultMaxNumGlobalTables              values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 1000)
+	defaultMaxNumGlobalTables              values.SQLInt64   = values.NewSQLInt64(values.VariableSQLValueKind, 4000)
 	defaultMetricsBackend                  values.SQLVarchar = values.NewSQLVarchar(values.VariableSQLValueKind, NoMetricsBackend)
 	defaultMongoDBMaxServerSize            values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
 	defaultMongoDBMaxConnectionSize        values.SQLUint64  = values.NewSQLUint64(values.VariableSQLValueKind, 0)
