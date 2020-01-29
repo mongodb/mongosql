@@ -243,10 +243,10 @@ func getPlanColumns(columns []*results.Column) string {
 		}
 		if len(c.Database) == 0 || len(c.Table) == 0 {
 			b.WriteString(fmt.Sprintf("{name: '%v', type: '%v'}",
-				c.Name, types.EvalTypeToSQLType(c.EvalType)))
+				c.Name, types.EvalTypeToSQLType(c.ColumnType.EvalType)))
 		} else {
 			b.WriteString(fmt.Sprintf("{name: %v.%v.'%v', type: '%v'}",
-				c.Database, c.Table, c.Name, types.EvalTypeToSQLType(c.EvalType)))
+				c.Database, c.Table, c.Name, types.EvalTypeToSQLType(c.ColumnType.EvalType)))
 		}
 	}
 	b.WriteString("]")

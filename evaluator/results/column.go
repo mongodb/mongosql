@@ -5,6 +5,8 @@ import (
 
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // ColumnType is the type of a column.
@@ -17,20 +19,20 @@ type ColumnType struct {
 // Column contains information used to select data
 // from a PlanStage.
 type Column struct {
-	ColumnType
-	SelectID            int
-	Table               string
-	OriginalTable       string
-	Database            string
-	Name                string
-	OriginalName        string
-	MappingRegistryName string
-	MongoName           string
-	PrimaryKey          bool
-	Comments            string
-	IsPolymorphic       bool
-	HasAlteredType      bool
-	Nullable            bool
+	ColumnType          *ColumnType `bson:"columnType"`
+	SelectID            int         `bson:"selectID"`
+	Table               string      `bson:"-"`
+	OriginalTable       string      `bson:"originalTable"`
+	Database            string      `bson:"database"`
+	Name                string      `bson:"name"`
+	OriginalName        string      `bson:"-"`
+	MappingRegistryName string      `bson:"-"`
+	MongoName           string      `bson:"mongoName"`
+	PrimaryKey          bool        `bson:"primaryKey"`
+	Comments            string      `bson:"comments"`
+	IsPolymorphic       bool        `bson:"isPolymorphic"`
+	HasAlteredType      bool        `bson:"hasAlteredType"`
+	Nullable            bool        `bson:"nullable"`
 }
 
 // NewColumn is a constructor for the Column struct.
@@ -44,7 +46,7 @@ func NewColumn(selectID int, table, originalTable, database, name,
 		uuidSubType = types.EvalCSharpUUID
 	}
 	return &Column{
-		ColumnType: ColumnType{
+		ColumnType: &ColumnType{
 			MongoType:   mongoType,
 			EvalType:    evalType,
 			UUIDSubType: uuidSubType,
@@ -62,8 +64,8 @@ func NewColumn(selectID int, table, originalTable, database, name,
 }
 
 // NewColumnType returns a ColumnType with the specified types.EvalType and MongoType.
-func NewColumnType(evalType types.EvalType, mongoType schema.MongoType) ColumnType {
-	return ColumnType{
+func NewColumnType(evalType types.EvalType, mongoType schema.MongoType) *ColumnType {
+	return &ColumnType{
 		EvalType:  evalType,
 		MongoType: mongoType,
 		// Because the need to set the UUIDSubType is so rare, we just use
@@ -88,7 +90,7 @@ func NewColumnTypeWithUUIDSubtype(evalType types.EvalType,
 // Clone clones the Column.
 func (c *Column) Clone() *Column {
 	cb := NewColumnBuilder()
-	cb.SetColumnType(NewColumnType(c.EvalType, c.MongoType))
+	cb.SetColumnType(NewColumnType(c.ColumnType.EvalType, c.ColumnType.MongoType))
 	cb.SetSelectID(c.SelectID)
 	cb.SetTable(c.Table)
 	cb.SetOriginalTable(c.OriginalTable)
@@ -103,6 +105,41 @@ func (c *Column) Clone() *Column {
 	cb.SetHasAlteredType(c.HasAlteredType)
 	cb.SetNullable(c.Nullable)
 	return cb.Build()
+}
+
+type marshallableColumnType struct {
+	EvalType    string `bson:"sqlType"`
+	MongoType   string `bson:"mongoType"`
+	UUIDSubType string `bson:"uuidSubType"`
+}
+
+// MarshalBSON is a custom implementation for marshalling a ColumnType
+// into raw BSON bytes. ColumnType deviates from the default BSON
+// marshalling implementation by marshalling the byte fields (EvalType
+// and UUIDSubType) as strings. This is necessary because single bytes
+// cannot be marshaled and unmarshaled.
+func (c *ColumnType) MarshalBSON() ([]byte, error) {
+	mct := &marshallableColumnType{
+		EvalType:    types.EvalTypeToString(c.EvalType),
+		MongoType:   string(c.MongoType),
+		UUIDSubType: types.EvalTypeToString(c.UUIDSubType),
+	}
+	return bson.Marshal(mct)
+}
+
+// UnmarshalBSON unmarshals the provided raw bytes into the Column.
+func (c *ColumnType) UnmarshalBSON(b []byte) error {
+	mct := &marshallableColumnType{}
+	err := bson.Unmarshal(b, mct)
+	if err != nil {
+		return err
+	}
+
+	c.EvalType = types.EvalTypeFromString(mct.EvalType)
+	c.MongoType = schema.MongoType(mct.MongoType)
+	c.UUIDSubType = types.EvalTypeFromString(mct.UUIDSubType)
+
+	return nil
 }
 
 // Columns is a slice of Column pointers.
@@ -142,6 +179,16 @@ func (cs Columns) Unique() Columns {
 	}
 
 	return results
+}
+
+// Names returns the slice of column names.
+func (cs Columns) Names() []string {
+	columnNames := make([]string, len(cs))
+	for i, col := range cs {
+		columnNames[i] = col.Name
+	}
+
+	return columnNames
 }
 
 // ColumnInfo keeps track of the data needed to correctly deserialize data from

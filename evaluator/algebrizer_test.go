@@ -679,7 +679,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 				projectedCol := createProjectedColumn(2, source, "foo", "a", "foo", "a", false)
 				projectedCol.Expr = evaluator.NewSQLConvertExpr(projectedCol.Expr,
 					types.EvalInt64)
-				projectedCol.MongoType = ""
+				projectedCol.ColumnType.MongoType = ""
 				projectedCol.OriginalName = ""
 				projectedCol.OriginalTable = ""
 				projectedCol.Table = ""
@@ -2994,7 +2994,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b", false)
 			projectedColumn.Expr = evaluator.NewSQLConvertExpr(projectedColumn.Expr,
 				types.EvalInt64)
-			projectedColumn.MongoType = ""
+			projectedColumn.ColumnType.MongoType = ""
 			projectedColumn.OriginalName = ""
 			projectedColumn.OriginalTable = ""
 			projectedColumn.Table = ""
@@ -3067,7 +3067,7 @@ func TestAlgebrizeQuery(t *testing.T) {
 			projectedColumn := createProjectedColumn(1, source, "safe", "b", "safe", "b", false)
 			projectedColumn.Expr = evaluator.NewSQLConvertExpr(projectedColumn.Expr,
 				types.EvalInt64)
-			projectedColumn.MongoType = ""
+			projectedColumn.ColumnType.MongoType = ""
 			projectedColumn.OriginalName = ""
 			projectedColumn.OriginalTable = ""
 			projectedColumn.Table = ""
@@ -3836,7 +3836,7 @@ func TestAlgebrizeExpr(t *testing.T) {
 		for _, c := range source.Columns() {
 			if c.Name == columnName {
 				return testSQLColumnExpr(1,
-					c.Database, c.Table, c.Name, c.EvalType, c.MongoType, false)
+					c.Database, c.Table, c.Name, c.ColumnType.EvalType, c.ColumnType.MongoType, false)
 			}
 		}
 

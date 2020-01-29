@@ -6,6 +6,9 @@ import "go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 type Node interface {
 	DeepCopier
 
+	// The Walk method must apply the Visitor to all child nodes.
+	// If any child node is modified, Walk must return a copy of
+	// the invocant with modifications applied.
 	Walk(v Visitor) Node
 }
 

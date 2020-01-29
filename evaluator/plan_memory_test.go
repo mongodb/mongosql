@@ -60,7 +60,7 @@ func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 			Column: &Column{SelectID: 1, Table: tableOneName,
 				OriginalTable: tableOneName, Database: BSONSourceDB, Name: "a",
 				OriginalName: "a", MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType:  EvalString,
 					MongoType: schema.MongoInt,
 				}, PrimaryKey: false},
@@ -71,7 +71,7 @@ func testGroupByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
 				MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType:  EvalDouble,
 					MongoType: schema.MongoNone,
 				},
@@ -373,7 +373,7 @@ func testGroupByMemoryMonitor(t *testing.T) {
 			Column: &Column{SelectID: 1, Table: tableOneName,
 				OriginalTable: tableOneName, Database: BSONSourceDB, Name: "a",
 				OriginalName: "a", MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType:  EvalString,
 					MongoType: schema.MongoString,
 				},
@@ -385,7 +385,7 @@ func testGroupByMemoryMonitor(t *testing.T) {
 			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
 				MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType:  EvalInt64,
 					MongoType: schema.MongoInt,
 				},
@@ -533,7 +533,7 @@ func testProjectMemoryMonitor(t *testing.T) {
 		Column: &Column{SelectID: 1, Table: tableOneName, OriginalTable: tableOneName,
 			Database: BSONSourceDB, Name: "a", OriginalName: "a",
 			MappingRegistryName: "",
-			ColumnType: ColumnType{
+			ColumnType: &ColumnType{
 				EvalType: EvalInt64, MongoType: schema.MongoInt,
 			},
 			PrimaryKey: false},

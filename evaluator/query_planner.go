@@ -92,8 +92,8 @@ func (b *queryPlanBuilder) buildDistinct(source PlanStage) PlanStage {
 					projectedKeys[i].Database,
 					projectedKeys[i].Table,
 					projectedKeys[i].Name,
-					projectedKeys[i].EvalType,
-					projectedKeys[i].MongoType,
+					projectedKeys[i].ColumnType.EvalType,
+					projectedKeys[i].ColumnType.MongoType,
 					false,
 					pc.Column.Nullable,
 				)

@@ -63,7 +63,7 @@ func TestGroupByPlanStage(t *testing.T) {
 			Column: &Column{SelectID: 1, Table: tableOneName,
 				OriginalTable: tableOneName, Database: BSONSourceDB, Name: "a",
 				OriginalName: "a", MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType:  EvalString,
 					MongoType: schema.MongoInt,
 				},
@@ -75,7 +75,7 @@ func TestGroupByPlanStage(t *testing.T) {
 			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: BSONSourceDB, Name: "sum(b)", OriginalName: "sum(b)",
 				MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType:  EvalDouble,
 					MongoType: schema.MongoNone,
 				},

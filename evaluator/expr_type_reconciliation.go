@@ -44,7 +44,7 @@ func (v *reconciler) visit(n Node) (Node, error) {
 	} else if plan, ok := n.(PlanStage); ok {
 		if project, ok := plan.(*ProjectStage); ok {
 			for _, c := range project.ProjectedColumns() {
-				c.Column.EvalType = c.Expr.EvalType()
+				c.Column.ColumnType.EvalType = c.Expr.EvalType()
 			}
 		}
 	}

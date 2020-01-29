@@ -122,15 +122,6 @@ func (n *Exists) MemoryUsage() uint64 {
 }
 
 // MemoryUsage implements the Expr interface.
-func (n *MergeObjects) MemoryUsage() uint64 {
-	var mem uint64
-	for _, e := range n.Exprs {
-		mem += e.MemoryUsage()
-	}
-	return mem
-}
-
-// MemoryUsage implements the Expr interface.
 func (n *Unknown) MemoryUsage() uint64 {
 	return uint64(len(n.Value.Data))
 }

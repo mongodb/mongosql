@@ -225,6 +225,92 @@ func EvalTypeToSQLType(e EvalType) schema.SQLType {
 	panic(fmt.Sprintf("unknown EvalType in EvalTypeToSQLType: %x", e))
 }
 
+// evalTypeToString returns the name for an EvalType.
+var evalTypeToString = map[EvalType]string{
+	EvalDouble:       "double",
+	EvalString:       "string",
+	EvalDocument:     "document",
+	EvalArray:        "array",
+	EvalBinary:       "binary",
+	EvalUndefined:    "undefined",
+	EvalObjectID:     "objectID",
+	EvalBoolean:      "boolean",
+	EvalDatetime:     "datetime",
+	EvalNull:         "null",
+	EvalRegex:        "regex",
+	EvalDBPointer:    "dbPointer",
+	EvalJSCode:       "jsCode",
+	EvalSymbol:       "symbol",
+	EvalJSCodeWScope: "jsCodeWScope",
+	EvalInt32:        "int32",
+	EvalTimestamp:    "timestamp",
+	EvalInt64:        "int64",
+	EvalDecimal128:   "decimal128",
+	EvalMinKey:       "minKey",
+	EvalMaxKey:       "maxKey",
+	EvalPolymorphic:  "polymorphic",
+	EvalDate:         "date",
+	EvalTime:         "time",
+	EvalUint32:       "uint32",
+	EvalUint64:       "uint64",
+	EvalJavaUUID:     "javaUUID",
+	EvalCSharpUUID:   "cSharpUUID",
+	EvalArrNumeric:   "arrNumeric",
+	EvalNumber:       "number",
+}
+
+// EvalTypeToString returns the string name of this EvalType.
+func EvalTypeToString(e EvalType) string {
+	name, ok := evalTypeToString[e]
+	if ok {
+		return name
+	}
+	panic(fmt.Sprintf("unknown EvalType in EvalTypeToString: 0x%x", e))
+}
+
+// stringToEvalType returns the EvalType for a name.
+var stringToEvalType = map[string]EvalType{
+	"double":       EvalDouble,
+	"string":       EvalString,
+	"document":     EvalDocument,
+	"array":        EvalArray,
+	"binary":       EvalBinary,
+	"undefined":    EvalUndefined,
+	"objectID":     EvalObjectID,
+	"boolean":      EvalBoolean,
+	"datetime":     EvalDatetime,
+	"null":         EvalNull,
+	"regex":        EvalRegex,
+	"dbPointer":    EvalDBPointer,
+	"jsCode":       EvalJSCode,
+	"symbol":       EvalSymbol,
+	"jsCodeWScope": EvalJSCodeWScope,
+	"int32":        EvalInt32,
+	"timestamp":    EvalTimestamp,
+	"int64":        EvalInt64,
+	"decimal128":   EvalDecimal128,
+	"minKey":       EvalMinKey,
+	"maxKey":       EvalMaxKey,
+	"polymorphic":  EvalPolymorphic,
+	"date":         EvalDate,
+	"time":         EvalTime,
+	"uint32":       EvalUint32,
+	"uint64":       EvalUint64,
+	"javaUUID":     EvalJavaUUID,
+	"cSharpUUID":   EvalCSharpUUID,
+	"arrNumeric":   EvalArrNumeric,
+	"number":       EvalNumber,
+}
+
+// EvalTypeFromString returns the EvalType for a name.
+func EvalTypeFromString(s string) EvalType {
+	e, ok := stringToEvalType[s]
+	if ok {
+		return e
+	}
+	panic(fmt.Sprintf("unknown EvalType name in EvalTypeFromtString: %q", s))
+}
+
 // EvalTypeSorter is a type used for sorting EvalTypes according to some
 // configurable sorting rules.
 type EvalTypeSorter struct {

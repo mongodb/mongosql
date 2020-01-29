@@ -252,15 +252,6 @@ func DeparseExprErr(e ast.Expr, needsLiteral ...bool) (bsoncore.Value, error) {
 		doc = bsoncore.AppendArrayElement(doc, "$trunc", arr.Data)
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return bsonutil.Document(doc), nil
-	case *ast.MergeObjects:
-		_, doc := bsoncore.AppendDocumentStart(nil)
-		exprs := make([]bsoncore.Value, len(te.Exprs))
-		for i, e := range te.Exprs {
-			exprs[i] = DeparseExpr(e, mustIncludeLiteral)
-		}
-		doc = bsonutil.AppendValueElement(doc, "$mergeObjects", bsonutil.ArrayFromValues(exprs...))
-		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
-		return bsonutil.Document(doc), nil
 	}
 
 	return bsoncore.Value{}, fmt.Errorf("unsupported expr %T", e)

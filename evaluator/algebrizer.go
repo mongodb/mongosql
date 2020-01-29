@@ -509,14 +509,14 @@ func (a *algebrizer) resolveColumnExpr(databaseName, tableName,
 
 	column, err := a.lookupColumn(databaseName, tableName, columnName)
 	if err == nil {
-		if a.currentClause != whereClause && column.MongoType == schema.MongoFilter {
+		if a.currentClause != whereClause && column.ColumnType.MongoType == schema.MongoFilter {
 			return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadFieldError, column.Name, column.Table)
 		}
 		colExpr := NewSQLColumnExpr(column.SelectID, column.Database, column.Table,
-			column.Name, column.EvalType, column.MongoType, false, column.Nullable)
+			column.Name, column.ColumnType.EvalType, column.ColumnType.MongoType, false, column.Nullable)
 		mode := a.cfg.polymorphicTypeConversionMode
 		if shouldConvert(column, mode) {
-			return NewSQLConvertExpr(colExpr, column.EvalType), nil
+			return NewSQLConvertExpr(colExpr, column.ColumnType.EvalType), nil
 		}
 		return colExpr, nil
 	}
@@ -1117,7 +1117,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 				}
 
 				pcs[0].Expr = NewSQLColumnExpr(pcs[0].SelectID, pcs[0].Database,
-					pcs[0].Table, pcs[0].Name, pcs[0].EvalType, schema.MongoNone, false, pcs[0].Column.Nullable)
+					pcs[0].Table, pcs[0].Name, pcs[0].ColumnType.EvalType, schema.MongoNone, false, pcs[0].Column.Nullable)
 				plan = NewCountStage(mongoSource, pcs[0])
 				plan = NewProjectStage(plan, pcs[0])
 				return plan, nil
@@ -1265,7 +1265,7 @@ func (a *algebrizer) translateSelectExprs(
 			tableName := typedE.TableName.Else("")
 
 			for _, column := range a.columns {
-				if column.MongoType == schema.MongoFilter {
+				if column.ColumnType.MongoType == schema.MongoFilter {
 					continue
 				}
 				// If the form is of string dot wildcard, sql
@@ -1278,7 +1278,7 @@ func (a *algebrizer) translateSelectExprs(
 					projectedColumn := newProjectedColumnFromColumn(column)
 					projectedColumn.SelectID = a.selectID
 					if shouldConvert(column, mode) {
-						projectedColumn.Expr = NewSQLConvertExpr(projectedColumn.Expr, column.EvalType)
+						projectedColumn.Expr = NewSQLConvertExpr(projectedColumn.Expr, column.ColumnType.EvalType)
 					}
 					projectedColumns = append(projectedColumns, projectedColumn)
 				}

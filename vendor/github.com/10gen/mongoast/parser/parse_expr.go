@@ -214,30 +214,6 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 		return parseReduceExpr(v)
 	case "$literal":
 		return ast.NewConstant(v), nil
-	case "$mergeObjects":
-		var elements []ast.Expr
-
-		arr, ok := v.ArrayOK()
-		if !ok {
-			e, err := ParseExpr(v)
-			if err != nil {
-				return nil, err
-			}
-			elements = []ast.Expr{e}
-		} else {
-			values, _ := arr.Values()
-			elements = make([]ast.Expr, len(values))
-			for i, v := range values {
-				e, err := ParseExpr(v)
-				if err != nil {
-					return nil, err
-				}
-
-				elements[i] = e
-			}
-		}
-
-		return ast.NewMergeObjects(elements...), nil
 	default:
 		arg, err := ParseExpr(v)
 		if err != nil {

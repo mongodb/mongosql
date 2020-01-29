@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/internal/bsonutil"
@@ -457,6 +458,13 @@ func parseFacetStage(doc bsoncore.Document) (*ast.FacetStage, error) {
 	elems, _ := doc.Elements()
 	items := make([]*ast.FacetItem, len(elems))
 	for i, e := range elems {
+		if e.Key() == "" {
+			return nil, errors.New("$facet field names may not be empty strings")
+		}
+		if strings.Contains(e.Key(), ".") {
+			return nil, errors.New("$facet field names may not contain '.'")
+		}
+
 		arr, ok := e.Value().ArrayOK()
 		if !ok {
 			return nil, errors.Errorf(
@@ -469,6 +477,9 @@ func parseFacetStage(doc bsoncore.Document) (*ast.FacetStage, error) {
 		pipeline, err := ParsePipeline(arr)
 		if err != nil {
 			return nil, err
+		}
+		if len(pipeline.Stages) == 0 {
+			return nil, errors.New("sub-pipeline in $facet stage cannot be empty")
 		}
 
 		items[i] = ast.NewFacetItem(e.Key(), pipeline)
@@ -898,13 +909,18 @@ func parseReplaceRootStage(doc bsoncore.Document) (*ast.ReplaceRootStage, error)
 }
 
 func parseReplaceRootStageFromExpr(newRoot ast.Expr) (*ast.ReplaceRootStage, error) {
-	switch newRoot.(type) {
+	switch n := newRoot.(type) {
 	case *ast.FieldRef,
 		*ast.VariableRef,
 		*ast.ArrayIndexRef,
 		*ast.FieldOrArrayIndexRef,
-		*ast.Document,
-		*ast.MergeObjects:
+		*ast.Document:
+	case *ast.Function:
+		switch n.Name {
+		case "$mergeObjects":
+		default:
+			return nil, errors.New("'newRoot' expression must evaluate to an object")
+		}
 	default:
 		return nil, errors.New("'newRoot' expression must evaluate to an object")
 	}

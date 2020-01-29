@@ -480,7 +480,7 @@ func (b *catalogBuilder) addColumnsTable(d Database) error {
 					for i, col := range tbl.Columns() {
 						columnKey := getIndexKey(col, tbl)
 						maxVarcharLength := b.variables.GetUint64(variable.MongoDBMaxVarcharLength)
-						columnType := translateColumnType(col.EvalType, maxVarcharLength)
+						columnType := translateColumnType(col.ColumnType.EvalType, maxVarcharLength)
 						dataType := columnType
 						if idx := strings.Index(dataType, "("); idx >= 0 {
 							dataType = dataType[:idx]

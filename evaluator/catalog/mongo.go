@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/mongoast/astprint"
+	"github.com/10gen/mongoast/parser"
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/results"
@@ -13,6 +15,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/schema"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // NewMongoTable creates a new MongoTable.
@@ -217,4 +221,178 @@ func (t *MongoTable) PrimaryKeys() results.Columns {
 // Type returns the type of the MongoTable, t.
 func (t *MongoTable) Type() string {
 	return t.tableType
+}
+
+// MarshalBSON is a custom implementation for marshalling a MongoTable into
+// raw BSON bytes. MongoTable deviates from the default BSON marshalling
+// implementation by marshalling the `pipeline` field as a JSON string
+// instead of BSON arrays and documents. This is necessary in order to
+// store the table in MongoDB, since $-prefixed keys are not allowed. This
+// function also omits some fields, such as columnMap, and simplifies some
+// fields such as primaryKeys and the nested columns fields of indexes and
+// foreignKeys.
+func (t *MongoTable) MarshalBSON() ([]byte, error) {
+	indexes := make([]marshalableIndex, len(t.indexes))
+	for i, index := range t.indexes {
+		indexes[i] = marshalableIndex{
+			Columns:        index.columns.Names(),
+			Unique:         index.unique,
+			FullText:       index.fullText,
+			ConstraintName: index.constraintName,
+		}
+	}
+
+	foreignKeys := make([]marshalableForeignKey, len(t.foreignKeys))
+	for i, fk := range t.foreignKeys {
+		foreignKeys[i] = marshalableForeignKey{
+			Columns:              fk.columns.Names(),
+			ConstraintName:       fk.constraintName,
+			ForeignDatabase:      fk.foreignDatabase,
+			ForeignTable:         fk.foreignTable,
+			LocalToForeignColumn: fk.localToForeignColumn,
+		}
+	}
+
+	mt := marshalableMongoTable{
+		CollectionName: t.collectionName,
+		Name:           t.name,
+		Collation:      string(t.collation.Name),
+		Columns:        t.columns,
+		PrimaryKeys:    t.primaryKeys.Names(),
+		Indexes:        indexes,
+		ForeignKeys:    foreignKeys,
+		Comments:       t.comments,
+		TableType:      t.tableType,
+		Pipeline:       astprint.String(t.pipeline),
+	}
+
+	return bson.Marshal(&mt)
+}
+
+// UnmarshalBSON unmarshals the provided raw bytes into the MongoTable.
+func (t *MongoTable) UnmarshalBSON(b []byte) error {
+	mt := marshalableMongoTable{}
+	err := bson.Unmarshal(b, &mt)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal MongoTable: %v", err)
+	}
+
+	// recover the collation
+	mtCollation, err := collation.Get(collation.Name(mt.Collation))
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal MongoTable: invalid collation name %q: %v", mt.Collation, err)
+	}
+
+	// recover the columnMap
+	columnMap := make(map[string]*results.Column, len(mt.Columns))
+	for _, col := range mt.Columns {
+		// recover information not serialized by results.Column
+		col.Table = mt.Name
+		col.OriginalName = col.MongoName
+		col.MappingRegistryName = col.Name
+
+		// store in columnMap
+		columnMap[col.Name] = col
+	}
+
+	// recover the primary keys
+	pks := make(results.Columns, len(mt.PrimaryKeys))
+	for i, pkName := range mt.PrimaryKeys {
+		if col, ok := columnMap[pkName]; ok {
+			pks[i] = col
+		} else {
+			return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for primary key", pkName)
+		}
+	}
+
+	// recover the columns for each index
+	indexes := make([]Index, len(mt.Indexes))
+	for i, index := range mt.Indexes {
+		columns := make(results.Columns, len(index.Columns))
+		for j, colName := range index.Columns {
+			if col, ok := columnMap[colName]; ok {
+				columns[j] = col
+			} else {
+				return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for index", colName)
+			}
+		}
+
+		indexes[i] = Index{
+			columns:        columns,
+			unique:         index.Unique,
+			fullText:       index.FullText,
+			constraintName: index.ConstraintName,
+		}
+	}
+
+	// recover the columns for each foreign key
+	fks := make([]ForeignKey, len(mt.ForeignKeys))
+	for i, fk := range mt.ForeignKeys {
+		columns := make(results.Columns, len(fk.Columns))
+		for j, colName := range fk.Columns {
+			if col, ok := columnMap[colName]; ok {
+				columns[j] = col
+			} else {
+				return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for foreign key", colName)
+			}
+		}
+
+		fks[i] = ForeignKey{
+			columns:              columns,
+			constraintName:       fk.ConstraintName,
+			foreignDatabase:      fk.ForeignDatabase,
+			foreignTable:         fk.ForeignTable,
+			localToForeignColumn: fk.LocalToForeignColumn,
+		}
+	}
+
+	// recover pipeline
+	pipeline, err := parser.ParsePipelineJSON(mt.Pipeline)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal MongoTable: failed to parse pipeline: %v", err)
+	}
+
+	// set the fields of the table
+	t.name = mt.Name
+	t.collation = mtCollation
+	t.columns = mt.Columns
+	t.columnMap = columnMap
+	t.primaryKeys = pks
+	t.indexes = indexes
+	t.foreignKeys = fks
+	t.comments = mt.Comments
+	t.tableType = mt.TableType
+	t.isSharded = true // default isSharded to true
+	t.collectionName = mt.CollectionName
+	t.pipeline = pipeline
+
+	return nil
+}
+
+type marshalableIndex struct {
+	Columns        []string `bson:"columns"`
+	Unique         bool     `bson:"unique"`
+	FullText       bool     `bson:"fullText"`
+	ConstraintName string   `bson:"constraintName"`
+}
+
+type marshalableForeignKey struct {
+	Columns              []string          `bson:"columns"`
+	ConstraintName       string            `bson:"constraintName"`
+	ForeignDatabase      string            `bson:"foreignDatabase"`
+	ForeignTable         string            `bson:"foreignTable"`
+	LocalToForeignColumn map[string]string `bson:"localToForeignColumn"`
+}
+
+type marshalableMongoTable struct {
+	CollectionName string                  `bson:"collectionName"`
+	Name           string                  `bson:"tableName"`
+	Collation      string                  `bson:"collation"`
+	Columns        results.Columns         `bson:"columns"`
+	PrimaryKeys    []string                `bson:"primaryKeys"`
+	Indexes        []marshalableIndex      `bson:"indexes"`
+	ForeignKeys    []marshalableForeignKey `bson:"foreignKeys"`
+	Comments       string                  `bson:"comments"`
+	TableType      string                  `bson:"tableType"`
+	Pipeline       string                  `bson:"pipeline"`
 }

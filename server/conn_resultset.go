@@ -341,7 +341,7 @@ func (c *conn) writeHeaders(columns []*results.Column, colID collation.ID) error
 			Charset:       uint16(colID),
 		}
 
-		err := formatHeaderField(c.variables, field, evaluator.ZeroValue(columns[j].EvalType, valueKind))
+		err := formatHeaderField(c.variables, field, evaluator.ZeroValue(columns[j].ColumnType.EvalType, valueKind))
 		if err != nil {
 			return err
 		}

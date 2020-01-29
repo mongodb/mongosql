@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/eval/bsoncompare"
 	"github.com/10gen/mongoast/internal/bsonutil"
-	"github.com/10gen/mongoast/parser"
 	"github.com/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -313,62 +312,9 @@ func (v exprEvaluator) eval(n ast.Expr, value bsoncore.Value) (ast.Expr, uint64,
 		}
 
 		return makeConstant(bsonutil.False)
-	case *ast.MergeObjects:
-		var mergedElements []*ast.DocumentElement
-		var mem uint64
-
-		elementIndex := 0
-		docElements := make(map[string]int)
-		for _, ex := range tn.Exprs {
-			expr, emem, err := v.eval(ex, value)
-			if err != nil {
-				return nil, 0, err
-			}
-
-			switch te := expr.(type) {
-			case *ast.Document:
-				mergedElements, docElements, elementIndex = mergeDocuments(te, elementIndex, docElements, mergedElements)
-			case *ast.Constant:
-				if te.Value.Type == bsontype.Null || te.Value.Type == bsontype.Undefined {
-					continue
-				}
-
-				astDoc, err := parser.ParseExpr(te.Value)
-				if err != nil {
-					return nil, 0, errors.New("$mergeObjects requires object inputs")
-				}
-
-				switch td := astDoc.(type) {
-				case *ast.Document:
-					mergedElements, docElements, elementIndex = mergeDocuments(td, elementIndex, docElements, mergedElements)
-				default:
-					return nil, 0, errors.New("$mergeObjects requires object inputs")
-				}
-			default:
-				return nil, 0, errors.New("$mergeObjects requires object inputs")
-			}
-
-			mem += emem
-		}
-
-		return ast.NewDocument(mergedElements...), mem, nil
 	default:
 		return n, 0, nil
 	}
-}
-
-func mergeDocuments(doc *ast.Document, elementIndex int, docElements map[string]int, mergedElements []*ast.DocumentElement) ([]*ast.DocumentElement, map[string]int, int) {
-	for _, ele := range doc.Elements {
-		newDocElement := ast.NewDocumentElement(ele.Name, ele.Expr)
-		if i, ok := docElements[ele.Name]; ok {
-			mergedElements[i] = newDocElement
-		} else {
-			docElements[ele.Name] = elementIndex
-			mergedElements = append(mergedElements, newDocElement)
-			elementIndex++
-		}
-	}
-	return mergedElements, docElements, elementIndex
 }
 
 func (v exprEvaluator) evalUnary(n *ast.Unary, value bsoncore.Value) (ast.Expr, uint64, error) {

@@ -35,7 +35,7 @@ func GenerateCreateTable(table Table, maxVarcharLength uint64) string {
 		}
 
 		buf.WriteString("  `" + column.Name + "`")
-		colType := translateColumnType(column.EvalType, maxVarcharLength)
+		colType := translateColumnType(column.ColumnType.EvalType, maxVarcharLength)
 		buf.WriteString(" " + colType)
 		if strings.HasPrefix(colType, "varchar") {
 			buf.WriteString(" COLLATE " + string(col.Name))

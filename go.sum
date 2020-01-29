@@ -18,6 +18,10 @@ github.com/10gen/mongoast v0.0.0-20200108185947-2f4fe5c7a5c6 h1:vs46WFxG2xuIsb4Z
 github.com/10gen/mongoast v0.0.0-20200108185947-2f4fe5c7a5c6/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
 github.com/10gen/mongoast v0.0.0-20200110201401-06d9509f6ced h1:qYombOxcdbkNsOrSJYe3DBZx/3hHFSMBb4wDmNWlrxE=
 github.com/10gen/mongoast v0.0.0-20200110201401-06d9509f6ced/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
+github.com/10gen/mongoast v0.0.0-20200123164151-f4d3f2ab0a2c h1:auXDnEFuZh8Fn9s9dvseonbTuopzeIIdG4K9EbosAcY=
+github.com/10gen/mongoast v0.0.0-20200123164151-f4d3f2ab0a2c/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
+github.com/10gen/mongoast v0.0.0-20200129194347-f2d750d88582 h1:EbIaMKpMuhjyyp82XYbpzOA8PA4FVNbliTxJIdLvJ/8=
+github.com/10gen/mongoast v0.0.0-20200129194347-f2d750d88582/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 h1:TbONlEzjFZ0K7a6dYca+3rwJugMwiRJLY+FSCO3C2CE=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847/go.mod h1:ngIUcWisavS+ezq2tBEu6vgSU981hsiJaalWLlpOcuE=
 github.com/DataDog/zstd v1.4.4 h1:+IawcoXhCBylN7ccwdwf8LOH2jKq7NavGpEPanrlTzE=

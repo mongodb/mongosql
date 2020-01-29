@@ -5,6 +5,11 @@ import (
 )
 
 // Stage is implemented by all expressions in the AST.
+//
+// WalkStage applies the Visitor to all children of the stage.  It must not
+// modify the receiver.  If any children are modified, it must return a copy of
+// the receiver with modifications.  Generally, the Walk method of a Stage will
+// just delegate to WalkStage.
 type Stage interface {
 	Node
 	StageName() string

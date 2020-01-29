@@ -545,7 +545,7 @@ func NewSQLColumnExpr(selectID int, databaseName, tableName, columnName string, 
 		databaseName: databaseName,
 		tableName:    tableName,
 		columnName:   columnName,
-		columnType: results.NewColumnType(
+		columnType: *results.NewColumnType(
 			evalType,
 			mongoType,
 		),
@@ -558,8 +558,8 @@ func newSQLColumnExprFromColumn(c *results.Column) SQLColumnExpr {
 		c.Database,
 		c.Table,
 		c.Name,
-		c.EvalType,
-		c.MongoType,
+		c.ColumnType.EvalType,
+		c.ColumnType.MongoType,
 		false,
 		c.Nullable,
 	)
@@ -2868,7 +2868,7 @@ func (e *SQLSubqueryExpr) Exprs() []SQLExpr {
 	exprs := []SQLExpr{}
 	for _, c := range e.plan.Columns() {
 		exprs = append(exprs, NewSQLColumnExpr(c.SelectID,
-			c.Database, c.Table, c.Name, c.EvalType, c.MongoType, false, c.Nullable))
+			c.Database, c.Table, c.Name, c.ColumnType.EvalType, c.ColumnType.MongoType, false, c.Nullable))
 	}
 
 	return exprs
@@ -2882,7 +2882,7 @@ func (e *SQLSubqueryExpr) String() string {
 func (e *SQLSubqueryExpr) EvalType() types.EvalType {
 	columns := e.plan.Columns()
 	if len(columns) == 1 {
-		return columns[0].EvalType
+		return columns[0].ColumnType.EvalType
 	}
 
 	panic(fmt.Sprintf("SQLSubqueryExpr must evaluate to a single column scalar, instead got %d columns", len(columns)))
@@ -3186,9 +3186,11 @@ func validateSubqueryPlans(left, right PlanStage) error {
 	rightColumns := right.Columns()
 
 	for i, lc := range left.Columns() {
-		if !isSimilar(lc.EvalType, rightColumns[i].EvalType) && !(lc.EvalType.IsNumeric() && rightColumns[i].EvalType.IsNumeric()) {
+		lcEvalType := lc.ColumnType.EvalType
+		rcEvalType := rightColumns[i].ColumnType.EvalType
+		if !isSimilar(lcEvalType, rcEvalType) && !(lcEvalType.IsNumeric() && rcEvalType.IsNumeric()) {
 			return fmt.Errorf("expected EvalType %x at index %d, but got %x",
-				lc.EvalType, i, rightColumns[i].EvalType)
+				lcEvalType, i, rcEvalType)
 		}
 	}
 

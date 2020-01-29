@@ -4,7 +4,7 @@ go 1.12
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
-	github.com/10gen/mongoast v0.0.0-20200110201401-06d9509f6ced
+	github.com/10gen/mongoast v0.0.0-20200129194347-f2d750d88582
 	github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/apmckinlay/gsuneido v0.0.0-20190828171039-d059fc31c5ab // indirect

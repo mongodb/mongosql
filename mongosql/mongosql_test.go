@@ -828,7 +828,7 @@ func containsTable(actualTables []catalog.Table, expectedTable *schema.Table) bo
 func containsColumn(actualColumns results.Columns, expectedColumn *schema.Column) bool {
 	for _, column := range actualColumns {
 		if column.Name == expectedColumn.SQLName() && column.MongoName == expectedColumn.MongoName() &&
-			types.EvalTypeToSQLType(column.EvalType) == expectedColumn.SQLType() && column.MongoType == expectedColumn.MongoType() {
+			types.EvalTypeToSQLType(column.ColumnType.EvalType) == expectedColumn.SQLType() && column.ColumnType.MongoType == expectedColumn.MongoType() {
 			return true
 		}
 	}

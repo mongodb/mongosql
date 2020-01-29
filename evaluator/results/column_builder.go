@@ -49,7 +49,7 @@ func (cb *ColumnBuilder) Build() *Column {
 }
 
 // SetColumnType sets the ColumnType for the Column in the ColumnBuilder
-func (cb *ColumnBuilder) SetColumnType(ct ColumnType) *ColumnBuilder {
+func (cb *ColumnBuilder) SetColumnType(ct *ColumnType) *ColumnBuilder {
 	cb.column.ColumnType = ct
 	cb.setFields[0] = true
 	return cb

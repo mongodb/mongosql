@@ -569,7 +569,7 @@ func (iter *UnionIter) fetchRows(ctx context.Context, it results.RowIter, ch cha
 			// Need to match row info with parent
 			for i, col := range iter.columns {
 				r.Data[i].Name = col.Name
-				r.Data[i].Data = values.ConvertTo(r.Data[i].Data, col.EvalType)
+				r.Data[i].Data = values.ConvertTo(r.Data[i].Data, col.ColumnType.EvalType)
 			}
 
 			err = iter.stageMonitor.Release(inSize)
@@ -630,11 +630,11 @@ func mergeColumnsByType(lcols, rcols []*results.Column) []*results.Column {
 	sorter := &types.EvalTypeSorter{}
 	for i, lcol := range lcols {
 		rcol := rcols[i]
-		sorter.Types = []types.EvalType{lcol.EvalType, rcol.EvalType}
+		sorter.Types = []types.EvalType{lcol.ColumnType.EvalType, rcol.ColumnType.EvalType}
 		sort.Sort(sorter)
 
 		outCol := lcol.Clone()
-		outCol.EvalType = sorter.Types[1]
+		outCol.ColumnType.EvalType = sorter.Types[1]
 		outCols[i] = outCol
 	}
 

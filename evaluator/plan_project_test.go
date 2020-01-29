@@ -75,7 +75,7 @@ func TestProjectStage(t *testing.T) {
 			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: BSONSourceDB, Name: "a", OriginalName: "a",
 				MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType: EvalInt64, MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},
@@ -86,7 +86,7 @@ func TestProjectStage(t *testing.T) {
 			Column: &Column{SelectID: 1, Table: "", OriginalTable: "",
 				Database: BSONSourceDB, Name: "b", OriginalName: "b",
 				MappingRegistryName: "",
-				ColumnType: ColumnType{
+				ColumnType: &ColumnType{
 					EvalType: EvalInt64, MongoType: schema.MongoInt,
 				},
 				PrimaryKey: false},

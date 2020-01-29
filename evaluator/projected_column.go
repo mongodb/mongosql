@@ -64,7 +64,7 @@ func newProjectedColumnFromColumnWithName(c *results.Column, name string) Projec
 
 func newProjectedColumnFromColumnWithExpr(c *results.Column, expr SQLExpr) *ProjectedColumn {
 	clone := c.Clone()
-	clone.EvalType = expr.EvalType()
+	clone.ColumnType.EvalType = expr.EvalType()
 	return &ProjectedColumn{
 		Column: clone,
 		Expr:   expr,
@@ -79,7 +79,7 @@ func columnsToProjectedColumns(cs results.Columns) ProjectedColumns {
 	for _, c := range cs {
 		projectedColumn := ProjectedColumn{
 			Expr: NewSQLColumnExpr(c.SelectID, c.Database,
-				c.Table, c.Name, c.EvalType, c.MongoType, false, c.Nullable),
+				c.Table, c.Name, c.ColumnType.EvalType, c.ColumnType.MongoType, false, c.Nullable),
 			Column: c.Clone(),
 		}
 		projectedColumns = append(projectedColumns, projectedColumn)

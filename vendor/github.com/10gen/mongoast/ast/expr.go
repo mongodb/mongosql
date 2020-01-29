@@ -381,13 +381,3 @@ type Exists struct {
 func NewExists(fieldRef *FieldRef, exists bool) *Exists {
 	return &Exists{FieldRef: fieldRef, Exists: exists}
 }
-
-// NewMergeObjects makes a MergeObjects.
-func NewMergeObjects(exprs ...Expr) *MergeObjects {
-	return &MergeObjects{Exprs: exprs}
-}
-
-// MergeObjects combines multiple documents into one document.
-type MergeObjects struct {
-	Exprs []Expr
-}

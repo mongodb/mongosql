@@ -429,7 +429,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 			fakeColumns := make(results.Columns, len(testCase.inputFields))
 			for i := range fakeColumns {
 				fakeColumns[i] = &results.Column{
-					ColumnType: results.ColumnType{
+					ColumnType: &results.ColumnType{
 						EvalType: testCase.inputEvalType,
 					},
 				}

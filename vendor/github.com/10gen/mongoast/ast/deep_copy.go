@@ -759,17 +759,3 @@ func (n *Exists) DeepCopy() DeepCopier {
 
 	return NewExists(newFieldRef, n.Exists)
 }
-
-// DeepCopy implements the DeepCopier interface.
-func (n *MergeObjects) DeepCopy() DeepCopier {
-	var newExprs []Expr
-
-	if n.Exprs != nil {
-		newExprs = make([]Expr, len(n.Exprs))
-		for i, e := range n.Exprs {
-			newExprs[i] = e.DeepCopy().(Expr)
-		}
-	}
-
-	return NewMergeObjects(newExprs...)
-}

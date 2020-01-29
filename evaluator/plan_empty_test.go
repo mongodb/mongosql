@@ -24,7 +24,7 @@ func TestEmptyOperator(t *testing.T) {
 		{
 			Table: "foo",
 			Name:  "a",
-			ColumnType: results.ColumnType{
+			ColumnType: &results.ColumnType{
 				EvalType:  EvalInt64,
 				MongoType: schema.MongoInt,
 			},
@@ -44,8 +44,8 @@ func TestEmptyOperator(t *testing.T) {
 	col := res[0]
 	req.Equal(col.Table, "foo")
 	req.Equal(col.Name, "a")
-	req.Equal(col.EvalType, EvalInt64)
-	req.Equal(col.MongoType, schema.MongoInt)
+	req.Equal(col.ColumnType.EvalType, EvalInt64)
+	req.Equal(col.ColumnType.MongoType, schema.MongoInt)
 
 	req.NoError(iter.Close())
 	req.NoError(iter.Err())

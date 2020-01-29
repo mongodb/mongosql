@@ -111,7 +111,7 @@ func CreateProjectedColumnFromSQLExpr(selectID int,
 	column := cb.Build()
 
 	if sqlColExpr, ok := expr.(SQLColumnExpr); ok {
-		column.MongoType = sqlColExpr.columnType.MongoType
+		column.ColumnType.MongoType = sqlColExpr.columnType.MongoType
 	}
 
 	return ProjectedColumn{Column: column, Expr: expr}

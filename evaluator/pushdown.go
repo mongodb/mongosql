@@ -2633,7 +2633,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				if _, ok := uniqueFields[safeFieldName]; !ok {
 					fieldsToProject = append(fieldsToProject,
 						ast.NewAssignProjectItem(safeFieldName,
-							getProjectedFieldName(fieldName, refdCol.EvalType)))
+							getProjectedFieldName(fieldName, refdCol.ColumnType.EvalType)))
 					uniqueFields[safeFieldName] = struct{}{}
 				}
 				if fixedMappingRegistry.registerMapping(refdCol.Database, refdCol.Table, refdCol.Name, safeFieldName, false) {
@@ -2670,8 +2670,8 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 				projectedColumn.Database,
 				projectedColumn.Table,
 				projectedColumn.Name,
-				projectedColumn.EvalType,
-				projectedColumn.MongoType,
+				projectedColumn.ColumnType.EvalType,
+				projectedColumn.ColumnType.MongoType,
 				false,
 				projectedColumn.Column.Nullable,
 			)

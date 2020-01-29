@@ -1,6 +1,10 @@
 package ast
 
 // Visitor defines methods that are called for nodes during an expression or statement walk.
+//
+// The node returned from Visit may be different than the node passed as an argument.
+// If a Node's children should be visited, the Visitor is responsible for
+// calling Walk on the Node.
 type Visitor interface {
 	Visit(Node) Node
 }
@@ -19,21 +23,33 @@ func (fn VisitFunc) Visit(n Node) Node {
 	return fn(fn, n)
 }
 
+// visitNode wraps application of the Vistor interface to also indicate if the
+// original node is modified.  This supports the Walk method's copy-on-modify
+// behavior.
 func visitNode(v Visitor, n Node) (Node, bool) {
 	newNode := v.Visit(n)
 	return newNode, newNode != n
 }
 
+// visitPipeline wraps application of the Vistor interface to also indicate if
+// the original pipeline is modified.  This supports the Walk method's
+// copy-on-modify behavior.
 func visitPipeline(v Visitor, p *Pipeline) (*Pipeline, bool) {
 	newNode, changed := visitNode(v, p)
 	return newNode.(*Pipeline), changed
 }
 
+// visitExpr wraps application of the Vistor interface to also indicate if the
+// original pipeline is modified.  This supports the Walk method's
+// copy-on-modify behavior.
 func visitExpr(v Visitor, e Expr) (Expr, bool) {
 	newNode, changed := visitNode(v, e)
 	return newNode.(Expr), changed
 }
 
+// visitStage wraps application of the Vistor interface to also indicate if the
+// original stage is modified.  This supports the Walk method's copy-on-modify
+// behavior.
 func visitStage(v Visitor, s Stage) (Stage, bool) {
 	newNode, changed := visitNode(v, s)
 	return newNode.(Stage), changed
@@ -1088,37 +1104,6 @@ func (n *FacetItem) Walk(v Visitor) Node {
 
 // Walk implements the Node interface.
 func (n *Exists) Walk(v Visitor) Node {
-	return n.WalkExpr(v)
-}
-
-// WalkExpr implements the Expr interface.
-func (n *MergeObjects) WalkExpr(v Visitor) Expr {
-	changed := false
-	var newElements []Expr
-	for i, e := range n.Exprs {
-		expr, elemChanged := visitExpr(v, e)
-
-		changed = changed || elemChanged
-
-		if changed {
-			if newElements == nil {
-				newElements = make([]Expr, i, len(n.Exprs))
-				copy(newElements, n.Exprs[:i])
-			} else {
-				newElements = append(newElements, expr)
-			}
-		}
-	}
-	if changed {
-		cpy := *n
-		cpy.Exprs = newElements
-		return &cpy
-	}
-	return n
-}
-
-// Walk implements the Node interface.
-func (n *MergeObjects) Walk(v Visitor) Node {
 	return n.WalkExpr(v)
 }
 

@@ -217,14 +217,14 @@ func (ms *MongoSourceStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, 
 		}
 		uniqueFields[mappedFieldName] = struct{}{}
 		uuidSubType := types.EvalBinary
-		if c.MongoType == schema.MongoUUIDJava {
+		if c.ColumnType.MongoType == schema.MongoUUIDJava {
 			uuidSubType = types.EvalJavaUUID
-		} else if c.MongoType == schema.MongoUUIDCSharp {
+		} else if c.ColumnType.MongoType == schema.MongoUUIDCSharp {
 			uuidSubType = types.EvalCSharpUUID
 		}
 		columnInfo[i] = results.ColumnInfo{
 			Field:       mappedFieldName,
-			Type:        c.EvalType,
+			Type:        c.ColumnType.EvalType,
 			UUIDSubtype: uuidSubType,
 		}
 	}
@@ -310,7 +310,7 @@ func buildProjectBodyForMongoSource(
 			projectBody = append(projectBody,
 				ast.NewAddFieldsItem(
 					flattenedFieldName,
-					getProjectedFieldName(mappedFieldName, columns[i].EvalType),
+					getProjectedFieldName(mappedFieldName, columns[i].ColumnType.EvalType),
 				),
 			)
 		} else if !isAtLeast34 {
@@ -453,14 +453,14 @@ func (ms *MongoSourceIter) Next(ctx context.Context, row *results.Row) bool {
 		sqlValue, err := values.BSONValueToSQLValue(
 			ms.cfg.sqlValueKind,
 			types.EvalType(field.Type),
-			col.UUIDSubType,
+			col.ColumnType.UUIDSubType,
 			field.Value,
 		)
 		if err != nil {
 			ms.err = err
 			return false
 		}
-		converted := values.ConvertTo(sqlValue, col.EvalType)
+		converted := values.ConvertTo(sqlValue, col.ColumnType.EvalType)
 		row.Data[i] = results.NewRowValue(col.SelectID, col.Database, col.Table, col.Name, converted)
 	}
 	if ms.err != nil {

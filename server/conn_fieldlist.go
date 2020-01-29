@@ -40,7 +40,7 @@ func (c *conn) handleFieldList(data []byte) error {
 
 	valueKind := evaluator.GetSQLValueKind(c.variables)
 	for _, column := range tableSchema.Columns() {
-		if column.MongoType == schema.MongoFilter {
+		if column.ColumnType.MongoType == schema.MongoFilter {
 			continue
 		}
 
@@ -56,7 +56,7 @@ func (c *conn) handleFieldList(data []byte) error {
 			Charset:       uint16(col.ID),
 		}
 
-		zeroValue := evaluator.ZeroValue(column.EvalType, valueKind)
+		zeroValue := evaluator.ZeroValue(column.ColumnType.EvalType, valueKind)
 		if err = formatHeaderField(c.variables, field, zeroValue); err != nil {
 			return err
 		}

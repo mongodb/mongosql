@@ -95,7 +95,7 @@ func (com *InsertCommand) exprListListToDoc(positionMap map[string]int, exprList
 func (com *InsertCommand) convertExpr(col *results.Column, expr SQLExpr) (interface{}, error) {
 	switch typedC := expr.(type) {
 	case SQLValueExpr:
-		value := values.ConvertTo(typedC.Value, col.EvalType)
+		value := values.ConvertTo(typedC.Value, col.ColumnType.EvalType)
 		// Null values must be handled specially for two reasons:
 		// 1. Value() for Null Values does not do what we would prefer:
 		//    it will return the 0 value for the underlying type.
