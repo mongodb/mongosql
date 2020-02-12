@@ -4,6 +4,10 @@ This file contains a list of user-facing changes.
 A line should be added to this file for each commit made to this repository.
 If no user-facing changes were made, the comment should reflect that fact.
 
+## 2.13.4
+
+- BI-2464: Fix bug in mapping that did not deep copy pipelines during table post-processing, leading to invalid SQL schema.
+
 ## 2.13.3
 
 - BI-2437: No user-facing changes.
