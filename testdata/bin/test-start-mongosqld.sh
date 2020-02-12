@@ -8,7 +8,7 @@
     set -o errexit
     echo "running mongosqld startup test..."
 
-    nohup $ARTIFACTS_DIR/bin/mongosqld -vvvv \
+    $ARTIFACTS_DIR/bin/mongosqld -vvvv \
         $SQLPROXY_ARGS > $ARTIFACTS_DIR/mongosqld-out 2>&1 &
     pid=$!
 

@@ -7,8 +7,8 @@
     set -o errexit
     echo "connecting both clients to mysql"
 
-	nohup mysql $CLIENT_ARGS -p"$MYSQL_PWD" -e 'select sleep(1000000)' &> /dev/null &
-	nohup mysql $SECOND_CLIENT_ARGS -p"$SECOND_MYSQL_PWD" -e 'select sleep(1000000)' &> /dev/null &
+	mysql $CLIENT_ARGS -p"$MYSQL_PWD" -e 'select sleep(1000000)' &> /dev/null &
+	mysql $SECOND_CLIENT_ARGS -p"$SECOND_MYSQL_PWD" -e 'select sleep(1000000)' &> /dev/null &
 
 	cmd="use information_schema; select count(*) from processlist"
     set +o errexit

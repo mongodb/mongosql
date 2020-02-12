@@ -29,7 +29,7 @@
         echo "printing mongosqld args..."
         echo "$SQLPROXY_ARGS"
         echo "starting mongosqld..."
-        nohup $ARTIFACTS_DIR/bin/mongosqld -vv \
+        $ARTIFACTS_DIR/bin/mongosqld -vv \
             $SQLPROXY_ARGS &
         pid=$!
 
