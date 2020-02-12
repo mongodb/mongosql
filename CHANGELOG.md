@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.14
 
+- BI-2474: No user-facing changes.
 - BI-2475: No user-facing changes.
 - BI-2471: No user-facing changes.
 - BI-2464: Fix bug in mapping that did not deep copy pipelines during table post-processing, leading to invalid SQL schema.
