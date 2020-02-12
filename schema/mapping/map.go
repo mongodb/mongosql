@@ -964,18 +964,18 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	for col, field := range ctx.mongoNames {
 		newCtx.mongoNames[col] = field
 	}
-	newCtx.mongoNamePrefixes = make(map[string]string, len(ctx.uniqueFields))
+	newCtx.mongoNamePrefixes = make(map[string]string, len(ctx.mongoNamePrefixes))
 	for col, field := range ctx.mongoNamePrefixes {
 		newCtx.mongoNamePrefixes[col] = field
 	}
 	newCtx.seenFields = make([]string, len(ctx.seenFields))
 	copy(newCtx.seenFields, ctx.seenFields)
-	newCtx.uniqueColumns = make(map[string]struct{}, len(newCtx.uniqueColumns))
-	for field := range newCtx.uniqueColumns {
+	newCtx.uniqueColumns = make(map[string]struct{}, len(ctx.uniqueColumns))
+	for field := range ctx.uniqueColumns {
 		newCtx.uniqueColumns[field] = struct{}{}
 	}
 	newCtx.uniqueFields = make(map[string]struct{}, len(ctx.uniqueFields))
-	for field := range newCtx.uniqueFields {
+	for field := range ctx.uniqueFields {
 		newCtx.uniqueFields[field] = struct{}{}
 	}
 

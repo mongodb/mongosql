@@ -547,7 +547,7 @@ func (t *Table) PostProcess(lg log.Logger, preJoin bool) {
 	}
 
 	// prepend parent pipeline
-	pipeline := t.parent.Pipeline()
+	pipeline := bsonutil.DeepCopyDSlice(t.parent.Pipeline())
 	pipeline = append(pipeline, t.pipeline...)
 	t.pipeline = pipeline
 
