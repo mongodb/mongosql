@@ -16,6 +16,7 @@ import (
 	mongoutil "github.com/10gen/sqlproxy/internal/testutil/mongodb"
 	"github.com/10gen/sqlproxy/internal/testutil/translator"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -131,7 +132,7 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 		}
 	}
 
-	sp, err := mongodb.NewSqldSessionProvider(config.Default())
+	sp, err := provider.NewSqldSessionProvider(config.Default())
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -153,7 +154,7 @@ func BenchmarkQueryPipeline(b *testing.B, bench *Benchmark) {
 	runAggBenchmark(b, s, dbName, coll, pipeline)
 }
 
-func getPipeline(db, query string, sp *mongodb.SessionProvider) ([]bson.D, string, error) {
+func getPipeline(db, query string, sp *provider.SessionProvider) ([]bson.D, string, error) {
 	defaultCfg := config.Default()
 	opts := &config.Schema{
 		Sample: config.NewSchemaSampleOptions(

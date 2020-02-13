@@ -10,7 +10,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/persist"
 	"github.com/stretchr/testify/require"
@@ -295,7 +295,7 @@ func TestPersistSchema(t *testing.T) {
 
 }
 
-func setup(sp *mongodb.SessionProvider) {
+func setup(sp *provider.SessionProvider) {
 	s, err := sp.Session(context.Background())
 	if err != nil {
 		panic(err)
@@ -319,8 +319,8 @@ func schemaEquals(req *require.Assertions, expected, actual *drdl.Schema) {
 	req.Equal(exStr, actStr, "schemas were not equal")
 }
 
-func getSessionProvider() *mongodb.SessionProvider {
-	sp, err := mongodb.NewSqldSessionProvider(config.Default())
+func getSessionProvider() *provider.SessionProvider {
+	sp, err := provider.NewSqldSessionProvider(config.Default())
 	if err != nil {
 		panic(err)
 	}

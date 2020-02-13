@@ -7,6 +7,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema/drdl"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -21,11 +22,11 @@ const (
 // schemas.
 type Persistor struct {
 	schemaSourceDB  string
-	sessionProvider *mongodb.SessionProvider
+	sessionProvider *provider.SessionProvider
 }
 
 // NewPersistor creates a new Persistor with the provided configuration.
-func NewPersistor(sp *mongodb.SessionProvider, schemaSourceDB string) Persistor {
+func NewPersistor(sp *provider.SessionProvider, schemaSourceDB string) Persistor {
 	return Persistor{
 		schemaSourceDB:  schemaSourceDB,
 		sessionProvider: sp,

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/10gen/sqlproxy/internal/config"
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 )
 
 // TestCannotGetSession is a regression test for a panic when serving
@@ -26,7 +26,7 @@ func TestCannotGetSession(t *testing.T) {
 	cfg := config.Default()
 	cfg.MongoDB.Net.URI = "mongodb://invalid:12345"
 
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	req.NoError(err)
 	defer sp.Close()
 

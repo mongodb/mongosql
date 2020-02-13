@@ -15,6 +15,7 @@ import (
 	mongoutil "github.com/10gen/sqlproxy/internal/testutil/mongodb"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	toolsoptions "github.com/mongodb/mongo-tools-common/options"
@@ -50,7 +51,7 @@ func TestLoadInfo(t *testing.T) {
 	cfg.MongoDB.Net.SSL.AllowInvalidCertificates = sslOpts.SSLAllowInvalidCert
 	cfg.MongoDB.Net.SSL.PEMKeyFile = sslOpts.SSLPEMKeyFile
 
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	req.Nil(err, "failed to get NewSqldSessionProvider")
 	defer sp.Close()
 
@@ -99,7 +100,7 @@ schema:
 	sch, err := schema.NewFromDRDL(lgr, drdlSchema)
 	req.NoError(err, "failed to create schema from drdl")
 
-	info, err := mongodb.LoadInfo(context.Background(), lgr, sp, s, sch, cfg)
+	info, err := provider.LoadInfo(context.Background(), lgr, sp, s, sch, cfg)
 	req.NoError(err, "failed to load info")
 
 	req.True(len(info.Databases) >= 1,

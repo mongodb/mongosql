@@ -15,6 +15,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +26,7 @@ func TestCountPlanStage(t *testing.T) {
 	variablesOne := evaluator.CreateTestVariables(infoOne)
 	catalogOne := evaluator.GetCatalog(cfgOne, variablesOne, infoOne)
 	cfg := getConfig(t)
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 		return

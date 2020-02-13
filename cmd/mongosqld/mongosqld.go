@@ -14,7 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/server"
@@ -23,7 +23,7 @@ import (
 type program struct {
 	cfg *config.Config
 
-	sessionProvider *mongodb.SessionProvider
+	sessionProvider *provider.SessionProvider
 
 	serviceLogger service.Logger
 	logfile       *os.File
@@ -85,7 +85,7 @@ func (p *program) Start(s service.Service) error {
 		}
 	}
 
-	p.sessionProvider, err = mongodb.NewSqldSessionProvider(p.cfg)
+	p.sessionProvider, err = provider.NewSqldSessionProvider(p.cfg)
 	if err != nil {
 		if !service.Interactive() {
 			_ = p.serviceLogger.Errorf(

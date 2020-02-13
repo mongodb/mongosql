@@ -21,7 +21,7 @@ func TestNewSessionConnPool(t *testing.T) {
 			return &mockConn{}, nil
 		}
 
-		_, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		_, err := NewSessionConnPool(context.Background(), provider, expectedMax)
 		if err != nil {
 			t.Fatalf("unexpected error creating pool: %v", err)
 		}
@@ -36,7 +36,7 @@ func TestNewSessionConnPool(t *testing.T) {
 			return nil, fmt.Errorf("AHAHAHAH")
 		}
 
-		_, err := newSessionConnPool(context.Background(), provider, 3)
+		_, err := NewSessionConnPool(context.Background(), provider, 3)
 		if err == nil {
 			t.Fatal("expected an error, but got none")
 		}
@@ -51,7 +51,7 @@ func TestSessionConnPool_Get(t *testing.T) {
 			return &mockConn{}, nil
 		}
 
-		p, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		p, err := NewSessionConnPool(context.Background(), provider, expectedMax)
 		if err != nil {
 			t.Fatalf("unexpected error creating pool: %v", err)
 		}
@@ -71,7 +71,7 @@ func TestSessionConnPool_Get(t *testing.T) {
 			return &mockConn{}, nil
 		}
 
-		p, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		p, err := NewSessionConnPool(context.Background(), provider, expectedMax)
 		if err != nil {
 			t.Fatalf("unexpected error creating pool: %v", err)
 		}
@@ -122,7 +122,7 @@ func TestSessionConnPool_Get(t *testing.T) {
 			return &mockConn{}, nil
 		}
 
-		p, err := newSessionConnPool(context.Background(), provider, expectedMax)
+		p, err := NewSessionConnPool(context.Background(), provider, expectedMax)
 		if err != nil {
 			t.Fatalf("unexpected error creating pool: %v", err)
 		}
@@ -165,7 +165,7 @@ func TestSessionConnPool_Get(t *testing.T) {
 			return &mockConn{}, nil
 		}
 
-		p, err := newSessionConnPool(context.Background(), provider, 2)
+		p, err := NewSessionConnPool(context.Background(), provider, 2)
 		if err != nil {
 			t.Fatalf("unexpected error creating pool: %v", err)
 		}
@@ -196,7 +196,7 @@ func TestSessionConnPool_Get(t *testing.T) {
 			return &mockConn{}, nil
 		}
 
-		p, err := newSessionConnPool(context.Background(), provider, 2)
+		p, err := NewSessionConnPool(context.Background(), provider, 2)
 		if err != nil {
 			t.Fatalf("unexpected error creating pool: %v", err)
 		}
@@ -218,7 +218,7 @@ func TestSessionConnPool_Get(t *testing.T) {
 			return &mockConn{}, nil
 		}
 
-		p, err := newSessionConnPool(context.Background(), provider, 2)
+		p, err := NewSessionConnPool(context.Background(), provider, 2)
 		if err != nil {
 			t.Fatalf("unexpected error creating pool: %v", err)
 		}

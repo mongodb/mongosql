@@ -25,6 +25,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
 )
@@ -928,7 +929,7 @@ func (c *conn) setStatusVariables() {
 	sessionVariables.StartTime = globalVariables.StartTime
 
 	topology := "standalone"
-	if c.session.TopologyKind() == mongodb.Sharded {
+	if c.session.TopologyKind == mongodb.Sharded {
 		topology = "mongos"
 	}
 	sessionVariables.SetSystemVariable(variable.MongoDBGitVersion,
@@ -941,7 +942,7 @@ func (c *conn) setStatusVariables() {
 
 // loadMongoDBInfo sets system variables that store information about MongoDB.
 func (c *conn) loadMongoDBInfo(ctx context.Context, currentSchema *schema.Schema) (err error) {
-	c.mongoDBInfo, err = mongodb.LoadInfo(
+	c.mongoDBInfo, err = provider.LoadInfo(
 		ctx,
 		c.logger,
 		c.server.sessionProvider,

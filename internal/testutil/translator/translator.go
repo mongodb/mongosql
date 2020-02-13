@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/sample"
@@ -31,7 +32,7 @@ type Translator struct {
 
 // NewTranslator creates a new Translator by fetching and translating the latest
 // schema stored in the sampleSource database.
-func NewTranslator(ctx context.Context, cfg *config.Schema, sp *mongodb.SessionProvider) (*Translator, error) {
+func NewTranslator(ctx context.Context, cfg *config.Schema, sp *provider.SessionProvider) (*Translator, error) {
 	lgr := log.GlobalLogger()
 	log.SetOutputWriter(ioutil.Discard)
 
@@ -55,7 +56,7 @@ func NewTranslator(ctx context.Context, cfg *config.Schema, sp *mongodb.SessionP
 	}
 
 	defaultCfg := config.Default()
-	info, err := mongodb.LoadInfo(ctx, lgr, sp, session, sch, defaultCfg)
+	info, err := provider.LoadInfo(ctx, lgr, sp, session, sch, defaultCfg)
 	if err != nil {
 		return nil, err
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 
 	"github.com/stretchr/testify/require"
 
@@ -177,8 +178,8 @@ func createView(session *mongodb.Session, db, col, viewName string, pipeline []b
 	return nil
 }
 
-func getSessionProvider(req *require.Assertions) *mongodb.SessionProvider {
-	provider, err := mongodb.NewSqldSessionProvider(cfg)
+func getSessionProvider(req *require.Assertions) *provider.SessionProvider {
+	provider, err := provider.NewSqldSessionProvider(cfg)
 	if err != nil {
 		req.NoError(err, "failed to set up session provider to test server")
 	}

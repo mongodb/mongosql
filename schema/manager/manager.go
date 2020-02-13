@@ -10,7 +10,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
 	"github.com/10gen/sqlproxy/schema/persist"
@@ -93,7 +93,7 @@ type Manager struct {
 
 // NewManager returns a new schema Manager that will use the provided schema
 // configuration, variables, and session provider.
-func NewManager(cfg Config, lg log.Logger, sp *mongodb.SessionProvider, schemaSource string) *Manager {
+func NewManager(cfg Config, lg log.Logger, sp *provider.SessionProvider, schemaSource string) *Manager {
 	component := fmt.Sprintf("%-10v [manager]", log.SchemaComponent)
 	lg = log.NewComponentLogger(component, lg)
 	return newManager(

@@ -23,41 +23,30 @@ import (
 // Session holds information used to create a connection
 // to MongoDB. See mongodb/README.md for more details.
 type Session struct {
-	clientAddresses []string
-	deployment      driver.Deployment
-	topologyKind    description.TopologyKind
-	numConns        int
-	pool            *sessionConnPool
-	rp              *readpref.ReadPref
+	ClientAddresses []string
+	Deployment      driver.Deployment
+	TopologyKind    description.TopologyKind
+	NumConns        int
+	Pool            *SessionConnPool
+	ReadPreference  *readpref.ReadPref
 	errLock         sync.Mutex
 
 	err        error
-	authSource string
-}
-
-// AuthSource returns the session's authentication source.
-func (s *Session) AuthSource() string {
-	return s.authSource
+	AuthSource string
 }
 
 // Close closes the direct server connection
 // associated with this session.
 func (s *Session) Close() error {
-	if s.pool != nil {
-		s.pool.Close()
+	if s.Pool != nil {
+		s.Pool.Close()
 	}
 	return nil
 }
 
-// TopologyKind returns the kind of cluster
-// this session is attached to.
-func (s *Session) TopologyKind() description.TopologyKind {
-	return s.topologyKind
-}
-
 // Connection gets a connection to use.
 func (s *Session) Connection(ctx context.Context) (driver.Connection, error) {
-	c, err := s.pool.Get(ctx)
+	c, err := s.Pool.Get(ctx)
 	if err == topology.ErrPoolDisconnected {
 		s.setError(err)
 	}
@@ -66,12 +55,12 @@ func (s *Session) Connection(ctx context.Context) (driver.Connection, error) {
 
 // GetClientAddresses returns all addresses in the session's connection pool.
 func (s *Session) GetClientAddresses() []string {
-	return s.clientAddresses
+	return s.ClientAddresses
 }
 
 // ConnLen is the number of connections that are part of a session.
 func (s *Session) ConnLen() int {
-	return s.numConns
+	return s.NumConns
 }
 
 // Err returns a session level error that may have occurred.
@@ -80,7 +69,7 @@ func (s *Session) Err() error {
 		return s.err
 	}
 
-	return s.pool.Err()
+	return s.Pool.Err()
 }
 
 // setError synchronizes error assignment to the session.
@@ -93,7 +82,7 @@ func (s *Session) setError(err error) {
 // Validate checks that the established Session meets the read preference
 // requirements. When a SessionProvider creates a Session, it selects a
 // driver.Server using a specified ReadPref. That Server is used to check
-// out driver.Connections for the Session's pool. That ReadPref is stored
+// out driver.Connections for the Session's.Pool. That ReadPref is stored
 // in the Session itself as the field rp. During the Session's lifetime,
 // the Server may change its role (for example, it may go from Secondary
 // to Primary). This method validates the selected Server still meets the
@@ -116,9 +105,9 @@ func (s *Session) Validate(ctx context.Context) error {
 
 	// Create a ReadPrefSelector using the read preference
 	// from this session's creation.
-	selector := description.ReadPrefSelector(s.rp)
+	selector := description.ReadPrefSelector(s.ReadPreference)
 	t := description.Topology{
-		Kind: s.TopologyKind(),
+		Kind: s.TopologyKind,
 	}
 
 	// Attempt to select the server. If the selector returns an error
@@ -148,9 +137,9 @@ func (s *Session) Aggregate(ctx context.Context, database, collection string, pi
 	c := operation.NewAggregate(pipelineArr).
 		Database(database).
 		Collection(collection).
-		Deployment(s.deployment).
+		Deployment(s.Deployment).
 		AllowDiskUse(true).
-		ReadPreference(s.rp)
+		ReadPreference(s.ReadPreference)
 
 	// When the query context has a deadline then we supply the amount of
 	// time we have left as the max time to try to execute the query in.
@@ -215,7 +204,7 @@ func (s *Session) Delete(ctx context.Context, db, col string, query bson.D) erro
 	c := operation.NewDelete(deleteDocBytes).
 		Database(db).
 		Collection(col).
-		Deployment(s.deployment).
+		Deployment(s.Deployment).
 		WriteConcern(wc)
 
 	err = c.Execute(ctx)
@@ -242,7 +231,7 @@ func (s *Session) Insert(ctx context.Context, db, col string, docs []interface{}
 	c := operation.NewInsert(docsToInsert...).
 		Database(db).
 		Collection(col).
-		Deployment(s.deployment).
+		Deployment(s.Deployment).
 		WriteConcern(wc)
 
 	err = c.Execute(ctx)
@@ -271,7 +260,7 @@ func (s *Session) Upsert(ctx context.Context, db, col string, query, update inte
 	c := operation.NewUpdate(updateDocBytes).
 		Database(db).
 		Collection(col).
-		Deployment(s.deployment).
+		Deployment(s.Deployment).
 		WriteConcern(wc)
 
 	err = c.Execute(ctx)
@@ -287,8 +276,8 @@ func (s *Session) Upsert(ctx context.Context, db, col string, query, update inte
 func (s *Session) ListCollections(ctx context.Context, db string, opts driver.CursorOptions) (Cursor, error) {
 	cmd := operation.NewListCollections(nil).
 		Database(db).
-		Deployment(s.deployment).
-		ReadPreference(s.rp)
+		Deployment(s.Deployment).
+		ReadPreference(s.ReadPreference)
 	if err := cmd.Execute(ctx); err != nil {
 		return nil, fmt.Errorf("error listing collections for '%v': %v", db, err)
 	}
@@ -306,8 +295,8 @@ func (s *Session) ListCollections(ctx context.Context, db string, opts driver.Cu
 func (s *Session) ListDatabases(ctx context.Context) (*operation.ListDatabasesResult, error) {
 	cmd := operation.NewListDatabases(nil).
 		Database("admin").
-		Deployment(s.deployment).
-		ReadPreference(s.rp)
+		Deployment(s.Deployment).
+		ReadPreference(s.ReadPreference)
 	if err := cmd.Execute(ctx); err != nil {
 		return nil, fmt.Errorf("error listing databases: %v", err)
 	}
@@ -322,7 +311,7 @@ func (s *Session) ListIndexes(ctx context.Context, db, col string) (Cursor, erro
 	cmd := operation.NewListIndexes().
 		Database(db).
 		Collection(col).
-		Deployment(s.deployment)
+		Deployment(s.Deployment)
 	if err := cmd.Execute(ctx); err != nil {
 		return nil, fmt.Errorf("error listing indexes for '%v'.'%v': %v", db, col, err)
 	}
@@ -463,7 +452,7 @@ func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses 
 	// If auth source is empty, this indicates we're running in unauthenticated mode. We should
 	// not use the $ownOps parameter in this case since operations don't have any associated
 	// MongoDB users.
-	if s.AuthSource() != "" {
+	if s.AuthSource != "" {
 		currentOpsCommand = append(currentOpsCommand, bsonutil.NewDocElem("$ownOps", true))
 	}
 
@@ -515,11 +504,11 @@ func (s *Session) killOp(ctx context.Context, opID interface{}) error {
 
 // Login authenticates the session using the specified authenticator.
 func (s *Session) Login(ctx context.Context, a SessionAuthenticator) error {
-	s.authSource = a.source()
+	s.AuthSource = a.source()
 
 	// checkout all the connections
-	conns := make([]driver.Connection, s.numConns)
-	for i := 0; i < s.numConns; i++ {
+	conns := make([]driver.Connection, s.NumConns)
+	for i := 0; i < s.NumConns; i++ {
 		c, err := s.Connection(ctx)
 		if err != nil {
 			s.setError(err)
@@ -570,7 +559,7 @@ func (s *Session) DropCollection(ctx context.Context, db, col string) error {
 	cmd := operation.NewDropCollection().
 		Database(db).
 		Collection(col).
-		Deployment(s.deployment).
+		Deployment(s.Deployment).
 		WriteConcern(writeconcern.New(writeconcern.WMajority()))
 
 	return cmd.Execute(ctx)
@@ -580,7 +569,7 @@ func (s *Session) DropCollection(ctx context.Context, db, col string) error {
 func (s *Session) DropDatabase(ctx context.Context, db string) error {
 	cmd := operation.NewDropDatabase().
 		Database(db).
-		Deployment(s.deployment).
+		Deployment(s.Deployment).
 		WriteConcern(writeconcern.New(writeconcern.WMajority()))
 
 	return cmd.Execute(ctx)
@@ -588,5 +577,5 @@ func (s *Session) DropDatabase(ctx context.Context, db string) error {
 
 // Run executes an arbitrary command against the given database.
 func (s *Session) Run(ctx context.Context, db string, cmd bson.D, result interface{}) error {
-	return mongoutil.ExecuteWithDeployment(ctx, db, s.deployment, s.rp, cmd, result)
+	return mongoutil.ExecuteWithDeployment(ctx, db, s.Deployment, s.ReadPreference, cmd, result)
 }

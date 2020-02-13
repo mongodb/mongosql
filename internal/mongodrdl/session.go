@@ -3,7 +3,7 @@ package mongodrdl
 import (
 	"fmt"
 
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 
 	"github.com/10gen/openssl"
@@ -112,7 +112,7 @@ func createDrdlSSLContext(opts DrdlOptions) (*openssl.Ctx, error) {
 
 // newDrdlSessionProvider creates a new session provider for mongodrdl using the supplied
 // DRDL configuration options.
-func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) {
+func newDrdlSessionProvider(opts DrdlOptions) (*provider.SessionProvider, error) {
 	var err error
 
 	// Ensure the password is set. If we need to ask the user, this method will
@@ -162,7 +162,7 @@ func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) 
 		)
 	}
 
-	readPref, err := mongodb.GetReadPreference(cs)
+	readPref, err := provider.GetReadPreference(cs)
 	if err != nil {
 		return nil, err
 	}
@@ -178,9 +178,9 @@ func newDrdlSessionProvider(opts DrdlOptions) (*mongodb.SessionProvider, error) 
 		return nil, err
 	}
 
-	timeout := mongodb.GetConnectTimeout(cs)
+	timeout := provider.GetConnectTimeout(cs)
 
-	return mongodb.NewDrdlSessionProvider(readPref, t, timeout, numDrdlConnsPerSession), nil
+	return provider.NewDrdlSessionProvider(readPref, t, timeout, numDrdlConnsPerSession), nil
 }
 
 // drdlDialer creates a mongodrdl dialer.

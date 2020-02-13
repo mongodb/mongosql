@@ -11,6 +11,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/mapping"
 	"github.com/10gen/sqlproxy/schema/mongo"
@@ -24,12 +25,12 @@ import (
 type Sampler struct {
 	cfg Config
 	lg  log.Logger
-	sp  *mongodb.SessionProvider
+	sp  *provider.SessionProvider
 }
 
 // NewSampler returns a new Sampler with the provided Config, Logger, and
 // SessionProvider.
-func NewSampler(cfg Config, lg log.Logger, sp *mongodb.SessionProvider) Sampler {
+func NewSampler(cfg Config, lg log.Logger, sp *provider.SessionProvider) Sampler {
 	component := fmt.Sprintf("%-10v [sampler]", log.SchemaComponent)
 	lg = log.NewComponentLogger(component, lg)
 	return Sampler{

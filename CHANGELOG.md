@@ -6,6 +6,7 @@ If no user-facing changes were made, the comment should reflect that fact.
 
 ## 2.14
 
+- BI-2471: No user-facing changes.
 - BI-2450: No user-facing changes.
 - BI-2447: No user-facing changes.
 - BI-2445: Fix bug where DEFAULT value for `max_num_global_tables` was incorrect; it was 1000, and is now correctly 4000.

@@ -2,15 +2,12 @@ package mongodb
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
@@ -109,7 +106,7 @@ type CollectionInfo struct {
 
 // DatabaseInfo is the configuration of a database in MongoDB.
 type DatabaseInfo struct {
-	caseSensitiveName string
+	CaseSensitiveName string
 
 	// Name is the name of the database.
 	Name DatabaseName
@@ -119,90 +116,8 @@ type DatabaseInfo struct {
 	Collections map[CollectionName]*CollectionInfo
 }
 
-// LoadInfo looks up information from MongoDB.
-func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userSession *Session,
-	schema *schema.Schema, config *config.Config) (i *Info, e error) {
-
-	defer func() {
-		if r := recover(); r != nil {
-			i = nil
-			logger.Warnf(log.Admin, "MongoDB information access session possibly closed: %v", r)
-			// Make sure we return the error. Without the next line go just returns nil, nil,
-			// which breaks the contract we want (namely that if the returned info is nil,
-			// there should be an error).
-			switch x := r.(type) {
-			case string:
-				e = errors.New(x)
-			case error:
-				e = x
-			default:
-				e = errors.New("Unknown panic")
-			}
-		}
-	}()
-
-	adminSession, err := sp.AuthenticatedAdminSession()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create admin session for loading cluster information: %v", err)
-	}
-	defer func() {
-		_ = adminSession.Close()
-	}()
-
-	i = &Info{
-		Config:    config,
-		Databases: createDatabasesFromSchema(schema),
-	}
-
-	err = i.LoadVersionInfo(ctx, userSession)
-	if err != nil {
-		return nil, err
-	}
-
-	if config.Security.Enabled {
-		err = i.loadAuthInfo(ctx, logger, userSession, config.Schema.Stored.Source)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		i.setAllPrivileges(AllPrivileges)
-	}
-
-	i.loadMetadata(ctx, logger, adminSession)
-
-	return i, nil
-}
-
-func createDatabasesFromSchema(config *schema.Schema) map[DatabaseName]*DatabaseInfo {
-	dbInfos := make(map[DatabaseName]*DatabaseInfo, len(config.Databases()))
-	for _, dbSchema := range config.Databases() {
-		dbName := strings.ToLower(dbSchema.Name())
-		dbInfo := &DatabaseInfo{
-			caseSensitiveName: dbSchema.Name(),
-			Name:              DatabaseName(dbName),
-			Collections:       make(map[CollectionName]*CollectionInfo),
-		}
-
-		dbInfos[dbInfo.Name] = dbInfo
-
-		for _, table := range dbSchema.Tables() {
-			name := CollectionName(table.MongoName())
-			if _, ok := dbInfo.Collections[name]; ok {
-				// Because multiple tables can be mapped to the same collection,
-				// we can skip collections we've already included.
-				continue
-			}
-
-			dbInfo.Collections[name] = &CollectionInfo{
-				Name: name,
-			}
-		}
-	}
-	return dbInfos
-}
-
-// loadMetadata loads metadata - such as indexes and collection information - into the Info struct.
-func (i *Info) loadMetadata(ctx context.Context, logger log.Logger, s *Session) {
+// LoadMetadata loads metadata - such as indexes and collection information - into the Info struct.
+func (i *Info) LoadMetadata(ctx context.Context, logger log.Logger, s *Session) {
 	for _, dbInfo := range i.Databases {
 		err := dbInfo.loadMetadata(ctx, logger, s)
 		if err != nil {
@@ -230,10 +145,10 @@ func (i *Info) LoadVersionInfo(ctx context.Context, s *Session) error {
 }
 
 func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger, s *Session) error {
-	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.caseSensitiveName)
-	cursor, err := s.ListCollections(ctx, dbInfo.caseSensitiveName, driver.CursorOptions{})
+	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.CaseSensitiveName)
+	cursor, err := s.ListCollections(ctx, dbInfo.CaseSensitiveName, driver.CursorOptions{})
 	if err != nil {
-		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.caseSensitiveName, err)
+		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.CaseSensitiveName, err)
 	}
 
 	type colResult struct {
@@ -266,7 +181,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger,
 	}
 
 	// Check if the server is a mongos
-	if s.TopologyKind() == description.Sharded {
+	if s.TopologyKind == description.Sharded {
 		dbInfo.loadShardingInfo(ctx, logger, s, viewToUnderlyingCollections)
 	}
 
@@ -279,7 +194,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger,
 
 func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *Session) {
 	for _, colInfo := range dbInfo.Collections {
-		dbName := dbInfo.caseSensitiveName
+		dbName := dbInfo.CaseSensitiveName
 		colName := string(colInfo.Name)
 
 		if colInfo.IsView {

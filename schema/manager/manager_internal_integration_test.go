@@ -13,6 +13,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,7 +25,7 @@ func TestWriteModeIntegration(t *testing.T) {
 
 	cfg := config.Default()
 	cfg.Schema.WriteMode = true
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	req.Nil(err)
 	defer sp.Close()
 

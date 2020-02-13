@@ -21,13 +21,14 @@ import (
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/manager"
 	"github.com/shopspring/decimal"
 )
 
 // New creates a NewServer.
-func New(ctx context.Context, cnl context.CancelFunc, sch *schema.Schema, sp *mongodb.SessionProvider, cfg *config.Config) (*Server, error) {
+func New(ctx context.Context, cnl context.CancelFunc, sch *schema.Schema, sp *provider.SessionProvider, cfg *config.Config) (*Server, error) {
 
 	decimal.DivisionPrecision = 34
 	component := fmt.Sprintf("%-10v [initandlisten]", log.NetworkComponent)
@@ -83,7 +84,7 @@ type Server struct {
 
 	schemaManager *manager.Manager
 
-	sessionProvider *mongodb.SessionProvider
+	sessionProvider *provider.SessionProvider
 	variables       *variable.Container
 
 	// startupInfo holds configuration information
@@ -214,7 +215,7 @@ func (s *Server) loadMongoDBInfo(ctx context.Context) error {
 	}
 
 	topology := "standalone"
-	if adminSession.TopologyKind() == mongodb.Sharded {
+	if adminSession.TopologyKind == mongodb.Sharded {
 		topology = "mongos"
 	}
 

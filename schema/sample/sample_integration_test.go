@@ -16,6 +16,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"go.mongodb.org/mongo-driver/bson"
 
@@ -37,7 +38,7 @@ func init() {
 }
 
 func TestFetchNamespaces(t *testing.T) {
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
@@ -96,7 +97,7 @@ func TestFetchNamespaces(t *testing.T) {
 }
 
 func TestGetViewPipelinesInDatabase(t *testing.T) {
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
@@ -160,7 +161,7 @@ func TestGetViewPipelinesInDatabase(t *testing.T) {
 }
 
 func TestSample(t *testing.T) {
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
@@ -249,7 +250,7 @@ func TestSample(t *testing.T) {
 }
 
 func TestNamespaceSelectors(t *testing.T) {
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
@@ -612,7 +613,7 @@ func TestNamespaceSelectors(t *testing.T) {
 
 func TestSampleTableAndColumnCollisions(t *testing.T) {
 	defaultCfg := config.Default()
-	sp, err := mongodb.NewSqldSessionProvider(defaultCfg)
+	sp, err := provider.NewSqldSessionProvider(defaultCfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}
@@ -750,7 +751,7 @@ func TestWriteModeRoundTrip(t *testing.T) {
 	logger := log.NoOpLogger()
 	req := require.New(t)
 
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	req.Nil(err)
 	defer sp.Close()
 
@@ -807,7 +808,7 @@ func TestWriteModeRoundTrip(t *testing.T) {
 }
 
 func TestSampleEmptyFieldNames(t *testing.T) {
-	sp, err := mongodb.NewSqldSessionProvider(cfg)
+	sp, err := provider.NewSqldSessionProvider(cfg)
 	if err != nil {
 		t.Fatalf("failed to set up session provider to test server: %v", err)
 	}

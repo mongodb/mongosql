@@ -1,4 +1,4 @@
-package mongodb
+package provider
 
 import (
 	"context"
@@ -10,7 +10,10 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/procutil"
+	"github.com/10gen/sqlproxy/log"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/ssl"
+	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
@@ -208,7 +211,7 @@ func (sp *SessionProvider) Close() {
 // See mongodb/README.md for more details about admin sessions.
 type adminTopology struct {
 	deployment driver.Deployment
-	session    *Session
+	session    *mongodb.Session
 
 	// auth flag from the SessionProvider
 	auth bool
@@ -242,7 +245,7 @@ func (t *adminTopology) Kind() description.TopologyKind {
 // See mongodb/README.md for more details about admin sessions.
 type adminServer struct {
 	server  driver.Server
-	session *Session
+	session *mongodb.Session
 
 	// auth flag from the SessionProvider
 	auth bool
@@ -278,27 +281,27 @@ func (s *adminServer) Connection(ctx context.Context) (driver.Connection, error)
 
 // AuthenticatedAdminSessionPrimary gets a new Session used for handling administration tasks
 // that require a primary and need to be authenticated separately from a client.
-func (sp *SessionProvider) AuthenticatedAdminSessionPrimary() (*Session, error) {
+func (sp *SessionProvider) AuthenticatedAdminSessionPrimary() (*mongodb.Session, error) {
 	return sp.adminSession(readpref.Primary())
 }
 
 // AuthenticatedAdminSession gets a new Session used for handling tasks which
 // require authentication separately from a client. This session honors the
 // read preference specified when starting up mongosqld.
-func (sp *SessionProvider) AuthenticatedAdminSession() (*Session, error) {
+func (sp *SessionProvider) AuthenticatedAdminSession() (*mongodb.Session, error) {
 	return sp.adminSession(sp.rp)
 }
 
 // adminSession creates a new Session to be used for admin connections to MongoDB.
 // The Session will use the provided read preference when selecting a server to
 // execute commands.
-func (sp *SessionProvider) adminSession(rp *readpref.ReadPref) (*Session, error) {
-	session := &Session{
-		topologyKind: sp.adminConnTopology.Kind(),
-		rp:           rp,
+func (sp *SessionProvider) adminSession(rp *readpref.ReadPref) (*mongodb.Session, error) {
+	session := &mongodb.Session{
+		TopologyKind:   sp.adminConnTopology.Kind(),
+		ReadPreference: rp,
 	}
 
-	session.deployment = &adminTopology{
+	session.Deployment = &adminTopology{
 		deployment: sp.adminConnTopology,
 		session:    session,
 	}
@@ -317,7 +320,7 @@ func (sp *SessionProvider) adminSession(rp *readpref.ReadPref) (*Session, error)
 // Session creates a new Session. It uses the SessionProvider's read preference
 // to select a server from the SessionProvider's deployment. We use that server
 // to get the connections for the Session's connection pool.
-func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
+func (sp *SessionProvider) Session(ctx context.Context) (*mongodb.Session, error) {
 	// First, select an appropriate driver.Server from sp's topology.
 	selector := description.ReadPrefSelector(sp.rp)
 	connectCtx, cancel := context.WithTimeout(ctx, sp.connectTimeout)
@@ -328,10 +331,10 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 	}
 
 	// Create the Session
-	session := &Session{
-		topologyKind: sp.userConnTopology.Kind(),
-		numConns:     sp.numConns,
-		rp:           sp.rp,
+	session := &mongodb.Session{
+		TopologyKind:   sp.userConnTopology.Kind(),
+		NumConns:       sp.numConns,
+		ReadPreference: sp.rp,
 	}
 
 	// Create a connection provider for the connection pool. This provider
@@ -348,7 +351,7 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 			return nil, errors.New("unable to get connection's local address")
 		}
 
-		session.clientAddresses = append(session.clientAddresses, l.LocalAddress().String())
+		session.ClientAddresses = append(session.ClientAddresses, l.LocalAddress().String())
 
 		if sp.auth {
 			// We need to ensure we logout any connections that were
@@ -372,7 +375,7 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 
 	// The pool keeps the connections checked out of the
 	// underlying pool until the session is closed.
-	if session.pool, err = newSessionConnPool(ctx, provider, sp.numConns); err != nil {
+	if session.Pool, err = mongodb.NewSessionConnPool(ctx, provider, sp.numConns); err != nil {
 		return nil, err
 	}
 
@@ -383,7 +386,7 @@ func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 	// the session as the selected server, and therefore the connections will
 	// always come from the pool. This is the necessary behavior because of our
 	// auth requirements.
-	session.deployment = driver.SingleServerDeployment{
+	session.Deployment = driver.SingleServerDeployment{
 		Server: session,
 	}
 
@@ -397,17 +400,17 @@ type expirableConnection interface {
 
 type autoLogoutConnection struct {
 	expirableConnection
-	s *Session
+	s *mongodb.Session
 }
 
 func (c *autoLogoutConnection) Close() error {
-	if c.Alive() && c.s.authSource != "" {
+	if c.Alive() && c.s.AuthSource != "" {
 		logoutRequest := bsonutil.NewD(
 			bsonutil.NewDocElem("logout", 1),
 		)
 
 		res := bsonutil.NewD()
-		if err := c.s.Run(context.Background(), c.s.authSource, logoutRequest, &res); err != nil {
+		if err := c.s.Run(context.Background(), c.s.AuthSource, logoutRequest, &res); err != nil {
 			// If the logout command fails, we expire the connection. We can ignore the error
 			// returned by Expire() because the method guarantees the connection will not be
 			// returned to the underlying pool (at the Go driver level). Not being returned to
@@ -470,4 +473,86 @@ func validateConnString(cs connstring.ConnString) error {
 	}
 
 	return nil
+}
+
+// LoadInfo looks up information from MongoDB.
+func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userSession *mongodb.Session,
+	schema *schema.Schema, config *config.Config) (i *mongodb.Info, e error) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			i = nil
+			logger.Warnf(log.Admin, "MongoDB information access session possibly closed: %v", r)
+			// Make sure we return the error. Without the next line go just returns nil, nil,
+			// which breaks the contract we want (namely that if the returned info is nil,
+			// there should be an error).
+			switch x := r.(type) {
+			case string:
+				e = errors.New(x)
+			case error:
+				e = x
+			default:
+				e = errors.New("Unknown panic")
+			}
+		}
+	}()
+
+	adminSession, err := sp.AuthenticatedAdminSession()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create admin session for loading cluster information: %v", err)
+	}
+	defer func() {
+		_ = adminSession.Close()
+	}()
+
+	i = &mongodb.Info{
+		Config:    config,
+		Databases: createDatabasesFromSchema(schema),
+	}
+
+	err = i.LoadVersionInfo(ctx, userSession)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.Security.Enabled {
+		err = i.LoadAuthInfo(ctx, logger, userSession, config.Schema.Stored.Source)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		i.SetAllPrivileges(mongodb.AllPrivileges)
+	}
+
+	i.LoadMetadata(ctx, logger, adminSession)
+
+	return i, nil
+}
+
+func createDatabasesFromSchema(config *schema.Schema) map[mongodb.DatabaseName]*mongodb.DatabaseInfo {
+	dbInfos := make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo, len(config.Databases()))
+	for _, dbSchema := range config.Databases() {
+		dbName := strings.ToLower(dbSchema.Name())
+		dbInfo := &mongodb.DatabaseInfo{
+			CaseSensitiveName: dbSchema.Name(),
+			Name:              mongodb.DatabaseName(dbName),
+			Collections:       make(map[mongodb.CollectionName]*mongodb.CollectionInfo),
+		}
+
+		dbInfos[dbInfo.Name] = dbInfo
+
+		for _, table := range dbSchema.Tables() {
+			name := mongodb.CollectionName(table.MongoName())
+			if _, ok := dbInfo.Collections[name]; ok {
+				// Because multiple tables can be mapped to the same collection,
+				// we can skip collections we've already included.
+				continue
+			}
+
+			dbInfo.Collections[name] = &mongodb.CollectionInfo{
+				Name: name,
+			}
+		}
+	}
+	return dbInfos
 }

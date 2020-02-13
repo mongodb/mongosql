@@ -10,9 +10,10 @@ import (
 
 type provider func(context.Context) (driver.Connection, error)
 
-func newSessionConnPool(ctx context.Context, prv provider, max int) (*sessionConnPool, error) {
+// NewSessionConnPool is the initializer for SessionConnPool.
+func NewSessionConnPool(ctx context.Context, prv provider, max int) (*SessionConnPool, error) {
 
-	pool := &sessionConnPool{
+	pool := &SessionConnPool{
 		conns: make(chan *sessionConn, max),
 	}
 
@@ -29,21 +30,24 @@ func newSessionConnPool(ctx context.Context, prv provider, max int) (*sessionCon
 	return pool, nil
 }
 
-type sessionConnPool struct {
+// SessionConnPool represents a pool of sessionConns.
+type SessionConnPool struct {
 	connsLock sync.Mutex
 	conns     chan *sessionConn
 	errLock   sync.Mutex
 	err       error
 }
 
-func (p *sessionConnPool) Err() error {
+// Err returns the err field of SessionConnPool.
+func (p *SessionConnPool) Err() error {
 	p.errLock.Lock()
 	err := p.err
 	p.errLock.Unlock()
 	return err
 }
 
-func (p *sessionConnPool) Close() {
+// Close closes every sessionConn in the SessionConnPool.
+func (p *SessionConnPool) Close() {
 	p.connsLock.Lock()
 	conns := p.conns
 	p.conns = nil
@@ -59,7 +63,8 @@ func (p *sessionConnPool) Close() {
 	}
 }
 
-func (p *sessionConnPool) Get(ctx context.Context) (driver.Connection, error) {
+// Get returns a connection to a sessionConn in the SessionConnPool.
+func (p *SessionConnPool) Get(ctx context.Context) (driver.Connection, error) {
 	p.connsLock.Lock()
 	conns := p.conns
 	p.connsLock.Unlock()
@@ -71,7 +76,7 @@ func (p *sessionConnPool) Get(ctx context.Context) (driver.Connection, error) {
 	return p.getConn(ctx, conns)
 }
 
-func (p *sessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn) (driver.Connection, error) {
+func (p *SessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn) (driver.Connection, error) {
 	select {
 	case c := <-conns:
 		if c == nil {
@@ -84,7 +89,7 @@ func (p *sessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn
 	}
 }
 
-func (p *sessionConnPool) returnConn(c *sessionConn) error {
+func (p *SessionConnPool) returnConn(c *sessionConn) error {
 	p.connsLock.Lock()
 	defer p.connsLock.Unlock()
 
@@ -98,7 +103,7 @@ func (p *sessionConnPool) returnConn(c *sessionConn) error {
 
 type sessionConn struct {
 	driver.Connection
-	p *sessionConnPool
+	p *SessionConnPool
 }
 
 func (c *sessionConn) Close() error {

@@ -138,9 +138,9 @@ func (i *Info) IsSecurityEnabled() bool {
 	return (i.Config != nil) && i.Config.Security.Enabled
 }
 
-// loadAuthInfo gathers the authorization information from MongoDB and propagates
+// LoadAuthInfo gathers the authorization information from MongoDB and propagates
 // it to the Info tree.
-func (i *Info) loadAuthInfo(ctx context.Context, logger log.Logger, s *Session, sampleSource string) error {
+func (i *Info) LoadAuthInfo(ctx context.Context, logger log.Logger, s *Session, sampleSource string) error {
 	cmd := bsonutil.NewD(
 		bsonutil.NewDocElem("connectionStatus", 1),
 		bsonutil.NewDocElem("showPrivileges", 1),
@@ -159,7 +159,7 @@ func (i *Info) loadAuthInfoFromConnectionStatus(result *connectionStatusResult,
 	sampleSource string) {
 	var normalizedSampleSource = DatabaseName(strings.ToLower(sampleSource))
 	if len(result.AuthInfo.AuthenticatedUsers) == 0 {
-		i.setAllPrivileges(AllPrivileges)
+		i.SetAllPrivileges(AllPrivileges)
 	}
 
 	i.sampleSourcePrivileges = newSampleSourcePrivileges()
@@ -270,8 +270,8 @@ func (i *Info) loadAuthInfoFromConnectionStatus(result *connectionStatusResult,
 	}
 }
 
-// nolint: unparam
-func (i *Info) setAllPrivileges(privileges Privilege) {
+// SetAllPrivileges sets the privileges for all databases in i.Databases.
+func (i *Info) SetAllPrivileges(privileges Privilege) {
 	for _, db := range i.Databases {
 		db.Privileges = privileges
 		for _, col := range db.Collections {
