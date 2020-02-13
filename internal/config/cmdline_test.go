@@ -86,6 +86,7 @@ func TestParseArgs_Valid(t *testing.T) {
 		// Debug
 		"--enableProfiling", "cpu",
 		"--profileScope", "all",
+		"--usageLogInterval", "45",
 	}
 	if runtime.GOOS != "windows" {
 		args = append(args, []string{
@@ -238,6 +239,7 @@ func TestParseArgs_Valid(t *testing.T) {
 
 	testString(t, cfg.Debug.EnableProfiling, "cpu", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "all", "cfg.Debug.ProfileScope")
+	testInt(t, cfg.Debug.UsageLogInterval, 45, "cfg.Debug.UsageLogInterval")
 }
 
 func TestParseArgs_Valid2(t *testing.T) {

@@ -159,6 +159,7 @@ func Default() *Config {
 	cfg.SystemLog.LogRotate = log.Rename
 
 	cfg.Debug.ProfileScope = "queries"
+	cfg.Debug.UsageLogInterval = 60
 
 	cfg.SetParameter.AnonymizeMetrics = true
 	cfg.SetParameter.EnableTableAlterations = false
@@ -375,6 +376,13 @@ func Validate(cfg *Config) error {
 		// valid
 	default:
 		return fmt.Errorf("invalid profile scope %q", cfg.Debug.ProfileScope)
+	}
+
+	if cfg.Debug.UsageLogInterval < 0 {
+		return fmt.Errorf(
+			"debug.usageLogInterval (%d) must be greater than or equal to 0",
+			cfg.Debug.UsageLogInterval,
+		)
 	}
 
 	if cfg.Runtime.Memory.MaxPerServer > 0 &&
@@ -713,6 +721,7 @@ type SetParameter struct {
 
 // Debug holds options that are useful when debugging mongosqld.
 type Debug struct {
-	EnableProfiling string
-	ProfileScope    string
+	EnableProfiling  string
+	ProfileScope     string
+	UsageLogInterval int
 }

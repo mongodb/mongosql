@@ -756,8 +756,9 @@ func (o *serviceOptions) mapToConfig(cfg *Config) error {
 
 // nolint: lll
 type debugOptions struct {
-	EnableProfiling *string `long:"enableProfiling" hidden:"true" description:"generate profiling artifacts of the specified type" choice:"cpu" choice:""`
-	ProfileScope    *string `long:"profileScope" hidden:"true" description:"the scope for which profiling artifacts should be generated" choice:"queries" choice:"all"`
+	EnableProfiling  *string `long:"enableProfiling" hidden:"true" description:"generate profiling artifacts of the specified type" choice:"cpu" choice:""`
+	ProfileScope     *string `long:"profileScope" hidden:"true" description:"the scope for which profiling artifacts should be generated" choice:"queries" choice:"all"`
+	UsageLogInterval *int    `long:"usageLogInterval" description:"the interval (in seconds) at which usage stats should be written to the log, or 0 to disable usage logging (default 60)"`
 }
 
 func (o *debugOptions) name() string {
@@ -770,6 +771,9 @@ func (o *debugOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.ProfileScope) {
 		cfg.Debug.ProfileScope = *o.ProfileScope
+	}
+	if o.UsageLogInterval != nil {
+		cfg.Debug.UsageLogInterval = *o.UsageLogInterval
 	}
 
 	return nil

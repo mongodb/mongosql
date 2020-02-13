@@ -140,6 +140,7 @@ func TestDefault(t *testing.T) {
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
+	testInt(t, cfg.Debug.UsageLogInterval, 60, "cfg.Debug.UsageLogInterval")
 
 	testBool(t, cfg.SetParameter.AnonymizeMetrics, true, "cfg.SetParameter.AnonymizeMetrics")
 	testBool(t, cfg.SetParameter.EnableTableAlterations, false, "cfg.SetParameter.EnableTableAlterations")
@@ -264,6 +265,7 @@ func TestLoad(t *testing.T) {
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
+	testInt(t, cfg.Debug.UsageLogInterval, 30, "cfg.Debug.UsageLogInterval")
 }
 
 func TestLoadWithSRVURI(t *testing.T) {
@@ -374,6 +376,7 @@ func TestLoadWithSRVURI(t *testing.T) {
 
 	testString(t, cfg.Debug.EnableProfiling, "", "cfg.Debug.EnableProfiling")
 	testString(t, cfg.Debug.ProfileScope, "queries", "cfg.Debug.ProfileScope")
+	testInt(t, cfg.Debug.UsageLogInterval, 60, "cfg.Debug.UsageLogInterval")
 }
 
 func TestLoadWithCLIArgs(t *testing.T) {
@@ -1265,19 +1268,47 @@ func TestValidate_Invalid_metrics_backend_stitch_no_stitchURL(t *testing.T) {
 	}
 }
 
+func TestValidate_Valid_usageLogInterval_zero(t *testing.T) {
+	cfg := Default()
+	cfg.Debug.UsageLogInterval = 0
+
+	err := Validate(cfg)
+	if err != nil {
+		t.Fatalf("expected no error, but got %v", err)
+	}
+}
+
+func TestValidate_Invalid_usageLogInterval_negative(t *testing.T) {
+	cfg := Default()
+	cfg.Debug.UsageLogInterval = -1
+
+	err := Validate(cfg)
+	if err == nil {
+		t.Fatalf("expected an error, but got none")
+	}
+
+	expected := "debug.usageLogInterval (-1) must be greater than or equal to 0"
+	if err.Error() != expected {
+		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
 func testBool(t *testing.T, actual, expected bool, key string) {
+	t.Helper()
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
 }
 
 func testInt(t *testing.T, actual, expected int, key string) {
+	t.Helper()
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
 }
 
 func testInt64(t *testing.T, actual, expected int64, key string) {
+	t.Helper()
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
@@ -1285,18 +1316,21 @@ func testInt64(t *testing.T, actual, expected int64, key string) {
 
 // nolint: unparam
 func testStoredSchemaMode(t *testing.T, actual, expected StoredSchemaMode, key StoredSchemaMode) {
+	t.Helper()
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
 }
 
 func testString(t *testing.T, actual, expected string, key string) {
+	t.Helper()
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
 }
 
 func testStringSlice(t *testing.T, actual, expected []string, key string) {
+	t.Helper()
 	if len(actual) != len(expected) {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}
@@ -1309,6 +1343,7 @@ func testStringSlice(t *testing.T, actual, expected []string, key string) {
 }
 
 func testUint64(t *testing.T, actual, expected uint64, key string) {
+	t.Helper()
 	if actual != expected {
 		t.Errorf("%s should be %v but was %v", key, expected, actual)
 	}

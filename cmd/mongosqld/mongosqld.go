@@ -135,6 +135,30 @@ func (p *program) Start(s service.Service) error {
 		panic(err)
 	})
 
+	// If we're not on windows, periodically print resource usage
+	// stats to the log.
+	if runtime.GOOS != "windows" {
+		procutil.PanicSafeGo(func() {
+			cmp := fmt.Sprintf("%-10v [stats]", log.ControlComponent)
+			lgr := log.NewComponentLogger(cmp, p.controlLogger)
+			delay := time.Duration(p.cfg.Debug.UsageLogInterval) * time.Second
+			if delay != 0 {
+				procutil.RepeatWithDelay(serverCtx.Done(), delay, false, func() {
+					stats, err := procutil.GetUsageStats()
+					if err == nil {
+						lgr.Infof(log.Admin, "%s", stats)
+					} else {
+						lgr.Warnf(log.Admin, "failed to get usage stats: %s", err.Error())
+					}
+				})
+			}
+		}, func(err interface{}) {
+			p.controlLogger.Fatalf(log.Always, "%v", err)
+			p.cleanup()
+			panic(err)
+		})
+	}
+
 	return nil
 }
 
