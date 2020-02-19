@@ -197,10 +197,137 @@ func TestMongoTableMarshalBSON(t *testing.T) {
 	req.Equal(expected.pipeline, actual.pipeline, "pipeline")
 }
 
+func TestMongoTableMarshalBSONWithNilValues(t *testing.T) {
+	// This tests that a catalog.MongoTable can
+	// successfully marshal and unmarshal BSON.
+
+	req := require.New(t)
+
+	expectedName := "foo"
+	expectedCollation := collation.Default
+	expectedColumn := &results.Column{
+		ColumnType: &results.ColumnType{
+			EvalType:    types.EvalString,
+			MongoType:   schema.MongoString,
+			UUIDSubType: types.EvalBinary,
+		},
+		SelectID:            1,
+		Table:               "foo",
+		OriginalTable:       "foo",
+		Database:            "db",
+		Name:                "a",
+		OriginalName:        "a",
+		MappingRegistryName: "a",
+		MongoName:           "a",
+		PrimaryKey:          false,
+		Comments:            "",
+		IsPolymorphic:       true,
+		HasAlteredType:      false,
+		Nullable:            true,
+	}
+	expectedColumns := results.Columns{expectedColumn}
+	expectedColumnMap := map[string]*results.Column{
+		expectedColumn.Name: expectedColumn,
+	}
+	var expectedPrimaryKeys results.Columns
+	var expectedIndexes []Index
+	var expectedForeignKeys []ForeignKey
+	expectedComments := "comments"
+	expectedTableType := BaseTable
+	expectedCollectionName := "foo"
+	expectedPipeline := ast.NewPipeline(
+		ast.NewProjectStage(
+			ast.NewAssignProjectItem(
+				"x",
+				ast.NewUnary(
+					"$abs",
+					ast.NewConstant(bsoncore.Value{Type: bsontype.Int32, Data: bsoncore.AppendInt32(nil, -10)}),
+				),
+			),
+		),
+	)
+
+	expected := &MongoTable{
+		name:           expectedName,
+		collation:      expectedCollation,
+		columns:        expectedColumns,
+		columnMap:      expectedColumnMap,
+		primaryKeys:    expectedPrimaryKeys,
+		indexes:        expectedIndexes,
+		foreignKeys:    expectedForeignKeys,
+		comments:       expectedComments,
+		tableType:      expectedTableType,
+		isSharded:      true,
+		collectionName: expectedCollectionName,
+		pipeline:       expectedPipeline,
+	}
+
+	// Check marshaling
+	actualBytes, err := bson.Marshal(expected)
+	req.NoError(err, "failed to marshal")
+
+	actualDoc := bsoncore.Document(actualBytes)
+	actualElements, err := actualDoc.Elements()
+	req.NoError(err, "failed to get elements from marshaled document")
+
+	expectedValues := map[string]*bsoncore.Value{
+		"collectionName": makeStringValue(expectedCollectionName),
+		"tableName":      makeStringValue(expectedName),
+		"collation":      makeStringValue(string(expectedCollation.Name)),
+		"columns":        nil, // we will not check columns here since results.Columns marshaling is tested separately
+		"primaryKeys":    makeNullValue(),
+		"indexes":        makeNullValue(),
+		"foreignKeys":    makeNullValue(),
+		"comments":       makeStringValue(expectedComments),
+		"tableType":      makeStringValue(expectedTableType),
+		"pipeline":       makeStringValue(astprint.String(expectedPipeline)),
+	}
+
+	// check that number of key-value pairs is what's expected
+	req.Equal(len(expectedValues), len(actualElements), "number of elements")
+
+	// check that each value is correctly named and set
+	for expectedKey, expectedValue := range expectedValues {
+		var actualValue bsoncore.Value
+		actualValue, err = actualDoc.LookupErr(expectedKey)
+		req.NoError(err, "error looking up key %q", expectedKey)
+
+		if expectedValue == nil {
+			continue
+		}
+
+		req.True(actualValue.Equal(*expectedValue), "value for %q", expectedKey)
+	}
+
+	// Check unmarshaling
+	actual := MongoTable{}
+	err = bson.Unmarshal(actualBytes, &actual)
+	req.NoError(err, "failed to unmarshal")
+
+	req.Equal(expected.name, actual.name, "name")
+	req.Equal(expected.collation, actual.collation, "collation")
+	req.Equal(expected.comments, actual.comments, "comments")
+	req.Equal(expected.tableType, actual.tableType, "tableType")
+	req.Equal(expected.isSharded, actual.isSharded, "isSharded")
+	req.Equal(expected.collectionName, actual.collectionName, "collectionName")
+	req.Equal(expected.columns, actual.columns, "columns")
+	req.Equal(expected.columnMap, actual.columnMap, "columnMap")
+	req.Equal(expected.primaryKeys, actual.primaryKeys, "primaryKeys")
+	req.Equal(expected.indexes, actual.indexes, "indexes")
+	req.Equal(expected.foreignKeys, actual.foreignKeys, "foreignKeys")
+	req.Equal(expected.pipeline, actual.pipeline, "pipeline")
+}
+
 func makeStringValue(s string) *bsoncore.Value {
 	return &bsoncore.Value{
 		Type: bsontype.String,
 		Data: bsoncore.AppendString(nil, s),
+	}
+}
+
+func makeNullValue() *bsoncore.Value {
+	return &bsoncore.Value{
+		Type: bsontype.Null,
 	}
 }
 

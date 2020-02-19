@@ -232,25 +232,36 @@ func (t *MongoTable) Type() string {
 // fields such as primaryKeys and the nested columns fields of indexes and
 // foreignKeys.
 func (t *MongoTable) MarshalBSON() ([]byte, error) {
-	indexes := make([]marshalableIndex, len(t.indexes))
-	for i, index := range t.indexes {
-		indexes[i] = marshalableIndex{
-			Columns:        index.columns.Names(),
-			Unique:         index.unique,
-			FullText:       index.fullText,
-			ConstraintName: index.constraintName,
+	var indexes []marshalableIndex
+	if t.indexes != nil {
+		indexes = make([]marshalableIndex, len(t.indexes))
+		for i, index := range t.indexes {
+			indexes[i] = marshalableIndex{
+				Columns:        index.columns.Names(),
+				Unique:         index.unique,
+				FullText:       index.fullText,
+				ConstraintName: index.constraintName,
+			}
 		}
 	}
 
-	foreignKeys := make([]marshalableForeignKey, len(t.foreignKeys))
-	for i, fk := range t.foreignKeys {
-		foreignKeys[i] = marshalableForeignKey{
-			Columns:              fk.columns.Names(),
-			ConstraintName:       fk.constraintName,
-			ForeignDatabase:      fk.foreignDatabase,
-			ForeignTable:         fk.foreignTable,
-			LocalToForeignColumn: fk.localToForeignColumn,
+	var foreignKeys []marshalableForeignKey
+	if t.foreignKeys != nil {
+		foreignKeys = make([]marshalableForeignKey, len(t.foreignKeys))
+		for i, fk := range t.foreignKeys {
+			foreignKeys[i] = marshalableForeignKey{
+				Columns:              fk.columns.Names(),
+				ConstraintName:       fk.constraintName,
+				ForeignDatabase:      fk.foreignDatabase,
+				ForeignTable:         fk.foreignTable,
+				LocalToForeignColumn: fk.localToForeignColumn,
+			}
 		}
+	}
+
+	var primaryKeyNames []string
+	if t.primaryKeys != nil {
+		primaryKeyNames = t.primaryKeys.Names()
 	}
 
 	mt := marshalableMongoTable{
@@ -258,7 +269,7 @@ func (t *MongoTable) MarshalBSON() ([]byte, error) {
 		Name:           t.name,
 		Collation:      string(t.collation.Name),
 		Columns:        t.columns,
-		PrimaryKeys:    t.primaryKeys.Names(),
+		PrimaryKeys:    primaryKeyNames,
 		Indexes:        indexes,
 		ForeignKeys:    foreignKeys,
 		Comments:       t.comments,
@@ -296,53 +307,62 @@ func (t *MongoTable) UnmarshalBSON(b []byte) error {
 	}
 
 	// recover the primary keys
-	pks := make(results.Columns, len(mt.PrimaryKeys))
-	for i, pkName := range mt.PrimaryKeys {
-		if col, ok := columnMap[pkName]; ok {
-			pks[i] = col
-		} else {
-			return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for primary key", pkName)
+	var pks results.Columns
+	if mt.PrimaryKeys != nil {
+		pks = make(results.Columns, len(mt.PrimaryKeys))
+		for i, pkName := range mt.PrimaryKeys {
+			if col, ok := columnMap[pkName]; ok {
+				pks[i] = col
+			} else {
+				return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for primary key", pkName)
+			}
 		}
 	}
 
 	// recover the columns for each index
-	indexes := make([]Index, len(mt.Indexes))
-	for i, index := range mt.Indexes {
-		columns := make(results.Columns, len(index.Columns))
-		for j, colName := range index.Columns {
-			if col, ok := columnMap[colName]; ok {
-				columns[j] = col
-			} else {
-				return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for index", colName)
+	var indexes []Index
+	if mt.Indexes != nil {
+		indexes = make([]Index, len(mt.Indexes))
+		for i, index := range mt.Indexes {
+			columns := make(results.Columns, len(index.Columns))
+			for j, colName := range index.Columns {
+				if col, ok := columnMap[colName]; ok {
+					columns[j] = col
+				} else {
+					return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for index", colName)
+				}
 			}
-		}
 
-		indexes[i] = Index{
-			columns:        columns,
-			unique:         index.Unique,
-			fullText:       index.FullText,
-			constraintName: index.ConstraintName,
+			indexes[i] = Index{
+				columns:        columns,
+				unique:         index.Unique,
+				fullText:       index.FullText,
+				constraintName: index.ConstraintName,
+			}
 		}
 	}
 
 	// recover the columns for each foreign key
-	fks := make([]ForeignKey, len(mt.ForeignKeys))
-	for i, fk := range mt.ForeignKeys {
-		columns := make(results.Columns, len(fk.Columns))
-		for j, colName := range fk.Columns {
-			if col, ok := columnMap[colName]; ok {
-				columns[j] = col
-			} else {
-				return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for foreign key", colName)
+	var fks []ForeignKey
+	if mt.ForeignKeys != nil {
+		fks = make([]ForeignKey, len(mt.ForeignKeys))
+		for i, fk := range mt.ForeignKeys {
+			columns := make(results.Columns, len(fk.Columns))
+			for j, colName := range fk.Columns {
+				if col, ok := columnMap[colName]; ok {
+					columns[j] = col
+				} else {
+					return fmt.Errorf("failed to unmarshal MongoTable: unknown column %q for foreign key", colName)
+				}
 			}
-		}
 
-		fks[i] = ForeignKey{
-			columns:              columns,
-			constraintName:       fk.ConstraintName,
-			foreignDatabase:      fk.ForeignDatabase,
-			foreignTable:         fk.ForeignTable,
-			localToForeignColumn: fk.LocalToForeignColumn,
+			fks[i] = ForeignKey{
+				columns:              columns,
+				constraintName:       fk.ConstraintName,
+				foreignDatabase:      fk.ForeignDatabase,
+				foreignTable:         fk.ForeignTable,
+				localToForeignColumn: fk.LocalToForeignColumn,
+			}
 		}
 	}
 
