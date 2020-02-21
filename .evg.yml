@@ -45,14 +45,6 @@ functions:
           ${PREPARE_SHELL}
           ${SCRIPT_DIR}/build-mongotranslate.sh
 
-  "check changelog":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        ${SCRIPT_DIR}/check-changelog.sh
-
   "check source lint":
     command: shell.exec
     type: test
@@ -957,13 +949,6 @@ tasks:
     - func: "upload binaries"
     - func: "create packages"
     - func: "upload packages"
-
-- name: changelog
-  tags:
-    - oneoff-task
-    - code-quality
-  commands:
-    - func: "check changelog"
 
 - name: sourcelint
   tags:
