@@ -12,16 +12,16 @@
     cd "$plugin_dir"
 
     if [ "$VARIANT" = 'windows' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~windows-64/mongosql_auth_c_full_matrix__os~windows_64_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.dll'
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/latest/full_matrix__os~windows-64/mongosql_auth.dll'
         chmod +x mongosql_auth.dll
     elif [ "$VARIANT" = 'macos' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~osx/mongosql_auth_c_full_matrix__os~osx_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/latest/full_matrix__os~osx/mongosql_auth.so'
         chmod +x mongosql_auth.so
     elif [ "$VARIANT" = 'rhel70' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~rhel70/mongosql_auth_c_full_matrix__os~rhel70_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/latest/full_matrix__os~rhel70/mongosql_auth.so'
         chmod +x mongosql_auth.so
     elif [ "$VARIANT" = 'ubuntu1604' ]; then
-        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/full_matrix__os~ubuntu1404-64/mongosql_auth_c_full_matrix__os~ubuntu1404_64_compile_ff1b98818af7b8b64638323565a47e78b0666200_18_09_04_22_14_11/mongosql_auth.so'
+        curl -O 'https://s3.amazonaws.com/mciuploads/mongosql-auth-c/artifacts/latest/full_matrix__os~ubuntu1404-64/mongosql_auth.so'
         chmod +x mongosql_auth.so
     else
         echo "variant $VARIANT not supported"
