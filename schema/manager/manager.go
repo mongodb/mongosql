@@ -248,22 +248,25 @@ func (mgr *Manager) DropDatabase(ctx context.Context, db string,
 	if mgr.cfg.Mode() != WriteSchemaMode {
 		return nil, fmt.Errorf("drop database only allowed in write mode")
 	}
-	sch := mgr.getSchema()
-	schDB := sch.Database(db)
-	if schDB == nil {
+	mgr.schemaMx.Lock()
+	defer mgr.schemaMx.Unlock()
+	schemaDB := mgr.schema.Database(db)
+	if schemaDB == nil {
 		return nil, fmt.Errorf("database '%s' cannot be dropped as it does not exist", db)
 	}
-	// Cleanup MongoDB before we change the schema.
+	// Cleanup MongoDB before we change the mgr.schema.
 	err := session.DropDatabase(ctx, db)
 	if err != nil {
 		return nil, err
 	}
-	err = sch.DropDatabase(db)
+	err = mgr.schema.DropDatabase(db)
 	if err != nil {
 		return nil, err
 	}
-	mgr.setSchema(sch)
-	return sch, nil
+	// We could release the write lock and use a read lock for this DeepCopy.
+	// We avoided that to keep the code cleaner. If performance here ever were
+	// to become an issue, it would be a possible optimization.
+	return mgr.schema.DeepCopy(), nil
 }
 
 // CreateDatabase creates a database. It does not actually change
@@ -272,14 +275,17 @@ func (mgr *Manager) CreateDatabase(ctx context.Context, db string) (*schema.Sche
 	if mgr.cfg.Mode() != WriteSchemaMode {
 		return nil, fmt.Errorf("create database only allowed in write mode")
 	}
-	sch := mgr.getSchema()
-	database := schema.NewDatabase(mgr.lg, db, []*schema.Table{})
-	err := sch.AddDatabase(database)
+	mgr.schemaMx.Lock()
+	defer mgr.schemaMx.Unlock()
+	schemaDB := schema.NewDatabase(mgr.lg, db, []*schema.Table{})
+	err := mgr.schema.AddDatabase(schemaDB)
 	if err != nil {
 		return nil, err
 	}
-	mgr.setSchema(sch)
-	return sch, nil
+	// We could release the write lock and use a read lock for this DeepCopy.
+	// We avoided that to keep the code cleaner. If performance here ever were
+	// to become an issue, it would be a possible optimization.
+	return mgr.schema.DeepCopy(), nil
 }
 
 // DropTable drops a table.
@@ -288,12 +294,13 @@ func (mgr *Manager) DropTable(ctx context.Context, db, table string,
 	if mgr.cfg.Mode() != WriteSchemaMode {
 		return nil, fmt.Errorf("drop table only allowed in write mode")
 	}
-	sch := mgr.getSchema()
-	schDB := sch.Database(db)
-	if schDB == nil {
+	mgr.schemaMx.Lock()
+	defer mgr.schemaMx.Unlock()
+	schemaDB := mgr.schema.Database(db)
+	if schemaDB == nil {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadDbError, db)
 	}
-	schTable := schDB.Table(table)
+	schTable := schemaDB.Table(table)
 	if schTable == nil {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadTableError, table)
 	}
@@ -302,12 +309,14 @@ func (mgr *Manager) DropTable(ctx context.Context, db, table string,
 	if err != nil {
 		return nil, err
 	}
-	err = schDB.DropTable(table)
+	err = schemaDB.DropTable(table)
 	if err != nil {
 		return nil, err
 	}
-	mgr.setSchema(sch)
-	return sch, nil
+	// We could release the write lock and use a read lock for this DeepCopy.
+	// We avoided that to keep the code cleaner. If performance here ever were
+	// to become an issue, it would be a possible optimization.
+	return mgr.schema.DeepCopy(), nil
 }
 
 // CreateTable creates a table.
@@ -316,10 +325,11 @@ func (mgr *Manager) CreateTable(ctx context.Context, db string,
 	if mgr.cfg.Mode() != WriteSchemaMode {
 		return nil, fmt.Errorf("create table only allowed in write mode")
 	}
-	sch := mgr.getSchema()
 	logger := mgr.lg
-	database := sch.Database(db)
-	if database == nil {
+	mgr.schemaMx.Lock()
+	defer mgr.schemaMx.Unlock()
+	schemaDB := mgr.schema.Database(db)
+	if schemaDB == nil {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErBadDbError, db)
 	}
 	// We must create the collection in MongoDB before we update
@@ -335,11 +345,11 @@ func (mgr *Manager) CreateTable(ctx context.Context, db string,
 	if err != nil {
 		return nil, err
 	}
-	if database.Table(tbl.SQLName()) != nil {
+	if schemaDB.Table(tbl.SQLName()) != nil {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErTableExistsError, tbl.SQLName())
 	}
 	copiedTable := tbl.DeepCopy()
-	database.AddTable(logger, copiedTable)
+	schemaDB.AddTable(logger, copiedTable)
 	createIndexes := tbl.GenerateCreateIndexes()
 	if len(createIndexes) != 0 {
 		err = session.Run(ctx, db, createIndexes, &result)
@@ -348,12 +358,16 @@ func (mgr *Manager) CreateTable(ctx context.Context, db string,
 			// schema, and also return that we failed to create indexes. The user
 			// will be able to drop their table, if they wish to try again.
 			copiedTable.DropIndexes()
-			mgr.setSchema(sch)
-			return sch, fmt.Errorf("failed to create indexes for table '%s.%s'", db, tbl.SQLName())
+			// We could release the write lock and use a read lock for this DeepCopy.
+			// We avoided that to keep the code cleaner. If performance here ever were
+			// to become an issue, it would be a possible optimization.
+			return mgr.schema.DeepCopy(), fmt.Errorf("failed to create indexes for table '%s.%s'", db, tbl.SQLName())
 		}
 	}
-	mgr.setSchema(sch)
-	return sch, nil
+	// We could release the write lock and use a read lock for this DeepCopy.
+	// We avoided that to keep the code cleaner. If performance here ever were
+	// to become an issue, it would be a possible optimization.
+	return mgr.schema.DeepCopy(), nil
 }
 
 // Schema gets a copy of the current schema. If the manager is running in
