@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/config"
@@ -83,9 +84,12 @@ func TestWriteModeIntegration(t *testing.T) {
 	ctx := context.Background()
 
 	manager.Start()
-	sch, err := manager.obtainSchema(ctx)
-	req.Nil(err)
-	manager.setSchema(sch)
+
+	// Do not try more than 10 times, so this will not hang forever if this
+	// test stops working in the future.
+	for retries := 0; manager.Schema(ctx) == nil && retries < 10; retries++ {
+		time.Sleep(100 * time.Millisecond)
+	}
 
 	// Test that we fail because 'bar' database does not exist yet.
 	_, err = manager.CreateTable(ctx, dbName, table1, session)
@@ -93,7 +97,7 @@ func TestWriteModeIntegration(t *testing.T) {
 	req.EqualError(err, "ERROR 1049 (42000): Unknown database 'foo'")
 
 	// Now create database 'foo'.
-	sch, err = manager.CreateDatabase(ctx, dbName)
+	sch, err := manager.CreateDatabase(ctx, dbName)
 	req.Nil(err)
 	req.Nil(sch.Equals(manager.getSchema()), "schema was not properly set in CreateDatabase")
 

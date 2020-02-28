@@ -154,7 +154,9 @@ func (mgr *Manager) initializeSchema(ctx context.Context) {
 	// if we are in file-based schema mode, then we set the file-based schema as the
 	// initial schema, and no further work is needed.
 	if mgr.cfg.Mode() == FileBasedSchemaMode {
-		mgr.setSchema(mgr.cfg.FileBasedSchema())
+		mgr.schemaMx.Lock()
+		defer mgr.schemaMx.Unlock()
+		mgr.schema = mgr.cfg.FileBasedSchema()
 		return
 	}
 
@@ -225,14 +227,6 @@ func (mgr *Manager) fetchStoredSchema(ctx context.Context) (*schema.Schema, erro
 		return nil, err
 	}
 	return schema.NewFromDRDL(mgr.lg, drdlSchema)
-}
-
-// setSchema sets the current schema to a copy of the provided schema. This
-// function is thread-safe.
-func (mgr *Manager) setSchema(sch *schema.Schema) {
-	mgr.schemaMx.Lock()
-	defer mgr.schemaMx.Unlock()
-	mgr.schema = sch.DeepCopy()
 }
 
 // Close shuts down the background goroutines used by the Manager.
@@ -467,7 +461,9 @@ func (mgr *Manager) obtainSchema(ctx context.Context) (*schema.Schema, error) {
 		return nil, err
 	}
 
-	mgr.setSchema(newSch)
+	mgr.schemaMx.Lock()
+	defer mgr.schemaMx.Unlock()
+	mgr.schema = newSch
 	return newSch, nil
 }
 
