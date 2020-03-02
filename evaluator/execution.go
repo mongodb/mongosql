@@ -2,6 +2,7 @@ package evaluator
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 	"strings"
 
@@ -28,18 +29,21 @@ type QueryConfig struct {
 	oCfg *OptimizerConfig
 	pCfg *PushdownConfig
 	eCfg *ExecutionConfig
+
+	selectStatementsOnly bool
 }
 
 // NewQueryConfig returns a new QueryConfig.
 func NewQueryConfig(lg log.Logger, rCfg *RewriterConfig, aCfg *AlgebrizerConfig,
-	oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig) *QueryConfig {
+	oCfg *OptimizerConfig, pCfg *PushdownConfig, eCfg *ExecutionConfig, selectStatementsOnly bool) *QueryConfig {
 	return &QueryConfig{
-		lg:   lg,
-		rCfg: rCfg,
-		aCfg: aCfg,
-		oCfg: oCfg,
-		pCfg: pCfg,
-		eCfg: eCfg,
+		lg:                   lg,
+		rCfg:                 rCfg,
+		aCfg:                 aCfg,
+		oCfg:                 oCfg,
+		pCfg:                 pCfg,
+		eCfg:                 eCfg,
+		selectStatementsOnly: selectStatementsOnly,
 	}
 }
 
@@ -51,6 +55,15 @@ func ExecuteSQL(ctx context.Context, qCfg *QueryConfig, sql string) (*QueryResul
 	if err != nil {
 		return nil, mysqlerrors.Newf(mysqlerrors.ErParseError, `parse sql '%s' error: %s`, sql, err)
 	}
+
+	if qCfg.selectStatementsOnly {
+		switch stmt.(type) {
+		case *parser.Select, *parser.Union:
+		default:
+			return nil, errors.New("unsupported SQL statement")
+		}
+	}
+
 	return executeSQLStatement(ctx, qCfg, stmt)
 }
 

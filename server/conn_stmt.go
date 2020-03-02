@@ -95,7 +95,7 @@ func (c *conn) handleStmtExecute(ctx context.Context, data []byte) error {
 	oCfg := c.getOptimizerConfig()
 	pCfg := c.getPushdownConfig()
 	eCfg := c.getExecutionConfig()
-	qCfg := evaluator.NewQueryConfig(lg, rCfg, aCfg, oCfg, pCfg, eCfg)
+	qCfg := evaluator.NewQueryConfig(lg, rCfg, aCfg, oCfg, pCfg, eCfg, false)
 
 	_, _ = evaluator.ExecuteSQL(ctx, qCfg, s.sql)
 

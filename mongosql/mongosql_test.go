@@ -416,11 +416,18 @@ schema:
 		expectedCollection string
 	}{
 		{
-			desc:          "query that can't be parsed/explained (command)",
+			desc:          "unsupported statement (command)",
 			query:         "drop table foo.t",
 			dbName:        testDBName,
 			ctlg:          testCatalogWithoutSharding,
-			expectedError: `fatal error executing sql "drop table foo.t": command not supported`,
+			expectedError: `fatal error executing sql "drop table foo.t": unsupported SQL statement`,
+		},
+		{
+			desc:          "unsupported statement (show)",
+			query:         "show tables",
+			dbName:        testDBName,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "show tables": unsupported SQL statement`,
 		},
 		{
 			desc:          "query that can't be pushed down (rand cannot be pushed down)",

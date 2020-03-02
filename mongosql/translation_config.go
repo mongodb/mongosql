@@ -36,7 +36,7 @@ func NewQueryConfigFromTranslationConfig(tCfg *TranslationConfig) *evaluator.Que
 	eCfg := evaluator.NewExecutionConfig(lgr, tCfg.defaultDbName, tCfg.mdbVersion, true, 0,
 		values.MongoSQLValueKind, errCommandHandler{}, nil)
 
-	return evaluator.NewQueryConfig(lgr, rCfg, aCfg, oCfg, pCfg, eCfg)
+	return evaluator.NewQueryConfig(lgr, rCfg, aCfg, oCfg, pCfg, eCfg, tCfg.selectStatementsOnly)
 }
 
 // TranslationConfig is a container for all the values needed to translate a SQL
@@ -61,13 +61,14 @@ type TranslationConfig struct {
 	allowUUIDLiteralComparisons   bool
 	allowCountOptimization        bool
 	useInformationSchemaDual      bool
+	selectStatementsOnly          bool
 }
 
 // NewTranslationConfig returns a new TranslationConfig
 func NewTranslationConfig(ctlg catalog.Catalog, format string, formatVersion int,
 	defaultDbName string) *TranslationConfig {
 	return newTranslationConfig(ctlg, format, formatVersion, defaultDbName,
-		[]uint8{100, 0, 0}, true, true, false, false, false, true)
+		[]uint8{100, 0, 0}, true, true, false, false, false, true, true)
 }
 
 func newTranslationConfig(
@@ -81,7 +82,8 @@ func newTranslationConfig(
 	allowRowGeneratorOptimization,
 	allowUUIDLiteralComparisons,
 	allowCountOptimization,
-	useInformationSchemaDual bool,
+	useInformationSchemaDual,
+	selectStatementsOnly bool,
 ) *TranslationConfig {
 	return &TranslationConfig{
 		ctlg:                          ctlg,
@@ -95,6 +97,7 @@ func newTranslationConfig(
 		allowUUIDLiteralComparisons:   allowUUIDLiteralComparisons,
 		allowCountOptimization:        allowCountOptimization,
 		useInformationSchemaDual:      useInformationSchemaDual,
+		selectStatementsOnly:          selectStatementsOnly,
 	}
 }
 

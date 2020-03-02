@@ -104,7 +104,7 @@ func (c *conn) handleQuery(ctx context.Context, sql string) (err error) {
 	oCfg := c.getOptimizerConfig()
 	pCfg := c.getPushdownConfig()
 	eCfg := c.getExecutionConfig()
-	qCfg := evaluator.NewQueryConfig(lg, rCfg, aCfg, oCfg, pCfg, eCfg)
+	qCfg := evaluator.NewQueryConfig(lg, rCfg, aCfg, oCfg, pCfg, eCfg, false)
 
 	var queryCtx context.Context
 	maxTimeMS := c.variables.GetInt64(variable.MaxTimeMS)

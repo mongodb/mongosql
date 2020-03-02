@@ -54,7 +54,7 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 	}
 
 	tCfg := newTranslationConfig(ctlg, evaluator.NoOutputFormat, evaluator.NoOutputVersion,
-		dbName, mdbVersion, false, false, true, true, true, false)
+		dbName, mdbVersion, false, false, true, true, true, false, false)
 	qCfg := NewQueryConfigFromTranslationConfig(tCfg)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
