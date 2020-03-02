@@ -83,15 +83,15 @@ func formatUnflattenedProject(ms *MongoSourceStage) (*ast.ProjectStage, error) {
 			return nil, fmt.Errorf("failed to find field ref for column '%v.%v.%v'", c.Database, c.Table, c.Name)
 		}
 
-		db := astutil.StringValue(c.Database)
+		database := astutil.StringValue(c.Database)
 		table := astutil.StringValue(c.OriginalTable)
 		tableAlias := astutil.StringValue(c.Table)
 		column := astutil.StringValue(c.OriginalName)
 		columnAlias := astutil.StringValue(c.Name)
 
-		// if db is empty, replace it with null
+		// if database is empty, replace it with null
 		if c.Database == "" {
-			db = astutil.NullLiteral
+			database = astutil.NullLiteral
 		}
 
 		// if table is empty, replace it with null
@@ -115,7 +115,7 @@ func formatUnflattenedProject(ms *MongoSourceStage) (*ast.ProjectStage, error) {
 		}
 
 		richFieldData[i] = ast.NewDocument(
-			ast.NewDocumentElement("db", db),
+			ast.NewDocumentElement("database", database),
 			ast.NewDocumentElement("table", table),
 			ast.NewDocumentElement("tableAlias", tableAlias),
 			ast.NewDocumentElement("column", column),

@@ -63,7 +63,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 			ast.NewProjectStage(
 				ast.NewAssignProjectItem("values", ast.NewArray(
 					ast.NewDocument(
-						ast.NewDocumentElement("db", astutil.StringValue("db")),
+						ast.NewDocumentElement("database", astutil.StringValue("db")),
 						ast.NewDocumentElement("table", astutil.StringValue("foo")),
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("a")),
@@ -71,7 +71,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_a", nil)),
 					),
 					ast.NewDocument(
-						ast.NewDocumentElement("db", astutil.StringValue("db")),
+						ast.NewDocumentElement("database", astutil.StringValue("db")),
 						ast.NewDocumentElement("table", astutil.StringValue("foo")),
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("b")),
@@ -101,7 +101,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 			ast.NewProjectStage(
 				ast.NewAssignProjectItem("values", ast.NewArray(
 					ast.NewDocument(
-						ast.NewDocumentElement("db", astutil.StringValue("db")),
+						ast.NewDocumentElement("database", astutil.StringValue("db")),
 						ast.NewDocumentElement("table", astutil.StringValue("foo")),
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("t1")),
 						ast.NewDocumentElement("column", astutil.StringValue("a")),
@@ -109,7 +109,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_t1_DOT_ah", nil)),
 					),
 					ast.NewDocument(
-						ast.NewDocumentElement("db", astutil.StringValue("db")),
+						ast.NewDocumentElement("database", astutil.StringValue("db")),
 						ast.NewDocumentElement("table", astutil.StringValue("foo")),
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("t2")),
 						ast.NewDocumentElement("column", astutil.StringValue("b")),
@@ -141,7 +141,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 			ast.NewProjectStage(
 				ast.NewAssignProjectItem("values", ast.NewArray(
 					ast.NewDocument(
-						ast.NewDocumentElement("db", astutil.StringValue("db")),
+						ast.NewDocumentElement("database", astutil.StringValue("db")),
 						ast.NewDocumentElement("table", astutil.StringValue("foo")),
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("a")),
@@ -149,7 +149,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_a", nil)),
 					),
 					ast.NewDocument(
-						ast.NewDocumentElement("db", astutil.StringValue("db")),
+						ast.NewDocumentElement("database", astutil.StringValue("db")),
 						ast.NewDocumentElement("table", astutil.StringValue("foo")),
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("b")),
@@ -157,7 +157,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_b", nil)),
 					),
 					ast.NewDocument(
-						ast.NewDocumentElement("db", astutil.StringValue("db")),
+						ast.NewDocumentElement("database", astutil.StringValue("db")),
 						ast.NewDocumentElement("table", astutil.NullLiteral),
 						ast.NewDocumentElement("tableAlias", astutil.NullLiteral),
 						ast.NewDocumentElement("column", astutil.NullLiteral),
