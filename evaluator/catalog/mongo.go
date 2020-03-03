@@ -299,7 +299,7 @@ func (t *MongoTable) UnmarshalBSON(b []byte) error {
 	for _, col := range mt.Columns {
 		// recover information not serialized by results.Column
 		col.Table = mt.Name
-		col.OriginalName = col.MongoName
+		col.OriginalName = col.Name
 		col.MappingRegistryName = col.Name
 
 		// store in columnMap
