@@ -22,15 +22,15 @@ func TestDatabase(t *testing.T) {
 func testPostProcessDb(t *testing.T) {
 	req := require.New(t)
 
-	db := schema.NewDatabase(lg, "test", nil)
+	db := schema.NewDatabase(lg, "test", nil, false)
 
-	full, err := schema.NewTable(lg, "full", "mongo_full", nil, nil, []schema.Index{}, option.NoneString())
+	full, err := schema.NewTable(lg, "full", "mongo_full", nil, nil, []schema.Index{}, option.NoneString(), false)
 	req.NoError(err, "failed to create table")
 
 	col := schema.NewColumn("col", schema.SQLInt, "mongo_col", schema.MongoInt, false, option.NoneString())
 	full.AddColumn(lg, col, false)
 
-	empty, err := schema.NewTable(lg, "empty", "mongo_empty", nil, nil, []schema.Index{}, option.NoneString())
+	empty, err := schema.NewTable(lg, "empty", "mongo_empty", nil, nil, []schema.Index{}, option.NoneString(), false)
 	req.NoError(err, "failed to create table")
 
 	db.AddTable(lg, full)
@@ -50,14 +50,14 @@ func testPostProcessDb(t *testing.T) {
 
 func testAddTables(t *testing.T) {
 
-	runTest := func(name string, tblNames, expected []string) {
+	runTest := func(name string, isCaseSensitive bool, tblNames, expected []string) {
 		t.Run(name, func(t *testing.T) {
 			req := require.New(t)
 
-			db := schema.NewDatabase(lg, "test", nil)
+			db := schema.NewDatabase(lg, "test", nil, isCaseSensitive)
 
 			for _, tblName := range tblNames {
-				tbl, err := schema.NewTable(lg, tblName, tblName, nil, nil, []schema.Index{}, option.NoneString())
+				tbl, err := schema.NewTable(lg, tblName, tblName, nil, nil, []schema.Index{}, option.NoneString(), false)
 				req.NoErrorf(err, "failed to create table %q", tblName)
 				db.AddTable(lg, tbl)
 			}
@@ -70,44 +70,83 @@ func testAddTables(t *testing.T) {
 		})
 	}
 
-	var tables []string
-	var expected []string
+	var testCases = []struct {
+		name            string
+		isCaseSensitive bool
+		tables          []string
+		expected        []string
+	}{
+		{
+			"single table lowercase",
+			false,
+			[]string{"a"},
+			[]string{"a"},
+		},
+		{
+			"single table uppercase",
+			false,
+			[]string{"A"},
+			[]string{"A"},
+		},
+		{
+			"multiple tables",
+			false,
+			[]string{"a", "b"},
+			[]string{"a", "b"},
+		},
+		{
+			"case insensitive database with case sensitive conflict",
+			false,
+			[]string{"a", "a"},
+			[]string{"a", "a_0"},
+		},
+		{
+			"case insensitive database with multiple case sensitive conflicts",
+			false,
+			[]string{"a", "a", "a"},
+			[]string{"a", "a_0", "a_1"},
+		},
+		{
+			"case insensitive database with case insensitive conflict",
+			false,
+			[]string{"a", "A"},
+			[]string{"a", "A_0"},
+		},
+		{
+			"case insensitive database with case insensitive conflict flipped",
+			false,
+			[]string{"A", "a"},
+			[]string{"A", "a_0"},
+		},
+		{
+			"case sensitive database with case insensitive conflicts does NOT rename",
+			true,
+			[]string{"FOO", "fOo", "foo"},
+			[]string{"FOO", "fOo", "foo"},
+		},
+		{
+			"case sensitive database with case sensitive conflict results in rename",
+			true,
+			[]string{"FOO", "FOO", "FOO"},
+			[]string{"FOO", "FOO_0", "FOO_1"},
+		},
+		{
+			"empty string",
+			false,
+			[]string{""},
+			[]string{""},
+		},
+		{
+			"whitespace",
+			false,
+			[]string{" "},
+			[]string{" "},
+		},
+	}
 
-	tables = []string{"a"}
-	expected = []string{"a"}
-	runTest("single_table_lowercase", tables, expected)
-
-	tables = []string{"A"}
-	expected = []string{"A"}
-	runTest("single_table_uppercase", tables, expected)
-
-	tables = []string{"a", "b"}
-	expected = []string{"a", "b"}
-	runTest("multiple_tables", tables, expected)
-
-	tables = []string{"a", "a"}
-	expected = []string{"a", "a_0"}
-	runTest("conflict_exact_match", tables, expected)
-
-	tables = []string{"a", "a", "a"}
-	expected = []string{"a", "a_0", "a_1"}
-	runTest("conflict_exact_match_twice", tables, expected)
-
-	tables = []string{"a", "A"}
-	expected = []string{"a", "A_0"}
-	runTest("conflict_case_insensitive_0", tables, expected)
-
-	tables = []string{"A", "a"}
-	expected = []string{"A", "a_0"}
-	runTest("conflict_case_insensitive_1", tables, expected)
-
-	tables = []string{""}
-	expected = []string{""}
-	runTest("empty_string", tables, expected)
-
-	tables = []string{" "}
-	expected = []string{" "}
-	runTest("whitespace", tables, expected)
+	for _, test := range testCases {
+		runTest(test.name, test.isCaseSensitive, test.tables, test.expected)
+	}
 }
 
 func testDropTables(t *testing.T) {
@@ -162,20 +201,18 @@ schema:
 	drdlSchema, err := drdl.NewFromBytes(testDRDL)
 	setupReq.Nil(err)
 
-	sch, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
-	setupReq.Nil(err)
-
-	db := sch.Database("test1")
-	setupReq.NotNil(db)
-
-	runTest := func(name string, table option.String, expected []string) {
+	runTest := func(name string, isCaseSensitive bool, table string, expected []string) {
 		t.Run(name, func(t *testing.T) {
 			req := require.New(t)
 
-			if table.IsSome() {
-				err = db.DropTable(table.Unwrap())
-				req.Nil(err)
-			}
+			sch, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, isCaseSensitive)
+			setupReq.Nil(err)
+
+			db := sch.Database("test1")
+			setupReq.NotNil(db)
+
+			err = db.DropTable(table)
+			req.Nil(err)
 
 			tbls := db.TablesSorted()
 			req.Len(tbls, len(expected), "database should have correct table count")
@@ -185,9 +222,15 @@ schema:
 		})
 	}
 
-	runFailTest := func(name string, table string, expectedError string) {
+	runFailTest := func(name string, isCaseSensitive bool, table string, expectedError string) {
 		t.Run(name, func(t *testing.T) {
 			req := require.New(t)
+
+			sch, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, isCaseSensitive)
+			setupReq.Nil(err)
+
+			db := sch.Database("test1")
+			setupReq.NotNil(db)
 
 			err = db.DropTable(table)
 			req.NotNil(err)
@@ -195,29 +238,50 @@ schema:
 		})
 	}
 
-	var expected []string
-	cannotDropUnknown := "table 'test1.unknown' cannot be dropped, no such table in database 'test1'"
+	var testCases = []struct {
+		name            string
+		isCaseSensitive bool
+		tableToDrop     string
+		expectedTables  []string
+		expectedError   string
+	}{
+		{
+			"drop unknown table",
+			false,
+			"unknown",
+			nil,
+			"table 'test1.unknown' cannot be dropped, no such table in database 'test1'",
+		},
+		{
+			"drop table",
+			false,
+			"baz",
+			[]string{"bar", "foo", "zaz"},
+			"",
+		},
+		{
+			"drop table case insensitive",
+			false,
+			"FOO",
+			[]string{"bar", "baz", "zaz"},
+			"",
+		},
+		{
+			"drop table case sensitive",
+			true,
+			"FOO",
+			nil,
+			"table 'test1.FOO' cannot be dropped, no such table in database 'test1'",
+		},
+	}
 
-	expected = []string{"bar", "baz", "foo", "zaz"}
-	runTest("drop nothing", option.NoneString(), expected)
-
-	runFailTest("drop unknown", "unknown", cannotDropUnknown)
-
-	expected = []string{"bar", "foo", "zaz"}
-	runTest("drop baz", option.SomeString("baz"), expected)
-
-	expected = []string{"foo", "zaz"}
-	runTest("drop bar", option.SomeString("bar"), expected)
-
-	runFailTest("drop unknown again", "unknown", cannotDropUnknown)
-
-	expected = []string{"foo"}
-	runTest("drop zaz", option.SomeString("zaz"), expected)
-
-	expected = []string{}
-	runTest("drop FOO case insensitive", option.SomeString("FOO"), expected)
-
-	runFailTest("drop unknown one last time", "unknown", cannotDropUnknown)
+	for _, test := range testCases {
+		if test.expectedError == "" {
+			runTest(test.name, test.isCaseSensitive, test.tableToDrop, test.expectedTables)
+		} else {
+			runFailTest(test.name, test.isCaseSensitive, test.tableToDrop, test.expectedError)
+		}
+	}
 }
 
 func TestNewDatabaseFromDRDLWithInvalidMongoType(t *testing.T) {
@@ -244,7 +308,7 @@ schema:
 	}
 
 	// Expect an error on mapping a schema with an invalid mongo type.
-	_, err = schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	_, err = schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, false)
 	require.Equal(t, err, fmt.Errorf(`unable to create database "test1" from drdl: `+
 		`unable to create table "foo" from drdl: `+
 		`unable to create column "a" from drdl: `+
@@ -275,7 +339,7 @@ schema:
 	}
 
 	// Expect an error on mapping a schema with an invalid sql type.
-	_, err = schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	_, err = schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, false)
 	require.Equal(t, err, fmt.Errorf(`unable to create database "test2" from drdl: `+
 		`unable to create table "foo" from drdl: `+
 		`unable to create column "b" from drdl: `+

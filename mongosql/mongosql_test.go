@@ -390,7 +390,7 @@ schema:
 		t.Fatalf("error creating DRDL schema: %v", err)
 	}
 
-	testSchema, err := schema.NewFromDRDL(nil, drdlSch)
+	testSchema, err := schema.NewFromDRDL(nil, drdlSch, false)
 	if err != nil {
 		t.Fatalf("error creating test schema: %v", err)
 	}
@@ -718,27 +718,27 @@ func TestGetCatalog(t *testing.T) {
 	c7 := schema.NewColumn("c7", schema.SQLInt, "c7", schema.MongoInt, false, option.NoneString())
 	c8 := schema.NewColumn("c8", schema.SQLInt, "c8", schema.MongoInt, false, option.NoneString())
 
-	tOneColumn, _ := schema.NewTable(lg, "t1", "t1", []bson.D{}, []*schema.Column{c1}, []schema.Index{}, option.NoneString())
-	tManyColumn, _ := schema.NewTable(lg, "t2", "t2", []bson.D{}, []*schema.Column{c1, c2}, []schema.Index{}, option.NoneString())
-	tManyColumn2, _ := schema.NewTable(lg, "t3", "t3", []bson.D{}, []*schema.Column{c3, c4}, []schema.Index{}, option.NoneString())
-	tManyColumn3, _ := schema.NewTable(lg, "t4", "t4", []bson.D{}, []*schema.Column{c5, c6}, []schema.Index{}, option.NoneString())
-	tManyColumn4, _ := schema.NewTable(lg, "t5", "t5", []bson.D{}, []*schema.Column{c7, c8}, []schema.Index{}, option.NoneString())
-	tManyColumn5, _ := schema.NewTable(lg, "t6", "t6", []bson.D{}, []*schema.Column{c1, c2}, []schema.Index{}, option.NoneString())
-	tManyColumn6, _ := schema.NewTable(lg, "t7", "t7", []bson.D{}, []*schema.Column{c3, c4}, []schema.Index{}, option.NoneString())
+	tOneColumn, _ := schema.NewTable(lg, "t1", "t1", []bson.D{}, []*schema.Column{c1}, []schema.Index{}, option.NoneString(), false)
+	tManyColumn, _ := schema.NewTable(lg, "t2", "t2", []bson.D{}, []*schema.Column{c1, c2}, []schema.Index{}, option.NoneString(), false)
+	tManyColumn2, _ := schema.NewTable(lg, "t3", "t3", []bson.D{}, []*schema.Column{c3, c4}, []schema.Index{}, option.NoneString(), false)
+	tManyColumn3, _ := schema.NewTable(lg, "t4", "t4", []bson.D{}, []*schema.Column{c5, c6}, []schema.Index{}, option.NoneString(), false)
+	tManyColumn4, _ := schema.NewTable(lg, "t5", "t5", []bson.D{}, []*schema.Column{c7, c8}, []schema.Index{}, option.NoneString(), false)
+	tManyColumn5, _ := schema.NewTable(lg, "t6", "t6", []bson.D{}, []*schema.Column{c1, c2}, []schema.Index{}, option.NoneString(), false)
+	tManyColumn6, _ := schema.NewTable(lg, "t7", "t7", []bson.D{}, []*schema.Column{c3, c4}, []schema.Index{}, option.NoneString(), false)
 
-	dbOneTableOneColumn := schema.NewDatabase(lg, "db1", []*schema.Table{tOneColumn})
-	dbOneTableManyColumn := schema.NewDatabase(lg, "db2", []*schema.Table{tManyColumn})
-	dbManyTableManyColumn := schema.NewDatabase(lg, "db3", []*schema.Table{tManyColumn, tManyColumn2})
-	dbManyTableManyColumn2 := schema.NewDatabase(lg, "db4", []*schema.Table{tManyColumn3, tManyColumn4})
-	dbManyTableManySameColumn := schema.NewDatabase(lg, "db5", []*schema.Table{tManyColumn, tManyColumn5})
-	dbManyTableManySameColumn2 := schema.NewDatabase(lg, "db6", []*schema.Table{tManyColumn2, tManyColumn6})
+	dbOneTableOneColumn := schema.NewDatabase(lg, "db1", []*schema.Table{tOneColumn}, false)
+	dbOneTableManyColumn := schema.NewDatabase(lg, "db2", []*schema.Table{tManyColumn}, false)
+	dbManyTableManyColumn := schema.NewDatabase(lg, "db3", []*schema.Table{tManyColumn, tManyColumn2}, false)
+	dbManyTableManyColumn2 := schema.NewDatabase(lg, "db4", []*schema.Table{tManyColumn3, tManyColumn4}, false)
+	dbManyTableManySameColumn := schema.NewDatabase(lg, "db5", []*schema.Table{tManyColumn, tManyColumn5}, false)
+	dbManyTableManySameColumn2 := schema.NewDatabase(lg, "db6", []*schema.Table{tManyColumn2, tManyColumn6}, false)
 
-	schema1, _ := schema.New([]*schema.Database{dbOneTableOneColumn})
-	schema2, _ := schema.New([]*schema.Database{dbOneTableManyColumn})
-	schema3, _ := schema.New([]*schema.Database{dbManyTableManyColumn})
-	schema4, _ := schema.New([]*schema.Database{dbManyTableManySameColumn})
-	schema5, _ := schema.New([]*schema.Database{dbManyTableManyColumn, dbManyTableManyColumn2})
-	schema6, _ := schema.New([]*schema.Database{dbManyTableManySameColumn, dbManyTableManySameColumn2})
+	schema1, _ := schema.New([]*schema.Database{dbOneTableOneColumn}, false)
+	schema2, _ := schema.New([]*schema.Database{dbOneTableManyColumn}, false)
+	schema3, _ := schema.New([]*schema.Database{dbManyTableManyColumn}, false)
+	schema4, _ := schema.New([]*schema.Database{dbManyTableManySameColumn}, false)
+	schema5, _ := schema.New([]*schema.Database{dbManyTableManyColumn, dbManyTableManyColumn2}, false)
+	schema6, _ := schema.New([]*schema.Database{dbManyTableManySameColumn, dbManyTableManySameColumn2}, false)
 
 	// test that schema is mapped to catalog as expected
 	t.Run("correctly map schema to catalog", func(t *testing.T) {

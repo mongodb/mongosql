@@ -329,7 +329,7 @@ func MustLoadSchema(schemaBytes []byte) *schema.Schema {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}
 
-	testSchema, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	testSchema, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, false)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading schema: %v", err))
 	}

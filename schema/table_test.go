@@ -19,11 +19,11 @@ func TestTable(t *testing.T) {
 }
 
 func testAddColumn(t *testing.T) {
-	runTest := func(name string, colNames, expected []string) {
+	runTest := func(name string, isCaseSensitive bool, colNames, expected []string) {
 		t.Run(name, func(t *testing.T) {
 			req := require.New(t)
 
-			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil, []schema.Index{}, option.NoneString())
+			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil, []schema.Index{}, option.NoneString(), isCaseSensitive)
 			req.NoError(err, "failed to create table")
 
 			for _, colName := range colNames {
@@ -39,54 +39,97 @@ func testAddColumn(t *testing.T) {
 		})
 	}
 
-	var columns []string
-	var expected []string
+	var testCases = []struct {
+		name            string
+		isCaseSensitive bool
+		columnsToAdd    []string
+		expectedColumns []string
+	}{
+		{
+			"single column lowercase",
+			false,
+			[]string{"a"},
+			[]string{"a"},
+		},
+		{
+			"single column uppercase",
+			false,
+			[]string{"A"},
+			[]string{"A"},
+		},
+		{
+			"multiple columns",
+			false,
+			[]string{"a", "b"},
+			[]string{"a", "b"},
+		},
+		{
+			"case insensitive table with case sensitive conflict",
+			false,
+			[]string{"a", "a"},
+			[]string{"a", "a_0"},
+		},
+		{
+			"case insensitive table with many case sensitive conflict",
+			false,
+			[]string{"a", "a", "a"},
+			[]string{"a", "a_0", "a_1"},
+		},
+		{
+			"case insensitive table with case insensitive conflict",
+			false,
+			[]string{"a", "A"},
+			[]string{"a", "A_0"},
+		},
+		{
+			"case insensitive table with case insensitive conflict flipped",
+			false,
+			[]string{"A", "a"},
+			[]string{"A", "a_0"},
+		},
+		{
+			"case insensitive table with many conflicts",
+			false,
+			[]string{"c", "C", "ca", "cA", "Ca"},
+			[]string{"c", "C_0", "ca", "cA_0", "Ca_1"},
+		},
+		{
+			"case sensitive table with case insensitive conflict",
+			true,
+			[]string{"FOO", "fOo", "foo"},
+			[]string{"FOO", "fOo", "foo"},
+		},
+		{
+			"case sensitive table with case sensitive conflict",
+			true,
+			[]string{"FOO", "FOO", "FOO"},
+			[]string{"FOO", "FOO_0", "FOO_1"},
+		},
+		{
+			"sort order",
+			false,
+			[]string{"_z", "_a", "_id", "a", "C", "b", "D"},
+			[]string{"_id", "_a", "_z", "a", "b", "C", "D"},
+		},
+		// columns with empty string names should not get added
+		{
+			"empty",
+			false,
+			[]string{""},
+			[]string{},
+		},
+		// columns composed of spaces should not get added
+		{
+			"whitespace",
+			false,
+			[]string{" "},
+			[]string{},
+		},
+	}
 
-	columns = []string{"a"}
-	expected = []string{"a"}
-	runTest("single_column_lowercase", columns, expected)
-
-	columns = []string{"A"}
-	expected = []string{"A"}
-	runTest("single_column_uppercase", columns, expected)
-
-	columns = []string{"a", "b"}
-	expected = []string{"a", "b"}
-	runTest("multiple_columns", columns, expected)
-
-	columns = []string{"a", "a"}
-	expected = []string{"a", "a_0"}
-	runTest("conflict_exact_match", columns, expected)
-
-	columns = []string{"a", "a", "a"}
-	expected = []string{"a", "a_0", "a_1"}
-	runTest("conflict_exact_match_twice", columns, expected)
-
-	columns = []string{"a", "A"}
-	expected = []string{"a", "A_0"}
-	runTest("conflict_case_insensitive_0", columns, expected)
-
-	columns = []string{"A", "a"}
-	expected = []string{"A", "a_0"}
-	runTest("conflict_case_insensitive_1", columns, expected)
-
-	columns = []string{"c", "C", "ca", "cA", "Ca"}
-	expected = []string{"c", "C_0", "ca", "cA_0", "Ca_1"}
-	runTest("many_conflicts", columns, expected)
-
-	columns = []string{"_z", "_a", "_id", "a", "C", "b", "D"}
-	expected = []string{"_id", "_a", "_z", "a", "b", "C", "D"}
-	runTest("sort_order", columns, expected)
-
-	// columns with empty string names should not get added
-	columns = []string{""}
-	expected = []string{}
-	runTest("empty", columns, expected)
-
-	// columns composed of spaces should not get added
-	columns = []string{"  "}
-	expected = []string{}
-	runTest("spaces", columns, expected)
+	for _, test := range testCases {
+		runTest(test.name, test.isCaseSensitive, test.columnsToAdd, test.expectedColumns)
+	}
 }
 
 func testAddGeoColumn(t *testing.T) {
@@ -94,7 +137,7 @@ func testAddGeoColumn(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			req := require.New(t)
 
-			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil, []schema.Index{}, option.NoneString())
+			table, err := schema.NewTable(lg, "t", "mongo_t1", nil, nil, []schema.Index{}, option.NoneString(), false)
 			req.NoError(err, "failed to create table")
 
 			for _, colName := range colNames {
@@ -151,7 +194,7 @@ func testPostProcessTable(t *testing.T) {
 	t.Run("no_parent", func(t *testing.T) {
 		req := require.New(t)
 
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString(), false)
 		req.NoError(err, "failed to create table")
 
 		newTable := table.DeepCopy()
@@ -170,7 +213,7 @@ func testPostProcessTable(t *testing.T) {
 		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool, false, option.NoneString())
 
 		// create an empty table
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString(), false)
 		req.NoError(err, "failed to create table")
 
 		// create a parent table and add the columns to it
@@ -206,7 +249,7 @@ func testPostProcessTable(t *testing.T) {
 		col := schema.NewColumn("col", schema.SQLBoolean, "col", schema.MongoBool, false, option.NoneString())
 
 		// create an empty table
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString(), false)
 		req.NoError(err, "failed to create table")
 
 		// create a parent table and add the columns to it
@@ -242,7 +285,7 @@ func testPostProcessTable(t *testing.T) {
 		childCol := schema.NewColumn("col", schema.SQLBoolean, "childCol", schema.MongoBool, false, option.NoneString())
 
 		// create an empty table
-		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString())
+		table, err := schema.NewTable(lg, "tbl", "mongo_tbl", nil, nil, []schema.Index{}, option.NoneString(), false)
 		req.NoError(err, "failed to create table")
 
 		// create a parent table and add the columns to it
@@ -286,7 +329,7 @@ func testPostProcessTable(t *testing.T) {
 func testTable(lg log.Logger, tbl, col string,
 	pipeline []bson.D, cols []*schema.Column,
 	indexes []schema.Index, comment option.String) *schema.Table {
-	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment)
+	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment, false)
 	if err != nil {
 		panic("this table should not error")
 	}

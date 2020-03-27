@@ -14,7 +14,7 @@ import (
 func testTable(lg log.Logger, tbl, col string,
 	pipeline []bson.D, cols []*schema.Column,
 	indexes []schema.Index, comment option.String) *schema.Table {
-	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment)
+	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment, false)
 	if err != nil {
 		panic("this table should not error")
 	}

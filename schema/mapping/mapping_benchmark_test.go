@@ -29,7 +29,7 @@ func benchmarkMapWithColumnCount(b *testing.B, cols int) {
 	b.ResetTimer()
 	numTables := int64(0)
 	for n := 0; n < b.N; n++ {
-		db := schema.NewDatabase(log.GlobalLogger(), "testdb", nil)
+		db := schema.NewDatabase(log.GlobalLogger(), "testdb", nil, false)
 		err := mapping.Map(
 			mapping.NewSchemaMappingConfig(db,
 				mongoSchema,

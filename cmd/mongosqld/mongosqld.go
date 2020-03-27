@@ -293,7 +293,7 @@ func (p *program) loadSchema() error {
 			p.controlLogger,
 		)
 
-		relationalSchema, err := schema.NewFromDRDL(lgr, drdlSchema)
+		relationalSchema, err := schema.NewFromDRDL(lgr, drdlSchema, false)
 		if err != nil {
 			return err
 		}

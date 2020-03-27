@@ -1102,7 +1102,7 @@ func testSchema() *schema.Schema {
 			}},
 		}},
 	}
-	sch, err := schema.NewFromDRDL(nil, drdlSchema)
+	sch, err := schema.NewFromDRDL(nil, drdlSchema, false)
 	if err != nil {
 		panic(err)
 	}
@@ -1129,6 +1129,7 @@ func testTable(tableName, colName string) *schema.Table {
 			),
 		},
 		option.SomeString("WORLD"),
+		false,
 	)
 	if err != nil {
 		panic("this table should not error")

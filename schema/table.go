@@ -55,6 +55,11 @@ type Table struct {
 	indexes Indexes
 	// comment is the comment associated with this table.
 	comment option.String
+	// isCaseSensitive indicates whether the table does a case-sensitive
+	// evaluation of column names. If it is case insensitive, it treats two
+	// fields will the same letters but different capitalization as
+	// "conflicting", and renames one of the fields.
+	isCaseSensitive bool
 }
 
 // SizeDump dumps the size of this Table.
@@ -77,19 +82,22 @@ func (t *Table) SizeDump(padding ...string) {
 	fmt.Fprintf(os.Stderr, "%vcomment %v KB\n", p, memdebug.SizeofKB(t.comment))
 }
 
-// NewTable creates a table without normalizing and uniquing indexes.
-func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
-	cols []*Column, indexes []Index, comment option.String) (*Table, error) {
+// NewTable creates a table without normalizing and uniquing indexes. The Table
+// can be configured as case sensitive or insensitive, which will determine how
+// it handles conflicts between columns whose names have the same letters.
+func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D, cols []*Column,
+	indexes []Index, comment option.String, isCaseSensitive bool) (*Table, error) {
 	primaryKeys := map[normalizedName]struct{}{}
 
 	table := &Table{
-		pipeline:   make([]bson.D, 0, len(pipeline)),
-		sqlName:    tbl,
-		mongoName:  col,
-		columns:    map[normalizedName]*Column{},
-		primaryKey: primaryKeys,
-		indexes:    indexes,
-		comment:    comment,
+		pipeline:        make([]bson.D, 0, len(pipeline)),
+		sqlName:         tbl,
+		mongoName:       col,
+		columns:         map[normalizedName]*Column{},
+		primaryKey:      primaryKeys,
+		indexes:         indexes,
+		comment:         comment,
+		isCaseSensitive: isCaseSensitive,
 	}
 
 	for _, col := range cols {
@@ -108,12 +116,14 @@ func NewTable(lg log.Logger, tbl, col string, pipeline []bson.D,
 	return table, nil
 }
 
-// NewTableWithUnwindPath creates a new table with the provided fields.
-// The unwindPath is the path in the original document that is unwound to
-// generate this table, only needed for array tables.
+// NewTableWithUnwindPath creates a new table with the provided fields.  The
+// unwindPath is the path in the original document that is unwound to generate
+// this table, only needed for array tables. The Table can be configured as
+// case sensitive or insensitive, which will determine how it handles conflicts
+// between columns whose names have the same letters.
 func NewTableWithUnwindPath(lg log.Logger, tbl, col string, pipeline []bson.D,
-	cols []*Column, unwindPath string) (*Table, error) {
-	ret, err := NewTable(lg, tbl, col, pipeline, cols, []Index{}, option.NoneString())
+	cols []*Column, unwindPath string, isCaseSensitive bool) (*Table, error) {
+	ret, err := NewTable(lg, tbl, col, pipeline, cols, []Index{}, option.NoneString(), isCaseSensitive)
 	if err != nil {
 		return nil, err
 	}
@@ -122,9 +132,11 @@ func NewTableWithUnwindPath(lg log.Logger, tbl, col string, pipeline []bson.D,
 }
 
 // NewTableFromDRDL returns a new Table that is built from the provided DRDL
-// table. Each column in the DRDL table is converted to a *Column and then added
-// to the schema in order.
-func NewTableFromDRDL(lg log.Logger, drdlTbl *drdl.Table) (*Table, error) {
+// table. Each column in the DRDL table is converted to a *Column and then
+// added to the schema in order. The Table can be configured as case sensitive
+// or insensitive, which will determine how it handles conflicts between
+// columns whose names have the same letters.
+func NewTableFromDRDL(lg log.Logger, drdlTbl *drdl.Table, isCaseSensitive bool) (*Table, error) {
 	cols := make([]*Column, len(drdlTbl.Columns))
 	for i, drdlCol := range drdlTbl.Columns {
 		col, err := NewColumnFromDRDL(drdlCol)
@@ -143,14 +155,15 @@ func NewTableFromDRDL(lg log.Logger, drdlTbl *drdl.Table) (*Table, error) {
 		cols,
 		[]Index{},
 		option.NoneString(),
+		isCaseSensitive,
 	)
 }
 
-// AddColumn adds the provided column to the table. If the column's name
-// conflicts with the name of an existing column, its name will be changed to
-// something that is unique within the table. If the column is a Geo2D field,
-// two separate columns will be added, one for the longitude and one for the
-// latitude.
+// AddColumn adds the provided column to the table. If the table is configured
+// to ignore the case of a column name and the column's name conflicts with the
+// name of an existing column, its name will be changed to something that is
+// unique within the table. If the column is a Geo2D field, two separate
+// columns will be added, one for the longitude and one for the latitude.
 func (t *Table) AddColumn(lg log.Logger, c *Column, isPK bool) {
 	if strings.Trim(c.MongoName(), " ") == "" {
 		lg.Warnf(log.Admin, "omitting column %q with whitespace-only name in table %q",
@@ -168,7 +181,7 @@ func (t *Table) AddColumn(lg log.Logger, c *Column, isPK bool) {
 		initName := col.SQLName()
 		c.sqlName = t.uniqueColumnName(c.SQLName())
 		if c.SQLName() != initName {
-			lg.Warnf(log.Admin, "found 2 columns with the same case-insensitive "+
+			lg.Warnf(log.Admin, "found 2 columns with the same "+
 				"name in table %q: renamed %q to %q", t.SQLName(), initName, c.SQLName())
 		}
 	}
@@ -176,10 +189,17 @@ func (t *Table) AddColumn(lg log.Logger, c *Column, isPK bool) {
 	t.addColumn(c, isPK)
 }
 
+func (t *Table) normalizeColumnName(name string) normalizedName {
+	if t.isCaseSensitive {
+		return normalizedName(name)
+	}
+	return normalizedName(strings.ToLower(name))
+}
+
 // addColumn unconditionally adds the provided column to this table, not
 // performing any validation of the Column's SQLName.
 func (t *Table) addColumn(c *Column, isPK bool) {
-	key := normalizeSQLName(c.SQLName())
+	key := t.normalizeColumnName(c.SQLName())
 	t.columns[key] = c
 	t.orderedColumns = append(t.orderedColumns, c)
 
@@ -255,7 +275,7 @@ func (t *Table) ChangeColumnType(colName string, sqlType SQLType, mongoType Mong
 // normalized form of the provided name. If no matching column exists in the
 // table, nil is returned.
 func (t *Table) Column(sqlName string) *Column {
-	key := normalizeSQLName(sqlName)
+	key := t.normalizeColumnName(sqlName)
 	return t.columns[key]
 }
 
@@ -499,7 +519,7 @@ func (t *Table) IsMongoNamePrimaryKey(mongoName string) bool {
 // IsSQLNamePrimaryKey returns whether the provided SQLName matches a
 // primary-key column in this table.
 func (t *Table) IsSQLNamePrimaryKey(sqlName string) bool {
-	key := normalizeSQLName(sqlName)
+	key := t.normalizeColumnName(sqlName)
 	_, ok := t.primaryKey[key]
 	return ok
 }
@@ -553,47 +573,6 @@ func (t *Table) PostProcess(lg log.Logger, preJoin bool) {
 
 	t.isPostProcessed = true
 	t.invalidateCachedSortedColumns()
-}
-
-// RemoveColumnBySQLName looks for a column whose normalized SQLName matches the
-// normalized form of the provided name. If the column is found, it is removed
-// from the table. If not, an error is returned.
-func (t *Table) RemoveColumnBySQLName(sqlName string) error {
-	key := normalizeSQLName(sqlName)
-	if _, ok := t.columns[key]; !ok {
-		return fmt.Errorf("column %q not found in table", sqlName)
-	}
-	delete(t.columns, key)
-	delete(t.primaryKey, key)
-	t.invalidateCachedSortedColumns()
-	return nil
-}
-
-// RenameColumn replaces the column with SQLName "oldName" with a new Column of
-// SQLName "newName".
-func (t *Table) RenameColumn(oldName, newName string) error {
-	col := t.Column(newName)
-	if col != nil {
-		return fmt.Errorf("column with SQLName %q already exists", newName)
-	}
-
-	col = t.Column(oldName)
-	if col == nil {
-		return fmt.Errorf("could not find column %q", oldName)
-	}
-
-	newCol := col.DeepCopy()
-	newCol.sqlName = newName
-
-	err := newCol.Validate()
-	if err != nil {
-		return err
-	}
-
-	isPK := t.IsSQLNamePrimaryKey(col.SQLName())
-	_ = t.RemoveColumnBySQLName(oldName)
-	t.addColumn(newCol, isPK)
-	return nil
 }
 
 // SetParent sets the provided table as this table's parent.

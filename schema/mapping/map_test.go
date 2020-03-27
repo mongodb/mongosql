@@ -102,7 +102,7 @@ func testMapSchemaFromJSON(collection string, prejoined bool, mappingMode config
 	}
 
 	// convert the expected drdl to an expected schema
-	expected, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	expected, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, false)
 	if err != nil {
 		return err
 	}
@@ -130,7 +130,7 @@ func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
 	}
 
 	// convert the expected drdl to an expected schema
-	expected, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	expected, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, false)
 	if err != nil {
 		return err
 	}
@@ -169,7 +169,7 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	mappingMode config.MappingMode, expected *schema.Schema) error {
 
 	// create a test database schema
-	db := schema.NewDatabase(log.GlobalLogger(), "test", nil)
+	db := schema.NewDatabase(log.GlobalLogger(), "test", nil, false)
 
 	numTables := int64(0)
 
@@ -193,7 +193,7 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	}
 
 	// create a full relational schema from the database
-	actual, err := schema.New([]*schema.Database{db})
+	actual, err := schema.New([]*schema.Database{db}, false)
 	if err != nil {
 		return err
 	}

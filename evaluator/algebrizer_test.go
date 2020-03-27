@@ -3745,7 +3745,7 @@ func testTable(tbl, col string,
 	pipeline []bson.D, cols []*schema.Column,
 	indexes []schema.Index, comment option.String) *schema.Table {
 	lg := log.NewComponentLogger(log.SchemaComponent, log.GlobalLogger())
-	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment)
+	out, err := schema.NewTable(lg, tbl, col, pipeline, cols, indexes, comment, false)
 	if err != nil {
 		panic("this table should not error")
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/10gen/sqlproxy/internal/memdebug"
@@ -21,14 +22,22 @@ type Schema struct {
 	// nil) whenever the databases map is modified.
 	cachedSortedDatabases []*Database
 	cacheLock             sync.RWMutex
+	// isCaseSensitive indicates whether the schema does a case-sensitive
+	// evaluation of database names. If it is case insensitive, it treats two
+	// databases will the same letters but different capitalization as
+	// "conflicting", and renames one of the databases.
+	isCaseSensitive bool
 }
 
 // New returns a new schema with the provided databases and alterations. The
 // schema is built by adding each of the provided databases to the schema in
-// order.
-func New(dbs []*Database) (*Schema, error) {
+// order. The Schema can be configured as case sensitive or insensitive,
+// which will determine how it handles conflicts between databases whose names
+// have the same letters.
+func New(dbs []*Database, isCaseSensitive bool) (*Schema, error) {
 	s := &Schema{
-		databases: map[normalizedName]*Database{},
+		databases:       map[normalizedName]*Database{},
+		isCaseSensitive: isCaseSensitive,
 	}
 	for _, db := range dbs {
 		err := s.AddDatabase(db)
@@ -48,21 +57,30 @@ func (s *Schema) SizeDump(padding ...string) {
 	fmt.Fprintf(os.Stderr, "%vdatabases %v KB\n", p, memdebug.SizeofKB(s.databases))
 }
 
-// NewFromDRDL returns a new schema that is built from the provided DRDL schema.
-// Each database in the drdl schema is converted to a *Database and then added
-// to the schema in order. If an error is encountered while building the schema,
-// it is returned along with a nil schema.
-func NewFromDRDL(lg log.Logger, drdl *drdl.Schema) (*Schema, error) {
+// NewFromDRDL returns a new schema that is built from the provided DRDL
+// schema.  Each database in the drdl schema is converted to a *Database and
+// then added to the schema in order. If an error is encountered while building
+// the schema, it is returned along with a nil schema. The Schema can be
+// configured as case sensitive or insensitive, which will determine how it
+// handles conflicts between databases whose names have the same letters.
+func NewFromDRDL(lg log.Logger, drdl *drdl.Schema, isCaseSensitive bool) (*Schema, error) {
 	dbs := []*Database{}
 	for _, drdlDb := range drdl.Databases {
-		db, err := NewDatabaseFromDRDL(lg, drdlDb)
+		db, err := NewDatabaseFromDRDL(lg, drdlDb, isCaseSensitive)
 		if err != nil {
 			return nil, fmt.Errorf("unable to create database \"%v\" from drdl: %v",
 				drdlDb.Name, err)
 		}
 		dbs = append(dbs, db)
 	}
-	return New(dbs)
+	return New(dbs, isCaseSensitive)
+}
+
+func (s *Schema) normalizeDatabaseName(name string) normalizedName {
+	if s.isCaseSensitive {
+		return normalizedName(name)
+	}
+	return normalizedName(strings.ToLower(name))
 }
 
 // AddDatabase attempts to add the provided database to the schema. If the
@@ -74,7 +92,7 @@ func (s *Schema) AddDatabase(d *Database) error {
 		return fmt.Errorf("database %q already exists in schema", d.Name())
 	}
 
-	key := normalizeSQLName(d.Name())
+	key := s.normalizeDatabaseName(d.Name())
 	s.databases[key] = d
 	s.invalidateCachedSort()
 	return nil
@@ -93,7 +111,7 @@ func (s *Schema) cacheSortedDatabases(dbs []*Database) {
 // the normalized form of the provided name. If no matching database exists in
 // the schema, nil is returned.
 func (s *Schema) Database(name string) *Database {
-	key := normalizeSQLName(name)
+	key := s.normalizeDatabaseName(name)
 	return s.databases[key]
 }
 
@@ -173,7 +191,7 @@ func (s *Schema) DropDatabase(db string) error {
 	if dbSch == nil {
 		return fmt.Errorf("database '%s' cannot be dropped as it does not exist", db)
 	}
-	delete(s.databases, normalizeSQLName(db))
+	delete(s.databases, s.normalizeDatabaseName(db))
 	s.invalidateCachedSort()
 	return nil
 }

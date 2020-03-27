@@ -81,14 +81,14 @@ func (s Sampler) writeModeSample(ctx context.Context) (*schema.Schema, error) {
 			s.lg.Infof(log.Always, `skipping database "%s" because no conforming jsonSchema validators exist`, db.Name)
 			continue
 		}
-		database := schema.NewDatabase(s.lg, db.Name, tables)
+		database := schema.NewDatabase(s.lg, db.Name, tables, false)
 		databases = append(databases, database)
 		s.lg.Infof(log.Always, `mapped schema for %d namespaces:  "%s": %s`,
 			len(tables), db.Name, formatTableNames(tables))
 	}
 	s.lg.Infof(log.Always, "done mapping")
 
-	return schema.New(databases)
+	return schema.New(databases, false)
 }
 
 func (s Sampler) getWriteModeTables(ctx context.Context, session *mongodb.Session, db string) ([]*schema.Table, error) {
@@ -174,7 +174,7 @@ func (s Sampler) deserializeTableSchema(name string, jsonSchema bson.D, indexes 
 		return nil, err
 	}
 	deserializedIndexes := deserializeIndexesInfo(indexes)
-	table, err := schema.NewTable(s.lg, name, name, nil, columns, deserializedIndexes, comment)
+	table, err := schema.NewTable(s.lg, name, name, nil, columns, deserializedIndexes, comment, false)
 	if err != nil {
 		return nil, err
 	}
@@ -414,7 +414,7 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 			continue
 		}
 
-		sampledDB := schema.NewDatabase(s.lg, db, nil)
+		sampledDB := schema.NewDatabase(s.lg, db, nil, false)
 
 		// Map the collections in descending order of length to
 		// handle possible conflicts in array field names and
@@ -641,6 +641,6 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 	}
 
 	var sampledSchema *schema.Schema
-	sampledSchema, err = schema.New(sampledDatabases)
+	sampledSchema, err = schema.New(sampledDatabases, false)
 	return sampledSchema, err
 }

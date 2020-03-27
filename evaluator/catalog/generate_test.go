@@ -17,7 +17,7 @@ func TestGenerateCreateTable(t *testing.T) {
 	drdlSchema, err := drdl.NewFromBytes(testSchema)
 	req.NoError(err, "failed to load drdl")
 
-	config, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema)
+	config, err := schema.NewFromDRDL(log.GlobalLogger(), drdlSchema, false)
 	req.NoError(err, "failed to create schema from drdl")
 
 	db := config.Databases()[0]

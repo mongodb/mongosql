@@ -226,7 +226,7 @@ func (mgr *Manager) fetchStoredSchema(ctx context.Context) (*schema.Schema, erro
 	if err != nil {
 		return nil, err
 	}
-	return schema.NewFromDRDL(mgr.lg, drdlSchema)
+	return schema.NewFromDRDL(mgr.lg, drdlSchema, false)
 }
 
 // Close shuts down the background goroutines used by the Manager.
@@ -271,7 +271,7 @@ func (mgr *Manager) CreateDatabase(ctx context.Context, db string) (*schema.Sche
 	}
 	mgr.schemaMx.Lock()
 	defer mgr.schemaMx.Unlock()
-	schemaDB := schema.NewDatabase(mgr.lg, db, []*schema.Table{})
+	schemaDB := schema.NewDatabase(mgr.lg, db, []*schema.Table{}, false)
 	err := mgr.schema.AddDatabase(schemaDB)
 	if err != nil {
 		return nil, err

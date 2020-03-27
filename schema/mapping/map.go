@@ -98,7 +98,7 @@ func getTypeNames(sc *mongo.Schemata) ([]mongo.BSONType, error) {
 func MapDataLake(jsonSchema *mongo.Schema, db, collection string) ([]*catalog.MongoTable, error) {
 
 	lg := log.NoOpLogger()
-	databaseToMap := schema.NewDatabase(lg, db, nil)
+	databaseToMap := schema.NewDatabase(lg, db, nil, false)
 
 	currentNumTotalTables := int64(0)
 	cfg := NewSchemaMappingConfig(
@@ -127,7 +127,7 @@ func MapDataLake(jsonSchema *mongo.Schema, db, collection string) ([]*catalog.Mo
 	if err != nil {
 		return nil, err
 	}
-	schema, err := schema.New([]*schema.Database{databaseToMap})
+	schema, err := schema.New([]*schema.Database{databaseToMap}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +192,7 @@ func Map(cfg SchemaMappingConfig) error {
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
 	// unless we have array fields, this is the only table we will create.
-	t, err := schema.NewTable(cfg.Logger, cfg.CollectionName, cfg.CollectionName, nil, nil, []schema.Index{}, option.NoneString())
+	t, err := schema.NewTable(cfg.Logger, cfg.CollectionName, cfg.CollectionName, nil, nil, []schema.Index{}, option.NoneString(), false)
 	if err != nil {
 		return err
 	}
@@ -953,6 +953,7 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 		nil,
 		nil,
 		newCtx.path,
+		false,
 	)
 
 	if err != nil {

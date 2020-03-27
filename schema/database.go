@@ -18,21 +18,30 @@ type Database struct {
 	name string
 	// tables is a map of normalized names to tables in the database.
 	tables map[normalizedName]*Table
+
 	// cachedSort is the cached result of the last call to TablesSorted. If it is
 	// non-nil when TablesSorted is called, it will be used to avoid duplicating a
 	// potentially expensive sort. cachedSort is invalidated (set to nil) whenever
 	// the tables map is modified.
 	cachedSort []*Table
 	cacheLock  sync.RWMutex
+	// isCaseSensitive indicates whether the database does a case-sensitive
+	// evaluation of table names. If it is case insensitive, it treats two
+	// tables will the same letters but different capitalization as
+	// "conflicting", and renames one of the tables.
+	isCaseSensitive bool
 }
 
 // NewDatabase returns a new Database with the provided name and tables. The
 // database is built by adding each of the provided tables to the database in
-// order.
-func NewDatabase(lg log.Logger, name string, tables []*Table) *Database {
+// order. The Database can be configured as case sensitive or insensitive,
+// which will determine how it handles conflicts between tables whose names
+// have the same letters.
+func NewDatabase(lg log.Logger, name string, tables []*Table, isCaseSensitive bool) *Database {
 	db := &Database{
-		name:   name,
-		tables: map[normalizedName]*Table{},
+		name:            name,
+		tables:          map[normalizedName]*Table{},
+		isCaseSensitive: isCaseSensitive,
 	}
 	for _, tbl := range tables {
 		db.AddTable(lg, tbl)
@@ -40,21 +49,23 @@ func NewDatabase(lg log.Logger, name string, tables []*Table) *Database {
 	return db
 }
 
-// NewDatabaseFromDRDL returns a new Database that is built from the provided DRDL
-// Database. Each table in the drdl database is converted to a *Table and then
-// added to the schema in order. If an error is encountered while building the
-// database, it is returned along with a nil database.
-func NewDatabaseFromDRDL(lg log.Logger, drdlDb *drdl.Database) (*Database, error) {
+// NewDatabaseFromDRDL returns a new Database that is built from the provided
+// DRDL Database. Each table in the drdl database is converted to a *Table and
+// then added to the schema in order. If an error is encountered while building
+// the database, it is returned along with a nil database. The Database can be
+// configured as case sensitive or insensitive, which will determine how it
+// handles conflicts between tables whose names have the same letters.
+func NewDatabaseFromDRDL(lg log.Logger, drdlDb *drdl.Database, isCaseSensitive bool) (*Database, error) {
 	tbls := []*Table{}
 	for _, dtbl := range drdlDb.Tables {
-		tbl, err := NewTableFromDRDL(lg, dtbl)
+		tbl, err := NewTableFromDRDL(lg, dtbl, isCaseSensitive)
 		if err != nil {
 			return nil, fmt.Errorf(`unable to create table "%v" from drdl: %v`,
 				dtbl.MongoName, err)
 		}
 		tbls = append(tbls, tbl)
 	}
-	return NewDatabase(lg, drdlDb.Name, tbls), nil
+	return NewDatabase(lg, drdlDb.Name, tbls, isCaseSensitive), nil
 }
 
 // SizeDump dumps the size of this Database.
@@ -68,16 +79,18 @@ func (d *Database) SizeDump(padding ...string) {
 	fmt.Fprintf(os.Stderr, "%vcachedSort %v KB\n", p, float64(8*len(d.cachedSort))/memdebug.KB)
 }
 
-// AddTable adds the provided table to the database. If the table's name
+// AddTable adds the provided table to the database. If the added table's name
 // conflicts with the name of an existing table, its name will be changed to
-// something that is unique within the database.
+// something that is unique within the database. Case insensitive conflicts,
+// for eg. "foo" and "FOO", will only result in a rename if the database is
+// configured to be case insensitive.
 func (d *Database) AddTable(lg log.Logger, t *Table) {
 	tbl := d.Table(t.SQLName())
 	if tbl != nil {
 		initName := t.SQLName()
 		t.sqlName = d.uniqueTableName(t.SQLName())
 		if t.SQLName() != initName {
-			lg.Warnf(log.Dev, "found 2 namespaces with the same case-insensitive "+
+			lg.Warnf(log.Dev, "found 2 namespaces with the same "+
 				"name in database %q: renamed %q to %q", d.Name(), initName, t.SQLName())
 		}
 	}
@@ -85,17 +98,23 @@ func (d *Database) AddTable(lg log.Logger, t *Table) {
 	d.addTable(t)
 }
 
+func (d *Database) normalizeTableName(name string) normalizedName {
+	if d.isCaseSensitive {
+		return normalizedName(name)
+	}
+	return normalizedName(strings.ToLower(name))
+}
+
 // addTable unconditionally adds the provided table to this database, not
 // performing any validation of the Table's SQLName.
 func (d *Database) addTable(t *Table) {
-	key := normalizeSQLName(t.SQLName())
-	d.tables[key] = t
+	d.tables[d.normalizeTableName(t.SQLName())] = t
 	d.invalidateCachedSort()
 }
 
 // DropTable drops a table by name.
 func (d *Database) DropTable(tableName string) error {
-	key := normalizeSQLName(tableName)
+	key := d.normalizeTableName(tableName)
 	if _, ok := d.tables[key]; !ok {
 		return fmt.Errorf("table '%s.%s' cannot be dropped, no such table in database '%s'",
 			d.name, tableName, d.name)
@@ -201,50 +220,11 @@ func (d *Database) PostProcess(lg log.Logger, preJoin bool) {
 	d.invalidateCachedSort()
 }
 
-// RemoveTableBySQLName looks for a table whose normalized SQLName matches the
-// normalized form of the provided name. If the table is found, it is removed
-// from the database. If not, an error is returned.
-func (d *Database) RemoveTableBySQLName(sqlName string) error {
-	key := normalizeSQLName(sqlName)
-	if _, ok := d.tables[key]; !ok {
-		return fmt.Errorf("table %q not found in database", sqlName)
-	}
-	delete(d.tables, key)
-	d.invalidateCachedSort()
-	return nil
-}
-
-// RenameTable replaces the table with SQLName "oldName" with a new Table of
-// SQLName "newName".
-func (d *Database) RenameTable(oldName, newName string) error {
-	tbl := d.Table(newName)
-	if tbl != nil {
-		return fmt.Errorf("table with SQLName %q already exists", newName)
-	}
-
-	tbl = d.Table(oldName)
-	if tbl == nil {
-		return fmt.Errorf("could not find table %q", oldName)
-	}
-
-	newTbl := tbl.DeepCopy()
-	newTbl.sqlName = newName
-
-	err := newTbl.Validate()
-	if err != nil {
-		return err
-	}
-
-	_ = d.RemoveTableBySQLName(oldName)
-	d.addTable(newTbl)
-	return nil
-}
-
 // Table gets the table in this Database whose normalized SQLName matches the
 // normalized form of the provided name.  If no matching table exists in the
 // database, nil is returned.
 func (d *Database) Table(name string) *Table {
-	key := normalizeSQLName(name)
+	key := d.normalizeTableName(name)
 	return d.tables[key]
 }
 

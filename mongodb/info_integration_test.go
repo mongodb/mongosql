@@ -97,7 +97,7 @@ schema:
 
 	drdlSchema, err := drdl.NewFromBytes([]byte(schemaString))
 	req.NoError(err, "failed to load drdl")
-	sch, err := schema.NewFromDRDL(lgr, drdlSchema)
+	sch, err := schema.NewFromDRDL(lgr, drdlSchema, false)
 	req.NoError(err, "failed to create schema from drdl")
 
 	info, err := provider.LoadInfo(context.Background(), lgr, sp, s, sch, cfg)

@@ -848,6 +848,7 @@ func (a *algebrizer) translateCreateTable(ddl *parser.CreateTable) (*CreateTable
 		columns,
 		indexes,
 		comment,
+		false,
 	)
 	if err != nil {
 		return nil, err

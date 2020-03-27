@@ -219,7 +219,7 @@ func loadSchema(path string) (*schema.Schema, error) {
 
 	lgr := log.GlobalLogger()
 
-	relationalSchema, err := schema.NewFromDRDL(lgr, drdlSchema)
+	relationalSchema, err := schema.NewFromDRDL(lgr, drdlSchema, false)
 	if err != nil {
 		return nil, err
 	}
