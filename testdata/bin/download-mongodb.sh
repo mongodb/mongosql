@@ -13,7 +13,7 @@ get_latest_for_distro() {
    elif [ "$distro" = "rhel67" ] ; then
          version_for_curator="4.2.0" # Support for RHEL 6.7 was removed in r4.2.1
    else
-         version_for_curator="4.2-stable" # MongoDB latest
+         version_for_curator="4.2-latest" # MongoDB latest
    fi
 }
 

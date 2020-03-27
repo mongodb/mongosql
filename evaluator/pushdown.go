@@ -39,6 +39,7 @@ type PushdownConfig struct {
 	allowRowGeneratorOptimization bool
 	allowUUIDLiteralComparisons   bool
 	shouldPushDown                bool
+	shouldPushDownEmptyResultSet  bool
 	mongoDBVersion                []uint8
 	pushDownSelfJoins             bool
 	sqlValueKind                  values.SQLValueKind
@@ -57,6 +58,7 @@ func NewPushdownConfig(
 	allowRowGeneratorOptimization,
 	allowUUIDLiteralComparisons,
 	shouldPushDown,
+	shouldPushDownEmptyResultSet,
 	pushDownSelfJoins bool,
 	sqlValueKind values.SQLValueKind,
 	format string,
@@ -70,6 +72,7 @@ func NewPushdownConfig(
 		allowRowGeneratorOptimization: allowRowGeneratorOptimization,
 		allowUUIDLiteralComparisons:   allowUUIDLiteralComparisons,
 		shouldPushDown:                shouldPushDown,
+		shouldPushDownEmptyResultSet:  shouldPushDownEmptyResultSet,
 		pushDownSelfJoins:             pushDownSelfJoins,
 		sqlValueKind:                  sqlValueKind,
 		format:                        format,
@@ -719,7 +722,10 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 		// the filter from the tree. Otherwise, we return an
 		// operator that yields no rows.
 		if !values.Bool(value) {
-			return &EmptyStage{filter.Columns(), filter.Collation()}, nil
+			if v.cfg.shouldPushDownEmptyResultSet {
+				return createEmptyResultsMongoSourceStage(ms, v.cfg.mongoDBVersion), nil
+			}
+			return NewEmptyStage(filter.Columns(), filter.Collation()), nil
 		}
 
 		// Otherwise, the filter simply gets removed from the tree.
@@ -1619,23 +1625,14 @@ func (v *pushdownVisitor) optimizeSelfJoinTables(msLocal, msForeign *MongoSource
 // for one or both sides of the join.
 func (v *pushdownVisitor) simplifyFalseJoinCriterion(join *JoinStage) PlanStage {
 
-	// It is sufficient to check if there is a single false or null criterion since
-	// partial evaluation is complete.
-	crit, ok := join.matcher.(SQLValueExpr)
-	if !(ok && (values.IsFalsy(crit.Value) || values.HasNullValue(crit.Value))) {
-		return nil
-	}
-
-	if join.kind == LeftJoin {
-		// We have to be able to push down the sources if this is a left join.
-		msLocal, ok := join.left.(*MongoSourceStage)
-		if !ok {
-			return nil
-		}
-
-		msForeign, ok := join.right.(*MongoSourceStage)
-		if !ok {
-			return nil
+	// mergeMappingRegistries attempts to merge join.left's mappingRegistry
+	// with join.right's, if both are MongoSourceStages. It returns true if
+	// it was able to merge the mapping registries and false otherwise.
+	mergeMappingRegistries := func() bool {
+		msLocal, okLocal := join.left.(*MongoSourceStage)
+		msForeign, okForeign := join.right.(*MongoSourceStage)
+		if !okLocal || !okForeign {
+			return false
 		}
 
 		// Field names are needed for projection of the fields we're leaving behind in the
@@ -1645,17 +1642,41 @@ func (v *pushdownVisitor) simplifyFalseJoinCriterion(join *JoinStage) PlanStage 
 			msLocal.mappingRegistry,
 		)
 
-		// We need to update the mapping resgistry to contain the additional fields.
+		// We need to update the mapping registry to contain the additional fields.
 		newMappingRegistry := msLocal.mappingRegistry.merge(msForeign.mappingRegistry, prefix)
-
-		// Finally, if this is a left outer join we can eliminate all rows from the right.
-		v.logger.Debugf(log.Dev, "successfully translated left join stage on false/null "+
-			"criterion to left table access")
 		msLocal.mappingRegistry = newMappingRegistry
-		return join.left
+
+		return true
 	}
 
-	// If this is an inner join we can eliminate all rows.
+	// It is sufficient to check if there is a single false or null criterion since
+	// partial evaluation is complete.
+	crit, ok := join.matcher.(SQLValueExpr)
+	if !(ok && (values.IsFalsy(crit.Value) || values.HasNullValue(crit.Value))) {
+		return nil
+	}
+
+	// If this is a left join, then joining on false criterion does not require
+	// rows from the right source at all. If we successfully merge the left and
+	// right mapping registries, we return join.left. Otherwise, we return nil
+	// because we could not simplify.
+	if join.kind == LeftJoin {
+		if mergeMappingRegistries() {
+			return join.left
+		}
+		return nil
+	}
+
+	// If this is an inner join, we know the result set will be empty so we can
+	// eliminate all rows. If we are configured to push down queries which are
+	// statically known to return no results and we successfully merge the left
+	// and right mapping registries, we return a MongoSourceStage which has a
+	// pipeline that eliminates all rows.
+	if v.cfg.shouldPushDownEmptyResultSet && mergeMappingRegistries() {
+		return createEmptyResultsMongoSourceStage(join.left.(*MongoSourceStage), v.cfg.mongoDBVersion)
+	}
+
+	// Otherwise, we eliminate all rows and do not push down.
 	v.logger.Debugf(log.Dev, "successfully translated join stage on false/null criterion "+
 		"to empty stage")
 	return NewEmptyStage(join.Columns(), join.Collation())
@@ -2379,6 +2400,18 @@ func createEmptyResultsPipeline(mongoDBVersion []uint8) []ast.Stage {
 	return emptyPipeline
 }
 
+// createEmptyResultsMongoSourceStage is used wherever we know statically that a query
+// will produce an empty result set but still needs to be pushed down. This returns a
+// MongoSourceStage with a pipeline that produces no results.
+func createEmptyResultsMongoSourceStage(ms *MongoSourceStage, mongoDBVersion []uint8) PlanStage {
+	ms = ms.clone().(*MongoSourceStage)
+	emptyPipeline := createEmptyResultsPipeline(mongoDBVersion)
+
+	ms.pipeline = ast.NewPipeline(emptyPipeline...)
+	ms.LimitRowCount = 0
+	return ms
+}
+
 func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 
 	ms, ok := v.canPushdown(limit.source)
@@ -2405,13 +2438,7 @@ func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 
 	// If limit is zero, swap out for empty pipeline.
 	if limit.limit == 0 {
-
-		ms = ms.clone().(*MongoSourceStage)
-		emptyPipeline := createEmptyResultsPipeline(v.cfg.mongoDBVersion)
-
-		ms.pipeline = ast.NewPipeline(emptyPipeline...)
-		ms.LimitRowCount = 0
-		return ms, nil
+		return createEmptyResultsMongoSourceStage(ms, v.cfg.mongoDBVersion), nil
 	}
 
 	ms = ms.clone().(*MongoSourceStage)

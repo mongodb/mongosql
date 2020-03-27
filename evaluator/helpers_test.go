@@ -87,7 +87,7 @@ func createAlgebrizerCfg(dbName string, ctlg catalog.Catalog, vars *variable.Con
 
 	return evaluator.NewAlgebrizerConfig(log.GlobalLogger(), dbName, ctlg, vars, mongoDBToplogy,
 		isWriteMode, sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength,
-		groupConcatMaxLen, polymorphicTypeConversionMode, mdbVersion, true, false)
+		groupConcatMaxLen, polymorphicTypeConversionMode, mdbVersion, true, false, false)
 }
 
 func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sqlValueKind values.SQLValueKind) *evaluator.ExecutionConfig {

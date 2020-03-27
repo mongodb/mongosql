@@ -467,6 +467,33 @@ schema:
 			expectedCollection: "foo",
 		},
 		{
+			desc:               "empty pipeline because of falsy filter",
+			query:              "select foo.a from foo where 1 = 2",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$collStats": {}},{"$match": {"falsyPredicateField": {"$eq": {"$numberInt":"2"}}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "empty pipeline because of limit 0",
+			query:              "select foo.a from foo limit 0",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$collStats": {}},{"$match": {"falsyPredicateField": {"$eq": {"$numberInt":"2"}}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "empty pipeline because of falsy join criteria",
+			query:              "select foo.a, bar.a from foo join bar on false",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$collStats": {}},{"$match": {"falsyPredicateField": {"$eq": {"$numberInt":"2"}}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$__joined_bar.a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
 			desc:               "simple select query (qualified table) correctly translated to pipeline",
 			query:              "select foo.a from test.foo",
 			dbName:             testDBName,
@@ -585,7 +612,7 @@ schema:
 				}
 			} else {
 				if err != nil {
-					t.Errorf("unexpected error: %v", err)
+					t.Fatalf("unexpected error: %v", err)
 				}
 
 				// We create a bsoncore.Value with Type bsontype.Array because (bsoncore.Value).String()

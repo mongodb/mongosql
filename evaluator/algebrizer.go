@@ -41,6 +41,7 @@ type AlgebrizerConfig struct {
 	version                       []uint8
 	allowCountOptimization        bool
 	useInformationSchemaDual      bool
+	shouldPushDownEmptyResultSet  bool
 }
 
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
@@ -60,7 +61,8 @@ func NewAlgebrizerConfig(
 	polymorphicTypeConversionMode string,
 	mdbVersion []uint8,
 	allowCountOptimization,
-	useInformationSchemaDual bool,
+	useInformationSchemaDual,
+	shouldPushDownEmptyResultSet bool,
 ) *AlgebrizerConfig {
 	return &AlgebrizerConfig{
 		lg:                            lg,
@@ -77,6 +79,7 @@ func NewAlgebrizerConfig(
 		version:                       mdbVersion,
 		allowCountOptimization:        allowCountOptimization,
 		useInformationSchemaDual:      useInformationSchemaDual,
+		shouldPushDownEmptyResultSet:  shouldPushDownEmptyResultSet,
 	}
 }
 

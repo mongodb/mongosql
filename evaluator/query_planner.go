@@ -38,7 +38,11 @@ type queryPlanBuilder struct {
 
 func (b *queryPlanBuilder) build() PlanStage {
 
-	if b.hasLimit && b.rowcount == 0 {
+	// If the query included a LIMIT 0, we can return an EmptyStage right now.
+	// However, if we are configured to pushdown queries that are statically
+	// known to have empty result sets, we skip this optimization and let the
+	// pushdown code handle pushing this down.
+	if b.hasLimit && b.rowcount == 0 && !b.algebrizer.cfg.shouldPushDownEmptyResultSet {
 		var columns []*results.Column
 		for _, projectedColumn := range b.project {
 			columns = append(columns, projectedColumn.Column)
