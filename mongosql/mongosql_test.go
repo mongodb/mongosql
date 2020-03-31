@@ -390,12 +390,12 @@ schema:
 		t.Fatalf("error creating DRDL schema: %v", err)
 	}
 
-	testSchema, err := schema.NewFromDRDL(nil, drdlSch, false)
+	testSchema, err := schema.NewFromDRDL(nil, drdlSch, true)
 	if err != nil {
 		t.Fatalf("error creating test schema: %v", err)
 	}
 
-	testCatalogWithoutSharding, err := getCatalog(testSchema)
+	testCatalogWithoutSharding, err := getCatalog(testSchema, true)
 	if err != nil {
 		t.Fatalf("error creating test catalog (no sharding): %v", err)
 	}
@@ -669,7 +669,7 @@ func makeTestCatalogWithShardedCollections(s *schema.Schema) (catalog.Catalog, e
 		Databases: dbInfos,
 	}
 
-	return catalog.BuildFromSchema(s, info, false)
+	return catalog.BuildFromSchema(s, info, false, true)
 }
 
 type ctlgTest struct {
@@ -771,7 +771,7 @@ func TestGetCatalog(t *testing.T) {
 		}
 
 		for _, tcase := range tcases {
-			ctlg, err := getCatalog(tcase.relationalSchema)
+			ctlg, err := getCatalog(tcase.relationalSchema, false)
 			if err != nil {
 				t.Fatalf("%s: unexpected error: %v", tcase.desc, err)
 			}

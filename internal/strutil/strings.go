@@ -8,6 +8,14 @@ import (
 	"unsafe"
 )
 
+// MaybeToLower returns strings.ToLower(s) only if isCaseSensitive is false.
+func MaybeToLower(s string, isCaseSensitive bool) string {
+	if isCaseSensitive {
+		return s
+	}
+	return strings.ToLower(s)
+}
+
 // MySQLCleanNumericString cleans up a numeric string using MySQL's rules (trim, then
 // take everything before the first character that isn't . or a number). Must
 // handle -, and should return "0" if no viable number can be found.

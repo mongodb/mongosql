@@ -22,7 +22,7 @@ import (
 // Build builds a catalog up from a schema and variables.
 func Build(schema *schema.Schema, variables *variable.Container, info *mongodb.Info, writeMode bool) (*SQLCatalog, error) {
 	builder := &catalogBuilder{
-		catalog:   New("def"),
+		catalog:   New("def", false),
 		schema:    schema,
 		variables: variables,
 		info:      info,
@@ -38,12 +38,13 @@ func Build(schema *schema.Schema, variables *variable.Container, info *mongodb.I
 }
 
 // BuildFromSchema builds a catalog from a schema.
-func BuildFromSchema(schema *schema.Schema, info *mongodb.Info, writeMode bool) (*SQLCatalog, error) {
+func BuildFromSchema(schema *schema.Schema, info *mongodb.Info, writeMode, isCaseSensitive bool) (*SQLCatalog, error) {
 	builder := &catalogBuilder{
-		catalog:   New("def"),
-		schema:    schema,
-		info:      info,
-		writeMode: writeMode,
+		catalog:         New("def", isCaseSensitive),
+		schema:          schema,
+		info:            info,
+		writeMode:       writeMode,
+		isCaseSensitive: isCaseSensitive,
 	}
 
 	err := builder.buildFromSchema()
@@ -55,11 +56,12 @@ func BuildFromSchema(schema *schema.Schema, info *mongodb.Info, writeMode bool) 
 }
 
 type catalogBuilder struct {
-	catalog   *SQLCatalog
-	info      *mongodb.Info
-	schema    *schema.Schema
-	variables *variable.Container
-	writeMode bool
+	catalog         *SQLCatalog
+	info            *mongodb.Info
+	schema          *schema.Schema
+	variables       *variable.Container
+	writeMode       bool
+	isCaseSensitive bool
 }
 
 func (b *catalogBuilder) build() error {
@@ -132,7 +134,7 @@ func (b *catalogBuilder) buildFromSchema() error {
 				tableType = View
 			}
 
-			t := NewMongoTable(dbConfig.Name(), tblConfig, tableType, col, b.writeMode)
+			t := NewMongoTable(dbConfig.Name(), tblConfig, tableType, col, b.writeMode, b.isCaseSensitive)
 
 			t.isSharded = collection.IsSharded
 

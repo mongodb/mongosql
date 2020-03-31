@@ -68,7 +68,7 @@ func TestDynamicSourceStage(t *testing.T) {
 		},
 	}
 
-	db, err := catalog.New("def").AddDatabase("")
+	db, err := catalog.New("def", false).AddDatabase("")
 	require.NoError(t, err)
 
 	source := NewDynamicSourceStage(db, table, 1, tableName)
@@ -105,7 +105,7 @@ func TestDynamicSourceStagePartialRead(t *testing.T) {
 		},
 	}
 
-	db, err := catalog.New("def").AddDatabase("")
+	db, err := catalog.New("def", false).AddDatabase("")
 	require.NoError(t, err)
 
 	source := NewDynamicSourceStage(db, table, 1, tableName)

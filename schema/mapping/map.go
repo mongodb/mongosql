@@ -134,7 +134,7 @@ func MapDataLake(jsonSchema *mongo.Schema, db, collection string) ([]*catalog.Mo
 
 	// Build a catalog from the relational schema.
 	info := getDataLakeMongoDBInfo(db, collection)
-	sqlCatalog, err := catalog.BuildFromSchema(schema, info, false)
+	sqlCatalog, err := catalog.BuildFromSchema(schema, info, false, false)
 	if err != nil {
 		return nil, err
 	}

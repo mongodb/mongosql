@@ -43,7 +43,7 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 	// unexplainable (for example, a command), an error will be returned.
 	sqlQuery = "explain " + sqlQuery
 
-	ctlg, err := getCatalog(sch)
+	ctlg, err := getCatalog(sch, false)
 	if err != nil {
 		return "", "", fmt.Errorf("fatal error creating catalog: %v", err)
 	}
@@ -262,8 +262,8 @@ func getVariables(mongoVersion string) *variable.Container {
 }
 
 // getCatalog copies the schema into a Catalog and returns it.
-func getCatalog(relationalSchema *schema.Schema) (catalog.Catalog, error) {
-	ctlg := catalog.New("")
+func getCatalog(relationalSchema *schema.Schema, isCaseSensitive bool) (catalog.Catalog, error) {
+	ctlg := catalog.New("", isCaseSensitive)
 
 	var db catalog.Database
 	var err error
@@ -277,7 +277,7 @@ func getCatalog(relationalSchema *schema.Schema) (catalog.Catalog, error) {
 
 		tables := database.Tables()
 		for _, table := range tables {
-			err = db.AddTable(catalog.NewMongoTable(string(db.Name()), table, catalog.BaseTable, collation.Default, false))
+			err = db.AddTable(catalog.NewMongoTable(string(db.Name()), table, catalog.BaseTable, collation.Default, false, isCaseSensitive))
 			if err != nil {
 				return nil, err
 			}

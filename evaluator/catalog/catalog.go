@@ -2,12 +2,12 @@ package catalog
 
 import (
 	"context"
-	"strings"
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/strutil"
 )
 
 const (
@@ -40,14 +40,17 @@ type SQLCatalog struct {
 
 	databases   []Database
 	databaseMap map[string]Database
+
+	isCaseSensitive bool
 }
 
 // New creates a new Catalog.
-func New(name string) *SQLCatalog {
+func New(name string, isCaseSensitive bool) *SQLCatalog {
 	return &SQLCatalog{
-		Name:        Name(name),
-		databases:   []Database{},
-		databaseMap: make(map[string]Database),
+		Name:            Name(name),
+		databases:       []Database{},
+		databaseMap:     make(map[string]Database),
+		isCaseSensitive: isCaseSensitive,
 	}
 }
 
@@ -60,26 +63,26 @@ func (c *SQLCatalog) HasAuthRestrictedNamespaces() bool {
 
 // AddDatabase adds the database to the Catalog.
 func (c *SQLCatalog) AddDatabase(name string) (Database, error) {
-	lowerName := strings.ToLower(name)
-	_, ok := c.databaseMap[lowerName]
-	if ok {
+	lookupName := strutil.MaybeToLower(name, c.isCaseSensitive)
+	if _, ok := c.databaseMap[lookupName]; ok {
 		return nil, mysqlerrors.Defaultf(mysqlerrors.ErDbCreateExists, name)
 	}
 
 	d := &SQLDatabase{
-		name:     DatabaseName(name),
-		tables:   []Table{},
-		tableMap: make(map[string]Table),
+		name:            DatabaseName(name),
+		tables:          []Table{},
+		tableMap:        make(map[string]Table),
+		isCaseSensitive: c.isCaseSensitive,
 	}
 
 	c.databases = append(c.databases, d)
-	c.databaseMap[lowerName] = d
+	c.databaseMap[lookupName] = d
 	return d, nil
 }
 
 // Database gets the Database with the specified name.
 func (c *SQLCatalog) Database(_ context.Context, name string) (Database, error) {
-	if d, ok := c.databaseMap[strings.ToLower(name)]; ok {
+	if d, ok := c.databaseMap[strutil.MaybeToLower(name, c.isCaseSensitive)]; ok {
 		return d, nil
 	}
 
@@ -111,6 +114,8 @@ type SQLDatabase struct {
 	name     DatabaseName
 	tables   []Table
 	tableMap map[string]Table
+
+	isCaseSensitive bool
 }
 
 // AddTable adds the table to the database.
@@ -120,7 +125,7 @@ func (d *SQLDatabase) AddTable(t Table) error {
 	}
 
 	d.tables = append(d.tables, t)
-	d.tableMap[strings.ToLower(t.Name())] = t
+	d.tableMap[strutil.MaybeToLower(t.Name(), d.isCaseSensitive)] = t
 	return nil
 }
 
@@ -131,7 +136,7 @@ func (d *SQLDatabase) Name() DatabaseName {
 
 // Table gets a Table from the Database.
 func (d *SQLDatabase) Table(_ context.Context, name string) (Table, error) {
-	if t, ok := d.tableMap[strings.ToLower(name)]; ok {
+	if t, ok := d.tableMap[strutil.MaybeToLower(name, d.isCaseSensitive)]; ok {
 		return t, nil
 	}
 	return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoSuchTable, string(d.name), name)

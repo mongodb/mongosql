@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -21,7 +22,7 @@ import (
 
 // NewMongoTable creates a new MongoTable.
 func NewMongoTable(databaseName string, t *schema.Table, tblType string,
-	collation *collation.Collation, writeMode bool) *MongoTable {
+	collation *collation.Collation, writeMode, isCaseSensitive bool) *MongoTable {
 	var columns results.Columns
 	columnMap := make(map[string]*results.Column)
 	var primaryKeys results.Columns
@@ -91,7 +92,7 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string,
 			primaryKeys = append(primaryKeys, mc)
 		}
 		columns = append(columns, mc)
-		columnMap[strings.ToLower(c.SQLName())] = mc
+		columnMap[strutil.MaybeToLower(c.SQLName(), isCaseSensitive)] = mc
 	}
 
 	var defaultComment string
@@ -126,33 +127,35 @@ func NewMongoTable(databaseName string, t *schema.Table, tblType string,
 	}
 
 	return &MongoTable{
-		name:           t.SQLName(),
-		collation:      collation,
-		columns:        columns,
-		columnMap:      columnMap,
-		tableType:      tblType,
-		primaryKeys:    primaryKeys,
-		collectionName: t.MongoName(),
-		pipeline:       pipeline,
-		indexes:        indexes,
-		comments:       t.Comment().Else(defaultComment),
+		name:            t.SQLName(),
+		collation:       collation,
+		columns:         columns,
+		columnMap:       columnMap,
+		tableType:       tblType,
+		primaryKeys:     primaryKeys,
+		collectionName:  t.MongoName(),
+		pipeline:        pipeline,
+		indexes:         indexes,
+		comments:        t.Comment().Else(defaultComment),
+		isCaseSensitive: isCaseSensitive,
 	}
 }
 
 // MongoTable is a table whose data comes from a MongoDB collection.
 type MongoTable struct {
-	name           string
-	collation      *collation.Collation
-	columns        results.Columns
-	columnMap      map[string]*results.Column
-	primaryKeys    results.Columns
-	indexes        []Index
-	foreignKeys    []ForeignKey
-	comments       string
-	tableType      string
-	isSharded      bool
-	collectionName string
-	pipeline       *ast.Pipeline
+	name            string
+	collation       *collation.Collation
+	columns         results.Columns
+	columnMap       map[string]*results.Column
+	primaryKeys     results.Columns
+	indexes         []Index
+	foreignKeys     []ForeignKey
+	comments        string
+	tableType       string
+	isSharded       bool
+	collectionName  string
+	pipeline        *ast.Pipeline
+	isCaseSensitive bool
 }
 
 // Name is the name of the MongoTable, t.
@@ -173,7 +176,7 @@ func (t *MongoTable) Collation() *collation.Collation {
 
 // Column gets the column of the specified name.
 func (t *MongoTable) Column(name string) (*results.Column, error) {
-	if c, ok := t.columnMap[strings.ToLower(name)]; ok {
+	if c, ok := t.columnMap[strutil.MaybeToLower(name, t.isCaseSensitive)]; ok {
 		return c, nil
 	}
 
@@ -265,16 +268,17 @@ func (t *MongoTable) MarshalBSON() ([]byte, error) {
 	}
 
 	mt := marshalableMongoTable{
-		CollectionName: t.collectionName,
-		Name:           t.name,
-		Collation:      string(t.collation.Name),
-		Columns:        t.columns,
-		PrimaryKeys:    primaryKeyNames,
-		Indexes:        indexes,
-		ForeignKeys:    foreignKeys,
-		Comments:       t.comments,
-		TableType:      t.tableType,
-		Pipeline:       astprint.String(t.pipeline),
+		CollectionName:  t.collectionName,
+		Name:            t.name,
+		Collation:       string(t.collation.Name),
+		Columns:         t.columns,
+		PrimaryKeys:     primaryKeyNames,
+		Indexes:         indexes,
+		ForeignKeys:     foreignKeys,
+		Comments:        t.comments,
+		TableType:       t.tableType,
+		Pipeline:        astprint.String(t.pipeline),
+		IsCaseSensitive: t.isCaseSensitive,
 	}
 
 	return bson.Marshal(&mt)
@@ -303,7 +307,7 @@ func (t *MongoTable) UnmarshalBSON(b []byte) error {
 		col.MappingRegistryName = col.Name
 
 		// store in columnMap
-		columnMap[col.Name] = col
+		columnMap[strutil.MaybeToLower(col.Name, mt.IsCaseSensitive)] = col
 	}
 
 	// recover the primary keys
@@ -385,6 +389,7 @@ func (t *MongoTable) UnmarshalBSON(b []byte) error {
 	t.isSharded = true // default isSharded to true
 	t.collectionName = mt.CollectionName
 	t.pipeline = pipeline
+	t.isCaseSensitive = mt.IsCaseSensitive
 
 	return nil
 }
@@ -405,14 +410,15 @@ type marshalableForeignKey struct {
 }
 
 type marshalableMongoTable struct {
-	CollectionName string                  `bson:"collectionName"`
-	Name           string                  `bson:"tableName"`
-	Collation      string                  `bson:"collation"`
-	Columns        results.Columns         `bson:"columns"`
-	PrimaryKeys    []string                `bson:"primaryKeys"`
-	Indexes        []marshalableIndex      `bson:"indexes"`
-	ForeignKeys    []marshalableForeignKey `bson:"foreignKeys"`
-	Comments       string                  `bson:"comments"`
-	TableType      string                  `bson:"tableType"`
-	Pipeline       string                  `bson:"pipeline"`
+	CollectionName  string                  `bson:"collectionName"`
+	Name            string                  `bson:"tableName"`
+	Collation       string                  `bson:"collation"`
+	Columns         results.Columns         `bson:"columns"`
+	PrimaryKeys     []string                `bson:"primaryKeys"`
+	Indexes         []marshalableIndex      `bson:"indexes"`
+	ForeignKeys     []marshalableForeignKey `bson:"foreignKeys"`
+	Comments        string                  `bson:"comments"`
+	TableType       string                  `bson:"tableType"`
+	Pipeline        string                  `bson:"pipeline"`
+	IsCaseSensitive bool                    `bson:"isCaseSensitive"`
 }

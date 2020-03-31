@@ -27,7 +27,7 @@ func TestPlanDDLStage(t *testing.T) {
 	lg := log.NoOpLogger()
 
 	// set up a catalog with a database writes_test_1 and table foo
-	cat := catalog.New("def")
+	cat := catalog.New("def", false)
 	_, err := cat.AddDatabase(dbName)
 	req.NoError(err)
 	catDB, err := cat.Database(bgCtx, dbName)

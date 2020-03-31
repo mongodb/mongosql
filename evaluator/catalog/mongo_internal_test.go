@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/10gen/mongoast/ast"
@@ -127,18 +128,19 @@ func TestMongoTableMarshalBSON(t *testing.T) {
 	)
 
 	expected := &MongoTable{
-		name:           expectedName,
-		collation:      expectedCollation,
-		columns:        expectedColumns,
-		columnMap:      expectedColumnMap,
-		primaryKeys:    expectedPrimaryKeys,
-		indexes:        expectedIndexes,
-		foreignKeys:    expectedForeignKeys,
-		comments:       expectedComments,
-		tableType:      expectedTableType,
-		isSharded:      true,
-		collectionName: expectedCollectionName,
-		pipeline:       expectedPipeline,
+		name:            expectedName,
+		collation:       expectedCollation,
+		columns:         expectedColumns,
+		columnMap:       expectedColumnMap,
+		primaryKeys:     expectedPrimaryKeys,
+		indexes:         expectedIndexes,
+		foreignKeys:     expectedForeignKeys,
+		comments:        expectedComments,
+		tableType:       expectedTableType,
+		isSharded:       true,
+		collectionName:  expectedCollectionName,
+		pipeline:        expectedPipeline,
+		isCaseSensitive: true,
 	}
 
 	// Check marshaling
@@ -150,16 +152,17 @@ func TestMongoTableMarshalBSON(t *testing.T) {
 	req.NoError(err, "failed to get elements from marshaled document")
 
 	expectedValues := map[string]*bsoncore.Value{
-		"collectionName": makeStringValue(expectedCollectionName),
-		"tableName":      makeStringValue(expectedName),
-		"collation":      makeStringValue(string(expectedCollation.Name)),
-		"columns":        nil, // we will not check columns here since results.Columns marshaling is tested separately
-		"primaryKeys":    makeArrayValue([]bsoncore.Value{*makeStringValue("_id")}),
-		"indexes":        makeIndexesArrayValue(expectedIndexes),
-		"foreignKeys":    makeForeignKeysArrayValue(expectedForeignKeys),
-		"comments":       makeStringValue(expectedComments),
-		"tableType":      makeStringValue(expectedTableType),
-		"pipeline":       makeStringValue(astprint.String(expectedPipeline)),
+		"collectionName":  makeStringValue(expectedCollectionName),
+		"tableName":       makeStringValue(expectedName),
+		"collation":       makeStringValue(string(expectedCollation.Name)),
+		"columns":         nil, // we will not check columns here since results.Columns marshaling is tested separately
+		"primaryKeys":     makeArrayValue([]bsoncore.Value{*makeStringValue("_id")}),
+		"indexes":         makeIndexesArrayValue(expectedIndexes),
+		"foreignKeys":     makeForeignKeysArrayValue(expectedForeignKeys),
+		"comments":        makeStringValue(expectedComments),
+		"tableType":       makeStringValue(expectedTableType),
+		"pipeline":        makeStringValue(astprint.String(expectedPipeline)),
+		"isCaseSensitive": makeBoolValue(true),
 	}
 
 	// check that number of key-value pairs is what's expected
@@ -195,6 +198,7 @@ func TestMongoTableMarshalBSON(t *testing.T) {
 	req.Equal(expected.indexes, actual.indexes, "indexes")
 	req.Equal(expected.foreignKeys, actual.foreignKeys, "foreignKeys")
 	req.Equal(expected.pipeline, actual.pipeline, "pipeline")
+	req.True(actual.isCaseSensitive, "isCaseSensitive")
 }
 
 func TestMongoTableMarshalBSONWithNilValues(t *testing.T) {
@@ -215,10 +219,10 @@ func TestMongoTableMarshalBSONWithNilValues(t *testing.T) {
 		Table:               "foo",
 		OriginalTable:       "foo",
 		Database:            "db",
-		Name:                "a",
-		OriginalName:        "a",
-		MappingRegistryName: "a",
-		MongoName:           "a",
+		Name:                "aBcD",
+		OriginalName:        "aBcD",
+		MappingRegistryName: "aBcD",
+		MongoName:           "aBcD",
 		PrimaryKey:          false,
 		Comments:            "",
 		IsPolymorphic:       true,
@@ -227,7 +231,7 @@ func TestMongoTableMarshalBSONWithNilValues(t *testing.T) {
 	}
 	expectedColumns := results.Columns{expectedColumn}
 	expectedColumnMap := map[string]*results.Column{
-		expectedColumn.Name: expectedColumn,
+		strings.ToLower(expectedColumn.Name): expectedColumn,
 	}
 	var expectedPrimaryKeys results.Columns
 	var expectedIndexes []Index
@@ -248,18 +252,19 @@ func TestMongoTableMarshalBSONWithNilValues(t *testing.T) {
 	)
 
 	expected := &MongoTable{
-		name:           expectedName,
-		collation:      expectedCollation,
-		columns:        expectedColumns,
-		columnMap:      expectedColumnMap,
-		primaryKeys:    expectedPrimaryKeys,
-		indexes:        expectedIndexes,
-		foreignKeys:    expectedForeignKeys,
-		comments:       expectedComments,
-		tableType:      expectedTableType,
-		isSharded:      true,
-		collectionName: expectedCollectionName,
-		pipeline:       expectedPipeline,
+		name:            expectedName,
+		collation:       expectedCollation,
+		columns:         expectedColumns,
+		columnMap:       expectedColumnMap,
+		primaryKeys:     expectedPrimaryKeys,
+		indexes:         expectedIndexes,
+		foreignKeys:     expectedForeignKeys,
+		comments:        expectedComments,
+		tableType:       expectedTableType,
+		isSharded:       true,
+		collectionName:  expectedCollectionName,
+		pipeline:        expectedPipeline,
+		isCaseSensitive: false,
 	}
 
 	// Check marshaling
@@ -271,16 +276,17 @@ func TestMongoTableMarshalBSONWithNilValues(t *testing.T) {
 	req.NoError(err, "failed to get elements from marshaled document")
 
 	expectedValues := map[string]*bsoncore.Value{
-		"collectionName": makeStringValue(expectedCollectionName),
-		"tableName":      makeStringValue(expectedName),
-		"collation":      makeStringValue(string(expectedCollation.Name)),
-		"columns":        nil, // we will not check columns here since results.Columns marshaling is tested separately
-		"primaryKeys":    makeNullValue(),
-		"indexes":        makeNullValue(),
-		"foreignKeys":    makeNullValue(),
-		"comments":       makeStringValue(expectedComments),
-		"tableType":      makeStringValue(expectedTableType),
-		"pipeline":       makeStringValue(astprint.String(expectedPipeline)),
+		"collectionName":  makeStringValue(expectedCollectionName),
+		"tableName":       makeStringValue(expectedName),
+		"collation":       makeStringValue(string(expectedCollation.Name)),
+		"columns":         nil, // we will not check columns here since results.Columns marshaling is tested separately
+		"primaryKeys":     makeNullValue(),
+		"indexes":         makeNullValue(),
+		"foreignKeys":     makeNullValue(),
+		"comments":        makeStringValue(expectedComments),
+		"tableType":       makeStringValue(expectedTableType),
+		"pipeline":        makeStringValue(astprint.String(expectedPipeline)),
+		"isCaseSensitive": makeBoolValue(false),
 	}
 
 	// check that number of key-value pairs is what's expected
@@ -316,6 +322,7 @@ func TestMongoTableMarshalBSONWithNilValues(t *testing.T) {
 	req.Equal(expected.indexes, actual.indexes, "indexes")
 	req.Equal(expected.foreignKeys, actual.foreignKeys, "foreignKeys")
 	req.Equal(expected.pipeline, actual.pipeline, "pipeline")
+	req.False(actual.isCaseSensitive, "isCaseSensitive")
 }
 
 func makeStringValue(s string) *bsoncore.Value {
@@ -328,6 +335,13 @@ func makeStringValue(s string) *bsoncore.Value {
 func makeNullValue() *bsoncore.Value {
 	return &bsoncore.Value{
 		Type: bsontype.Null,
+	}
+}
+
+func makeBoolValue(b bool) *bsoncore.Value {
+	return &bsoncore.Value{
+		Type: bsontype.Boolean,
+		Data: bsoncore.AppendBoolean(nil, b),
 	}
 }
 
