@@ -280,14 +280,14 @@ func (d *Database) uniqueTableName(tableName string) string {
 
 // Validate checks whether this Database is valid, returning an error if not.
 func (d *Database) Validate() error {
-	tmap := make(map[string]struct{})
+	tmap := make(map[normalizedName]struct{})
 	for _, t := range d.Tables() {
 		err := t.Validate()
 		if err != nil {
 			return fmt.Errorf("failed to validate table %q: %v", t.SQLName(), err)
 		}
 
-		key := strings.ToLower(t.SQLName())
+		key := d.normalizeTableName(t.SQLName())
 		if _, ok := tmap[key]; ok {
 			return fmt.Errorf("duplicated name for table %q", t.SQLName())
 		}

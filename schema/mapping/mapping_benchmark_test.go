@@ -42,7 +42,8 @@ func benchmarkMapWithColumnCount(b *testing.B, cols int) {
 				&numTables,
 				10,
 				200,
-				1000))
+				1000,
+				false))
 		req.NoError(err, "failed to map MongoDB schema to relational schema")
 	}
 }

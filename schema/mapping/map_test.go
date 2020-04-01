@@ -8,7 +8,6 @@ import (
 
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
-	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/schema"
@@ -79,14 +78,14 @@ func TestMapSchema(t *testing.T) {
 		return nil
 	}
 
-	err := filepath.Walk("testdata/", walkFn)
+	err := filepath.Walk(filepath.Join("testdata", "map-test"), walkFn)
 	if err != nil {
 		t.Fatalf("Failed to walk test files: %v", err)
 	}
 }
 
 func testMapSchemaFromJSON(collection string, prejoined bool, mappingMode config.MappingMode) error {
-	dir := "testdata/" + collection + "/"
+	dir := "testdata/map-test/" + collection + "/"
 
 	expectedFile := dir + mappingMode + "_schema.yml"
 	jsonFile := dir + "schema.json"
@@ -118,7 +117,7 @@ func testMapSchemaFromJSON(collection string, prejoined bool, mappingMode config
 }
 
 func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
-	dir := "testdata/" + collection + "/"
+	dir := "testdata/map-test/" + collection + "/"
 
 	expectedFile := dir + mode + "_schema.yml"
 	sampleFile := dir + "sample.json"
@@ -135,28 +134,7 @@ func testMapSchemaFromSample(collection string, mode config.MappingMode) error {
 		return err
 	}
 
-	// read in the bytes from the sample file
-	file, err := os.Open(sampleFile)
-	if err != nil {
-		return err
-	}
-	defer file.Close()
-	sampleBytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		return err
-	}
-
-	// unmarshal sample document into bson.D
-	sample := bson.D{}
-	err = bson.UnmarshalExtJSON(sampleBytes, false, &sample)
-	if err != nil {
-		return err
-	}
-
-	// create an empty json schema and include the sample doc
-	actual := mongo.NewCollectionSchema()
-	ft := mongo.NewNoopFieldTracker()
-	err = actual.IncludeSample(sample, ft)
+	actual, err := getSchemaFromJSONSample(sampleFile)
 	if err != nil {
 		return err
 	}
@@ -187,6 +165,7 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 		10,
 		200,
 		1000,
+		false,
 	))
 	if err != nil {
 		return err
@@ -202,32 +181,37 @@ func testMapSchema(col string, prejoined bool, js *mongo.Schema,
 	return actual.Equals(expected)
 }
 
+func getSchemaFromJSONSample(path string) (*mongo.Schema, error) {
+	// read in the bytes from the file
+	file, err := os.Open(path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	sampleBytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		return nil, err
+	}
+
+	// unmarshal schema document into bson.D
+	bsonSchema := bson.D{}
+	err = bson.UnmarshalExtJSON(sampleBytes, false, &bsonSchema)
+	if err != nil {
+		return nil, err
+	}
+
+	// create an empty json schema and include the sample doc
+	mongoSchema := mongo.NewCollectionSchema()
+	ft := mongo.NewNoopFieldTracker()
+	err = mongoSchema.IncludeSample(bsonSchema, ft)
+	return mongoSchema, err
+}
+
 func TestMapDataLake(t *testing.T) {
-	testDb := "testDb"
+	testDB := "testDB"
 	testColl := "testColl"
 
-	schema, err := mongo.NewSchemaFromValue(bsonutil.NewD(
-		bsonutil.NewDocElem("a", int32(1)),
-		bsonutil.NewDocElem("b", int32(2)),
-	))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	schemaWithArrays, err := mongo.NewSchemaFromValue(bsonutil.NewD(
-		bsonutil.NewDocElem("a", int32(1)),
-		bsonutil.NewDocElem("b", int32(2)),
-		bsonutil.NewDocElem("arrayField1", bsonutil.NewArray(int32(1), int32(2))),
-		bsonutil.NewDocElem("arrayField2", bsonutil.NewArray(int32(1), int32(2))),
-	))
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	checkCatalogTable := func(ctlgTable *catalog.MongoTable, expectedTableName string, t *testing.T) {
-		if ctlgTable.Name() != expectedTableName {
-			t.Errorf("Expected table %v, got table %v", expectedTableName, ctlgTable.Name())
-		}
+	checkCatalogTable := func(ctlgTable *catalog.MongoTable, expectedColumnNames []string, t *testing.T) {
 		if ctlgTable.Collation() != collation.Default {
 			t.Errorf("Expected collation to be %v, got %v", collation.Default, ctlgTable.Collation())
 		}
@@ -240,46 +224,93 @@ func TestMapDataLake(t *testing.T) {
 		if ctlgTable.Type() != catalog.BaseTable {
 			t.Errorf("Expected table type to be %v, got %v", catalog.BaseTable, ctlgTable.Type())
 		}
+		columns := ctlgTable.Columns()
+		if len(columns) != len(expectedColumnNames) {
+			t.Fatalf("Expected %v columns, got %v", len(columns), len(expectedColumnNames))
+		}
+		for _, columnName := range expectedColumnNames {
+			if _, err := ctlgTable.Column(columnName); err != nil {
+				t.Errorf("Expected column %v, but did not find it", columnName)
+			}
+		}
 	}
 
 	tests := []struct {
-		name               string
-		schema             *mongo.Schema
-		db                 string
-		coll               string
-		expectedTableNames []string
+		name           string
+		docFileName    string
+		expectedSchema map[string][]string
 	}{
 		{
 			"one collection maps to one table",
-			schema,
-			testDb,
-			testColl,
-			[]string{testColl},
+			"simple.json",
+			map[string][]string{
+				testColl: {"a", "b"},
+			},
 		},
 		{
 			"one collection maps to many tables",
-			schemaWithArrays,
-			testDb,
-			testColl,
-			[]string{testColl, testColl + "_arrayField1", testColl + "_arrayField2"},
+			"arrays.json",
+			map[string][]string{
+				testColl:             {"a", "b"},
+				testColl + "_array1": {"array1", "array1_idx"},
+				testColl + "_array2": {"array2", "array2_idx"},
+			},
+		},
+		{
+			"column mapping is case sensitive",
+			"case-sensitive-fields.json",
+			map[string][]string{
+				testColl: {"a", "foobar", "FoObaR"},
+			},
+		},
+		{
+			"array table mapping is case sensitive",
+			"case-sensitive-arrays.json",
+			map[string][]string{
+				testColl:            {"a", "b"},
+				testColl + "_ArRAy": {"ArRAy", "ArRAy_idx"},
+				testColl + "_array": {"array", "array_idx"},
+			},
+		},
+		{
+			"column mapping within array table is case sensitive",
+			"case-sensitive-array-subfields.json",
+			map[string][]string{
+				testColl:            {"a", "b"},
+				testColl + "_array": {"array", "array.fOo", "array.FOO", "array_idx"},
+			},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			ctlgTables, err := mapping.MapDataLake(test.schema, test.db, test.coll)
+			schema, err := getSchemaFromJSONSample(filepath.Join("testdata", "map-data-lake-test", test.docFileName))
 			if err != nil {
 				t.Fatal(err)
 			}
-			if len(ctlgTables) != len(test.expectedTableNames) {
-				t.Fatalf("Expected %v tables, mapped %v tables from %v.%v",
-					len(test.expectedTableNames), len(ctlgTables), testDb, testColl)
+
+			ctlgTables, err := mapping.MapDataLake(schema, testDB, testColl)
+			if err != nil {
+				t.Fatal(err)
 			}
 
-			for i, ctlgTable := range ctlgTables {
-				t.Run(test.expectedTableNames[i], func(t *testing.T) {
-					checkCatalogTable(ctlgTable, test.expectedTableNames[i], t)
-				})
+			if len(ctlgTables) != len(test.expectedSchema) {
+				t.Fatalf("Expected %v tables, but mapped %v tables from %v.%v",
+					len(test.expectedSchema), len(ctlgTables), testDB, testColl)
+			}
+
+			for expectedTable, expectedColumns := range test.expectedSchema {
+				var ctlgTable *catalog.MongoTable
+				for _, tbl := range ctlgTables {
+					if tbl.Name() == expectedTable {
+						ctlgTable = tbl
+					}
+				}
+
+				if ctlgTable == nil {
+					t.Fatalf("Expected table '%v', but didn't find it", expectedTable)
+				}
+				checkCatalogTable(ctlgTable, expectedColumns, t)
 			}
 		})
 	}

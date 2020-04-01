@@ -37,6 +37,7 @@ type SchemaMappingConfig struct {
 	UUIDSubtype3Encoding      string
 	Version                   []uint8
 	CurrentNumTotalTables     *int64
+	isCaseSensitive           bool
 }
 
 // NewSchemaMappingConfig is a constructor that builds
@@ -52,6 +53,7 @@ func NewSchemaMappingConfig(
 	mode config.MappingMode,
 	currentNumTotalTables *int64,
 	maxNestedTableDepth, maxNumTablesPerCollection, maxNumGlobalTables int64,
+	isCaseSensitive bool,
 ) SchemaMappingConfig {
 	component := fmt.Sprintf("%-10v [mapping]", log.SchemaComponent)
 	logger = log.NewComponentLogger(component, logger)
@@ -68,6 +70,7 @@ func NewSchemaMappingConfig(
 		MaxNestedTableDepth:       maxNestedTableDepth,
 		MaxNumTablesPerCollection: maxNumTablesPerCollection,
 		MaxNumGlobalTables:        maxNumGlobalTables,
+		isCaseSensitive:           isCaseSensitive,
 	}
 }
 
@@ -98,7 +101,9 @@ func getTypeNames(sc *mongo.Schemata) ([]mongo.BSONType, error) {
 func MapDataLake(jsonSchema *mongo.Schema, db, collection string) ([]*catalog.MongoTable, error) {
 
 	lg := log.NoOpLogger()
-	databaseToMap := schema.NewDatabase(lg, db, nil, false)
+	isCaseSensitive := true
+
+	databaseToMap := schema.NewDatabase(lg, db, nil, isCaseSensitive)
 
 	currentNumTotalTables := int64(0)
 	cfg := NewSchemaMappingConfig(
@@ -119,6 +124,7 @@ func MapDataLake(jsonSchema *mongo.Schema, db, collection string) ([]*catalog.Mo
 		config.DefaultMaxNestedTableDepth,
 		config.DefaultMaxNumTablesPerCollection,
 		config.DefaultMaxNumGlobalTables,
+		isCaseSensitive,
 	)
 
 	// Map the MongoDB schema for the given database and collection onto a
@@ -127,14 +133,14 @@ func MapDataLake(jsonSchema *mongo.Schema, db, collection string) ([]*catalog.Mo
 	if err != nil {
 		return nil, err
 	}
-	schema, err := schema.New([]*schema.Database{databaseToMap}, false)
+	schema, err := schema.New([]*schema.Database{databaseToMap}, isCaseSensitive)
 	if err != nil {
 		return nil, err
 	}
 
 	// Build a catalog from the relational schema.
 	info := getDataLakeMongoDBInfo(db, collection)
-	sqlCatalog, err := catalog.BuildFromSchema(schema, info, false, false)
+	sqlCatalog, err := catalog.BuildFromSchema(schema, info, false, isCaseSensitive)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +198,7 @@ func Map(cfg SchemaMappingConfig) error {
 	// create the table into which we will map this collection's fields.
 	// this table has the same name as the collection it is mapped from.
 	// unless we have array fields, this is the only table we will create.
-	t, err := schema.NewTable(cfg.Logger, cfg.CollectionName, cfg.CollectionName, nil, nil, []schema.Index{}, option.NoneString(), false)
+	t, err := schema.NewTable(cfg.Logger, cfg.CollectionName, cfg.CollectionName, nil, nil, []schema.Index{}, option.NoneString(), cfg.isCaseSensitive)
 	if err != nil {
 		return err
 	}
@@ -226,6 +232,7 @@ func Map(cfg SchemaMappingConfig) error {
 		cfg.MaxNestedTableDepth,
 		cfg.MaxNumTablesPerCollection,
 		cfg.MaxNumGlobalTables,
+		cfg.isCaseSensitive,
 	)
 
 	// The top level document will always add a table:
@@ -351,6 +358,12 @@ type mappingContext struct {
 	// we cannot know, a priori, how many tables will be mapped from a given
 	// collection.
 	maxNumGlobalTables int64
+
+	// isCaseSensitive indicates whether databases and tables in this context
+	// should treat SQL namespaces and columns as case sensitive. This
+	// determines what the mapper does when it encounters two tables or fields
+	// whose names have the same letters but different capitalizations.
+	isCaseSensitive bool
 }
 
 // newMappingContext constructs a new mappingContext.
@@ -370,6 +383,7 @@ func newMappingContext(
 	nestedArrayDepth int64,
 	numCollectionTables, numTotalTables *int64,
 	maxNestedTableDepth, maxNumTablesPerCollection, maxNumGlobalTables int64,
+	isCaseSensitive bool,
 ) *mappingContext {
 	return &mappingContext{
 		collectionName:            collectionName,
@@ -393,6 +407,7 @@ func newMappingContext(
 		maxNestedTableDepth:       maxNestedTableDepth,
 		maxNumTablesPerCollection: maxNumTablesPerCollection,
 		maxNumGlobalTables:        maxNumGlobalTables,
+		isCaseSensitive:           isCaseSensitive,
 	}
 }
 
@@ -616,9 +631,10 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 	}
 
 	sort.Slice(props, func(i, j int) bool {
-		// To cater to cases where we might have mixed case properties
-		// within the context of an object's mapping, we sort the
-		// properties in descending order of length.
+		// To cater to cases where we might have mixed case properties within
+		// the context of an object's mapping and we're doing a
+		// case-insensitive mapping, we sort the properties in descending order
+		// of length.
 		//
 		// This avoids collisions that are possible when an existing
 		// field name is the same as what we might map a mixed case
@@ -634,8 +650,10 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 		// "c" => "c_0" (we haven't seen c_0 yet)
 		// "c_0" => should error (we shouldn't rename existing fields)
 		//
-		// By sorting in descending order, we remove the possibility
-		// of collisions when there are mixed case keys in users' data.
+		// By sorting in descending order, we remove the possibility of
+		// collisions when there are mixed case keys in users' data. Note that
+		// this isn't an issue when the mapping is case-sensitive, but it
+		// doesn't hurt to sort it anyways.
 		iLen, jLen := len(props[i]), len(props[j])
 		if iLen == jLen {
 			return props[i] > props[j]
@@ -953,7 +971,7 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 		nil,
 		nil,
 		newCtx.path,
-		false,
+		ctx.isCaseSensitive,
 	)
 
 	if err != nil {
@@ -1061,6 +1079,7 @@ func (ctx *mappingContext) copy() *mappingContext {
 		ctx.maxNestedTableDepth,
 		ctx.maxNumTablesPerCollection,
 		ctx.maxNumGlobalTables,
+		ctx.isCaseSensitive,
 	)
 }
 

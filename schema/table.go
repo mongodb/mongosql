@@ -618,7 +618,7 @@ func (t *Table) Validate() error {
 
 	haveMongoFilter := false
 
-	cmap := make(map[string]struct{})
+	cmap := make(map[normalizedName]struct{})
 
 	for _, c := range t.columns {
 		err := c.Validate()
@@ -633,7 +633,7 @@ func (t *Table) Validate() error {
 			haveMongoFilter = true
 		}
 
-		key := strings.ToLower(c.SQLName())
+		key := t.normalizeColumnName(c.SQLName())
 		if _, ok := cmap[key]; ok {
 			return fmt.Errorf("duplicate SQL column: '%s'", c.SQLName())
 		}

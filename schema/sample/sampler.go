@@ -609,6 +609,7 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 				s.cfg.MaxNestedTableDepth(),
 				s.cfg.MaxNumTablesPerCollection(),
 				s.cfg.MaxNumGlobalTables(),
+				false,
 			))
 
 			if err != nil {
