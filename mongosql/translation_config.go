@@ -27,11 +27,12 @@ func NewQueryConfigFromTranslationConfig(tCfg *TranslationConfig) *evaluator.Que
 	aCfg := evaluator.NewAlgebrizerConfig(lgr, tCfg.defaultDbName, tCfg.ctlg,
 		variable.NewEmptyContainer(), "", false, values.MongoSQLValueKind, math.MaxUint64,
 		math.MaxUint16, 1024, variable.OffPolymorphicTypeConversionMode, tCfg.mdbVersion,
-		tCfg.allowCountOptimization, tCfg.useInformationSchemaDual, tCfg.shouldPushDownEmptyResultSet)
+		tCfg.allowCountOptimization, tCfg.useInformationSchemaDual, tCfg.shouldPushDownEmptyResultSet,
+		tCfg.isCaseSensitive)
 	oCfg := evaluator.NewOptimizerConfig(lgr, collation.Default, values.MongoSQLValueKind,
 		true, true, true, true, false)
 	pCfg := evaluator.NewPushdownConfig(lgr, tCfg.mdbVersion, tCfg.allowShardedLookups,
-		tCfg.allowCrossDBLookups, tCfg.allowRowGeneratorOptimization, tCfg.allowUUIDLiteralComparisons,
+		tCfg.allowCrossDBLookups, tCfg.allowRowGeneratorOptimization, tCfg.allowUUIDLiteralComparisons, tCfg.isCaseSensitive,
 		true, tCfg.shouldPushDownEmptyResultSet, true, values.MongoSQLValueKind, tCfg.format, tCfg.formatVersion)
 	eCfg := evaluator.NewExecutionConfig(lgr, tCfg.defaultDbName, tCfg.mdbVersion, true, 0,
 		values.MongoSQLValueKind, errCommandHandler{}, nil)
@@ -63,13 +64,14 @@ type TranslationConfig struct {
 	useInformationSchemaDual      bool
 	selectStatementsOnly          bool
 	shouldPushDownEmptyResultSet  bool
+	isCaseSensitive               bool
 }
 
 // NewTranslationConfig returns a new TranslationConfig
 func NewTranslationConfig(ctlg catalog.Catalog, format string, formatVersion int,
 	defaultDbName string) *TranslationConfig {
 	return newTranslationConfig(ctlg, format, formatVersion, defaultDbName,
-		[]uint8{100, 0, 0}, true, true, false, false, false, true, true, true)
+		[]uint8{100, 0, 0}, true, true, false, false, false, true, true, true, true)
 }
 
 func newTranslationConfig(
@@ -85,7 +87,8 @@ func newTranslationConfig(
 	allowCountOptimization,
 	useInformationSchemaDual,
 	selectStatementsOnly,
-	shouldPushDownEmptyResultSet bool,
+	shouldPushDownEmptyResultSet,
+	isCaseSensitive bool,
 ) *TranslationConfig {
 	return &TranslationConfig{
 		ctlg:                          ctlg,
@@ -101,6 +104,7 @@ func newTranslationConfig(
 		useInformationSchemaDual:      useInformationSchemaDual,
 		selectStatementsOnly:          selectStatementsOnly,
 		shouldPushDownEmptyResultSet:  shouldPushDownEmptyResultSet,
+		isCaseSensitive:               isCaseSensitive,
 	}
 }
 

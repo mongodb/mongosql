@@ -91,17 +91,19 @@ func (cf *columnFinder) visit(n Node) (Node, error) {
 	return walk(cf, n)
 }
 
-func newColumnTracker() *columnTracker {
+func newColumnTracker(isCaseSensitive bool) *columnTracker {
 	return &columnTracker{
-		selectIDs: make(map[int]*sqlColExprCounter),
+		selectIDs:       make(map[int]*sqlColExprCounter),
+		isCaseSensitive: isCaseSensitive,
 	}
 }
 
 // columnTracker is for scoped handling of column names like a symbol
 // table in a compiler. New scopes are introduced by subqueries.
 type columnTracker struct {
-	selectIDs  map[int]*sqlColExprCounter
-	removeMode bool
+	selectIDs       map[int]*sqlColExprCounter
+	removeMode      bool
+	isCaseSensitive bool
 }
 
 func (t *columnTracker) add(e SQLExpr) {
@@ -153,7 +155,7 @@ func (t *columnTracker) visit(n Node) (Node, error) {
 	case SQLColumnExpr:
 		selectIDMap, ok := t.selectIDs[typedN.selectID]
 		if !ok && !t.removeMode {
-			selectIDMap = newSQLColumnExprCounter(typedN.selectID)
+			selectIDMap = newSQLColumnExprCounter(typedN.selectID, t.isCaseSensitive)
 			t.selectIDs[typedN.selectID] = selectIDMap
 		}
 

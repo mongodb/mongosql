@@ -38,6 +38,7 @@ type PushdownConfig struct {
 	allowCrossDBLookups           bool
 	allowRowGeneratorOptimization bool
 	allowUUIDLiteralComparisons   bool
+	isCaseSensitive               bool
 	shouldPushDown                bool
 	shouldPushDownEmptyResultSet  bool
 	mongoDBVersion                []uint8
@@ -57,6 +58,7 @@ func NewPushdownConfig(
 	allowCrossDBLookups,
 	allowRowGeneratorOptimization,
 	allowUUIDLiteralComparisons,
+	isCaseSensitive,
 	shouldPushDown,
 	shouldPushDownEmptyResultSet,
 	pushDownSelfJoins bool,
@@ -71,6 +73,7 @@ func NewPushdownConfig(
 		allowCrossDBLookups:           allowCrossDBLookups,
 		allowRowGeneratorOptimization: allowRowGeneratorOptimization,
 		allowUUIDLiteralComparisons:   allowUUIDLiteralComparisons,
+		isCaseSensitive:               isCaseSensitive,
 		shouldPushDown:                shouldPushDown,
 		shouldPushDownEmptyResultSet:  shouldPushDownEmptyResultSet,
 		pushDownSelfJoins:             pushDownSelfJoins,
@@ -224,7 +227,7 @@ func newPushdownVisitor(cfg *PushdownConfig) *pushdownVisitor {
 		cfg:                       cfg,
 		logger:                    cfg.lg,
 		depth:                     0,
-		columnTracker:             newColumnTracker(),
+		columnTracker:             newColumnTracker(cfg.isCaseSensitive),
 		leftJoinOriginalNames:     make(dbData),
 		pushdownFailures:          make(map[PlanStage][]PushdownFailure),
 		canPushdownCorrelated:     false,

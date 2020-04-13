@@ -18,6 +18,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/internal/procutil"
+	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -42,6 +43,7 @@ type AlgebrizerConfig struct {
 	allowCountOptimization        bool
 	useInformationSchemaDual      bool
 	shouldPushDownEmptyResultSet  bool
+	isCaseSensitive               bool
 }
 
 // NewAlgebrizerConfig returns a new AlgebrizerConfig constructed from the
@@ -62,7 +64,8 @@ func NewAlgebrizerConfig(
 	mdbVersion []uint8,
 	allowCountOptimization,
 	useInformationSchemaDual,
-	shouldPushDownEmptyResultSet bool,
+	shouldPushDownEmptyResultSet,
+	isCaseSensitive bool,
 ) *AlgebrizerConfig {
 	return &AlgebrizerConfig{
 		lg:                            lg,
@@ -80,6 +83,7 @@ func NewAlgebrizerConfig(
 		allowCountOptimization:        allowCountOptimization,
 		useInformationSchemaDual:      useInformationSchemaDual,
 		shouldPushDownEmptyResultSet:  shouldPushDownEmptyResultSet,
+		isCaseSensitive:               isCaseSensitive,
 	}
 }
 
@@ -199,7 +203,7 @@ func cloneCTEs(ctes ctePlanStages) ctePlanStages {
 // the catalog, otherwise it returns a new Dual stage.
 func (a *algebrizer) newMongoSourceOrDualStage() (PlanStage, error) {
 	if a.cfg.useInformationSchemaDual {
-		return NewMongoSourceStage(catalog.InformationSchemaDatabase, &catalog.InformationSchemaDual, a.selectID, "dual"), nil
+		return NewMongoSourceStage(catalog.InformationSchemaDatabase, &catalog.InformationSchemaDual, a.selectID, "DUAL"), nil
 	}
 
 	// Don't try to push down the dual stage if it is a top-level dual stage
@@ -371,10 +375,11 @@ func (a *algebrizer) fullName(tableName, columnName string) string {
 
 func (a *algebrizer) lookupColumn(databaseName, tableName, columnName string) (*results.Column, error) {
 	var found *results.Column
+	isCaseSensitive := a.cfg.isCaseSensitive
 	for _, column := range a.columns {
-		if strings.EqualFold(column.Name, columnName) &&
-			(tableName == "" || strings.EqualFold(column.Table, tableName)) &&
-			(databaseName == "" || strings.EqualFold(column.Database, databaseName)) {
+		if strutil.CompareStrings(column.Name, columnName, isCaseSensitive) &&
+			(tableName == "" || strutil.CompareStrings(column.Table, tableName, isCaseSensitive)) &&
+			(databaseName == "" || strutil.CompareStrings(column.Database, databaseName, isCaseSensitive)) {
 			if found != nil {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
 					a.fullName(tableName, columnName), a.currentClause)
@@ -395,15 +400,16 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 	var result ProjectedColumn
 	found := false
 	isResultComputed := false
+	isCaseSensitive := a.cfg.isCaseSensitive
 	for index, pc := range a.projectedColumns {
-		if strings.EqualFold(pc.Name, columnName) {
+		if strutil.CompareStrings(pc.Name, columnName, isCaseSensitive) {
 			// Two columns are ambiguous if the column aliases are the same but the original column
 			// names are not (and neither is a computed column like an aggregate function, value
 			// literal, + operator, etc.).
 			if found &&
-				!strings.EqualFold(pc.OriginalName, result.OriginalName) &&
-				!strings.EqualFold(pc.OriginalName, "") &&
-				!strings.EqualFold(result.OriginalName, "") {
+				!strutil.CompareStrings(pc.OriginalName, result.OriginalName, isCaseSensitive) &&
+				!(pc.OriginalName == "") &&
+				!(result.OriginalName == "") {
 				return nil,
 					false,
 					mysqlerrors.Defaultf(mysqlerrors.ErNonUniqError,
@@ -428,7 +434,7 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 			if !found || !isResultComputed {
 				result = pc
 				found = true
-				isResultComputed = strings.EqualFold(pc.OriginalName, "")
+				isResultComputed = (pc.OriginalName == "")
 			}
 		}
 	}
@@ -437,10 +443,11 @@ func (a *algebrizer) lookupProjectedColumn(columnName string) (*ProjectedColumn,
 }
 
 func (a *algebrizer) findSQLColumn(sqlCol SQLColumnExpr) *results.Column {
+	isCaseSensitive := a.cfg.isCaseSensitive
 	for _, c := range a.columns {
-		if strings.EqualFold(c.Database, sqlCol.databaseName) &&
-			strings.EqualFold(c.Table, sqlCol.tableName) &&
-			strings.EqualFold(c.Name, sqlCol.columnName) {
+		if strutil.CompareStrings(c.Database, sqlCol.databaseName, isCaseSensitive) &&
+			strutil.CompareStrings(c.Table, sqlCol.tableName, isCaseSensitive) &&
+			strutil.CompareStrings(c.Name, sqlCol.columnName, isCaseSensitive) {
 			return c
 		}
 	}
@@ -561,9 +568,15 @@ func (a *algebrizer) registerColumns(columns []*results.Column) error {
 	// this ensures that we have no duplicate columns. We have to check duplicates
 	// against the existing columns as well as against itself.
 	for _, c := range columns {
-		sb.WriteString(strings.ToLower(c.Database))
-		sb.WriteString(strings.ToLower(c.Table))
-		sb.WriteString(strings.ToLower(c.Name))
+		isCaseSensitive := a.cfg.isCaseSensitive
+
+		dbName := strutil.MaybeToLower(c.Database, isCaseSensitive)
+		tableName := strutil.MaybeToLower(c.Table, isCaseSensitive)
+		colName := strutil.MaybeToLower(c.Name, isCaseSensitive)
+
+		sb.WriteString(dbName)
+		sb.WriteString(tableName)
+		sb.WriteString(colName)
 		if _, ok := a.columnSet[sb.String()]; ok {
 			return mysqlerrors.Defaultf(mysqlerrors.ErDupFieldname, a.fullName(c.Table, c.Name))
 		}
@@ -582,7 +595,7 @@ func (a *algebrizer) registerColumns(columns []*results.Column) error {
 func (a *algebrizer) registerTable(dbName, tableName string) error {
 	qualifiedTableName := fullyQualifiedTableName(dbName, tableName)
 	for _, registeredName := range a.tableNames {
-		if strings.EqualFold(qualifiedTableName, registeredName) {
+		if strutil.CompareStrings(qualifiedTableName, registeredName, a.cfg.isCaseSensitive) {
 			return mysqlerrors.Defaultf(mysqlerrors.ErNonuniqTable, tableName)
 		}
 	}
@@ -1024,7 +1037,7 @@ func (a *algebrizer) translateCTEs(ctes parser.CTEs) error {
 	// You can't have multiple ctes with the same name at the current level.
 	seenAliasesSet := make(map[string]struct{}, len(ctes))
 	for _, cte := range ctes {
-		strName := strings.ToLower(cte.TableName.Name)
+		strName := strutil.MaybeToLower(cte.TableName.Name, a.cfg.isCaseSensitive)
 		if _, ok := seenAliasesSet[strName]; ok {
 			return mysqlerrors.Defaultf(mysqlerrors.ErNonuniqTable, strName)
 		}
@@ -1136,7 +1149,7 @@ func (a *algebrizer) translateSelect(sel *parser.Select) (PlanStage, error) {
 			selectIDsInScope = append(selectIDsInScope, parent.currentSelectIDs...)
 			parent = parent.parent
 		}
-		builder.exprCollector = newSQLColExprCollector(selectIDsInScope)
+		builder.exprCollector = newSQLColExprCollector(selectIDsInScope, a.cfg.isCaseSensitive)
 
 		if plan != nil {
 			err = builder.includeFrom(plan)
@@ -1275,10 +1288,11 @@ func (a *algebrizer) translateSelectExprs(
 				// If the form is of string dot wildcard, sql
 				// automatically assumes the first string
 				// refers to a table.
+				isCaseSensitive := a.cfg.isCaseSensitive
 				if (tableName == "" && databaseName == "") ||
-					(databaseName == "" && strings.EqualFold(tableName, column.Table)) ||
-					(strings.EqualFold(tableName, column.Table) &&
-						strings.EqualFold(databaseName, column.Database)) {
+					(databaseName == "" && strutil.CompareStrings(tableName, column.Table, isCaseSensitive)) ||
+					(strutil.CompareStrings(tableName, column.Table, isCaseSensitive) &&
+						strutil.CompareStrings(databaseName, column.Database, isCaseSensitive)) {
 					projectedColumn := newProjectedColumnFromColumn(column)
 					projectedColumn.SelectID = a.selectID
 					if shouldConvert(column, mode) {
@@ -1772,7 +1786,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 	tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*results.Column, error) {
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
-		tableName := strings.ToLower(typedT.Name)
+		tableName := typedT.Name
 		if aliasName == "" {
 			aliasName = tableName
 		}
@@ -1780,7 +1794,8 @@ func (a *algebrizer) translateSimpleTableExpr(
 		var plan PlanStage
 		var err error
 
-		cteEvaluator := a.ctes[tableName]
+		isCaseSensitive := a.cfg.isCaseSensitive
+		cteEvaluator := a.ctes[strutil.MaybeToLower(tableName, isCaseSensitive)]
 		// CTEs are not part of the database's namespace, so if database Qualifier
 		// is present this TableExpr is definitely not referring to a CTE.
 		// For example, with cte as (select * from tbl) select * from db.cte;
@@ -1822,7 +1837,6 @@ func (a *algebrizer) translateSimpleTableExpr(
 		if dbName == "" {
 			dbName = a.cfg.dbName
 		}
-		dbName = strings.ToLower(dbName)
 
 		db, dbErr := a.cfg.catalog.Database(a.ctx, dbName)
 		if dbErr != nil {
@@ -1849,7 +1863,7 @@ func (a *algebrizer) translateSimpleTableExpr(
 		}
 
 		columns := plan.Columns()
-		if !strings.EqualFold(tableName, "DUAL") {
+		if !strutil.CompareStrings(tableName, "DUAL", a.cfg.isCaseSensitive) {
 			err = a.registerColumns(columns)
 			if err != nil {
 				return nil, nil, err

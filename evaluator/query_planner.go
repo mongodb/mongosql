@@ -14,7 +14,7 @@ type queryPlanBuilder struct {
 	// algebrizer references the algebrizer with which it is communicating during building.
 	algebrizer *algebrizer
 	// exprCollector collects all the expressions and aggregation expressions used
-	// during the query. It allows use to know what columns will be required for a certain
+	// during the query. It allows us to know what columns will be required for a certain
 	// stage and also aids in the movement of some expressions from later to earlier in the
 	// pipeline. For instance, aggregate expressions need to be moved and replaced in project
 	// while building a GroupByStage.

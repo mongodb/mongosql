@@ -108,14 +108,14 @@ func (t *Translator) TranslateQuery(ctx context.Context, dbName, sql string) ([]
 	// For now, assume no --writeMode.
 	algebrizerCfg := evaluator.NewAlgebrizerConfig(lg, dbName, ctlg, vars, mongoDBToplogy, false,
 		sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength, groupConcatMaxLen,
-		polymorphicTypeConversionMode, mdbVersion, true, false, false)
+		polymorphicTypeConversionMode, mdbVersion, true, false, false, false)
 
 	naivePlan, err := evaluator.AlgebrizeQuery(ctx, algebrizerCfg, stmt)
 	if err != nil {
 		return nil, "", err
 	}
 
-	pushdownCfg := evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, true,
+	pushdownCfg := evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, true, false,
 		shouldPushDown, false, pushDownSelfJoins, sqlValueKind, format, formatVersion)
 	optimizerCfg := evaluator.NewOptimizerConfig(lg, collation, sqlValueKind, optimizeCrossJoins,
 		optimizeEvaluations, optimizeFiltering, optimizeInnerJoins, reconcileArithmeticAggFunctions)

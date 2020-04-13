@@ -134,7 +134,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:  testMongoVersion4,
 			schema:        testSchema,
 			format:        testFormat,
-			expectedError: `fatal error executing sql "explain select foo.a from foo": ERROR 1049 (42000): Unknown database 'invaliddatabase'`,
+			expectedError: `fatal error executing sql "explain select foo.a from foo": ERROR 1049 (42000): Unknown database 'invalidDatabase'`,
 		},
 		{
 			desc:          "table doesn't exist in schema",
@@ -143,7 +143,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:  testMongoVersion4,
 			schema:        testSchema,
 			format:        testFormat,
-			expectedError: `fatal error executing sql "explain select a from invalidTable": ERROR 1146 (42S02): Table 'test.invalidtable' doesn't exist`,
+			expectedError: `fatal error executing sql "explain select a from invalidTable": ERROR 1146 (42S02): Table 'test.invalidTable' doesn't exist`,
 		},
 		{
 			desc:          "column doesn't exist in schema",
@@ -347,6 +347,26 @@ schema:
       MongoType: int
       SqlName: a
       SqlType: int32
+    - Name: A
+      MongoType: int
+      SqlName: A
+      SqlType: int32
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int32
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int32
+  - table: FOO
+    collection: FOO
+    pipeline: []
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int32
     - Name: b
       MongoType: int
       SqlName: b
@@ -375,6 +395,24 @@ schema:
       MongoType: bson.UUID
       SQLName: _id
       SQLType: string
+- db: TEST
+  tables:
+  - table: foo
+    collection: foo
+    pipeline: []
+    columns:
+    - Name: a
+      MongoType: int
+      SqlName: a
+      SqlType: int32
+    - Name: b
+      MongoType: int
+      SqlName: b
+      SqlType: int32
+    - Name: c
+      MongoType: int
+      SqlName: c
+      SqlType: int32
 - db: test2
   tables:
   - table: bar
@@ -441,14 +479,14 @@ schema:
 			query:         "select foo.a from foo",
 			dbName:        "invalidDatabase",
 			ctlg:          testCatalogWithoutSharding,
-			expectedError: `fatal error executing sql "select foo.a from foo": ERROR 1049 (42000): Unknown database 'invaliddatabase'`,
+			expectedError: `fatal error executing sql "select foo.a from foo": ERROR 1049 (42000): Unknown database 'invalidDatabase'`,
 		},
 		{
 			desc:          "table doesn't exist in schema",
 			query:         "select a from invalidTable",
 			dbName:        testDBName,
 			ctlg:          testCatalogWithoutSharding,
-			expectedError: `fatal error executing sql "select a from invalidTable": ERROR 1146 (42S02): Table 'test.invalidtable' doesn't exist`,
+			expectedError: `fatal error executing sql "select a from invalidTable": ERROR 1146 (42S02): Table 'test.invalidTable' doesn't exist`,
 		},
 		{
 			desc:          "column doesn't exist in schema",
@@ -543,7 +581,7 @@ schema:
 			query:              "select * from foo join bar on foo.a = bar.a",
 			dbName:             testDBName,
 			ctlg:               testCatalogWithSharding,
-			expectedOutput:     `[{"$match": {"a": {"$ne": null}}},{"$lookup": {"from": {"db": "test","coll": "bar"},"localField": "a","foreignField": "a","as": "__joined_bar"}},{"$unwind": "$__joined_bar"},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "c"},"columnAlias": {"$literal": "c"},"value": "$c"},{"database": {"$literal": "test"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$__joined_bar.a"},{"database": {"$literal": "test"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "d"},"columnAlias": {"$literal": "d"},"value": "$__joined_bar.d"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedOutput:     `[{"$match": {"a": {"$ne": null}}},{"$lookup": {"from": {"db": "test","coll": "bar"},"localField": "a","foreignField": "a","as": "__joined_bar"}},{"$unwind": "$__joined_bar"},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "A"},"columnAlias": {"$literal": "A"},"value": "$A"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "c"},"columnAlias": {"$literal": "c"},"value": "$c"},{"database": {"$literal": "test"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$__joined_bar.a"},{"database": {"$literal": "test"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "d"},"columnAlias": {"$literal": "d"},"value": "$__joined_bar.d"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
 		},
@@ -552,7 +590,7 @@ schema:
 			query:              "select * from test.foo join test2.bar",
 			dbName:             testDBName,
 			ctlg:               testCatalogWithoutSharding,
-			expectedOutput:     `[{"$lookup": {"from": {"db": "test2","coll": "bar"},"let": {},"pipeline": [],"as": "__joined_bar"}},{"$unwind": "$__joined_bar"},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "c"},"columnAlias": {"$literal": "c"},"value": "$c"},{"database": {"$literal": "test2"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$__joined_bar.b"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedOutput:     `[{"$lookup": {"from": {"db": "test2","coll": "bar"},"let": {},"pipeline": [],"as": "__joined_bar"}},{"$unwind": "$__joined_bar"},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "A"},"columnAlias": {"$literal": "A"},"value": "$A"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "c"},"columnAlias": {"$literal": "c"},"value": "$c"},{"database": {"$literal": "test2"},"table": {"$literal": "bar"},"tableAlias": {"$literal": "bar"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$__joined_bar.b"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
 		},
@@ -580,8 +618,8 @@ schema:
 			dbName:             testDBName,
 			ctlg:               testCatalogWithoutSharding,
 			expectedOutput:     `[{"$project": {"values": [{"database": {"$literal": null},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "1+2"},"value": {"$literal": {"$numberLong":"3"}}}],"_id": {"$numberInt":"0"}}}]`,
-			expectedDatabase:   "information_schema",
-			expectedCollection: "dual",
+			expectedDatabase:   "INFORMATION_SCHEMA",
+			expectedCollection: "DUAL",
 		},
 		{
 			desc:          "cannot pushdown UUID-to-non-UUID comparison in select clause",
@@ -596,6 +634,99 @@ schema:
 			dbName:        testDBName,
 			ctlg:          testCatalogWithoutSharding,
 			expectedError: `fatal error executing sql "select * from uuids where _id = \"123\"": query not fully pushed down`,
+		},
+		{
+			desc:               "column lookup is case sensitive (found)",
+			query:              "select A, a from foo",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "A"},"columnAlias": {"$literal": "A"},"value": "$A"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:          "column lookup is case sensitive (not found)",
+			query:         "select B from foo",
+			dbName:        testDBName,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "select B from foo": ERROR 1054 (42S22): Unknown column 'B' in 'field list'`,
+		},
+		{
+			desc:               "table lookup is case sensitive (found)",
+			query:              "select foo.a, FOO.a from foo join FOO",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$lookup": {"from": {"db": "test","coll": "FOO"},"let": {},"pipeline": [],"as": "__joined_FOO"}},{"$unwind": "$__joined_FOO"},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "FOO"},"tableAlias": {"$literal": "FOO"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$__joined_FOO.a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:          "table lookup is case sensitive (not found)",
+			query:         "select a from fOo",
+			dbName:        testDBName,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "select a from fOo": ERROR 1146 (42S02): Table 'test.fOo' doesn't exist`,
+		},
+		{
+			desc:               "database lookup is case sensitive (found)",
+			query:              "select test.foo.a, TEST.foo.a from test.foo join TEST.foo",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$lookup": {"from": {"db": "TEST","coll": "foo"},"let": {},"pipeline": [],"as": "__joined_foo"}},{"$unwind": "$__joined_foo"},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "TEST"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$__joined_foo.a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:          "database lookup is case sensitive (not found)",
+			query:         "select a from tEsT.foo",
+			dbName:        testDBName,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "select a from tEsT.foo": ERROR 1049 (42000): Unknown database 'tEsT'`,
+		},
+		{
+			desc:               "projected column lookup is case sensitive",
+			query:              "select a as A, A as a from test.foo order by A",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$sort": {"a": {"$numberInt":"1"}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "A"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "A"},"columnAlias": {"$literal": "a"},"value": "$A"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "evaluation of cte table names is case sensitive",
+			query:              "with myCTE as (select a from bar), mycte as (select a from foo) select * from mycte",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "mycte"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
+		},
+		{
+			desc:               "cte table lookup is case sensitive",
+			query:              "with foo as (select a from bar) select a from FOO",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "FOO"},"tableAlias": {"$literal": "FOO"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "FOO",
+		},
+		{
+			desc:               "when selecting namespace.*, namespaces are case sensitive",
+			query:              "select FOO.*, foo.a from FOO join foo",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$lookup": {"from": {"db": "test","coll": "foo"},"let": {},"pipeline": [],"as": "__joined_foo"}},{"$unwind": "$__joined_foo"},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "FOO"},"tableAlias": {"$literal": "FOO"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"},{"database": {"$literal": "test"},"table": {"$literal": "FOO"},"tableAlias": {"$literal": "FOO"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$b"},{"database": {"$literal": "test"},"table": {"$literal": "FOO"},"tableAlias": {"$literal": "FOO"},"column": {"$literal": "c"},"columnAlias": {"$literal": "c"},"value": "$c"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$__joined_foo.a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "FOO",
+		},
+		{
+			desc:               "exprCollector is case sensitive",
+			query:              "select distinct b, a from foo order by A",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$group": {"_id": {"group_key_0": "$b","group_key_1": "$a"},"test_DOT_foo_DOT_A": {"$first": "$A"}}},{"$sort": {"test_DOT_foo_DOT_A": {"$numberInt":"1"}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$_id.group_key_0"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$_id.group_key_1"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "foo",
 		},
 	}
 

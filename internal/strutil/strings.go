@@ -16,6 +16,16 @@ func MaybeToLower(s string, isCaseSensitive bool) string {
 	return strings.ToLower(s)
 }
 
+// CompareStrings returns a boolean indicating whether strings a and b are
+// equal. It does either a case-sensitive or insensitive comparison depending
+// on the value of isCaseSensitive.
+func CompareStrings(a, b string, isCaseSensitive bool) bool {
+	if isCaseSensitive {
+		return (strings.Compare(a, b) == 0)
+	}
+	return strings.EqualFold(a, b)
+}
+
 // MySQLCleanNumericString cleans up a numeric string using MySQL's rules (trim, then
 // take everything before the first character that isn't . or a number). Must
 // handle -, and should return "0" if no viable number can be found.

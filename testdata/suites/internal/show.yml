@@ -794,6 +794,7 @@ testcases:
 
   - expected_names: [Database]
     expected_results:
+      - [INFORMATION_SCHEMA]
       - [bugs_database]
       - [collation_test]
       - [conversions_test]
@@ -801,7 +802,6 @@ testcases:
       - [explain_test]
       - [functions_test]
       - [groupby_test]
-      - [information_schema]
       - [information_schema_test]
       - [information_schema_test_Mixed_Case]
       - [join_test]

@@ -12,7 +12,7 @@ import (
 
 const (
 	// InformationSchemaDatabase is the name of the MySQL information schema database.
-	InformationSchemaDatabase = "information_schema"
+	InformationSchemaDatabase = "INFORMATION_SCHEMA"
 )
 
 // Name is the name of a catalog.
@@ -252,7 +252,7 @@ func NewForeignKey(c *results.Column, name, db, tb, col string) ForeignKey {
 // database, however in ADL's execution engine, it is easiest to pretend
 // it does. We chose to represent dual as a table in information_schema.
 var InformationSchemaDual = MongoTable{
-	name:           "dual",
+	name:           "DUAL",
 	collation:      collation.Default,
 	columns:        results.Columns{},
 	columnMap:      map[string]*results.Column{},
@@ -262,6 +262,6 @@ var InformationSchemaDual = MongoTable{
 	comments:       "",
 	tableType:      BaseTable,
 	isSharded:      false,
-	collectionName: "dual",
+	collectionName: "DUAL",
 	pipeline:       nil,
 }

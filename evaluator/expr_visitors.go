@@ -3,7 +3,8 @@ package evaluator
 import (
 	"fmt"
 	"sort"
-	"strings"
+
+	"github.com/10gen/sqlproxy/internal/strutil"
 )
 
 // joinOnExpression holds the SQLColumnExpr value
@@ -30,16 +31,18 @@ func (v *joinOnExpression) visit(n Node) (Node, error) {
 // also stores the selectID for the source query that
 // this counter is used for.
 type sqlColExprCounter struct {
-	counts   map[string]int
-	exprs    []SQLColumnExpr
-	selectID int
+	counts          map[string]int
+	exprs           []SQLColumnExpr
+	isCaseSensitive bool
+	selectID        int
 }
 
 // newSQLColumnExprCounter returns a new sqlColExprCounter.
-func newSQLColumnExprCounter(selectID int) *sqlColExprCounter {
+func newSQLColumnExprCounter(selectID int, isCaseSensitive bool) *sqlColExprCounter {
 	return &sqlColExprCounter{
-		counts:   make(map[string]int),
-		selectID: selectID,
+		counts:          make(map[string]int),
+		isCaseSensitive: isCaseSensitive,
+		selectID:        selectID,
 	}
 }
 
@@ -68,7 +71,7 @@ func (c *sqlColExprCounter) copyExprs() []SQLColumnExpr {
 func (c *sqlColExprCounter) remove(e SQLColumnExpr) {
 	s := e.String()
 	for i, expr := range c.exprs {
-		if strings.EqualFold(s, expr.String()) {
+		if strutil.CompareStrings(s, expr.String(), c.isCaseSensitive) {
 			c.counts[s]--
 			if c.counts[s] == 0 {
 				delete(c.counts, s)
@@ -88,7 +91,7 @@ type sqlColExprCollector struct {
 }
 
 // newSQLColExprCollector returns a new sqlColExprCollector.
-func newSQLColExprCollector(selectIDs []int) *sqlColExprCollector {
+func newSQLColExprCollector(selectIDs []int, isCaseSensitive bool) *sqlColExprCollector {
 	// Get the selectID for the most deeply nested subquery. It is the
 	// last in sorted order (aka, the largest). This is needed for the
 	// sqlColExprCounter to keep track of correlation.
@@ -100,7 +103,7 @@ func newSQLColExprCollector(selectIDs []int) *sqlColExprCollector {
 
 	return &sqlColExprCollector{
 		selectIDs:         selectIDs,
-		referencedColumns: newSQLColumnExprCounter(last),
+		referencedColumns: newSQLColumnExprCounter(last, isCaseSensitive),
 	}
 }
 

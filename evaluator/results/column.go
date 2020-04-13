@@ -1,8 +1,6 @@
 package results
 
 import (
-	"strings"
-
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -144,17 +142,6 @@ func (c *ColumnType) UnmarshalBSON(b []byte) error {
 
 // Columns is a slice of Column pointers.
 type Columns []*Column
-
-// FindByName searches Columns for a column of a matching name.
-func (cs Columns) FindByName(name string) (*Column, bool) {
-	for _, c := range cs {
-		if strings.EqualFold(name, c.Name) {
-			return c, true
-		}
-	}
-
-	return nil, false
-}
 
 // Unique ensures that only unique columns exist in the resulting slice.
 func (cs Columns) Unique() Columns {

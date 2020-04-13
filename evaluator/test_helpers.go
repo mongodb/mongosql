@@ -241,7 +241,7 @@ func GetSQLExpr(schema *schema.Schema, dbName, tableName, sql string, reconcile 
 
 	algebrizerCfg := NewAlgebrizerConfig(log.GlobalLogger(), dbName, ctlg, vars, mongoDBToplogy, false,
 		sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength, groupConcatMaxLen,
-		polymorphicTypeConversionMode, mdbVersion, true, false, false)
+		polymorphicTypeConversionMode, mdbVersion, true, false, false, false)
 	actualPlan, err := AlgebrizeQuery(ctx, algebrizerCfg, rewritten)
 	if err != nil {
 		return nil, err

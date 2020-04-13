@@ -214,7 +214,7 @@ func (c *conn) getAlgebrizerConfig() *evaluator.AlgebrizerConfig {
 
 	return evaluator.NewAlgebrizerConfig(lg, dbName, ctlg, vars, mongoDBToplogy, isWriteMode,
 		sqlValueKind, sqlSelectLimit, mongoDBMaxVarcharLength, groupConcatMaxLen,
-		polymorphicTypeConversionMode, mdbVersion, true, false, false)
+		polymorphicTypeConversionMode, mdbVersion, true, false, false, false)
 }
 
 func (c *conn) getOptimizerConfig() *evaluator.OptimizerConfig {
@@ -240,7 +240,7 @@ func (c *conn) getPushdownConfig() *evaluator.PushdownConfig {
 	format := evaluator.NoOutputFormat
 	formatVersion := evaluator.NoOutputVersion
 
-	return evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, true,
+	return evaluator.NewPushdownConfig(lg, mdbVersion, false, false, true, true, false,
 		shouldPushDown, false, pushDownSelfJoins, sqlValueKind, format, formatVersion)
 }
 
