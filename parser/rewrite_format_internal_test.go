@@ -473,7 +473,7 @@ func testRewriteAndFormatCommand(t *testing.T) {
 		{
 			desc:     "show charset where Charset = 'x' to select statement",
 			command:  `show charset where Charset = 'x'`,
-			expected: `select Charset, Description, Default collation, Maxlen from (select CHARACTER_SET_NAME as Charset, DESCRIPTION as Description, DEFAULT_COLLATE_NAME as Default collation, MAXLEN as Maxlen from information_schema.CHARACTER_SETS) where charset = 'x' order by Charset asc`,
+			expected: `select Charset, Description, Default collation, Maxlen from (select CHARACTER_SET_NAME as Charset, DESCRIPTION as Description, DEFAULT_COLLATE_NAME as Default collation, MAXLEN as Maxlen from information_schema.CHARACTER_SETS) where Charset = 'x' order by Charset asc`,
 		},
 		{
 			desc:     "show collation to select statement",
@@ -488,7 +488,7 @@ func testRewriteAndFormatCommand(t *testing.T) {
 		{
 			desc:     "show collation where Collation = 'x' to select statement",
 			command:  `show collation where Collation = 'x'`,
-			expected: "select Collation, Charset, Id, `Default`, Compiled, Sortlen from (select COLLATION_NAME as Collation, CHARACTER_SET_NAME as Charset, ID as Id, IS_DEFAULT as Default, IS_COMPILED as Compiled, SORTLEN as Sortlen from information_schema.COLLATIONS) where collation = 'x' order by Collation asc",
+			expected: "select Collation, Charset, Id, `Default`, Compiled, Sortlen from (select COLLATION_NAME as Collation, CHARACTER_SET_NAME as Charset, ID as Id, IS_DEFAULT as Default, IS_COMPILED as Compiled, SORTLEN as Sortlen from information_schema.COLLATIONS) where Collation = 'x' order by Collation asc",
 		},
 		{
 			desc:     "explain tbl_name to select statement",

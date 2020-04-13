@@ -37,6 +37,38 @@ func testParse(t *testing.T, sql string) parser.Statement {
 	return result.(parser.Statement)
 }
 
+// This only works with simple selects and checks that the table name has the expected case.
+func testParseCaseSensitive(t *testing.T, sql string, tblName string) parser.Statement {
+	stmt, err := parser.Parse(sql)
+	if err != nil {
+		t.Fatalf("sql: %s err: %s", sql, err)
+	}
+	result, err := parser.Walk(idPass{}, stmt.Copy().(parser.Statement))
+	if err != nil {
+		t.Fatalf("failed to Walk CST with error: %s", err)
+	}
+	sel, ok := result.(*parser.Select)
+	if !ok {
+		t.Fatalf("testParseCaseSensitive only works with simple select statements")
+	}
+	from, ok := sel.From[0].(*parser.AliasedTableExpr)
+	if !ok {
+		t.Fatalf("testParseCaseSensitive only works with simple select statements")
+	}
+	expr, ok := from.Expr.(parser.SimpleTableExpr)
+	if !ok {
+		t.Fatalf("testParseCaseSensitive only works with simple select statements")
+	}
+	tn, ok := expr.(*parser.TableName)
+	if !ok {
+		t.Fatalf("testParseCaseSensitive only works with simple select statements")
+	}
+	if tn.Name != tblName {
+		t.Fatalf(fmt.Sprintf("Failed to parse case sensitively, expected %s, got %s", tblName, sel.From))
+	}
+	return result.(parser.Statement)
+}
+
 func testParseError(t *testing.T, sql string) {
 	_, err := parser.Parse(sql)
 	if err == nil {
@@ -552,7 +584,7 @@ func TestIgnoredStatements(t *testing.T) {
 		{
 			name:       "unlock tables fail",
 			input:      "UnLOCK TABLE",
-			errMessage: "unexpected TABLE at position 13 near table",
+			errMessage: "unexpected TABLE at position 13 near TABLE",
 		},
 		{
 			name:       "enable keys",
@@ -567,7 +599,7 @@ func TestIgnoredStatements(t *testing.T) {
 		{
 			name:       "enable keys fail",
 			input:      "eNablE KEY",
-			errMessage: "unexpected KEY at position 11 near key",
+			errMessage: "unexpected KEY at position 11 near KEY",
 		},
 		{
 			name:  "disable keys",
@@ -576,7 +608,7 @@ func TestIgnoredStatements(t *testing.T) {
 		{
 			name:       "disable keys fail",
 			input:      "dIsABLE KEY",
-			errMessage: "unexpected KEY at position 12 near key",
+			errMessage: "unexpected KEY at position 12 near KEY",
 		},
 		{
 			name:       "alter table disable keys",
@@ -782,6 +814,14 @@ func TestSubqueryComparisons(t *testing.T) {
 func TestFunnyNames(t *testing.T) {
 	sql := "select * from columns"
 	testParse(t, sql)
+
+	columns := "CoLumns"
+	sql = "select * from " + columns
+	testParseCaseSensitive(t, sql, columns)
+
+	tables := "TaBLeS"
+	sql = "select * from " + tables
+	testParseCaseSensitive(t, sql, tables)
 
 	sql = "select * from foo.columns"
 	testParse(t, sql)

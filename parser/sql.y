@@ -86,42 +86,33 @@ func ForceEOF(yylex interface{}) {
 
 %token LEX_ERROR
 %token <bytes> ID STRING NUMBER VALUE_ARG COMMENT
-%token <empty> LPAREN RPAREN LBRACE RBRACE TILDE
+// keyword_as_id
+%token <bytes> ANY BINLOG AUTO_INCREMENT BIT BLOB BOOL BTREE CHANNEL CHARSET CODE COLLATION COLUMNS
+%token <bytes> COMMENT_KWD COMMITTED CONNECTION COUNT DATE DATETIME DAY DBS DECIMAL DISABLE ENABLE
+%token <bytes> ENGINE ENGINES ENUM ERRORS EVENT EVENTS EXTENDED FLOAT FORMAT FULL FUNCTION GRANTS
+%token <bytes> HASH HOSTS HOUR INDEXES ISOLATION JSON LEVEL LOCAL LOGS LONGTEXT MASTER MEDIUMBLOB
+%token <bytes> MEDIUMTEXT MICROSECOND MINUTE MONTH MUTEX NAMES NCHAR NUMBER OFFSET OBJECT_ID ONLY
+%token <bytes> OPEN PARTITIONS PLUGINS PRIVILEGES PROCESSLIST PROFILE PROFILES PROXY QUARTER QUERY
+%token <bytes> RELAYLOG REPEATABLE ROW SECOND SERIAL SERIALIZABLE SIGNED SLAVE SMALLINT SOME
+%token <bytes> STATUS STORAGE TABLES TEMPORARY TIME TIMESTAMP TIMESTAMPADD TIMESTAMPDIFF TINYINT
+%token <bytes> TRANSACTION TRIGGERS UNCOMMITTED UNKNOWN USER VALUE VARIABLES VIEW WARNINGS
 
+%token <empty> LPAREN RPAREN LBRACE RBRACE TILDE SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING
+%token <empty> ORDER BY LIMIT FOR TRUE FALSE WITH RECURSIVE SEPARATOR ALTER ADD CHANGE MODIFY RENAME
+%token <empty> COLUMN TO FULLTEXT INSERT INTO ALL DISTINCT PRECISION AS EXISTS NULL ASC
+%token <empty> DESC VALUES DEFAULT LOCK UNLOCK CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE
+%token <empty> GROUP_CONCAT EXTRACT DATE_ADD ADDDATE DATE_SUB SUBDATE CONVERT CAST CHAR UNSIGNED SQL_BIGINT
+%token <empty> BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER INT BIGINT DOUBLE NUMERIC
+%token <empty> TEXT VARCHAR BOOLEAN TINYTEXT BOTH LEADING TRAILING TRIM SUBSTRING SUBSTR BINARY DATABASE
+%token <empty> SCHEMA PROCEDURE TRIGGER KEYS SCHEMAS FN OJ ESCAPE TABLE DUAL INDEX IGNORE IF LOW_PRIORITY
+%token <empty> CHARACTER COLLATE DATABASES EXPLAIN DESCRIBE TRADITIONAL KILL FLUSH SAMPLE SESSION GLOBAL
+%token <empty> RESTRICT CASCADE USING OFF UNIQUE PRIMARY
 
-%token <empty> SELECT DROP CREATE SET SHOW UPDATE WHERE GROUP HAVING ORDER BY LIMIT OFFSET FOR SOME ANY TRUE FALSE UNKNOWN WITH RECURSIVE SEPARATOR
-%token <empty> ALTER ADD CHANGE MODIFY RENAME COLUMN TO COMMENT_KWD FULLTEXT INSERT INTO
-%token <empty> ALL DISTINCT PRECISION AS EXISTS NULL ASC DESC VALUE VALUES DEFAULT LOCK UNLOCK
-%token <empty> DATE DATETIME TIME TIMESTAMP CURRENT_TIMESTAMP CURRENT_DATE UTC_TIMESTAMP UTC_DATE DECIMAL FLOAT NCHAR GROUP_CONCAT OBJECT_ID
-%token <empty> TIMESTAMPADD TIMESTAMPDIFF EXTRACT DATE_ADD ADDDATE
-%token <empty> DATE_SUB SUBDATE ROW
-%token <empty> CONVERT CAST CHAR SIGNED UNSIGNED SQL_BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER TINYINT INT BIGINT DOUBLE NUMERIC TEXT VARCHAR BOOLEAN
-%token <empty> BIT BLOB BOOL ENUM LONGTEXT MEDIUMBLOB MEDIUMTEXT TINYTEXT SERIAL SMALLINT
-%token <empty> BOTH LEADING TRAILING TRIM SUBSTRING SUBSTR
-%token <empty> BINARY MASTER LOGS DATABASE SCHEMA EVENT FUNCTION PROCEDURE BINLOG EVENTS TRIGGER USER
-%token <empty> ENGINE MUTEX ENGINES STORAGE ERRORS COUNT CODE GRANTS OPEN PLUGINS PRIVILEGES
-%token <empty> PROFILE PROFILES RELAYLOG SLAVE HOSTS TRIGGERS WARNINGS CHANNEL INDEXES KEYS SCHEMAS
-%token <empty> FN OJ ESCAPE
-%token <empty> TABLE DUAL INDEX VIEW IGNORE IF
-%token <bytes> TRANSACTION ISOLATION LEVEL
-%token <bytes> READ WRITE ONLY
-%token <empty> LOW_PRIORITY LOCAL
-%token <bytes> REPEATABLE COMMITTED UNCOMMITTED SERIALIZABLE
-%token <empty> NAMES CHARACTER COLLATE
-%token <empty> DATABASES TABLES PROXY VARIABLES FULL COLUMNS COLLATION PROCESSLIST STATUS CHARSET DBS
-%token <empty> EXPLAIN DESCRIBE
-%token <empty> EXTENDED PARTITIONS FORMAT TRADITIONAL JSON
-%token <empty> KILL FLUSH SAMPLE
-%token <empty> CONNECTION QUERY
-%token <empty> SESSION GLOBAL
-%token <empty> TEMPORARY RESTRICT CASCADE
-%token <empty> USING AUTO_INCREMENT
-%token <empty> OFF UNIQUE PRIMARY BTREE HASH
-%token <empty> ENABLE DISABLE
+%token <bytes> ISOLATION LEVEL READ WRITE ONLY REPEATABLE COMMITTED SERIALIZABLE
 
-%nonassoc <empty> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
-%nonassoc <empty> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
-%nonassoc <empty> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
+%nonassoc <bytes> YEAR QUARTER MONTH WEEK DAY HOUR MINUTE SECOND MICROSECOND
+%nonassoc <bytes> SECOND_MICROSECOND MINUTE_MICROSECOND MINUTE_SECOND HOUR_MICROSECOND HOUR_SECOND HOUR_MINUTE DAY_MICROSECOND DAY_SECOND DAY_MINUTE DAY_HOUR YEAR_MONTH
+%nonassoc <bytes> SQL_TSI_YEAR SQL_TSI_QUARTER SQL_TSI_MONTH SQL_TSI_WEEK SQL_TSI_DAY SQL_TSI_HOUR SQL_TSI_MINUTE SQL_TSI_SECOND
 %nonassoc <empty> FROM
 %left <empty> UNION MINUS EXCEPT INTERSECT
 %left <empty> COMMA
@@ -3098,425 +3089,426 @@ sql_id_or_string:
 keyword_as_id:
   ANY
   {
-    $$ = string(ANY_BYTES)
+    $$ = string($1)
   }
 | BINLOG
   {
-    $$ = string(BINLOG_BYTES)
+    $$ = string($1)
   }
 | AUTO_INCREMENT
   {
-    $$ = string(AUTO_INCREMENT_BYTES)
+    $$ = string($1)
   }
 | BIT
   {
-    $$ = string(BIT_BYTES)
+    $$ = string($1)
   }
 | BLOB
   {
-    $$ = string(BLOB_BYTES)
+    $$ = string($1)
   }
 | BOOL
   {
-    $$ = string(BOOL_BYTES)
+    $$ = string($1)
   }
 | BTREE
   {
-    $$ = string(BTREE_BYTES)
+    $$ = string($1)
   }
 | CHANNEL
   {
-    $$ = string(CHANNEL_BYTES)
+    $$ = string($1)
   }
 | CHARSET
   {
-    $$ = string(CHARSET_BYTES)
+    $$ = string($1)
   }
 | CODE
   {
-    $$ = string(CODE_BYTES)
+    $$ = string($1)
   }
 | COLLATION
   {
-    $$ = string(COLLATION_BYTES)
+    $$ = string($1)
   }
 | COLUMNS
   {
-    $$ = string(COLUMNS_BYTES)
+    $$ = string($1)
   }
 | COMMENT_KWD
   {
-    $$ = string(COMMENT_BYTES)
+    $$ = string($1)
   }
 | COMMITTED
   {
-    $$ = string(COMMITTED_BYTES)
+    $$ = string($1)
   }
 | CONNECTION
   {
-    $$ = string(CONNECTION_BYTES)
+    $$ = string($1)
   }
 | COUNT
   {
-    $$ = string(COUNT_BYTES)
+    $$ = string($1)
   }
 | DATE
   {
-    $$ = string(DATE_BYTES)
+    $$ = string($1)
   }
 | DATETIME
   {
-    $$ = string(DATETIME_BYTES)
+    $$ = string($1)
   }
 | DAY
   {
-    $$ = string(DAY_BYTES)
+    $$ = string($1)
   }
 | DBS
   {
-    $$ = string(DBS_BYTES)
+    $$ = string($1)
   }
 | DECIMAL
   {
-    $$ = string(DECIMAL_BYTES)
+    $$ = string($1)
   }
 | DISABLE
   {
-    $$ = string(DISABLE_BYTES)
+    $$ = string($1)
   }
 | ENABLE
   {
-    $$ = string(ENABLE_BYTES)
+    $$ = string($1)
   }
 | ENGINE
   {
-    $$ = string(ENGINE_BYTES)
+    $$ = string($1)
   }
 | ENGINES
   {
-    $$ = string(ENGINES_BYTES)
+    $$ = string($1)
   }
 | ENUM
   {
-    $$ = string(ENUM_BYTES)
+    $$ = string($1)
   }
 | ERRORS
   {
-    $$ = string(ERRORS_BYTES)
+    $$ = string($1)
   }
 | EVENT
   {
-    $$ = string(EVENT_BYTES)
+    $$ = string($1)
   }
 | EVENTS
   {
-    $$ = string(EVENTS_BYTES)
+    $$ = string($1)
   }
 | EXTENDED
   {
-    $$ = string(EXTENDED_BYTES)
+    $$ = string($1)
   }
 | FLOAT
   {
-    $$ = string(FLOAT_BYTES)
+    $$ = string($1)
   }
 | FORMAT
   {
-    $$ = string(FORMAT_BYTES)
+    $$ = string($1)
   }
 | FULL
   {
-    $$ = string(FULL_BYTES)
+    $$ = string($1)
   }
 | FUNCTION
   {
-    $$ = string(FUNCTION_BYTES)
+    $$ = string($1)
   }
 | GRANTS
   {
-    $$ = string(GRANTS_BYTES)
+    $$ = string($1)
   }
 | HASH
   {
-    $$ = string(HASH)
+    $$ = string($1)
   }
 | HOSTS
   {
-    $$ = string(HOSTS_BYTES)
+    $$ = string($1)
   }
 | HOUR
   {
-    $$ = string(HOUR_BYTES)
+    $$ = string($1)
   }
 | INDEXES
   {
-    $$ = string(INDEXES_BYTES)
+    $$ = string($1)
   }
 | ISOLATION
   {
-    $$ = string(ISOLATION_BYTES)
+    $$ = string($1)
   }
 | JSON
   {
-    $$ = string(JSON_BYTES)
+    $$ = string($1)
   }
 | LEVEL
   {
-    $$ = string(LEVEL_BYTES)
+    $$ = string($1)
   }
 | LOCAL
   {
-    $$ = string(LOCAL_BYTES)
+    $$ = string($1)
   }
 | LOGS
   {
-    $$ = string(LOGS_BYTES)
+    $$ = string($1)
   }
 | LONGTEXT
   {
-    $$ = string(LONGTEXT_BYTES)
+    $$ = string($1)
   }
 | MASTER
   {
-    $$ = string(MASTER_BYTES)
+    $$ = string($1)
   }
 | MEDIUMBLOB
   {
-    $$ = string(MEDIUMBLOB_BYTES)
+    $$ = string($1)
   }
 | MEDIUMTEXT
   {
-    $$ = string(MEDIUMTEXT_BYTES)
+    $$ = string($1)
   }
 | MICROSECOND
   {
-    $$ = string(MICROSECOND_BYTES)
+    $$ = string($1)
   }
 | MINUTE
   {
-    $$ = string(MINUTE_BYTES)
+    $$ = string($1)
   }
 | MONTH
   {
-    $$ = string(MONTH_BYTES)
+    $$ = string($1)
   }
 | MUTEX
   {
-    $$ = string(MUTEX_BYTES)
+    $$ = string($1)
   }
 | NAMES
   {
-    $$ = string(NAMES_BYTES)
+    $$ = string($1)
   }
 | NCHAR
   {
-    $$ = string(NCHAR_BYTES)
+    $$ = string($1)
   }
 | NUMBER
   {
-    $$ = string(NUMBER_BYTES)
+    $$ = string($1)
   }
 | OFFSET
   {
-    $$ = string(OFFSET_BYTES)
+    $$ = string($1)
   }
 | OBJECT_ID
   {
-    $$ = string(OBJECT_ID_BYTES)
+    $$ = string($1)
   }
 | ONLY
   {
-    $$ = string(ONLY_BYTES)
+    $$ = string($1)
   }
 | OPEN
   {
-    $$ = string(OPEN_BYTES)
+    $$ = string($1)
   }
 | PARTITIONS
   {
-    $$ = string(PARTITIONS_BYTES)
+    $$ = string($1)
   }
 | PLUGINS
   {
-    $$ = string(PLUGINS_BYTES)
+    $$ = string($1)
   }
 | PRIVILEGES
   {
-    $$ = string(PRIVILEGES_BYTES)
+    $$ = string($1)
   }
 | PROCESSLIST
   {
-    $$ = string(PROCESSLIST_BYTES)
+    $$ = string($1)
   }
 | PROFILE
   {
-    $$ = string(PROFILE_BYTES)
+    $$ = string($1)
   }
 | PROFILES
   {
-    $$ = string(PROFILES_BYTES)
+    $$ = string($1)
   }
 | PROXY
   {
-    $$ = string(PROXY_BYTES)
+    $$ = string($1)
   }
 | QUARTER
   {
-    $$ = string(QUARTER_BYTES)
+    $$ = string($1)
   }
 | QUERY
   {
-    $$ = string(QUERY_BYTES)
+    $$ = string($1)
   }
 | RELAYLOG
   {
-    $$ = string(RELAYLOG_BYTES)
+    $$ = string($1)
   }
 | REPEATABLE
   {
-    $$ = string(REPEATABLE_BYTES)
+    $$ = string($1)
   }
 | ROW
   {
-    $$ = string(ROW_BYTES)
+    $$ = string($1)
   }
 | SECOND
   {
-    $$ = string(SECOND_BYTES)
+    $$ = string($1)
   }
 | SERIAL
   {
-    $$ = string(SERIAL_BYTES)
+    $$ = string($1)
   }
 | SERIALIZABLE
   {
-    $$ = string(SERIALIZABLE_BYTES)
+    $$ = string($1)
   }
 | SIGNED
   {
-    $$ = string(SIGNED_BYTES)
+    $$ = string($1)
   }
 | SLAVE
   {
-    $$ = string(SLAVE_BYTES)
+    $$ = string($1)
   }
 | SMALLINT
   {
-    $$ = string(SMALLINT_BYTES)
+    $$ = string($1)
   }
 | SOME
   {
-    $$ = string(SOME_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_DAY
   {
-    $$ = string(SQL_TSI_DAY_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_HOUR
   {
-    $$ = string(SQL_TSI_HOUR_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_MINUTE
   {
-    $$ = string(SQL_TSI_MINUTE_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_MONTH
   {
-    $$ = string(SQL_TSI_MONTH_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_QUARTER
   {
-    $$ = string(SQL_TSI_QUARTER_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_SECOND
   {
-    $$ = string(SQL_TSI_SECOND_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_WEEK
   {
-    $$ = string(SQL_TSI_WEEK_BYTES)
+    $$ = string($1)
   }
 | SQL_TSI_YEAR
   {
-    $$ = string(SQL_TSI_YEAR_BYTES)
+    $$ = string($1)
   }
 | STATUS
   {
-    $$ = string(STATUS_BYTES)
+    $$ = string($1)
   }
 | STORAGE
   {
-    $$ = string(STORAGE_BYTES)
+    $$ = string($1)
   }
 | TABLES
   {
-    $$ = string(TABLES_BYTES)
+    $$ = string($1)
   }
 | TEMPORARY
   {
-    $$ = string(TEMPORARY_BYTES)
+    $$ = string($1)
   }
 | TIME
   {
-    $$ = string(TIME_BYTES)
+    $$ = string($1)
   }
 | TIMESTAMP
   {
-    $$ = string(TIMESTAMP_BYTES)
+    $$ = string($1)
   }
 | TIMESTAMPADD
   {
-    $$ = string(TIMESTAMPADD_BYTES)
+    $$ = string($1)
   }
 | TIMESTAMPDIFF
   {
-    $$ = string(TIMESTAMPDIFF_BYTES)
+    $$ = string($1)
   }
 | TINYINT
   {
-    $$ = string(TINYINT_BYTES)
+    $$ = string($1)
   }
 | TRANSACTION
   {
-    $$ = string(TRANSACTION_BYTES)
+    $$ = string($1)
   }
 | TRIGGERS
   {
-    $$ = string(TRIGGERS_BYTES)
+    $$ = string($1)
   }
+
 | UNCOMMITTED
   {
-    $$ = string(UNCOMMITTED_BYTES)
+    $$ = string($1)
   }
 | UNKNOWN
   {
-    $$ = string(UNKNOWN_BYTES)
+    $$ = string($1)
   }
 | USER
   {
-    $$ = string(USER_BYTES)
+    $$ = string($1)
   }
 | VALUE
   {
-    $$ = string(VALUE_BYTES)
+    $$ = string($1)
   }
 | VARIABLES
   {
-    $$ = string(VARIABLES_BYTES)
+    $$ = string($1)
   }
 | VIEW
   {
-    $$ = string(VIEW_BYTES)
+    $$ = string($1)
   }
 | WARNINGS
   {
-    $$ = string(WARNINGS_BYTES)
+    $$ = string($1)
   }
 | WEEK
   {
-    $$ = string(WEEK_BYTES)
+    $$ = string($1)
   }
 | YEAR
   {
-    $$ = string(YEAR_BYTES)
+    $$ = string($1)
   }

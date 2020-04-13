@@ -46,10 +46,7 @@ func (tkn *Tokenizer) Lex(lval *yySymType) int {
 		}
 		typ, val = tkn.Scan()
 	}
-	switch typ {
-	case ID, STRING, NUMBER, VALUE_ARG, COMMENT:
-		lval.bytes = val
-	}
+	lval.bytes = val
 	tkn.errorToken = val
 	return typ
 }
@@ -213,7 +210,7 @@ func (tkn *Tokenizer) scanIdentifier() (int, []byte) {
 	}
 	lowered := bytes.ToLower(buffer.Bytes())
 	if keywordID, found := keywords[string(lowered)]; found {
-		return keywordID, lowered
+		return keywordID, buffer.Bytes()
 	}
 	return ID, buffer.Bytes()
 }
