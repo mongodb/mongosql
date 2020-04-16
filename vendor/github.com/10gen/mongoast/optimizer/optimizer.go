@@ -19,6 +19,7 @@ func Optimize(ctx context.Context, pipeline *ast.Pipeline, memoryLimit uint64) *
 		MatchSplit,
 		Reorder,
 		MatchCoalescing,
+		SortCoalescing,
 		ConstantPropagation,
 		LetMinimization,
 		LetMerging,
@@ -63,6 +64,15 @@ func RunPasses(ctx context.Context, pipeline *ast.Pipeline, memoryLimit uint64, 
 				pipeline.Stages[i].(*ast.FacetStage).Items[j].Pipeline = RunPasses(
 					ctx,
 					typedStage.Items[j].Pipeline,
+					memoryLimit,
+					opts...,
+				)
+			}
+		case *ast.UnionWithStage:
+			if typedStage.Pipeline != nil {
+				pipeline.Stages[i].(*ast.UnionWithStage).Pipeline = RunPasses(
+					ctx,
+					typedStage.Pipeline,
 					memoryLimit,
 					opts...,
 				)

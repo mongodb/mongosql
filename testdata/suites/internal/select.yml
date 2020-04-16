@@ -1327,7 +1327,7 @@ testcases:
     expected_names: [a, result]
     expected_results:
       - [9223372036854775807, 0]
-      - [-9223372036854775808, -1] # the server overflows so MAX_INT64 - MIN_INT64 = MAX_INT64 + (MAX_INT64 + 1) = MAX_INT64 + MIN_INT64 = -1
+      - [-9223372036854775808, -1]  # the server overflows so MAX_INT64 - MIN_INT64 = MAX_INT64 + (MAX_INT64 + 1) = MAX_INT64 + MIN_INT64 = -1
       - [1, 9223372036854775806]
       - [2, 9223372036854775805]
       - [3, 9223372036854775804]
@@ -1353,7 +1353,7 @@ testcases:
     expected_names: [a, result]
     expected_results:
       - [9223372036854775807, 0]
-      - [-9223372036854775808, -1] # the server overflows so MAX_INT64 - MIN_INT64 = MAX_INT64 + (MAX_INT64 + 1) = MAX_INT64 + MIN_INT64 = -1
+      - [-9223372036854775808, -1]  # the server overflows so MAX_INT64 - MIN_INT64 = MAX_INT64 + (MAX_INT64 + 1) = MAX_INT64 + MIN_INT64 = -1
       - [1, 9223372036854775806]
       - [2, 9223372036854775805]
       - [3, 9223372036854775804]
@@ -1678,7 +1678,7 @@ testcases:
     description: multiplying large numbers
     expected_names: [result]
     expected_results:
-      - ['85070591730234620000000000000000000000'] # we match the server's imprecision
+      - ['85070591730234620000000000000000000000']  # we match the server's imprecision
     expected_types: [varchar]
     id: '61'
     sql: select 9223372036854775807*9223372036854775807 as result

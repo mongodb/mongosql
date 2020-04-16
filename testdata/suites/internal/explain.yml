@@ -52,15 +52,10 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, ProjectStage, '[{name: ''_id+_id'', type: ''float''}]', '[2]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
-      - [2, SubquerySourceStage, '[{name: join_test.b.''_id'', type: ''int''}]', '[3]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"SubquerySourceStage","reason":"unable to push down source stage"}]}']
-      - [3, ProjectStage, '[{name: join_test.join_2.''_id'', type: ''int''}]', '[4]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
-      - [4, GroupByStage, '[{name: join_test.join_2.''_id'', type: ''int''}]', '[5]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"GroupByStage","reason":"unable to push down source stage"}]}']
-      - [5, UnionDistinct, '[{name: join_test.join_2.''_id'', type: ''int''}]', '[6, 7]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"UnionStage","reason":"unions cannot be pushed down"}]}']
-      - [6, MongoSourceStage, '[{name: join_test.join_2.''_id'', type: ''int''}]', null, join_test, '[join_2]', '[join_2]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]', null, null]
-      - [7, MongoSourceStage, '[{name: join_test.join_3.''_id'', type: ''int''}]', null, join_test, '[join_3]', '[join_3]', '[join_3]', '[{"$project": {"join_test_DOT_join_3_DOT__id": "$_id"}}]', null, null]
+      - [1, MongoSourceStage, '[{name: ''_id+_id'', type: ''float''}]', null, 'join_test', '[join_2]', '[b]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}},{"$unionWith": {"coll": "join_3","pipeline": [{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]}},{"$group": {"_id": {"group_key_0": {"$ifNull": ["$join_test_DOT_join_2_DOT__id",{"$literal": null}]}}}},{"$project": {"join_test_DOT_b_DOT__id+join_test_DOT_b_DOT__id": {"$add": ["$_id.group_key_0","$_id.group_key_0"]},"_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '5'
+    min_server_version: '4.3'
     pushdown_only: true
     sql: explain select _id+_id from (select _id from join_2 union select _id from join_3) b
 
@@ -68,17 +63,10 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, ProjectStage, '[{name: ''_id+_id'', type: ''float''}]', '[2]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
-      - [2, LimitStage, '[{name: join_test.b.''_id'', type: ''int''}]', '[3]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"LimitStage","reason":"unable to push down source stage"}]}']
-      - [3, OrderByStage, '[{name: join_test.b.''_id'', type: ''int''}]', '[4]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"OrderByStage","reason":"unable to push down source stage"}]}']
-      - [4, SubquerySourceStage, '[{name: join_test.b.''_id'', type: ''int''}]', '[5]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"SubquerySourceStage","reason":"unable to push down source stage"}]}']
-      - [5, ProjectStage, '[{name: join_test.join_2.''_id'', type: ''int''}]', '[6]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
-      - [6, GroupByStage, '[{name: join_test.join_2.''_id'', type: ''int''}]', '[7]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"GroupByStage","reason":"unable to push down source stage"}]}']
-      - [7, UnionDistinct, '[{name: join_test.join_2.''_id'', type: ''int''}]', '[8, 9]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"UnionStage","reason":"unions cannot be pushed down"}]}']
-      - [8, MongoSourceStage, '[{name: join_test.join_2.''_id'', type: ''int''}]', null, join_test, '[join_2]', '[join_2]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]', null, null]
-      - [9, MongoSourceStage, '[{name: join_test.join_3.''_id'', type: ''int''}]', null, join_test, '[join_3]', '[join_3]', '[join_3]', '[{"$project": {"join_test_DOT_join_3_DOT__id": "$_id"}}]', null, null]
+      - [1, MongoSourceStage, '[{name: ''_id+_id'', type: ''float''}]', null, 'join_test', '[join_2]', '[b]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}},{"$unionWith": {"coll": "join_3","pipeline": [{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]}},{"$group": {"_id": {"group_key_0": {"$ifNull": ["$join_test_DOT_join_2_DOT__id",{"$literal": null}]}}}},{"$project": {"join_test_DOT_join_2_DOT__id": "$_id.group_key_0"}},{"$sort": {"join_test_DOT_join_2_DOT__id": NumberInt("1")}},{"$limit": NumberLong("10")},{"$project": {"join_test_DOT_b_DOT__id+join_test_DOT_b_DOT__id": {"$add": ["$join_test_DOT_join_2_DOT__id","$join_test_DOT_join_2_DOT__id"]},"_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '6'
+    min_server_version: '4.3'
     pushdown_only: true
     sql: explain select _id+_id from (select _id from join_2 union select _id from join_3) b order by _id limit 10
 
@@ -96,13 +84,10 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, ProjectStage, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[2]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"ProjectStage","reason":"unable to push down source stage"}]}']
-      - [2, GroupByStage, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[3]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"GroupByStage","reason":"unable to push down source stage"}]}']
-      - [3, UnionDistinct, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', '[4, 5]', ~, null, null, null, null, null, '{"pushdown_errors":[{"name":"UnionStage","reason":"unions cannot be pushed down"}]}']
-      - [4, MongoSourceStage, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', null, union_test, '[union_1]', '[a]', '[union_1]', '[{"$project": {"union_test_DOT_a_DOT__id": "$_id","union_test_DOT_a_DOT_a": "$a","union_test_DOT_a_DOT_b": "$b","union_test_DOT_a_DOT_c": "$c"}}]', null, null]
-      - [5, MongoSourceStage, '[{name: union_test.b.''_id'', type: ''int''}, {name: union_test.b.''d'', type: ''int''}, {name: union_test.b.''e'', type: ''int''}, {name: union_test.b.''f'', type: ''int''}]', null, union_test, '[union_2]', '[b]', '[union_2]', '[{"$project": {"union_test_DOT_b_DOT__id": "$_id","union_test_DOT_b_DOT_d": "$d","union_test_DOT_b_DOT_e": "$e","union_test_DOT_b_DOT_f": "$f"}}]', null, null]
+      - [1, MongoSourceStage, '[{name: union_test.a.''_id'', type: ''int''}, {name: union_test.a.''a'', type: ''int''}, {name: union_test.a.''b'', type: ''int''}, {name: union_test.a.''c'', type: ''int''}]', null, 'union_test', '[union_1]', '[a]', '[union_1]', '[{"$project": {"union_test_DOT_a_DOT__id": "$_id","union_test_DOT_a_DOT_a": "$a","union_test_DOT_a_DOT_b": "$b","union_test_DOT_a_DOT_c": "$c"}},{"$unionWith": {"coll": "union_2","pipeline": [{"$project": {"union_test_DOT_a_DOT__id": "$_id","union_test_DOT_a_DOT_a": "$d","union_test_DOT_a_DOT_b": "$e","union_test_DOT_a_DOT_c": "$f"}}]}},{"$group": {"_id": {"group_key_0": {"$ifNull": ["$union_test_DOT_a_DOT__id",{"$literal": null}]},"group_key_1": {"$ifNull": ["$union_test_DOT_a_DOT_a",{"$literal": null}]},"group_key_2": {"$ifNull": ["$union_test_DOT_a_DOT_b",{"$literal": null}]},"group_key_3": {"$ifNull": ["$union_test_DOT_a_DOT_c",{"$literal": null}]}}}},{"$project": {"union_test_DOT_a_DOT__id": "$_id.group_key_0","union_test_DOT_a_DOT_a": "$_id.group_key_1","union_test_DOT_a_DOT_b": "$_id.group_key_2","union_test_DOT_a_DOT_c": "$_id.group_key_3","_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '8'
+    min_server_version: '4.3'
     pushdown_only: true
     sql: describe select * from union_1 a union select * from union_2 b
 

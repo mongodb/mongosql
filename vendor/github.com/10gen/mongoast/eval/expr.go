@@ -15,13 +15,14 @@ import (
 var ErrMemoryLimitExceeded = errors.New("memory limit exceeded")
 
 var unaryFunctions = map[ast.UnaryOp]func(bsoncore.Value) (bsoncore.Value, error){
-	ast.Abs:   bsonutil.Abs,
-	ast.Ceil:  bsonutil.Ceil,
-	ast.Floor: bsonutil.Floor,
-	ast.Exp:   bsonutil.Exp,
-	ast.Ln:    bsonutil.Ln,
-	ast.Log10: bsonutil.Log10,
-	ast.Sqrt:  bsonutil.Sqrt,
+	ast.Abs:      bsonutil.Abs,
+	ast.Ceil:     bsonutil.Ceil,
+	ast.Floor:    bsonutil.Floor,
+	ast.Exp:      bsonutil.Exp,
+	ast.Ln:       bsonutil.Ln,
+	ast.Log10:    bsonutil.Log10,
+	ast.Sqrt:     bsonutil.Sqrt,
+	ast.ToString: bsonutil.ToString,
 }
 
 var binaryFunctions = map[ast.BinaryOp]func(bsoncore.Value, bsoncore.Value) (bsoncore.Value, error){
@@ -312,6 +313,8 @@ func (v exprEvaluator) eval(n ast.Expr, value bsoncore.Value) (ast.Expr, uint64,
 		}
 
 		return makeConstant(bsonutil.False)
+	case *ast.Convert:
+		return v.evalConvert(tn, value)
 	default:
 		return n, 0, nil
 	}
@@ -342,7 +345,14 @@ func (v exprEvaluator) evalUnary(n *ast.Unary, value bsoncore.Value) (ast.Expr, 
 	}
 
 	switch n.Op {
-	case ast.Abs, ast.Ceil, ast.Floor, ast.Exp, ast.Ln, ast.Log10, ast.Sqrt:
+	case ast.Abs,
+		ast.Ceil,
+		ast.Floor,
+		ast.Exp,
+		ast.Ln,
+		ast.Log10,
+		ast.Sqrt,
+		ast.ToString:
 		result, err := unaryFunctions[n.Op](exprc.Value)
 		if err != nil {
 			return nil, 0, err
@@ -706,4 +716,94 @@ func (v exprEvaluator) evalLet(n *ast.Let, value bsoncore.Value) (ast.Expr, uint
 		SubstituteVariables(n.Expr, variables).(ast.Expr),
 		value,
 	)
+}
+
+func (v exprEvaluator) evalConvert(n *ast.Convert, value bsoncore.Value) (ast.Expr, uint64, error) {
+	evalOnNull := func() (ast.Expr, uint64, error) {
+		if n.OnNull != nil {
+			onNull, onNullMem, err := v.eval(n.OnNull, value)
+			if err != nil {
+				return nil, 0, err
+			}
+			return onNull, onNullMem, nil
+		}
+		return makeConstant(bsonutil.Null())
+	}
+
+	input, inputMem, err := v.eval(n.Input, value)
+	// If the bsontype of value is MinKey, it means this code has been
+	// executed from ConstantPropagation, which requires returning an
+	// err in the presence of a field reference.
+	if err == bsoncore.ErrElementNotFound && value.Type != bsontype.MinKey {
+		// Handle missing input value.
+		return evalOnNull()
+	} else if err != nil {
+		return nil, 0, err
+	}
+
+	to, toMem, err := v.eval(n.To, value)
+	if err == bsoncore.ErrElementNotFound && value.Type != bsontype.MinKey {
+		// Same MinKey situation as above.
+		return makeConstant(bsonutil.Null())
+	} else if err != nil {
+		return nil, 0, err
+	}
+
+	inputConst, inputOK := input.(*ast.Constant)
+	toConst, toOK := to.(*ast.Constant)
+	if !inputOK || !toOK {
+		mem := inputMem + toMem
+		if n.OnError != nil {
+			mem += n.OnError.MemoryUsage()
+		}
+		if n.OnNull != nil {
+			mem += n.OnNull.MemoryUsage()
+		}
+		if input != n.Input && to != n.To {
+			return ast.NewConvert(input, to, n.OnError, n.OnNull), mem, nil
+		}
+		return n, mem, nil
+	}
+
+	// Get BSON type from type constant expression, which must be either a
+	// string value or an integer numeric value.
+	var toType bsontype.Type
+	var ok bool
+	switch toConst.Value.Type {
+	case bsontype.String:
+		toType, ok = bsonutil.StringToTypeOK(toConst.Value.StringValue())
+		if !ok {
+			return nil, 0, fmt.Errorf("unknown type name: %s", toConst.Value.StringValue())
+		}
+	case bsontype.Int32, bsontype.Int64, bsontype.Double, bsontype.Decimal128:
+		typeInt, ok := bsonutil.AsInt64OK(toConst.Value)
+		if !ok {
+			return nil, 0, fmt.Errorf("in $convert, numeric 'to' argument is not an integer")
+		}
+		toType, ok = bsonutil.Int64ToTypeOK(typeInt)
+		if !ok {
+			return nil, 0, fmt.Errorf("in $convert, numeric value for 'to' does not correspond to a BSON type: %d", typeInt)
+		}
+	default:
+		return nil, 0, fmt.Errorf("$convert's 'to' argument must be a string or number, but is %s", bsonutil.TypeToString(toConst.Value.Type))
+	}
+
+	// Handle null input value.
+	if inputConst.Value.Type == bsontype.Null {
+		return evalOnNull()
+	}
+
+	result, err := bsonutil.Convert(inputConst.Value, toType)
+	if err != nil {
+		if n.OnError != nil {
+			onError, onErrorMem, err := v.eval(n.OnError, value)
+			if err != nil {
+				return nil, 0, err
+			}
+			return onError, onErrorMem, nil
+		}
+		return nil, 0, err
+	}
+
+	return makeConstant(result)
 }

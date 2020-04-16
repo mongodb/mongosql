@@ -76,6 +76,9 @@ test-kill-queries-3.6: test-kill-queries
 test-kill-queries-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/4.0
 test-kill-queries-4.0: test-kill-queries
 
+test-kill-queries-4.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/4.2
+test-kill-queries-4.2: test-kill-queries
+
 test-kill-queries-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/latest
 test-kill-queries-latest: test-kill-queries
 

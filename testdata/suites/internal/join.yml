@@ -1301,6 +1301,7 @@ testcases:
     expected_types: [int, int]
     id: cross_join_7
     sql: select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d union select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]

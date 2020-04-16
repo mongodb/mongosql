@@ -143,6 +143,7 @@ func (n *CurrentOpStage) DeepCopy() DeepCopier {
 		n.IdleCursors,
 		n.IdleSessions,
 		n.LocalOps,
+		n.Debug,
 	)
 }
 
@@ -338,6 +339,24 @@ func (n *SortByCountStage) DeepCopy() DeepCopier {
 }
 
 // DeepCopy implements the DeepCopier interface.
+func (n *SortByExprStage) DeepCopy() DeepCopier {
+	var newItems []*SortItem
+
+	if n.Items != nil {
+		newItems = make([]*SortItem, len(n.Items))
+		for i, item := range n.Items {
+			if item == nil {
+				newItems[i] = nil
+			} else {
+				newItems[i] = item.DeepCopy().(*SortItem)
+			}
+		}
+	}
+
+	return NewSortByExprStage(newItems...)
+}
+
+// DeepCopy implements the DeepCopier interface.
 func (n *SortedMergeStage) DeepCopy() DeepCopier {
 	var newItems []*SortItem
 
@@ -364,6 +383,21 @@ func (n *UnwindStage) DeepCopy() DeepCopier {
 	}
 
 	return NewUnwindStage(newPath, n.IncludeArrayIndex, n.PreserveNullAndEmptyArrays)
+}
+
+// DeepCopy implements the DeepCopier interface.
+func (n *UnionWithStage) DeepCopy() DeepCopier {
+	var newColl string
+	var newPipeline *Pipeline
+
+	if n.Coll != "" {
+		newColl = n.Coll
+	}
+	if n.Pipeline != nil {
+		newPipeline = n.Pipeline.DeepCopy().(*Pipeline)
+	}
+
+	return NewUnionWithStage(newColl, newPipeline)
 }
 
 //---------------------------------
@@ -494,6 +528,30 @@ func (n *Document) DeepCopy() DeepCopier {
 // DeepCopy implements the DeepCopier interface.
 func (n *Constant) DeepCopy() DeepCopier {
 	return NewConstant(n.Value)
+}
+
+// DeepCopy implements the DeepCopier interface.
+func (n *Convert) DeepCopy() DeepCopier {
+	var newInput, newTo, newOnError, newOnNull Expr
+
+	if n.Input != nil {
+		newInput = n.Input.DeepCopy().(Expr)
+	}
+
+	if n.To != nil {
+		newTo = n.To.DeepCopy().(Expr)
+	}
+
+	if n.OnError != nil {
+		newOnError = n.OnError.DeepCopy().(Expr)
+	}
+
+	if n.OnNull != nil {
+		newOnNull = n.OnNull.DeepCopy().(Expr)
+	}
+
+	return NewConvert(newInput, newTo, newOnError, newOnNull)
+
 }
 
 // DeepCopy implements the DeepCopier interface.

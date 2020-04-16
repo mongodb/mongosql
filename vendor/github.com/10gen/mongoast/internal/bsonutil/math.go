@@ -47,9 +47,7 @@ func Abs(a bsoncore.Value) (bsoncore.Value, error) {
 // Ceil takes the ceil of a numeric type
 func Ceil(a bsoncore.Value) (bsoncore.Value, error) {
 	switch a.Type {
-	case bsontype.Int32:
-		return a, nil
-	case bsontype.Int64:
+	case bsontype.Int32, bsontype.Int64:
 		return a, nil
 	case bsontype.Double:
 		return Double(math.Ceil(a.Double())), nil
@@ -73,9 +71,7 @@ func Ceil(a bsoncore.Value) (bsoncore.Value, error) {
 // Floor takes the floor of a numeric type
 func Floor(a bsoncore.Value) (bsoncore.Value, error) {
 	switch a.Type {
-	case bsontype.Int32:
-		return a, nil
-	case bsontype.Int64:
+	case bsontype.Int32, bsontype.Int64:
 		return a, nil
 	case bsontype.Double:
 		return Double(math.Floor(a.Double())), nil
@@ -134,6 +130,9 @@ func Ln(a bsoncore.Value) (bsoncore.Value, error) {
 		if err != nil {
 			return Null(), err
 		}
+		if d.Cmp(Decimal0) <= 0 {
+			return Null(), errors.Errorf("$ln's argument must be a positive number, but is %s", d.String())
+		}
 
 		return Decimal128(d.Log()), nil
 	case bsontype.Null, bsontype.Undefined:
@@ -159,6 +158,9 @@ func Log10(a bsoncore.Value) (bsoncore.Value, error) {
 		d, err := NewDecimal(a.Decimal128())
 		if err != nil {
 			return Null(), err
+		}
+		if d.Cmp(Decimal0) <= 0 {
+			return Null(), errors.Errorf("$log10's argument must be a positive number, but is %s", d.String())
 		}
 
 		return Decimal128(d.Log10()), nil

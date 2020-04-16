@@ -146,7 +146,7 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 			values, _ = arr.Values()
 		}
 		return parseVarArgsExpr(ast.BinaryOp(key), values)
-	case "$not", "$abs", "$ceil", "$floor", "$exp", "$ln", "$log10":
+	case "$not", "$abs", "$ceil", "$floor", "$exp", "$ln", "$log10", "$toString":
 		var exprValue bsoncore.Value
 		arr, ok := v.ArrayOK()
 		if ok {

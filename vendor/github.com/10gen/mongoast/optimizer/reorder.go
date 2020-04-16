@@ -6,6 +6,7 @@ import (
 	"github.com/10gen/mongoast/analyzer"
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/eval"
+	"github.com/10gen/mongoast/internal/stringutil"
 	"github.com/10gen/mongoast/parser"
 )
 
@@ -66,8 +67,138 @@ func trySwapStages(a, b ast.Stage, referencedFields [][]string) (ast.Stage, ast.
 		}
 	case *ast.MatchStage:
 		return trySwapMatch(a, ts, referencedFields)
+	case ast.SortingStage:
+		return trySwapSort(a, ts)
 	}
 	return nil, nil, false
+}
+
+func trySwapSort(a ast.Stage, b ast.SortingStage) (ast.Stage, ast.Stage, bool) {
+	switch ts := a.(type) {
+	// Stages that unconditionally preserve sort order.
+	// Do not swap with $match stage, since we want $match stages to come
+	// before $sort stages and $match stages will move up the pipeline,
+	// making room for $sort.
+	case *ast.CountStage:
+	case *ast.OutStage:
+	case *ast.SampleStage:
+	// Stages that preserve sort order if they don't alter fields that will
+	// be sorted by the later sort stage.
+	case *ast.AddFieldsStage:
+		changedRefs := stringutil.NewStringSet()
+		for _, item := range ts.Items {
+			changedRefs.Add(item.Name)
+		}
+		if doesSortRef(b, changedRefs) {
+			return nil, nil, false
+		}
+	case *ast.LookupStage:
+		changedRefs := stringutil.NewStringSet()
+		changedRefs.Add(ts.As)
+		if doesSortRef(b, changedRefs) {
+			return nil, nil, false
+		}
+	case *ast.ProjectStage:
+		excludedRefs := stringutil.NewStringSet()
+		includedRefs := stringutil.NewStringSet()
+		for _, item := range ts.Items {
+			switch ti := item.(type) {
+			case *ast.AssignProjectItem:
+				return nil, nil, false
+			case *ast.ExcludeProjectItem:
+				includedRefs.Remove(ti.GetName())
+				excludedRefs.Add(ti.GetName())
+			case *ast.IncludeProjectItem:
+				excludedRefs.Remove(ti.GetName())
+				includedRefs.Add(ti.GetName())
+			default:
+				return nil, nil, false
+			}
+		}
+		// Handle implicitly included _id field when any fields are included.
+		if includedRefs.Len() > 0 && !excludedRefs.Contains("_id") {
+			includedRefs.Add("_id")
+		}
+		if doesSortRef(b, excludedRefs) || doesSortOtherRef(b, includedRefs) {
+			return nil, nil, false
+		}
+	case *ast.UnwindStage:
+		changedRefs := stringutil.NewStringSet()
+		changedRefs.Add(ts.IncludeArrayIndex)
+		changedRefs.Add(ast.GetDottedFieldName(ts.Path))
+		if doesSortRef(b, changedRefs) {
+			return nil, nil, false
+		}
+	// Assume all other stages will not preserve sort order.
+	default:
+		return nil, nil, false
+	}
+
+	return a, b, true
+}
+
+// doesSortRef returns true if any of the fields referenced by the specified
+// SortStage are among the field refs in the specified slice of refs.
+func doesSortRef(s ast.SortingStage, refs *stringutil.StringSet) bool {
+	if refs.Len() == 0 {
+		return false
+	}
+	sortedRefs, ok := getSortedPrefixesByRef(s)
+	if !ok {
+		// Couldn't determine whether the sort uses one of the refs,
+		// so err on the side of saying it does.
+		return true
+	}
+	for _, sortedRef := range sortedRefs {
+		for _, sortedPrefix := range sortedRef {
+			if refs.Contains(sortedPrefix) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// doesSortOtherRef returns true if any of fields referenced by the specified
+// SortStage are NOT among the field refs in the specified slice of refs.
+func doesSortOtherRef(s ast.SortingStage, refs *stringutil.StringSet) bool {
+	if refs.Len() == 0 {
+		return false
+	}
+	sortedRefs, ok := getSortedPrefixesByRef(s)
+	if !ok {
+		// Couldn't determine whether the sort uses other refs,
+		// so err on the side of saying it does.
+		return true
+	}
+	for _, sortedRef := range sortedRefs {
+		found := false
+		for _, sortedPrefix := range sortedRef {
+			if refs.Contains(sortedPrefix) {
+				found = true
+			}
+		}
+		if !found {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getSortedPrefixesByRef(s ast.SortingStage) ([][]string, bool) {
+	prefixesByRef := make([][]string, 0, len(s.SortItems()))
+	for _, item := range s.SortItems() {
+		refs, ok := analyzer.ReferencedFieldNames(item.Expr)
+		if !ok {
+			return nil, false
+		}
+		for _, ref := range refs {
+			prefixesByRef = append(prefixesByRef, analyzer.GetDotPrefixesOfString(ref))
+		}
+	}
+	return prefixesByRef, true
 }
 
 func trySwapMatch(a ast.Stage, b *ast.MatchStage, referencedMatchFields [][]string) (ast.Stage, ast.Stage, bool) {
@@ -163,7 +294,7 @@ func trySwapMatch(a ast.Stage, b *ast.MatchStage, referencedMatchFields [][]stri
 			}
 		}
 		return a, b, true
-	case *ast.SortStage, *ast.MatchStage:
+	case *ast.SortStage, *ast.SortByExprStage, *ast.MatchStage:
 		return a, b, true
 	case *ast.LookupStage:
 		dottedAs := strings.Split(ts.As, ".")

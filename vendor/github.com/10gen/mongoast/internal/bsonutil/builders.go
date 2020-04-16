@@ -3,6 +3,7 @@ package bsonutil
 import (
 	"fmt"
 	"strconv"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -90,6 +91,10 @@ func DateTime(v int64) bsoncore.Value {
 		Type: bsontype.DateTime,
 		Data: bsoncore.AppendDateTime(nil, v),
 	}
+}
+
+func DateTimeFromTime(t time.Time) bsoncore.Value {
+	return DateTime(t.UnixNano() / time.Millisecond.Nanoseconds())
 }
 
 func Document(v bsoncore.Document) bsoncore.Value {

@@ -126,6 +126,9 @@ func DeparseStageErr(n ast.Stage) (bsoncore.Value, error) {
 		if tn.LocalOps {
 			doc = bsoncore.AppendBooleanElement(doc, "localOps", true)
 		}
+		if tn.Debug {
+			doc = bsoncore.AppendBooleanElement(doc, "debug", true)
+		}
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return makeDocStage("$currentOp", doc), nil
 	case *ast.FacetStage:
@@ -295,17 +298,32 @@ func DeparseStageErr(n ast.Stage) (bsoncore.Value, error) {
 			return bsoncore.Value{}, err
 		}
 		return makeValueStage("$sortByCount", v), nil
-	case *ast.SortedMergeStage:
+	case *ast.SortByExprStage:
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		for _, i := range tn.Items {
-			key, err := deparseMatchFieldName(i.Expr)
+			key, err := DeparseExprErr(i.Expr)
 			if err != nil {
 				return bsoncore.Value{}, err
 			}
 			if i.Descending {
-				doc = bsoncore.AppendInt32Element(doc, key, -1)
+				doc = bsoncore.AppendInt32Element(doc, key.String(), -1)
 			} else {
-				doc = bsoncore.AppendInt32Element(doc, key, 1)
+				doc = bsoncore.AppendInt32Element(doc, key.String(), 1)
+			}
+		}
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return makeDocStage("$sortByExpr", doc), nil
+	case *ast.SortedMergeStage:
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		for _, i := range tn.Items {
+			key, err := DeparseExprErr(i.Expr)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+			if i.Descending {
+				doc = bsoncore.AppendInt32Element(doc, key.String(), -1)
+			} else {
+				doc = bsoncore.AppendInt32Element(doc, key.String(), 1)
 			}
 		}
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
@@ -332,6 +350,21 @@ func DeparseStageErr(n ast.Stage) (bsoncore.Value, error) {
 		}
 		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
 		return makeDocStage("$unwind", doc), nil
+	case *ast.UnionWithStage:
+		if tn.Pipeline != nil {
+			_, doc := bsoncore.AppendDocumentStart(nil)
+			doc = bsoncore.AppendStringElement(doc, "coll", tn.Coll)
+
+			v, err := DeparsePipelineErr(tn.Pipeline)
+			if err != nil {
+				return bsoncore.Value{}, err
+			}
+			doc = bsonutil.AppendValueElement(doc, "pipeline", v)
+			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+			return makeDocStage("$unionWith", doc), nil
+		} else {
+			return makeStringStage("$unionWith", tn.Coll), nil
+		}
 	}
 
 	return bsoncore.Value{}, fmt.Errorf("unsupported node %T", n)

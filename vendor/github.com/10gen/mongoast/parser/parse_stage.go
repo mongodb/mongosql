@@ -158,16 +158,25 @@ func ParseStage(doc bsoncore.Document) (ast.Stage, error) {
 		return parseSortStage(vdoc)
 	case "$sortByCount":
 		return parseSortByCountStage(e.Value())
+	case "$sortByExpr":
+		vdoc, ok := e.Value().DocumentOK()
+		if !ok {
+			return nil, errors.New("$sortByExpr stage must have a document as its only argument")
+		}
+		return parseSortByExprStage(vdoc)
 	case "$sortedMerge":
 		vdoc, ok := e.Value().DocumentOK()
 		if !ok {
 			return nil, errors.New("$sortedMerge stage must have a document as its only argument")
 		}
-		return parseSortMergeStage(vdoc)
+		return parseSortedMergeStage(vdoc)
 	case "$unset":
 		return parseUnset(e.Value())
 	case "$unwind":
 		return parseUnwind(e.Value())
+	case "$unionWith":
+		return parseUnionWith(e.Value())
+
 	default:
 		return ast.NewUnknown(bsoncore.Value{
 			Type: bsontype.EmbeddedDocument,
@@ -372,6 +381,7 @@ func parseCurrentOpStage(doc bsoncore.Document) (*ast.CurrentOpStage, error) {
 	var idleCursors bool
 	var idleSessions bool
 	var localOps bool
+	var debug bool
 	var ok bool
 
 	elems, _ := doc.Elements()
@@ -382,6 +392,14 @@ func parseCurrentOpStage(doc bsoncore.Document) (*ast.CurrentOpStage, error) {
 			if !ok {
 				return nil, errors.Errorf(
 					"the 'allUsers' parameter of the $currentOp stage must be a boolean value but found: %s",
+					bsonutil.TypeToString(e.Value().Type),
+				)
+			}
+		case "debug":
+			debug, ok = e.Value().BooleanOK()
+			if !ok {
+				return nil, errors.Errorf(
+					"the 'debug' parameter of the $currentOp stage must be a boolean value but found: %s",
 					bsonutil.TypeToString(e.Value().Type),
 				)
 			}
@@ -431,6 +449,7 @@ func parseCurrentOpStage(doc bsoncore.Document) (*ast.CurrentOpStage, error) {
 		idleCursors,
 		idleSessions,
 		localOps,
+		debug,
 	), nil
 }
 
@@ -956,7 +975,7 @@ func parseSampleStage(doc bsoncore.Document) (*ast.SampleStage, error) {
 }
 
 func parseSortStage(doc bsoncore.Document) (*ast.SortStage, error) {
-	items, err := parseSortItems(doc)
+	items, err := parseSortItems(doc, true)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed parsing sort items")
 	}
@@ -977,8 +996,21 @@ func parseSortByCountStage(v bsoncore.Value) (*ast.SortByCountStage, error) {
 	return ast.NewSortByCountStage(expr), nil
 }
 
-func parseSortMergeStage(doc bsoncore.Document) (*ast.SortedMergeStage, error) {
-	items, err := parseSortItems(doc)
+func parseSortByExprStage(doc bsoncore.Document) (*ast.SortByExprStage, error) {
+	items, err := parseSortItems(doc, false)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed parsing $sortByExpr items")
+	}
+
+	if len(items) == 0 {
+		return nil, errors.New("$sortByExpr stage must have at least one sort key")
+	}
+
+	return ast.NewSortByExprStage(items...), nil
+}
+
+func parseSortedMergeStage(doc bsoncore.Document) (*ast.SortedMergeStage, error) {
+	items, err := parseSortItems(doc, false)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed parsing sort items")
 	}
@@ -986,59 +1018,74 @@ func parseSortMergeStage(doc bsoncore.Document) (*ast.SortedMergeStage, error) {
 	return ast.NewSortedMergeStage(items...), nil
 }
 
-func parseSortItems(doc bsoncore.Document) ([]*ast.SortItem, error) {
-
-	compareDecimal := func(x decimalutil.Decimal128, y int32) int {
-		return decimalutil.Compare(x, decimalutil.FromInt32(y))
-	}
-
+func parseSortItems(doc bsoncore.Document, requireFieldRefs bool) ([]*ast.SortItem, error) {
 	elems, _ := doc.Elements()
 	items := make([]*ast.SortItem, len(elems))
 	for i, e := range elems {
-		expr, err := ParseFieldRef(e.Key())
-		if err != nil {
-			return nil, errors.Wrapf(err, "failed parsing sort field ref %s", e.Key())
+		var expr ast.Expr
+		var err error
+		if requireFieldRefs {
+			expr, err = ParseFieldRef(e.Key())
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed parsing sort field ref %s", e.Key())
+			}
+		} else {
+			expr, err = ParseExprJSON(e.Key())
+			if err != nil {
+				return nil, errors.Wrapf(err, "failed parsing sort expression %s", e.Key())
+			}
 		}
 
-		descending := false
-		value := e.Value()
-		switch value.Type {
-		case bsontype.Decimal128:
-			d128 := decimalutil.FromPrimitive(value.Decimal128())
-			if compareDecimal(d128, -1) <= 0 && compareDecimal(d128, -2) > 0 {
-				descending = true
-			} else if compareDecimal(d128, 1) < 0 || compareDecimal(d128, 2) >= 0 {
-				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
-			}
-		case bsontype.Double:
-			f64 := value.Double()
-			if f64 <= -1.0 && f64 > -2.0 {
-				descending = true
-			} else if f64 < 1.0 || f64 >= 2.0 {
-				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
-			}
-		case bsontype.Int32:
-			i32 := value.Int32()
-			if i32 == -1 {
-				descending = true
-			} else if i32 != 1 {
-				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
-			}
-		case bsontype.Int64:
-			i64 := value.Int64()
-			if i64 == -1 {
-				descending = true
-			} else if i64 != 1 {
-				return nil, errors.New("$sort key ordering must be 1 (for ascending) or -1 (for descending)")
-			}
-		default:
-			return nil, fmt.Errorf("$sort key ordering must be specified using a number")
+		descending, err := parseSortItemDescendingValue(e.Value())
+		if err != nil {
+			return nil, err
 		}
 
 		items[i] = ast.NewSortItem(expr, descending)
 	}
 
 	return items, nil
+}
+
+func parseSortItemDescendingValue(value bsoncore.Value) (bool, error) {
+	compareDecimal := func(x decimalutil.Decimal128, y int32) int {
+		return decimalutil.Compare(x, decimalutil.FromInt32(y))
+	}
+
+	switch value.Type {
+	case bsontype.Decimal128:
+		d128 := decimalutil.FromPrimitive(value.Decimal128())
+		if compareDecimal(d128, -1) <= 0 && compareDecimal(d128, -2) > 0 {
+			return true, nil
+		} else if compareDecimal(d128, 1) < 0 || compareDecimal(d128, 2) >= 0 {
+			return false, errors.New("sort key ordering must be 1 (for ascending) or -1 (for descending)")
+		}
+	case bsontype.Double:
+		f64 := value.Double()
+		if f64 <= -1.0 && f64 > -2.0 {
+			return true, nil
+		} else if f64 < 1.0 || f64 >= 2.0 {
+			return false, errors.New("sort key ordering must be 1 (for ascending) or -1 (for descending)")
+		}
+	case bsontype.Int32:
+		i32 := value.Int32()
+		if i32 == -1 {
+			return true, nil
+		} else if i32 != 1 {
+			return false, errors.New("sort key ordering must be 1 (for ascending) or -1 (for descending)")
+		}
+	case bsontype.Int64:
+		i64 := value.Int64()
+		if i64 == -1 {
+			return true, nil
+		} else if i64 != 1 {
+			return false, errors.New("sort key ordering must be 1 (for ascending) or -1 (for descending)")
+		}
+	default:
+		return false, fmt.Errorf("sort key ordering must be specified using a number")
+	}
+
+	return false, nil
 }
 
 func parseUnset(v bsoncore.Value) (*ast.ProjectStage, error) {
@@ -1140,4 +1187,63 @@ func parseUnwind(v bsoncore.Value) (*ast.UnwindStage, error) {
 	}
 
 	return ast.NewUnwindStage(path.(ast.Ref), includeArrayIndex, preserveNullAndEmptyArrays), nil
+}
+
+func parseUnionWith(v bsoncore.Value) (*ast.UnionWithStage, error) {
+	switch v.Type {
+	case bsontype.String:
+		coll := v.StringValue()
+		return ast.NewUnionWithStage(coll, nil), nil
+	case bsontype.EmbeddedDocument:
+		vdoc := v.Document()
+		elems, _ := vdoc.Elements()
+		if len(elems) < 1 {
+			return nil, errors.New("the $unionWith document must have at least one argument")
+		}
+
+		var coll string
+		var err error
+		pipeline := ast.NewPipeline()
+
+		for _, e := range elems {
+			switch e.Key() {
+			case "coll":
+				switch e.Value().Type {
+				case bsontype.String:
+					coll = elems[0].Value().StringValue()
+				default:
+					return nil, errors.Errorf(
+						"$unionWith argument 'coll: %v' must be a string, it is type %v",
+						e.Value(),
+						e.Value().Type,
+					)
+				}
+			case "pipeline":
+				arr, ok := elems[1].Value().ArrayOK()
+				if !ok {
+					return nil, errors.New("'pipeline' option must be specified as an array")
+				}
+				pipeline, err = ParsePipeline(arr)
+				if err != nil {
+					return nil, err
+				}
+				for _, stage := range pipeline.Stages {
+					if stage.StageName() == "$out" || stage.StageName() == "$merge" {
+						return nil, errors.New("the pipeline inside $unionWith cannot include $out or $merge")
+					}
+				}
+			default:
+				return nil, errors.New("unknown argument to $unionWith")
+			}
+		}
+		if coll == "" {
+			return nil, errors.Errorf(
+				"missing 'coll' option to $unionWith stage specification: %v",
+				v.Document(),
+			)
+		}
+		return ast.NewUnionWithStage(coll, pipeline), nil
+	default:
+		return nil, errors.New("invalid $unionWith argument(s)")
+	}
 }

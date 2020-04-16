@@ -59,3 +59,60 @@ func TypeToString(t bsontype.Type) string {
 		return "invalid"
 	}
 }
+
+func StringToTypeOK(s string) (bsontype.Type, bool) {
+	switch s {
+	case "double":
+		return bsontype.Double, true
+	case "string":
+		return bsontype.String, true
+	case "object":
+		return bsontype.EmbeddedDocument, true
+	case "array":
+		return bsontype.Array, true
+	case "binData":
+		return bsontype.Binary, true
+	case "undefined":
+		return bsontype.Undefined, true
+	case "objectId":
+		return bsontype.ObjectID, true
+	case "bool":
+		return bsontype.Boolean, true
+	case "date":
+		return bsontype.DateTime, true
+	case "null":
+		return bsontype.Null, true
+	case "regex":
+		return bsontype.Regex, true
+	case "dbPointer":
+		return bsontype.DBPointer, true
+	case "javascript":
+		return bsontype.JavaScript, true
+	case "symbol":
+		return bsontype.Symbol, true
+	case "javascriptWithScope":
+		return bsontype.CodeWithScope, true
+	case "int":
+		return bsontype.Int32, true
+	case "timestamp":
+		return bsontype.Timestamp, true
+	case "long":
+		return bsontype.Int64, true
+	case "decimal":
+		return bsontype.Decimal128, true
+	case "minKey":
+		return bsontype.MinKey, true
+	case "maxKey":
+		return bsontype.MaxKey, true
+	default:
+		return 0, false
+	}
+}
+
+func Int64ToTypeOK(i int64) (bsontype.Type, bool) {
+	typ := bsontype.Type(i)
+	if (typ >= bsontype.Double && typ <= bsontype.Decimal128) || typ == bsontype.MinKey || typ == bsontype.MaxKey {
+		return typ, true
+	}
+	return 0, false
+}

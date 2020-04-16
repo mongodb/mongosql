@@ -6,7 +6,8 @@ import "github.com/10gen/mongoast/ast"
 func IsSortStage(stage ast.Stage) bool {
 	switch stage.(type) {
 	case *ast.SortStage,
-		*ast.SortByCountStage:
+		*ast.SortByCountStage,
+		*ast.SortByExprStage:
 		return true
 	default:
 		return false

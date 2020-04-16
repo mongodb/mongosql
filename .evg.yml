@@ -1460,6 +1460,14 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-sample-auth-failure-4.2
+  tags: ["test", "config"]
+
+- <<: *run-make-target
+  name: test-sample-auth-failure-4.4
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-sample-auth-failure-latest
   tags: ["test", "config"]
 
@@ -1540,6 +1548,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-kill-queries-4.2
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-kill-queries-latest
   tags: ["test", "config"]
 
@@ -1568,6 +1580,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-join-sharded-collection-4.2
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-join-sharded-collection-latest
   tags: ["test", "config"]
 
@@ -1581,6 +1597,10 @@ tasks:
 
 - <<: *run-make-target
   name: test-join-sharded-view-4.0
+  tags: ["test", "config"]
+
+- <<: *run-make-target
+  name: test-join-sharded-view-4.2
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -1608,6 +1628,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-count-on-sharded-collection-4.2
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-count-on-sharded-collection-latest
   tags: ["test", "config"]
 
@@ -1624,6 +1648,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-count-on-sharded-view-4.2
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-count-on-sharded-view-latest
   tags: ["test", "config"]
 
@@ -1637,6 +1665,10 @@ tasks:
 
 - <<: *run-make-target
   name: test-count-on-sharded-view-on-view-4.0
+  tags: ["test", "config"]
+
+- <<: *run-make-target
+  name: test-count-on-sharded-view-on-view-4.2
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -1699,6 +1731,11 @@ tasks:
   name: test-mongo-auth-sample-no-creds-4.0
   tags: ["test", "config"]
 
+
+- <<: *run-make-target
+  name: test-mongo-auth-sample-no-creds-4.2
+  tags: ["test", "config"]
+
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-latest
   tags: ["test", "config"]
@@ -1716,6 +1753,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-mongo-auth-sample-wrong-admin-creds-4.2
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-latest
   tags: ["test", "config"]
 
@@ -1729,6 +1770,10 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-roles-4.0
+  tags: ["test", "config"]
+
+- <<: *run-make-target
+  name: test-mongo-auth-sample-no-roles-4.2
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -1749,6 +1794,14 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0
+  tags: ["test", "config"]
+
+- <<: *run-make-target
+  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-4.2
+  tags: ["test", "config"]
+
+- <<: *run-make-target
+  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-4.4
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -2107,6 +2160,14 @@ axes:
     display_name: MongoDB Latest
     variables:
       _mongodb_version: latest
+  - id: 4.4
+    display_name: MongoDB 4.4
+    variables:
+      _mongodb_version: 4.4
+  - id: 4.2
+    display_name: MongoDB 4.2
+    variables:
+      _mongodb_version: 4.2
   - id: 4.0
     display_name: MongoDB 4.0
     variables:
@@ -2151,13 +2212,16 @@ buildvariants:
     mongodb_topology: "*"
   exclude_spec:
   - os_full_matrix: ["osx", "ubuntu1404-64"]
-    mongodb_version: ["3.2", "3.4", "3.6", "4.0"]
+    mongodb_version: ["3.2", "3.4", "3.6", "4.0", "4.2", "4.4"]
     mongodb_topology: ["standalone", "replica-set", "sharded-cluster"]
   - os_full_matrix: ["osx", "ubuntu1404-64"]
     mongodb_version: "latest"
     mongodb_topology: ["replica-set", "sharded-cluster"]
   - os_full_matrix: "ubuntu1604-64"
     mongodb_version: "*"
+    mongodb_topology: "*"
+  - os_full_matrix: "windows"
+    mongodb_version: ["4.4", "latest"]
     mongodb_topology: "*"
   rules:
   - if:

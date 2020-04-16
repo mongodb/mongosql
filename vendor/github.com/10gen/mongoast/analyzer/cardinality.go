@@ -14,7 +14,8 @@ func IsCardinalityAlteringStage(stage ast.Stage) bool {
 		*ast.RedactStage,
 		*ast.ReplaceRootStage,
 		*ast.SortStage,
-		*ast.SortByCountStage:
+		*ast.SortByCountStage,
+		*ast.SortByExprStage:
 		return false
 	default:
 		// We want default to be true because we would like to error on the side of being conservative.

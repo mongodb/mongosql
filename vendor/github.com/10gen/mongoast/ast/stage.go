@@ -160,13 +160,14 @@ func (*CountStage) StageName() string {
 }
 
 // NewCurrentOpStage makes a CurrentOpStage.
-func NewCurrentOpStage(allUsers, idleConnections, idleCursors, idleSessions, localOps bool) *CurrentOpStage {
+func NewCurrentOpStage(allUsers, idleConnections, idleCursors, idleSessions, localOps, debug bool) *CurrentOpStage {
 	return &CurrentOpStage{
 		AllUsers:        allUsers,
 		IdleConnections: idleConnections,
 		IdleCursors:     idleCursors,
 		IdleSessions:    idleSessions,
 		LocalOps:        localOps,
+		Debug:           debug,
 	}
 }
 
@@ -177,6 +178,7 @@ type CurrentOpStage struct {
 	IdleCursors     bool
 	IdleSessions    bool
 	LocalOps        bool
+	Debug           bool
 }
 
 // StageName implements the Stage interface.
@@ -531,7 +533,7 @@ type RedactStage struct {
 	Expr Expr
 }
 
-// StageName implements the RedactStage interface.
+// StageName implements the Stage interface.
 func (*RedactStage) StageName() string {
 	return "$redact"
 }
@@ -595,6 +597,12 @@ type SortItem struct {
 	Descending bool
 }
 
+// SortingStage is an interface for stages that have a slice of SortItems.
+type SortingStage interface {
+	Stage
+	SortItems() []*SortItem
+}
+
 // NewSortStage makes a sort stage.
 func NewSortStage(items ...*SortItem) *SortStage {
 	return &SortStage{items}
@@ -608,6 +616,11 @@ type SortStage struct {
 // StageName implements the Stage interface.
 func (*SortStage) StageName() string {
 	return "$sort"
+}
+
+// SortItems implements the SortingStage interface.
+func (s *SortStage) SortItems() []*SortItem {
+	return s.Items
 }
 
 // NewSortByCountStage makes a sort by count stage.
@@ -625,6 +638,27 @@ type SortByCountStage struct {
 // StageName implements the Stage interface.
 func (*SortByCountStage) StageName() string {
 	return "$sortByCount"
+}
+
+// NewSortByExprStage makes a sort by expression stage.
+func NewSortByExprStage(items ...*SortItem) *SortByExprStage {
+	return &SortByExprStage{items}
+}
+
+// SortByExprStage is a sorting stage that allows sorting on any
+// expression, not just field refs.
+type SortByExprStage struct {
+	Items []*SortItem
+}
+
+// StageName implements the Stage interface.
+func (*SortByExprStage) StageName() string {
+	return "$sortByExpr"
+}
+
+// SortItems implements the SortingStage interface.
+func (s *SortByExprStage) SortItems() []*SortItem {
+	return s.Items
 }
 
 // NewSortedMergeStage makes a sorted merge stage.
@@ -658,4 +692,23 @@ type UnwindStage struct {
 // StageName implements the Stage interface.
 func (*UnwindStage) StageName() string {
 	return "$unwind"
+}
+
+// NewUnionWithStage makes a UnionWithStage.
+func NewUnionWithStage(coll string, pipeline *Pipeline) *UnionWithStage {
+	return &UnionWithStage{
+		coll,
+		pipeline,
+	}
+}
+
+// UnionWithStage unions two collections together.
+type UnionWithStage struct {
+	Coll     string
+	Pipeline *Pipeline
+}
+
+// StageName implements the Stage interface.
+func (*UnionWithStage) StageName() string {
+	return "$unionWith"
 }

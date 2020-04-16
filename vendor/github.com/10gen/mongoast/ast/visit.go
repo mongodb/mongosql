@@ -540,6 +540,40 @@ func (n *SortByCountStage) WalkStage(v Visitor) Stage {
 }
 
 // Walk implements the Node interface.
+func (n *SortByExprStage) Walk(v Visitor) Node {
+	return n.WalkStage(v)
+}
+
+// WalkStage implements the Stage interface.
+func (n *SortByExprStage) WalkStage(v Visitor) Stage {
+	changed := false
+	var newItems []*SortItem
+	for i, item := range n.Items {
+		newItemExpr, itemChanged := visitExpr(v, item.Expr)
+		changed = changed || itemChanged
+
+		if changed && newItems == nil {
+			newItems = make([]*SortItem, i, len(n.Items))
+			copy(newItems, n.Items[:i])
+		}
+
+		if changed {
+			newItems = append(newItems, NewSortItem(
+				newItemExpr,
+				item.Descending,
+			))
+		}
+	}
+
+	if changed {
+		cpy := *n
+		cpy.Items = newItems
+		return &cpy
+	}
+	return n
+}
+
+// Walk implements the Node interface.
 func (n *SortedMergeStage) Walk(v Visitor) Node {
 	return n.WalkStage(v)
 }
@@ -585,6 +619,24 @@ func (n *UnwindStage) WalkStage(v Visitor) Stage {
 		cpy := *n
 		cpy.Path = path.(*FieldRef)
 		return &cpy
+	}
+	return n
+}
+
+// Walk implements the Node interface.
+func (n *UnionWithStage) Walk(v Visitor) Node {
+	return n.WalkStage(v)
+}
+
+// WalkStage implements the Stage interface.
+func (n *UnionWithStage) WalkStage(v Visitor) Stage {
+	if n.Pipeline != nil {
+		newPipeline, changed := visitNode(v, n.Pipeline)
+		if changed {
+			cpy := *n
+			cpy.Pipeline = newPipeline.(*Pipeline)
+			return &cpy
+		}
 	}
 	return n
 }
@@ -1113,6 +1165,38 @@ func (n *Exists) WalkExpr(v Visitor) Expr {
 	if changedField {
 		cpy := *n
 		cpy.FieldRef = fieldRef.(*FieldRef)
+		return &cpy
+	}
+	return n
+}
+
+// Walk implements the Node interface.
+func (n *Convert) Walk(v Visitor) Node {
+	return n.WalkExpr(v)
+}
+
+// WalkExpr implements Expr interface.
+func (n *Convert) WalkExpr(v Visitor) Expr {
+	newInput, inputChanged := visitExpr(v, n.Input)
+	newTo, toChanged := visitExpr(v, n.To)
+
+	// Walk optional Expr fields only when non-nil.
+	newOnError := n.OnError
+	newOnNull := n.OnNull
+	var onErrorChanged, onNullChanged bool
+	if n.OnError != nil {
+		newOnError, onErrorChanged = visitExpr(v, n.To)
+	}
+	if n.OnNull != nil {
+		newOnNull, onNullChanged = visitExpr(v, n.OnNull)
+	}
+
+	if inputChanged || toChanged || onErrorChanged || onNullChanged {
+		cpy := *n
+		cpy.Input = newInput
+		cpy.To = newTo
+		cpy.OnError = newOnError
+		cpy.OnNull = newOnNull
 		return &cpy
 	}
 	return n

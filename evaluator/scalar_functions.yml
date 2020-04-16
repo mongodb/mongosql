@@ -433,7 +433,7 @@ functions:
     description: returns the hour for the provided time.
     invocations:
       - arguments:
-          - eval_type: EvalDatetime # NOTE actually supposed to be a time
+          - eval_type: EvalDatetime  # NOTE actually supposed to be a time
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_hour
     names: ['hour']
@@ -650,7 +650,7 @@ functions:
     description: returns the minute for the provided time.
     invocations:
       - arguments:
-          - eval_type: EvalDatetime # NOTE actually supposed to be a time
+          - eval_type: EvalDatetime  # NOTE actually supposed to be a time
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_minute
     names: ['minute']
@@ -830,7 +830,7 @@ functions:
     description: returns the second for the provided time, in the range 0-59.
     invocations:
       - arguments:
-          - eval_type: EvalDatetime # NOTE actually supposed to be a time
+          - eval_type: EvalDatetime  # NOTE actually supposed to be a time
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_second
     names: ['second']
@@ -934,7 +934,7 @@ functions:
       - arguments:
           - {eval_type: EvalDatetime, name: expr1}
           - {eval_type: EvalDatetime, name: expr2}
-        return_type: EvalDatetime # NOTE actually supposed to be a time
+        return_type: EvalDatetime  # NOTE actually supposed to be a time
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timediff
     names: ['timediff']
     no_pushdown: true
@@ -943,7 +943,7 @@ functions:
     description: returns the provided time argument, converted to seconds.
     invocations:
       - arguments:
-          - eval_type: EvalDatetime # NOTE actually supposed to be time
+          - eval_type: EvalDatetime  # NOTE actually supposed to be time
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_time-to-sec
     names: ['time_to_sec']
@@ -956,7 +956,7 @@ functions:
       - _id: AddTime
         arguments:
           - {eval_type: EvalDatetime, name: datetime}
-          - {eval_type: EvalDatetime, name: time} # NOTE actually supposed to be a time
+          - {eval_type: EvalDatetime, name: time}  # NOTE actually supposed to be a time
         return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_timestamp
     names: ['timestamp']

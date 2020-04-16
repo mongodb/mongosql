@@ -83,14 +83,15 @@ type UnaryOp string
 
 // constants for the possible unary operations.
 const (
-	Not   UnaryOp = UnaryOp("$not")
-	Abs   UnaryOp = UnaryOp("$abs")
-	Ceil  UnaryOp = UnaryOp("$ceil")
-	Floor UnaryOp = UnaryOp("$floor")
-	Exp   UnaryOp = UnaryOp("$exp")
-	Ln    UnaryOp = UnaryOp("$ln")
-	Log10 UnaryOp = UnaryOp("$log10")
-	Sqrt  UnaryOp = UnaryOp("$sqrt")
+	Not      UnaryOp = UnaryOp("$not")
+	Abs      UnaryOp = UnaryOp("$abs")
+	Ceil     UnaryOp = UnaryOp("$ceil")
+	Floor    UnaryOp = UnaryOp("$floor")
+	Exp      UnaryOp = UnaryOp("$exp")
+	Ln       UnaryOp = UnaryOp("$ln")
+	Log10    UnaryOp = UnaryOp("$log10")
+	Sqrt     UnaryOp = UnaryOp("$sqrt")
+	ToString UnaryOp = UnaryOp("$toString")
 )
 
 // Unary is a unary expression.
@@ -179,6 +180,27 @@ func NewConstant(value bsoncore.Value) *Constant {
 // Constant is a literal value.
 type Constant struct {
 	Value bsoncore.Value
+}
+
+// NewConvert makes a Convert.
+func NewConvert(input, to, onError, onNull Expr) *Convert {
+	return &Convert{
+		Input:   input,
+		To:      to,
+		OnError: onError,
+		OnNull:  onNull,
+	}
+}
+
+// Convert is the convert expression, which converts a value (Input) into the
+// target type (To). OnError is the expression to evaluate when there is an
+// error during conversion. OnNull is the expression to evaluate when Input is
+// null or missing.
+type Convert struct {
+	Input   Expr
+	To      Expr
+	OnError Expr
+	OnNull  Expr
 }
 
 // NewDocument makes a document.

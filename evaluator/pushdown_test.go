@@ -447,6 +447,13 @@ func TestPushdownPlan(t *testing.T) {
 		{"subquery_cmp_with_limit_invalidating_join_no_pushdown", "select a from foo where (select ex.a from (select * from bar limit 1) ex join bar m where ex.a = m.a) = ANY (select b from baz)"},
 		{"subquery_cmp_with_limit_invalidating_expressive_join_no_pushdown", "select a from foo where (select ex.a from (select * from bar limit 1) ex join bar) = ANY (select b from baz)"},
 		{"orderby_noncorrelated_subquery", "select a from foo order by (select a from foo limit 1)"},
+		{"union_simple", "select a from foo union select b from bar"},
+		{"union_multiple_col", "select a from foo union select b from bar union select b from baz"},
+		{"union_multiple_fields", "select b,c from foo union select a,b from bar"},
+		{"union_multiple_fields_and_col", "select b,c from foo union select a,b from bar union select a,b from baz"},
+		{"union_all_simple", "select a from foo union all select b from bar"},
+		{"union_all_multiple_fields_and_col", "select b,c from foo union all select a,b from bar union all select a,b from baz"},
+		{"union_right_pipeline", "(select c,g from foo) union (select bar.a,baz.b from bar join baz on bar.b = baz.b)"},
 	}
 
 	// open the file with the cached test results
@@ -479,6 +486,8 @@ func TestPushdownPlan(t *testing.T) {
 		{3, 4, 0},
 		{3, 6, 0},
 		{4, 0, 0},
+		{4, 2, 0},
+		{4, 4, 0},
 	}
 
 	// run a subtest for each query

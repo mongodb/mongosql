@@ -143,6 +143,11 @@ func (d Decimal) Sqrt() Decimal {
 	return Decimal{result}
 }
 
+// String returns the string representation of d.
+func (d Decimal) String() string {
+	return d.b.String()
+}
+
 // Sub returns d - right.
 func (d Decimal) Sub(right Decimal) Decimal {
 	result := decimal.WithContext(decimal.Context128)

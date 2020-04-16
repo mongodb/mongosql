@@ -122,6 +122,21 @@ func (n *Exists) MemoryUsage() uint64 {
 }
 
 // MemoryUsage implements the Expr interface.
+func (n *Convert) MemoryUsage() uint64 {
+	mem := n.Input.MemoryUsage() + n.To.MemoryUsage()
+
+	if n.OnError != nil {
+		mem += n.OnError.MemoryUsage()
+	}
+
+	if n.OnNull != nil {
+		mem += n.OnNull.MemoryUsage()
+	}
+
+	return mem
+}
+
+// MemoryUsage implements the Expr interface.
 func (n *Unknown) MemoryUsage() uint64 {
 	return uint64(len(n.Value.Data))
 }

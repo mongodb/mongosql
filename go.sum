@@ -22,6 +22,10 @@ github.com/10gen/mongoast v0.0.0-20200123164151-f4d3f2ab0a2c h1:auXDnEFuZh8Fn9s9
 github.com/10gen/mongoast v0.0.0-20200123164151-f4d3f2ab0a2c/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
 github.com/10gen/mongoast v0.0.0-20200129194347-f2d750d88582 h1:EbIaMKpMuhjyyp82XYbpzOA8PA4FVNbliTxJIdLvJ/8=
 github.com/10gen/mongoast v0.0.0-20200129194347-f2d750d88582/go.mod h1:KkEcOffnLPds1X93t5elQVOp+EGU0AH0wmpr6ChIQCI=
+github.com/10gen/mongoast v0.0.0-20200324150211-17f3b36255cd h1:tmsHjESS1MJCOaR8fMKqVKm4Ix9bvPq4Glu3/kFT/vo=
+github.com/10gen/mongoast v0.0.0-20200324150211-17f3b36255cd/go.mod h1:B/qLeq8KlSmMx3w6LpD86/OnwYpccbtHwxwAB4+kGqI=
+github.com/10gen/mongoast v0.0.0-20200327205312-fea7d60c4947 h1:VLz8GgZo+MU3x7tXnrBINn3vJRdXSmicuuGH61oWuqg=
+github.com/10gen/mongoast v0.0.0-20200327205312-fea7d60c4947/go.mod h1:B/qLeq8KlSmMx3w6LpD86/OnwYpccbtHwxwAB4+kGqI=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 h1:TbONlEzjFZ0K7a6dYca+3rwJugMwiRJLY+FSCO3C2CE=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847/go.mod h1:ngIUcWisavS+ezq2tBEu6vgSU981hsiJaalWLlpOcuE=
 github.com/DataDog/zstd v1.4.4 h1:+IawcoXhCBylN7ccwdwf8LOH2jKq7NavGpEPanrlTzE=
@@ -37,6 +41,7 @@ github.com/craiggwilson/goke v0.0.0-20181207224902-4a17d49e9b70 h1:wTFoqVDtr3DIZ
 github.com/craiggwilson/goke v0.0.0-20181207224902-4a17d49e9b70/go.mod h1:0jlZfO1lmeSCLmalnaa9t4RFcgdBlJstHV9zeXVBofU=
 github.com/craiggwilson/goke v0.0.0-20190811215818-c46ad960904c h1:yn/ZullQtQmcykxCWIivDh1/bGEbQAJ94AA/PSOCkE0=
 github.com/craiggwilson/goke v0.0.0-20190811215818-c46ad960904c/go.mod h1:QC3E3HX3mPuBJhMfZRt6jPW3QFIMuGkc7uj9UsLugX8=
+github.com/craiggwilson/goke v0.0.0-20200102214717-24e6116677d2/go.mod h1:IX+FckvUr3c6SNWSzspUD94HqCMFCW+sIK0lJGSkWkg=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=

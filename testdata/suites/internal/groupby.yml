@@ -1008,7 +1008,7 @@ testcases:
     schema_mapping_heuristics: [drdl]
     sql: 'select a, sum(distinct b) from (select a.a, b.b from groupby a join  groupby b group by 1,2) sub group by a union all select a, sum(distinct c) from groupby group by 1'
     unordered: true
-    variables: {pushdown: false, rewrite_distinct_as_group: false}
+    variables: {pushdown: false, rewrite_distinct_as_group: true}
 
   - db: groupby_test
     description: BI-2160 correlated aggregate (with correlated subquery) that gets aggregated by parent

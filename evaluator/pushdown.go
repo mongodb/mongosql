@@ -600,7 +600,11 @@ func (v *pushdownVisitor) visit(n Node) (Node, error) {
 		v.addSelectIDsInScope(typedN.selectID)
 		v.addTableNamesInScope(typedN.dbName, typedN.aliasName)
 	case *UnionStage:
-		v.addNewPushdownFailure(typedN, unionStageName, "unions cannot be pushed down")
+		n, err = v.visitUnion(typedN)
+		if err != nil {
+			return nil, fmt.Errorf("unable to pushdown union: %v", err)
+		}
+
 	}
 
 	// Hack: if the node changed we need to remap the pushdownFailures,
@@ -978,7 +982,9 @@ func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldRef Fi
 		}
 
 		uniqueKeyName := fmt.Sprintf("group_key_%d", i)
-		keyDocumentElements[i] = ast.NewDocumentElement(uniqueKeyName, translatedKey)
+
+		// Null and missing must be considered the same value for uniqueness in the union stage.
+		keyDocumentElements[i] = ast.NewDocumentElement(uniqueKeyName, astutil.WrapInIfNull(translatedKey, astutil.NullLiteral))
 		keyNameMapping[key] = uniqueKeyName
 	}
 
@@ -2777,6 +2783,65 @@ func (v *pushdownVisitor) visitSubquerySource(subquery *SubquerySourceStage) (Pl
 	ms = ms.clone().(*MongoSourceStage)
 	ms.aliasNames = []string{subquery.aliasName}
 	ms.mappingRegistry = mr
+	return ms, nil
+}
+
+// visitUnion attempts to pushdown a UnionStage. Here is an example translation:
+// "select a from foo union select b from bar;"
+//
+//↳ MongoSource: '[foo]' (db: 'test', collection: '[foo]') as '[foo]':
+//	{"$project": {"test_DOT_foo_DOT_a": "$a"}},
+//	{"$unionWith": {"coll": "bar","pipeline": [{"$project": {"test_DOT_foo_DOT_a": "$b"}}]}},
+//	{"$group": {"_id": {"group_key_0": {"$cond": {"if": {"$lte": ["$test_DOT_foo_DOT_a",{"$literal": null}]},"then": {"$literal": null},"else": "$test_DOT_foo_DOT_a"}}}}},
+//	{"$project": {"test_DOT_foo_DOT_a": "$_id.group_key_0","_id": NumberInt("0")}}
+//
+// nolint: unparam
+func (v *pushdownVisitor) visitUnion(union *UnionStage) (PlanStage, error) {
+	if !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{4, 3, 4}) {
+		v.logger.Warnf(log.Dev, "cannot push down union stage: $unionWith not available")
+		v.addNewPushdownFailure(union, unionStageName, "cannot push down union to MongoDB < 4.3.4")
+		return union, nil
+	}
+
+	v.logger.Debugf(log.Dev, "attempting to translate union stage")
+
+	// Make sure the children are of type MongoSourceStage.
+	msLeft, ok := union.left.(*MongoSourceStage)
+	if !ok {
+		v.addTransitivePushdownFailure(union.left, unionStageName)
+		return union, nil
+	}
+
+	msRight, ok := union.right.(*MongoSourceStage)
+	if !ok {
+		v.addTransitivePushdownFailure(union.right, unionStageName)
+		return union, nil
+	}
+
+	leftFieldNames := make([]string, len(msLeft.mappingRegistry.columns))
+	for i, column := range msLeft.mappingRegistry.columns {
+		if name, ok := msLeft.mappingRegistry.lookupFieldName(column.Database, column.Table, column.Name); ok {
+			leftFieldNames[i] = name
+		}
+	}
+
+	unionWithPipeline := ast.NewPipeline(msRight.Pipeline().Stages...)
+	unionWithProjectItems := make([]ast.ProjectItem, len(leftFieldNames))
+
+	// Rename the projected fields from the right MongoSource stage with the field names from the left MongoSource stage
+	for i, column := range msRight.mappingRegistry.columns {
+		if ref, ok := msRight.mappingRegistry.lookupFieldRef(column.Database, column.Table, column.Name); ok {
+			unionWithProjectItems[i] = ast.NewAssignProjectItem(leftFieldNames[i], ref)
+		}
+	}
+
+	unionWithPipeline.Stages = append(unionWithPipeline.Stages, ast.NewProjectStage(unionWithProjectItems...))
+
+	// Update mapping registry so that it only contains information about the left MongoSource stage
+	ms := msLeft.clone().(*MongoSourceStage)
+
+	ms.pipeline.Stages = append(ms.pipeline.Stages, ast.NewUnionWithStage(msRight.Collection(), unionWithPipeline))
+
 	return ms, nil
 }
 
