@@ -242,7 +242,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 
 	for _, tcase := range tcases {
 		t.Run(tcase.desc, func(t *testing.T) {
-			actualOutput, actualCollection, err := TranslateSQLQuery(tcase.query, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format, tcase.explain)
+			actualOutput, actualCollection, err := TranslateSQLQuery(tcase.query, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format, tcase.explain, false)
 
 			if tcase.expectedError != "" {
 				if err == nil {
@@ -311,7 +311,7 @@ func TestTranslateSQLQueryFile(t *testing.T) {
 
 	for _, tcase := range tcases {
 		t.Run(tcase.desc, func(t *testing.T) {
-			actualOutput, actualCollection, err := TranslateSQLQueryFile(tcase.queryFile, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format, tcase.explain)
+			actualOutput, actualCollection, err := TranslateSQLQueryFile(tcase.queryFile, tcase.dbName, tcase.mongoVersion, tcase.schema, tcase.format, tcase.explain, false)
 
 			if tcase.expectedError != "" {
 				if err == nil {
@@ -359,6 +359,15 @@ schema:
       MongoType: int
       SqlName: c
       SqlType: int32
+  - table: DuAl
+    collection: DuAl
+    pipeline: []
+    columns:
+    - Name: a
+      MongoType: float64
+      SqlName: a
+      SqlType: float
+
   - table: FOO
     collection: FOO
     pipeline: []
@@ -459,6 +468,23 @@ schema:
 			dbName:        testDBName,
 			ctlg:          testCatalogWithoutSharding,
 			expectedError: `fatal error executing sql "drop table foo.t": unsupported SQL statement`,
+		},
+		{
+			desc:          "A DUAL query that should fail because DUAL does not have columns",
+			query:         "select a from DUAL",
+			dbName:        testDBName,
+			ctlg:          testCatalogWithoutSharding,
+			expectedError: `fatal error executing sql "select a from DUAL": ERROR 1054 (42S22): Unknown column 'a' in 'field list'`,
+		},
+		{
+			desc:   "simple select query from a table named DuAl, showing that DUAL is case sensitive",
+			query:  "select a from DuAl",
+			dbName: testDBName,
+			ctlg:   testCatalogWithoutSharding,
+			expectedOutput: `[{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "DuAl"},"tableAlias": ` +
+				`{"$literal": "DuAl"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "DuAl",
 		},
 		{
 			desc:          "unsupported statement (show)",

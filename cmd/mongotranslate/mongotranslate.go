@@ -52,9 +52,9 @@ func main() {
 
 	switch {
 	case *sqlQuery != "":
-		explainPlan, _, err = mongosql.TranslateSQLQuery(*sqlQuery, *dbName, *mongoVersion, *schema, *format, *explain)
+		explainPlan, _, err = mongosql.TranslateSQLQuery(*sqlQuery, *dbName, *mongoVersion, *schema, *format, *explain, false)
 	case *queryFile != "":
-		explainPlan, _, err = mongosql.TranslateSQLQueryFile(*queryFile, *dbName, *mongoVersion, *schema, *format, *explain)
+		explainPlan, _, err = mongosql.TranslateSQLQueryFile(*queryFile, *dbName, *mongoVersion, *schema, *format, *explain, false)
 	}
 
 	if err != nil {

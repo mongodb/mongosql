@@ -172,7 +172,12 @@ func (*makeDualExplicit) PreVisit(current CST) (CST, error) {
 func (*makeDualExplicit) PostVisit(current CST) (CST, error) {
 	if node, isSelect := current.(*Select); isSelect {
 		if node.From == nil {
-			node.From = TableExprs{&DualTableExpr{}}
+			node.From = TableExprs{&AliasedTableExpr{
+				Expr: &TableName{Qualifier: option.NoneString(),
+					Name: "DUAL"},
+				As:    option.NoneString(),
+				Hints: nil},
+			}
 		}
 	}
 	return current, nil

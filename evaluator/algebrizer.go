@@ -1434,6 +1434,29 @@ func (a *algebrizer) translateUse(use *parser.Use) (*UseCommand, error) {
 	return NewUseCommand(use.DBName), nil
 }
 
+// isDual returns true if this table expression is the DUAL table. This is DUAL
+// on case sensitive platforms, and any capitalization of DUAL on case insensitive
+// platforms.
+func isDual(tableExpr parser.TableExpr, isCaseSensitive bool) bool {
+	aliasTableExpr, ok := tableExpr.(*parser.AliasedTableExpr)
+	if !ok {
+		return false
+	}
+	return isSimpleDual(aliasTableExpr.Expr, isCaseSensitive)
+}
+
+// isSimpleDual returns true if this simple table expression is the DUAL table. This is DUAL
+// on case sensitive platforms, and any capitalization of DUAL on case insensitive
+// platforms.
+func isSimpleDual(simpleTableExpr parser.SimpleTableExpr, isCaseSensitive bool) bool {
+	tableName, ok := simpleTableExpr.(*parser.TableName)
+	if !ok {
+		return false
+	}
+	name := tableName.Name
+	return strutil.CompareStrings(name, "DUAL", isCaseSensitive)
+}
+
 func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 	isUnqualifiedSelectStar bool, hasGlobalStraightJoin bool) (PlanStage, error) {
 	var plan PlanStage
@@ -1462,7 +1485,7 @@ func (a *algebrizer) translateTableExprs(tableExprs parser.TableExprs,
 
 	if isUnqualifiedSelectStar {
 		if len(tableExprs) == 1 {
-			if _, isDual := tableExprs[0].(*parser.DualTableExpr); isDual {
+			if isDual(tableExprs[0], a.cfg.isCaseSensitive) {
 				return nil, mysqlerrors.Defaultf(mysqlerrors.ErNoTablesUsed)
 			}
 		}
@@ -1669,8 +1692,6 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 	switch typedT := tableExpr.(type) {
 	case *parser.AliasedTableExpr:
 		return a.translateSimpleTableExpr(typedT.Expr, typedT.As.Else(""))
-	case *parser.DualTableExpr:
-		return a.translateSimpleTableExpr(typedT, "")
 	case *parser.ParenTableExpr:
 		return a.translateTableExpr(typedT.Expr, hasGlobalStraightJoin)
 	case parser.SimpleTableExpr:
@@ -1784,6 +1805,16 @@ func (a *algebrizer) translateTableExpr(tableExpr parser.TableExpr, hasGlobalStr
 
 func (a *algebrizer) translateSimpleTableExpr(
 	tableExpr parser.SimpleTableExpr, aliasName string) (PlanStage, []*results.Column, error) {
+
+	if isSimpleDual(tableExpr, a.cfg.isCaseSensitive) {
+		plan, err := a.newMongoSourceOrDualStage()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		columns := plan.Columns()
+		return plan, columns, nil
+	}
 	switch typedT := tableExpr.(type) {
 	case *parser.TableName:
 		tableName := typedT.Name
@@ -1904,14 +1935,6 @@ func (a *algebrizer) translateSimpleTableExpr(
 			return nil, nil, err
 		}
 
-		return plan, columns, nil
-	case *parser.DualTableExpr:
-		plan, err := a.newMongoSourceOrDualStage()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		columns := plan.Columns()
 		return plan, columns, nil
 	default:
 		return nil,

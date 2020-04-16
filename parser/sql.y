@@ -104,7 +104,7 @@ func ForceEOF(yylex interface{}) {
 %token <empty> GROUP_CONCAT EXTRACT DATE_ADD ADDDATE DATE_SUB SUBDATE CONVERT CAST CHAR UNSIGNED SQL_BIGINT
 %token <empty> BIGINT SQL_VARCHAR SQL_DATE SQL_TIMESTAMP SQL_DOUBLE INTEGER INT BIGINT DOUBLE NUMERIC
 %token <empty> TEXT VARCHAR BOOLEAN TINYTEXT BOTH LEADING TRAILING TRIM SUBSTRING SUBSTR BINARY DATABASE
-%token <empty> SCHEMA PROCEDURE TRIGGER KEYS SCHEMAS FN OJ ESCAPE TABLE DUAL INDEX IGNORE IF LOW_PRIORITY
+%token <empty> SCHEMA PROCEDURE TRIGGER KEYS SCHEMAS FN OJ ESCAPE TABLE INDEX IGNORE IF LOW_PRIORITY
 %token <empty> CHARACTER COLLATE DATABASES EXPLAIN DESCRIBE TRADITIONAL KILL FLUSH SAMPLE SESSION GLOBAL
 %token <empty> RESTRICT CASCADE USING OFF UNIQUE PRIMARY
 
@@ -169,7 +169,6 @@ func ForceEOF(yylex interface{}) {
 %type <selectExpr> select_expression
 %type <stropt> as_opt
 %type <expr> expression bool_pri predicate bit_expr simple_expr func_expr func_expr_reserved_keyword func_expr_unconventional func_expr_generic func_expr_conflict
-%type <tableExprs> dual_table
 %type <tableExprs> table_expression_list
 %type <columnExprs> column_expression_list
 %type <columnList> column_list insert_columns_opt
@@ -285,10 +284,6 @@ select_statement:
 | SELECT comment_opt query_globals_opt select_expression_list limit_opt
   {
     $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, Limit: $5}
-  }
-| SELECT comment_opt query_globals_opt select_expression_list FROM dual_table
-  {
-    $$ = &Select{Comments: Comments($2), QueryGlobals: $3, SelectExprs: $4, From: $6}
   }
 | SELECT comment_opt query_globals_opt select_expression_list FROM table_expression_list where_expression_opt group_by_opt having_opt order_by_opt limit_opt lock_opt
   {
@@ -1600,12 +1595,6 @@ table_name:
 | sql_id DOT sql_id
   {
     $$ = &TableName{Qualifier: option.SomeString($1), Name: $3}
-  }
-
-dual_table:
-  DUAL
-  {
-    $$ = TableExprs{&DualTableExpr{}}
   }
 
 explain_statement:

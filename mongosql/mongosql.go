@@ -33,7 +33,7 @@ import (
 // translation. If the format argument is "multiline", the pipeline string will
 // have newlines between stages. If explain is true, the query's explain output
 // is returned instead of just the aggregation pipeline.
-func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string, explain bool) (string, string, error) {
+func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string, explain, isCaseSensitive bool) (string, string, error) {
 	sch, err := loadSchema(schemaPath)
 	if err != nil {
 		return "", "", fmt.Errorf("fatal error getting schema from drdl: %v", err)
@@ -54,7 +54,7 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 	}
 
 	tCfg := newTranslationConfig(ctlg, evaluator.NoOutputFormat, evaluator.NoOutputVersion,
-		dbName, mdbVersion, false, false, true, true, true, false, false, false, false)
+		dbName, mdbVersion, false, false, true, true, true, false, false, false, isCaseSensitive)
 	qCfg := NewQueryConfigFromTranslationConfig(tCfg)
 
 	res, err := evaluator.ExecuteSQL(context.Background(), qCfg, sqlQuery)
@@ -90,13 +90,13 @@ func TranslateSQLQuery(sqlQuery, dbName, mongoVersion, schemaPath, format string
 // argument is "multiline", the pipeline string will have newlines between stages. If
 // explain is true, the query's explain output is returned instead of just the
 // aggregation pipeline.
-func TranslateSQLQueryFile(queryFile, dbName, mongoVersion, schemaPath, format string, explain bool) (string, string, error) {
+func TranslateSQLQueryFile(queryFile, dbName, mongoVersion, schemaPath, format string, explain, isCaseSensitive bool) (string, string, error) {
 	query, err := ioutil.ReadFile(queryFile)
 	if err != nil {
 		return "", "", fmt.Errorf("could not open file %v", queryFile)
 	}
 
-	return TranslateSQLQuery(string(query), dbName, mongoVersion, schemaPath, format, explain)
+	return TranslateSQLQuery(string(query), dbName, mongoVersion, schemaPath, format, explain, isCaseSensitive)
 }
 
 // TranslateSQLQueryRaw translates a SQL query into a MongoDB aggregation pipeline
