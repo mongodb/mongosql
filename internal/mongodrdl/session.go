@@ -122,6 +122,9 @@ func newDrdlSessionProvider(opts DrdlOptions) (*provider.SessionProvider, error)
 	if err != nil {
 		return nil, err
 	}
+	if cs.AppName == "" {
+		cs.AppName = "mongodrdl"
+	}
 
 	topologyOpts := []topology.Option{
 		// Doing this before WithConnString makes these the defaults
@@ -129,9 +132,6 @@ func newDrdlSessionProvider(opts DrdlOptions) (*provider.SessionProvider, error)
 			func(opts ...topology.ServerOption) []topology.ServerOption {
 				return append(opts,
 					topology.WithServerAppName(func(string) string { return "mongodrdl" }),
-					topology.WithConnectionOptions(func(opts ...topology.ConnectionOption) []topology.ConnectionOption {
-						return append(opts, topology.WithConnectionAppName(func(string) string { return "mongodrdl" }))
-					}),
 				)
 			},
 		),

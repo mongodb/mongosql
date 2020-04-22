@@ -52,6 +52,10 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 		return nil, err
 	}
 
+	if cs.AppName == "" {
+		cs.AppName = "mongosqld"
+	}
+
 	// If no compressors are specified in the connection string,
 	// we default them here to zlib,snappy. We add these to the
 	// connection string (as opposed to adding them via default
@@ -70,7 +74,6 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 				topology.WithServerAppName(func(string) string { return "mongosqld" }),
 				topology.WithConnectionOptions(func(options ...topology.ConnectionOption) []topology.ConnectionOption {
 					return append(options,
-						topology.WithConnectionAppName(func(string) string { return "mongosqld" }),
 						topology.WithLifeTimeout(func(time.Duration) time.Duration { return 0 }),
 						topology.WithIdleTimeout(func(time.Duration) time.Duration { return 0 }),
 					)
