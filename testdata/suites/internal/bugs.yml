@@ -285,3 +285,12 @@ testcases:
     expected_types: [int]
     id: BI-2412-index-info
     sql: select count(*) as c from information_schema.key_column_usage where constraint_schema = 'information_schema_test_Mixed_Case'
+
+  - db: bugs_database
+    description: BI-2513 querying tables with dollar-prefixed columns
+    expected_names: [_id, a]
+    expected_results:
+      - [0, 123]
+    expected_types: [int, int]
+    id: BI-2513-dollar-prefixed-columns
+    sql: select * from BI_2513

@@ -1,0 +1,19 @@
+schema:
+- db: test
+  tables:
+  - table: dollar-prefixed-field-names
+    collection: dollar-prefixed-field-names
+    pipeline: []
+    columns:
+    - name: b$$c
+      mongotype: string
+      sqlname: b$$c
+      sqltype: varchar
+    - name: d$
+      mongotype: string
+      sqlname: d$
+      sqltype: varchar
+    - name: e
+      mongotype: string
+      sqlname: e
+      sqltype: varchar

@@ -1,0 +1,6 @@
+{
+  "$a": "starts with dollar",
+  "b$$c": "contains dollars",
+  "d$": "ends with dollar",
+  "e": "valid"
+}
