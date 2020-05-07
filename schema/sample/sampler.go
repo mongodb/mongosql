@@ -364,7 +364,7 @@ func deserializeIndexParts(indexKey bson.D) []schema.IndexPart {
 // Sample samples the MongoDB namespaces indicated by the sampler config. It
 // returns the relational schema generated from the sampled schema.
 func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
-	session, err := s.sp.AuthenticatedAdminSessionPrimary()
+	session, err := s.sp.AuthenticatedAdminSession()
 	if err != nil {
 		return nil, err
 	}
