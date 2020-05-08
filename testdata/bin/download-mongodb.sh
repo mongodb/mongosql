@@ -12,8 +12,10 @@ get_latest_for_distro() {
         version_for_curator="3.6.4" # Support for Enterprise Ubuntu 16.04 s390x was removed in r3.6.5
    elif [ "$distro" = "rhel67" ] ; then
          version_for_curator="4.2.0" # Support for RHEL 6.7 was removed in r4.2.1
+   elif [ "$distro" = 'macos' ] || [ "$distro" = 'osx' ]; then
+         version_for_curator="4.3-stable" # BI-2476: server 4.4 requires macOS 10.14
    else
-         version_for_curator="4.3-stable" # MongoDB latest
+         version_for_curator="4.4-stable" # MongoDB latest
    fi
 }
 
@@ -24,19 +26,9 @@ set_mongodb_binaries ()
    mongodb_version=$1
 
    # get the distro and arch values from the PUSH_ARCH environment variable.
-   distro=$(echo $PUSH_ARCH | cut -d'-' -f2)
+   distro=${MONGO_DISTRO:-$(echo $PUSH_ARCH | cut -d'-' -f2)}
    arch=$(echo $PUSH_ARCH | cut -d'-' -f1)
-   if [ "$VARIANT" = "macos" ]; then
-       if [ "version" = "4.2."* ]; then
-           distro="macos"
-       else
-           distro="osx"
-       fi
-   elif [ "$VARIANT" = "windows" ]; then
-       distro="$VARIANT"
-   elif [ "$distro" = "centos6" ]; then
-       distro="rhel62"
-   elif [ "$distro" = "ubuntu1604" ] && [ "$mongodb_version" = "3.2" ]; then
+   if [ "$distro" = "ubuntu1604" ] && [ "$mongodb_version" = "3.2" ]; then
        # Support for Ubuntu 16.04 was not added until r3.3.7. Use the generic linux build instead.
        distro="linux_x86_64"
    fi

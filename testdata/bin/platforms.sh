@@ -27,6 +27,7 @@ amazon2)
 centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
+	MONGO_DISTRO='rhel62'
     BUILD_GSSAPI='true'
     PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
 	BUILD_FIPS='true'
@@ -53,6 +54,7 @@ macos)
     PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'
+	MONGO_DISTRO='osx'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
     ;;
@@ -199,6 +201,7 @@ ubuntu1804-s390x)
 windows)
     PUSH_ARCH='x86_64'
     PUSH_NAME='win32'
+	MONGO_DISTRO='windows'
     LIBRARY_PATH='/cygdrive/c/sasl/'
     MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
     ARCHIVE_FORMAT='zip'
@@ -210,6 +213,8 @@ windows)
     ;;
 *) # local
 	echo "$VARIANT is unknown variant, is this a LOCAL run?"
+	PUSH_ARCH="$(uname -m)"
+	MONGO_DISTRO='ubuntu1604'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
 esac

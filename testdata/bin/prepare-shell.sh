@@ -23,7 +23,9 @@ fi
 ZONEINFO="$PROJECT_DIR/testdata/resources/time/zoneinfo.zip"
 
 # set GOPATH, GOBIN, GOCACHE
-GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
+if [ "$GOPATH" = '' ]; then
+	GOPATH="$(dirname $(dirname $(dirname $(dirname $PROJECT_DIR))))"
+fi
 GOBIN="$GOPATH/bin"
 GOCACHE="$SQLPROXY_TEST_CACHE_DIR/go-build"
 
