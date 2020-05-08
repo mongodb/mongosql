@@ -750,7 +750,7 @@ schema:
 			query:              "select distinct b, a from foo order by A",
 			dbName:             testDBName,
 			ctlg:               testCatalogWithoutSharding,
-			expectedOutput:     `[{"$group": {"_id": {"group_key_0": "$b","group_key_1": "$a"},"test_DOT_foo_DOT_A": {"$first": "$A"}}},{"$sort": {"test_DOT_foo_DOT_A": {"$numberInt":"1"}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$_id.group_key_0"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$_id.group_key_1"}],"_id": {"$numberInt":"0"}}}]`,
+			expectedOutput:     `[{"$group": {"_id": {"group_key_0": {"$ifNull": ["$b",{"$literal": null}]},"group_key_1": {"$ifNull": ["$a",{"$literal": null}]}},"test_DOT_foo_DOT_A": {"$first": "$A"}}},{"$sort": {"test_DOT_foo_DOT_A": {"$numberInt":"1"}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"value": "$_id.group_key_0"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"value": "$_id.group_key_1"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
 		},
