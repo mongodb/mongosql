@@ -41,6 +41,7 @@ github.com/craiggwilson/goke v0.0.0-20181207224902-4a17d49e9b70 h1:wTFoqVDtr3DIZ
 github.com/craiggwilson/goke v0.0.0-20181207224902-4a17d49e9b70/go.mod h1:0jlZfO1lmeSCLmalnaa9t4RFcgdBlJstHV9zeXVBofU=
 github.com/craiggwilson/goke v0.0.0-20190811215818-c46ad960904c h1:yn/ZullQtQmcykxCWIivDh1/bGEbQAJ94AA/PSOCkE0=
 github.com/craiggwilson/goke v0.0.0-20190811215818-c46ad960904c/go.mod h1:QC3E3HX3mPuBJhMfZRt6jPW3QFIMuGkc7uj9UsLugX8=
+github.com/craiggwilson/goke v0.0.0-20200102214717-24e6116677d2 h1:LKa/CQ78E06GvLwvrxQQXxJ5fYpB3yPTLlV63xKlE1I=
 github.com/craiggwilson/goke v0.0.0-20200102214717-24e6116677d2/go.mod h1:IX+FckvUr3c6SNWSzspUD94HqCMFCW+sIK0lJGSkWkg=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

@@ -12,6 +12,7 @@ type Optimization = func(pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeli
 // Optimize handles optimizing a pipeline.
 func Optimize(ctx context.Context, pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeline {
 	return RunPasses(ctx, pipeline, memoryLimit,
+		GroupKeyExtraction,
 		DeadCodeElimination,
 		ProjectionStageCompressionUp,
 		ProjectionStageCompressionDown,

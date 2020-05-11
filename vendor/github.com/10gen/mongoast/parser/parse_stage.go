@@ -717,6 +717,12 @@ func parseOutStage(doc bsoncore.Document) (ast.Stage, error) {
 
 	e := elems[0]
 	switch e.Key() {
+	case "atlas":
+		vdoc, ok := e.Value().DocumentOK()
+		if !ok {
+			return nil, errors.New("$out option 'atlas' must be a document")
+		}
+		return parseOutToAtlasStage(vdoc)
 	case "s3":
 		url, ok := e.Value().StringValueOK()
 		if ok {
@@ -729,10 +735,58 @@ func parseOutStage(doc bsoncore.Document) (ast.Stage, error) {
 		return parseOutToS3Stage(vdoc)
 	default:
 		return nil, errors.Errorf(
-			"unrecognized option to $out stage: %s, only valid option is 's3'",
+			"unrecognized option to $out stage: %s, valid options are 'atlas' and 's3'",
 			e.Key(),
 		)
 	}
+}
+
+func parseOutToAtlasStage(doc bsoncore.Document) (*ast.OutStage, error) {
+	var ok bool
+	var projectID string
+	var clusterName string
+	var databaseName string
+	var collectionName string
+
+	elems, _ := doc.Elements()
+	for _, e := range elems {
+		switch e.Key() {
+		case "projectID":
+			projectID, ok = e.Value().StringValueOK()
+			if !ok {
+				return nil, errors.New("$out option 'atlas.projectID' must be a string")
+			}
+		case "clusterName":
+			clusterName, ok = e.Value().StringValueOK()
+			if !ok {
+				return nil, errors.New("$out option 'atlas.clusterName' must be a string")
+			}
+		case "db":
+			databaseName, ok = e.Value().StringValueOK()
+			if !ok {
+				return nil, errors.New("$out option 'atlas.db' must be a string")
+			}
+		case "coll":
+			collectionName, ok = e.Value().StringValueOK()
+			if !ok {
+				return nil, errors.New("$out option 'atlas.coll' must be a string")
+			}
+		default:
+			return nil, errors.Errorf("unrecognized option to $out stage: atlas.%s", e.Key())
+		}
+	}
+
+	if clusterName == "" {
+		return nil, errors.New("$out option 'atlas.clusterName' must be specified")
+	}
+	if databaseName == "" {
+		return nil, errors.New("$out option 'atlas.db' must be specified")
+	}
+	if collectionName == "" {
+		return nil, errors.New("$out option 'atlas.coll' must be specified")
+	}
+
+	return ast.NewOutToAtlasStage(projectID, clusterName, databaseName, collectionName), nil
 }
 
 func parseOutToS3Stage(doc bsoncore.Document) (*ast.OutStage, error) {

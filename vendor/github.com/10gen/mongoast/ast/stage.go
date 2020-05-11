@@ -346,6 +346,14 @@ func NewOutStage(collectionName string) *OutStage {
 	return &OutStage{CollectionName: collectionName}
 }
 
+// OutToAtlasFields defines the fields for output to Atlas.
+type OutToAtlasFields struct {
+	ProjectID      string
+	ClusterName    string
+	DatabaseName   string
+	CollectionName string
+}
+
 // OutToS3Fields defines the fields for output to S3.
 type OutToS3Fields struct {
 	Bucket           Expr
@@ -360,6 +368,7 @@ type OutToS3Fields struct {
 // one field should be non-empty.
 type OutStage struct {
 	CollectionName string
+	Atlas          *OutToAtlasFields
 	S3             *OutToS3Fields
 	S3URL          string
 }
@@ -367,6 +376,19 @@ type OutStage struct {
 // StageName implements the Stage interface.
 func (*OutStage) StageName() string {
 	return "$out"
+}
+
+// NewOutToAtlasStage makes an OutStage for output to Atlas.
+// { $out: { atlas: { projectID: "123abc", clusterName: "test", db: "foo", coll: "bar" } } }
+func NewOutToAtlasStage(projectID, clusterName, databaseName, collectionName string) *OutStage {
+	return &OutStage{
+		Atlas: &OutToAtlasFields{
+			ProjectID:      projectID,
+			ClusterName:    clusterName,
+			DatabaseName:   databaseName,
+			CollectionName: collectionName,
+		},
+	}
 }
 
 // NewOutToS3Stage makes an OutStage for output to S3.

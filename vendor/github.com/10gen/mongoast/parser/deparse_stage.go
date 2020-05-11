@@ -202,7 +202,20 @@ func DeparseStageErr(n ast.Stage) (bsoncore.Value, error) {
 		}
 		return makeValueStage("$match", v), nil
 	case *ast.OutStage:
-		if tn.S3 != nil {
+		if tn.Atlas != nil {
+			_, vdoc := bsoncore.AppendDocumentStart(nil)
+			if tn.Atlas.ProjectID != "" {
+				vdoc = bsoncore.AppendStringElement(vdoc, "projectID", tn.Atlas.ProjectID)
+			}
+			vdoc = bsoncore.AppendStringElement(vdoc, "clusterName", tn.Atlas.ClusterName)
+			vdoc = bsoncore.AppendStringElement(vdoc, "db", tn.Atlas.DatabaseName)
+			vdoc = bsoncore.AppendStringElement(vdoc, "coll", tn.Atlas.CollectionName)
+			vdoc, _ = bsoncore.AppendDocumentEnd(vdoc, 0)
+			_, doc := bsoncore.AppendDocumentStart(nil)
+			doc = bsoncore.AppendDocumentElement(doc, "atlas", vdoc)
+			doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+			return makeDocStage("$out", doc), nil
+		} else if tn.S3 != nil {
 			_, vdoc := bsoncore.AppendDocumentStart(nil)
 			vdoc = bsonutil.AppendValueElement(vdoc, "bucket", DeparseExpr(tn.S3.Bucket))
 			vdoc = bsonutil.AppendValueElement(vdoc, "filename", DeparseExpr(tn.S3.Filename))
