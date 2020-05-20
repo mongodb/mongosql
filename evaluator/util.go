@@ -40,11 +40,6 @@ const (
 	sqlOpNotIn = "not in"
 )
 
-// falsyPredicateField is a constant used within the predicate of a $match stage,
-// so that the predicate always returns false.
-// We use this to generate pipelines with no results.
-const falsyPredicateField string = "falsyPredicateField"
-
 // These regexes are used to ensure we use valid field names when we're creating
 // user variables in $let var blocks. See documentation at:
 // https://docs.mongodb.com/master/reference/aggregation-variables/#agg-user-variables

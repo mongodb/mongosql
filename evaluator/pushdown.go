@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/mongoast/optimizer"
+	"github.com/10gen/sqlproxy/evaluator/catalog"
 	"github.com/10gen/sqlproxy/evaluator/results"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
@@ -730,7 +731,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 		// operator that yields no rows.
 		if !values.Bool(value) {
 			if v.cfg.shouldPushDownEmptyResultSet {
-				return createEmptyResultsMongoSourceStage(ms, v.cfg.mongoDBVersion), nil
+				return createEmptyResultsMongoSourceStage(ms), nil
 			}
 			return NewEmptyStage(filter.Columns(), filter.Collation()), nil
 		}
@@ -1682,7 +1683,7 @@ func (v *pushdownVisitor) simplifyFalseJoinCriterion(join *JoinStage) PlanStage 
 	// and right mapping registries, we return a MongoSourceStage which has a
 	// pipeline that eliminates all rows.
 	if v.cfg.shouldPushDownEmptyResultSet && mergeMappingRegistries() {
-		return createEmptyResultsMongoSourceStage(join.left.(*MongoSourceStage), v.cfg.mongoDBVersion)
+		return createEmptyResultsMongoSourceStage(join.left.(*MongoSourceStage))
 	}
 
 	// Otherwise, we eliminate all rows and do not push down.
@@ -2385,39 +2386,24 @@ func buildLeftSelfJoinPKAddFieldBody(columnCheck, columnCopy *ast.FieldRef) ast.
 	)
 }
 
-func createEmptyResultsPipeline(mongoDBVersion []uint8) []ast.Stage {
-
-	// $collStats is used when possible because it is more efficient than doing limit:1
-	// in the case of views. This is because it avoids going through the view's pipeline.
-	emptyPipeline := []ast.Stage{
-		ast.NewCollStatsStage(nil, nil, nil),
-
-		// $match will return false, causing this pipeline to return no documents.
-		ast.NewMatchStage(
-			ast.NewBinary(bsonutil.OpEq,
-				ast.NewFieldRef(falsyPredicateField, nil),
-				astutil.Int32Value(2),
-			),
-		),
-	}
-
-	// $collStats is not available in 3.2, so use limit:1 to get at most one document.
-	if !procutil.VersionAtLeast(mongoDBVersion, []uint8{3, 4, 0}) {
-		emptyPipeline[0] = ast.NewLimitStage(1)
-	}
-
-	return emptyPipeline
-}
-
 // createEmptyResultsMongoSourceStage is used wherever we know statically that a query
 // will produce an empty result set but still needs to be pushed down. This returns a
-// MongoSourceStage with a pipeline that produces no results.
-func createEmptyResultsMongoSourceStage(ms *MongoSourceStage, mongoDBVersion []uint8) PlanStage {
+// MongoSourceStage for the INFORMATION_SCHEMA.DUAL namespace with a pipeline that
+// produces no results.
+func createEmptyResultsMongoSourceStage(ms *MongoSourceStage) PlanStage {
 	ms = ms.clone().(*MongoSourceStage)
-	emptyPipeline := createEmptyResultsPipeline(mongoDBVersion)
 
-	ms.pipeline = ast.NewPipeline(emptyPipeline...)
+	ms.dbName = catalog.InformationSchemaDatabase
+	ms.collectionNames = []string{"DUAL"}
 	ms.LimitRowCount = 0
+
+	// DUAL outputs only one document, and this falsy $match stage will ensure
+	// the output is empty.
+	ms.pipeline = ast.NewPipeline(
+		ast.NewMatchStage(
+			ast.NewAggExpr(astutil.BooleanConstant(false)),
+		),
+	)
 	return ms
 }
 
@@ -2447,7 +2433,7 @@ func (v *pushdownVisitor) visitLimit(limit *LimitStage) (PlanStage, error) {
 
 	// If limit is zero, swap out for empty pipeline.
 	if limit.limit == 0 {
-		return createEmptyResultsMongoSourceStage(ms, v.cfg.mongoDBVersion), nil
+		return createEmptyResultsMongoSourceStage(ms), nil
 	}
 
 	ms = ms.clone().(*MongoSourceStage)
