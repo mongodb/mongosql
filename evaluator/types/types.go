@@ -311,6 +311,49 @@ func EvalTypeFromString(s string) EvalType {
 	panic(fmt.Sprintf("unknown EvalType name in EvalTypeFromtString: %q", s))
 }
 
+// evalTypeToBSONName returns the BSON name for an EvalType.
+var evalTypeToBSONName = map[EvalType]string{
+	EvalDouble:       "double",
+	EvalString:       "string",
+	EvalDocument:     "object",
+	EvalArray:        "array",
+	EvalBinary:       "binData",
+	EvalUndefined:    "undefined",
+	EvalObjectID:     "objectId",
+	EvalBoolean:      "bool",
+	EvalDatetime:     "date",
+	EvalNull:         "null",
+	EvalRegex:        "regex",
+	EvalDBPointer:    "dbPointer",
+	EvalJSCode:       "javascript",
+	EvalSymbol:       "symbol",
+	EvalJSCodeWScope: "javascriptWithScope",
+	EvalInt32:        "int",
+	EvalTimestamp:    "timestamp",
+	EvalInt64:        "long",
+	EvalDecimal128:   "decimal",
+	EvalMinKey:       "minKey",
+	EvalMaxKey:       "maxKey",
+	EvalPolymorphic:  "string",
+	EvalDate:         "date",
+	EvalTime:         "date",
+	EvalUint32:       "int",
+	EvalUint64:       "long",
+	EvalJavaUUID:     "binData",
+	EvalCSharpUUID:   "binData",
+	EvalArrNumeric:   "int",
+	EvalNumber:       "double",
+}
+
+// EvalTypeToBSONName returns the BSON name for an EvalType.
+func EvalTypeToBSONName(e EvalType) string {
+	name, ok := evalTypeToBSONName[e]
+	if ok {
+		return name
+	}
+	panic(fmt.Sprintf("unknown EvalType in EvalTypeToBSONName: 0x%x", e))
+}
+
 // EvalTypeSorter is a type used for sorting EvalTypes according to some
 // configurable sorting rules.
 type EvalTypeSorter struct {

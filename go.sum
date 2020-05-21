@@ -26,6 +26,8 @@ github.com/10gen/mongoast v0.0.0-20200324150211-17f3b36255cd h1:tmsHjESS1MJCOaR8
 github.com/10gen/mongoast v0.0.0-20200324150211-17f3b36255cd/go.mod h1:B/qLeq8KlSmMx3w6LpD86/OnwYpccbtHwxwAB4+kGqI=
 github.com/10gen/mongoast v0.0.0-20200327205312-fea7d60c4947 h1:VLz8GgZo+MU3x7tXnrBINn3vJRdXSmicuuGH61oWuqg=
 github.com/10gen/mongoast v0.0.0-20200327205312-fea7d60c4947/go.mod h1:B/qLeq8KlSmMx3w6LpD86/OnwYpccbtHwxwAB4+kGqI=
+github.com/10gen/mongoast v0.0.0-20200513135848-d4cd33265907 h1:sd3J7DzyymzpMvFo3G6D5jGmUTo3E5cWQRrVFn711ao=
+github.com/10gen/mongoast v0.0.0-20200513135848-d4cd33265907/go.mod h1:B/qLeq8KlSmMx3w6LpD86/OnwYpccbtHwxwAB4+kGqI=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 h1:TbONlEzjFZ0K7a6dYca+3rwJugMwiRJLY+FSCO3C2CE=
 github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847/go.mod h1:ngIUcWisavS+ezq2tBEu6vgSU981hsiJaalWLlpOcuE=
 github.com/DataDog/zstd v1.4.4 h1:+IawcoXhCBylN7ccwdwf8LOH2jKq7NavGpEPanrlTzE=

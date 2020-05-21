@@ -3,8 +3,10 @@ package evaluator
 import (
 	"fmt"
 
-	"github.com/10gen/mongoast/ast"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/astutil"
+
+	"github.com/10gen/mongoast/ast"
 )
 
 type pushdownOutputFormatter func(*MongoSourceStage) (*ast.ProjectStage, error)
@@ -88,6 +90,7 @@ func formatUnflattenedProject(ms *MongoSourceStage) (*ast.ProjectStage, error) {
 		tableAlias := astutil.StringValue(c.Table)
 		column := astutil.StringValue(c.OriginalName)
 		columnAlias := astutil.StringValue(c.Name)
+		bsonType := astutil.StringValue(types.EvalTypeToBSONName(c.ColumnType.EvalType))
 
 		// if database is empty, replace it with null
 		if c.Database == "" {
@@ -120,6 +123,7 @@ func formatUnflattenedProject(ms *MongoSourceStage) (*ast.ProjectStage, error) {
 			ast.NewDocumentElement("tableAlias", tableAlias),
 			ast.NewDocumentElement("column", column),
 			ast.NewDocumentElement("columnAlias", columnAlias),
+			ast.NewDocumentElement("bsonType", bsonType),
 			ast.NewDocumentElement("value", ref),
 		)
 	}

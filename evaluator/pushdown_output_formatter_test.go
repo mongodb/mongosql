@@ -5,6 +5,7 @@ import (
 
 	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/evaluator/results"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/stretchr/testify/require"
 )
@@ -57,8 +58,8 @@ func TestFormatUnflattenedProject(t *testing.T) {
 				},
 			},
 			[]*results.Column{
-				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "a", OriginalName: "a"},
-				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "b", OriginalName: "b"},
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "a", OriginalName: "a", ColumnType: &results.ColumnType{EvalType: types.EvalString}},
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "b", OriginalName: "b", ColumnType: &results.ColumnType{EvalType: types.EvalBoolean}},
 			},
 			ast.NewProjectStage(
 				ast.NewAssignProjectItem("values", ast.NewArray(
@@ -68,6 +69,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("a")),
 						ast.NewDocumentElement("columnAlias", astutil.StringValue("a")),
+						ast.NewDocumentElement("bsonType", astutil.StringValue("string")),
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_a", nil)),
 					),
 					ast.NewDocument(
@@ -76,6 +78,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("b")),
 						ast.NewDocumentElement("columnAlias", astutil.StringValue("b")),
+						ast.NewDocumentElement("bsonType", astutil.StringValue("bool")),
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_b", nil)),
 					),
 				)),
@@ -95,8 +98,8 @@ func TestFormatUnflattenedProject(t *testing.T) {
 				},
 			},
 			[]*results.Column{
-				{Database: "db", Table: "t1", OriginalTable: "foo", Name: "ah", OriginalName: "a"},
-				{Database: "db", Table: "t2", OriginalTable: "foo", Name: "be", OriginalName: "b"},
+				{Database: "db", Table: "t1", OriginalTable: "foo", Name: "ah", OriginalName: "a", ColumnType: &results.ColumnType{EvalType: types.EvalString}},
+				{Database: "db", Table: "t2", OriginalTable: "foo", Name: "be", OriginalName: "b", ColumnType: &results.ColumnType{EvalType: types.EvalInt64}},
 			},
 			ast.NewProjectStage(
 				ast.NewAssignProjectItem("values", ast.NewArray(
@@ -106,6 +109,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("t1")),
 						ast.NewDocumentElement("column", astutil.StringValue("a")),
 						ast.NewDocumentElement("columnAlias", astutil.StringValue("ah")),
+						ast.NewDocumentElement("bsonType", astutil.StringValue("string")),
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_t1_DOT_ah", nil)),
 					),
 					ast.NewDocument(
@@ -114,6 +118,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("t2")),
 						ast.NewDocumentElement("column", astutil.StringValue("b")),
 						ast.NewDocumentElement("columnAlias", astutil.StringValue("be")),
+						ast.NewDocumentElement("bsonType", astutil.StringValue("long")),
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_t2_DOT_be", nil)),
 					),
 				)),
@@ -134,9 +139,9 @@ func TestFormatUnflattenedProject(t *testing.T) {
 				},
 			},
 			[]*results.Column{
-				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "a", OriginalName: "a"},
-				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "b", OriginalName: "b"},
-				{Database: "db", Table: "", OriginalTable: "", Name: "a+b", OriginalName: ""},
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "a", OriginalName: "a", ColumnType: &results.ColumnType{EvalType: types.EvalDecimal128}},
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "b", OriginalName: "b", ColumnType: &results.ColumnType{EvalType: types.EvalInt32}},
+				{Database: "db", Table: "", OriginalTable: "", Name: "a+b", OriginalName: "", ColumnType: &results.ColumnType{EvalType: types.EvalDouble}},
 			},
 			ast.NewProjectStage(
 				ast.NewAssignProjectItem("values", ast.NewArray(
@@ -146,6 +151,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("a")),
 						ast.NewDocumentElement("columnAlias", astutil.StringValue("a")),
+						ast.NewDocumentElement("bsonType", astutil.StringValue("decimal")),
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_a", nil)),
 					),
 					ast.NewDocument(
@@ -154,6 +160,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("tableAlias", astutil.StringValue("foo")),
 						ast.NewDocumentElement("column", astutil.StringValue("b")),
 						ast.NewDocumentElement("columnAlias", astutil.StringValue("b")),
+						ast.NewDocumentElement("bsonType", astutil.StringValue("int")),
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_b", nil)),
 					),
 					ast.NewDocument(
@@ -162,6 +169,7 @@ func TestFormatUnflattenedProject(t *testing.T) {
 						ast.NewDocumentElement("tableAlias", astutil.NullLiteral),
 						ast.NewDocumentElement("column", astutil.NullLiteral),
 						ast.NewDocumentElement("columnAlias", astutil.StringValue("a+b")),
+						ast.NewDocumentElement("bsonType", astutil.StringValue("double")),
 						ast.NewDocumentElement("value", ast.NewFieldRef("db_DOT_foo_DOT_a+db_DOT_foo_DOT_b", nil)),
 					),
 				)),
