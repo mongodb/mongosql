@@ -643,7 +643,7 @@ type schemaOptions struct {
 	StoredSchemaMode   *string `long:"schemaMode" description:"set the stored-schema mode (https://docs.mongodb.com/bi-connector/current/reference/mongosqld/#sampling-mode-reference-chart)" choice:"auto" choice:"custom"`
 	StoredSchemaName   *string `long:"schemaName" description:"the name of the stored schema to use in custom mode ('defaultSchema' by default)"`
 
-	SampleSize *int64 `long:"sampleSize" description:"the number of documents to sample, per database, when sampling the schema(s) (1000 by default)"`
+	SampleSize *int64 `long:"sampleSize" description:"the number of documents to sample, per namespace, when sampling the schema(s) (1000 by default)"`
 	PreJoin    *bool  `long:"prejoin" description:"generate unwound tables including parent columns, effectively resulting in a pre-joined table"`
 
 	// Namespaces will append the namespace every time the option is encountered
