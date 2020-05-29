@@ -947,7 +947,6 @@ functions:
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_time-to-sec
     names: ['time_to_sec']
-    no_pushdown: true
     no_reconcile: true
 
   - _id: timestamp

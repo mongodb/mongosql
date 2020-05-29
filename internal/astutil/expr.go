@@ -254,6 +254,21 @@ func WrapInDateToString(date ast.Expr, format string) *ast.Function {
 
 }
 
+// WrapInHour wraps the date in a $hour function.
+func WrapInHour(date ast.Expr) *ast.Function {
+	return ast.NewFunction(bsonutil.OpHour, date)
+}
+
+// WrapInMonth calls $month
+func WrapInMonth(date ast.Expr) *ast.Function {
+	return ast.NewFunction(bsonutil.OpMonth, date)
+}
+
+// WrapInDayOfMonth calls $dayOfMonth
+func WrapInDayOfMonth(date ast.Expr) *ast.Function {
+	return ast.NewFunction(bsonutil.OpDayOfMonth, date)
+}
+
 // WrapInEqCase returns a document that is a case arm that checks equality between expr1 and expr2.
 func WrapInEqCase(expr1, expr2, thenExpr ast.Expr) ast.Expr {
 	caseExpr := ast.NewBinary(bsonutil.OpEq, expr1, expr2)

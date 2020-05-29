@@ -6761,7 +6761,7 @@ func (f *timeToSecFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *
 }
 
 func (f *timeToSecFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	return nil, newPushdownFailure(f.ExprName(), "no pushdown implementation")
+	return f.timeToSecToAggregationLanguage(t, f.args)
 }
 
 func (f *timeToSecFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {

@@ -99,6 +99,26 @@ func TranslateSQLQueryFile(queryFile, dbName, mongoVersion, schemaPath, format s
 	return TranslateSQLQuery(string(query), dbName, mongoVersion, schemaPath, format, explain, isCaseSensitive)
 }
 
+// ADLTranslate translates a SQLQuery to the pipeline we send to ADL in JDBC format.
+func ADLTranslate(sqlQuery, dbName, schemaPath string) (string, error) {
+	sch, err := loadSchema(schemaPath)
+	if err != nil {
+		return "", err
+	}
+
+	ctlg, err := getCatalog(sch, false)
+	if err != nil {
+		return "", err
+	}
+
+	tCfg := NewTranslationConfig(ctlg, evaluator.ODBCOutputFormat, 1, dbName)
+	arr, _, _, err := TranslateSQLQueryRaw(context.Background(), tCfg, sqlQuery)
+	if err != nil {
+		return "", err
+	}
+	return arr.String(), nil
+}
+
 // TranslateSQLQueryRaw translates a SQL query into a MongoDB aggregation pipeline
 // as a raw bsoncore.Array. It also returns the name of the collection against which
 // the pipeline would run. It accepts the sql query as a string, along with a dbName

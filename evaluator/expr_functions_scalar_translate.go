@@ -846,6 +846,121 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 	// calculateInterval works for all other units, as they must be integral.
 	if unitValue.String() == Second {
 		ms = mathutil.Round(values.Float64(intervalValue) * 1000.0)
+		// For a year, we just add n to the year.
+	} else if unitValue.String() == Year {
+		if !t.versionAtLeast(4, 0, 0) {
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(dateArithmetic)",
+				"cannot push down to MongoDB < 4.0 (need overflowing $dateFromParts)",
+			)
+		}
+		assignments := []*ast.LetVariable{
+			ast.NewLetVariable(
+				"dateParts",
+				ast.NewFunction(
+					bsonutil.OpDateToParts,
+					ast.NewDocument(
+						ast.NewDocumentElement("date", date),
+					),
+				),
+			),
+		}
+		expr := ast.NewFunction(
+			bsonutil.OpDateFromParts,
+			ast.NewDocument(
+				ast.NewDocumentElement(
+					"year",
+					astutil.WrapInBinOp(
+						bsonutil.OpAdd,
+						ast.NewVariableRef("dateParts.year"),
+						astutil.Int64Value(intervalValue.SQLInt().Value().(int64)),
+					),
+				),
+				ast.NewDocumentElement("month", ast.NewVariableRef("dateParts.month")),
+				ast.NewDocumentElement("day", ast.NewVariableRef("dateParts.day")),
+				ast.NewDocumentElement("hour", ast.NewVariableRef("dateParts.hour")),
+				ast.NewDocumentElement("minute", ast.NewVariableRef("dateParts.minute")),
+				ast.NewDocumentElement("second", ast.NewVariableRef("dateParts.second")),
+				ast.NewDocumentElement("millisecond", ast.NewVariableRef("dateParts.millisecond")),
+			),
+		)
+		return ast.NewLet(assignments, expr), nil
+	} else if unitValue.String() == Month {
+		if !t.versionAtLeast(4, 0, 0) {
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(date_add)",
+				"cannot push down to MongoDB < 4.0 (need overflowing $dateFromParts)",
+			)
+		}
+		assignments := []*ast.LetVariable{
+			ast.NewLetVariable(
+				"dateParts",
+				ast.NewFunction(
+					bsonutil.OpDateToParts,
+					ast.NewDocument(
+						ast.NewDocumentElement("date", date),
+					),
+				),
+			),
+		}
+		expr := ast.NewFunction(
+			bsonutil.OpDateFromParts,
+			ast.NewDocument(
+				ast.NewDocumentElement("year", ast.NewVariableRef("dateParts.year")),
+				ast.NewDocumentElement(
+					"month",
+					astutil.WrapInBinOp(
+						bsonutil.OpAdd,
+						ast.NewVariableRef("dateParts.month"),
+						astutil.Int64Value(intervalValue.SQLInt().Value().(int64)),
+					),
+				),
+				ast.NewDocumentElement("day", ast.NewVariableRef("dateParts.day")),
+				ast.NewDocumentElement("hour", ast.NewVariableRef("dateParts.hour")),
+				ast.NewDocumentElement("minute", ast.NewVariableRef("dateParts.minute")),
+				ast.NewDocumentElement("second", ast.NewVariableRef("dateParts.second")),
+				ast.NewDocumentElement("millisecond", ast.NewVariableRef("dateParts.millisecond")),
+			),
+		)
+		return ast.NewLet(assignments, expr), nil
+	} else if unitValue.String() == Week {
+		if !t.versionAtLeast(4, 0, 0) {
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(date_add)",
+				"cannot push down to MongoDB < 4.0 (need overflowing $dateFromParts)",
+			)
+		}
+		assignments := []*ast.LetVariable{
+			ast.NewLetVariable(
+				"dateParts",
+				ast.NewFunction(
+					bsonutil.OpDateToParts,
+					ast.NewDocument(
+						ast.NewDocumentElement("date", date),
+					),
+				),
+			),
+		}
+		expr := ast.NewFunction(
+			bsonutil.OpDateFromParts,
+			ast.NewDocument(
+				ast.NewDocumentElement("year", ast.NewVariableRef("dateParts.year")),
+				ast.NewDocumentElement("month", ast.NewVariableRef("dateParts.month")),
+				ast.NewDocumentElement(
+					"day",
+					astutil.WrapInBinOp(
+						bsonutil.OpAdd,
+						ast.NewVariableRef("dateParts.day"),
+						astutil.Int64Value(intervalValue.SQLInt().Value().(int64)*7),
+					),
+				),
+				ast.NewDocumentElement("hour", ast.NewVariableRef("dateParts.hour")),
+				ast.NewDocumentElement("minute", ast.NewVariableRef("dateParts.minute")),
+				ast.NewDocumentElement("second", ast.NewVariableRef("dateParts.second")),
+				ast.NewDocumentElement("millisecond", ast.NewVariableRef("dateParts.millisecond")),
+			),
+		)
+		return ast.NewLet(assignments, expr), nil
 	} else {
 		unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
 		unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
@@ -984,7 +1099,7 @@ func (f *baseScalarFunctionExpr) dateFormatToAggregationLanguage(t *PushdownTran
 	}
 	formatValue := formatValueExpr.Value
 
-	wrapped, ok := formatDate(date, formatValue.String())
+	wrapped, ok := t.formatDate(date, formatValue.String())
 	if !ok {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(dateFormat)",
@@ -1127,7 +1242,20 @@ func (f *baseScalarFunctionExpr) floorToAggregationLanguage(t *PushdownTranslato
 // formatDate wraps an Aggregation Expression that evaluates to a date
 // in a date_format expression that will use '$dateFromString' to format
 // a date to a string.
-func formatDate(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
+func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
+	formats := []string{}
+	// postFormats are formats that mongodb cannot handle directly, they
+	// will be weaved between format strings that mongodb can handle.  Consider
+	// "%Y %d %b %h %e", the pseudocode we need to generate has to be:
+	// concat(
+	//    dateToString(date, "%Y %d "),
+	//    b_code(date),
+	//    dateToString(date, " %h "),
+	//    e_code(date),
+	//)
+	// Because dateToString understands %Y, %d, and %h,
+	// but does not understand %b and %e.
+	postFormats := []rune{}
 	var format string
 	for i := 0; i < len(mysqlFormat); i++ {
 		if mysqlFormat[i] == '%' {
@@ -1155,6 +1283,34 @@ func formatDate(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
 					format += "%U"
 				case 'Y':
 					format += "%Y"
+				case 'b':
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					formats = append(formats, format)
+					postFormats = append(postFormats, 'b')
+					format = ""
+				case 'e':
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					formats = append(formats, format)
+					postFormats = append(postFormats, 'e')
+					format = ""
+				case 'l':
+					if !t.versionAtLeast(4, 0, 0) {
+						return nil, false
+					}
+					formats = append(formats, format)
+					postFormats = append(postFormats, 'l')
+					format = ""
+				case 'p':
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					formats = append(formats, format)
+					postFormats = append(postFormats, 'p')
+					format = ""
 				default:
 					return nil, false
 				}
@@ -1167,15 +1323,104 @@ func formatDate(date ast.Expr, mysqlFormat string) (ast.Expr, bool) {
 			format += string(mysqlFormat[i])
 		}
 	}
+	formats = append(formats, format)
 
 	if val, ok := date.(*ast.Constant); ok && val.Value.Type == bsontype.Null {
 		return nil, true
 	}
 
+	createFormatChunk := func(date ast.Expr, format string) ast.Expr {
+		if format == "" {
+			return astutil.EmptyStringLiteral
+		}
+		return astutil.WrapInNullCheckedCond(
+			astutil.NullLiteral,
+			astutil.WrapInDateToString(date, format),
+			date)
+	}
+
+	if len(formats) == 1 {
+		return createFormatChunk(date, format), true
+	}
+
+	// We need to do a let here because our mongoast deduplication pass isn't correctly pulling out
+	// the $month call.
+	month := ast.NewVariableRef("month")
+	evaluation := astutil.WrapInSwitch(
+		astutil.EmptyStringLiteral,
+		astutil.WrapInEqCase(month, astutil.Int32Value(1), astutil.StringValue("Jan")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(2), astutil.StringValue("Feb")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(3), astutil.StringValue("Mar")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(4), astutil.StringValue("Apr")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(5), astutil.StringValue("May")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(6), astutil.StringValue("Jun")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(7), astutil.StringValue("Jul")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(8), astutil.StringValue("Aug")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(9), astutil.StringValue("Sep")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(10), astutil.StringValue("Oct")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(11), astutil.StringValue("Nov")),
+		astutil.WrapInEqCase(month, astutil.Int32Value(12), astutil.StringValue("Dec")),
+	)
+
+	getExpr := func(formatTy rune) ast.Expr {
+		switch formatTy {
+		// b is month name as three characters
+		case 'b':
+			inputLetAssignment := []*ast.LetVariable{ast.NewLetVariable("month", astutil.WrapInMonth(date))}
+			return ast.NewLet(inputLetAssignment, evaluation)
+		// e is non-zero padded day of month, so we just get day of month and convert to string.
+		case 'e':
+			return astutil.WrapInConvert(
+				astutil.WrapInDayOfMonth(date),
+				"string",
+				astutil.NullLiteral,
+				astutil.NullLiteral,
+			)
+		// l is 12 hour hour, non-zero padded.
+		// hour == 0 : 12
+		// hour == 12 : 12
+		// else hour % 12
+		case 'l':
+			return astutil.WrapInConvert(
+				astutil.WrapInSwitch(
+					astutil.WrapInBinOp(bsonutil.OpMod,
+						astutil.WrapInHour(date),
+						astutil.Int32Value(12),
+					),
+					astutil.WrapInEqCase(astutil.WrapInHour(date), astutil.Int32Value(0), astutil.Int32Value(12)),
+					astutil.WrapInEqCase(astutil.WrapInHour(date), astutil.Int32Value(12), astutil.Int32Value(12)),
+				),
+				"string",
+				astutil.NullLiteral,
+				astutil.NullLiteral,
+			)
+		// p is 'AM' or 'PM'
+		case 'p':
+			return astutil.WrapInCond(
+				astutil.StringValue("AM"),
+				astutil.StringValue("PM"),
+				astutil.WrapInBinOp(
+					bsonutil.OpLt,
+					astutil.WrapInHour(date),
+					astutil.Int32Value(12),
+				),
+			)
+		}
+
+		return nil
+	}
+
+	args := []ast.Expr{}
+	for i, format := range formats[0 : len(formats)-1] {
+		arg := createFormatChunk(date, format)
+		args = append(args, arg)
+		args = append(args, getExpr(postFormats[i]))
+	}
+	arg := createFormatChunk(date, formats[len(formats)-1])
+	args = append(args, arg)
 	return astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
-		astutil.WrapInDateToString(date, format),
-		date,
+		astutil.WrapInConcat(args),
 	), true
 }
 
@@ -1251,7 +1496,7 @@ func (f *baseScalarFunctionExpr) fromUnixtimeToAggregationLanguage(t *PushdownTr
 	}
 	if formatExpr, ok := exprs[1].(SQLValueExpr); ok {
 		format := formatExpr.Value
-		wrapped, ok := formatDate(ret, format.String())
+		wrapped, ok := t.formatDate(ret, format.String())
 		if !ok {
 			return nil, newPushdownFailure(
 				"SQLScalarFunctionExpr(fromUnixtime)",
@@ -2999,6 +3244,56 @@ func (f *baseScalarFunctionExpr) toSecondsToAggregationLanguage(t *PushdownTrans
 		ast.NewBinary(bsonutil.OpSubtract, args[0], astutil.DateConstant(dayOne)),
 	), nil
 }
+
+// We'll just accept a date as a time. Tableau uses TIME_TO_SEC.
+func (f *baseScalarFunctionExpr) timeToSecToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	if !t.versionAtLeast(3, 6, 0) {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(time_to_sec)",
+			"cannot push down to MongoDB < 3.6",
+		)
+	}
+	assertExactArgCount(exprs, 1)
+
+	// We will only pushdown for things statically known to be datetime/date because
+	// we do not have a time type, and doing reconciliation will cause an issue with
+	// time strings. Since the goal is just to make pushdown work in BI tools attached to
+	// ADL, this will be fine. If someone needs to call time_to_sec on another type they
+	// will need to manually convert to a datetime in a way that is suitable to their
+	// uses.
+	if exprs[0].EvalType() != types.EvalDatetime && exprs[0].EvalType() != types.EvalDate {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(time_to_sec)",
+			"can only push down for values known to be datetime statically",
+		)
+	}
+
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
+	}
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable(
+			"dateParts",
+			ast.NewFunction(
+				bsonutil.OpDateToParts,
+				ast.NewDocument(
+					ast.NewDocumentElement("date", args[0]),
+				),
+			),
+		),
+	}
+	expr := ast.NewFunction(
+		bsonutil.OpAdd,
+		ast.NewArray(
+			ast.NewFunction(bsonutil.OpMultiply, ast.NewArray(ast.NewVariableRef("dateParts.hour"), astutil.Int64Value(60*60))),
+			ast.NewFunction(bsonutil.OpMultiply, ast.NewArray(ast.NewVariableRef("dateParts.minute"), astutil.Int64Value(60))),
+			ast.NewVariableRef("dateParts.second"),
+		),
+	)
+	return ast.NewLet(assignments, expr), nil
+}
+
 func (f *baseScalarFunctionExpr) trimToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
 	if !t.versionAtLeast(3, 4, 0) {
 		return nil, newPushdownFailure(

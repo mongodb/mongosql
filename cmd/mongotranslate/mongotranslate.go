@@ -42,7 +42,9 @@ func main() {
 		log.Fatalln("no schema provided")
 		return
 	}
-	if *format != "multiline" && *format != "none" {
+	// The adl format option is only for internal use, it should not be exposed to users.
+	// The purpose is to aid in issues with ADL pushdown.
+	if *format != "multiline" && *format != "none" && *format != "adl" {
 		log.Fatalf("invalid value `%v` for option `--format`. Allowed values are: multiline, none.\n", *format)
 		return
 	}
@@ -51,6 +53,8 @@ func main() {
 	var err error
 
 	switch {
+	case *format == "adl":
+		explainPlan, err = mongosql.ADLTranslate(*sqlQuery, *dbName, *schema)
 	case *sqlQuery != "":
 		explainPlan, _, err = mongosql.TranslateSQLQuery(*sqlQuery, *dbName, *mongoVersion, *schema, *format, *explain, false)
 	case *queryFile != "":

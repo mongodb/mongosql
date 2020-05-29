@@ -1,6 +1,24 @@
 # Sample BI-Connector Schema File
 schema:
 - 
+  db: tdvt
+  tables:
+  - 
+   table: Calcs
+   collection: Calcs
+   columns:
+   -
+    Name: date2
+    MongoType: date
+    SqlType: timestamp
+    SqlName: date2
+
+   -
+    Name: datetime0
+    MongoType: date
+    SqlType: timestamp
+    SqlName: datetime0
+-
   db: test
   tables:
   - 

@@ -19744,16 +19744,16 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",NumberLong(\"3600\")]},{\"$multiply\": [\"$$dateParts.minute\",NumberLong(\"60\")]},\"$$dateParts.second\"]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",NumberLong(\"3600\")]},{\"$multiply\": [\"$$dateParts.minute\",NumberLong(\"60\")]},\"$$dateParts.second\"]}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",NumberLong(\"3600\")]},{\"$multiply\": [\"$$dateParts.minute\",NumberLong(\"60\")]},\"$$dateParts.second\"]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",NumberLong(\"3600\")]},{\"$multiply\": [\"$$dateParts.minute\",NumberLong(\"60\")]},\"$$dateParts.second\"]}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",NumberLong(\"3600\")]},{\"$multiply\": [\"$$dateParts.minute\",NumberLong(\"60\")]},\"$$dateParts.second\"]}}}",
+                "mysql-mode": "{\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",NumberLong(\"3600\")]},{\"$multiply\": [\"$$dateParts.minute\",NumberLong(\"60\")]},\"$$dateParts.second\"]}}}"
             }
         },
         "predicate": {
@@ -19766,16 +19766,16 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",{\"$numberLong\":\"3600\"}]},{\"$multiply\": [\"$$dateParts.minute\",{\"$numberLong\":\"60\"}]},\"$$dateParts.second\"]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",{\"$numberLong\":\"3600\"}]},{\"$multiply\": [\"$$dateParts.minute\",{\"$numberLong\":\"60\"}]},\"$$dateParts.second\"]}}}}"
             },
             "4.0": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",{\"$numberLong\":\"3600\"}]},{\"$multiply\": [\"$$dateParts.minute\",{\"$numberLong\":\"60\"}]},\"$$dateParts.second\"]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",{\"$numberLong\":\"3600\"}]},{\"$multiply\": [\"$$dateParts.minute\",{\"$numberLong\":\"60\"}]},\"$$dateParts.second\"]}}}}"
             },
             "4.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",{\"$numberLong\":\"3600\"}]},{\"$multiply\": [\"$$dateParts.minute\",{\"$numberLong\":\"60\"}]},\"$$dateParts.second\"]}}}}",
+                "mysql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"dateParts\": {\"$dateToParts\": {\"date\": \"$g\"}}},\"in\": {\"$add\": [{\"$multiply\": [\"$$dateParts.hour\",{\"$numberLong\":\"3600\"}]},{\"$multiply\": [\"$$dateParts.minute\",{\"$numberLong\":\"60\"}]},\"$$dateParts.second\"]}}}}"
             }
         }
     },

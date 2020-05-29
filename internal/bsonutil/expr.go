@@ -28,6 +28,7 @@ const (
 	OpCos              = "$cos"
 	OpCosh             = "$cosh"
 	OpDateFromParts    = "$dateFromParts"
+	OpDateToParts      = "$dateToParts"
 	OpDateFromString   = "$dateFromString"
 	OpDateToString     = "$dateToString"
 	OpDayOfMonth       = "$dayOfMonth"
