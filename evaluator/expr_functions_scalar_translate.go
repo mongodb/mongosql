@@ -846,8 +846,8 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 	// calculateInterval works for all other units, as they must be integral.
 	if unitValue.String() == Second {
 		ms = mathutil.Round(values.Float64(intervalValue) * 1000.0)
-		// For a year, we just add n to the year.
 	} else if unitValue.String() == Year {
+		// For a year, we just add n to the year.
 		if !t.versionAtLeast(4, 0, 0) {
 			return nil, newPushdownFailure(
 				"SQLScalarFunctionExpr(dateArithmetic)",
