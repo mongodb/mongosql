@@ -1377,7 +1377,7 @@ var _ SQLScalarFunctionExpr = (*dateAddFunc)(nil)
 
 // The following constants represent some properties of the dateAddFunc scalar function.
 var (
-	dateAddExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalString, types.EvalString}
+	dateAddExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalNumber, types.EvalString}
 	dateAddIsVariadic     bool                           = false
 	dateAddReturnTypeFunc func([]SQLExpr) types.EvalType = dateAddEvalType
 )
@@ -1447,6 +1447,88 @@ func (f *dateAddFunc) reconcile() (SQLExpr, error) {
 }
 
 func dateAddEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
+}
+
+type dateAddComplexFunc struct {
+	baseScalarFunctionExpr
+}
+
+// dateAddComplexFunc must satisfy the SQLScalarFunctionExpr interface.
+var _ SQLScalarFunctionExpr = (*dateAddComplexFunc)(nil)
+
+// The following constants represent some properties of the dateAddComplexFunc scalar function.
+var (
+	dateAddComplexExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalString, types.EvalString}
+	dateAddComplexIsVariadic     bool                           = false
+	dateAddComplexReturnTypeFunc func([]SQLExpr) types.EvalType = dateAddComplexEvalType
+)
+
+func (f *dateAddComplexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	// Validate this function's argument count and types.
+	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
+	// evaluate arguments
+	args := []values.SQLValue{}
+	for i, arg := range f.args {
+		val, err := arg.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
+		}
+		args = append(args, val)
+	}
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateAddComplexEvaluate(cfg.sqlValueKind, st.collation, args)
+}
+
+func (f *dateAddComplexFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	return f.dateAddComplexToAggregationLanguage(t, f.args)
+}
+
+func (f *dateAddComplexFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	return f.ToAggregationLanguage(t)
+}
+
+func (f *dateAddComplexFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
+	allVals := true
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
+		} else {
+			allVals = false
+		}
+	}
+	if !allVals {
+		return f, nil
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateAddComplexEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return nil, err
+	}
+	return NewSQLValueExpr(val), nil
+}
+
+func (f *dateAddComplexFunc) reconcile() (SQLExpr, error) {
+	convertedArgs := convertExprs(f.args, f.argTypes())
+	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
+}
+
+func dateAddComplexEvalType(_ []SQLExpr) types.EvalType {
 	return types.EvalDatetime
 }
 
@@ -1623,7 +1705,7 @@ var _ SQLScalarFunctionExpr = (*dateSubFunc)(nil)
 
 // The following constants represent some properties of the dateSubFunc scalar function.
 var (
-	dateSubExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalString, types.EvalString}
+	dateSubExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalNumber, types.EvalString}
 	dateSubIsVariadic     bool                           = false
 	dateSubReturnTypeFunc func([]SQLExpr) types.EvalType = dateSubEvalType
 )
@@ -1693,6 +1775,88 @@ func (f *dateSubFunc) reconcile() (SQLExpr, error) {
 }
 
 func dateSubEvalType(_ []SQLExpr) types.EvalType {
+	return types.EvalDatetime
+}
+
+type dateSubComplexFunc struct {
+	baseScalarFunctionExpr
+}
+
+// dateSubComplexFunc must satisfy the SQLScalarFunctionExpr interface.
+var _ SQLScalarFunctionExpr = (*dateSubComplexFunc)(nil)
+
+// The following constants represent some properties of the dateSubComplexFunc scalar function.
+var (
+	dateSubComplexExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalString, types.EvalString}
+	dateSubComplexIsVariadic     bool                           = false
+	dateSubComplexReturnTypeFunc func([]SQLExpr) types.EvalType = dateSubComplexEvalType
+)
+
+func (f *dateSubComplexFunc) Evaluate(ctx context.Context, cfg *ExecutionConfig, st *ExecutionState) (values.SQLValue, error) {
+	// Validate this function's argument count and types.
+	err := f.validateArgCount()
+	if err != nil {
+		return nil, err
+	}
+	err = validateArgs(f)
+	if err != nil {
+		return nil, err
+	}
+
+	// evaluate arguments
+	args := []values.SQLValue{}
+	for i, arg := range f.args {
+		val, err := arg.Evaluate(ctx, cfg, st)
+		if err != nil {
+			return nil, fmt.Errorf("error evaluating argument at index %d in scalar function '%s': %v", i, f.invokedAs, err)
+		}
+		args = append(args, val)
+	}
+	// Call the value based evaluation function that contains the appropriate evaluation logic.
+	return f.dateSubComplexEvaluate(cfg.sqlValueKind, st.collation, args)
+}
+
+func (f *dateSubComplexFunc) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	return f.dateSubComplexToAggregationLanguage(t, f.args)
+}
+
+func (f *dateSubComplexFunc) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
+	return f.ToAggregationLanguage(t)
+}
+
+func (f *dateSubComplexFunc) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
+	if err := validateArgs(f); err != nil {
+		return nil, err
+	}
+	allVals := true
+	if hasNullExpr(f.args...) {
+		return NewSQLValueExpr(values.NewSQLNull(cfg.sqlValueKind)), nil
+	}
+	valArgs := make([]values.SQLValue, len(f.args))
+	for i, arg := range f.args {
+		if val, ok := arg.(SQLValueExpr); ok {
+			valArgs[i] = val.Value
+		} else {
+			allVals = false
+		}
+	}
+	if !allVals {
+		return f, nil
+	}
+	// Call the function that contains the appropriate evaluation logic.
+	val, err := f.dateSubComplexEvaluate(cfg.sqlValueKind, cfg.collation, valArgs)
+	if err != nil {
+		return nil, err
+	}
+	return NewSQLValueExpr(val), nil
+}
+
+func (f *dateSubComplexFunc) reconcile() (SQLExpr, error) {
+	convertedArgs := convertExprs(f.args, f.argTypes())
+	return NewSQLScalarFunctionExpr(f.invokedAs, convertedArgs)
+}
+
+func dateSubComplexEvalType(_ []SQLExpr) types.EvalType {
 	return types.EvalDatetime
 }
 
@@ -8648,6 +8812,26 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
 
+	case "date_add_complex":
+		var base baseScalarFunctionExpr
+		var err error
+
+		// check whether provided arguments are valid for dateAddComplexFunc
+		base = baseScalarFunctionExpr{
+			invokedAs: name,
+			args:      exprs,
+
+			expectedTypes:  dateAddComplexExpectedTypes,
+			variadic:       dateAddComplexIsVariadic,
+			returnTypeFunc: dateAddComplexReturnTypeFunc,
+		}
+		err = base.validateArgCount()
+		if err == nil {
+			return &dateAddComplexFunc{base}, nil
+		}
+
+		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+
 	case "datediff":
 		var base baseScalarFunctionExpr
 		var err error
@@ -8704,6 +8888,26 @@ func NewSQLScalarFunctionExpr(name string, exprs []SQLExpr) (SQLScalarFunctionEx
 		err = base.validateArgCount()
 		if err == nil {
 			return &dateSubFunc{base}, nil
+		}
+
+		return nil, fmt.Errorf(noMatchingInvocationMessage, name)
+
+	case "date_sub_complex":
+		var base baseScalarFunctionExpr
+		var err error
+
+		// check whether provided arguments are valid for dateSubComplexFunc
+		base = baseScalarFunctionExpr{
+			invokedAs: name,
+			args:      exprs,
+
+			expectedTypes:  dateSubComplexExpectedTypes,
+			variadic:       dateSubComplexIsVariadic,
+			returnTypeFunc: dateSubComplexReturnTypeFunc,
+		}
+		err = base.validateArgCount()
+		if err == nil {
+			return &dateSubComplexFunc{base}, nil
 		}
 
 		return nil, fmt.Errorf(noMatchingInvocationMessage, name)

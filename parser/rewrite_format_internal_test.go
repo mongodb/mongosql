@@ -1162,6 +1162,31 @@ func testRewriteAndFormatIgnored(t *testing.T) {
 			command:  "/*!50712 select a+b from bar*/",
 			expected: "select a+b as a+b from bar",
 		},
+		{
+			desc:     "rewrite date_add(d, INTERVAL 3 SECOND) from foo",
+			command:  "select date_add(d, INTERVAL 3 SECOND) from foo",
+			expected: `select date_add(d, 3, second) as date_add(d, 3, second) from foo`,
+		},
+		{
+			desc:     "rewrite date_add(d, INTERVAL 3.2 SECOND_MICROSECOND) from foo",
+			command:  "select date_add(d, INTERVAL 3.2 SECOND_MICROSECOND) from foo",
+			expected: `select date_add_complex(d, 3.2, second_microsecond) as date_add(d, 3.2, second_microsecond) from foo`,
+		},
+		{
+			desc:     "rewrite date_sub(d, INTERVAL 3 SECOND) from foo",
+			command:  "select date_sub(d, INTERVAL 3 SECOND) from foo",
+			expected: `select date_sub(d, 3, second) as date_sub(d, 3, second) from foo`,
+		},
+		{
+			desc:     "rewrite date_sub(d, INTERVAL 3.2 SECOND_MICROSECOND) from foo",
+			command:  "select date_sub(d, INTERVAL 3.2 SECOND_MICROSECOND) from foo",
+			expected: `select date_sub_complex(d, 3.2, second_microsecond) as date_sub(d, 3.2, second_microsecond) from foo`,
+		},
+		{
+			desc:     "rewrite date_sub(d, INTERVAL 3.2 YEAR_MONTH) from foo",
+			command:  "select date_sub(d, INTERVAL '2013-02' YEAR_MONTH) from foo",
+			expected: `select date_sub_complex(d, '2013-02', year_month) as date_sub(d, '2013-02', year_month) from foo`,
+		},
 	}
 
 	for _, tcase := range tcases {

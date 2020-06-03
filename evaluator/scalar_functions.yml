@@ -274,11 +274,22 @@ functions:
     invocations:
       - arguments:
           - {eval_type: EvalDatetime, name: date}
-          - {eval_type: EvalString, name: interval}
+          - {eval_type: EvalNumber, name: interval}
           - {eval_type: EvalString, name: unit}
         return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-add
     names: ['date_add', 'adddate']
+
+  - _id: dateAddComplex
+    description: adds a specified number of datetime units to the provided datetime value.
+    invocations:
+      - arguments:
+          - {eval_type: EvalDatetime, name: date}
+          - {eval_type: EvalString, name: interval}
+          - {eval_type: EvalString, name: unit}
+        return_type: EvalDatetime
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-add
+    names: ['date_add_complex']
 
   - _id: dateDiff
     description: returns date1 - date2 expressed as a value in days.
@@ -305,11 +316,22 @@ functions:
     invocations:
       - arguments:
           - {eval_type: EvalDatetime, name: date}
-          - {eval_type: EvalString, name: interval}
+          - {eval_type: EvalNumber, name: interval}
           - {eval_type: EvalString, name: unit}
         return_type: EvalDatetime
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-sub
     names: ['date_sub', 'subdate']
+
+  - _id: dateSubComplex
+    description: subtracts a specified number of datetime units from the provided datetime value.
+    invocations:
+      - arguments:
+          - {eval_type: EvalDatetime, name: date}
+          - {eval_type: EvalString, name: interval}
+          - {eval_type: EvalString, name: unit}
+        return_type: EvalDatetime
+    mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-sub
+    names: ['date_sub_complex']
 
   - _id: dayName
     description: returns the name of the weekday for the provided date.

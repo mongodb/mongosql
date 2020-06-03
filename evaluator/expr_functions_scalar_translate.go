@@ -14,7 +14,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/dateutil"
-	"github.com/10gen/sqlproxy/internal/mathutil"
 	"github.com/10gen/sqlproxy/schema"
 )
 
@@ -783,11 +782,15 @@ func (f *baseScalarFunctionExpr) cotToAggregationLanguage(t *PushdownTranslator,
 	), nil
 }
 
+func (f *baseScalarFunctionExpr) dateAddComplexToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	return f.dateArithmeticComplexToAggregationLanguage(t, exprs, false)
+}
+
 func (f *baseScalarFunctionExpr) dateAddToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
 	return f.dateArithmeticToAggregationLanguage(t, exprs, false)
 }
 
-func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr, isSub bool) (ast.Expr, PushdownFailure) {
+func (f *baseScalarFunctionExpr) dateArithmeticComplexToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr, isSub bool) (ast.Expr, PushdownFailure) {
 	assertExactArgCount(exprs, 3)
 
 	var date ast.Expr
@@ -841,12 +844,91 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 	}
 	unitValue := unitValueExpr.Value
 
-	var ms int64
-	// Second can be a float rather than an int, so handle Second specially.
-	// calculateInterval works for all other units, as they must be integral.
-	if unitValue.String() == Second {
-		ms = mathutil.Round(values.Float64(intervalValue) * 1000.0)
-	} else if unitValue.String() == Year {
+	unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
+	unit, interval, e := calculateInterval(unitValue.String(), unitInterval, neg)
+	if e != nil {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateArithmetic)",
+			"failed to calculate interval",
+			"error", e.Error(),
+		)
+	}
+	ms, e := unitIntervalToMillisecondsInt64(unit, int64(interval))
+	if e != nil {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateArithmetic)",
+			"failed to convert interval to ms",
+			"error", e.Error(),
+		)
+	}
+
+	if isSub {
+		ms *= -1
+	}
+
+	dateRef := ast.NewVariableRef("date")
+	assignments := []*ast.LetVariable{
+		ast.NewLetVariable("date", date),
+	}
+
+	evaluation := astutil.WrapInNullCheckedCond(
+		astutil.NullLiteral,
+		astutil.WrapInOp(bsonutil.OpAdd, dateRef, astutil.Int64Value(ms)),
+		dateRef,
+	)
+
+	return ast.NewLet(assignments, evaluation), nil
+}
+
+func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr, isSub bool) (ast.Expr, PushdownFailure) {
+	assertExactArgCount(exprs, 3)
+
+	var date ast.Expr
+	var ok bool
+	var err PushdownFailure
+	if !isSub {
+		// implementation for ADDDATE(DATE_FORMAT("..."), INTERVAL 0 SECOND)
+		var fun *dateFormatFunc
+		if fun, ok = exprs[0].(*dateFormatFunc); ok {
+			var dateErr error
+			if date, dateErr = t.translateDateFormatAsDate(fun); dateErr != nil {
+				date = nil
+			}
+		}
+	}
+
+	if date == nil {
+		switch exprs[0].EvalType() {
+		case types.EvalDate, types.EvalDatetime:
+		default:
+			return nil, newPushdownFailure(
+				"SQLScalarFunctionExpr(dateArithmetic)",
+				"cannot push down when first arg is types.EvalDate or types.EvalDatetime",
+			)
+		}
+
+		if date, err = t.ToAggregationLanguage(exprs[0]); err != nil {
+			return nil, err
+		}
+	}
+
+	intervalValueExpr, err := t.ToAggregationLanguage(exprs[1])
+	if err != nil {
+		return nil, err
+	}
+
+	unitValueExpr, ok := exprs[2].(SQLValueExpr)
+	if !ok {
+		return nil, newPushdownFailure(
+			"SQLScalarFunctionExpr(dateArithmetic)",
+			"cannot push down without literal unit value",
+		)
+	}
+	unitValue := unitValueExpr.Value
+
+	// for Year and Month intervals, we do not want to convert the interval value to
+	// milliseconds because not every Year and Month contain the same number of milliseconds.
+	genYearMonthPushdown := func(datePartName string) (ast.Expr, PushdownFailure) {
 		// For a year, we just add n to the year.
 		if !t.versionAtLeast(4, 0, 0) {
 			return nil, newPushdownFailure(
@@ -865,124 +947,57 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 				),
 			),
 		}
+		args := []*ast.DocumentElement{
+			ast.NewDocumentElement("hour", ast.NewVariableRef("dateParts.hour")),
+			ast.NewDocumentElement("minute", ast.NewVariableRef("dateParts.minute")),
+			ast.NewDocumentElement("second", ast.NewVariableRef("dateParts.second")),
+			ast.NewDocumentElement("millisecond", ast.NewVariableRef("dateParts.millisecond")),
+		}
+		monthScale := astutil.Int32Value(1)
+		switch datePartName {
+		case Year:
+			// Year works just like Month, except that it's 12 months
+			monthScale = astutil.Int32Value(12)
+		case Quarter:
+			// Quarter works just like Month, except that it's 3 months
+			monthScale = astutil.Int32Value(3)
+		}
+		args = append(args, ast.NewDocumentElement("year", ast.NewVariableRef("dateParts.year")))
+		args = append(args,
+			ast.NewDocumentElement(
+				"month",
+				astutil.WrapInBinOp(
+					bsonutil.OpAdd,
+					ast.NewVariableRef("dateParts.month"),
+					ast.NewBinary(bsonutil.OpMultiply, intervalValueExpr, monthScale),
+				),
+			),
+		)
+		args = append(args, ast.NewDocumentElement("day", ast.NewVariableRef("dateParts.day")))
 		expr := ast.NewFunction(
 			bsonutil.OpDateFromParts,
 			ast.NewDocument(
-				ast.NewDocumentElement(
-					"year",
-					astutil.WrapInBinOp(
-						bsonutil.OpAdd,
-						ast.NewVariableRef("dateParts.year"),
-						astutil.Int64Value(intervalValue.SQLInt().Value().(int64)),
-					),
-				),
-				ast.NewDocumentElement("month", ast.NewVariableRef("dateParts.month")),
-				ast.NewDocumentElement("day", ast.NewVariableRef("dateParts.day")),
-				ast.NewDocumentElement("hour", ast.NewVariableRef("dateParts.hour")),
-				ast.NewDocumentElement("minute", ast.NewVariableRef("dateParts.minute")),
-				ast.NewDocumentElement("second", ast.NewVariableRef("dateParts.second")),
-				ast.NewDocumentElement("millisecond", ast.NewVariableRef("dateParts.millisecond")),
+				args...,
 			),
 		)
 		return ast.NewLet(assignments, expr), nil
-	} else if unitValue.String() == Month {
-		if !t.versionAtLeast(4, 0, 0) {
-			return nil, newPushdownFailure(
-				"SQLScalarFunctionExpr(date_add)",
-				"cannot push down to MongoDB < 4.0 (need overflowing $dateFromParts)",
-			)
-		}
-		assignments := []*ast.LetVariable{
-			ast.NewLetVariable(
-				"dateParts",
-				ast.NewFunction(
-					bsonutil.OpDateToParts,
-					ast.NewDocument(
-						ast.NewDocumentElement("date", date),
-					),
-				),
-			),
-		}
-		expr := ast.NewFunction(
-			bsonutil.OpDateFromParts,
-			ast.NewDocument(
-				ast.NewDocumentElement("year", ast.NewVariableRef("dateParts.year")),
-				ast.NewDocumentElement(
-					"month",
-					astutil.WrapInBinOp(
-						bsonutil.OpAdd,
-						ast.NewVariableRef("dateParts.month"),
-						astutil.Int64Value(intervalValue.SQLInt().Value().(int64)),
-					),
-				),
-				ast.NewDocumentElement("day", ast.NewVariableRef("dateParts.day")),
-				ast.NewDocumentElement("hour", ast.NewVariableRef("dateParts.hour")),
-				ast.NewDocumentElement("minute", ast.NewVariableRef("dateParts.minute")),
-				ast.NewDocumentElement("second", ast.NewVariableRef("dateParts.second")),
-				ast.NewDocumentElement("millisecond", ast.NewVariableRef("dateParts.millisecond")),
-			),
-		)
-		return ast.NewLet(assignments, expr), nil
-	} else if unitValue.String() == Week {
-		if !t.versionAtLeast(4, 0, 0) {
-			return nil, newPushdownFailure(
-				"SQLScalarFunctionExpr(date_add)",
-				"cannot push down to MongoDB < 4.0 (need overflowing $dateFromParts)",
-			)
-		}
-		assignments := []*ast.LetVariable{
-			ast.NewLetVariable(
-				"dateParts",
-				ast.NewFunction(
-					bsonutil.OpDateToParts,
-					ast.NewDocument(
-						ast.NewDocumentElement("date", date),
-					),
-				),
-			),
-		}
-		expr := ast.NewFunction(
-			bsonutil.OpDateFromParts,
-			ast.NewDocument(
-				ast.NewDocumentElement("year", ast.NewVariableRef("dateParts.year")),
-				ast.NewDocumentElement("month", ast.NewVariableRef("dateParts.month")),
-				ast.NewDocumentElement(
-					"day",
-					astutil.WrapInBinOp(
-						bsonutil.OpAdd,
-						ast.NewVariableRef("dateParts.day"),
-						astutil.Int64Value(intervalValue.SQLInt().Value().(int64)*7),
-					),
-				),
-				ast.NewDocumentElement("hour", ast.NewVariableRef("dateParts.hour")),
-				ast.NewDocumentElement("minute", ast.NewVariableRef("dateParts.minute")),
-				ast.NewDocumentElement("second", ast.NewVariableRef("dateParts.second")),
-				ast.NewDocumentElement("millisecond", ast.NewVariableRef("dateParts.millisecond")),
-			),
-		)
-		return ast.NewLet(assignments, expr), nil
-	} else {
-		unitInterval, neg := dateArithmeticArgs(unitValue.String(), intervalValue)
-		unit, interval, err := calculateInterval(unitValue.String(), unitInterval, neg)
-		if err != nil {
-			return nil, newPushdownFailure(
-				"SQLScalarFunctionExpr(dateArithmetic)",
-				"failed to calculate interval",
-				"error", err.Error(),
-			)
-		}
-		ms, err = unitIntervalToMilliseconds(unit, int64(interval))
-		if err != nil {
+	}
+
+	var msExpr ast.Expr
+	unitStr := unitValue.String()
+	switch unitStr {
+	case Year, Month, Quarter:
+		return genYearMonthPushdown(unitStr)
+	default:
+		var pdErr error
+		msExpr, pdErr = unitIntervalToMillisecondsExpr(unitStr, intervalValueExpr)
+		if pdErr != nil {
 			return nil, newPushdownFailure(
 				"SQLScalarFunctionExpr(dateArithmetic)",
 				"failed to convert interval to ms",
-				"error", err.Error(),
+				"error", pdErr.Error(),
 			)
 		}
-	}
-
-	if isSub {
-		ms *= -1
 	}
 
 	dateRef := ast.NewVariableRef("date")
@@ -990,9 +1005,15 @@ func (f *baseScalarFunctionExpr) dateArithmeticToAggregationLanguage(t *Pushdown
 		ast.NewLetVariable("date", date),
 	}
 
+	var op string
+	if isSub {
+		op = bsonutil.OpSubtract
+	} else {
+		op = bsonutil.OpAdd
+	}
 	evaluation := astutil.WrapInNullCheckedCond(
 		astutil.NullLiteral,
-		astutil.WrapInOp(bsonutil.OpAdd, dateRef, astutil.Int64Value(ms)),
+		astutil.WrapInOp(op, dateRef, msExpr),
 		dateRef,
 	)
 
@@ -1109,6 +1130,10 @@ func (f *baseScalarFunctionExpr) dateFormatToAggregationLanguage(t *PushdownTran
 	}
 
 	return wrapped, nil
+}
+
+func (f *baseScalarFunctionExpr) dateSubComplexToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	return f.dateArithmeticComplexToAggregationLanguage(t, exprs, true)
 }
 
 func (f *baseScalarFunctionExpr) dateSubToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {

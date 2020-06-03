@@ -29,6 +29,7 @@ func DesugarStatement(statement Statement, versionCode versionutil.MySQLFixedWid
 		{&evaluateConditionalComment{versionCode}, option.NoneString(), option.NoneString()},
 		{&createTableTypeDesugarer{}, option.NoneString(), option.NoneString()},
 		{&namer{}, option.NoneString(), option.NoneString()},
+		{&dateArithmeticDesugarer{}, option.NoneString(), option.NoneString()},
 		{&isNotDesugarer{}, option.NoneString(), option.NoneString()},
 		{&unwrapSingleTuples{}, option.NoneString(), option.NoneString()},
 		{&someToAnyDesugarer{}, option.NoneString(), option.NoneString()},
@@ -1405,6 +1406,58 @@ func (*subqueryComparisonConverter) PostVisit(current CST) (CST, error) {
 			node.Left = detupleToSubquery(toTuple(node.Left))
 		} else if !rightIsSubquery && leftIsSubquery {
 			node.Right = detupleToSubquery(toTuple(node.Right))
+		}
+	}
+	return current, nil
+}
+
+// dateArithmeticDesugarer is a desugarer that rewrites comparison
+// expressions that have a subquery on one side and not the other to
+// have subqueries on both sides.
+type dateArithmeticDesugarer struct{}
+
+var _ Walker = (*dateArithmeticDesugarer)(nil)
+
+var complexIntervals = map[string]struct{}{
+	string(SECOND_MICROSECOND_BYTES): {},
+	string(MINUTE_MICROSECOND_BYTES): {},
+	string(MINUTE_SECOND_BYTES):      {},
+	string(HOUR_MICROSECOND_BYTES):   {},
+	string(HOUR_SECOND_BYTES):        {},
+	string(HOUR_MINUTE_BYTES):        {},
+	string(DAY_MICROSECOND_BYTES):    {},
+	string(DAY_SECOND_BYTES):         {},
+	string(DAY_MINUTE_BYTES):         {},
+	string(DAY_HOUR_BYTES):           {},
+	string(YEAR_MONTH_BYTES):         {},
+}
+
+// PreVisit is called for every node before its children are walked.
+func (*dateArithmeticDesugarer) PreVisit(current CST) (CST, error) {
+	return current, nil
+}
+
+// PostVisit is called for every node after its children are walked.
+func (*dateArithmeticDesugarer) PostVisit(current CST) (CST, error) {
+	if node, isFunc := current.(*FuncExpr); isFunc {
+		funcName := "date_add_complex"
+		if node.Name == string(DATE_SUB_BYTES) || node.Name == string(SUBDATE_BYTES) {
+			funcName = "date_sub_complex"
+		} else if node.Name != string(DATE_ADD_BYTES) && node.Name != string(ADDDATE_BYTES) {
+			return node, nil
+		}
+		expr := node.Exprs[2]
+		nonStarExpr, ok := expr.(*NonStarExpr)
+		if !ok {
+			return node, nil
+		}
+		intervalUnit, ok := nonStarExpr.Expr.(KeywordVal)
+		if !ok {
+			return node, nil
+		}
+		if _, ok := complexIntervals[string(intervalUnit)]; ok {
+			node.Name = funcName
+			return node, nil
 		}
 	}
 	return current, nil

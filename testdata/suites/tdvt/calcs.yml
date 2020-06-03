@@ -6416,14 +6416,15 @@ testcases:
       GROUP BY 1\n     order by 1"
   - expected_results:
       - [null]
-      - ['1972-06-23 03:36:00.000000']
-      - ['1975-11-25 11:16:48.000000']
+      - ['1972-06-23 03:36:00.001000']
+      - ['1975-11-25 11:16:48.001000']
       - ['2004-06-10 01:12:00']
       - ['2004-06-10 16:19:12']
     expected_error: ''
     expected_names: [TEMP(Test)(2923065813)(0)]
     expected_types: [varchar]
     id: '408'
+    pushdown_only: true
     sql: "SELECT DATE_SUB(DATE_SUB(`Calcs`.`date0`, INTERVAL FLOOR(`Calcs`.`num4`) DAY), INTERVAL 60 * 60 * 24 * (`Calcs`.`num4` - FLOOR(`Calcs`.`num4`)) SECOND) AS `TEMP(Test)(2923065813)(0)` FROM `Calcs` GROUP BY 1 order by 1"
   - expected_results:
       - [null]
@@ -6437,14 +6438,15 @@ testcases:
       FROM `Calcs`\nGROUP BY 1\n     order by 1"
   - expected_results:
       - [null]
-      - ['1972-07-14 20:23:59.999999']
-      - ['1975-10-29 12:43:11.999999']
+      - ['1972-07-14 20:24:00']
+      - ['1975-10-29 12:43:12']
       - ['2004-05-28 22:48:00']
       - ['2004-06-27 07:40:48']
     expected_error: ''
     expected_names: [TEMP(Test)(2067341949)(0)]
     expected_types: [varchar]
     id: '410'
+    pushdown_only: true
     sql: "\n      SELECT DATE_ADD(DATE_ADD(`Calcs`.`date0`, INTERVAL FLOOR(`Calcs`.`num4`)\
       \ DAY), INTERVAL 60 * 60 * 24 * (`Calcs`.`num4` - FLOOR(`Calcs`.`num4`)) SECOND)\
       \ AS `TEMP(Test)(2067341949)(0)`\nFROM `Calcs`\nGROUP BY 1\n     order by 1"

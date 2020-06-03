@@ -216,6 +216,11 @@ func (f baseScalarFunctionExpr) cotEvaluate(sqlValueKind values.SQLValueKind, _ 
 }
 
 // nolint: unparam
+func (f baseScalarFunctionExpr) dateAddComplexEvaluate(sqlValueKind values.SQLValueKind, collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.dateAddEvaluate(sqlValueKind, collation, vs)
+}
+
+// nolint: unparam
 func (f baseScalarFunctionExpr) dateAddEvaluate(sqlValueKind values.SQLValueKind, collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
 	if values.HasNullValue(vs...) {
 		return values.NewSQLNull(sqlValueKind), nil
@@ -304,6 +309,11 @@ func (f baseScalarFunctionExpr) dateFormatEvaluate(sqlValueKind values.SQLValueK
 		return nil, err
 	}
 	return values.NewSQLVarchar(sqlValueKind, ret), nil
+}
+
+// nolint: unparam
+func (f baseScalarFunctionExpr) dateSubComplexEvaluate(sqlValueKind values.SQLValueKind, collation *collation.Collation, vs []values.SQLValue) (values.SQLValue, error) {
+	return f.dateSubEvaluate(sqlValueKind, collation, vs)
 }
 
 // nolint: unparam

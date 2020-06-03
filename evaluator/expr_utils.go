@@ -9,9 +9,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/10gen/mongoast/ast"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
+	"github.com/10gen/sqlproxy/internal/astutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/parser"
 	"github.com/10gen/sqlproxy/schema"
@@ -1125,7 +1127,7 @@ func shouldFlip(n sqlBinaryNode) bool {
 	return false
 }
 
-func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
+func unitIntervalToMillisecondsInt64(unit string, interval int64) (int64, error) {
 	switch unit {
 	case Day:
 		return interval * 24 * 60 * 60 * 1000, nil
@@ -1140,6 +1142,35 @@ func unitIntervalToMilliseconds(unit string, interval int64) (int64, error) {
 	default:
 		return 0, fmt.Errorf("cannot compute milliseconds for the unit %v", unit)
 	}
+}
+
+func unitIntervalToMillisecondsExpr(unit string, expr ast.Expr) (ast.Expr, error) {
+	var scale int32
+	op := ast.Multiply
+	switch unit {
+	// Week, Day, Hour, Minute are simple, they all round the argument and multiply by a scale
+	// so we handle them all together.
+	case Week:
+		scale = 7 * 24 * 60 * 60 * 1000
+	case Day:
+		scale = 24 * 60 * 60 * 1000
+	case Hour:
+		scale = 60 * 60 * 1000
+	case Minute:
+		scale = 60 * 1000
+	case Second:
+		// For second we do not want to round the value, fractional seconds are considered
+		// milliseconds.
+		return ast.NewBinary(ast.Multiply, expr, astutil.Int32Value(1000)), nil
+	case Microsecond:
+		// For Microsecond we will use the same common WrapInRound version, but we need
+		// to divide by the sale instead of multiplying
+		op = ast.Divide
+		scale = 1000
+	default:
+		return astutil.Int32Value(0), fmt.Errorf("cannot compute milliseconds for the unit %v", unit)
+	}
+	return ast.NewBinary(op, astutil.WrapInRound(expr), astutil.Int32Value(scale)), nil
 }
 
 func nodesToExprs(nodes []Node) []SQLExpr {
