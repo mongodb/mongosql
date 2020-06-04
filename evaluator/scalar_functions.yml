@@ -337,7 +337,7 @@ functions:
     description: returns the name of the weekday for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalString
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayname
     names: ['dayname']
@@ -346,7 +346,7 @@ functions:
     description: returns the day of the month for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofmonth
     names: ['dayofmonth', 'day']
@@ -355,7 +355,7 @@ functions:
     description: returns the weekday index (Sunday = 1 ... Saturday = 7) for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofweek
     names: ['dayofweek']
@@ -364,7 +364,7 @@ functions:
     description: returns the day of the year for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_dayofyear
     names: ['dayofyear']
@@ -505,7 +505,7 @@ functions:
     description: takes a date or datetime value and returns the corresponding value for the last day of the month.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalDate
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_last-day
     names: ['last_day']
@@ -691,7 +691,7 @@ functions:
     description: returns the month for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_month
     names: ['month']
@@ -700,7 +700,7 @@ functions:
     description: returns the full name of the month for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalString
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_monthname
     names: ['monthname']
@@ -742,7 +742,7 @@ functions:
     description: returns the quarter of the year for the provided date, from 1 to 4.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_quarter
     names: ['quarter']
@@ -1010,7 +1010,7 @@ functions:
     description: returns the number of days since year zero for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_to-days
     names: ['to_days']
@@ -1121,11 +1121,11 @@ functions:
     invocations:
       - _id: WithDefaultMode
         arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
       - _id: WithMode
         arguments:
-          - {eval_type: EvalDate, name: date}
+          - {eval_type: EvalDatetime, name: date}
           - {eval_type: EvalInt64, name: mode}
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_week
@@ -1135,7 +1135,7 @@ functions:
     description: returns the weekday index (Monday = 0 ... Sunday = 6) for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_weekday
     names: ['weekday']
@@ -1144,7 +1144,7 @@ functions:
     description: returns the year for the provided date.
     invocations:
       - arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_year
     names: ['year']
@@ -1154,11 +1154,11 @@ functions:
     invocations:
       - _id: WithDefaultMode
         arguments:
-          - eval_type: EvalDate
+          - eval_type: EvalDatetime
         return_type: EvalInt64
       - _id: WithMode
         arguments:
-          - {eval_type: EvalDate, name: date}
+          - {eval_type: EvalDatetime, name: date}
           - {eval_type: EvalInt64, name: mode}
         return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/5.5/en/date-and-time-functions.html#function_yearweek

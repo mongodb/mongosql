@@ -1869,7 +1869,7 @@ var _ SQLScalarFunctionExpr = (*dayNameFunc)(nil)
 
 // The following constants represent some properties of the dayNameFunc scalar function.
 var (
-	dayNameExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayNameExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	dayNameIsVariadic     bool                           = false
 	dayNameReturnTypeFunc func([]SQLExpr) types.EvalType = dayNameEvalType
 )
@@ -1951,7 +1951,7 @@ var _ SQLScalarFunctionExpr = (*dayOfMonthFunc)(nil)
 
 // The following constants represent some properties of the dayOfMonthFunc scalar function.
 var (
-	dayOfMonthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayOfMonthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	dayOfMonthIsVariadic     bool                           = false
 	dayOfMonthReturnTypeFunc func([]SQLExpr) types.EvalType = dayOfMonthEvalType
 )
@@ -2033,7 +2033,7 @@ var _ SQLScalarFunctionExpr = (*dayOfWeekFunc)(nil)
 
 // The following constants represent some properties of the dayOfWeekFunc scalar function.
 var (
-	dayOfWeekExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayOfWeekExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	dayOfWeekIsVariadic     bool                           = false
 	dayOfWeekReturnTypeFunc func([]SQLExpr) types.EvalType = dayOfWeekEvalType
 )
@@ -2115,7 +2115,7 @@ var _ SQLScalarFunctionExpr = (*dayOfYearFunc)(nil)
 
 // The following constants represent some properties of the dayOfYearFunc scalar function.
 var (
-	dayOfYearExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	dayOfYearExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	dayOfYearIsVariadic     bool                           = false
 	dayOfYearReturnTypeFunc func([]SQLExpr) types.EvalType = dayOfYearEvalType
 )
@@ -3095,7 +3095,7 @@ var _ SQLScalarFunctionExpr = (*lastDayFunc)(nil)
 
 // The following constants represent some properties of the lastDayFunc scalar function.
 var (
-	lastDayExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	lastDayExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	lastDayIsVariadic     bool                           = false
 	lastDayReturnTypeFunc func([]SQLExpr) types.EvalType = lastDayEvalType
 )
@@ -4693,7 +4693,7 @@ var _ SQLScalarFunctionExpr = (*monthFunc)(nil)
 
 // The following constants represent some properties of the monthFunc scalar function.
 var (
-	monthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	monthExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	monthIsVariadic     bool                           = false
 	monthReturnTypeFunc func([]SQLExpr) types.EvalType = monthEvalType
 )
@@ -4775,7 +4775,7 @@ var _ SQLScalarFunctionExpr = (*monthNameFunc)(nil)
 
 // The following constants represent some properties of the monthNameFunc scalar function.
 var (
-	monthNameExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	monthNameExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	monthNameIsVariadic     bool                           = false
 	monthNameReturnTypeFunc func([]SQLExpr) types.EvalType = monthNameEvalType
 )
@@ -4996,7 +4996,7 @@ var _ SQLScalarFunctionExpr = (*quarterFunc)(nil)
 
 // The following constants represent some properties of the quarterFunc scalar function.
 var (
-	quarterExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	quarterExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	quarterIsVariadic     bool                           = false
 	quarterReturnTypeFunc func([]SQLExpr) types.EvalType = quarterEvalType
 )
@@ -7223,7 +7223,7 @@ var _ SQLScalarFunctionExpr = (*toDaysFunc)(nil)
 
 // The following constants represent some properties of the toDaysFunc scalar function.
 var (
-	toDaysExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	toDaysExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	toDaysIsVariadic     bool                           = false
 	toDaysReturnTypeFunc func([]SQLExpr) types.EvalType = toDaysEvalType
 )
@@ -7957,7 +7957,7 @@ var _ SQLScalarFunctionExpr = (*weekWithDefaultModeFunc)(nil)
 
 // The following constants represent some properties of the weekWithDefaultModeFunc scalar function.
 var (
-	weekWithDefaultModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	weekWithDefaultModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	weekWithDefaultModeIsVariadic     bool                           = false
 	weekWithDefaultModeReturnTypeFunc func([]SQLExpr) types.EvalType = weekWithDefaultModeEvalType
 )
@@ -8039,7 +8039,7 @@ var _ SQLScalarFunctionExpr = (*weekWithModeFunc)(nil)
 
 // The following constants represent some properties of the weekWithModeFunc scalar function.
 var (
-	weekWithModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate, types.EvalInt64}
+	weekWithModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalInt64}
 	weekWithModeIsVariadic     bool                           = false
 	weekWithModeReturnTypeFunc func([]SQLExpr) types.EvalType = weekWithModeEvalType
 )
@@ -8121,7 +8121,7 @@ var _ SQLScalarFunctionExpr = (*weekdayFunc)(nil)
 
 // The following constants represent some properties of the weekdayFunc scalar function.
 var (
-	weekdayExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	weekdayExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	weekdayIsVariadic     bool                           = false
 	weekdayReturnTypeFunc func([]SQLExpr) types.EvalType = weekdayEvalType
 )
@@ -8203,7 +8203,7 @@ var _ SQLScalarFunctionExpr = (*yearFunc)(nil)
 
 // The following constants represent some properties of the yearFunc scalar function.
 var (
-	yearExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	yearExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	yearIsVariadic     bool                           = false
 	yearReturnTypeFunc func([]SQLExpr) types.EvalType = yearEvalType
 )
@@ -8285,7 +8285,7 @@ var _ SQLScalarFunctionExpr = (*yearWeekWithDefaultModeFunc)(nil)
 
 // The following constants represent some properties of the yearWeekWithDefaultModeFunc scalar function.
 var (
-	yearWeekWithDefaultModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate}
+	yearWeekWithDefaultModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime}
 	yearWeekWithDefaultModeIsVariadic     bool                           = false
 	yearWeekWithDefaultModeReturnTypeFunc func([]SQLExpr) types.EvalType = yearWeekWithDefaultModeEvalType
 )
@@ -8367,7 +8367,7 @@ var _ SQLScalarFunctionExpr = (*yearWeekWithModeFunc)(nil)
 
 // The following constants represent some properties of the yearWeekWithModeFunc scalar function.
 var (
-	yearWeekWithModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDate, types.EvalInt64}
+	yearWeekWithModeExpectedTypes  []types.EvalType               = []types.EvalType{types.EvalDatetime, types.EvalInt64}
 	yearWeekWithModeIsVariadic     bool                           = false
 	yearWeekWithModeReturnTypeFunc func([]SQLExpr) types.EvalType = yearWeekWithModeEvalType
 )

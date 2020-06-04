@@ -454,6 +454,9 @@ func TestPushdownPlan(t *testing.T) {
 		{"union_all_simple", "select a from foo union all select b from bar"},
 		{"union_all_multiple_fields_and_col", "select b,c from foo union all select a,b from bar union all select a,b from baz"},
 		{"union_right_pipeline", "(select c,g from foo) union (select bar.a,baz.b from bar join baz on bar.b = baz.b)"},
+		{"group_by_date_date_type", "select Date(dt) from datetest group by Date(dt)"},
+		{"group_by_date_int_type", "select Date(dt_int) from datetest group by Date(dt_int)"},
+		{"group_by_date_string_type", "select Date(dt_str) from datetest group by Date(dt_str)"},
 	}
 
 	// open the file with the cached test results
@@ -474,7 +477,7 @@ func TestPushdownPlan(t *testing.T) {
 	//     <testcase_name>: <pushdown_pipeline_as_json_string>,
 	//   }
 	// }
-	cache := make(map[string]map[string]string)
+	cache := make(map[string]map[string]map[string]string)
 	if !*update {
 		err = json.Unmarshal(data, &cache)
 		req.Nil(err, "failed to unmarshal cached results json")
@@ -490,29 +493,43 @@ func TestPushdownPlan(t *testing.T) {
 		{4, 4, 0},
 	}
 
+	// define the type conversion modes for which we want to test translation
+	sqlValueKinds := []values.SQLValueKind{
+		values.MySQLValueKind,
+		values.MongoSQLValueKind,
+	}
+
 	// run a subtest for each query
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			if cache[test.name] == nil {
-				cache[test.name] = make(map[string]string)
+				cache[test.name] = make(map[string]map[string]string)
 			}
 
 			// run a subtest for each version
 			for _, version := range versions {
 				v := formatVersion(version)
+				if cache[test.name][v] == nil {
+					cache[test.name][v] = make(map[string]string)
+				}
 				t.Run(v, func(t *testing.T) {
-					req = require.New(t)
-					actual := optimizePlan(t, version, test.sql)
-					if *update {
-						cache[test.name][v] = actual
-						return
-					}
-					expected, ok := cache[test.name][v]
-					req.True(ok, "test case not found in cache")
-					if expected == "" || actual == "" {
-						req.Equal(expected, actual, "result does not match cached result")
-					} else {
-						req.Equal(expected, actual, "result does not match cached result")
+					for _, sqlValueKind := range sqlValueKinds {
+						mode := formatSQLValueKind(sqlValueKind)
+						t.Run(mode, func(t *testing.T) {
+							req = require.New(t)
+							actual := optimizePlan(t, version, test.sql, sqlValueKind)
+							if *update {
+								cache[test.name][v][mode] = actual
+								return
+							}
+							expected, ok := cache[test.name][v][mode]
+							req.True(ok, "test case not found in cache")
+							if expected == "" || actual == "" {
+								req.Equal(expected, actual, "result does not match cached result")
+							} else {
+								req.Equal(expected, actual, "result does not match cached result")
+							}
+						})
 					}
 				})
 			}
@@ -527,7 +544,7 @@ func TestPushdownPlan(t *testing.T) {
 	}
 }
 
-func optimizePlan(t *testing.T, version []uint8, sql string) string {
+func optimizePlan(t *testing.T, version []uint8, sql string, sqlValueKind values.SQLValueKind) string {
 	bgCtx := context.Background()
 	req := require.New(t)
 
@@ -552,12 +569,12 @@ func optimizePlan(t *testing.T, version []uint8, sql string) string {
 
 	req.Nil(err, "failed to algebrize query")
 
-	eCfg := createTestExecutionCfg(values.MySQLValueKind)
+	eCfg := createTestExecutionCfg(sqlValueKind)
 	oCfg := createOptimizerCfg(collation.Default, eCfg)
 	optimized, err := evaluator.OptimizePlan(context.Background(), oCfg, plan)
 	req.Nil(err, "failed to optimize plan")
 
-	pCfg := createPushdownCfg(version, values.MySQLValueKind)
+	pCfg := createPushdownCfg(version, sqlValueKind)
 	pushedDown, err := evaluator.PushdownPlan(bgCtx, pCfg, optimized)
 	req.False(err != nil && !evaluator.IsNonFatalPushdownError(err))
 

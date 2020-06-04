@@ -569,6 +569,14 @@ schema:
         MongoType: date
         SqlName: dt
         SqlType: date
+     -
+        Name: dt_int
+        MongoType: int 
+        SqlType: int
+     -
+        Name: dt_str
+        MongoType: string
+        SqlType: varchar
 
   -
      table: foo

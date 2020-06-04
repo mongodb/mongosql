@@ -922,3 +922,17 @@ func WrapInWeekCalculation(expr ast.Expr, mode int64) *ast.Let {
 func WrapSingleArgFuncWithNullCheck(name string, arg ast.Expr) ast.Expr {
 	return WrapInNullCheckedCond(NullLiteral, ast.NewFunction(name, arg), arg)
 }
+
+// StripTimeFromDate uses $dateFromParts to strip away time from a Date expr
+func StripTimeFromDate(expr ast.Expr) *ast.Function {
+	year := ast.NewFunction(bsonutil.OpYear, expr)
+	month := ast.NewFunction(bsonutil.OpMonth, expr)
+	day := ast.NewFunction(bsonutil.OpDayOfMonth, expr)
+
+	asDate := ast.NewFunction(bsonutil.OpDateFromParts, ast.NewDocument(
+		ast.NewDocumentElement("year", year),
+		ast.NewDocumentElement("month", month),
+		ast.NewDocumentElement("day", day),
+	))
+	return asDate
+}

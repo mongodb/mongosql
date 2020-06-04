@@ -1689,6 +1689,12 @@ func (f *baseScalarFunctionExpr) lastDayToAggregationLanguage(t *PushdownTransla
 		)
 
 	} else {
+		if !t.versionAtLeast(3, 6, 0) {
+			return nil, newPushdownFailure(
+				"lastDayToAggregationLanguage",
+				"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
+			)
+		}
 		const30 := astutil.Int32Value(30)
 		// For MongoDB versions < 4.0, underflow and overflow in date computation are not
 		// supported. For example, a day value of zero or a month value of 13 in a date
@@ -3522,6 +3528,12 @@ func (f *baseScalarFunctionExpr) weekToAggregationLanguage(t *PushdownTranslator
 	if err != nil {
 		return nil, err
 	}
+	if !t.versionAtLeast(3, 6, 0) && mode != int64(0) {
+		return nil, newPushdownFailure(
+			"weekToAggregationLanguage",
+			"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
+		)
+	}
 	return astutil.WrapInWeekCalculation(args[0], mode), nil
 }
 
@@ -3570,6 +3582,12 @@ func (f *baseScalarFunctionExpr) yearToAggregationLanguage(t *PushdownTranslator
 
 func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
 	assertEitherArgCount(exprs, 1, 2)
+	if !t.versionAtLeast(3, 6, 0) {
+		return nil, newPushdownFailure(
+			"yearWeekToAggregationLanguage",
+			"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
+		)
+	}
 
 	mode := int64(0)
 	if len(exprs) == 2 {

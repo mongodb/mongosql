@@ -684,7 +684,7 @@ func (f baseScalarFunctionExpr) lastDayEvaluate(sqlValueKind values.SQLValueKind
 	}
 
 	// Must be a SQLTimestamp at this point.
-	tmp, ok := vs[0].(values.SQLDate)
+	tmp, ok := vs[0].(values.SQLTimestamp)
 	if !ok {
 		return nil,
 			fmt.Errorf("unable to evaluate type %v"+
@@ -1973,7 +1973,7 @@ func (f baseScalarFunctionExpr) toDaysEvaluate(sqlValueKind values.SQLValueKind,
 
 	// This must be a SQLDate at this point. If it is not, the algebrizer has been broken.
 	// Check the handling of scalar functions in the algebrizer.
-	tmp, ok := vs[0].(values.SQLDate)
+	tmp, ok := vs[0].(values.SQLTimestamp)
 	if !ok {
 		return nil, fmt.Errorf("unable to evaluate input value %v in to_days", vs[0])
 	}
@@ -2118,7 +2118,7 @@ func (f baseScalarFunctionExpr) weekEvaluate(sqlValueKind values.SQLValueKind, _
 	if values.HasNullValue(vs...) {
 		return values.NewSQLNull(sqlValueKind), nil
 	}
-	check, ok := vs[0].(values.SQLDate)
+	check, ok := vs[0].(values.SQLTimestamp)
 	if !ok {
 		return values.NewSQLNull(sqlValueKind), nil
 	}
@@ -2163,7 +2163,7 @@ func (f baseScalarFunctionExpr) yearWeekEvaluate(sqlValueKind values.SQLValueKin
 	if values.HasNullValue(vs...) {
 		return values.NewSQLNull(sqlValueKind), nil
 	}
-	check, ok := vs[0].(values.SQLDate)
+	check, ok := vs[0].(values.SQLTimestamp)
 	if !ok {
 		return values.NewSQLNull(sqlValueKind), nil
 	}

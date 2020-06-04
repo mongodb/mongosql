@@ -294,3 +294,115 @@ testcases:
     expected_types: [int, int]
     id: BI-2513-dollar-prefixed-columns
     sql: select * from BI_2513
+
+  - db: bugs_database
+    description: BI-2463 group by date() for datetime column
+    expected_names: ['date(dt_date)', 'count(*)']
+    expected_results:
+      - ['2000-01-02', 2]
+    expected_types: [varchar, int]
+    id: BI-2463-groupby_date_date_col
+    sql: select Date(dt_date), count(*) from group_by_date group by Date(dt_date)
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    description: BI-2463 group by date() for string column
+    expected_names: ['date(dt_str)', 'count(*)']
+    expected_results:
+      - ['2000-01-02', 2]
+    expected_types: [varchar, int]
+    id: BI-2463-groupby_date_string_col
+    sql: select Date(dt_str), count(*) from group_by_date group by Date(dt_str)
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    description: BI-2463 group by date() for int column
+    expected_names: ['date(dt_timestamp)', 'count(*)']
+    expected_results:
+      - ['2000-01-02', 2]
+    expected_types: [varchar, int]
+    id: BI-2463-groupby_date_int_col_timestamp
+    sql: select Date(dt_timestamp), count(*) from group_by_date group by Date(dt_timestamp)
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    description: BI-2463 group by date() for int column
+    expected_names: ['date(dt_yyyymmdd)', 'count(*)']
+    expected_results:
+      - ['2000-01-02', 2]
+    expected_types: [varchar, int]
+    id: BI-2463-groupby_date_int_col_yyyymmdd
+    sql: select Date(dt_yyyymmdd), count(*) from group_by_date group by Date(dt_yyyymmdd)
+
+  - db: bugs_database
+    description: BI-2463 fix select by Date(datetime_col)
+    expected_names: ['date(dt_date)']
+    expected_results:
+      - ['2000-01-02']
+      - ['2000-01-02']
+    expected_types: [varchar]
+    id: BI-2463-select_date_datetime_col
+    sql: select Date(dt_date) from group_by_date where Date(dt_date) = Date("2000-01-02")
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    description: BI-2463 fix select by Date(string_col)
+    expected_names: ['date(dt_str)']
+    expected_results:
+      - ['2000-01-02']
+      - ['2000-01-02']
+    expected_types: [varchar]
+    id: BI-2463-select_date_str_col
+    sql: select Date(dt_str) from group_by_date where Date(dt_str) = Date("2000-01-02")
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    description: BI-2463 fix select by Date(datetime_col)
+    expected_names: ['date(dt_yyyymmdd)']
+    expected_results:
+      - ['2000-01-02']
+      - ['2000-01-02']
+    expected_types: [varchar]
+    id: BI-2463-select_date_int_yyyymmdd_col
+    sql: select Date(dt_yyyymmdd) from group_by_date where Date(dt_yyyymmdd) = Date("2000-01-02")
+
+  - db: bugs_database
+    description: BI-2463 fix select by Date(datetime_col)
+    expected_names: ['date(dt_timestamp)']
+    expected_results:
+      - ['2000-01-02']
+      - ['2000-01-02']
+    expected_types: [varchar]
+    id: BI-2463-select_date_int_timestamp_col
+    sql: select Date(dt_timestamp) from group_by_date where Date(dt_timestamp) = Date("2000-01-02")
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    expected_names: ['dt_date', 'datediff(dt_date, ''2000-01-01T22:34:56Z'')']
+    expected_results:
+      - ['2000-01-02 12:34:56', 1]
+      - ['2000-01-02 12:34:57', 1]
+    expected_types: [varchar, int]
+    id: BI-2463-datetime_date_diff_within_24hour_mongosqld
+    sql: select dt_date, datediff(dt_date, '2000-01-01T22:34:56Z') from group_by_date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    expected_names: ['dt_str', 'datediff(dt_str, ''2000-01-01T22:34:56Z'')']
+    expected_results:
+      - ['2000-01-02T12:34:56Z', 1]
+      - ['2000-01-02T12:34:57Z', 1]
+    expected_types: [varchar, int]
+    id: BI-2463-string_date_diff_within_24hour_mongosqld
+    sql: select dt_str, datediff(dt_str, '2000-01-01T22:34:56Z') from group_by_date
+    variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    expected_names: ['dt_timestamp', 'datediff(dt_timestamp, ''2000-01-01T22:34:56Z'')']
+    expected_results:
+      - [946816496000, 1]
+      - [946816497000, 1]
+    expected_types: [int, int]
+    id: BI-2463-timestamp_date_diff_within_24hour_mongosqld
+    sql: select dt_timestamp, datediff(dt_timestamp, '2000-01-01T22:34:56Z') from group_by_date
+    variables: {type_conversion_mode: mongosql}

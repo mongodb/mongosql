@@ -1473,6 +1473,11 @@
       - {"_id": 11, "unmap": {"$code": "function() {}"}, "map": {"$code": "function() {}"}}
       - {"_id": 12, "unmap": {"$code": "function() {}", "$scope": {}}, "map": {"$code": "function() {}", "$scope": {}}}
 
+- db: "bugs_database"
+  collection: "group_by_date"
+  docs:
+    - {"_id": 0, "dt_date": {$date: "2000-01-02T12:34:56Z"}, "dt_str": "2000-01-02T12:34:56Z", "dt_timestamp": 946816496000, "dt_yyyymmdd": 20000102}
+    - {"_id": 1, "dt_date": {$date: "2000-01-02T12:34:57Z"}, "dt_str": "2000-01-02T12:34:57Z", "dt_timestamp": 946816497000, "dt_yyyymmdd": 20000102}
 
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)

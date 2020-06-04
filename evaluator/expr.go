@@ -797,6 +797,17 @@ func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (ast.Expr, Pus
 		// Need to special-case date-to-string.
 		converted := astutil.WrapInDateToString(expr, "%Y-%m-%d")
 		return converted, nil
+	} else if fromType == types.EvalDatetime && toType == types.EvalDate {
+		if !t.versionAtLeast(3, 6, 0) {
+			return nil, newPushdownFailure(
+				e.ExprName(),
+				"cannot push down mongosql-mode conversions to MongoDB < 3.6",
+			)
+		}
+		// Need special-case to strip away time
+		asDate := astutil.StripTimeFromDate(expr)
+
+		return asDate, nil
 	}
 
 	if !t.supportsConvertExpr() {
@@ -825,6 +836,17 @@ func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (ast.Expr, Pus
 			e.ExprName(),
 			"cannot push down mongosql-mode conversions to MongoDB < 4.0",
 		)
+	}
+	// The server supports $convert
+
+	if toType == types.EvalDate {
+		// Need special-case to strip away time
+		// For conversion to Date from types other than Datetime, we need to $convert it to Date object first
+		// and then remove the time
+		expr = translateConvert(expr, fromType, toType)
+		asDate := astutil.StripTimeFromDate(expr)
+
+		return asDate, nil
 	}
 
 	converted := translateConvert(expr, fromType, toType)

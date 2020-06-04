@@ -347,6 +347,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_year", "year(g)"},
 		{"scalar_yearweek_0", "yearweek(a, 5)"},
 		{"scalar_yearweek_1", "yearweek(a, 7)"},
+		{"scalar_date_int", "date(a)"},
 
 		// logical, arithmetic, & other binary expressions
 		{"add_str", "s + s"},

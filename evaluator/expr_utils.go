@@ -618,7 +618,7 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind values.SQLValueKind,
 	}
 
 	weekFmt := func(i int64) (string, error) {
-		args := []values.SQLValue{values.NewSQLDate(sqlValueKind, date), values.NewSQLInt64(sqlValueKind, i)}
+		args := []values.SQLValue{values.NewSQLTimestamp(sqlValueKind, date), values.NewSQLInt64(sqlValueKind, i)}
 		eval, err := f.weekEvaluate(sqlValueKind, collation, args)
 		if err != nil {
 			return "", err
@@ -627,7 +627,7 @@ func (f *baseScalarFunctionExpr) formatDate(sqlValueKind values.SQLValueKind,
 	}
 
 	yearFmt := func(i int64) (string, error) {
-		args := []values.SQLValue{values.NewSQLDate(sqlValueKind, date), values.NewSQLInt64(sqlValueKind, i)}
+		args := []values.SQLValue{values.NewSQLTimestamp(sqlValueKind, date), values.NewSQLInt64(sqlValueKind, i)}
 		eval, err := f.yearWeekEvaluate(sqlValueKind, collation, args)
 		if err != nil {
 			return "", err
