@@ -104,7 +104,7 @@ def parse_options(args):
         if any(map(lambda xform: '\\' in xform, opts.transformations)):
             raise Exception("All transformations should use Unix style paths with '/' separators")
         opts.transformations = map(lambda xform: xform.split('=',1), opts.transformations)
-    except Exception, e:
+    except Exception as e:
         parser.error(e)
 
     return opts
@@ -144,8 +144,7 @@ def open_zip_archive_for_write(filename):
 def write_archive(archive, opts):
     try:
         for input_filename in opts.input_filenames:
-            print 'file is', input_filename, 'preferred is', get_preferred_filename(input_filename,
-            opts.transformations)
+            print('file is ' + input_filename + ' preferred is ' + get_preferred_filename(input_filename, opts.transformations))
             archive.add(input_filename, arcname=get_preferred_filename(input_filename,
             opts.transformations))
     finally:

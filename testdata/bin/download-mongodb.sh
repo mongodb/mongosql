@@ -15,7 +15,7 @@ get_latest_for_distro() {
    elif [ "$distro" = 'macos' ] || [ "$distro" = 'osx' ]; then
          version_for_curator="4.3-stable" # BI-2476: server 4.4 requires macOS 10.14
    else
-         version_for_curator="4.4-stable" # MongoDB latest
+         version_for_curator="4.4.0-rc10"
    fi
 }
 
@@ -27,7 +27,7 @@ set_mongodb_binaries ()
 
    # get the distro and arch values from the PUSH_ARCH environment variable.
    distro=${MONGO_DISTRO:-$(echo $PUSH_ARCH | cut -d'-' -f2)}
-   arch=$(echo $PUSH_ARCH | cut -d'-' -f1)
+   arch=${MONGO_ARCH:-$(echo $PUSH_ARCH | cut -d'-' -f1)}
    if [ "$distro" = "ubuntu1604" ] && [ "$mongodb_version" = "3.2" ]; then
        # Support for Ubuntu 16.04 was not added until r3.3.7. Use the generic linux build instead.
        distro="linux_x86_64"
@@ -64,8 +64,7 @@ set_mongodb_binaries ()
 
        # If running on Ubuntu 18.04 ARM, use the community, ie. "targeted"
        # edition. There is no enterprise edition.
-       if [ "$distro" = "ubuntu1804" ] && [ "$arch" = "arm64" ]; then
-           arch="aarch64"
+       if [ "$distro" = "ubuntu1804" ] && [ "$arch" = "aarch64" ]; then
            edition="targeted"
        elif [ "$distro" = "linux_x86_64" ]; then
            edition="base"

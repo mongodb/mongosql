@@ -59,19 +59,24 @@ macos)
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
     ;;
-rhel71-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='ppc64le-rhel71'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
 rhel62)
     PUSH_ARCH='x86_64-rhel62'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
     PYTHON_PATH='/opt/python/2.7/bin'
+    ;;
+rhel70)
+    PUSH_ARCH='x86_64-rhel70'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+rhel80)
+    PUSH_ARCH='x86_64-rhel80'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
     ;;
 rhel67-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
@@ -82,23 +87,11 @@ rhel67-s390x)
 	BUILD_FIPS='true'
     PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
     ;;
-rhel70)
-    PUSH_ARCH='x86_64-rhel70'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
 rhel72-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
     PUSH_ARCH='s390x-rhel72'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
-rhel80)
-    PUSH_ARCH='x86_64-rhel80'
-    PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
     ;;
@@ -110,8 +103,29 @@ rhel80-s390x)
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
     ;;
+rhel71-ppc)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='ppc64le-rhel71'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+rhel81-ppc)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='ppc64le-rhel81'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin/'
+    ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='true'
+    ;;
+suse15)
+    PUSH_ARCH='x86_64-suse15'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
@@ -121,12 +135,6 @@ suse12-s390x)
     PUSH_ARCH='s390x-suse12'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
-suse15)
-    PUSH_ARCH='x86_64-suse15'
-    PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
     ;;
@@ -157,8 +165,43 @@ ubuntu1604)
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
     ;;
+ubuntu1804)
+    PUSH_ARCH='x86_64-ubuntu1804'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu2004)
+    PUSH_ARCH='x86_64-ubuntu2004'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu1804-arm64)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='arm64-ubuntu1804'
+    PUSH_NAME='linux'
+	MONGO_ARCH='aarch64'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu2004-arm64)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='arm64-ubuntu2004'
+    PUSH_NAME='linux'
+	MONGO_ARCH='aarch64'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
 ubuntu1604-ppc)
     PUSH_ARCH='ppc64le-ubuntu1604'
+    PUSH_NAME='linux'
+    BUILD_GSSAPI='true'
+	BUILD_FIPS='false'
+    ;;
+ubuntu1804-ppc)
+    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PUSH_ARCH='ppc64le-ubuntu1804'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
@@ -168,26 +211,6 @@ ubuntu1604-s390x)
     PUSH_ARCH='s390x-ubuntu1604'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu1804)
-    PUSH_ARCH='x86_64-ubuntu1804'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu1804-arm64)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='arm64-ubuntu1804'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu1804-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
-    PUSH_ARCH='ppc64le-ubuntu1804'
-    PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
     ;;
