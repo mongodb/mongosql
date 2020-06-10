@@ -59,6 +59,7 @@ func TestTranslate(t *testing.T) {
 		{"scalar_adddate_10", "adddate(date_format(g, '%Y-01-01'), interval 0 second)"},
 		{"scalar_adddate_11", "adddate(g, INTERVAL 10 day)"},
 		{"scalar_adddate_12", "adddate(g, null)"},
+		{"scalar_adddate_13", "adddate(date_format(g, '%y-%m-%d %H:%i:%s'), interval a second)"},
 		{"scalar_ascii", "ascii(s)"},
 		{"scalar_ascii_int", "ascii(a)"},
 		{"scalar_ascii_bool", "ascii(t)"},

@@ -8463,6 +8463,52 @@
             }
         }
     },
+    "scalar_adddate_13": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"date\": {\"$convert\": {\"input\": {\"$concat\": [\"\",{\"$let\": {\"vars\": {\"yearModResult\": {\"$mod\": [{\"$year\": \"$g\"},NumberInt(\"100\")]}},\"in\": {\"$cond\": [{\"$lt\": [\"$$yearModResult\",NumberInt(\"10\")]},{\"$concat\": [\"0\",{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]},{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$dateToString\": {\"date\": \"$g\",\"format\": \"-%m-%d %H:%M:%S\"}}}}]},\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$date\",null]},\"then\": null,\"else\": {\"$add\": [\"$$date\",{\"$multiply\": [\"$a\",NumberInt(\"1000\")]}]}}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"date\": {\"$convert\": {\"input\": {\"$concat\": [\"\",{\"$let\": {\"vars\": {\"yearModResult\": {\"$mod\": [{\"$year\": \"$g\"},NumberInt(\"100\")]}},\"in\": {\"$cond\": [{\"$lt\": [\"$$yearModResult\",NumberInt(\"10\")]},{\"$concat\": [\"0\",{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]},{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$dateToString\": {\"date\": \"$g\",\"format\": \"-%m-%d %H:%M:%S\"}}}}]},\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$date\",null]},\"then\": null,\"else\": {\"$add\": [\"$$date\",{\"$multiply\": [\"$a\",NumberInt(\"1000\")]}]}}}}}",
+                "mysql-mode": ""
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"date\": {\"$convert\": {\"input\": {\"$concat\": [\"\",{\"$let\": {\"vars\": {\"yearModResult\": {\"$mod\": [{\"$year\": \"$g\"},{\"$numberInt\":\"100\"}]}},\"in\": {\"$cond\": [{\"$lt\": [\"$$yearModResult\",{\"$numberInt\":\"10\"}]},{\"$concat\": [\"0\",{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]},{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$dateToString\": {\"date\": \"$g\",\"format\": \"-%m-%d %H:%M:%S\"}}}}]},\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$date\",null]},\"then\": null,\"else\": {\"$add\": [\"$$date\",{\"$multiply\": [\"$a\",{\"$numberInt\":\"1000\"}]}]}}}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$let\": {\"vars\": {\"date\": {\"$convert\": {\"input\": {\"$concat\": [\"\",{\"$let\": {\"vars\": {\"yearModResult\": {\"$mod\": [{\"$year\": \"$g\"},{\"$numberInt\":\"100\"}]}},\"in\": {\"$cond\": [{\"$lt\": [\"$$yearModResult\",{\"$numberInt\":\"10\"}]},{\"$concat\": [\"0\",{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]},{\"$convert\": {\"input\": \"$$yearModResult\",\"to\": \"string\",\"onError\": null,\"onNull\": null}}]}}},{\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$dateToString\": {\"date\": \"$g\",\"format\": \"-%m-%d %H:%M:%S\"}}}}]},\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$date\",null]},\"then\": null,\"else\": {\"$add\": [\"$$date\",{\"$multiply\": [\"$a\",{\"$numberInt\":\"1000\"}]}]}}}}}}",
+                "mysql-mode": ""
+            }
+        }
+    },
     "scalar_ascii": {
         "expr": {
             "3.2": {
@@ -12189,6 +12235,52 @@
             }
         }
     },
+    "scalar_date_int": {
+        "expr": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}",
+                "mysql-mode": ""
+            }
+        },
+        "predicate": {
+            "3.2": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.4": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "3.6": {
+                "mongosql-mode": "",
+                "mysql-mode": ""
+            },
+            "4.0": {
+                "mongosql-mode": "{\"$expr\": {\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}}",
+                "mysql-mode": ""
+            },
+            "4.2": {
+                "mongosql-mode": "{\"$expr\": {\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}}",
+                "mysql-mode": ""
+            }
+        }
+    },
     "scalar_date_null": {
         "expr": {
             "3.2": {
@@ -12476,15 +12568,15 @@
                 "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode"  : "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}",
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}",
                 "mysql-mode": "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}"
             },
             "4.0": {
-                "mongosql-mode"  : "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}",
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}",
                 "mysql-mode": "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}"
             },
             "4.2": {
-                "mongosql-mode"  : "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}",
+                "mongosql-mode": "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}",
                 "mysql-mode": "{\"$let\": {\"vars\": {\"days\": {\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},null]},false]},\"then\": null,\"else\": {\"$cond\": [{\"$or\": [{\"$gt\": [\"$$days\",NumberInt(\"106751\")]},{\"$lt\": [\"$$days\",NumberInt(\"-106751\")]}]},{\"$cond\": [{\"$gt\": [{\"$trunc\": {\"$divide\": [{\"$subtract\": [{\"$dateFromParts\": {\"year\": {\"$year\": \"$g\"},\"month\": {\"$month\": \"$g\"},\"day\": {\"$dayOfMonth\": \"$g\"}}},ISODate(\"2000-09-01T00:00:00\")]},NumberInt(\"86400000\")]}},NumberInt(\"106751\")]},NumberInt(\"106751\"),NumberInt(\"-106751\")]},\"$$days\"]}}}}}"
             }
         },
@@ -12951,7 +13043,7 @@
         "predicate": {
             "3.2": {
                 "mongosql-mode": "",
-                "mysql-mode" : ""
+                "mysql-mode": ""
             },
             "3.4": {
                 "mongosql-mode": "",
@@ -12960,7 +13052,6 @@
             "3.6": {
                 "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$arrayElemAt\": [[\"Sunday\",\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\",\"Saturday\"],{\"$subtract\": [{\"$dayOfWeek\": [\"$g\"]},{\"$numberInt\":\"1\"}]}]}}}}",
                 "mysql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$arrayElemAt\": [[\"Sunday\",\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\",\"Saturday\"],{\"$subtract\": [{\"$dayOfWeek\": [\"$g\"]},{\"$numberInt\":\"1\"}]}]}}}}"
-
             },
             "4.0": {
                 "mongosql-mode": "{\"$expr\": {\"$cond\": {\"if\": {\"$lte\": [\"$g\",null]},\"then\": null,\"else\": {\"$arrayElemAt\": [[\"Sunday\",\"Monday\",\"Tuesday\",\"Wednesday\",\"Thursday\",\"Friday\",\"Saturday\"],{\"$subtract\": [{\"$dayOfWeek\": [\"$g\"]},{\"$numberInt\":\"1\"}]}]}}}}",
@@ -21525,98 +21616,6 @@
             "4.2": {
                 "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
                 "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
-            }
-        }
-    },
-    "scalar_date_int": {
-        "expr": {
-            "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "4.0": {
-                "mongosql-mode": "{\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}",
-                "mysql-mode": ""
-            },
-            "4.2": {
-                "mongosql-mode": "{\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}",
-                "mysql-mode": ""
-            }
-        },
-        "predicate": {
-            "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "4.0": {
-                "mongosql-mode": "{\"$expr\": {\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}}",
-                "mysql-mode": ""
-            },
-            "4.2": {
-                "mongosql-mode": "{\"$expr\": {\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}}",
-                "mysql-mode": ""
-            }
-        }
-    },
-    "scalar_date_string": {
-        "expr": {
-            "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "4.0": {
-                "mongosql-mode": "{\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}",
-                "mysql-mode": ""
-            },
-            "4.2": {
-                "mongosql-mode": "{\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}",
-                "mysql-mode": ""
-            }
-        },
-        "predicate": {
-            "3.2": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.4": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "3.6": {
-                "mongosql-mode": "",
-                "mysql-mode": ""
-            },
-            "4.0": {
-                "mongosql-mode": "{\"$expr\": {\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}}",
-                "mysql-mode": ""
-            },
-            "4.2": {
-                "mongosql-mode": "{\"$expr\": {\"$dateFromParts\": {\"year\": {\"$year\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"month\": {\"$month\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}},\"day\": {\"$dayOfMonth\": {\"$convert\": {\"input\": \"$a\",\"to\": \"date\",\"onError\": null,\"onNull\": null}}}}}}",
-                "mysql-mode": ""
             }
         }
     }

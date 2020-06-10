@@ -254,6 +254,11 @@ func WrapInDateToString(date ast.Expr, format string) *ast.Function {
 
 }
 
+// WrapInYear wraps the date in a $year function.
+func WrapInYear(date ast.Expr) *ast.Function {
+	return ast.NewFunction(bsonutil.OpYear, date)
+}
+
 // WrapInHour wraps the date in a $hour function.
 func WrapInHour(date ast.Expr) *ast.Function {
 	return ast.NewFunction(bsonutil.OpHour, date)

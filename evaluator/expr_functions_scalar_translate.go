@@ -1308,6 +1308,13 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 					format += "%U"
 				case 'Y':
 					format += "%Y"
+				case 'y':
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					formats = append(formats, format)
+					postFormats = append(postFormats, 'y')
+					format = ""
 				case 'b':
 					if !t.versionAtLeast(3, 6, 0) {
 						return nil, false
@@ -1430,6 +1437,32 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 					astutil.Int32Value(12),
 				),
 			)
+		// y is two digit year.
+		case 'y':
+			varName := "yearModResult"
+			mod := astutil.WrapInBinOp(bsonutil.OpMod,
+				astutil.WrapInYear(date),
+				astutil.Int32Value(100),
+			)
+			letAssignment := []*ast.LetVariable{
+				ast.NewLetVariable(varName, mod),
+			}
+			convert := astutil.WrapInConvert(
+				ast.NewVariableRef(varName),
+				"string",
+				astutil.NullLiteral,
+				astutil.NullLiteral,
+			)
+			eval := astutil.WrapInCond(
+				astutil.WrapInConcat([]ast.Expr{astutil.StringValue("0"), convert}),
+				convert,
+				astutil.WrapInBinOp(
+					bsonutil.OpLt,
+					ast.NewVariableRef(varName),
+					astutil.Int32Value(10),
+				),
+			)
+			return ast.NewLet(letAssignment, eval)
 		}
 
 		return nil
