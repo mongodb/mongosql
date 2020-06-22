@@ -755,7 +755,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 				indexPath := unwind.IncludeArrayIndex
 
 				if preUnwindMatch, ok := v.extractPreUnwindMatch(ms.mappingRegistry, filter.matcher,
-					path[1:], indexPath); ok {
+					path, indexPath); ok {
 					pipeline.Stages = append([]ast.Stage{preUnwindMatch}, pipeline.Stages...)
 				}
 			}

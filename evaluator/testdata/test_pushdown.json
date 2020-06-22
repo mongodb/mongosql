@@ -4835,6 +4835,32 @@
             "mysql-mode": "[\n\t{\"$match\": {\"_id\": {\"$ne\": null}}},\n\t{\"$unwind\": \"$d\"},\n\t{\"$unwind\": \"$d.a\"},\n\t{\"$lookup\": {\"from\": \"merge\",\"localField\": \"_id\",\"foreignField\": \"_id\",\"as\": \"__joined_d\"}},\n\t{\"$unwind\": \"$__joined_d\"},\n\t{\"$unwind\": {\"path\": \"$__joined_d.d\",\"includeArrayIndex\": \"__joined_d.d_idx\"}},\n\t{\"$unwind\": \"$b\"},\n\t{\"$project\": {\"test_DOT_b_DOT__id\": \"$_id\",\"test_DOT_d_DOT__id\": \"$__joined_d._id\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         }
     },
+    "self_join_8": {
+        "3.2": {
+            "mongosql-mode": "",
+            "mysql-mode": ""
+        },
+        "3.4": {
+            "mongosql-mode": "",
+            "mysql-mode": ""
+        },
+        "3.6": {
+            "mongosql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+        },
+        "4.0": {
+            "mongosql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+        },
+        "4.2": {
+            "mongosql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+        },
+        "4.4": {
+            "mongosql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"a\": {\"$gt\": NumberLong(\"10\")}}},\n\t{\"$lookup\": {\"from\": \"merge\",\"let\": {\"local_table___id\": \"$_id\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$_id\",null]},{\"$gt\": [\"$$local_table___id\",null]},{\"$eq\": [\"$$local_table___id\",\"$_id\"]}]}}},{\"$unwind\": {\"path\": \"$d\",\"includeArrayIndex\": \"d_idx\"}},{\"$unwind\": {\"path\": \"$d.a\",\"includeArrayIndex\": \"d.a_idx\"}}],\"as\": \"__joined_a\"}},\n\t{\"$unwind\": {\"path\": \"$__joined_a\",\"preserveNullAndEmptyArrays\": true}},\n\t{\"$project\": {\"test_DOT_r_DOT__id\": \"$_id\",\"test_DOT_r_DOT_a\": \"$a\",\"test_DOT_a_DOT__id\": \"$__joined_a._id\",\"test_DOT_a_DOT_d_DOT_a\": \"$__joined_a.d.a\",\"test_DOT_a_DOT_d_DOT_a_idx\": \"$__joined_a.d.a_idx\",\"test_DOT_a_DOT_d_idx\": \"$__joined_a.d_idx\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+        }
+    },
     "simple_all_gt": {
         "3.2": {
             "mongosql-mode": "",
@@ -6787,54 +6813,54 @@
     },
     "where_array_table": {
         "3.2": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "3.4": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "3.6": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "4.0": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "4.2": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "4.4": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"c\": {\"$eq\": NumberLong(\"10\")}}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         }
     },
     "where_array_table_and": {
         "3.2": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "3.4": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "3.6": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "4.0": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "4.2": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         },
         "4.4": {
-            "mongosql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
-            "mysql-mode": "[\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
+            "mongosql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n",
+            "mysql-mode": "[\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$unwind\": \"$c\"},\n\t{\"$match\": {\"$and\": [{\"c\": {\"$lt\": NumberLong(\"10\")}},{\"c\": {\"$gt\": NumberLong(\"5\")}}]}},\n\t{\"$project\": {\"test_DOT_merge_c_DOT_c\": \"$c\",\"_id\": NumberInt(\"0\")}}\n ]\n"
         }
     },
     "where_lt": {
