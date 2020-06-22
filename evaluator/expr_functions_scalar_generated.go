@@ -3489,7 +3489,7 @@ func (f *lengthFunc) reconcile() (SQLExpr, error) {
 }
 
 func lengthEvalType(_ []SQLExpr) types.EvalType {
-	return types.EvalString
+	return types.EvalInt64
 }
 
 type lnFunc struct {

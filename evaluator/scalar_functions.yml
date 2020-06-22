@@ -543,7 +543,7 @@ functions:
     invocations:
       - arguments:
           - eval_type: EvalString
-        return_type: EvalString
+        return_type: EvalInt64
     mysql_doc_url: https://dev.mysql.com/doc/refman/8.0/en/string-functions.html#function_length
     names: ['length']
 
