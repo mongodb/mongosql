@@ -47,6 +47,19 @@
             -VersionLabel "$SEMVER" \
             -WixPath "$WIX\\bin"
 
+	elif [ "$ARCHIVE_FORMAT" = 'zip' ]; then
+        python testdata/bin/make_archive.py \
+            -o $ARTIFACTS_DIR/release.zip \
+            --format zip \
+            --transform $build_dir/mongosqld=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongosqld \
+            --transform $build_dir/mongodrdl=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongodrdl \
+            --transform $build_dir/mongotranslate=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/bin/mongotranslate \
+            --transform release/distsrc/README=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/README \
+            --transform release/distsrc/THIRD-PARTY-NOTICES=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/THIRD-PARTY-NOTICES \
+            --transform release/distsrc/example-mongosqld-config.yml=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/example-mongosqld-config.yml \
+            --transform LICENSE=mongodb-bi-$PUSH_NAME-$PUSH_ARCH-$CURRENT_VERSION/LICENSE LICENSE \
+            release/distsrc/README release/distsrc/THIRD-PARTY-NOTICES release/distsrc/example-mongosqld-config.yml $build_dir/mongosqld $build_dir/mongodrdl $build_dir/mongotranslate
+
     else
 
         python testdata/bin/make_archive.py \

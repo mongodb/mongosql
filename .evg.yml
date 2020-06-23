@@ -421,13 +421,15 @@ functions:
       params:
         working_dir: src/github.com/10gen/sqlproxy/testdata/artifacts
         script: |
-          /usr/local/bin/notary-client.py \
-              --key-name "bi-connector" \
-              --auth-token-file ${PROJECT_DIR}/signing_auth_token \
-              --comment "Evergreen Automatic Signing (sqlproxy) - ${version_id} - ${build_variant}" \
-              --notary-url http://notary-service.build.10gen.cc:5000 \
-              --skip-missing \
-              release.msi
+          if [ -f /usr/local/bin/notary-client.py ]; then
+            /usr/local/bin/notary-client.py \
+                --key-name "bi-connector" \
+                --auth-token-file ${PROJECT_DIR}/signing_auth_token \
+                --comment "Evergreen Automatic Signing (sqlproxy) - ${version_id} - ${build_variant}" \
+                --notary-url http://notary-service.build.10gen.cc:5000 \
+                --skip-missing \
+                release.msi
+          fi
 
   "start mongosqld":
     command: shell.exec
@@ -638,10 +640,47 @@ functions:
         optional: true
         display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.msi
 
+  "sign macos zip":
+    - command: shell.exec
+      params:
+        working_dir: src/github.com/10gen/sqlproxy/testdata/artifacts
+        silent: false
+        script: |
+          set -o xtrace
+          set -o errexit
+          set -o verbose
+          if [ ${_variant} != "macos" ]; then
+              exit 0
+          fi
+          curl -sL https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip > gon.zip
+          unzip gon.zip
+          OUTPUT_PATH="./release.zip"
+          AC_USERNAME="${ac_username}"
+          AC_PASSWORD="${ac_password}"
+          # gon settings
+          cat <<EOF_GON_JSON > gon.json
+          {
+            "source" : ["bin/mongosqld", "bin/mongotranslate", "bin/mongodrdl"],
+            "bundle_id" : "com.mongodb.bi",
+            "apple_id": {
+              "username": "$AC_USERNAME",
+              "password": "$AC_PASSWORD"
+            },
+            "sign" :{
+              "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)"
+            },
+            "zip" :{
+              "output_path": "$OUTPUT_PATH"
+            }
+          }
+          EOF_GON_JSON
+          unzip release.zip
+          mv mongodb-bi-*/* ./
+          ssh -v -p 2222 localhost -t "cd $PWD && ./gon -log-level=info gon.json"
+
 variables:
   - &run-make-target
     # the task name in evg should correspond to a make target.
-    type: test
     name: test
     commands:
       - func: "install dependencies"
@@ -999,6 +1038,7 @@ tasks:
   commands:
     - func: "fetch packages"
     - func: "sign msi installer"
+    - func: "sign macos zip"
     - func: "upload release packages"
 
 - name: internal
@@ -2225,7 +2265,18 @@ buildvariants:
     mongodb_topology: "*"
   rules:
   - if:
-      os_full_matrix: "*"
+      os_full_matrix: "osx"
+      mongodb_version: "latest"
+      mongodb_topology: "standalone"
+    then:
+      add_tasks:
+        - .nopushdown
+        - name: module-tests
+        - name: compile
+        - name: sign
+          run_on: macos-1014-codesign
+  - if:
+      os_full_matrix: "!osx"
       mongodb_version: "latest"
       mongodb_topology: "standalone"
     then:

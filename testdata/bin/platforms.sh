@@ -51,6 +51,7 @@ debian10)
 	BUILD_FIPS='false'
     ;;
 macos)
+    ARCHIVE_FORMAT='zip'
     PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'

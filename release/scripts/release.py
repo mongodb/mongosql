@@ -201,7 +201,12 @@ class BIReleaser(object):
 
             entry = json.loads(rpc.text)
             variant = entry["build_variant"]
-            extension = [".msi", ".zip"] if "windows" in variant else [".tgz"]
+            if "macos" in variant:
+                extension = [".zip"]
+            elif "windows" in variant:
+                extension = [".msi", ".zip"]
+            else:
+                extension = [".tgz"]
             for entry_file in entry["files"]:
                 url = entry_file["url"]
                 _, ext = os.path.splitext(url)
