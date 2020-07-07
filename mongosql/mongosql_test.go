@@ -181,7 +181,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:       testMongoVersion4,
 			schema:             testSchema,
 			format:             "multiline",
-			expectedOutput:     "[\n\t{\"$lookup\": {\"from\": \"baz\",\"let\": {\"local_table__a\": \"$a\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$$local_table__a\",null]},{\"$gt\": [\"$b\",null]},{\"$lt\": [\"$b\",\"$$local_table__a\"]}]}}}],\"as\": \"__joined_baz\"}},\n\t{\"$unwind\": \"$__joined_baz\"},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"test_DOT_baz_DOT_b\": \"$__joined_baz.b\",\"_id\": NumberInt(\"0\")}},\n]",
+			expectedOutput:     "[\n\t{\"$lookup\": {\"from\": \"baz\",\"let\": {\"local_table__a\": \"$a\"},\"pipeline\": [{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$$local_table__a\",null]},{\"$lt\": [\"$b\",\"$$local_table__a\"]},{\"$gt\": [\"$b\",null]}]}}}],\"as\": \"__joined_baz\"}},\n\t{\"$unwind\": \"$__joined_baz\"},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$a\",\"test_DOT_baz_DOT_b\": \"$__joined_baz.b\",\"_id\": NumberInt(\"0\")}},\n]",
 			expectedCollection: "foo",
 		},
 		{

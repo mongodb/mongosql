@@ -593,7 +593,7 @@ func (n *SortedMergeStage) WalkStage(v Visitor) Stage {
 
 		if changed {
 			newItems = append(newItems, NewSortItem(
-				newItemExpr.(*FieldRef),
+				newItemExpr,
 				item.Descending,
 			))
 		}
@@ -1161,10 +1161,10 @@ func (n *Exists) Walk(v Visitor) Node {
 
 //WalkExpr implements Expr interface.
 func (n *Exists) WalkExpr(v Visitor) Expr {
-	fieldRef, changedField := visitExpr(v, n.FieldRef)
+	ref, changedField := visitExpr(v, n.Ref)
 	if changedField {
 		cpy := *n
-		cpy.FieldRef = fieldRef.(*FieldRef)
+		cpy.Ref = ref.(FieldLikeRef)
 		return &cpy
 	}
 	return n
@@ -1185,7 +1185,7 @@ func (n *Convert) WalkExpr(v Visitor) Expr {
 	newOnNull := n.OnNull
 	var onErrorChanged, onNullChanged bool
 	if n.OnError != nil {
-		newOnError, onErrorChanged = visitExpr(v, n.To)
+		newOnError, onErrorChanged = visitExpr(v, n.OnError)
 	}
 	if n.OnNull != nil {
 		newOnNull, onNullChanged = visitExpr(v, n.OnNull)

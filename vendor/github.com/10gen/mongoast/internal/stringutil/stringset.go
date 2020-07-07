@@ -8,10 +8,13 @@ type StringSet struct {
 }
 
 // NewStringSet creates a new string set.
-func NewStringSet() *StringSet {
-	return &StringSet{
+func NewStringSet(values ...string) *StringSet {
+	s := &StringSet{
 		set: make(map[string]struct{}),
 	}
+
+	s.AddSlice(values)
+	return s
 }
 
 // Add adds a new element to the set.

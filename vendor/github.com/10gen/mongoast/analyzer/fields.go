@@ -87,7 +87,8 @@ func ReferencedFields(n ast.Node, countIncludes bool) ([]ast.Expr, bool) {
 
 		switch tn := n.(type) {
 		case ast.Stage:
-			for _, rootName := range DefinedFields(tn) {
+			roots, _ := DefinedFields(tn)
+			for _, rootName := range roots {
 				closedRoots.Add(rootName)
 			}
 			complete = IsFieldKiller(tn)

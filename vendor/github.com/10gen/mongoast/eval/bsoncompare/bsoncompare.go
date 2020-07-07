@@ -62,6 +62,11 @@ func Compare(a bsoncore.Value, b bsoncore.Value) (int, error) {
 		if a == b {
 			return 0
 		}
+
+		if a {
+			return 1
+		}
+
 		return -1
 	}
 

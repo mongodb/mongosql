@@ -1,6 +1,6 @@
 # github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5 => github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
 github.com/10gen/candiedyaml
-# github.com/10gen/mongoast v0.0.0-20200513135848-d4cd33265907
+# github.com/10gen/mongoast v0.0.0-20200709194530-675a03daa881
 github.com/10gen/mongoast/analyzer
 github.com/10gen/mongoast/ast
 github.com/10gen/mongoast/astprint
@@ -140,7 +140,7 @@ golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ssh/terminal
 # golang.org/x/sync v0.0.0-20190423024810-112230192c58
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456
+# golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae
 golang.org/x/sys/unix
 golang.org/x/sys/windows
 golang.org/x/sys/windows/registry

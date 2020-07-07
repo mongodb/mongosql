@@ -118,7 +118,7 @@ func (n *VariableRef) MemoryUsage() uint64 {
 
 // MemoryUsage implements the Expr interface.
 func (n *Exists) MemoryUsage() uint64 {
-	return n.FieldRef.MemoryUsage()
+	return n.Ref.MemoryUsage()
 }
 
 // MemoryUsage implements the Expr interface.

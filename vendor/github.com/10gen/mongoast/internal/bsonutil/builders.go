@@ -143,6 +143,18 @@ func Decimal128FromInt64(i int64) bsoncore.Value {
 	}
 }
 
+// Decimal128FromString creates a Decimal128 bsoncore.Value from a given string.
+func Decimal128FromString(s string) bsoncore.Value {
+	parsedDecimal128, err := primitive.ParseDecimal128(s)
+	if err != nil {
+		panic(err)
+	}
+	return bsoncore.Value{
+		Type: bsontype.Decimal128,
+		Data: bsoncore.AppendDecimal128(nil, parsedDecimal128),
+	}
+}
+
 // Decimal128 creates a Decimal128 bsoncore.Value from a Decimal128.
 func Decimal128(v Decimal) bsoncore.Value {
 	s := v.b.String()

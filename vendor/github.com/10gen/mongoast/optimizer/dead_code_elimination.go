@@ -77,7 +77,7 @@ func DeadCodeElimination(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 func removeDeadDefinitionsAndUpdateLiveFields(stage ast.Stage, liveFields *stringutil.StringSet) bool {
 	// TODO: It would also be nice if all stages that define values just had
 	// "DefinitionItems" instead of AddFields vs GroupItem vs FacetItem, etc.
-	definitions := analyzer.DefinedFields(stage)
+	definitions, _ := analyzer.DefinedFields(stage)
 	// Indices of the definitions to keep.
 	keepIndices := make([]bool, len(definitions))
 	keepCount := 0
@@ -214,7 +214,7 @@ func removeDeadDefinitionsFromCardinalityAlteringStagesAndUpdateLiveFields(
 		}
 		liveFields.AddSlice(refs)
 	}()
-	definitions := analyzer.DefinedFields(stage)
+	definitions, _ := analyzer.DefinedFields(stage)
 	// Indices of the definitions to keep.
 	keepIndices := make([]bool, len(definitions))
 	keepCount := 0

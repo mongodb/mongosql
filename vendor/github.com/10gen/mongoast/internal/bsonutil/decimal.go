@@ -131,8 +131,7 @@ func (d Decimal) Pow(exp Decimal) Decimal {
 
 // RoundToInt returns d rounded down to the nearest int.
 func (d Decimal) RoundToInt() Decimal {
-	result := decimal.WithContext(decimal.Context128)
-	result = result.RoundToInt()
+	result := decimal.Context128.RoundToInt(d.b)
 	return Decimal{result}
 }
 

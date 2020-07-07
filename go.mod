@@ -4,11 +4,12 @@ go 1.12
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
-	github.com/10gen/mongoast v0.0.0-20200513135848-d4cd33265907
+	github.com/10gen/mongoast v0.0.0-20200709194530-675a03daa881
 	github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 	github.com/DataDog/zstd v1.4.4 // indirect
 	github.com/apmckinlay/gsuneido v0.0.0-20190828171039-d059fc31c5ab // indirect
 	github.com/aws/aws-sdk-go v1.23.10 // indirect
+	github.com/craiggwilson/goke v0.0.0-20200309222237-69a77cdfe646 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/google/go-cmp v0.3.1
 	github.com/gopherjs/gopherjs v0.0.0-20170702153443-2b1d432c8a82 // indirect
@@ -20,8 +21,8 @@ require (
 	github.com/kr/pretty v0.1.0
 	github.com/kr/text v0.0.0-20160504234017-7cafcd837844 // indirect
 	github.com/lib/pq v1.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.2 // indirect
-	github.com/mattn/go-isatty v0.0.9 // indirect
+	github.com/mattn/go-colorable v0.1.7 // indirect
+	github.com/mgutz/ansi v0.0.0-20200706080929-d51e80ef957d // indirect
 	github.com/mongodb/mongo-tools v0.0.0-20191008165040-976b41822808
 	github.com/mongodb/mongo-tools-common v1.0.2
 	github.com/onsi/ginkgo v1.8.0 // indirect
@@ -40,7 +41,6 @@ require (
 	go.mongodb.org/mongo-driver v1.3.4
 	golang.org/x/crypto v0.0.0-20190820162420-60c769a6c586
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 // indirect
-	golang.org/x/sys v0.0.0-20190826190057-c7b8b68b1456 // indirect
 	golang.org/x/text v0.3.2
 	google.golang.org/appengine v1.6.0 // indirect
 	gopkg.in/yaml.v2 v2.2.2

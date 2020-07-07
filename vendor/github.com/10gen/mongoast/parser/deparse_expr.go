@@ -93,6 +93,22 @@ func DeparseExprErr(e ast.Expr, needsLiteral ...bool) (bsoncore.Value, error) {
 			return bsonutil.Document(doc), nil
 		}
 		return te.Value, nil
+	case *ast.Convert:
+		_, subdoc := bsoncore.AppendDocumentStart(nil)
+		subdoc = bsonutil.AppendValueElement(subdoc, "input", DeparseExpr(te.Input, mustIncludeLiteral))
+		subdoc = bsonutil.AppendValueElement(subdoc, "to", DeparseExpr(te.To, mustIncludeLiteral))
+		if te.OnError != nil {
+			subdoc = bsonutil.AppendValueElement(subdoc, "onError", DeparseExpr(te.OnError, mustIncludeLiteral))
+		}
+		if te.OnNull != nil {
+			subdoc = bsonutil.AppendValueElement(subdoc, "onNull", DeparseExpr(te.OnNull, mustIncludeLiteral))
+		}
+		subdoc, _ = bsoncore.AppendDocumentEnd(subdoc, 0)
+
+		_, doc := bsoncore.AppendDocumentStart(nil)
+		doc = bsoncore.AppendDocumentElement(doc, "$convert", subdoc)
+		doc, _ = bsoncore.AppendDocumentEnd(doc, 0)
+		return bsonutil.Document(doc), nil
 	case *ast.Document:
 		_, doc := bsoncore.AppendDocumentStart(nil)
 		for _, i := range te.Elements {
@@ -215,7 +231,7 @@ func DeparseExprErr(e ast.Expr, needsLiteral ...bool) (bsoncore.Value, error) {
 	// This cannot actually exist in an AggExpr, but until we get a clear distinction
 	// between Match and AggExprs, this needs to exist here or DeparseExpr can crash.
 	case *ast.Exists:
-		name, err := deparseMatchFieldName(te.FieldRef)
+		name, err := deparseMatchFieldName(te.Ref)
 		if err != nil {
 			return bsoncore.Value{}, err
 		}

@@ -393,13 +393,14 @@ type VariableRef struct {
 	Name string
 }
 
-// Exists filters based on whether a document has a field.
+// Exists filters based on whether a document has a field. This is a $match only expression and therefore
+// does not operate on the more general Ref interface.
 type Exists struct {
-	FieldRef *FieldRef
-	Exists   bool
+	Ref    FieldLikeRef
+	Exists bool
 }
 
 // NewExists makes an Exists.
-func NewExists(fieldRef *FieldRef, exists bool) *Exists {
-	return &Exists{FieldRef: fieldRef, Exists: exists}
+func NewExists(ref FieldLikeRef, exists bool) *Exists {
+	return &Exists{Ref: ref, Exists: exists}
 }

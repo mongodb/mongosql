@@ -491,6 +491,18 @@ func (*ProjectStage) StageName() string {
 	return "$project"
 }
 
+// AssignItems returns all the AssignProjectItems.
+func (n *ProjectStage) AssignItems() []*AssignProjectItem {
+	var result []*AssignProjectItem
+	for _, i := range n.Items {
+		if api, ok := i.(*AssignProjectItem); ok {
+			result = append(result, api)
+		}
+	}
+
+	return result
+}
+
 // IsExclusion returns true if this project is an exclusion.
 func (n *ProjectStage) IsExclusion() bool {
 	for _, i := range n.Items {

@@ -9,7 +9,8 @@ import (
 // Optimization is the type of a pipeline optimization.
 type Optimization = func(pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeline
 
-// Optimize handles optimizing a pipeline.
+// Optimize is a generic list of passes for optimizing a pipeline that we feel will
+// be good in general.
 func Optimize(ctx context.Context, pipeline *ast.Pipeline, memoryLimit uint64) *ast.Pipeline {
 	return RunPasses(ctx, pipeline, memoryLimit,
 		GroupKeyExtraction,
@@ -18,7 +19,7 @@ func Optimize(ctx context.Context, pipeline *ast.Pipeline, memoryLimit uint64) *
 		ProjectionStageCompressionDown,
 		DeadCodeElimination,
 		MatchSplit,
-		Reorder,
+		CreateReorderPass(&ReorderCfg{MoveCorrelatedStages: false}),
 		MatchCoalescing,
 		SortCoalescing,
 		ConstantPropagation,

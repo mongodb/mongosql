@@ -79,6 +79,17 @@ func removeRedundancies(e ast.Expr) ast.Expr {
 			typedExpr.Else = removeRedundancies(typedExpr.Else)
 			addExpression(typedExpr)
 			return typedExpr
+		case *ast.Convert:
+			typedExpr.Input = removeRedundancies(typedExpr.Input)
+			typedExpr.To = removeRedundancies(typedExpr.To)
+			if typedExpr.OnError != nil {
+				typedExpr.OnError = removeRedundancies(typedExpr.OnError)
+			}
+			if typedExpr.OnNull != nil {
+				typedExpr.OnNull = removeRedundancies(typedExpr.OnNull)
+			}
+			addExpression(typedExpr)
+			return typedExpr
 		case *ast.Map:
 			typedExpr.Input = removeRedundancies(typedExpr.Input)
 			typedExpr.In = removeRedundancies(typedExpr.In)

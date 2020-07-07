@@ -369,6 +369,8 @@ func parseCollStatsStage(doc bsoncore.Document) (*ast.CollStatsStage, error) {
 				)
 			}
 			count = ast.NewCollStatsCount()
+		default:
+			return nil, errors.Errorf("unrecognized option to $collStats: %s", e.Key())
 		}
 	}
 
@@ -751,10 +753,10 @@ func parseOutToAtlasStage(doc bsoncore.Document) (*ast.OutStage, error) {
 	elems, _ := doc.Elements()
 	for _, e := range elems {
 		switch e.Key() {
-		case "projectID":
+		case "projectId":
 			projectID, ok = e.Value().StringValueOK()
 			if !ok {
-				return nil, errors.New("$out option 'atlas.projectID' must be a string")
+				return nil, errors.New("$out option 'atlas.projectId' must be a string")
 			}
 		case "clusterName":
 			clusterName, ok = e.Value().StringValueOK()
@@ -1210,6 +1212,8 @@ func parseUnwind(v bsoncore.Value) (*ast.UnwindStage, error) {
 				if !ok {
 					return nil, errors.New("preserveNullAndEmptyArrays must be a boolean")
 				}
+			default:
+				return nil, errors.Errorf("unrecognized option to $unwind stage: %s", e.Key())
 			}
 		}
 

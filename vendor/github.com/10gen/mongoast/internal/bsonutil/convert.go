@@ -8,6 +8,25 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+// IsImplementedConvertToType returns false if the specified type is a valid
+// but currently unimplemented type for the $convert to parameter.
+// Note: unsupported types are inherently implemented since they result in
+// errors at evaluation time.
+func IsImplementedConvertToType(to bsontype.Type) bool {
+	switch to {
+	case bsontype.Double,
+		bsontype.ObjectID,
+		bsontype.Boolean,
+		bsontype.DateTime,
+		bsontype.Int32,
+		bsontype.Int64,
+		bsontype.Decimal128:
+		return false
+	default:
+		return true
+	}
+}
+
 // ToString is a shorthand for Convert where the target type is a string
 // and no default behavior is specified in case of an error or null value.
 func ToString(v bsoncore.Value) (bsoncore.Value, error) {

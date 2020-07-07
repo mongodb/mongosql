@@ -287,7 +287,11 @@ func parseFieldMatchExpr(e bsoncore.Element) (ast.Expr, error) {
 			return ast.NewUnary(ast.Not, subexpression), nil
 		case "$exists":
 			exists := bsonutil.CoerceToBoolean(op.Value())
-			expr = ast.NewExists(left.(*ast.FieldRef), exists)
+			flr, ok := left.(ast.FieldLikeRef)
+			if !ok {
+				return nil, errors.New("$exists operates only on a field")
+			}
+			expr = ast.NewExists(flr, exists)
 		default:
 			expr = ast.NewFunction(
 				op.Key(),

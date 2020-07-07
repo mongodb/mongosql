@@ -168,8 +168,18 @@ func isProjectionStage(stage ast.Stage) bool {
 
 func definesFieldsUsedOrRedefinesFields(top, bottom ast.Stage) bool {
 	topDefs, bottomDefs, bottomUses := stringutil.NewStringSet(), stringutil.NewStringSet(), stringutil.NewStringSet()
-	topDefs.AddSlice(analyzer.DefinedFields(top))
-	bottomDefs.AddSlice(analyzer.DefinedFields(bottom))
+	topRoots, topComplete := analyzer.DefinedFields(top)
+	if !topComplete {
+		return true
+	}
+	topDefs.AddSlice(topRoots)
+
+	bottomRoots, bottomComplete := analyzer.DefinedFields(bottom)
+	if !bottomComplete {
+		return true
+	}
+	bottomDefs.AddSlice(bottomRoots)
+
 	refFields, _ := analyzer.ReferencedFieldRoots(bottom)
 	bottomUses.AddSlice(refFields)
 	return topDefs.HasIntersection(bottomUses) || topDefs.HasIntersection(bottomDefs)
@@ -509,14 +519,53 @@ func handleBottomExclude(bottomExclude *ast.ExcludeProjectItem, relatedItems []i
 				}
 				break
 			} else if analyzer.IsDotPrefixOfString(topTypedItem.GetName(), bottomFieldName) { // ancestor
-				// Defining the ancestor of a field means the field no longer exists. For
-				// example, defining "a" means that "a" is now a literal and "a.b" is a
-				// nested field of a non-document. Therefore excluding it has no effect,
-				// so we can delete the exclude and keep the definition of the ancestor
-				// for our compressed stage.
-				delete(bottomItems, bottomFieldName)
-				bottomItems[topTypedItem.GetName()] = topTypedItem
-				break
+				// Specifying the ancestor "a" in the top stage of an excluded field "a.b" in the bottom does
+				// nothing, so in the default case, we delete the exclude projection and keep the definition
+				// of the ancestor.  However, if "a" is an array of documents, some fields
+				// may need to be excluded.  This function is called multiple times, once for each
+				// bottom exclude element.   Each time, we iterate over the documents in the
+				// top array, and successively exclude elements that were added to bottomItems[topTypedItem.Name]
+				// in the first call, until we are left with only the non-excluded items.
+				switch te := topTypedItem.Expr.(type) {
+				case *ast.Array:
+					var newDocumentElements []*ast.DocumentElement
+					var newElements []ast.Expr
+					var arrayElems []ast.Expr
+					delete(bottomItems, bottomFieldName)
+					bottomNamePieces := strings.Split(bottomFieldName, ".")
+					bottomLast, present := bottomItems[topTypedItem.Name]
+					if !present {
+						arrayElems = te.Elements
+					} else {
+						arrayElems = bottomLast.(*ast.AssignProjectItem).Expr.(*ast.Array).Elements
+					}
+					for _, ae := range arrayElems {
+						if de, ok := ae.(*ast.Document); ok {
+							for _, doc := range de.Elements {
+								// For now, we're only handling one level of nesting.
+								if len(bottomNamePieces) == 2 && doc.Name != bottomNamePieces[1] {
+									newDocumentElements = append(newDocumentElements, ast.NewDocumentElement(doc.Name, doc.Expr))
+								}
+							}
+							// we exclude a single field from the topExpr when we look at the bottomFieldName
+							// defining the exclusion.  If there are several sub-fields that are excluded,
+							// after the first pass, we would have to look inside the bottomItems[topTypedItem.Name],
+							// and modify it...
+							newElements = append(newElements, ast.NewDocument(newDocumentElements...))
+							newDocumentElements = nil
+						} else {
+							return false
+						}
+					}
+					if len(newElements) > 0 {
+						bottomItems[topTypedItem.Name] = ast.NewAssignProjectItem(topTypedItem.Name, ast.NewArray(newElements...))
+						newElements = nil
+						break
+					}
+				default:
+					delete(bottomItems, bottomFieldName)
+					bottomItems[topTypedItem.Name] = topTypedItem
+				}
 			}
 			// descendent
 			// Excluding a field also excludes all of its descendents. Therefore the
@@ -530,9 +579,9 @@ func handleBottomExclude(bottomExclude *ast.ExcludeProjectItem, relatedItems []i
 				delete(bottomItems, bottomFieldName)
 			}
 		case *ast.AddFieldsItem:
-			// A $addFields has no mechanism for excluding fields, and an exclusion
+			// An $addFields has no mechanism for excluding fields, and an exclusion
 			// projection has no mechanism for defining them. Therefore we can only
-			// compress an exclusion projection and a $addFields if either all of the
+			// compress an exclusion projection and an $addFields if either all of the
 			// definitions or all of the excludes are "voided" by the other stage. For
 			// now, we'll just include whichever "wins" between the two (the exclude or
 			// the definition), but we'll check later on while we're constructing the
@@ -556,12 +605,47 @@ func handleBottomExclude(bottomExclude *ast.ExcludeProjectItem, relatedItems []i
 				// item in our compressed stage.
 				break
 			} else if analyzer.IsDotPrefixOfString(topTypedItem.Name, bottomFieldName) { // ancestor
-				// Defining the ancestor in top means the ancestor is no longer a document
-				// and the excluded nested field no longer exists. We hope we can compress
-				// this into a $addFields so we grab the definition from top.
-				delete(bottomItems, bottomFieldName)
-				bottomItems[topTypedItem.Name] = topTypedItem
-				break
+				// Same as the AssignProjectItem above.
+				switch te := topTypedItem.Expr.(type) {
+				case *ast.Array:
+					var newDocumentElements []*ast.DocumentElement
+					var newElements []ast.Expr
+					var arrayElems []ast.Expr
+					delete(bottomItems, bottomFieldName)
+					bottomNamePieces := strings.Split(bottomFieldName, ".")
+					bottomLast, present := bottomItems[topTypedItem.Name]
+					if !present {
+						arrayElems = te.Elements
+					} else {
+						arrayElems = bottomLast.(*ast.AssignProjectItem).Expr.(*ast.Array).Elements
+					}
+					for _, ae := range arrayElems {
+						if de, ok := ae.(*ast.Document); ok {
+							for _, doc := range de.Elements {
+								// For now, we're only handling one level of nesting.
+								if len(bottomNamePieces) == 2 && doc.Name != bottomNamePieces[1] {
+									newDocumentElements = append(newDocumentElements, ast.NewDocumentElement(doc.Name, doc.Expr))
+								}
+							}
+							// We exclude a single field from the topExpr when we look at the bottomFieldName
+							// defining the exclusion.  If there are several sub-fields that are excluded,
+							// after the first pass, we look inside bottomItems[topTypedItem.Name] and
+							// modify it...
+							newElements = append(newElements, ast.NewDocument(newDocumentElements...))
+							newDocumentElements = nil
+						} else {
+							return false
+						}
+					}
+					if len(newElements) > 0 {
+						bottomItems[topTypedItem.Name] = ast.NewAssignProjectItem(topTypedItem.Name, ast.NewArray(newElements...))
+						newElements = nil
+						break
+					}
+				default:
+					delete(bottomItems, bottomFieldName)
+					bottomItems[topTypedItem.Name] = topTypedItem
+				}
 			}
 			// descendent
 			// Excluding a field excludes all of its descendents, so the definition
@@ -749,30 +833,70 @@ func handleBottomInclude(bottomInclude *ast.IncludeProjectItem, relatedItems []i
 			if topTypedItem.GetName() == bottomFieldName { // field
 				// The top redefines the field, so including the field in the bottom just
 				// projects the new value.
-				bottomItems[topTypedItem.GetName()] = topTypedItem
+				bottomItems[topTypedItem.Name] = ast.NewAssignProjectItem(topTypedItem.Name, topTypedItem.Expr)
 				break
 			} else if analyzer.IsDotPrefixOfString(topTypedItem.GetName(), bottomFieldName) { // ancestor
-				// Defining the field's ancestor means it is no longer a document. When we
-				// try to project the field, which is now a nested field of a
-				// non-document, nothing gets projected.
-
-				// This case does not quite work because it's possible do have a case like this:
+				// Defining the bottom field's ancestor means that when we try to project
+				// the field, nothing gets projected.   However, this case and the following
+				// $addFields case can get arbitrarily complicated, e.g., the top stage
+				// can define an array or document with sub-documents, or this:
 				// {$project: {"a": {$cond: ["$b", {"c": {literal: 42}}, {"c": {$literal: 43}}]}}}
 				// {$project: {"a.c": 1}}
-				// It will remove the definition of a in the top $project. We could eventually
-				// do a more complex analysis here, but  for now we are just going to keep the
-				// top item in the bottom project, while removing the bottom item,
-				// because it is conservatively correct.
-				// Previously we just issued this delete:
-				//delete(bottomItems, bottomFieldName)
-				// Now we also add the top item to the bottom:
-				//bottomItems[topTypedItem.GetName()] = topTypedItem
-				// TODO: we should actually check to see if a dynamic case is possible, which
-				// can be determined by seeing if the AssignProjectItem contains and field
-				// references. If there is no dynamic element, the original code of
-				// deleting the  bottomFieldName from the bottomItems is still good, while
-				// not compressing will be required when there is a dynamic element.
-				return false
+				// For now, if the topTypedItem is a constant, we delete the projected item since
+				// it covers a subset of the namespace at the top.  If it's an array of
+				// documents, we project the relevant elements and return an AssignProjectItem.
+				// Otherwise, we return false, which causes optimization to fail.
+				switch te := topTypedItem.Expr.(type) {
+				case *ast.Constant:
+					delete(bottomItems, bottomFieldName)
+				case *ast.Array:
+					var newDocumentElement *ast.DocumentElement
+					var newDocumentElements []*ast.DocumentElement
+					var newElements []ast.Expr
+					delete(bottomItems, bottomFieldName)
+					bottomNamePieces := strings.Split(bottomFieldName, ".")
+					bottomLast, present := bottomItems[topTypedItem.Name]
+					for i, ae := range te.Elements {
+						if de, ok := ae.(*ast.Document); ok {
+							for _, doc := range de.Elements {
+								// For now, we're only handling one level of nesting.
+								if len(bottomNamePieces) == 2 && doc.Name == bottomNamePieces[1] {
+									newDocumentElement = ast.NewDocumentElement(doc.Name, doc.Expr)
+								}
+							}
+							// We include a single field from the topExpr when we look at the bottomFieldName
+							// defining the inclusion.  If there are several sub-fields that are included,
+							// they are added in successive calls of this function.
+
+							// If bottomItems[topTypedItems] is not defined (present), this is the
+							// first call of this function.
+							if !present {
+								newElements = append(newElements, ast.NewDocument(newDocumentElement))
+							} else {
+								bottomItemElems := bottomLast.(*ast.AssignProjectItem).Expr.(*ast.Array).Elements
+								bottomDocument := bottomItemElems[i].(*ast.Document)
+								if newDocumentElement == nil {
+									newElements = append(newElements, bottomDocument)
+								} else {
+									if bottomDocument != nil {
+										newDocumentElements = append(bottomDocument.Elements, newDocumentElement)
+									} else {
+										newDocumentElements = append(newDocumentElements, newDocumentElement)
+									}
+									newElements = append(newElements, ast.NewDocument(newDocumentElements...))
+								}
+							}
+							newDocumentElement = nil
+							newDocumentElements = nil
+						} else {
+							return false
+						}
+					}
+					bottomItems[topTypedItem.Name] = ast.NewAssignProjectItem(topTypedItem.Name, ast.NewArray(newElements...))
+					newElements = nil
+				default:
+					return false
+				}
 			} else { // descendent
 				// Defining a nested field (this field's descendent for eg.) in a $project
 				// implicitly excludes all of its siblings. It redefines the field as a
@@ -801,10 +925,54 @@ func handleBottomInclude(bottomInclude *ast.IncludeProjectItem, relatedItems []i
 				bottomItems[topTypedItem.Name] = ast.NewAssignProjectItem(topTypedItem.Name, topTypedItem.Expr)
 				break
 			} else if analyzer.IsDotPrefixOfString(topTypedItem.Name, bottomFieldName) { // ancestor
-				// Same with the $project case; we define the ancestor as a literal and
-				// then try to project the missing field.
-				delete(bottomItems, bottomFieldName)
-				break
+				// Same as the $project case above.
+				switch te := topTypedItem.Expr.(type) {
+				case *ast.Constant:
+					delete(bottomItems, bottomFieldName)
+				case *ast.Array:
+					var newDocumentElement *ast.DocumentElement
+					var newDocumentElements []*ast.DocumentElement
+					var newElements []ast.Expr
+					delete(bottomItems, bottomFieldName)
+					bottomNamePieces := strings.Split(bottomFieldName, ".")
+					bottomLast, present := bottomItems[topTypedItem.Name]
+					for i, ae := range te.Elements {
+						if de, ok := ae.(*ast.Document); ok {
+							for _, doc := range de.Elements {
+								// For now, we're only handling one level of nesting.
+								if len(bottomNamePieces) == 2 && doc.Name == bottomNamePieces[1] {
+									newDocumentElement = ast.NewDocumentElement(doc.Name, doc.Expr)
+								}
+							}
+							// If bottomItems[topTypedItems] is not defined (present), this is the
+							// first call of this function.
+							if !present {
+								newElements = append(newElements, ast.NewDocument(newDocumentElement))
+							} else {
+								bottomItemElems := bottomLast.(*ast.AssignProjectItem).Expr.(*ast.Array).Elements
+								bottomDocument := bottomItemElems[i].(*ast.Document)
+								if newDocumentElement == nil {
+									newElements = append(newElements, bottomDocument)
+								} else {
+									if bottomDocument != nil {
+										newDocumentElements = append(bottomDocument.Elements, newDocumentElement)
+									} else {
+										newDocumentElements = append(newDocumentElements, newDocumentElement)
+									}
+									newElements = append(newElements, ast.NewDocument(newDocumentElements...))
+								}
+							}
+							newDocumentElement = nil
+							newDocumentElements = nil
+						} else {
+							return false
+						}
+					}
+					bottomItems[topTypedItem.Name] = ast.NewAssignProjectItem(topTypedItem.Name, ast.NewArray(newElements...))
+					newElements = nil
+				default:
+					return false
+				}
 			} else { // descendent
 				// The bottom $project implicitly excludes all fields not named in the
 				// stage. There is no way to express this exclusion in a $addFields, so we
@@ -823,9 +991,19 @@ func handleBottomInclude(bottomInclude *ast.IncludeProjectItem, relatedItems []i
 	return true
 }
 
-// ReplaceRef replaces a reference to a field that matches contents in a passed map,
-// theta, according to the reference name.
-func ReplaceRef(root ast.Node, theta map[string]ast.Node) ast.Node {
+// ReplaceRef tries to replace a reference to a field that matches contents in a passed
+// map, theta, according to the reference name.   It returns the node with the reference
+// replaced, and a boolean indicating whether it was able to fully substitute references.
+// Substitution fails when an ast.Function is encountered, and the substitution value
+// is an array.   We can't just substitute a literal array as the array may itself contain
+// references, so we just fail substitution for now.
+// E.g., we don't optimize:
+// {$addFields: {"array" : [1, 2, 3]}}, {$project: {"num": {$size: "$array"}}} to
+// {$project: {"num": {$size: {$literal: [1, 2, 3]}})
+// as that approach would incorrectly optimize the following:
+// {$addFields: {"array" : [1, 2, "$c]}}, {$project: {"num": {$size: "$array"}}}.
+func ReplaceRef(root ast.Node, theta map[string]ast.Node) (ast.Node, bool) {
+	fullySubstituted := true
 	n, _ := ast.Visit(root, func(v ast.Visitor, n ast.Node) ast.Node {
 		switch tn := n.(type) {
 		// Replaces references to a field within the definition of another field
@@ -835,12 +1013,24 @@ func ReplaceRef(root ast.Node, theta map[string]ast.Node) ast.Node {
 			}
 		case *ast.IncludeProjectItem, *ast.ExcludeProjectItem:
 			return n
+		case *ast.Function:
+			if fr, ok := tn.Arg.(*ast.FieldRef); ok {
+				if repl, ok := theta[ast.GetDottedFieldName(fr)]; ok {
+					if _, ok := repl.(*ast.Array); ok {
+						fullySubstituted = false
+						return n
+					}
+					return ast.NewFunction(tn.Name, repl.(ast.Expr))
+				}
+			}
+			// else we still need to substitute in any arguments.
+			return n.Walk(v)
 		default:
 			return n.Walk(v)
 		}
 		return n
 	})
-	return n
+	return n, fullySubstituted
 }
 
 // handleReferences looks at all referenced fields in the bottom projection stage and
@@ -960,12 +1150,16 @@ func handleReferences(topItems map[string]interface{}, orderedItems []string, bo
 		}
 	}
 
-	newBottom, ok := ReplaceRef(bottom, topDefinedAssigned).(ast.Stage)
+	newBottom, ok := ReplaceRef(bottom, topDefinedAssigned)
+	if !ok {
+		return nil, false
+	}
+	newBottomStage, ok := newBottom.(ast.Stage)
 	if !ok {
 		panic(fmt.Sprintf("Expected ReplaceRef to return an ast.Stage, but instead it returned %v of type %T",
-			newBottom, newBottom))
+			newBottomStage, newBottomStage))
 	}
-	return newBottom, true
+	return newBottomStage, true
 }
 
 func getOrderedItemNames(stage ast.Stage) []string {
@@ -1068,6 +1262,7 @@ func constructCompressedStage(compressedItems map[string]interface{}, orderedIte
 				}
 			}
 		}
+
 		return ast.NewAddFieldsStage(addFieldsItems...), true
 	}
 
@@ -1084,7 +1279,7 @@ func constructCompressedStage(compressedItems map[string]interface{}, orderedIte
 				return nil, false
 			}
 		}
-
 	}
+
 	return ast.NewProjectStage(projectItems...), true
 }

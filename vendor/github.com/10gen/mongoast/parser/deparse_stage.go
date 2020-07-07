@@ -205,7 +205,7 @@ func DeparseStageErr(n ast.Stage) (bsoncore.Value, error) {
 		if tn.Atlas != nil {
 			_, vdoc := bsoncore.AppendDocumentStart(nil)
 			if tn.Atlas.ProjectID != "" {
-				vdoc = bsoncore.AppendStringElement(vdoc, "projectID", tn.Atlas.ProjectID)
+				vdoc = bsoncore.AppendStringElement(vdoc, "projectId", tn.Atlas.ProjectID)
 			}
 			vdoc = bsoncore.AppendStringElement(vdoc, "clusterName", tn.Atlas.ClusterName)
 			vdoc = bsoncore.AppendStringElement(vdoc, "db", tn.Atlas.DatabaseName)

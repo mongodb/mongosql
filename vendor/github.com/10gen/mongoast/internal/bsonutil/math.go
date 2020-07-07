@@ -257,6 +257,9 @@ func addDate(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		case bsontype.Double:
 			bdouble := b.Double()
 			return DateTime(aint64 + int64(math.Round(bdouble))), nil
+		case bsontype.Decimal128:
+			bint64, _ := AsDecimal(b).RoundToInt().Int64()
+			return DateTime(aint64 + bint64), nil
 		case bsontype.DateTime:
 			return Null(), errors.New("only one date allowed in an $add expression")
 		default:
@@ -279,27 +282,8 @@ func addDate(a bsoncore.Value, b bsoncore.Value) (bsoncore.Value, error) {
 		return DateTime(int64(math.Round(adouble)) + bint64), nil
 	case bsontype.Decimal128:
 		aint64, _ := AsDecimal(a).RoundToInt().Int64()
-		switch b.Type {
-		case bsontype.Int32:
-			bint32 := b.Int32()
-			return DateTime(aint64 + int64(bint32)), nil
-		case bsontype.Int64:
-			bint64 := b.Int64()
-			return DateTime(aint64 + bint64), nil
-		case bsontype.Double:
-			bdouble := b.Double()
-			return DateTime(aint64 + int64(math.Round(bdouble))), nil
-		case bsontype.Decimal128:
-			bint64, _ := AsDecimal(b).RoundToInt().Int64()
-			return DateTime(aint64 + bint64), nil
-		case bsontype.DateTime:
-			return Null(), errors.New("only one date allowed in an $add expression")
-		default:
-			return Null(), errors.Errorf(
-				"$add only supports numeric or date types, not %s",
-				TypeToString(b.Type),
-			)
-		}
+		bint64 := b.DateTime()
+		return DateTime(aint64 + bint64), nil
 	case bsontype.Null, bsontype.Undefined:
 		return Null(), nil
 	default:

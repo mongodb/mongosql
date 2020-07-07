@@ -214,6 +214,8 @@ func parseFunctionExpr(key string, v bsoncore.Value) (ast.Expr, error) {
 		return parseReduceExpr(v)
 	case "$literal":
 		return ast.NewConstant(v), nil
+	case "$convert":
+		return parseConvertExpr(v)
 	default:
 		arg, err := ParseExpr(v)
 		if err != nil {
@@ -565,4 +567,53 @@ func parseReduceExpr(v bsoncore.Value) (ast.Expr, error) {
 	}
 
 	return ast.NewReduce(inputClause, initialValue, inClause), nil
+}
+
+func parseConvertExpr(v bsoncore.Value) (ast.Expr, error) {
+	var err error
+	var inputParam ast.Expr
+	var toParam ast.Expr
+	var onErrorParam ast.Expr
+	var onNullParam ast.Expr
+
+	if doc, ok := v.DocumentOK(); ok {
+		elems, _ := doc.Elements()
+		for _, e := range elems {
+			switch e.Key() {
+			case "input":
+				inputParam, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $convert input parameter")
+				}
+			case "to":
+				toParam, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $convert to parameter")
+				}
+			case "onError":
+				onErrorParam, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $convert onError parameter")
+				}
+			case "onNull":
+				onNullParam, err = ParseExpr(e.Value())
+				if err != nil {
+					return nil, errors.Wrap(err, "could not parse expr for $convert onNull parameter")
+				}
+			default:
+				return nil, errors.Errorf("unrecognized parameter to $convert: %s", e.Key())
+			}
+		}
+	} else {
+		return nil, errors.New("$convert requires a document")
+	}
+
+	if inputParam == nil {
+		return nil, errors.New("missing 'input' parameter to $convert")
+	}
+	if toParam == nil {
+		return nil, errors.New("missing 'to' parameter to $convert")
+	}
+
+	return ast.NewConvert(inputParam, toParam, onErrorParam, onNullParam), nil
 }

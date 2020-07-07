@@ -10,8 +10,20 @@ import (
 	"github.com/10gen/mongoast/parser"
 )
 
+// ReorderCfg is the configuration for the Reorder pass.
+type ReorderCfg struct {
+	MoveCorrelatedStages bool
+}
+
+// CreateReorderPass creates a Reorder pass with the given ReorderCfg.
+func CreateReorderPass(cfg *ReorderCfg) func(*ast.Pipeline, uint64) *ast.Pipeline {
+	return func(pipeline *ast.Pipeline, memorySize uint64) *ast.Pipeline {
+		return reorder(pipeline, memorySize, cfg)
+	}
+}
+
 // Reorder attempts to move stages into their optimal position.
-func Reorder(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
+func reorder(pipeline *ast.Pipeline, _ uint64, cfg *ReorderCfg) *ast.Pipeline {
 	if len(pipeline.Stages) < 2 {
 		return pipeline
 	}
@@ -28,7 +40,7 @@ func Reorder(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 
 	for b := 1; b < len(newStages); b++ {
 		for a := b; a > 0; a-- {
-			x, y, ok := trySwapStages(newStages[a-1], newStages[a], referencedFields[a])
+			x, y, ok := trySwapStages(newStages[a-1], newStages[a], referencedFields[a], cfg)
 			if !ok {
 				break
 			}
@@ -58,7 +70,10 @@ func Reorder(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	return ast.NewPipeline(newStages...)
 }
 
-func trySwapStages(a, b ast.Stage, referencedFields [][]string) (ast.Stage, ast.Stage, bool) {
+func trySwapStages(a, b ast.Stage, referencedFields [][]string, cfg *ReorderCfg) (ast.Stage, ast.Stage, bool) {
+	if !cfg.MoveCorrelatedStages && analyzer.StageHasFreeVars(a) && !analyzer.StageHasFreeVars(b) {
+		return nil, nil, false
+	}
 	switch ts := b.(type) {
 	case *ast.LimitStage, *ast.SampleStage, *ast.SkipStage:
 		switch a.(type) {
@@ -363,7 +378,7 @@ func canSwapProjectAsIs(ps *ast.ProjectStage, referencedFields [][]string) bool 
 }
 
 func canSwapAddFieldsAsIs(afs *ast.AddFieldsStage, referencedFields [][]string) bool {
-	definedFields := analyzer.DefinedFieldsFullPath(afs)
+	definedFields, _ := analyzer.DefinedFieldsFullPath(afs)
 	for _, definedField := range definedFields {
 		dottedDefinedField := strings.Split(definedField, ".")
 		for _, dottedReferencedField := range referencedFields {

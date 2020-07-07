@@ -809,11 +809,11 @@ func (n *FacetItem) DeepCopy() DeepCopier {
 
 // DeepCopy implements the DeepCopier interface.
 func (n *Exists) DeepCopy() DeepCopier {
-	var newFieldRef *FieldRef
+	var newRef FieldLikeRef
 
-	if n.FieldRef != nil {
-		newFieldRef = n.FieldRef.DeepCopy().(*FieldRef)
+	if n.Ref != nil {
+		newRef = n.Ref.DeepCopy().(FieldLikeRef)
 	}
 
-	return NewExists(newFieldRef, n.Exists)
+	return NewExists(newRef, n.Exists)
 }

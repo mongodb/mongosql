@@ -152,7 +152,7 @@ func deparseMatchSubexpr(e ast.Expr) (bsoncore.Value, error) {
 
 		return bsonutil.Document(doc), nil
 	case *ast.Exists:
-		name, err := deparseMatchFieldName(te.FieldRef)
+		name, err := deparseMatchFieldName(te.Ref)
 		if err != nil {
 			return bsoncore.Value{}, err
 		}
