@@ -323,10 +323,9 @@ func TestDocSliceToString(t *testing.T) {
 
 func TestNormalizeBSON(t *testing.T) {
 	type test struct {
-		name                   string
-		pipeline               []bson.D
-		expectedWithExtJSON    []bson.D
-		expectedWithoutExtJSON []bson.D
+		name     string
+		pipeline []bson.D
+		expected []bson.D
 	}
 
 	testObjectID, _ := primitive.ObjectIDFromHex("57e193d7a9cc81b4027498b5")
@@ -337,7 +336,7 @@ func TestNormalizeBSON(t *testing.T) {
 			"nothing to normalize",
 			NewDArray(
 				NewD(
-					NewDocElem("a", 1),
+					NewDocElem("a", int32(1)),
 					NewDocElem("b", NewD(
 						NewDocElem("c", "d"),
 					)),
@@ -345,15 +344,7 @@ func TestNormalizeBSON(t *testing.T) {
 			),
 			NewDArray(
 				NewD(
-					NewDocElem("a", 1),
-					NewDocElem("b", NewD(
-						NewDocElem("c", "d"),
-					)),
-				),
-			),
-			NewDArray(
-				NewD(
-					NewDocElem("a", 1),
+					NewDocElem("a", int32(1)),
 					NewDocElem("b", NewD(
 						NewDocElem("c", "d"),
 					)),
@@ -364,38 +355,26 @@ func TestNormalizeBSON(t *testing.T) {
 			"non-nested arrays",
 			NewDArray(
 				NewD(
-					NewDocElem("a", []interface{}{1, 2, 3}),
+					NewDocElem("a", []interface{}{int32(1), int32(2), int32(3)}),
 					NewDocElem("b", NewD(
 						NewDocElem("c", []interface{}{"x", "y", "z"}),
 					)),
 				),
 				NewD(
-					NewDocElem("d", 1),
-					NewDocElem("e", NewArray(10, 11, 12)),
+					NewDocElem("d", int32(1)),
+					NewDocElem("e", NewArray(int32(10), int32(11), int32(12))),
 				),
 			),
 			NewDArray(
 				NewD(
-					NewDocElem("a", bson.A{1, 2, 3}),
+					NewDocElem("a", bson.A{int32(1), int32(2), int32(3)}),
 					NewDocElem("b", NewD(
 						NewDocElem("c", bson.A{"x", "y", "z"}),
 					)),
 				),
 				NewD(
-					NewDocElem("d", 1),
-					NewDocElem("e", NewArray(10, 11, 12)),
-				),
-			),
-			NewDArray(
-				NewD(
-					NewDocElem("a", bson.A{1, 2, 3}),
-					NewDocElem("b", NewD(
-						NewDocElem("c", bson.A{"x", "y", "z"}),
-					)),
-				),
-				NewD(
-					NewDocElem("d", 1),
-					NewDocElem("e", NewArray(10, 11, 12)),
+					NewDocElem("d", int32(1)),
+					NewDocElem("e", NewArray(int32(10), int32(11), int32(12))),
 				),
 			),
 		},
@@ -403,85 +382,57 @@ func TestNormalizeBSON(t *testing.T) {
 			"nested arrays",
 			NewDArray(
 				NewD(
-					NewDocElem("a", 1),
+					NewDocElem("a", int32(1)),
 					NewDocElem("b", []interface{}{
-						2,
+						int32(2),
 						"c",
-						[]interface{}{3, 4, "z"},
+						[]interface{}{int32(3), int32(4), "z"},
 						NewD(NewDocElem("n", []interface{}{"a", "b", "c"}))},
 					),
 				),
 				NewD(
 					NewDocElem("c", NewD(
-						NewDocElem("d", []interface{}{1, 2, 3}),
+						NewDocElem("d", []interface{}{int32(1), int32(2), int32(3)}),
 					)),
 				),
 				NewD(
 					NewDocElem("e", NewArray(
-						1,
+						int32(1),
 						[]interface{}{
 							[]interface{}{"i", "j", "k"},
 							NewD(
 								NewDocElem("f", []interface{}{}),
 							),
 						},
-						NewArray(4, 5, 6),
+						NewArray(int32(4), int32(5), int32(6)),
 					)),
 				),
 			),
 			NewDArray(
 				NewD(
-					NewDocElem("a", 1),
+					NewDocElem("a", int32(1)),
 					NewDocElem("b", bson.A{
-						2,
+						int32(2),
 						"c",
-						bson.A{3, 4, "z"},
+						bson.A{int32(3), int32(4), "z"},
 						NewD(NewDocElem("n", bson.A{"a", "b", "c"}))},
 					),
 				),
 				NewD(
 					NewDocElem("c", NewD(
-						NewDocElem("d", bson.A{1, 2, 3}),
+						NewDocElem("d", bson.A{int32(1), int32(2), int32(3)}),
 					)),
 				),
 				NewD(
 					NewDocElem("e", NewArray(
-						1,
+						int32(1),
 						bson.A{
 							bson.A{"i", "j", "k"},
 							NewD(
 								NewDocElem("f", bson.A{}),
 							),
 						},
-						NewArray(4, 5, 6),
-					)),
-				),
-			),
-			NewDArray(
-				NewD(
-					NewDocElem("a", 1),
-					NewDocElem("b", bson.A{
-						2,
-						"c",
-						bson.A{3, 4, "z"},
-						NewD(NewDocElem("n", bson.A{"a", "b", "c"}))},
-					),
-				),
-				NewD(
-					NewDocElem("c", NewD(
-						NewDocElem("d", bson.A{1, 2, 3}),
-					)),
-				),
-				NewD(
-					NewDocElem("e", NewArray(
-						1,
-						bson.A{
-							bson.A{"i", "j", "k"},
-							NewD(
-								NewDocElem("f", bson.A{}),
-							),
-						},
-						NewArray(4, 5, 6),
+						NewArray(int32(4), int32(5), int32(6)),
 					)),
 				),
 			),
@@ -644,108 +595,6 @@ func TestNormalizeBSON(t *testing.T) {
 				NewD(NewDocElem("Maxkey", primitive.MaxKey{})),
 				NewD(NewDocElem("Undefined", primitive.Undefined{})),
 			),
-			NewDArray(
-				NewD(NewDocElem("_id", NewD(
-					NewDocElem("$oid", "57e193d7a9cc81b4027498b5"),
-				))),
-				NewD(NewDocElem("Symbol", NewD(
-					NewDocElem("$symbol", "symbol"),
-				))),
-				NewD(NewDocElem("String", "string")),
-				NewD(NewDocElem("Int32", NewD(
-					NewDocElem("$numberInt", "42"),
-				))),
-				NewD(NewDocElem("Int64", NewD(
-					NewDocElem("$numberLong", "42"),
-				))),
-				NewD(NewDocElem("Double", NewD(
-					NewDocElem("$numberDouble", "42.42"),
-				))),
-				NewD(NewDocElem("SpecialFloat", NewD(
-					NewDocElem("$numberDouble", "Infinity"),
-				))),
-				NewD(NewDocElem("Decimal", NewD(
-					NewDocElem("$numberDecimal", "1234"),
-				))),
-				NewD(NewDocElem("Binary", NewD(
-					NewDocElem("$binary", NewD(
-						NewDocElem("base64", "o0w498Or7cijeBSpkquNtg=="),
-						NewDocElem("subType", "03"),
-					)),
-				))),
-				NewD(NewDocElem("BinaryUserDefined", NewD(
-					NewDocElem("$binary", NewD(
-						NewDocElem("base64", "AQIDBAU="),
-						NewDocElem("subType", "80"),
-					)),
-				))),
-				NewD(NewDocElem("Code", NewD(
-					NewDocElem("$code", "function() {}"),
-				))),
-				NewD(NewDocElem("CodeWithScope", NewD(
-					NewDocElem("$code", "function() {}"),
-					NewDocElem("$scope", NewD()),
-				))),
-				NewD(NewDocElem("Subdocument", NewD(
-					NewDocElem("foo", "bar"),
-				))),
-				NewD(NewDocElem("Array", NewArray(
-					NewD(NewDocElem("$numberInt", "1")),
-					NewD(NewDocElem("$numberInt", "2")),
-					NewD(NewDocElem("$numberInt", "3")),
-					NewD(NewDocElem("$numberInt", "4")),
-					NewD(NewDocElem("$numberInt", "5")),
-				))),
-				NewD(NewDocElem("Timestamp", NewD(
-					NewDocElem("$timestamp", NewD(
-						NewDocElem("t", 42),
-						NewDocElem("i", 1),
-					)),
-				))),
-				NewD(NewDocElem("RegularExpression", NewD(
-					NewDocElem("$regularExpression", NewD(
-						NewDocElem("pattern", "foo*"),
-						NewDocElem("options", "ix"),
-					)),
-				))),
-				NewD(NewDocElem("DatetimeEpoch", NewD(
-					NewDocElem("$date", NewD(
-						NewDocElem("$numberLong", "0"),
-					)),
-				))),
-				NewD(NewDocElem("DatetimePositive", NewD(
-					NewDocElem("$date", NewD(
-						NewDocElem("$numberLong", "9223372036854775807"),
-					)),
-				))),
-				NewD(NewDocElem("DatetimeNegative", NewD(
-					NewDocElem("$date", NewD(
-						NewDocElem("$numberLong", "-9223372036854775808"),
-					)),
-				))),
-				NewD(NewDocElem("DatetimeString", NewD(
-					NewDocElem("$date", "1970-01-01T00:00:00Z"),
-				))),
-				NewD(NewDocElem("True", true)),
-				NewD(NewDocElem("False", false)),
-				NewD(NewDocElem("DBPointer", NewD(
-					NewDocElem("$dbPointer", NewD(
-						NewDocElem("$ref", "db.collection"),
-						NewDocElem("$id", NewD(
-							NewDocElem("$oid", "57e193d7a9cc81b4027498b5"),
-						)),
-					)),
-				))),
-				NewD(NewDocElem("Minkey", NewD(
-					NewDocElem("$minKey", 1),
-				))),
-				NewD(NewDocElem("Maxkey", NewD(
-					NewDocElem("$maxKey", 1),
-				))),
-				NewD(NewDocElem("Undefined", NewD(
-					NewDocElem("$undefined", true),
-				))),
-			),
 		},
 	}
 
@@ -753,15 +602,9 @@ func TestNormalizeBSON(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			req := require.New(t)
 
-			// test with convertExtJSON=true
-			actual, err := NormalizeBSON(test.pipeline, true)
+			actual, err := NormalizeBSON(test.pipeline)
 			req.Nil(err)
-			req.Equal(test.expectedWithExtJSON, actual)
-
-			// test with convertExtJSON=false (i.e. arrays only)
-			actual, err = NormalizeBSON(test.pipeline, false)
-			req.Nil(err)
-			req.Equal(test.expectedWithoutExtJSON, actual)
+			req.Equal(test.expected, actual)
 		})
 	}
 }

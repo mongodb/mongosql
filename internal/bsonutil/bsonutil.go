@@ -144,12 +144,6 @@ func DocSliceToString(docs []bson.D) (string, error) {
 // which is normalized to:
 //     primitive.Timestamp{T: 42, I: 1}.
 //
-// This function is necessary because, as bson.Ds, such values are
-// incorrectly typed. The bson.D example above will not be treated
-// as a primitive.Timestamp by the Go driver; we need to change it
-// to an actual primitive.Timestamp for the Go driver to recognize
-// it as one.
-//
 // The docs argued to this function are read from yaml files which
 // are parsed by yaml parsers that only know how to create bson.Ds
 // based on the bson.D type:
@@ -196,18 +190,22 @@ func DocSliceToString(docs []bson.D) (string, error) {
 //               bson.D{bson.E{Key: "$oid", Value: "57e193d7a9cc81b4027498b5"}},
 //               bson.D{bson.E{Key: "$numberDouble", Value: "-Infinity"}},
 //             }
-//
-// Extended JSON parsing is optional via the convertExtJSON argument.
-func NormalizeBSON(docs []bson.D, convertExtJSON bool) ([]bson.D, error) {
+func NormalizeBSON(docs []bson.D) ([]bson.D, error) {
 	newDocs := make([]bson.D, len(docs))
 
 	for i, doc := range docs {
-		newDoc, err := normalize(doc, convertExtJSON)
+		oldDocBytes, err := bson.MarshalExtJSON(doc, false, false)
 		if err != nil {
-			return nil, fmt.Errorf("error normalizing extended json into bson: %v", err)
+			return nil, fmt.Errorf("error marshaling input doc %v: %v", i, err)
 		}
 
-		newDocs[i] = newDoc.(bson.D)
+		newDoc := &bson.D{}
+		err = bson.UnmarshalExtJSON(oldDocBytes, false, newDoc)
+		if err != nil {
+			return nil, fmt.Errorf("error unmarshaling input doc %v:\n\tdoc: %v\n\terr: %v", i, string(oldDocBytes), err)
+		}
+
+		newDocs[i] = *newDoc
 	}
 
 	return newDocs, nil

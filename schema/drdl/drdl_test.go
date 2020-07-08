@@ -85,20 +85,18 @@ schema:
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, bsonutil.NewDArray(
 			bsonutil.NewD(bsonutil.NewDocElem("$unwind", "$x")),
 			bsonutil.NewD(bsonutil.NewDocElem("$sort", bsonutil.NewD(
-				bsonutil.NewDocElem("a", int64(1)),
-				bsonutil.NewDocElem("b", int64(1)),
-				bsonutil.NewDocElem("c", int64(-1)),
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("b", int32(1)),
+				bsonutil.NewDocElem("c", int32(-1)),
 			)),
 			),
 			bsonutil.NewD(bsonutil.NewDocElem("$project", bsonutil.NewD(
-				bsonutil.NewDocElem("a", int64(1)),
-				bsonutil.NewDocElem("b", int64(1)),
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("b", int32(1)),
 				bsonutil.NewDocElem("c", bsonutil.NewD(
 					bsonutil.NewDocElem("$add", bsonutil.NewArray(
 						"$a",
-						bsonutil.NewD(
-							bsonutil.NewDocElem("$numberLong", "10"),
-						),
+						int64(10),
 					)),
 				)),
 			)),
@@ -198,9 +196,9 @@ schema:
 		So(cfg.Databases[1].Tables[0].Pipeline, ShouldResemble, bsonutil.NewDArray(
 			bsonutil.NewD(bsonutil.NewDocElem("$unwind", "$x")),
 			bsonutil.NewD(bsonutil.NewDocElem("$sort", bsonutil.NewD(
-				bsonutil.NewDocElem("a", int64(1)),
-				bsonutil.NewDocElem("b", int64(1)),
-				bsonutil.NewDocElem("c", int64(-1)),
+				bsonutil.NewDocElem("a", int32(1)),
+				bsonutil.NewDocElem("b", int32(1)),
+				bsonutil.NewDocElem("c", int32(-1)),
 			)),
 			),
 		))

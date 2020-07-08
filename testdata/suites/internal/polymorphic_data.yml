@@ -15,9 +15,9 @@ testcases:
     expected_names: [Field, Type, 'Null', Key, Default, Extra]
     expected_results:
       - [_id, bigint(20), 'YES', PRI, null, '']
-      - [doubleint, 'double', 'YES', '', null, '']
+      - [doubleint, double, 'YES', '', null, '']
       - [doublelong, 'decimal(65,20)', 'YES', '', null, '']
-      - [mid, 'decimal(65,20)', 'YES', '', null, '']
+      - [mid, double, 'YES', '', null, '']
       - [mixed, varchar(65535), 'YES', '', null, '']
       - [supremum, varchar(65535), 'YES', '', null, '']
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
@@ -342,10 +342,10 @@ testcases:
     description: show the comments for each column of the scalar_types table
     expected_names: [column_name, column_comment]
     expected_results:
-      - [_id, '{ "name": "_id", "sampledTypes": ["long"] }']
+      - [_id, '{ "name": "_id", "sampledTypes": ["int"] }']
       - [doubleint, '{ "name": "doubleint", "sampledTypes": ["double", "int"] }']
       - [doublelong, '{ "name": "doublelong", "sampledTypes": ["double", "long"] }']
-      - [mid, '{ "name": "mid", "sampledTypes": ["bool", "double", "long"] }']
+      - [mid, '{ "name": "mid", "sampledTypes": ["bool", "double", "int"] }']
       - [mixed, '{ "name": "mixed", "sampledTypes": ["bool", "double", "string"] }']
       - [supremum, '{ "name": "supremum", "sampledTypes": ["binData", "double", "long", "string"] }']
     expected_types: [varchar, varchar]

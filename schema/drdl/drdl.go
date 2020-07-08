@@ -145,7 +145,7 @@ func (s *Schema) Load(data []byte) error {
 	for _, newDb := range newSchema.Databases {
 		for _, tbl := range newDb.Tables {
 			// Normalize any []interface{} into bson.A.
-			tbl.Pipeline, err = bsonutil.NormalizeBSON(tbl.Pipeline, false)
+			tbl.Pipeline, err = bsonutil.NormalizeBSON(tbl.Pipeline)
 			if err != nil {
 				return err
 			}

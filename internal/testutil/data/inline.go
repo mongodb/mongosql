@@ -73,7 +73,7 @@ func (i *InMemoryDataset) Restore(opts *toolsoptions.ToolOptions) error {
 
 	// NormalizeBSON will convert extended JSON documents from the
 	// yaml file into their corresponding primitive bson types.
-	i.Docs, err = bsonutil.NormalizeBSON(i.Docs, true)
+	i.Docs, err = bsonutil.NormalizeBSON(i.Docs)
 	if err != nil {
 		return fmt.Errorf("error normalizing BSON for namespace=%s.%s: %v", i.Db, i.Collection, err)
 	}

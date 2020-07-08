@@ -155,25 +155,25 @@
 - db: "conversions_test"
   collection: "int"
   docs:
-    - {value: 0}
-    - {value: 1}
-    - {value: 2}
-    - {value: -1}
-    - {value: 20171107}
-    - {value: 171107}
-    - {value: 19701107}
-    - {value: 701107}
-    - {value: 691107}
-    - {value: -50}
-    - {value: 2017110}
-    - {value: 6911}
-    - {value: 1110}
-    - {value: 61110}
-    - {value: 1161110}
-    - {value: 504123025}
-    - {value: 1204123025}
-    - {value: 11}
-    - {value: 111}
+    - {value: {"$numberLong": "0"}}
+    - {value: {"$numberLong": "1"}}
+    - {value: {"$numberLong": "2"}}
+    - {value: {"$numberLong": "-1"}}
+    - {value: {"$numberLong": "20171107"}}
+    - {value: {"$numberLong": "171107"}}
+    - {value: {"$numberLong": "19701107"}}
+    - {value: {"$numberLong": "701107"}}
+    - {value: {"$numberLong": "691107"}}
+    - {value: {"$numberLong": "-50"}}
+    - {value: {"$numberLong": "2017110"}}
+    - {value: {"$numberLong": "6911"}}
+    - {value: {"$numberLong": "1110"}}
+    - {value: {"$numberLong": "61110"}}
+    - {value: {"$numberLong": "1161110"}}
+    - {value: {"$numberLong": "504123025"}}
+    - {value: {"$numberLong": "1204123025"}}
+    - {value: {"$numberLong": "11"}}
+    - {value: {"$numberLong": "111"}}
     - {value: {$numberLong: "20171107220405"}}
     - {value: {$numberLong: "171110220405"}}
     - {value: {$numberLong: "61204123025"}}
@@ -188,19 +188,19 @@
 - db: "conversions_test"
   collection: "float"
   docs:
-    - {value: 0}
-    - {value: 1}
-    - {value: 1.1}
-    - {value: 2.5}
-    - {value: 54321.1}
-    - {value: -1}
-    - {value: -1.1}
-    - {value: -2.5}
-    - {value: 20120203.080706}
-    - {value: 20120203.987628}
-    - {value: 20101011111023.12}
-    - {value: 111}
-    - {value: 111.2}
+    - {value: {"$numberDouble": "0"}}
+    - {value: {"$numberDouble": "1"}}
+    - {value: {"$numberDouble": "1.1"}}
+    - {value: {"$numberDouble": "2.5"}}
+    - {value: {"$numberDouble": "54321.1"}}
+    - {value: {"$numberDouble": "-1"}}
+    - {value: {"$numberDouble": "-1.1"}}
+    - {value: {"$numberDouble": "-2.5"}}
+    - {value: {"$numberDouble": "20120203.080706"}}
+    - {value: {"$numberDouble": "20120203.987628"}}
+    - {value: {"$numberDouble": "20101011111023.12"}}
+    - {value: {"$numberDouble": "111"}}
+    - {value: {"$numberDouble": "111.2"}}
     - {value: null}
     - {}
 
@@ -1463,9 +1463,9 @@
       - {"_id": 1,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "01"}, "map": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "01"}}
       - {"_id": 2,  "unmap": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "02"}, "map": {"$binary": "AQIDBAUGBwgJCgsMDQ4PEA==", "$type": "02"}}
       - {"_id": 3,  "unmap": {"$timestamp": {"t": 32, "i": 46}}, "map": {"$timestamp": {"t": 32, "i": 46}}}
-      - {"_id": 4,  "unmap": {"$regex": "foo", "$options": "i" }, "map": {"$regex": "foo", "$options": "i" }}
-      - {"_id": 5,  "unmap": {"$ref": "foo", "$id": "53c2ab5e4291b17b666d742a" }, "map": {"$ref": "foo", "$id": "53c2ab5e4291b17b666d742a" }}
-      - {"_id": 6,  "unmap": {"$ref": "foo", "$id": { "$oid": "53c2ab5e4291b17b666d742a" } }, "map": {"$ref": "foo", "$id": { "$oid": "53c2ab5e4291b17b666d742a" } }}
+      - {"_id": 4,  "unmap": {"$regularExpression": {"pattern": "foo", "options": "i"}}, "map": {"$regularExpression": {"pattern": "foo", "options": "i"}}}
+      - {"_id": 5,  "unmap": {"$dbPointer": {"$ref": "foo", "$id": "53c2ab5e4291b17b666d742a"}}, "map": {"$dbPointer": {"$ref": "foo", "$id": "53c2ab5e4291b17b666d742a"}}}
+      - {"_id": 6,  "unmap": {"$dbPointer": {"$ref": "foo", "$id": { "$oid": "53c2ab5e4291b17b666d742a"}}}, "map": {"$dbPointer": {"$ref": "foo", "$id": { "$oid": "53c2ab5e4291b17b666d742a"}}}}
       - {"_id": 7,  "unmap": {"$undefined": true },  "map": {"$undefined": true }}
       - {"_id": 8,  "unmap": {"$minKey": 1 }, "map": {"$minKey": 1 }}
       - {"_id": 9,  "unmap": {"$maxKey": 1 }, "map": {"$maxKey": 1 }}

@@ -17,8 +17,6 @@ github.com/10gen/mongoast/parser
 # github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847 => github.com/10gen/openssl v0.0.0-20180319163546-426ceace7847
 github.com/10gen/openssl
 github.com/10gen/openssl/utils
-# github.com/DataDog/zstd v1.4.4
-github.com/DataDog/zstd
 # github.com/davecgh/go-spew v1.1.1
 github.com/davecgh/go-spew/spew
 # github.com/ericlagergren/decimal v0.0.0-20190729173012-f05d33913e5a
@@ -50,7 +48,13 @@ github.com/jtolds/gls
 github.com/kardianos/osext
 # github.com/kardianos/service v0.0.0-20180302231109-0ab6efe2ea51 => github.com/kardianos/service v0.0.0-20180302231109-0ab6efe2ea51
 github.com/kardianos/service
-# github.com/kr/pretty v0.0.0-20160823170715-cfb55aafdaf3 => github.com/kr/pretty v0.0.0-20160823170715-cfb55aafdaf3
+# github.com/klauspost/compress v1.9.5
+github.com/klauspost/compress/fse
+github.com/klauspost/compress/huff0
+github.com/klauspost/compress/snappy
+github.com/klauspost/compress/zstd
+github.com/klauspost/compress/zstd/internal/xxhash
+# github.com/kr/pretty v0.1.0 => github.com/kr/pretty v0.0.0-20160823170715-cfb55aafdaf3
 github.com/kr/pretty
 # github.com/kr/text v0.0.0-20160504234017-7cafcd837844
 github.com/kr/text
@@ -99,7 +103,7 @@ github.com/tkuchiki/go-timezone
 github.com/xdg/scram
 # github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc => github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc
 github.com/xdg/stringprep
-# go.mongodb.org/mongo-driver v1.2.1
+# go.mongodb.org/mongo-driver v1.3.4
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
 go.mongodb.org/mongo-driver/bson/bsonoptions
@@ -164,5 +168,5 @@ golang.org/x/text/transform
 golang.org/x/text/unicode/norm
 # google.golang.org/appengine v1.6.0
 google.golang.org/appengine/cloudsql
-# gopkg.in/yaml.v2 v2.2.1 => gopkg.in/yaml.v2 v2.2.1
+# gopkg.in/yaml.v2 v2.2.2 => gopkg.in/yaml.v2 v2.2.1
 gopkg.in/yaml.v2

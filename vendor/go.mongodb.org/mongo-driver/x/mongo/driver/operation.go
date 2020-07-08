@@ -307,6 +307,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		}
 	}
 	batching := op.Batches.Valid()
+	currIndex := 0
 	for {
 		if batching {
 			targetBatchSize := desc.MaxDocumentSize
@@ -373,21 +374,6 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 		finishedInfo.cmdErr = err
 		op.publishFinishedEvent(ctx, finishedInfo)
 
-		// Pull out $clusterTime and operationTime and update session and clock. We handle this before
-		// handling the error to ensure we are properly gossiping the cluster time.
-		op.updateClusterTimes(res)
-		op.updateOperationTime(res)
-		op.Client.UpdateRecoveryToken(bson.Raw(res))
-
-		// automatically attempt to decrypt all results if client side encryption enabled
-		if op.Crypt != nil {
-			// use decryptErr isntead of err because err is used below for retrying
-			var decryptErr error
-			res, decryptErr = op.Crypt.Decrypt(ctx, res)
-			if decryptErr != nil {
-				return decryptErr
-			}
-		}
 		var perr error
 		if op.ProcessResponseFn != nil {
 			perr = op.ProcessResponseFn(res, srvr, desc.Server)
@@ -420,6 +406,13 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 				}
 				continue
 			}
+
+			if batching && len(tt.WriteErrors) > 0 && currIndex > 0 {
+				for i := range tt.WriteErrors {
+					tt.WriteErrors[i].Index += int64(currIndex)
+				}
+			}
+
 			// If batching is enabled and either ordered is the default (which is true) or
 			// explicitly set to true and we have write errors, return the errors.
 			if batching && (op.Batches.Ordered == nil || *op.Batches.Ordered == true) && len(tt.WriteErrors) > 0 {
@@ -432,8 +425,10 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					Code:    int32(tt.WriteConcernError.Code),
 					Message: tt.WriteConcernError.Message,
 				}
-				if err.Code == 64 || err.Code == 50 || tt.WriteConcernError.Retryable() {
-					err.Labels = []string{UnknownTransactionCommitResult}
+				// The UnknownTransactionCommitResult label is added to all writeConcernErrors besides unknownReplWriteConcernCode
+				// and unsatisfiableWriteConcernCode
+				if err.Code != unknownReplWriteConcernCode && err.Code != unsatisfiableWriteConcernCode {
+					err.Labels = append(err.Labels, UnknownTransactionCommitResult)
 				}
 				return err
 			}
@@ -494,6 +489,7 @@ func (op Operation) Execute(ctx context.Context, scratch []byte) error {
 					retries = 1
 				}
 			}
+			currIndex += len(op.Batches.Current)
 			op.Batches.ClearBatch()
 			continue
 		}
@@ -572,12 +568,21 @@ func (op Operation) roundTrip(ctx context.Context, conn Connection, wm []byte) (
 
 	// decode
 	res, err := op.decodeResult(wm)
-	// Pull out $clusterTime and operationTime and update session and clock. We handle this before
-	// handling the error to ensure we are properly gossiping the cluster time.
+	// Update cluster/operation time and recovery tokens before handling the error to ensure we're properly updating
+	// everything.
 	op.updateClusterTimes(res)
 	op.updateOperationTime(res)
+	op.Client.UpdateRecoveryToken(bson.Raw(res))
 
-	return res, err
+	if err != nil {
+		return res, err
+	}
+
+	// If there is no error, automatically attempt to decrypt all results if client side encryption is enabled.
+	if op.Crypt != nil {
+		return op.Crypt.Decrypt(ctx, res)
+	}
+	return res, nil
 }
 
 // moreToComeRoundTrip writes a wiremessage to the provided connection. This is used when an OP_MSG is
@@ -889,8 +894,8 @@ func (op Operation) addSession(dst []byte, desc description.SelectedServer) ([]b
 	if client == nil || !description.SessionsSupported(desc.WireVersion) || desc.SessionTimeoutMinutes == 0 {
 		return dst, nil
 	}
-	if client.Terminated {
-		return dst, session.ErrSessionEnded
+	if err := client.UpdateUseTime(); err != nil {
+		return dst, err
 	}
 	lsid, _ := client.SessionID.MarshalBSON()
 	dst = bsoncore.AppendDocumentElement(dst, "lsid", lsid)
