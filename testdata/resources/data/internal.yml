@@ -1473,6 +1473,12 @@
       - {"_id": 11, "unmap": {"$code": "function() {}"}, "map": {"$code": "function() {}"}}
       - {"_id": 12, "unmap": {"$code": "function() {}", "$scope": {}}, "map": {"$code": "function() {}", "$scope": {}}}
 
+- db: "polymorphic_data_test"
+  collection: array_object_conflict_bug
+  docs:
+    -  { "_id" : 0, "p" : { "c" : 1 } }
+    -  { "_id" : 1, "p" : [ { "a" : 2, "b" : 1 }, { "a" : 3, "b" : 2 } ] }
+
 - db: "bugs_database"
   collection: "group_by_date"
   docs:

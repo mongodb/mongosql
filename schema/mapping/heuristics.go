@@ -19,7 +19,10 @@ func GetHeuristic(mode config.MappingMode) SchemataHeuristic {
 }
 
 // SchemataHeuristic is a function that chooses a dominant schema from a
-// mongo.Schemata based on the mongo.Schemata's metadata
+// mongo.Schemata based on the mongo.Schemata's metadata. Occasionally,
+// there can be more than one dominant schema, and we must return all
+// of them, so the result is a slice of Schema. In the case of
+// polymorphic mapping, this occurs when a scalar and object conflict.
 type SchemataHeuristic func(*mongo.Schemata) []*mongo.Schema
 
 // CountHeuristic returns the Schema from the provided mongo.Schemata that has the
@@ -108,10 +111,22 @@ func basePolymorphicHeuristic(scalarTypeResolver typeResolver, s *mongo.Schemata
 			}
 		}
 		// If there is an objectSchema, we have an array/object conflict.
+		// Add the object schema as a item for the arraySchema.
 		if objectSchema != nil {
+			object := mongo.BSONType("object")
+			if previousObjectSchema, ok := arraySchema.Items.Schemas[object]; ok {
+				// error here is impossible since we know both objects have BONSType object
+				// panic in case a new error case is added.
+				err := previousObjectSchema.Merge(objectSchema, mongo.NewNoopFieldTracker())
+				if err != nil {
+					panic(err)
+				}
+				arraySchema.Items.Schemas[object] = previousObjectSchema
+			} else {
+				arraySchema.Items.Schemas[object] = objectSchema
+			}
 			return []*mongo.Schema{
 				arraySchema,
-				objectSchema,
 			}
 		}
 		return []*mongo.Schema{arraySchema}
