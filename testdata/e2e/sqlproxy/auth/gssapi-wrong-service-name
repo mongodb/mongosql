@@ -1,0 +1,1 @@
+SQLPROXY_MONGO_GSSAPI_SERVICE_NAME_ARG="--mongo-gssapiServiceName wrongServiceName"

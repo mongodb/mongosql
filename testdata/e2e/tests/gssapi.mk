@@ -34,6 +34,13 @@ run-mongosqld-gssapi-wrong-username-without-password-with-keytab: run-mongosqld 
 run-mongosqld-keytab-and-username: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-drivers,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-without-password
 run-mongosqld-keytab-and-username: run-mongosqld
 
+run-mongosqld-gssapi-wrong-service-name: INFRASTRUCTURE_CONFIG := default,sqlproxy/gssapi/config,sqlproxy/mongo/gssapi-host,sqlproxy/gssapi/keytab-mongosql,sqlproxy/auth/enabled,sqlproxy/auth/gssapi-mechanism,sqlproxy/schema/gssapi-ns,sqlproxy/schema/mapping-majority,sqlproxy/auth/gssapi-correct-username-and-password,sqlproxy/auth/gssapi-wrong-service-name
+run-mongosqld-gssapi-wrong-service-name: _test-wrong-service-name
+_test-wrong-service-name: EXPECTED_STATUS = 0
+_test-wrong-service-name:
+	$(ENV) $(EXPECTED) testdata/bin/test-wrong-service-name.sh
+
+
 # test gssapi with no credentials cache, just username and password
 test-gssapi-with-correct-username-and-password-without-cache: build-mongosqld run-mongosqld-gssapi-right-username-right-password
 	$(ENV) testdata/bin/run-gssapi-auth-tests.sh
@@ -93,6 +100,10 @@ test-gssapi-with-wrong-username-wrong-password-with-keytab: build-mongosqld run-
 
 test-gssapi-with-wrong-username-without-password-with-keytab: EXPECTED_ERROR := $(SCHEMA_UNAVAILABLE_ERROR)
 test-gssapi-with-wrong-username-without-password-with-keytab: build-mongosqld run-mongosqld-gssapi-wrong-username-without-password-with-keytab
+
+test-gssapi-wrong-service-name: USER := drivers
+test-gssapi-wrong-service-name: EXPECTED_STATUS = 0
+test-gssapi-wrong-service-name: build-mongosqld setup-kerberos run-mongosqld-gssapi-wrong-service-name
 
 # test if there are changes in privilege in the case where the server has an existing credentials cache
 # Sqlproxy will connect with user schrödinger to mongodb with GSSAPI.

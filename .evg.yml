@@ -1945,6 +1945,10 @@ tasks:
   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
 - <<: *run-make-target
+  name: test-gssapi-wrong-service-name
+  tags: ["test", "config", "gssapi", "skip-windows"]
+
+- <<: *run-make-target
   name: test-drdl-gssapi-using-cred-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 

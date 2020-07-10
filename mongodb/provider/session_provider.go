@@ -122,6 +122,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 			Password:    cfg.MongoDB.Net.Auth.Password,
 			PasswordSet: cfg.MongoDB.Net.Auth.Password != "",
 			Source:      cfg.MongoDB.Net.Auth.Source,
+			Props:       make(map[string]string),
 		}
 		mechanism := cfg.MongoDB.Net.Auth.Mechanism
 
@@ -132,6 +133,10 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 			default:
 				cred.Source = "admin"
 			}
+		}
+
+		if strings.ToUpper(mechanism) == auth.GSSAPI {
+			cred.Props["SERVICE_NAME"] = cfg.MongoDB.Net.Auth.GSSAPIServiceName
 		}
 
 		var authenticator auth.Authenticator
