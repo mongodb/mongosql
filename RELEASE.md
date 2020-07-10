@@ -53,7 +53,7 @@ git commit --allow-empty -m 'BUMP v2.14.<patch>'
 #### Create the tag and push
 Create an annotated tag and push it:
 ```
-git tag -a -m v2.14.<patch> 2.14.<patch>
+git tag -a -m 2.14.<patch> v2.14.<patch>
 git push && git push --tags
 ```
 
