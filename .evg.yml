@@ -978,9 +978,6 @@ tasks:
         var_parallel: "2"
 
 - name: compile
-  depends_on:
-    - name: module-tests
-    - name: ".test .integration !.oneoff-task"
   commands:
     - func: "build mongosqld"
     - func: "build mongodrdl"
