@@ -2305,9 +2305,6 @@ buildvariants:
   - os_full_matrix: "ubuntu1604-64"
     mongodb_version: "*"
     mongodb_topology: "*"
-  - os_full_matrix: "windows"
-    mongodb_version: ["4.4", "latest"]
-    mongodb_topology: "*"
   rules:
   - if:
       os_full_matrix: "osx"
