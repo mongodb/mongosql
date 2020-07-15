@@ -31,7 +31,7 @@ MAIN_DOWNLOADS_JSON = "mongodb-bi-downloads.json"
 RELEASES_JSON = "mongodb-bi-releases.json"
 UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 HASH_TYPES = ["md5", "sha1", "sha256"]
-NUM_RELEASE_PLATFORMS = 24
+NUM_RELEASE_PLATFORMS = 27
 ZIP_SUFFIX = " (zip)"
 DEV_RUN = False
 USAGE = """
@@ -201,7 +201,7 @@ class BIReleaser(object):
 
             entry = json.loads(rpc.text)
             variant = entry["build_variant"]
-            if "macos" in variant:
+            if "osx" in variant:
                 extension = [".zip"]
             elif "windows" in variant:
                 extension = [".msi", ".zip"]

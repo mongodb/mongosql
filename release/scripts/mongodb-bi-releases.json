@@ -68,6 +68,33 @@
          "target": "ubuntu1804"
       },
       {
+         "arch": "aarch64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-ARM64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu1804"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu2004"
+      },
+      {
+         "arch": "aarch64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-ARM64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu2004"
+      },
+      {
          "arch": "x86_64",
          "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL62"
@@ -174,6 +201,15 @@
          "edition": "enterprise",
          "packages": [],
          "target": "rhel72"
+      },
+      {
+         "arch": "ppc64le",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-81-PPC64LE"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel81"
       },
       {
          "arch": "ppc64le",
