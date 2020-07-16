@@ -212,10 +212,10 @@ class BIReleaser(object):
                 _, ext = os.path.splitext(url)
                 if ext in extension and self.__release_version in url:
                     variant_with_suffix = ''
-                    if ext in [".msi", ".tgz"]:
-                        variant_with_suffix = variant
-                    else:
+                    if ext == ".zip" and "windows" in variant:
                         variant_with_suffix = variant + ZIP_SUFFIX
+                    else:
+                        variant_with_suffix = variant
                     self.__urls[variant_with_suffix] = url
 
         # adding 1 since we upload the .zip binary for Windows
