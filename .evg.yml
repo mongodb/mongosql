@@ -431,6 +431,31 @@ functions:
                 release.msi
           fi
 
+  "sign archives":
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        script: |
+          echo "${signing_token_bi_connector}" > ${PROJECT_DIR}/signing_auth_token
+    - command: shell.exec
+      # If the notary service is failing, it should be a system failure to alert the evg team.
+      type: system
+      params:
+        working_dir: src/github.com/10gen/sqlproxy/testdata/artifacts
+        script: |
+          if [ ${_variant} = "macos" ]; then
+            echo "Skipping creating sig files on macos"
+          else
+            /usr/local/bin/notary-client.py \
+                --key-name "bi-connector" \
+                --auth-token-file ${PROJECT_DIR}/signing_auth_token \
+                --comment "Evergreen Automatic Signing (sqlproxy) - ${version_id} - ${build_variant}" \
+                --notary-url http://notary-service.build.10gen.cc:5000 \
+                --outputs "sig" \
+                *.${ARCHIVE_FORMAT}
+          fi
+
   "start mongosqld":
     command: shell.exec
     params:
@@ -639,6 +664,17 @@ functions:
         content_type: application/x-msi
         optional: true
         display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.msi
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_files_include_filter:
+          - src/github.com/10gen/sqlproxy/testdata/artifacts/*.${ARCHIVE_FORMAT}.sig
+        remote_file: sqlproxy/binaries/${PUSH_NAME}/sig-file-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}/
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/pgp-signature
+        display_name: "Sig File - "
 
   "sign macos zip":
     - command: shell.exec
@@ -1036,6 +1072,7 @@ tasks:
     - func: "fetch packages"
     - func: "sign msi installer"
     - func: "sign macos zip"
+    - func: "sign archives"
     - func: "upload release packages"
 
 - name: internal
