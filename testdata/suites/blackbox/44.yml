@@ -1,5 +1,6 @@
 testcases:
 
+  # Disabled: see BI-2481
   - expected_names: [none_Customer_Name_nk, none_Employee_Name_nk, none_Prod_TypeE_nk, sum_Gross_Profit_qk, sum_Sales_Total_qk]
     expected_results:
       - [Barbara Fisher, Alan M. Gillmor, NOKIA, 2025.15, 5258.36]
@@ -4780,6 +4781,7 @@ testcases:
       - [Zyzzy Zzuyzyzyk, 'Zaremba, Phyllis', EXECUTIVE CHAIRS, 1992.91, 6483.42]
     expected_types: [varchar, varchar, varchar, float, float]
     min_server_version: '3.4'
+    skip: true
     # yamllint disable rule:line-length
     sql: "SELECT `Customer Name` AS `none_Customer_Name_nk`,   `Employee Name` AS `none_Employee_Name_nk`,   `Prod Type4` AS `none_Prod_TypeE_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_qk`,   SUM(`Sales Total`) AS `sum_Sales_Total_qk` FROM Staples WHERE (((`Prod Type4` = 'AIR PURIFIERS') AND (((`Customer Name` = 'Dario Medina') AND (`Employee Name` = 'Harsha Shah M')) OR ((`Customer Name` = 'David Flashing') AND (`Employee Name` IN ('Aditya Narayan', 'Michael Jeffers'))) OR ((`Customer Name` = 'David Wiener') AND (`Employee Name` IN ('Boaz, Luella', 'Callaway, Elizabeth', 'Freitas, Carol', 'Gabriel Racle', 'Klo, Jackie', 'Lynch, Jackie', 'Mattern, Sue'))) OR ((`Customer Name` = 'Deanra Eno') AND (`Employee Name` IN ('Allgier, Allison', 'G.P Pandey'))) OR ((`Customer Name` = 'Debra Catini-Entman') AND (`Employee Name` = 'Ryan, Kristie')) OR ((`Customer Name` = 'Ellis Ballard') AND (`Employee Name` = 'Taylor, Nikki')) OR ((`Customer Name` = 'Frank Olsen') AND (`Employee Name`\
       \ IN ('Lynch, Jackie', 'Sue Ann Reed'))) OR ((`Customer Name` IN ('Grace Kelly', 'Maxwell Schwartz')) AND (`Employee Name` = 'Bucks Co Alumnae')) OR ((`Customer Name` = 'Hallie Redmond') AND (`Employee Name` = 'Christine Dumitriu van Saanen')) OR ((`Customer Name` = 'Harold Pawlan') AND (`Employee Name` IN ('Bussman, Jennifer', 'P.A. Neatby'))) OR ((`Customer Name` = 'Heather Jas-Hannaway') AND (`Employee Name` = 'Menzelos, Fifi')) OR ((`Customer Name` = 'Herbert Flentye') AND (`Employee Name` IN ('Lois Makowski', 'Thomas E. Alford'))) OR ((`Customer Name` = 'Jane Waco') AND (`Employee Name` = 'Lynda Cronin')) OR ((`Customer Name` = 'Jesus Ocampo') AND (`Employee Name` = 'Kohnen, Michelle')) OR ((`Customer Name` = 'Karen Seio') AND (`Employee Name` = 'David Hamilton')) OR ((`Customer Name` = 'Laura Armstrong') AND (`Employee Name` IN ('Alpha Delta', 'Joseph Terry'))) OR ((`Customer Name` = 'Lynn Smith-Reed') AND (`Employee Name` IN ('Conver, Kathleen', 'Lillian Nieves'))) OR ((`Customer\
