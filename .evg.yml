@@ -1629,9 +1629,10 @@ tasks:
   name: test-kill-queries-latest
   tags: ["test", "config"]
 
-- <<: *run-make-target
-  name: test-kill-queries-sharded
-  tags: ["test", "config"]
+# Disabled: see BI-2482
+# - <<: *run-make-target
+#   name: test-kill-queries-sharded
+#   tags: ["test", "config"]
 
 - <<: *run-make-target
   name: test-kill-queries-replica-set
@@ -2413,7 +2414,7 @@ buildvariants:
       os_full_matrix:
       - "osx"
     then:
-      remove_tasks: [".mongo-tls", "test-kill-queries-sharded", "test-kill-queries-replica-set", "test-sampling-does-not-hang-after-election"]
+      remove_tasks: [".mongo-tls", "test-kill-queries-replica-set", "test-sampling-does-not-hang-after-election"]
 
 - name: race-detector
   display_name: Race Detector (RHEL 7.0)
