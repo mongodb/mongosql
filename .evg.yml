@@ -1975,9 +1975,10 @@ tasks:
   name: test-gssapi-with-wrong-username-without-password-with-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-make-target
-  name: test-gssapi-privilege-escalation
-  tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
+# Disabled: see BI-2286
+# - <<: *run-make-target
+#   name: test-gssapi-privilege-escalation
+#   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
 - <<: *run-make-target
   name: test-gssapi-wrong-service-name
