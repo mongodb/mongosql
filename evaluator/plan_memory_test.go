@@ -128,6 +128,8 @@ func testOrderByMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionCo
 }
 
 func testJoinMemoryLimits(ctx context.Context, t *testing.T, cfg *ExecutionConfig, st *ExecutionState) {
+	// Disabled: see BI-2265
+	t.Skip()
 
 	criteria := NewSQLComparisonExpr(
 		EQ,
