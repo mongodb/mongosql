@@ -31,7 +31,7 @@
     databaseOutput=$(echo "$output" | sed -n '2,$p')
 
     interruptMessage="ERROR 1317 (70100) at line 1: Query execution was interrupted"
-    databaseExpectedInOutput="information_schema"
+    databaseExpectedInOutput="INFORMATION_SCHEMA"
 
     if [ "$interruptOutput" != "$interruptMessage" ]
     then
