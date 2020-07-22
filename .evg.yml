@@ -682,21 +682,37 @@ functions:
         working_dir: src/github.com/10gen/sqlproxy/testdata/artifacts
         silent: false
         script: |
+          # put apple credentials into env vars
+          AC_USERNAME="${ac_username}"
+          AC_PASSWORD="${ac_password}"
+
+          # turn on verbose debugging for remainder of script
           set -o xtrace
           set -o errexit
           set -o verbose
+
+          # this function should do nothing on non-mac platforms
           if [ ${_variant} != "macos" ]; then
               exit 0
           fi
+
+          # download and unzip gon
           curl -sL https://github.com/mitchellh/gon/releases/download/v0.2.3/gon_macos.zip > gon.zip
           unzip gon.zip
-          OUTPUT_PATH="./release.zip"
-          AC_USERNAME="${ac_username}"
-          AC_PASSWORD="${ac_password}"
-          # gon settings
-          cat <<EOF_GON_JSON > gon.json
+
+          # unzip the release package and rename dir to "release"
+          unzip release.zip
+          mv mongodb-bi-* release
+          rm release.zip
+
+          # gon signing config
+          cat <<EOF_GON_SIGN_JSON > gon-sign.json
           {
-            "source" : ["bin/mongosqld", "bin/mongotranslate", "bin/mongodrdl"],
+            "source" : [
+              "release/bin/mongosqld",
+              "release/bin/mongotranslate",
+              "release/bin/mongodrdl"
+            ],
             "bundle_id" : "com.mongodb.bi",
             "apple_id": {
               "username": "$AC_USERNAME",
@@ -704,15 +720,34 @@ functions:
             },
             "sign" :{
               "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)"
-            },
-            "zip" :{
-              "output_path": "$OUTPUT_PATH"
             }
           }
-          EOF_GON_JSON
-          unzip release.zip
-          mv mongodb-bi-*/* ./
-          ssh -v -p 2222 localhost -t "cd $PWD && ./gon -log-level=info gon.json"
+          EOF_GON_SIGN_JSON
+
+          # gon notarization config
+          cat <<EOF_GON_NOTARIZE_JSON > gon-notarize.json
+          {
+            "notarize": [{
+              "path": "$PWD/release.zip",
+              "bundle_id" : "com.mongodb.bi",
+              "staple": false
+            }],
+            "apple_id": {
+              "username": "$AC_USERNAME",
+              "password": "$AC_PASSWORD"
+            }
+          }
+          EOF_GON_NOTARIZE_JSON
+
+          # sign binaries, re-package zip, and notarize zip
+          ssh -v -p 2222 localhost -t "
+            cd $PWD \
+            && ./gon -log-level=info gon-sign.json \
+            && cd release \
+            && zip -r ../release.zip . \
+            && cd .. \
+            && ./gon -log-level=info gon-notarize.json
+          "
 
 variables:
   - &run-make-target
