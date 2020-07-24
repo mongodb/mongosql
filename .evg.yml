@@ -702,16 +702,16 @@ functions:
 
           # unzip the release package and rename dir to "release"
           unzip release.zip
-          mv mongodb-bi-* release
+          pkgname=$(ls | grep mongodb-bi)
           rm release.zip
 
           # gon signing config
           cat <<EOF_GON_SIGN_JSON > gon-sign.json
           {
             "source" : [
-              "release/bin/mongosqld",
-              "release/bin/mongotranslate",
-              "release/bin/mongodrdl"
+              "$pkgname/bin/mongosqld",
+              "$pkgname/bin/mongotranslate",
+              "$pkgname/bin/mongodrdl"
             ],
             "bundle_id" : "com.mongodb.bi",
             "apple_id": {
@@ -743,9 +743,7 @@ functions:
           ssh -v -p 2222 localhost -t "
             cd $PWD \
             && ./gon -log-level=info gon-sign.json \
-            && cd release \
-            && zip -r ../release.zip . \
-            && cd .. \
+            && zip -r release.zip $pkgname \
             && ./gon -log-level=info gon-notarize.json
           "
 
