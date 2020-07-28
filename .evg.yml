@@ -705,6 +705,18 @@ functions:
           pkgname=$(ls | grep mongodb-bi)
           rm release.zip
 
+          # create entitlements file
+          cat <<EOF_ENTITLEMENTS > entitlements.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>com.apple.security.cs.disable-library-validation</key>
+              <true/>
+          </dict>
+          </plist>
+          EOF_ENTITLEMENTS
+
           # gon signing config
           cat <<EOF_GON_SIGN_JSON > gon-sign.json
           {
@@ -719,7 +731,8 @@ functions:
               "password": "$AC_PASSWORD"
             },
             "sign" :{
-              "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)"
+              "application_identity" : "Developer ID Application: MongoDB, Inc. (4XWMY46275)",
+              "entitlements_file": "entitlements.plist"
             }
           }
           EOF_GON_SIGN_JSON
@@ -2544,4 +2557,3 @@ buildvariants:
   - rhel70
   tasks:
     - name: ".mem-test"
-
