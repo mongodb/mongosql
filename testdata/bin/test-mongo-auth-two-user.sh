@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-(
+
     set -o errexit
     echo "connecting both clients to mysql"
 
@@ -44,6 +44,6 @@
 		exit 1
 	fi
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

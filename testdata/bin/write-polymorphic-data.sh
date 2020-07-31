@@ -2,7 +2,7 @@
 
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
-(
+
     echo "creating column with polymorphic data types..."
     cmd="
         db.sample_test.insert({
@@ -28,7 +28,7 @@
     fi
     echo "wrote polymorphic data documents"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+
 

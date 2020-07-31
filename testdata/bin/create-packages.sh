@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-(
+
     set -o errexit
     echo "creating release..."
 
@@ -78,6 +78,6 @@
 
     echo "done creating release"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

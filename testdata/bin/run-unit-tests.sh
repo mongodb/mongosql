@@ -22,7 +22,7 @@ run_unit_tests() {
     echo "done running $SUITE tests"
 }
 
-(
+
     set -o errexit
 
     for pkg in $(find . -name '*.go' | grep -v './vendor' | grep -v './testdata' | grep -v './release' | xargs -L1 dirname | uniq); do
@@ -34,6 +34,6 @@ run_unit_tests() {
     done
 
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

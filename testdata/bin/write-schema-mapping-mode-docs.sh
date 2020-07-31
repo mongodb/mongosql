@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-(
+
     echo "writing $NUM_DOCS sample documents..."
 	cmd="db.schema_mapping_modes.insertMany([{mid: NumberLong(1)}, {mid: true}, {mid: false}, {mid: 3.14}]);"
 
@@ -21,7 +21,7 @@
 
     echo "done writing sample docs"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+
 

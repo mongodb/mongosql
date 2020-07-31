@@ -69,7 +69,7 @@ create_sample_nested_array_document() {
     echo $cmd
 }
 
-(
+
     set -o errexit
     
     echo "creating sample array document with accompanying index..."
@@ -95,7 +95,7 @@ create_sample_nested_array_document() {
 
     echo "done writing array document"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+
 

@@ -50,7 +50,7 @@ create_schema_cmd_for_generation() {
     echo $cmd
 }
 
-(
+
     set -o errexit
 
     generation=${GENERATION:-0}
@@ -72,7 +72,7 @@ create_schema_cmd_for_generation() {
 
     echo "done writing schema"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+
 

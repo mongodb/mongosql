@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-(
+
     set -o errexit
 
     echo "running schema availability test..."
@@ -36,6 +36,6 @@
     echo "schema not available after $timeout seconds"
     exit 1
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

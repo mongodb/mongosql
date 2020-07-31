@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-(
+
     set -o errexit
     set -o verbose
 
@@ -18,6 +18,6 @@
               -Porg.mongodb.test.user=$username \
               -Porg.mongodb.test.password=$password test
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

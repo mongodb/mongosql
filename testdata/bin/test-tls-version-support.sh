@@ -16,7 +16,7 @@ run_tls_version_test() {
    fi
 }
 
-(
+
     set -o errexit
     OPENSSL_DIR="$PROJECT_DIR/testdata/artifacts/bin"
 
@@ -50,7 +50,7 @@ run_tls_version_test() {
         fi
     done
     echo "done running tls connection test"
-) > $LOG_FILE 2>&1
 
 
-print_exit_msg
+
+

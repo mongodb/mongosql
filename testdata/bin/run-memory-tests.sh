@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-(
+
     echo "Running memory limit test for $TEST_NAME"
 
     cd "$PROJECT_DIR"
@@ -55,6 +55,6 @@
 
     echo "done with test for $TEST_NAME"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

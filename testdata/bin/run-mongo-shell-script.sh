@@ -2,7 +2,7 @@
 
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
-(
+
     set -o errexit
 
     user="$MONGO_SHELL_SCRIPT_USER"
@@ -14,6 +14,6 @@
 
 	cat $script | $mongoBin --ssl $uri
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

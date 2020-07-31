@@ -168,7 +168,7 @@ run_test() {
     fi
 }
 
-(
+
     set -o errexit
     echo "running kill query test..."
 
@@ -247,8 +247,7 @@ run_test() {
     done
 
     echo "done running kill query test"
-) > $LOG_FILE 2>&1
 
 
 
-print_exit_msg
+

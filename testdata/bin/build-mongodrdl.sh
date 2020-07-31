@@ -2,7 +2,7 @@
 
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
-(
+
     set -o errexit
     echo "building mongodrdl ($CURRENT_VERSION)..."
     echo "build flags are '$BUILD_FLAGS'"
@@ -14,6 +14,6 @@
 
     echo "done building mongodrdl"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+

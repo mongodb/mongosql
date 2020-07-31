@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-(
+
 
     echo "changing sample size..."
 
@@ -31,6 +31,6 @@
 
     echo "successfully changed sample size"
 
-) > $LOG_FILE 2>&1
 
-print_exit_msg
+
+
