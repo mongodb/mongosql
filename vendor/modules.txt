@@ -1,4 +1,4 @@
-# github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5 => github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5
+# github.com/10gen/candiedyaml v0.0.0-20200803184741-f53dbc0225e1
 github.com/10gen/candiedyaml
 # github.com/10gen/mongoast v0.0.0-20200709194530-675a03daa881
 github.com/10gen/mongoast/analyzer

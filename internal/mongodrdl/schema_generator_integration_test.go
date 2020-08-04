@@ -36,6 +36,7 @@ func TestMongodrdl(t *testing.T) {
 	t.Run("synthetic_query_field", testSyntheticQueryField)
 	t.Run("polymorphic_data_field", testPolymorphicDataField)
 	t.Run("uuid_subtype3_data_field", testUUIDSubtype3Field)
+	t.Run("lowbyteunicode_field", testLowByteUnicodeField)
 }
 
 func testIgnoreSystemCollections(t *testing.T) {
@@ -376,6 +377,49 @@ func testUUIDSubtype3Field(t *testing.T) {
 	req.NoError(err, "failed to parse generated DRDL from file")
 
 	expected, err := drdl.NewFromFile("testdata/uuid_subtype3_schema-expected.yml")
+	req.NoError(err, "failed to parse expected DRDL from file")
+
+	actualDRDL, err := actual.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+
+	expectedDRDL, err := expected.ToYAML()
+	req.NoError(err, "failed to get yaml output for drdl")
+	req.Equal(string(expectedDRDL), string(actualDRDL), "actual drdl yml did not match expected")
+}
+
+func testLowByteUnicodeField(t *testing.T) {
+	req := require.New(t)
+
+	db := "LowByteUnicode"
+	opts, err := createDRDLOpts(db)
+	req.NoError(err, "failed to create drdl options")
+
+	ctx := context.Background()
+	sp, err := newDrdlSessionProvider(opts)
+	req.NoError(err, "failed to create SessionProvider")
+	defer sp.Close()
+
+	session, err := sp.Session(ctx)
+	req.NoError(err, "failed to get MongoDB session")
+	defer session.Close()
+	defer dbutils.DropDatabase(session, db)
+	dbutils.DropDatabase(session, db)
+
+	documents := bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("å", 42),
+		),
+	)
+
+	dbutils.InsertDocuments(session, db, "uni", documents)
+
+	err = GenerateSchema(ctx, logger, opts)
+	req.NoError(err, "failed to generate DRDL")
+
+	actual, err := drdl.NewFromFile(opts.DrdlOutput.Out)
+	req.NoError(err, "failed to parse generated DRDL from file")
+
+	expected, err := drdl.NewFromFile("testdata/lowbyte_unicode_schema-expected.yml")
 	req.NoError(err, "failed to parse expected DRDL from file")
 
 	actualDRDL, err := actual.ToYAML()

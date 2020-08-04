@@ -1,0 +1,15 @@
+schema:
+- db: LowByteUnicode
+  tables:
+  - table: uni
+    collection: uni
+    pipeline: []
+    columns:
+    - Name: _id
+      MongoType: bson.ObjectId
+      SqlName: _id
+      SqlType: objectid
+    - Name: "\xE5"
+      MongoType: int
+      SqlName: "\xE5"
+      SqlType: int

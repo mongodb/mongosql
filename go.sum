@@ -1,5 +1,9 @@
 github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5 h1:quTK0bOf7s2QiN1Y6DtB7CJGy6oAskgRjSOrAgOAR0E=
 github.com/10gen/candiedyaml v0.0.0-20190528154413-da6f4db266e5/go.mod h1:87b3OnOQuexXculxla0GCSZ9+6sU2/E3/ze9nSwTsyM=
+github.com/10gen/candiedyaml v0.0.0-20200803173145-46a7cb26d8a7 h1:+w/IfEn+nGq6jn3c5h5BIBLbkkAQuqZuxv6GmGhEIXw=
+github.com/10gen/candiedyaml v0.0.0-20200803173145-46a7cb26d8a7/go.mod h1:87b3OnOQuexXculxla0GCSZ9+6sU2/E3/ze9nSwTsyM=
+github.com/10gen/candiedyaml v0.0.0-20200803184741-f53dbc0225e1 h1:mjzpKAtpWThAlu5jSfMsbsNAJNaJTudZnhoioppdr/4=
+github.com/10gen/candiedyaml v0.0.0-20200803184741-f53dbc0225e1/go.mod h1:87b3OnOQuexXculxla0GCSZ9+6sU2/E3/ze9nSwTsyM=
 github.com/10gen/mongoast v0.0.0-20190520144242-110174e616db h1:h5EqOsm1aF4rM0sosBGSf5VYdXUaJINRc9qjH/aNaRE=
 github.com/10gen/mongoast v0.0.0-20190520144242-110174e616db/go.mod h1:/7PWuJoJT196Y2SfK6JlU0r59cEY8xwdZ662XY8YaG4=
 github.com/10gen/mongoast v0.0.0-20190723173338-e977a80e8a3e h1:i8FpE4dJe3OxTGH3ReT1C7GLkWqrhrjiFadDrduQdu8=
