@@ -2,7 +2,7 @@
 
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
-
+(
     set -o errexit
     echo "building mongosqld ($CURRENT_VERSION)..."
     echo "$(go version)"
@@ -15,6 +15,6 @@
 
     echo "done building mongosqld"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

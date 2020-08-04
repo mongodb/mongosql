@@ -47,8 +47,8 @@ set_mongodb_binaries ()
 
    # If we are on evergreen, delete the cache
    if [ "$VARIANT" != "" ]; then
-       echo "Deleting mongodb download cache ($cache)"
-       rm -Rf "$cache"
+	   echo "Deleting mongodb download cache ($cache)"
+	   rm -Rf "$cache"
    fi
 
    # Only download if we do not have a local copy of this
@@ -77,8 +77,6 @@ set_mongodb_binaries ()
            --edition $edition \
            --path $cache
 
-       code=$?
-
        cd $cache
 
        # Remove the compressed file, which may be either a tgz or zip file.
@@ -101,11 +99,6 @@ set_mongodb_binaries ()
        # On *nix, a symlink to the directory will work
        ln -s $local_versioned_path mongodb || true
    fi
-   if [ -f mongodb/bin/mongod ]; then
-       mongodb/bin/mongod --version
-   else
-       echo "failed to download mongodb"
-       exit 1
-   fi
+   mongodb/bin/mongod --version
    cd "$orig_dir"
 }

@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     echo "cleaning up processes..."
     pkill -9 mongo
     pkill -9 mongodump
@@ -45,6 +45,6 @@
 
     exit 0
 
+) > /dev/null 2>&1
 
-
-
+print_exit_msg

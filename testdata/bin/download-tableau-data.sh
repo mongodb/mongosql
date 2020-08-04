@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     echo "downloading tableau test data..."
 
@@ -14,6 +14,6 @@
 
     echo "done downloading tableau test data"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

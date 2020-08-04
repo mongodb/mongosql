@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
 
     echo "restoring test data..."
     set -o verbose
@@ -24,6 +24,6 @@
         $ADDITIONAL_TEST_FLAGS
     echo "done restoring test data"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

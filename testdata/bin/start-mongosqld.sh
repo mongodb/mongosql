@@ -3,8 +3,10 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
+(
     set -o errexit
     echo "starting mongosqld..."
+
     if [ "Windows_NT" = "$OS" ]; then
         # just to make sure these guys are stopped and not installed,
         # attempt to get rid of them,
@@ -22,7 +24,6 @@
         $ARTIFACTS_DIR/bin/mongosqld.exe install -vv $SQLPROXY_ARGS
         echo "starting mongosqld..."
         net start mongosql
-        sleep 5
         echo $?
     else
         echo "printing mongosqld args..."
@@ -33,6 +34,7 @@
         pid=$!
 
         sleep 5
+
         if ! kill -0 $pid; then
             echo "could not find mongosqld job after 5 seconds"
             exit 1
@@ -41,4 +43,6 @@
 
     echo "started mongosqld"
 
+) > $LOG_FILE 2>&1
 
+print_exit_msg

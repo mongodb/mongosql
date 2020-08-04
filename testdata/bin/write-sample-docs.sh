@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     echo "writing $NUM_DOCS sample documents..."
     cmd="for(i=0;i<$NUM_DOCS;i++){ doc={}; doc[i]=true; db.sample_test.insert(doc); }"
 
@@ -21,7 +21,7 @@
 
     echo "done writing sample docs"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg
 

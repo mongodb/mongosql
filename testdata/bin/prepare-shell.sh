@@ -162,3 +162,20 @@ export GO_TEST_CLIENT_SSL
 export TZ
 export ZONEINFO
 
+# define the function that prints the exit message at the end of each script
+print_exit_msg() {
+    exit_code=$?
+    if [ "$exit_code" != "0" ]; then
+        status=FAILURE
+    else
+        status=SUCCESS
+    fi
+
+    echo "$status: $basename" 1>&2
+    if [ "$status" = "FAILURE" ]; then
+        echo "printing log from failed script:" 1>&2
+        cat $LOG_FILE 1>&2
+    fi
+
+    return $exit_code
+}

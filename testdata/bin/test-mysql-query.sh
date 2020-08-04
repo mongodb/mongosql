@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     echo "running mysql query test..."
 
@@ -45,6 +45,6 @@
 
     echo "done running mysql query test"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

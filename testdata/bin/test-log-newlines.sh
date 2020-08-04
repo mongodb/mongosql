@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     echo "running logging newline test..."
 
     sleep 1 # wait for logs to flush
@@ -28,6 +28,6 @@
 
     echo "done running logging newline test"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

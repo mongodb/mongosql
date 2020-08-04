@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
 
     echo "parsing memory test reports..."
@@ -13,6 +13,6 @@
 
     echo "done parsing memory test reports"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

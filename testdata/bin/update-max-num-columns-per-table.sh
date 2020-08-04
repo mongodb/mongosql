@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
 
     echo "changing sample max_num_columns_per_table..."
 
@@ -31,6 +31,6 @@
 
     echo "successfully changed sample max_num_columns_per_table"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

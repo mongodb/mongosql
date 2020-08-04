@@ -386,12 +386,6 @@ functions:
         ${PREPARE_SHELL}
         set -o errexit
         make ${var_target}
-
-        # On Windows we need to kill mongod after the tests run or the shell scripts
-        # never terminate. This is likely due to some unflushed I/O.
-        if [ "${_variant}" = windows ]; then
-            taskkill /F /im mongod.exe || true
-        fi
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
 
   "run unit benchmarks":
@@ -403,11 +397,6 @@ functions:
         export PACKAGE='${var_package}'
         set -o errexit
         ${SCRIPT_DIR}/run-unit-benchmarks.sh
-        # On Windows we need to kill mongod after the tests run or the shell scripts
-        # never terminate. This is likely due to some unflushed I/O.
-        if [ "${_variant}" = windows ]; then
-            taskkill /F /im mongod.exe || true
-        fi
 
   "run unit tests":
     command: shell.exec
@@ -489,14 +478,10 @@ functions:
         fi
 
         ${SCRIPT_DIR}/start-mongosqld.sh
-        ${SCRIPT_DIR}/ensure-mongosqld.sh
 
   "start mongodb":
     - command: shell.exec
       params:
-        # we need to start mongod in the background because it is causing non-termination
-        # of foreground shells on Windows, likely due to unflushed I/O.
-        background: true
         script: |
             ${PREPARE_SHELL}
             set -o errexit
@@ -504,25 +489,6 @@ functions:
                 export INFRASTRUCTURE_CONFIG="$INFRASTRUCTURE_CONFIG,mongo/version/${var_version}"
             fi
             ${SCRIPT_DIR}/start-mongodb.sh
-    - command: shell.exec
-      params:
-        script: |
-          # wait until mognod is up, since we are starting it in the background.
-          if [ "${_variant}" = windows ]; then
-              PS="ps -W | grep mongod | wc -l"
-          else
-              PS="ps aux | grep mongod | wc -l"
-          fi
-          i=0
-          while [ $(eval "$PS") = 0 ]; do
-              echo "waiting for mongod to start..."
-              i=$(expr $i + 1)
-              if [ $i = 20 ]; then
-                  echo "failed to start mongodb after 200 seconds"
-                  exit 1
-              fi
-              sleep 10
-          done
 
   "create sha1 user":
     - command: shell.exec
@@ -856,7 +822,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
       vars:
         var_version: 3.6
@@ -876,7 +841,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
       vars:
         var_version: 3.6
@@ -896,7 +860,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 302400  # 3.5 days
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
       vars:
         var_version: 3.6
@@ -916,7 +879,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
       vars:
         var_version: 4.0
@@ -936,7 +898,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
       vars:
         var_version: 3.6
@@ -956,7 +917,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
       vars:
         var_version: 3.4
@@ -976,7 +936,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
       vars:
         var_version: 3.2
@@ -996,7 +955,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
   commands:
-    - func: "install dependencies"
     - func: "build mongosqld"
     - func: "start mongodb"
       vars:
@@ -1016,7 +974,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
   commands:
-    - func: "install dependencies"
     - func: "build mongosqld"
     - func: "start mongodb"
       vars:
@@ -1036,7 +993,6 @@ tasks:
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
   commands:
-    - func: "install dependencies"
     - func: "build mongosqld"
     - func: "start mongodb"
       vars:
@@ -1056,7 +1012,6 @@ tasks:
   exec_timeout_secs: 28800  # 8h
   tags: [ "benchmark" ]
   commands:
-    - func: "install dependencies"
     - func: "build mongosqld"
     - func: "start mongodb"
       vars:
@@ -1078,7 +1033,6 @@ tasks:
     - test
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -1093,7 +1047,6 @@ tasks:
     - nopushdown
   exec_timeout_secs: 14400 # 4h
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -1173,7 +1126,6 @@ tasks:
     - integration
     - test
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -1186,7 +1138,6 @@ tasks:
     - integration
     - test
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -1202,7 +1153,6 @@ tasks:
     - test
     - nopushdown
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -1218,7 +1168,6 @@ tasks:
     - integration
     - test
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -1231,7 +1180,6 @@ tasks:
     - integration
     - test
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -1245,7 +1193,6 @@ tasks:
     - test
     - nopushdown
   commands:
-    - func: "install dependencies"
     - func: "start mongodb"
     - func: "build mongosqld"
     - func: "start mongosqld"
@@ -2187,7 +2134,7 @@ axes:
   - id: windows
     display_name: Windows 64
     run_on:
-    - windows-64-vs2019-large
+    - windows-64-vs2013-test
     variables:
       _variant: windows
 
@@ -2571,7 +2518,7 @@ buildvariants:
   display_name: GSSAPI Auth Windows 64 (SSPI)
   expansions:
     _variant: windows
-  run_on: windows-64-vs2019-large
+  run_on: windows-64-vs2013-test
   tasks:
     - ".test .config .gssapi !.skip-windows"
 

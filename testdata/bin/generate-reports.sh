@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     cd "$ARTIFACTS_DIR/out"
 
@@ -38,6 +38,6 @@
     mv artifacts.tar.gz testdata/artifacts
     echo "done generating artifact tarball"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

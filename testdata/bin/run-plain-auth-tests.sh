@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     set -o xtrace
 
@@ -37,6 +37,6 @@
         -p'powerbook17' \
         -e 'select * from information_schema.schemata'
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

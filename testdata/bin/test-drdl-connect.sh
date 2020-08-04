@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
 
     echo "running drdl connection test..."
 
@@ -33,6 +33,6 @@
 
     echo "done running drdl connection test"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

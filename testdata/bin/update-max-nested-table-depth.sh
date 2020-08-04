@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
 
     echo "changing sample max_nested_table_depth..."
 
@@ -31,6 +31,6 @@
 
     echo "successfully changed sample max_nested_table_depth"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

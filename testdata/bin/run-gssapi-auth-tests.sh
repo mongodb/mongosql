@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     set -o verbose
 
@@ -32,6 +32,6 @@ EOF
         -P'org.mongodb.test.user=drivers?mechanism=GSSAPI&serviceName=mongosql2' \
         test --tests "org.mongodb.mongosql.auth.plugin.MongoSqlAuthenticationPluginFunctionalTest.testSuccessfulAuthentication"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     echo "downloading blackbox test data..."
 
@@ -33,6 +33,6 @@
 
     echo "done downloading blackbox test data"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

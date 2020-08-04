@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     echo "checking whether data races were detected..."
 
@@ -19,6 +19,6 @@
 
     echo "done checking for data races (none found)"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

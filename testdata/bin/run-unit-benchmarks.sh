@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
 
     package=${PACKAGE:-evaluator}
@@ -39,6 +39,6 @@
 
     echo "done running $package benchmarks"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

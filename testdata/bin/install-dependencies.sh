@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
     echo "installing mysql shell..."
 
@@ -44,6 +44,6 @@
 
     echo "done installing mysql shell"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

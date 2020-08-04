@@ -15,7 +15,7 @@ get_aggregations_run_on_port() {
     echo "$numAggregationsRunOnNode"
 }
 
-
+(
     set -o errexit
     
     echo "Running mongo uri read preference test..."
@@ -86,6 +86,6 @@ get_aggregations_run_on_port() {
 
     echo "Done running the mongo uri read preference test."
     
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

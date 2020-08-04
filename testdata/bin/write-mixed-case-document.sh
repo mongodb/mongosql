@@ -2,7 +2,7 @@
 
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
-
+(
     echo "creating conflicting table namespaces for schema generation..."
     cmd="
         db.sample_test.insert({
@@ -23,7 +23,7 @@
     fi
     echo "wrote sample documents"
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg
 

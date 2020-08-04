@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     set -o errexit
 
     echo "Testing to see if a query can still be run after a query is killed..."
@@ -46,6 +46,6 @@
 
     echo "Done testing to see if a query can still be run after a query is killed."
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg

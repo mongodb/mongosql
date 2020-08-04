@@ -3,7 +3,7 @@
 . "$(dirname $0)/platforms.sh"
 . "$(dirname $0)/prepare-shell.sh"
 
-
+(
     echo "Running query max execution time test..."
 
     set +o errexit
@@ -35,6 +35,6 @@
 
     echo "Done running the query max execution time test."
 
+) > $LOG_FILE 2>&1
 
-
-
+print_exit_msg
