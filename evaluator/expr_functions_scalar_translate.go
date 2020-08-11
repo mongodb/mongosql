@@ -1282,10 +1282,19 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 	// but does not understand %b and %e.
 	postFormats := []rune{}
 	var format string
+	setPostFormats := func(r rune) {
+		formats = append(formats, format)
+		postFormats = append(postFormats, r)
+		format = ""
+	}
 	for i := 0; i < len(mysqlFormat); i++ {
 		if mysqlFormat[i] == '%' {
 			if i != len(mysqlFormat)-1 {
-				switch mysqlFormat[i+1] {
+				formatRune := rune(mysqlFormat[i+1])
+				switch formatRune {
+				// All cases with direct analogs in MongoDB's dateToString
+				// format are listed first. Those which require special
+				// handling are listed after.
 				case '%':
 					format += "%%"
 				case 'd':
@@ -1308,41 +1317,54 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 					format += "%U"
 				case 'Y':
 					format += "%Y"
+				// From this point, all format sigils require special handling.
+				// They are grouped in alphabetical order.
+				case 'a', 'b', 'c', 'D', 'e':
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					setPostFormats(formatRune)
+				case 'h', 'I', 'l':
+					if !t.versionAtLeast(4, 0, 0) {
+						return nil, false
+					}
+					setPostFormats(formatRune)
+				case 'M', 'p':
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					setPostFormats(formatRune)
+				case 'r':
+					// r is hh:mm:ss with 12-hour time followed by AM or PM.
+					// Since we have already defined all these elsewhere, we can
+					// just set the format and postFormat as appropriate.
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					formats = append(formats, format)
+					// MongoDB does not support %h.
+					postFormats = append(postFormats, 'h')
+					// but it does support %M and %S so we pass those through.
+					formats = append(formats, ":%M:%S ")
+					// it does not support %p.
+					postFormats = append(postFormats, 'p')
+					format = ""
+				// these are all week of year formats.
+				case 'u', 'V', 'v':
+					setPostFormats(formatRune)
+				case 'W', 'w':
+					if !t.versionAtLeast(3, 6, 0) {
+						return nil, false
+					}
+					setPostFormats(formatRune)
+				// these are all year for yearweek formats.
+				case 'X', 'x':
+					setPostFormats(formatRune)
 				case 'y':
 					if !t.versionAtLeast(3, 6, 0) {
 						return nil, false
 					}
-					formats = append(formats, format)
-					postFormats = append(postFormats, 'y')
-					format = ""
-				case 'b':
-					if !t.versionAtLeast(3, 6, 0) {
-						return nil, false
-					}
-					formats = append(formats, format)
-					postFormats = append(postFormats, 'b')
-					format = ""
-				case 'e':
-					if !t.versionAtLeast(3, 6, 0) {
-						return nil, false
-					}
-					formats = append(formats, format)
-					postFormats = append(postFormats, 'e')
-					format = ""
-				case 'l':
-					if !t.versionAtLeast(4, 0, 0) {
-						return nil, false
-					}
-					formats = append(formats, format)
-					postFormats = append(postFormats, 'l')
-					format = ""
-				case 'p':
-					if !t.versionAtLeast(3, 6, 0) {
-						return nil, false
-					}
-					formats = append(formats, format)
-					postFormats = append(postFormats, 'p')
-					format = ""
+					setPostFormats('y')
 				default:
 					return nil, false
 				}
@@ -1394,26 +1416,130 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 		astutil.WrapInEqCase(month, astutil.Int32Value(12), astutil.StringValue("Dec")),
 	)
 
+	paddedWeekExpr := func(m int64) ast.Expr {
+		week := astutil.WrapInWeekCalculation(date, m)
+		convert := astutil.WrapInConvert(
+			week,
+			"string",
+			astutil.NullLiteral,
+			astutil.NullLiteral,
+		)
+
+		return astutil.WrapInCond(
+			astutil.WrapInConcat(
+				[]ast.Expr{
+					astutil.StringValue("0"),
+					convert,
+				},
+			),
+			convert,
+			astutil.WrapInBinOp(bsonutil.OpLt, week, astutil.Int32Value(10)),
+		)
+	}
+
+	yearWeekYearExpr := func(m int) ast.Expr {
+		yearweek := yearWeekToAggregationLanguage(date, m)
+		convert := astutil.WrapInConvert(
+			yearweek,
+			"string",
+			astutil.NullLiteral,
+			astutil.NullLiteral,
+		)
+		return ast.NewFunction(bsonutil.OpSubstr,
+			ast.NewArray(convert,
+				astutil.Int32Value(0),
+				astutil.Int32Value(4),
+			),
+		)
+	}
+
+	convertToStringExpr := func(e ast.Expr) ast.Expr {
+		return astutil.WrapInConvert(
+			e,
+			"string",
+			astutil.NullLiteral,
+			astutil.NullLiteral,
+		)
+	}
+
 	getExpr := func(formatTy rune) ast.Expr {
 		switch formatTy {
+		// a is abbreviated dat of week (Sun...Sat).
+		case 'a':
+			dayOfWeek := "dayOfWeek"
+			dayOfWeekVar := ast.NewVariableRef(dayOfWeek)
+			inputLetAssignment := []*ast.LetVariable{ast.NewLetVariable("dayOfWeek", astutil.WrapInDayOfWeek(date))}
+			switchExpr := astutil.WrapInSwitch(
+				astutil.EmptyStringLiteral,
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(1), astutil.StringValue("Sun")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(2), astutil.StringValue("Mon")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(3), astutil.StringValue("Tue")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(4), astutil.StringValue("Wed")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(5), astutil.StringValue("Thu")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(6), astutil.StringValue("Fri")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(7), astutil.StringValue("Sat")),
+			)
+			return ast.NewLet(inputLetAssignment, switchExpr)
 		// b is month name as three characters
 		case 'b':
 			inputLetAssignment := []*ast.LetVariable{ast.NewLetVariable("month", astutil.WrapInMonth(date))}
 			return ast.NewLet(inputLetAssignment, evaluation)
+		// c is the month number not 0-padded.
+		case 'c':
+			return convertToStringExpr(astutil.WrapInMonth(date))
+		// D is the day of month with English suffix (0th, 1st, 2nd, 3rd, xth).
+		case 'D':
+			dayOfMonth := "dayOfMonth"
+			dayOfMonthVar := ast.NewVariableRef(dayOfMonth)
+			inputLetAssignment := []*ast.LetVariable{ast.NewLetVariable(dayOfMonth, astutil.WrapInDayOfMonth(date))}
+			switchExpr := astutil.WrapInSwitch(
+				astutil.StringValue("th"),
+				astutil.WrapInEqCase(dayOfMonthVar, astutil.Int32Value(1), astutil.StringValue("st")),
+				astutil.WrapInEqCase(dayOfMonthVar, astutil.Int32Value(2), astutil.StringValue("nd")),
+				astutil.WrapInEqCase(dayOfMonthVar, astutil.Int32Value(3), astutil.StringValue("rd")),
+			)
+			return ast.NewLet(inputLetAssignment,
+				astutil.WrapInConcat(
+					[]ast.Expr{
+						convertToStringExpr(dayOfMonthVar),
+						switchExpr,
+					},
+				),
+			)
 		// e is non-zero padded day of month, so we just get day of month and convert to string.
 		case 'e':
-			return astutil.WrapInConvert(
-				astutil.WrapInDayOfMonth(date),
-				"string",
-				astutil.NullLiteral,
-				astutil.NullLiteral,
+			return convertToStringExpr(astutil.WrapInDayOfMonth(date))
+		// h is 12-hour hour, with zero padding. h and I are identical.
+		// hour == 0 : 12
+		// hour == 12 : 12
+		// else hour % 12
+		case 'h', 'I':
+			hourNum :=
+				astutil.WrapInSwitch(
+					astutil.WrapInBinOp(bsonutil.OpMod,
+						astutil.WrapInHour(date),
+						astutil.Int32Value(12),
+					),
+					astutil.WrapInEqCase(astutil.WrapInHour(date), astutil.Int32Value(0), astutil.Int32Value(12)),
+					astutil.WrapInEqCase(astutil.WrapInHour(date), astutil.Int32Value(12), astutil.Int32Value(12)),
+				)
+			convert := convertToStringExpr(hourNum)
+			return astutil.WrapInCond(
+				astutil.WrapInConcat(
+					[]ast.Expr{
+						astutil.StringValue("0"),
+						convert,
+					},
+				),
+				convert,
+				astutil.WrapInBinOp(bsonutil.OpLt, hourNum, astutil.Int32Value(10)),
 			)
 		// l is 12 hour hour, non-zero padded.
 		// hour == 0 : 12
 		// hour == 12 : 12
 		// else hour % 12
 		case 'l':
-			return astutil.WrapInConvert(
+			return convertToStringExpr(
 				astutil.WrapInSwitch(
 					astutil.WrapInBinOp(bsonutil.OpMod,
 						astutil.WrapInHour(date),
@@ -1422,10 +1548,28 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 					astutil.WrapInEqCase(astutil.WrapInHour(date), astutil.Int32Value(0), astutil.Int32Value(12)),
 					astutil.WrapInEqCase(astutil.WrapInHour(date), astutil.Int32Value(12), astutil.Int32Value(12)),
 				),
-				"string",
-				astutil.NullLiteral,
-				astutil.NullLiteral,
 			)
+		case 'M':
+			month := "month"
+			monthVar := ast.NewVariableRef(Month)
+			inputLetAssignment := []*ast.LetVariable{ast.NewLetVariable(month, astutil.WrapInMonth(date))}
+			switchExpr := astutil.WrapInSwitch(
+				astutil.EmptyStringLiteral,
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(1), astutil.StringValue("January")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(2), astutil.StringValue("February")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(3), astutil.StringValue("March")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(4), astutil.StringValue("April")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(5), astutil.StringValue("May")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(6), astutil.StringValue("June")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(7), astutil.StringValue("July")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(8), astutil.StringValue("August")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(9), astutil.StringValue("September")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(10), astutil.StringValue("October")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(11), astutil.StringValue("November")),
+				astutil.WrapInEqCase(monthVar, astutil.Int32Value(12), astutil.StringValue("December")),
+			)
+			return ast.NewLet(inputLetAssignment, switchExpr)
+
 		// p is 'AM' or 'PM'
 		case 'p':
 			return astutil.WrapInCond(
@@ -1437,6 +1581,40 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 					astutil.Int32Value(12),
 				),
 			)
+		// u, V, v are different modes of week
+		case 'u':
+			return paddedWeekExpr(1)
+		case 'V':
+			return paddedWeekExpr(2)
+		case 'v':
+			return paddedWeekExpr(3)
+		case 'W':
+			dayOfWeek := "dayOfWeek"
+			dayOfWeekVar := ast.NewVariableRef(dayOfWeek)
+			inputLetAssignment := []*ast.LetVariable{ast.NewLetVariable("dayOfWeek", astutil.WrapInDayOfWeek(date))}
+			switchExpr := astutil.WrapInSwitch(
+				astutil.EmptyStringLiteral,
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(1), astutil.StringValue("Sunday")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(2), astutil.StringValue("Monday")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(3), astutil.StringValue("Tuesday")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(4), astutil.StringValue("Wednesday")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(5), astutil.StringValue("Thursday")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(6), astutil.StringValue("Friday")),
+				astutil.WrapInEqCase(dayOfWeekVar, astutil.Int32Value(7), astutil.StringValue("Saturday")),
+			)
+			return ast.NewLet(inputLetAssignment, switchExpr)
+		case 'w':
+			return convertToStringExpr(
+				astutil.WrapInBinOp(bsonutil.OpSubtract,
+					astutil.WrapInDayOfWeek(date),
+					astutil.Int32Value(1),
+				),
+			)
+		case 'X':
+			return yearWeekYearExpr(2)
+		case 'x':
+			return yearWeekYearExpr(3)
+
 		// y is two digit year.
 		case 'y':
 			varName := "yearModResult"
@@ -1447,11 +1625,8 @@ func (t *PushdownTranslator) formatDate(date ast.Expr, mysqlFormat string) (ast.
 			letAssignment := []*ast.LetVariable{
 				ast.NewLetVariable(varName, mod),
 			}
-			convert := astutil.WrapInConvert(
+			convert := convertToStringExpr(
 				ast.NewVariableRef(varName),
-				"string",
-				astutil.NullLiteral,
-				astutil.NullLiteral,
 			)
 			eval := astutil.WrapInCond(
 				astutil.WrapInConcat([]ast.Expr{astutil.StringValue("0"), convert}),
@@ -3613,32 +3788,10 @@ func (f *baseScalarFunctionExpr) yearToAggregationLanguage(t *PushdownTranslator
 	return wrapSingleArgFuncWithNullCheck(bsonutil.OpYear, exprs[0], t)
 }
 
-func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	assertEitherArgCount(exprs, 1, 2)
-	if !t.versionAtLeast(3, 6, 0) {
-		return nil, newPushdownFailure(
-			"yearWeekToAggregationLanguage",
-			"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
-		)
-	}
-
-	mode := int64(0)
-	if len(exprs) == 2 {
-		modeValueExpr, ok := exprs[1].(SQLValueExpr)
-		if !ok {
-			return nil, newPushdownFailure("SQLScalarFunctionExpr(yearWeek)", "mode is not a literal")
-		}
-		mode = values.Int64(modeValueExpr.Value)
-	}
-
-	args, err := t.translateArgs(exprs)
-	if err != nil {
-		return nil, err
-	}
-
+func yearWeekToAggregationLanguage(date ast.Expr, mode int) ast.Expr {
 	dateRef := ast.NewVariableRef("date")
 	inputAssignment := []*ast.LetVariable{
-		ast.NewLetVariable("date", args[0]),
+		ast.NewLetVariable("date", date),
 	}
 
 	month, year := ast.NewVariableRef("month"), ast.NewVariableRef("year")
@@ -3713,7 +3866,32 @@ func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTransl
 				),
 			),
 		),
-	), nil
+	)
+}
+
+func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
+	assertEitherArgCount(exprs, 1, 2)
+	if !t.versionAtLeast(3, 6, 0) {
+		return nil, newPushdownFailure(
+			"yearWeekToAggregationLanguage",
+			"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
+		)
+	}
+
+	mode := 0
+	if len(exprs) == 2 {
+		modeValueExpr, ok := exprs[1].(SQLValueExpr)
+		if !ok {
+			return nil, newPushdownFailure("SQLScalarFunctionExpr(yearWeek)", "mode is not a literal")
+		}
+		mode = int(values.Int64(modeValueExpr.Value))
+	}
+
+	args, err := t.translateArgs(exprs)
+	if err != nil {
+		return nil, err
+	}
+	return yearWeekToAggregationLanguage(args[0], mode), nil
 }
 
 func (t *PushdownTranslator) translateArgs(exprs []SQLExpr) ([]ast.Expr, PushdownFailure) {

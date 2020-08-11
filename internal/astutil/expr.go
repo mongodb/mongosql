@@ -274,6 +274,11 @@ func WrapInDayOfMonth(date ast.Expr) *ast.Function {
 	return ast.NewFunction(bsonutil.OpDayOfMonth, date)
 }
 
+// WrapInDayOfWeek calls $dayOfWeek
+func WrapInDayOfWeek(date ast.Expr) *ast.Function {
+	return ast.NewFunction(bsonutil.OpDayOfWeek, date)
+}
+
 // WrapInEqCase returns a document that is a case arm that checks equality between expr1 and expr2.
 func WrapInEqCase(expr1, expr2, thenExpr ast.Expr) ast.Expr {
 	caseExpr := ast.NewBinary(bsonutil.OpEq, expr1, expr2)
