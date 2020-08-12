@@ -14,14 +14,14 @@ amazon)
     PUSH_ARCH='x86_64-amzn64'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
-    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
+    PYTHON_PATH='/opt/mongodbtoolchain/v3/bin'
 	BUILD_FIPS='false'
     ;;
 amazon2)
     PUSH_ARCH='x86_64-amazon2'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
-    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
+    PYTHON_PATH='/opt/mongodbtoolchain/v3/bin'
 	BUILD_FIPS='true'
     ;;
 centos6-perf)
@@ -29,7 +29,7 @@ centos6-perf)
     PUSH_NAME='linux'
 	MONGO_DISTRO='rhel62'
     BUILD_GSSAPI='true'
-    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
+    PYTHON_PATH='/opt/mongodbtoolchain/v3/bin'
 	BUILD_FIPS='true'
     ;;
 debian81)
@@ -79,16 +79,16 @@ rhel80)
 	BUILD_FIPS='true'
     ;;
 rhel67-s390x)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='s390x-rhel67'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
-    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin'
+    PYTHON_PATH='/opt/mongodbtoolchain/v3/bin'
     ;;
 rhel72-s390x)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='s390x-rhel72'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
@@ -96,7 +96,7 @@ rhel72-s390x)
 	BUILD_FIPS='true'
     ;;
 rhel80-s390x)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='s390x-rhel80'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
@@ -104,19 +104,19 @@ rhel80-s390x)
 	BUILD_FIPS='true'
     ;;
 rhel71-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='ppc64le-rhel71'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
     ;;
 rhel81-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='ppc64le-rhel81'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
-    PYTHON_PATH='/opt/mongodbtoolchain/v2/bin/'
+    PYTHON_PATH='/opt/mongodbtoolchain/v3/bin/'
     ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'
@@ -131,7 +131,7 @@ suse15)
 	BUILD_FIPS='true'
     ;;
 suse12-s390x)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='s390x-suse12'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
@@ -139,7 +139,7 @@ suse12-s390x)
 	BUILD_FIPS='true'
     ;;
 suse15-s390x)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='s390x-suse15'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
@@ -147,7 +147,7 @@ suse15-s390x)
 	BUILD_FIPS='true'
     ;;
 suse15-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='ppc64le-suse15'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
@@ -178,7 +178,7 @@ ubuntu2004)
 	BUILD_FIPS='false'
     ;;
 ubuntu1804-arm64)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='arm64-ubuntu1804'
     PUSH_NAME='linux'
 	MONGO_ARCH='aarch64'
@@ -186,7 +186,7 @@ ubuntu1804-arm64)
 	BUILD_FIPS='false'
     ;;
 ubuntu2004-arm64)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='arm64-ubuntu2004'
     PUSH_NAME='linux'
 	MONGO_ARCH='aarch64'
@@ -200,14 +200,14 @@ ubuntu1604-ppc)
 	BUILD_FIPS='false'
     ;;
 ubuntu1804-ppc)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='ppc64le-ubuntu1804'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
     ;;
 ubuntu1604-s390x)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='s390x-ubuntu1604'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
@@ -215,7 +215,7 @@ ubuntu1604-s390x)
 	BUILD_FIPS='false'
     ;;
 ubuntu1804-s390x)
-    LIBRARY_PATH='/opt/mongodbtoolchain/v2/bin/'
+    LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
     PUSH_ARCH='s390x-ubuntu1804'
     PUSH_NAME='linux'
     CC='s390x-mongodb-linux-gcc'
