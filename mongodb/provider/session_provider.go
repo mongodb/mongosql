@@ -219,7 +219,7 @@ func (sp *SessionProvider) Close() {
 // See mongodb/README.md for more details about admin sessions.
 type adminTopology struct {
 	deployment driver.Deployment
-	session    *mongodb.Session
+	session    *Session
 
 	// auth flag from the SessionProvider
 	auth bool
@@ -253,7 +253,7 @@ func (t *adminTopology) Kind() description.TopologyKind {
 // See mongodb/README.md for more details about admin sessions.
 type adminServer struct {
 	server  driver.Server
-	session *mongodb.Session
+	session *Session
 
 	// auth flag from the SessionProvider
 	auth bool
@@ -289,23 +289,23 @@ func (s *adminServer) Connection(ctx context.Context) (driver.Connection, error)
 
 // AuthenticatedAdminSessionPrimary gets a new Session used for handling administration tasks
 // that require a primary and need to be authenticated separately from a client.
-func (sp *SessionProvider) AuthenticatedAdminSessionPrimary() (*mongodb.Session, error) {
+func (sp *SessionProvider) AuthenticatedAdminSessionPrimary() (*Session, error) {
 	return sp.adminSession(readpref.Primary())
 }
 
 // AuthenticatedAdminSession gets a new Session used for handling tasks which
 // require authentication separately from a client. This session honors the
 // read preference specified when starting up mongosqld.
-func (sp *SessionProvider) AuthenticatedAdminSession() (*mongodb.Session, error) {
+func (sp *SessionProvider) AuthenticatedAdminSession() (*Session, error) {
 	return sp.adminSession(sp.rp)
 }
 
 // adminSession creates a new Session to be used for admin connections to MongoDB.
 // The Session will use the provided read preference when selecting a server to
 // execute commands.
-func (sp *SessionProvider) adminSession(rp *readpref.ReadPref) (*mongodb.Session, error) {
-	session := &mongodb.Session{
-		TopologyKind:   sp.adminConnTopology.Kind(),
+func (sp *SessionProvider) adminSession(rp *readpref.ReadPref) (*Session, error) {
+	session := &Session{
+		topologyKind:   sp.adminConnTopology.Kind(),
 		ReadPreference: rp,
 	}
 
@@ -328,7 +328,7 @@ func (sp *SessionProvider) adminSession(rp *readpref.ReadPref) (*mongodb.Session
 // Session creates a new Session. It uses the SessionProvider's read preference
 // to select a server from the SessionProvider's deployment. We use that server
 // to get the connections for the Session's connection pool.
-func (sp *SessionProvider) Session(ctx context.Context) (*mongodb.Session, error) {
+func (sp *SessionProvider) Session(ctx context.Context) (*Session, error) {
 	// First, select an appropriate driver.Server from sp's topology.
 	selector := description.ReadPrefSelector(sp.rp)
 	connectCtx, cancel := context.WithTimeout(ctx, sp.connectTimeout)
@@ -339,8 +339,8 @@ func (sp *SessionProvider) Session(ctx context.Context) (*mongodb.Session, error
 	}
 
 	// Create the Session
-	session := &mongodb.Session{
-		TopologyKind:   sp.userConnTopology.Kind(),
+	session := &Session{
+		topologyKind:   sp.userConnTopology.Kind(),
 		NumConns:       sp.numConns,
 		ReadPreference: sp.rp,
 	}
@@ -383,7 +383,7 @@ func (sp *SessionProvider) Session(ctx context.Context) (*mongodb.Session, error
 
 	// The pool keeps the connections checked out of the
 	// underlying pool until the session is closed.
-	if session.Pool, err = mongodb.NewSessionConnPool(ctx, provider, sp.numConns); err != nil {
+	if session.Pool, err = NewSessionConnPool(ctx, provider, sp.numConns); err != nil {
 		return nil, err
 	}
 
@@ -408,7 +408,7 @@ type expirableConnection interface {
 
 type autoLogoutConnection struct {
 	expirableConnection
-	s *mongodb.Session
+	s *Session
 }
 
 func (c *autoLogoutConnection) Close() error {
@@ -484,7 +484,7 @@ func validateConnString(cs connstring.ConnString) error {
 }
 
 // LoadInfo looks up information from MongoDB.
-func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userSession *mongodb.Session,
+func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userSession *Session,
 	schema *schema.Schema, config *config.Config) (i *mongodb.Info, e error) {
 
 	defer func() {
@@ -513,14 +513,18 @@ func LoadInfo(ctx context.Context, logger log.Logger, sp *SessionProvider, userS
 		_ = adminSession.Close()
 	}()
 
-	i = &mongodb.Info{
-		Config:    config,
-		Databases: createDatabasesFromSchema(schema),
-	}
-
-	err = i.LoadVersionInfo(ctx, userSession)
+	var version *mongodb.VersionInfo
+	version, err = userSession.Version(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	i = &mongodb.Info{
+		Config:       config,
+		Databases:    createDatabasesFromSchema(schema),
+		GitVersion:   version.GitVersion,
+		Version:      version.Version,
+		VersionArray: version.VersionArray,
 	}
 
 	if config.Security.Enabled {

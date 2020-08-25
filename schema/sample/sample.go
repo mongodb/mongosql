@@ -8,7 +8,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
@@ -38,7 +38,7 @@ type NSMapping map[string]NSCollections
 
 // fetchSortedNamespaces returns the fetched namespaces sorted by database name.
 // We need this to ensure a stable schema in the face of hitting the global table limit.
-func fetchSortedNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
+func fetchSortedNamespaces(ctx context.Context, s *provider.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
 	namespaces, err := fetchNamespaces(ctx, s, lgr, match)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func fetchSortedNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logg
 }
 
 // fetchNamespaceMap provides the same data as fetchNamespaces in a map form
-func fetchNamespaceMap(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) (NSMapping, error) {
+func fetchNamespaceMap(ctx context.Context, s *provider.Session, lgr log.Logger, match *strutil.Matcher) (NSMapping, error) {
 	namespaces, err := fetchNamespaces(ctx, s, lgr, match)
 	if err != nil {
 		return nil, err
@@ -62,7 +62,7 @@ func fetchNamespaceMap(ctx context.Context, s *mongodb.Session, lgr log.Logger, 
 
 // fetchNamespaces returns a slice of database, collections pairs that exist in the MongoDB cluster
 // to the collection(s) within each database.
-func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
+func fetchNamespaces(ctx context.Context, s *provider.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
 
 	// If the matcher's inclusionary patterns don't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB.
@@ -162,7 +162,7 @@ func fetchNamespaces(ctx context.Context, s *mongodb.Session, lgr log.Logger, ma
 
 // getIndexes returns the indexes present in the namespace - database
 // and collection - provided as a bson.D slice.
-func getIndexes(ctx context.Context, database, collection string, session *mongodb.Session) ([]bson.D, error) {
+func getIndexes(ctx context.Context, database, collection string, session *provider.Session) ([]bson.D, error) {
 	collectionIndexes, collectionIndex := bsonutil.NewDArray(), bsonutil.NewD()
 	cursor, err := session.ListIndexes(ctx, database, collection)
 	if err != nil {
@@ -198,7 +198,7 @@ type NSViewPipeline struct {
 
 // GetViewPipelinesInDatabase returns a map of namespace names to the viewPipeline for the views
 // within the database, db.
-func GetViewPipelinesInDatabase(ctx context.Context, s *mongodb.Session, db string) (map[string]NSViewPipeline, error) {
+func GetViewPipelinesInDatabase(ctx context.Context, s *provider.Session, db string) (map[string]NSViewPipeline, error) {
 	cursor, err := s.ListCollections(ctx, db, driver.CursorOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error getting db views map: %v", err)
@@ -254,7 +254,7 @@ func getSamplingPipeline(sampleSize int64) []bson.D {
 
 // getViewPipelineForNamespace returns the view for the given namespace or an empty NSViewPipeline
 // pipeline  if the namespace is not a view.
-func getViewPipelineForNamespace(ctx context.Context, s *mongodb.Session, db, col string) (NSViewPipeline, error) {
+func getViewPipelineForNamespace(ctx context.Context, s *provider.Session, db, col string) (NSViewPipeline, error) {
 	pipeline := NSViewPipeline{}
 
 	type explainResult struct {

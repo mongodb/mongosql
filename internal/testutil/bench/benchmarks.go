@@ -15,7 +15,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/testutil/integration"
 	mongoutil "github.com/10gen/sqlproxy/internal/testutil/mongodb"
 	"github.com/10gen/sqlproxy/internal/testutil/translator"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 
@@ -187,7 +186,7 @@ func restoreBenchmarkData(name string) error {
 	return dataset.Restore(mongoutil.GetToolOptions())
 }
 
-func runAggBenchmark(b *testing.B, session *mongodb.Session, db, coll string, pipeline []bson.D) {
+func runAggBenchmark(b *testing.B, session *provider.Session, db, coll string, pipeline []bson.D) {
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		cursor, err := session.Aggregate(context.Background(), db, coll, pipeline)

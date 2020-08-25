@@ -16,6 +16,7 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,7 +31,7 @@ func testSQLColumnExpr(selectID int,
 }
 
 type mockCmdHandler struct {
-	session *mongodb.Session
+	session *provider.Session
 }
 
 func (c *mockCmdHandler) Aggregate(ctx context.Context, db, col string, pipeline []bson.D) (mongodb.Cursor, error) {
@@ -94,7 +95,7 @@ func createExecutionCfg(dbName string, maxStageSize uint64, version []uint8, sql
 	return evaluator.CreateTestExecutionCfg(dbName, maxStageSize, version, sqlValueKind)
 }
 
-func createWorkingExecutionCfg(vars *variable.Container, ses *mongodb.Session, mon memory.Monitor) *evaluator.ExecutionConfig {
+func createWorkingExecutionCfg(vars *variable.Container, ses *provider.Session, mon memory.Monitor) *evaluator.ExecutionConfig {
 	mdbVersion := evaluator.GetMongoDBVersion(vars)
 	fullPushdownOnly := vars.GetBool(variable.FullPushdownExecMode)
 	maxStageSize := vars.GetUint64(variable.MongoDBMaxStageSize)

@@ -9,7 +9,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/provider"
 
 	"github.com/stretchr/testify/require"
@@ -97,7 +96,7 @@ func benchmarkViewSamplingWithMatchAnd10LookupStages(b *testing.B, nDocs int) {
 	benchmarkViewSampling(b, req, viewName)
 }
 
-func createViewWithMatchAndLookupStages(s *mongodb.Session, db string, nDocs int) (string, error) {
+func createViewWithMatchAndLookupStages(s *provider.Session, db string, nDocs int) (string, error) {
 	err := insertDocuments(s, db, nDocs)
 	if err != nil {
 		return "", err
@@ -128,7 +127,7 @@ func createViewWithMatchAndLookupStages(s *mongodb.Session, db string, nDocs int
 	return viewName, createView(s, db, sampleViewBaseCollection, viewName, pipeline)
 }
 
-func createViewWithLookupStages(s *mongodb.Session, db string, numLookups int) (string, error) {
+func createViewWithLookupStages(s *provider.Session, db string, numLookups int) (string, error) {
 	// Insert a thousand documents.
 	err := insertDocuments(s, db, 1000)
 	if err != nil {
@@ -155,7 +154,7 @@ func createViewWithLookupStages(s *mongodb.Session, db string, numLookups int) (
 	return viewName, createView(s, db, sampleViewBaseCollection, viewName, pipeline)
 }
 
-func createView(session *mongodb.Session, db, col, viewName string, pipeline []bson.D) error {
+func createView(session *provider.Session, db, col, viewName string, pipeline []bson.D) error {
 	cmd := bsonutil.NewD(
 		bsonutil.NewDocElem("create", viewName),
 		bsonutil.NewDocElem("viewOn", col),
@@ -186,7 +185,7 @@ func getSessionProvider(req *require.Assertions) *provider.SessionProvider {
 	return provider
 }
 
-func insertDocuments(session *mongodb.Session, db string, numDocs int) error {
+func insertDocuments(session *provider.Session, db string, numDocs int) error {
 	insertHelper := func(documents interface{}) error {
 		cmd := bsonutil.NewD(
 			bsonutil.NewDocElem("insert", sampleViewBaseCollection),

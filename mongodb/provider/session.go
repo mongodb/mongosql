@@ -1,4 +1,4 @@
-package mongodb
+package provider
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/procutil"
+	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/internal/mongoutil"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,11 +26,11 @@ import (
 type Session struct {
 	ClientAddresses []string
 	Deployment      driver.Deployment
-	TopologyKind    description.TopologyKind
 	NumConns        int
 	Pool            *SessionConnPool
 	ReadPreference  *readpref.ReadPref
 	errLock         sync.Mutex
+	topologyKind    description.TopologyKind
 
 	err        error
 	AuthSource string
@@ -79,6 +80,12 @@ func (s *Session) setError(err error) {
 	s.errLock.Unlock()
 }
 
+// TopologyKind returns the TopologyKind of the MongoDB instance the
+// session is connected to.
+func (s *Session) TopologyKind() description.TopologyKind {
+	return s.topologyKind
+}
+
 // Validate checks that the established Session meets the read preference
 // requirements. When a SessionProvider creates a Session, it selects a
 // driver.Server using a specified ReadPref. That Server is used to check
@@ -107,7 +114,7 @@ func (s *Session) Validate(ctx context.Context) error {
 	// from this session's creation.
 	selector := description.ReadPrefSelector(s.ReadPreference)
 	t := description.Topology{
-		Kind: s.TopologyKind,
+		Kind: s.topologyKind,
 	}
 
 	// Attempt to select the server. If the selector returns an error
@@ -128,7 +135,7 @@ func (s *Session) Validate(ctx context.Context) error {
 
 // Aggregate runs the aggregation pipeline passed in against the
 // give database and collection.
-func (s *Session) Aggregate(ctx context.Context, database, collection string, pipeline []bson.D) (Cursor, error) {
+func (s *Session) Aggregate(ctx context.Context, database, collection string, pipeline []bson.D) (mongodb.Cursor, error) {
 	pipelineArr, err := bsonutil.DocSliceToCoreArray(pipeline)
 	if err != nil {
 		return nil, fmt.Errorf("error converting aggregation pipeline to raw array: %v", err)
@@ -161,7 +168,7 @@ func (s *Session) Aggregate(ctx context.Context, database, collection string, pi
 		return nil, fmt.Errorf("error getting aggregation result: %v", err)
 	}
 
-	return newBatchCursor(cursor), nil
+	return mongodb.NewBatchCursor(cursor), nil
 }
 
 // Count runs a count command for a specific database and collection.
@@ -273,7 +280,7 @@ func (s *Session) Upsert(ctx context.Context, db, col string, query, update inte
 
 // ListCollections returns a cursor to iterate through the collections
 // present on the db database with options opts.
-func (s *Session) ListCollections(ctx context.Context, db string, opts driver.CursorOptions) (Cursor, error) {
+func (s *Session) ListCollections(ctx context.Context, db string, opts driver.CursorOptions) (mongodb.Cursor, error) {
 	cmd := operation.NewListCollections(nil).
 		Database(db).
 		Deployment(s.Deployment).
@@ -287,7 +294,7 @@ func (s *Session) ListCollections(ctx context.Context, db string, opts driver.Cu
 		return nil, fmt.Errorf("error getting listCollections result: %v", err)
 	}
 
-	return newListCollectionsCursor(cursor), nil
+	return mongodb.NewListCollectionsCursor(cursor), nil
 }
 
 // ListDatabases returns a cursor to iterate through
@@ -307,7 +314,7 @@ func (s *Session) ListDatabases(ctx context.Context) (*operation.ListDatabasesRe
 
 // ListIndexes returns a cursor to iterate through the
 // indexes on the c collection within the db database.
-func (s *Session) ListIndexes(ctx context.Context, db, col string) (Cursor, error) {
+func (s *Session) ListIndexes(ctx context.Context, db, col string) (mongodb.Cursor, error) {
 	cmd := operation.NewListIndexes().
 		Database(db).
 		Collection(col).
@@ -321,7 +328,7 @@ func (s *Session) ListIndexes(ctx context.Context, db, col string) (Cursor, erro
 		return nil, fmt.Errorf("error getting listIndexes result: %v", err)
 	}
 
-	return newBatchCursor(cursor), nil
+	return mongodb.NewBatchCursor(cursor), nil
 }
 
 // currentOp represents the result of a currentOp command. The 'Opid' can be an integer on a mongod
@@ -392,7 +399,7 @@ func (s *Session) KillOps(ctx context.Context, clientAddresses []string) error {
 		return err
 	}
 
-	version, err := s.Version()
+	version, err := s.Version(ctx)
 	if err != nil {
 		return err
 	}
@@ -526,22 +533,15 @@ func (s *Session) Login(ctx context.Context, a SessionAuthenticator) error {
 	return s.err
 }
 
-// VersionInfo contains server version info.
-type VersionInfo struct {
-	Version      string  `bson:"version"`
-	GitVersion   string  `bson:"gitVersion"`
-	VersionArray []uint8 `bson:"-"`
-}
-
 // Version returns the server version for this session, as well as the git version.
-func (s *Session) Version() (*VersionInfo, error) {
-	info := VersionInfo{}
+func (s *Session) Version(ctx context.Context) (*mongodb.VersionInfo, error) {
+	info := mongodb.VersionInfo{}
 
 	cmd := bsonutil.NewD(
 		bsonutil.NewDocElem("buildInfo", 1),
 	)
 
-	err := s.Run(context.Background(), "admin", cmd, &info)
+	err := s.Run(ctx, "admin", cmd, &info)
 	if err != nil {
 		return nil, err
 	}

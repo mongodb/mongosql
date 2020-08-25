@@ -31,17 +31,17 @@ type Cursor interface {
 	Close(context.Context) error
 }
 
-// newBatchCursor returns a new Cursor using the provided
+// NewBatchCursor returns a new Cursor using the provided
 // driver.BatchCursor as the backing cursor.
-func newBatchCursor(cursor *driver.BatchCursor) Cursor {
+func NewBatchCursor(cursor *driver.BatchCursor) Cursor {
 	return &batchCursor{
 		cursor: cursor,
 	}
 }
 
-// newBatchCursor returns a new Cursor using the provided
+// NewListCollectionsCursor returns a new Cursor using the provided
 // driver.ListCollectionsBatchCursor as the backing cursor.
-func newListCollectionsCursor(cursor *driver.ListCollectionsBatchCursor) Cursor {
+func NewListCollectionsCursor(cursor *driver.ListCollectionsBatchCursor) Cursor {
 	return &listCollectionsCursor{
 		cursor: cursor,
 	}

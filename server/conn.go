@@ -42,7 +42,7 @@ type flushWriter interface {
 
 type conn struct {
 	server  *Server
-	session *mongodb.Session
+	session *provider.Session
 	logger  log.Logger
 	startDB string
 
@@ -929,7 +929,7 @@ func (c *conn) setStatusVariables() {
 	sessionVariables.StartTime = globalVariables.StartTime
 
 	topology := "standalone"
-	if c.session.TopologyKind == mongodb.Sharded {
+	if c.session.TopologyKind() == mongodb.Sharded {
 		topology = "mongos"
 	}
 	sessionVariables.SetSystemVariable(variable.MongoDBGitVersion,

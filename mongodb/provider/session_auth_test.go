@@ -1,4 +1,4 @@
-package mongodb_test
+package provider_test
 
 import (
 	"context"
@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	. "github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
+
 	"github.com/stretchr/testify/require"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -30,7 +31,7 @@ func TestCleartextSessionAuthenticator(t *testing.T) {
 		},
 	)
 
-	subject := &CleartextSessionAuthenticator{
+	subject := &provider.CleartextSessionAuthenticator{
 		Source:    "db",
 		Username:  "user",
 		Password:  "pencil",
@@ -62,7 +63,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 	t.Run("single step success", func(t *testing.T) {
 		for i := 1; i < 3; i++ {
 			t.Run(fmt.Sprintf("%d conversation(s)", i), func(t *testing.T) {
-				subject := &SaslSessionAuthenticator{
+				subject := &provider.SaslSessionAuthenticator{
 					Source:    "db",
 					Username:  "user",
 					Mechanism: "SINGLE",
@@ -74,7 +75,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 				for j := 0; j < i; j++ {
 					subject.AddConversation([]byte("something"), true)
 
-					saslStartReply := &SaslResponse{
+					saslStartReply := &provider.SaslResponse{
 						ConversationID: j + 1,
 						Done:           true,
 						Payload:        []byte{},
@@ -82,7 +83,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					}
 
 					conns[j] = &mockConnection{
-						ResponseQ: []*SaslResponse{saslStartReply},
+						ResponseQ: []*provider.SaslResponse{saslStartReply},
 					}
 				}
 
@@ -109,12 +110,12 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 	t.Run("multi step success", func(t *testing.T) {
 		for i := 1; i < 3; i++ {
 			t.Run(fmt.Sprintf("%d conversation(s)", i), func(t *testing.T) {
-				subject := &SaslSessionAuthenticator{
+				subject := &provider.SaslSessionAuthenticator{
 					Source:    "db",
 					Username:  "user",
 					Mechanism: "MULTI",
 
-					Callback: func(convos []*SaslConversation) error {
+					Callback: func(convos []*provider.SaslConversation) error {
 						for _, convo := range convos {
 							convo.ClientDone = true
 							convo.Payload = []byte("second")
@@ -129,14 +130,14 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 				for j := 0; j < i; j++ {
 					subject.AddConversation([]byte("first"), false)
 
-					saslStartReply := &SaslResponse{
+					saslStartReply := &provider.SaslResponse{
 						ConversationID: j + 1,
 						Done:           false,
 						Payload:        []byte("firstReply"),
 						Ok:             1,
 					}
 
-					saslContinueReply := &SaslResponse{
+					saslContinueReply := &provider.SaslResponse{
 						ConversationID: j + 1,
 						Done:           true,
 						Payload:        []byte("secondReply"),
@@ -144,7 +145,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					}
 
 					conns[j] = &mockConnection{
-						ResponseQ: []*SaslResponse{saslStartReply, saslContinueReply},
+						ResponseQ: []*provider.SaslResponse{saslStartReply, saslContinueReply},
 					}
 				}
 
@@ -177,7 +178,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 	t.Run("failure from server initial", func(t *testing.T) {
 		for i := 1; i < 3; i++ {
 			t.Run(fmt.Sprintf("%d conversation(s)", i), func(t *testing.T) {
-				subject := &SaslSessionAuthenticator{
+				subject := &provider.SaslSessionAuthenticator{
 					Source:    "db",
 					Username:  "user",
 					Mechanism: "MULTI",
@@ -189,7 +190,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 				for j := 0; j < i; j++ {
 					subject.AddConversation([]byte("first"), false)
 
-					saslStartReply := &SaslResponse{
+					saslStartReply := &provider.SaslResponse{
 						ConversationID: j + 1,
 						Code:           143,
 						Done:           true,
@@ -198,7 +199,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					}
 
 					conns[j] = &mockConnection{
-						ResponseQ: []*SaslResponse{saslStartReply},
+						ResponseQ: []*provider.SaslResponse{saslStartReply},
 					}
 				}
 
@@ -213,12 +214,12 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 
 		for i := 1; i < 3; i++ {
 			t.Run(fmt.Sprintf("%d conversation(s)", i), func(t *testing.T) {
-				subject := &SaslSessionAuthenticator{
+				subject := &provider.SaslSessionAuthenticator{
 					Source:    "db",
 					Username:  "user",
 					Mechanism: "MULTI",
 
-					Callback: func(convos []*SaslConversation) error {
+					Callback: func(convos []*provider.SaslConversation) error {
 						return expectedErr
 					},
 				}
@@ -228,7 +229,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 				for j := 0; j < i; j++ {
 					subject.AddConversation([]byte("first"), false)
 
-					saslStartReply := &SaslResponse{
+					saslStartReply := &provider.SaslResponse{
 						ConversationID: j + 1,
 						Done:           false,
 						Payload:        []byte("firstReply"),
@@ -236,7 +237,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					}
 
 					conns[j] = &mockConnection{
-						ResponseQ: []*SaslResponse{saslStartReply},
+						ResponseQ: []*provider.SaslResponse{saslStartReply},
 					}
 				}
 
@@ -264,12 +265,12 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 	t.Run("failure from server after callback", func(t *testing.T) {
 		for i := 1; i < 3; i++ {
 			t.Run(fmt.Sprintf("%d conversation(s)", i), func(t *testing.T) {
-				subject := &SaslSessionAuthenticator{
+				subject := &provider.SaslSessionAuthenticator{
 					Source:    "db",
 					Username:  "user",
 					Mechanism: "MULTI",
 
-					Callback: func(convos []*SaslConversation) error {
+					Callback: func(convos []*provider.SaslConversation) error {
 						for _, convo := range convos {
 							convo.ClientDone = true
 							convo.Payload = []byte("second")
@@ -284,14 +285,14 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 				for j := 0; j < i; j++ {
 					subject.AddConversation([]byte("first"), false)
 
-					saslStartReply := &SaslResponse{
+					saslStartReply := &provider.SaslResponse{
 						ConversationID: j + 1,
 						Done:           false,
 						Payload:        []byte("firstReply"),
 						Ok:             1,
 					}
 
-					saslContinueReply := &SaslResponse{
+					saslContinueReply := &provider.SaslResponse{
 						ConversationID: j + 1,
 						Code:           143,
 						Done:           true,
@@ -300,7 +301,7 @@ func TestSaslSessionAuthenticator(t *testing.T) {
 					}
 
 					conns[j] = &mockConnection{
-						ResponseQ: []*SaslResponse{saslStartReply, saslContinueReply},
+						ResponseQ: []*provider.SaslResponse{saslStartReply, saslContinueReply},
 					}
 				}
 
@@ -360,7 +361,7 @@ func (a *dummyAuthenticator) Auth(context.Context, description.Server, driver.Co
 // responses from the server back to the client code.
 type mockConnection struct {
 	Sent      []bson.D
-	ResponseQ []*SaslResponse
+	ResponseQ []*provider.SaslResponse
 }
 
 func (c *mockConnection) WriteWireMessage(_ context.Context, wm []byte) error {

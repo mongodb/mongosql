@@ -209,23 +209,24 @@ func (s *Server) loadMongoDBInfo(ctx context.Context) error {
 		_ = adminSession.Close()
 	}()
 
-	i := &mongodb.Info{}
-	if err := i.LoadVersionInfo(ctx, adminSession); err != nil {
+	var version *mongodb.VersionInfo
+	version, err = adminSession.Version(ctx)
+	if err != nil {
 		return fmt.Errorf("failed to load server version information: %v", err)
 	}
 
 	topology := "standalone"
-	if adminSession.TopologyKind == mongodb.Sharded {
+	if adminSession.TopologyKind() == mongodb.Sharded {
 		topology = "mongos"
 	}
 
 	s.variables.SetSystemVariable(variable.MongoDBGitVersion,
-		values.NewSQLVarchar(values.VariableSQLValueKind, i.GitVersion))
-
+		values.NewSQLVarchar(values.VariableSQLValueKind, version.GitVersion))
 	s.variables.SetSystemVariable(variable.MongoDBTopology,
 		values.NewSQLVarchar(values.VariableSQLValueKind, topology))
 	s.variables.SetSystemVariable(variable.MongoDBVersion,
-		values.NewSQLVarchar(values.VariableSQLValueKind, i.Version))
+		values.NewSQLVarchar(values.VariableSQLValueKind, version.Version))
+
 	return nil
 }
 

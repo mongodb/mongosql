@@ -91,7 +91,7 @@ func (s Sampler) writeModeSample(ctx context.Context) (*schema.Schema, error) {
 	return schema.New(databases, false)
 }
 
-func (s Sampler) getWriteModeTables(ctx context.Context, session *mongodb.Session, db string) ([]*schema.Table, error) {
+func (s Sampler) getWriteModeTables(ctx context.Context, session *provider.Session, db string) ([]*schema.Table, error) {
 	collectionCursor, err := session.ListCollections(ctx, db, driver.CursorOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("can't get the collections for '%v': %v", db, err)
@@ -149,7 +149,7 @@ type indexInfo struct {
 	Weights bson.D `bson:"weights"`
 }
 
-func getIndexesInfo(ctx context.Context, session *mongodb.Session, db, col string) ([]indexInfo, error) {
+func getIndexesInfo(ctx context.Context, session *provider.Session, db, col string) ([]indexInfo, error) {
 	indexes := []indexInfo{}
 	indexCursor, err := session.ListIndexes(ctx, db, col)
 	if err != nil {
@@ -588,7 +588,7 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 			jsonSchema.InferSpecialTypes()
 
 			// 4. convert the JSON schema to a relational schema
-			version, versionErr := session.Version()
+			version, versionErr := session.Version(ctx)
 			if versionErr != nil {
 				return nil, fmt.Errorf(
 					"failed to obtain MongoDB server version during call to ReadSchema: %s",

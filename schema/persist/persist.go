@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/10gen/sqlproxy/internal/bsonutil"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema/drdl"
 
@@ -236,6 +235,6 @@ func (p Persistor) UpsertName(ctx context.Context, name string, schemaID primiti
 	return s.Upsert(ctx, p.schemaSourceDB, namesCollection, query, update)
 }
 
-func (p Persistor) session() (*mongodb.Session, error) {
+func (p Persistor) session() (*provider.Session, error) {
 	return p.sessionProvider.AuthenticatedAdminSessionPrimary()
 }

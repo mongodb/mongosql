@@ -9,7 +9,7 @@ import (
 
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
+	"github.com/10gen/sqlproxy/mongodb/provider"
 )
 
 func (c *conn) authClearTextPasswordPlugin(ctx context.Context) error {
@@ -47,7 +47,7 @@ func (c *conn) authClearTextPasswordPlugin(ctx context.Context) error {
 		return fmt.Errorf("GSSAPI over cleartext is not supported")
 	}
 
-	authenticator := mongodb.CleartextSessionAuthenticator{
+	authenticator := provider.CleartextSessionAuthenticator{
 		Source:    source,
 		Username:  username,
 		Password:  string(c.clientAuthResponse[:len(c.clientAuthResponse)-1]), //\0-terminated
@@ -77,7 +77,7 @@ func (c *conn) authMongoSQLAuthPlugin(ctx context.Context) error {
 
 func (c *conn) authMongoSQLAuthSASL(ctx context.Context, username, mechanism, source string) error {
 
-	cb := func(conversations []*mongodb.SaslConversation) error {
+	cb := func(conversations []*provider.SaslConversation) error {
 
 		var err error
 		var data []byte
@@ -126,7 +126,7 @@ func (c *conn) authMongoSQLAuthSASL(ctx context.Context, username, mechanism, so
 		return fmt.Errorf("failed reading auth more data response: %v", err)
 	}
 
-	authenticator := mongodb.SaslSessionAuthenticator{
+	authenticator := provider.SaslSessionAuthenticator{
 		Source:    source,
 		Username:  username,
 		Mechanism: mechanism,
@@ -205,7 +205,7 @@ func (c *conn) authMongoSQLAuthGSSAPI(ctx context.Context) error {
 		hostname = c.server.cfg.Net.BindIP[0]
 	}
 
-	authenticator := mongodb.GssapiSessionAuthenticator{
+	authenticator := provider.GssapiSessionAuthenticator{
 		InitialPayload: payload,
 		Callback:       cb,
 

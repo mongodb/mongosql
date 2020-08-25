@@ -1,7 +1,7 @@
 //+build gssapi
 //+build linux darwin windows
 
-package mongodb
+package provider
 
 import (
 	"context"

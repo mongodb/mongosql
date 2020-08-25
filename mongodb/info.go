@@ -9,6 +9,7 @@ import (
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
@@ -60,6 +61,24 @@ type Info struct {
 	// to keep these aside from Databases because Databases does not
 	// contain the SampleSource database.
 	sampleSourcePrivileges dbPrivilegeContainer
+}
+
+// CommandRunner is an interface for running any mongodb commands
+// required to get info for the Info type.
+type CommandRunner interface {
+	// ListCollections returns a cursor to iterate through the collections
+	// present on the db database with options opts.
+	ListCollections(ctx context.Context, db string, opts driver.CursorOptions) (Cursor, error)
+
+	// ListIndexes returns a cursor to iterate through the indexes on the
+	// col collection within the db database.
+	ListIndexes(ctx context.Context, db, col string) (Cursor, error)
+
+	// Run executes an arbitrary command against the given database.
+	Run(ctx context.Context, db string, cmd bson.D, result interface{}) error
+
+	// TopologyKind returns the TopologyKind for the CommandRunner.
+	TopologyKind() description.TopologyKind
 }
 
 // SetCompatibleVersion sets the compatible version and compatible version array.
@@ -116,10 +135,17 @@ type DatabaseInfo struct {
 	Collections map[CollectionName]*CollectionInfo
 }
 
+// VersionInfo contains server version info.
+type VersionInfo struct {
+	Version      string  `bson:"version"`
+	GitVersion   string  `bson:"gitVersion"`
+	VersionArray []uint8 `bson:"-"`
+}
+
 // LoadMetadata loads metadata - such as indexes and collection information - into the Info struct.
-func (i *Info) LoadMetadata(ctx context.Context, logger log.Logger, s *Session) {
+func (i *Info) LoadMetadata(ctx context.Context, logger log.Logger, cr CommandRunner) {
 	for _, dbInfo := range i.Databases {
-		err := dbInfo.loadMetadata(ctx, logger, s)
+		err := dbInfo.loadMetadata(ctx, logger, cr)
 		if err != nil {
 			logger.Warnf(
 				log.Admin,
@@ -127,26 +153,13 @@ func (i *Info) LoadMetadata(ctx context.Context, logger log.Logger, s *Session) 
 				dbInfo.Name, err,
 			)
 		}
-		dbInfo.loadIndexes(ctx, logger, s)
+		dbInfo.loadIndexes(ctx, logger, cr)
 	}
 }
 
-// LoadVersionInfo loads the MongoDB and git version into the Info struct.
-func (i *Info) LoadVersionInfo(ctx context.Context, s *Session) error {
-	version, err := s.Version()
-	if err != nil {
-		return err
-	}
-
-	i.GitVersion = version.GitVersion
-	i.Version = version.Version
-	i.VersionArray = version.VersionArray
-	return nil
-}
-
-func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger, s *Session) error {
+func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger, cr CommandRunner) error {
 	logger.Debugf(log.Dev, "running listCollections on database '%v'", dbInfo.CaseSensitiveName)
-	cursor, err := s.ListCollections(ctx, dbInfo.CaseSensitiveName, driver.CursorOptions{})
+	cursor, err := cr.ListCollections(ctx, dbInfo.CaseSensitiveName, driver.CursorOptions{})
 	if err != nil {
 		return fmt.Errorf("failed to run listCollections on database '%v': %v", dbInfo.CaseSensitiveName, err)
 	}
@@ -181,8 +194,8 @@ func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger,
 	}
 
 	// Check if the server is a mongos
-	if s.TopologyKind == description.Sharded {
-		dbInfo.loadShardingInfo(ctx, logger, s, viewToUnderlyingCollections)
+	if cr.TopologyKind() == description.Sharded {
+		dbInfo.loadShardingInfo(ctx, logger, cr, viewToUnderlyingCollections)
 	}
 
 	if err := cursor.Close(ctx); err != nil {
@@ -192,7 +205,7 @@ func (dbInfo *DatabaseInfo) loadMetadata(ctx context.Context, logger log.Logger,
 	return cursor.Err()
 }
 
-func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *Session) {
+func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, cr CommandRunner) {
 	for _, colInfo := range dbInfo.Collections {
 		dbName := dbInfo.CaseSensitiveName
 		colName := string(colInfo.Name)
@@ -207,7 +220,7 @@ func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *S
 		}
 
 		collectionIndexes, collectionIndex := []Index{}, Index{}
-		cursor, err := s.ListIndexes(ctx, dbName, colName)
+		cursor, err := cr.ListIndexes(ctx, dbName, colName)
 		if err != nil {
 			lg.Warnf(log.Admin, "failed to run listIndexes on namespace %q.%q: %v",
 				dbName, colName, err)
@@ -229,7 +242,7 @@ func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, s *S
 }
 
 // loadShardingInfo loads sharding information for the dbInfo map.
-func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Logger, session *Session,
+func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Logger, cr CommandRunner,
 	viewToUnderlyingCollection map[string]string) {
 
 	stats := struct {
@@ -263,7 +276,7 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Log
 				bsonutil.NewDocElem("collStats", collectionName),
 			)
 
-			err := session.Run(ctx, string(dbInfo.Name), collStatsCommand, &stats)
+			err := cr.Run(ctx, string(dbInfo.Name), collStatsCommand, &stats)
 			if err != nil {
 				logger.Warnf(
 					log.Admin,

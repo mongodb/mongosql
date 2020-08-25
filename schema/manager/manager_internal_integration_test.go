@@ -13,7 +13,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/option"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/stretchr/testify/require"
@@ -187,7 +186,7 @@ func TestWriteModeIntegration(t *testing.T) {
 	req.False(foundDB, "db was not removed in mongodb")
 }
 
-func findDB(dbName string, req *require.Assertions, session *mongodb.Session) bool {
+func findDB(dbName string, req *require.Assertions, session *provider.Session) bool {
 	ctx := context.Background()
 	dbs, err := session.ListDatabases(ctx)
 	req.Nil(err)
@@ -203,7 +202,7 @@ func findDB(dbName string, req *require.Assertions, session *mongodb.Session) bo
 func findCollectionsInDB(dbName, table1Name,
 	table2Name string,
 	req *require.Assertions,
-	session *mongodb.Session) (foundTable1, hasValidator1, foundTable2, hasValidator2 bool) {
+	session *provider.Session) (foundTable1, hasValidator1, foundTable2, hasValidator2 bool) {
 	ctx := context.Background()
 	collectionCursor, err := session.ListCollections(ctx, dbName, driver.CursorOptions{})
 	req.Nil(err)
@@ -235,7 +234,7 @@ func findCollectionsInDB(dbName, table1Name,
 	return
 }
 
-func cleanupData(session *mongodb.Session, databases ...string) {
+func cleanupData(session *provider.Session, databases ...string) {
 	for _, db := range databases {
 		dbutils.DropDatabase(session, db)
 	}

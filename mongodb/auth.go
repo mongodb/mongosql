@@ -140,7 +140,7 @@ func (i *Info) IsSecurityEnabled() bool {
 
 // LoadAuthInfo gathers the authorization information from MongoDB and propagates
 // it to the Info tree.
-func (i *Info) LoadAuthInfo(ctx context.Context, logger log.Logger, s *Session, sampleSource string) error {
+func (i *Info) LoadAuthInfo(ctx context.Context, logger log.Logger, cr CommandRunner, sampleSource string) error {
 	cmd := bsonutil.NewD(
 		bsonutil.NewDocElem("connectionStatus", 1),
 		bsonutil.NewDocElem("showPrivileges", 1),
@@ -148,7 +148,7 @@ func (i *Info) LoadAuthInfo(ctx context.Context, logger log.Logger, s *Session, 
 
 	var result connectionStatusResult
 	logger.Infof(log.Dev, "loading privilege information for current user")
-	if err := s.Run(ctx, "admin", cmd, &result); err != nil {
+	if err := cr.Run(ctx, "admin", cmd, &result); err != nil {
 		return fmt.Errorf("failed to load privilege information for the current user: %v", err)
 	}
 	i.loadAuthInfoFromConnectionStatus(&result, sampleSource)

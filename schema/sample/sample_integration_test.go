@@ -15,7 +15,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/internal/testutil/dbutils"
 	"github.com/10gen/sqlproxy/log"
-	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"go.mongodb.org/mongo-driver/bson"
@@ -912,7 +911,7 @@ func TestSampleEmptyFieldNames(t *testing.T) {
 	req.NotNil(idColumn, "expected '_id' column to exist")
 }
 
-func cleanupData(session *mongodb.Session, databases ...string) {
+func cleanupData(session *provider.Session, databases ...string) {
 	dbutils.DropDatabase(session, cfg.Schema.Stored.Source)
 	dbutils.DropDatabase(session, db1)
 	dbutils.DropDatabase(session, db2)
@@ -922,7 +921,7 @@ func cleanupData(session *mongodb.Session, databases ...string) {
 	}
 }
 
-func cleanupWriteData(session *mongodb.Session, databases ...string) {
+func cleanupWriteData(session *provider.Session, databases ...string) {
 	for _, db := range databases {
 		dbutils.DropDatabase(session, db)
 	}
