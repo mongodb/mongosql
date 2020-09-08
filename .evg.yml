@@ -2134,7 +2134,7 @@ axes:
   - id: windows
     display_name: Windows 64
     run_on:
-    - windows-64-vs2013-test
+    - windows-64-vs2019-small
     variables:
       _variant: windows
 
@@ -2520,7 +2520,7 @@ buildvariants:
   display_name: GSSAPI Auth Windows 64 (SSPI)
   expansions:
     _variant: windows
-  run_on: windows-64-vs2013-test
+  run_on: windows-64-vs2019-small
   tasks:
     - ".test .config .gssapi !.skip-windows"
 
