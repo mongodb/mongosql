@@ -1,0 +1,53 @@
+tests:
+  - description: Undelimited identifier containing a . character is a compound identifier
+    query: "SELECT a.c FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]"
+    result:
+      - {"c": 1}
+      - {}
+
+  - description: Delimited identifier containing a . character includes the .
+    query: "SELECT `a.c` FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]"
+    result:
+      - {"a.c": 2}
+      - {"a.c": 4}
+
+  - description: Undelimited identifier starting with digit is not parsed as an identifier
+    query: "SELECT 1a FROM [{'1a': 2}]"
+    expected_error: "error: undelimited identifiers may not start with a digit"
+
+  - description: Delimited identifier starting with digit is an identifier
+    query: "SELECT `1a` FROM [{'1a': 2}]"
+    result:
+      - {"1a": 2}
+
+  - description: Regular and delimited identifiers
+    query: "SELECT a, `b` FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]"
+    result:
+      - {"a": 1, "b": 2}
+      - {"a": 3, "b": 4}
+
+  - description: Identifier with non-ASCII characters
+    query: "SELECT αβγ FROM [{'αβγ': 1}]"
+    result:
+      - {"αβγ": 1}
+
+  - description: Compound identifier with > 3 parts
+    query: "SELECT a.b.c.d FROM [{'a': {'b': {'c': {'d': 1}}}}]"
+    result:
+      - {"d": 1}
+
+  - description: Compound identifier with mixed delimited and undelimited components
+    query: "SELECT `a.b`.c FROM [{'a.b': {'c': 1}, 'a': {'b': {'c': 2}, 'b.c': 3}}]"
+    result:
+      - {"c": 1}
+
+  - description: Case-sensitive identifiers
+    query: "SELECT a, A FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]"
+    result:
+      - {"a": 1, "A": 2}
+      - {"a": 3}
+      - {"A": 4}
+
+  - description: Identifiers cannot contain null character (hex)
+    query: "SELECT a\x00b FROM foo"
+    expected_error: "error: identifiers may not contain the null character \x00"
