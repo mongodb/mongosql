@@ -904,6 +904,9 @@ func (c *conn) run(ctx context.Context) {
 			default:
 			}
 			c.logger.Errf(log.Admin, "dispatch error: %v", err)
+			if _, ok := err.(*net.OpError); ok {
+				c.logger.Errf(log.Always, "Network error. If you are using mysql shell please turn off auto-rehash using  '-A' (or '--no-auto-rehash')")
+			}
 			if err != errBadConn {
 				c.writeError(err)
 			}
