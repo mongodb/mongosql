@@ -140,17 +140,18 @@ func (f *baseScalarFunctionExpr) asciiToAggregationLanguage(t *PushdownTranslato
 	// so the ascii function will return their actual ascii value.
 	// This checks string equality for the 0-127 ascii characters.
 	for i := 0; i <= 127; i++ {
-		int64i := int64(i)
+		runeV := rune(i)
+		int64V := int64(i)
 		if i == 0 {
 			// special case for both the empty string and the "\0" string
 			branches[i] = astutil.WrapInCase(
 				ast.NewBinary(bsonutil.OpOr,
 					ast.NewBinary(bsonutil.OpEq, firstChar, astutil.EmptyStringLiteral),
-					ast.NewBinary(bsonutil.OpEq, firstChar, astutil.StringValue(string(int64i)))),
-				astutil.Int64Value(int64i))
+					ast.NewBinary(bsonutil.OpEq, firstChar, astutil.StringValue(string(runeV)))),
+				astutil.Int64Value(int64V))
 		} else {
 			branches[i] = astutil.WrapInEqCase(
-				firstChar, astutil.StringValue(string(int64i)), astutil.Int64Value(int64i))
+				firstChar, astutil.StringValue(string(runeV)), astutil.Int64Value(int64V))
 		}
 	}
 

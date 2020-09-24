@@ -20,13 +20,13 @@
     fi
 
     go test -v \
-        -run "TestIntegration/$SUITE/$NAMES" \
-        -automate data,schema \
-        $test_pushdown_flag \
-        -timeout 4h \
-        -tags="ssl $BUILD_TAGS" \
         $BUILD_FLAGS \
+        -tags="ssl $BUILD_TAGS" \
+        -timeout 4h \
         $TEST_PARALLEL_FLAG \
+        -run "TestIntegration/$SUITE/$NAMES" \
+        $test_pushdown_flag \
+        -automate data,schema \
         > $test_pipe
 
     rm $test_pipe

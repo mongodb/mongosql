@@ -3,7 +3,7 @@
 if [ "$VARIANT" != "" ]; then
     ARCHIVE_FORMAT='tgz'
     JAVA_HOME='/opt/java/jdk8'
-    GOROOT='/opt/golang/go1.13'
+    GOROOT='/opt/golang/go1.15.0'
 fi
 
 ARCHIVE_CONTENT_TYPE='x-gzip'
@@ -223,6 +223,7 @@ ubuntu1804-s390x)
 	BUILD_FIPS='false'
     ;;
 windows)
+	BIN_TYPE_FLAG="-buildmode=exe"
     PUSH_ARCH='x86_64'
     PUSH_NAME='win32'
 	MONGO_DISTRO='windows'
@@ -230,8 +231,8 @@ windows)
     MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
     ARCHIVE_FORMAT='zip'
     ARCHIVE_CONTENT_TYPE='zip'
-    GOROOT='c:\golang\go1.13'
-    GOBINDIR='/cygdrive/c/golang/go1.13/bin'
+    GOROOT='c:\golang\go1.15'
+    GOBINDIR='/cygdrive/c/golang/go1.15/bin'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
     ;;
