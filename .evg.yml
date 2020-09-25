@@ -444,9 +444,7 @@ functions:
       params:
         working_dir: src/github.com/10gen/sqlproxy/testdata/artifacts
         script: |
-          if [ ${_variant} = "macos" ]; then
-            echo "Skipping creating sig files on macos"
-          else
+          if [ -f /usr/local/bin/notary-client.py ]; then
             /usr/local/bin/notary-client.py \
                 --key-name "bi-connector" \
                 --auth-token-file ${PROJECT_DIR}/signing_auth_token \
