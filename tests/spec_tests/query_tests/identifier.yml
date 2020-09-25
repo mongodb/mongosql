@@ -20,6 +20,16 @@ tests:
     result:
       - {"1a": 2}
 
+  - description: Backtick delimited identifiers containing delimiter characters
+    query: "SELECT `a``b`, `a\"b`, `a``\"b` FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}]"
+    result:
+      - {"a`b": 1, "a\"b": 2, "a`\"b": 3}
+
+  - description: Double quote delimited identifiers containing delimiter characters
+    query: "SELECT \"a`b\", \"a\"\"b\", \"a`\"\"b\" FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}]"
+    result:
+      - {"a`b": 1, "a\"b": 2, "a`\"b": 3}
+
   - description: Regular and delimited identifiers
     query: "SELECT a, `b` FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]"
     result:
