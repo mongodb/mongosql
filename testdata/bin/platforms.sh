@@ -31,6 +31,7 @@ centos6-perf)
     BUILD_GSSAPI='true'
     PYTHON_PATH='/opt/mongodbtoolchain/v3/bin'
 	BUILD_FIPS='true'
+    GOROOT='/opt/golang/go1.13'
     ;;
 debian81)
     PUSH_ARCH='x86_64-debian81'
@@ -58,6 +59,7 @@ macos)
 	MONGO_DISTRO='osx'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
+    GOROOT='/opt/golang/go1.13'
     ;;
 rhel62)
     PUSH_ARCH='x86_64-rhel62'
@@ -123,12 +125,14 @@ suse12)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
+    GOROOT='/opt/golang/go1.13'
     ;;
 suse15)
     PUSH_ARCH='x86_64-suse15'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
+    GOROOT='/opt/golang/go1.13'
     ;;
 suse12-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
@@ -137,6 +141,7 @@ suse12-s390x)
     CC='s390x-mongodb-linux-gcc'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
+    GOROOT='/opt/golang/go1.13'
     ;;
 suse15-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
@@ -145,6 +150,7 @@ suse15-s390x)
     CC='s390x-mongodb-linux-gcc'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
+    GOROOT='/opt/golang/go1.13'
     ;;
 suse15-ppc)
     LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'
@@ -152,6 +158,7 @@ suse15-ppc)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
+    GOROOT='/opt/golang/go1.13'
     ;;
 ubuntu1404)
     PUSH_ARCH='x86_64-ubuntu1404'
