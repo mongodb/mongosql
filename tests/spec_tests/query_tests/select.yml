@@ -1,0 +1,42 @@
+tests:
+  - description: Column names must be unique
+    query: "SELECT VALUE{'a': a, 'a': a} FROM [{}]"
+    error: "Column aliases must be unique. Found 'a' 2 times"
+
+  - description: Universal * cannot be used in conjunction with other select expressions
+    query: "SELECT *, a FROM [{}]"
+    error: "Universal * expression cannot be used in conjunction with other select expression. Here used with 'a'"
+
+  - description: Column aliases must be unique in the presence of generated aliases
+    query: "SELECT _2, 1+3 FROM [{}]"
+    error: "Column aliases must be unique. Found '_2' 2 times"
+
+  - description: SELECT VALUE only accepts documents, not arrays
+    query: SELECT VALUE [a, b]
+    error: "SELECT VALUE only accepts documents, not arrays"
+
+  - description: SELECT VALUE only accepts documents, not arbitrary field refs
+    query: "SELECT VALUE a"
+    error: "SELECT VALUE only accepts documents, not arbitrary field refs"
+
+  - description: * not allowed in SELECT VALUE
+    query: "SELECT VALUE {'a': *, 'b': b.*}"
+    error: "* expressions are not allowed in SELECT VALUE clauses"
+
+  - description: SELECT VALUES works with a CASE that can statically be proved to always create documents
+    query: "SELECT VALUE CASE WHEN a IS DOCUMENT THEN a ELSE {'hello': 'world'} END FROM [{'a': {'b': 2}}, 'a': 64}]"
+    result:
+      - {'a': {'b': 2}}
+      - {'hello': 'world'}
+
+  - description: SELECT VALUE version equivalent to select list
+    query: "SELECT VALUE {'a': a, 'b': b} FROM [{'a': {'c': 2}, 'b': 1}, {'a': 2, 'b': {'c': 2}}]"
+    result:
+     - {"a": {"c": 2}, "b": 1}
+     - {"a": 2, "b": {"c": 2}}
+
+  - description: Simple *
+    query: "SELECT * FROM [{'a': 1, 'b': 1}, {'a': 2, 'b': 2}]"
+    result:
+     - {"a": 1, "b": 1}
+     - {"a": 2, "b": 2}

@@ -1,0 +1,32 @@
+tests:
+  - description: Alias generated from identifier if not provided
+    query: "SELECT a, b"
+    result: "SELECT VALUE {a: a, b: b}"
+
+  - description: Aliases are rewritten to top-level field names, without 'AS'
+    query: "SELECT a a2, b b2"
+    result: "SELECT VALUE {a2: a, b2: b}"
+
+  - description: Aliases are rewritten to top-level field names, with 'AS'
+    query: "SELECT a AS a2, b AS b2"
+    result: "SELECT VALUE {a2: a, b2: b}"
+
+  - description: Compound identifiers rewritten to nested document
+    query: "SELECT foo.bar, foo.baz"
+    result: "SELECT VALUE {'foo': {'bar': foo.bar, 'baz': foo.baz}}"
+
+  - description: Sub-* rewritten to CASE resulting in documents
+    query: "SELECT a.*"
+    result: "SELECT VALUE CASE WHEN NOT a IS DOCUMENT THEN {'_1': a} ELSE a END"
+
+  - description: Two Sub-* with normal select column rewritten to concatenation of CASE resulting in documents with cases
+    query: "SELECT a.*, a, b.*"
+    result: "SELECT VALUE CASE WHEN NOT a IS DOCUMENT THEN {'_1': a} ELSE a END || {'a': a} || CASE WHEN NOT b IS DOCUMENT THEN {'_3': b} ELSE b END"
+
+  - description: Two Sub-* with normal select column rewritten to concatenation of CASE resulting in documents with cases, aliases are used when result of a.* is not a document
+    query: "SELECT a.* AS aStar, a, b.* AS bStar"
+    result: "SELECT VALUE CASE WHEN NOT a IS DOCUMENT THEN {'aStar': a} ELSE a END || {'a': a} || CASE WHEN NOT b IS DOCUMENT THEN {'bStar': b} ELSE b END"
+
+  - description: Alias generated from select-list position when not provided for non-identifier expressions
+    query: "SELECT a+b, c+d"
+    result: "SELECT VALUE {'_1': a+b, '_2': c+d}"
