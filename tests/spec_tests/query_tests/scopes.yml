@@ -1,0 +1,58 @@
+catalog_environment:
+    {
+        'foo': {
+            'bar': [
+                {
+                  'foo': [{
+                      'bar': 1,
+                      'baz': 2
+                   }]
+                }
+            ],
+            'coll': [
+                {
+                  'bar': 11,
+                  'car': 12
+                },
+                {
+                  'bar': -11,
+                  'car': -12
+                },
+                {
+                  'bar': 211,
+                  'car': 212
+                }
+            ],
+        }
+    }
+tests:
+  - description: Simple query with no ambiguity, note we are in the database foo
+    current_db: 'foo'
+    query: "SELECT bar, car FROM coll"
+    result:
+      - {'bar': 11, 'car': 12}
+      - {'bar': -11, 'car': -12}
+      - {'bar': 211, 'car': 212}
+
+  - description: foo.bar is the collection in the FROM because it is not prefixed by @
+    query: "SELECT * FROM foo.bar"
+    result:
+     - {'foo': [{'bar': 1, 'baz': 2}]}
+
+  - description: @foo is forced to be a value reference from the foo.bar collection (which is in scope from left to right in a comma join)
+    query: "SELECT * FROM foo.bar, @foo AS x"
+    result:
+        - {'bar': {'foo': [{'bar': 1, 'baz': 2}]}, x: {'bar': 1, 'baz': 2}}
+
+  - description: @foo is forced to be a value reference from the bar collection (which is in scope from left to right in a comma join)
+    current_db: 'foo'
+    query: "SELECT * FROM bar, @foo AS x"
+    result:
+        - {'foo': {'bar': {'foo': [{'bar': 1, 'baz': 2}]}}, x: {'bar': 1, 'baz': 2}}
+
+  - description: Show binding with subqueries: foo[0].bar is foo.bar from foo.bar, x.bar comes from foo.coll.
+    query: "SELECT (SELECT x.bar, foo[0].bar AS out from foo.bar WHERE foo[0].bar < x.bar) as res FROM  foo.coll AS x"
+    result:
+      - {'res': [{'bar': 11, 'out': 1}]}
+      - {'res': []}
+      - {'res': [{'bar': 211, 'out': 1}]}
