@@ -13,7 +13,7 @@ tests:
 
   - description: Undelimited identifier starting with digit is not parsed as an identifier
     query: "SELECT 1a FROM [{'1a': 2}]"
-    expected_error: "error: undelimited identifiers may not start with a digit"
+    error: "error: undelimited identifiers may not start with a digit"
 
   - description: Delimited identifier starting with digit is an identifier
     query: "SELECT `1a` FROM [{'1a': 2}]"
@@ -60,4 +60,4 @@ tests:
 
   - description: Identifiers cannot contain null character (hex)
     query: "SELECT a\x00b FROM foo"
-    expected_error: "error: identifiers may not contain the null character \x00"
+    error: "error: identifiers may not contain the null character \x00"
