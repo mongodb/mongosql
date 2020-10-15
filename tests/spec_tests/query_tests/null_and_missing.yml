@@ -1,0 +1,64 @@
+catalog_environment:
+    {
+        'foo': {
+            'bar': [
+                {
+                    'a': 42, 'b': null,
+                    'c': {'d': 'hello', 'e': 142}
+                },
+                {
+                    'a': 52,
+                    'c': {'d': 'world'}
+                }
+            ]
+        }
+    }
+tests:
+  - description: Normal non-missing reference
+    current_db: 'foo'
+    query: "SELECT a FROM bar"
+    result:
+        - {'a': 42}
+        - {'a': 52}
+
+  - description: NULL vs MISSING in direct field ref
+    current_db: 'foo'
+    query: "SELECT b FROM bar"
+    result:
+        - {'b': null}
+        - {}
+
+  - description: Normal field access
+    current_db: 'foo'
+    query: "SELECT c.d FROM bar"
+    result:
+        - {'d': 'hello'}
+        - {'d': 'world'}
+
+  - description: Scalar vs missing field ref
+    current_db: 'foo'
+    query: "SELECT c.e FROM bar"
+    result:
+        - {'e': 142}
+        - {}
+
+  - description: Scalar vs missing field ref: the field ref is upgraded to NULL because of +
+    current_db: 'foo'
+    query: "SELECT a, c.e, a + c.e FROM bar"
+    result:
+        - {'a': 42, 'e': 142, '_3': 184}
+        - {'a': 52, '_3': null}
+
+  - description: MISSING upgraded to NULL due to +
+    current_db: 'foo'
+    query: "SELECT b, c.e, b + c.e FROM bar"
+    result:
+        - {'b': null, 'e': 142, '_3': null}
+        - {'_3': null}
+
+  - description: MISSING fields in arrays are upgrade to NULLS
+    current_db: 'foo'
+    query: "SELECT [b, 2, c.e] AS arr FROM bar"
+    result:
+        - {'arr': [null, 2, 142]}
+        - {'arr': [null, 2, null]}
