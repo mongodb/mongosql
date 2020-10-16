@@ -1,0 +1,69 @@
+catalog_environment:
+    {
+        'foo': {
+            'bar': [
+                {
+                  'foo': [
+                      {
+                          'bar': 1,
+                          'baz': 2
+                      },
+                      {
+                          'z': 42
+                      }
+                   ]
+                }
+            ],
+            'arr': [
+               {'a': [[{'b': 1}, {'c': 2}]]}
+            ]
+        }
+    }
+tests:
+  - description: Simple from a fully qualified collection
+    query: "SELECT * FROM foo.bar"
+    result:
+      - {'foo': [{'bar': 1, 'baz': 2}, {'z': 42}]}
+
+  - description: Simple from a collection
+    current_db: 'foo'
+    query: "SELECT * FROM bar"
+    result:
+      - {'foo': [{'bar': 1, 'baz': 2}, {'z': 42}]}
+
+  - description: Simple from a collection with alias
+    current_db: 'foo'
+    query: "SELECT * FROM bar AS x"
+    result:
+      - {'foo': [{'bar': 1, 'baz': 2}, {'z': 42}]}
+
+  - description: From an array literal
+    query: "SELECT * FROM [{'a': 1, 'b': 2}, 43]"
+    result:
+      - {'a': 1, 'b': 2}
+      - {'_2':  43}
+
+  - description: From an array literal with explicit alias
+    query: "SELECT * FROM [{'a': 1, 'b': 2, 'x': 43}, 43] AS x"
+    result:
+      - {'a': 1, 'b': 2, 'x': 43}
+      - {'x':  43}
+
+  - description: Select from field access
+    current_db: 'foo'
+    query: "SELECT * FROM bar[0].foo"
+    result:
+      - {'bar': 1, 'baz': 2}
+      - {'z': 42}
+
+  - description: Select from array access
+    current_db: 'foo'
+    query: "SELECT * FROM arr[0].a[0]"
+    result:
+      - {'b': 1}
+      - {'c': 2}
+
+  - description: Select out of bounds
+    current_db: 'foo'
+    query: SELECT * FROM arr[100].a[100]
+    runtime_error: ""
