@@ -1,0 +1,74 @@
+catalog_environment:
+    {
+        "foo": {
+            "bar": [
+                {
+                   "foo": true,
+                },
+                {
+                   "foo": false
+                }
+            ],
+            "bar2": [
+                {
+                   "foo": true
+                }
+            ]
+        }
+    }
+
+schema_environment:
+    {
+        "foo": {
+            "bar": {
+                "$jsonSchema": {
+                    "bsonType": "object",
+                    "required": ["foo"]
+                    "properties": {
+                        "foo": {"bsonType": "boolean"}
+                    }
+                }
+            }
+        }
+    }
+tests:
+  - description: WHERE with BOOLEAN returning expression
+    query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] WHERE a >= 2"
+    result:
+        - {'a': 2}
+        - {'a': 3}
+
+  - description: WHERE with CAST to BOOLEAN
+    query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] WHERE CAST(a AS BOOLEAN)"
+    result:
+        - {'a': 1}
+        - {'a': 2}
+        - {'a': 3}
+
+  - description: WHERE with CASE that must return BOOLEAN
+    query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}] WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
+    result:
+        - {'a': true}
+        - {'a': true}
+
+  - description: NULL is a valid BOOLEAN
+    query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}] WHERE NULL"
+    result: []
+
+  - description: WHERE must be statically determined to be a BOOLEAN
+    query: "SELECT * FROM [{'a': 1}] WHERE a"
+    error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(a AS BOOLEAN)'"
+
+  - description: WHERE statically determined to be BOOLEAN from literal
+    query: "SELECT * FROM [{'a': true}] WHERE a"
+    result:
+        - {'a': true}
+
+  - description: WHERE statically determined to be BOOLEAN from schema
+    query: "SELECT * FROM bar WHERE NOT foo"
+    result:
+        - {'a': false}
+
+  - description: WHERE must be statically determined to be a BOOLEAN and no schema for bar2
+    query: "SELECT * FROM bar2 WHERE NOT foo"
+    error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(NOT foo AS BOOLEAN)'"
