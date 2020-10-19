@@ -1,0 +1,96 @@
+tests:
+  - description: SELECT empty document literal
+    query: "SELECT {}"
+    result:
+      - {"_1": {}}
+
+  - description: SELECT VALUE empty document literal
+    query: "SELECT VALUE {}"
+    result:
+      - {}
+
+  - description: SELECT non-empty document literals
+    query: "SELECT {'a': 1}, {'b': 2, 'c': 3}"
+    result:
+      - {"_1": {"a": 1}, "_2": {"b": 2, "c": 3}}
+
+  - description: SELECT VALUE non-empty document literal
+    query: "SELECT VALUE {'a': 1, 'b': 2, 'c': 3}"
+    result:
+      - {"a": 1, "b": 2, "c": 3}
+
+  - description: SELECT non-empty document literal with invalid (non-string) keys
+    query: "SELECT {1: 1, 2: 2}"
+    error: "error: invalid key 1: keys must be type string"
+
+  - description: FROM non-empty document literal with invalid (non-string) keys
+    query: "SELECT * FROM [{1: 1, 2: 2}]"
+    error: "error: invalid key 1: keys must be type string"
+
+  - description: Dot notation field access from literal document
+    query: "SELECT {'a': 1, 'b': 2}.a"
+    result:
+      - {"a": 1}
+
+  - description: Dot notation one-level field access
+    query: "SELECT a.b FROM [{'a': {'b': 100}}]"
+    result:
+      - {"b": 100}
+
+  - description: Dot notation multi-level field access
+    query: "SELECT a.b.c FROM [{'a': {'b': {'c': 100}}}]"
+    result:
+      - {"c": 100}
+
+  - description: Dot notation field access from statically known non-document
+    query: "SELECT 1.a"
+    error: "error: cannot use field access on non-document types"
+
+  - description: Dot notation SELECT all fields using *
+    query: "SELECT a.* FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}]"
+    result:
+      - {"*": 100, "b": 10, "c": 1}
+
+  - description: Dot notation SELECT field called *
+    query: "SELECT a.`*` FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}]"
+    result:
+      - {"*": 100}
+
+  - description: Bracket notation field access from literal document
+    query: "SELECT {'a': 1, 'b': 2}['a']"
+    result:
+      - {"a": 1}
+
+  - description: Bracket notation one-level field access
+    query: "SELECT a['b'] FROM [{'a': {'b': 100}}]"
+    result:
+      - {"b": 100}
+
+  - description: Bracket notation multi-level field access
+    query: "SELECT a['b']['c'] FROM [{'a': {'b': {'c': 100}}}]"
+    result:
+      - {"c": 100}
+
+  - description: Bracket notation field access from statically known non-document
+    query: "SELECT 1['a']"
+    error: "error: cannot use field access on non-document types"
+
+  - description: Bracket notatoin SELECT field called *
+    query: "SELECT a['*'] FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}]"
+    result:
+      - {"*": 100}
+
+  - description: Bracket notation non-string expression is invalid
+    query: "SELECT a[1] FROM [{'a': {'1': 100}}]"
+    error: "error: field access expression must statically evaluate to string"
+
+  - description: Bracket notation CAST to STRING expression
+    query: "SELECT a[CAST(b AS STRING)] FROM [{'a': {'c': 100}, 'b': 'c'}]"
+    result:
+      - {"c": 100}
+
+  - description: Mixed notation field access
+    query: "SELECT a.b['c'].d FROM [{'a': {'b': {'c': {'d': 100}}}}]"
+    result:
+      - {"d": 100}
+
