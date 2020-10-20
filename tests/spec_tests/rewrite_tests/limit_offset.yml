@@ -1,0 +1,4 @@
+tests:
+  - description: limit i, j will be rewritten to limit i offset j
+    query: "SELECT * FROM bar LIMIT 1, 1"
+    result: "SELECT * FROM bar LIMIT 1 OFFSET 1"

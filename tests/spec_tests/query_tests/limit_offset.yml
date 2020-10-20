@@ -1,0 +1,82 @@
+catalog_environment:
+  {
+      'foo': {
+          'bar': [
+              {
+                  'a': 1
+              },
+              {
+                  'a': 2
+              },
+              {
+                  'a': 3
+              },
+          ],
+          'baz': [
+              {
+                  'a': 1
+              },
+              {
+                  'a': 2
+              },
+          ]
+      }
+  }
+tests:
+  - description: Simple select with limit clause
+    current_db: foo
+    query: "SELECT * FROM bar ORDER BY a LIMIT 1"
+    result:
+      - {'bar': {'a': 1}}
+
+  - description: Simple select with offset clause
+    current_db: foo
+    query: "SELECT * FROM bar ORDER BY a OFFSET 1"
+    result:
+      - {'bar': {'a': 2}}
+      - {'bar': {'a': 3}}
+
+  - description: Limit number must be positive
+    current_db: foo
+    query: "SELECT * FROM bar ORDER BY a LIMIT -1"
+    error: "LIMIT must be positive"
+
+  - description: Limit number must be integer
+    current_db: foo
+    query: "SELECT * FROM bar ORDER BY a LIMIT 1.1"
+    error: "LIMIT must be an integer number"
+
+  - description: Offset number must be positive
+    current_db: foo
+    query: "SELECT * FROM bar ORDER BY a OFFSET -1"
+    error: "OFFSET must be positive"
+
+  - description: Offset number must be integer
+    current_db: foo
+    query: "SELECT * FROM bar ORDER BY a OFFSET 1.1"
+    error: "OFFSET must be an integer number"
+
+  - description: Select with limit + offset
+    current_db: foo
+    query: "SELECT * FROM bar ORDER BY a LIMIT 1 OFFSET 1"
+    result:
+      - {'bar': {'a': 2}}
+
+  - description: Limit in subquery
+    current_db: foo
+    query: "SELECT * FROM bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1)"
+    result:
+      - {'bar': {'a': 1}}
+
+  - description: Offset in subquery
+    current_db: foo
+    query: "SELECT * FROM bar WHERE a IN (SELECT a FROM baz ORDER BY a OFFSET 1)"
+    result:
+      - {'bar': {'a': 2}}
+      - {'bar': {'a': 3}}
+
+  - description: Limit + offset in subquery
+    current_db: foo
+    query: "SELECT * FROM bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1 OFFSET 1)"
+    result:
+      - {'bar': {'a': 2}}
