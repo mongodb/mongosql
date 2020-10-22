@@ -1,3 +1,16 @@
+catalog_environment:
+  {
+    'foo': {
+      'bar': [
+        {'_id': 1, 'a': {'b': 1}},
+        {'_id': 2, 'a': {'b': 2}},
+        {'_id': 3, 'a': 3},
+        {'_id': 4, 'a': null},
+        {'_id': 5}
+      ]
+    }
+  }
+
 tests:
   - description: SELECT empty document literal
     query: "SELECT {}"
@@ -45,6 +58,16 @@ tests:
   - description: Dot notation field access from statically known non-document
     query: "SELECT 1.a"
     error: "error: cannot use field access on non-document types"
+
+  - description: Dot notation field access from expression that evaluates to non-document at runtime
+    current_db: foo
+    query: "SELECT _id, a, a.b FROM bar ORDER BY _id"
+    result:
+      - {"_id": 1, "a": {"b": 1}, "b": 1},
+      - {"_id": 2, "a": {"b": 2}, "b": 2},
+      - {"_id": 3, "a": 3},
+      - {"_id": 4, "a": null},
+      - {"_id": 5}
 
   - description: Dot notation SELECT all fields using *
     query: "SELECT a.* FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}]"
