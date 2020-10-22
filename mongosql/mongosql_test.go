@@ -359,6 +359,14 @@ schema:
       MongoType: int
       SqlName: c
       SqlType: int32
+  - table: strings
+    collection: strings
+    pipeline: []
+    columns:
+    - Name: s
+      MongoType: string
+      SqlName: s
+      SqlType: varchar
   - table: DuAl
     collection: DuAl
     pipeline: []
@@ -762,6 +770,15 @@ schema:
 			expectedOutput:     `[{"$group": {"_id": {"group_key_0": {"$ifNull": ["$b",{"$literal": null}]},"group_key_1": {"$ifNull": ["$a",{"$literal": null}]}},"test_DOT_foo_DOT_A": {"$first": "$A"}}},{"$sort": {"test_DOT_foo_DOT_A": {"$numberInt":"1"}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "b"},"columnAlias": {"$literal": "b"},"bsonType": {"$literal": "long"},"value": "$_id.group_key_0"},{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"bsonType": {"$literal": "long"},"value": "$_id.group_key_1"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
+		},
+		{
+			desc:               "arithmetic aggregation functions reconcile their exprs",
+			query:              "select sum(s) from strings",
+			dbName:             testDBName,
+			ctlg:               testCatalogWithoutSharding,
+			expectedOutput:     `[{"$group": {"_id": {},"sum(Convert(test_DOT_strings_DOT_s, float))": {"$sum": {"$convert": {"input": "$s","to": "double","onError": {"$numberInt":"0"},"onNull": null}}},"sum(Convert(test_DOT_strings_DOT_s, float))_count": {"$sum": {"$cond": {"if": {"$lte": [{"$convert": {"input": "$s","to": "double","onError": {"$numberInt":"0"},"onNull": null}},null]},"then": {"$numberInt":"0"},"else": {"$numberInt":"1"}}}}}},{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": null},"tableAlias": {"$literal": null},"column": {"$literal": null},"columnAlias": {"$literal": "sum(s)"},"bsonType": {"$literal": "double"},"value": {"$cond": {"if": "$sum(Convert(test_DOT_strings_DOT_s, float))_count","then": "$sum(Convert(test_DOT_strings_DOT_s, float))","else": {"$literal": null}}}}],"_id": {"$numberInt":"0"}}}]`,
+			expectedDatabase:   testDBName,
+			expectedCollection: "strings",
 		},
 	}
 

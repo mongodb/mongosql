@@ -30,7 +30,7 @@ func NewQueryConfigFromTranslationConfig(tCfg *TranslationConfig) *evaluator.Que
 		tCfg.allowCountOptimization, tCfg.useInformationSchemaDual, tCfg.shouldPushDownEmptyResultSet,
 		tCfg.isCaseSensitive)
 	oCfg := evaluator.NewOptimizerConfig(lgr, collation.Default, values.MongoSQLValueKind,
-		true, true, true, true, false)
+		true, true, true, true, true)
 	pCfg := evaluator.NewPushdownConfig(lgr, tCfg.mdbVersion, tCfg.allowShardedLookups,
 		tCfg.allowCrossDBLookups, tCfg.allowRowGeneratorOptimization, tCfg.allowUUIDLiteralComparisons, tCfg.isCaseSensitive,
 		true, tCfg.shouldPushDownEmptyResultSet, true, values.MongoSQLValueKind, tCfg.format, tCfg.formatVersion)
