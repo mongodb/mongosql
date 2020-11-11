@@ -1,0 +1,90 @@
+catalog_environment:
+  {
+    'foo': {
+      'bar': [
+        {
+          'arr': [1, 2, 3],
+          'd': 2.3,
+          'i': 2
+        }
+      ]
+    }
+  }
+
+schema_environment:
+  {
+    'foo': {
+      'bar': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            'd': {
+              'bsonType': "double"
+            },
+            'i': {
+              'bsonType': "int"
+            },
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: SELECT empty array literal
+    query: "SELECT []"
+    result:
+      - {"_1": []}
+
+  - description: SELECT non-empty array literal
+    query: "SELECT [1, true, 'yes', {'a': 'b'}, [1.0, false]]"
+    result:
+      - {"_1": [1, true, 'yes', {'a': 'b'}, [1.0, false]]}
+
+  - description: Array index access - zero and positive indexes
+    current_db: foo
+    query: "SELECT arr[0] AS a, arr[1] AS b, arr[2] AS c FROM bar"
+    result:
+      - {"a": 1, "b": 2, "c": 3}
+
+  - description: Array index access - negative indexes
+    current_db: foo
+    query: "SELECT arr[-1] AS a, arr[-2] AS b, arr[-3] AS c FROM bar"
+    result:
+      - {"a": 3, "b": 2, "c": 1}
+
+  - description: Array index access - positive index out of bounds (MISSING)
+    current_db: foo
+    query: "SELECT arr[4] AS a FROM bar"
+    result:
+      - {}
+
+  - description: Array index access - negative index out of bounds (MISSING)
+    current_db: foo
+    query: "SELECT arr[-4] AS a FROM bar"
+    result:
+      - {}
+
+  - description: Array index access - null index
+    current_db: foo
+    query: "SELECT arr[NULL] AS a FROM bar"
+    result:
+      - {"a": null}
+
+  - description: Array index access - missing index
+    current_db: foo
+    query: "SELECT x, arr[x] AS a FROM bar"
+    result:
+      - {"a": null}
+
+  - description: Array index access - column known to be integer
+    current_db: foo
+    query: "SELECT arr, i, arr[i] AS a FROM bar"
+    result:
+      - {"arr": [1, 2, 3], "i": 2, "a": 3}
+
+  - description: Array index access - column CAST to integer
+    current_db: foo
+    query: "SELECT arr, d, arr[CAST(d AS INT)] AS a FROM bar"
+    result:
+      - {"arr": [1, 2, 3], "d": 2.3, "a": 3}
