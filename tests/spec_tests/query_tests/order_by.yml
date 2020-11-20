@@ -1,0 +1,105 @@
+catalog_environment:
+  {
+    'mydb': {
+      'foo': [
+        {'a': 1, 'b': 'def'},
+        {'a': 2, 'b': 'abc'},
+        {'a': 1, 'b': 'abc'},
+      ],
+      'nullAndMissing': [
+        {'a': null},
+        {},
+        {'a': null},
+      ],
+      'nullAndNonNull': [
+        {'a': null},
+        {'a': 1},
+        {'a': null},
+      ],
+    },
+  }
+
+schema_environment:
+  {
+    'mydb': {
+      'nullAndMissing': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            'a': {
+              'bsonType': "null"
+            },
+          }
+        }
+      }
+    }
+  }
+
+tests:
+
+  - description: ascending-sort correctness test
+    current_db: mydb
+    query: "SELECT VALUE {'a': a::INT} FROM foo ORDER BY a ASC"
+    result:
+      - {'a': 1}
+      - {'a': 1}
+      - {'a': 2}
+
+  - description: descending-sort correctness test
+    current_db: mydb
+    query: "SELECT VALUE {'a': a::int} FROM foo ORDER BY a DESC"
+    result:
+      - {'a': 2}
+      - {'a': 1}
+      - {'a': 1}
+
+  - description: multiple-sort-key correctness test
+    current_db: mydb
+    query: "SELECT VALUE {'a': a::int, 'b': b::string} FROM foo ORDER BY a ASC, b ASC"
+    result:
+      - {'a': 1, 'b': 'abc'}
+      - {'a': 1, 'b': 'def'}
+      - {'a': 2, 'b': 'abc'}
+
+  - description: missing sorts before null
+    current_db: mydb
+    query: "SELECT * FROM nullAndMissing ORDER BY a ASC"
+    result:
+      - {}
+      - {'a': null}
+      - {'a': null}
+
+  - description: null sorts before non-null values
+    current_db: mydb
+    query: "SELECT {'a': a::int} FROM nullAndNonNull ORDER BY a ASC"
+    result:
+      - {'a': null}
+      - {'a': null}
+      - {'a': 1}
+
+  - description: sort keys must be mutually comparable types
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo ORDER BY a ASC"
+    error: "sort keys must be mutually comparable types"
+
+  - description: column references in sort keys can be qualified with table name
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM nullAndMissing n ORDER BY n.a ASC"
+    result:
+      - {}
+      - {'a': null}
+      - {'a': null}
+
+  - description: ordering by a non-integer constant expression is an error
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1.0 DESC"
+    error: "sort key must be a column reference or integer column index"
+
+  - description: ordering by a complex expression is an error
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1 + 2 DESC"
+    error: "sort key must be a column reference or integer column index"
+
+  - description: ordering by a negative number is an error because it is a complex expr
+    query: "SELECT a FROM foo ORDER BY -1"
+    error: "sort key must be a column reference or integer column index"
