@@ -1,0 +1,52 @@
+catalog_environment:
+    {
+      'mydb': {
+        'foo': [
+          {'a': 1},
+          {'a': 2},
+          {'a': 1},
+        ],
+        'bar': [
+          {'b': 1, 'c': 1}
+        ]
+      },
+    }
+
+tests:
+
+  - description: collections with different schema can be unioned
+    current_db: mydb
+    query: "SELECT * FROM foo UNION SELECT * FROM bar"
+    ordered: false
+    result:
+      - {'a': 1}
+      - {'a': 2}
+      - {'b': 1, 'c': 1}
+
+  - description: basic union correctness test
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
+    ordered: false
+    result:
+      - {'a': 1}
+      - {'a': 2}
+
+  - description: basic union all correctness test
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo"
+    ordered: false
+    result:
+      - {'a': 1}
+      - {'a': 1}
+      - {'a': 1}
+      - {'a': 1}
+      - {'a': 2}
+      - {'a': 2}
+
+  - description: union is left associative
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
+    ordered: false
+    result:
+      - {'a': 1}
+      - {'a': 2}
