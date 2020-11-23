@@ -1,0 +1,4 @@
+tests:
+  - description: "Rewrite :: operator to CAST"
+    query: "SELECT a::STRING FROM foo"
+    result: "SELECT CAST(a AS STRING) FROM foo"

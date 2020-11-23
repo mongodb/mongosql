@@ -1,0 +1,1390 @@
+catalog_environment:
+  {
+    'foo': {
+      'doubles': [
+        { 'v': { '$numberDouble': "0" } },
+        { 'v': { '$numberDouble': "1.9" } },
+        { 'v': { '$numberDouble': "-2.4" } },
+        { 'v': { '$numberDouble': "2147483648.4" } },
+        { 'v': { '$numberDouble': "-2147483649.7" } }
+      ],
+      'strings': [
+        { 'v': "" },
+        { 'v': "string" },
+        { 'v': "true" },
+        { 'v': "false" },
+        { 'v': "0" },
+        { 'v': "0.0" },
+        { 'v': "1" },
+        { 'v': "-1" },
+        { 'v': "1.4" },
+        { 'v': "-1.6" },
+        { 'v': "2147483648" },
+        { 'v': "-2147483649" },
+        { 'v': "9223372036854775808" },
+        { 'v': "-9223372036854775809" },
+        { 'v': "5e550" },
+        { 'v': "2018-03-03" },
+        { 'v': "2018-03-20 11:00:06 +0500" },
+        { 'v': "5ab9cbfa31c2ab715d42129e" }
+      ],
+      'documents': [
+        { 'v': {} },
+        { 'v': { 'a': 1, 'b': 2 } }
+      ],
+      'arrays': [
+        { 'v': [] },
+        { 'v': [1, 2, 3] }
+      ],
+      'objectIDs': [
+        { 'v': { '$oid': "5ab9c3da31c2ab715d421285" } }
+      ],
+      'bools': [
+        { 'v': true },
+        { 'v': false }
+      ],
+      'dates': [
+        { 'v': { '$date': { '$numberLong': "0" } } },
+        { 'v': { '$date': { '$numberLong': "253402300799999" } } },
+        { 'v': { '$date': { '$numberLong': "-62135596800000" } } }
+      ],
+      'nullAndMissing': [
+        { 'v': null },
+        {}
+      ],
+      'ints': [
+        { 'v': { '$numberInt': "0" } },
+        { 'v': { '$numberInt': "1" } },
+        { 'v': { '$numberInt': "-2" } }
+      ],
+      'longs': [
+        { 'v': { '$numberLong': "0" } },
+        { 'v': { '$numberLong': "1" } },
+        { 'v': { '$numberLong': "-2" } },
+        { 'v': { '$numberLong': "2147483648" } },
+        { 'v': { '$numberLong': "-2147483649" } }
+      ],
+      'decimals': [
+        { 'v': { '$numberDecimal': "0" } },
+        { 'v': { '$numberDecimal': "1.9" } },
+        { 'v': { '$numberDecimal': "-2.4" } },
+        { 'v': { '$numberDecimal': "2147483648.4" } },
+        { 'v': { '$numberDecimal': "-2147483649.4" } },
+        { 'v': { '$numberDecimal': "9223372036854775808.8" } },
+        { 'v': { '$numberDecimal': "-9223372036854775809.8" } }
+      ],
+      'invalidSourceTypes': [
+        {
+          'type': "binData",
+          'v': {
+            '$binary': {
+              'base64': "yO2rw/c4TKO2jauSqRR4ow==",
+              'subtype': "04"
+            }
+          }
+        },
+        {
+          'type': "undefined",
+          'v': { '$undefined': true } },
+        {
+          'type': "regex",
+          'v': {
+            '$regularExpression': {
+              'pattern': "foo*",
+              'options': "ix"
+            }
+          }
+        },
+        {
+          'type': "dbPointer",
+          'v': {
+            '$dbPointer': {
+              '$ref': "foo",
+              '$id': { '$oid': "57e193d7a9cc81b4027498b5" }
+            }
+          }
+        },
+        {
+          'type': "javascript",
+          'v': { '$code': "function() {}" }
+        },
+        {
+          'type': "symbol",
+          'v': { '$symbol': "symbol" }
+        },
+        {
+          'type': "javascriptWithScope",
+          'v': {
+            '$code': "function() {}",
+            '$scope': {}
+          }
+        },
+        {
+          'type': "timestamp",
+          'v': {
+            '$timestamp': {
+              't': 42,
+              'i': 1
+            }
+          }
+        },
+        {
+          'type': "minKey",
+          'v': { '$minKey': 1 }
+        },
+        {
+          'type': "maxKey",
+          'v': { '$maxKey': 1 }
+        }
+      ]
+    }
+  }
+
+tests:
+  - description: Cast DOUBLE to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asBool": false }
+      - { "v": { "$numberDouble": "1.9" }, "asBool": true }
+      - { "v": { "$numberDouble": "-2.4" }, "asBool": true }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asBool": true }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asBool": true }
+
+  - description: Cast STRING to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM strings"
+    result:
+      - { "v": "", "asBool": true }
+      - { "v": "string", "asBool": true }
+      - { "v": "true", "asBool": true }
+      - { "v": "false", "asBool": true }
+      - { "v": "0", "asBool": true }
+      - { "v": "0.0", "asBool": true }
+      - { "v": "1", "asBool": true }
+      - { "v": "-1", "asBool": true }
+      - { "v": "1.4", "asBool": true }
+      - { "v": "-1.6", "asBool": true }
+      - { "v": "2147483648", "asBool": true }
+      - { "v": "-2147483649", "asBool": true }
+      - { "v": "9223372036854775808", "asBool": true }
+      - { "v": "-9223372036854775809", "asBool": true }
+      - { "v": "5e550", "asBool": true }
+      - { "v": "2018-03-03", "asBool": true }
+      - { "v": "2018-03-20 11:00:06 +0500", "asBool": true }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asBool": true }
+
+  - description: Cast DOCUMENT to BOOL is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBoolDefault, CAST(v AS BOOL, 'null' ON ERROR) AS asBoolOnError FROM documents"
+    result:
+      - { "v": {}, "asBoolDefault": null, "asBoolOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asBoolDefault": null, "asBoolOnError": "null" }
+
+  - description: Cast ARRAY to BOOL is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBoolDefault, CAST(v AS BOOL, 'null' ON ERROR) AS asBoolOnError FROM arrays"
+    result:
+      - { "v": [], "asBoolDefault": null, "asBoolOnError": "null" }
+      - { "v": [1, 2, 3], "asBoolDefault": null, "asBoolOnError": "null" }
+
+  - description: Cast OBJECTID to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asBool": true }
+
+  - description: Cast BOOL to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM bools"
+    result:
+      - { "v": true, "asBool": true }
+      - { "v": false, "asBool": false }
+
+  - description: Cast BSON_DATE to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asBool": true }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asBool": true }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asBool": true }
+
+  - description: Cast NULL and MISSING to BOOL, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBoolDefault, CAST(v AS BOOL, 'null' ON NULL) AS asBoolOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asBoolDefault": null, "asBoolOnNull": "null" }
+      - { "asBoolDefault": null, "asBoolOnNull": "null" }
+
+  - description: Cast INT to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asBool": false }
+      - { "v": { "$numberInt": "1" }, "asBool": true }
+      - { "v": { "$numberInt": "-2" }, "asBool": true }
+
+  - description: Cast LONG to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" }, "asBool": false }
+      - { "v": { "$numberLong": "1" }, "asBool": true }
+      - { "v": { "$numberLong": "-2" }, "asBool": true }
+      - { "v": { "$numberLong": "2147483648" }, "asBool": true }
+      - { "v": { "$numberLong": "-2147483649" }, "asBool": true }
+
+  - description: Cast DECIMAL to BOOL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" }, "asBool": false }
+      - { "v": { "$numberDecimal": "1.9" }, "asBool": true }
+      - { "v": { "$numberDecimal": "-2.4" }, "asBool": true }
+      - { "v": { "$numberDecimal": "2147483648.4" }, "asBool": true }
+      - { "v": { "$numberDecimal": "-2147483649.4" }, "asBool": true }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asBool": true }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asBool": true }
+
+  - description: Cast invalid source types to BOOL
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS BOOL) AS asBool FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asBool": null }
+      - { "type": "undefined", "asBool": null }
+      - { "type": "regex", "asBool": null }
+      - { "type": "dbPointer", "asBool": null }
+      - { "type": "javascript", "asBool": null }
+      - { "type": "symbol", "asBool": null }
+      - { "type": "javascriptWithScope", "asBool": null }
+      - { "type": "timestamp", "asBool": null }
+      - { "type": "minKey", "asBool": null }
+      - { "type": "maxKey", "asBool": null }
+
+  - description: Cast DOUBLE to INT, out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asInt": { "$numberInt": "0" } }
+      - { "v": { "$numberDouble": "1.9" }, "asInt": { "$numberInt": "1" } }
+      - { "v": { "$numberDouble": "-2.4" }, "asInt": { "$numberInt": "-2" } }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asInt": null }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asInt": null }
+
+  - description: Cast STRING to INT, non-numbers, non-ints, and out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM strings"
+    result:
+      - { "v": "", "asInt": null }
+      - { "v": "string", "asInt": null }
+      - { "v": "true", "asInt": null }
+      - { "v": "false", "asInt": null }
+      - { "v": "0", "asInt": 0 }
+      - { "v": "0.0", "asInt": null }
+      - { "v": "1", "asInt": { "$numberInt": "1" } }
+      - { "v": "-1", "asInt": { "$numberInt": "-1" } }
+      - { "v": "1.4", "asInt": null }
+      - { "v": "-1.6", "asInt": null }
+      - { "v": "2147483648", "asInt": null }
+      - { "v": "-2147483649", "asInt": null }
+      - { "v": "9223372036854775808", "asInt": null }
+      - { "v": "-9223372036854775809", "asInt": null }
+      - { "v": "5e550", "asInt": null }
+      - { "v": "2018-03-03", "asInt": null }
+      - { "v": "2018-03-20 11:00:06 +0500", "asInt": null }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asInt": null }
+
+  - description: Cast DOCUMENT to INT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM documents"
+    result:
+      - { "v": {}, "asIntDefault": null, "asIntOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asIntDefault": null, "asIntOnError": "null" }
+
+  - description: Cast ARRAY to INT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM arrays"
+    result:
+      - { "v": [], "asIntDefault": null, "asIntOnError": "null" }
+      - { "v": [1, 2, 3], "asIntDefault": null, "asIntOnError": "null" }
+
+  - description: Cast OBJECTID to INT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asIntDefault": null, "asIntOnError": "null" }
+
+  - description: Cast BOOL to INT
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM bools"
+    result:
+      - { "v": true, "asInt": { "$numberInt": "1" } }
+      - { "v": false, "asInt": { "$numberInt": "0" } }
+
+  - description: Cast BSON_DATE to INT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asIntDefault": null, "asIntOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asIntDefault": null, "asIntOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asIntDefault": null, "asIntOnError": "null" }
+
+  - description: Cast NULL and MISSING to INT, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON NULL) AS asIntOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asIntDefault": null, "asIntOnNull": "null" }
+      - { "asIntDefault": null, "asIntOnNull": "null" }
+
+  - description: Cast INT to INT
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asInt": { "$numberInt": "0" } }
+      - { "v": { "$numberInt": "1" }, "asInt": { "$numberInt": "-1" } }
+      - { "v": { "$numberInt": "-2" }, "asInt": { "$numberInt": "-2" } }
+
+  - description: Cast LONG to INT, out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" }, "asInt": { "$numberInt": "0" } }
+      - { "v": { "$numberLong": "1" }, "asInt": { "$numberInt": "1" } }
+      - { "v": { "$numberLong": "-2" }, "asInt": { "$numberInt": "-2" } }
+      - { "v": { "$numberLong": "2147483648" }, "asInt": null }
+      - { "v": { "$numberLong": "-2147483649" }, "asInt": null }
+
+  - description: Cast DECIMAL to INT, out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" }, "asInt": { "$numberInt": "0" } }
+      - { "v": { "$numberDecimal": "1.9" }, "asInt": { "$numberInt": "1" } }
+      - { "v": { "$numberDecimal": "-2.4" }, "asInt": { "$numberInt": "-2" } }
+      - { "v": { "$numberDecimal": "2147483648.4" }, "asInt": null }
+      - { "v": { "$numberDecimal": "-2147483649.4" }, "asInt": null }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asInt": null }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asInt": null }
+
+  - description: Cast invalid source types to INT
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS INT) AS asInt FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asInt": null }
+      - { "type": "undefined", "asInt": null }
+      - { "type": "regex", "asInt": null }
+      - { "type": "dbPointer", "asInt": null }
+      - { "type": "javascript", "asInt": null }
+      - { "type": "symbol", "asInt": null }
+      - { "type": "javascriptWithScope", "asInt": null }
+      - { "type": "timestamp", "asInt": null }
+      - { "type": "minKey", "asInt": null }
+      - { "type": "maxKey", "asInt": null }
+
+  - description: Cast DOUBLE to DECIMAL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asDecimal": { "$numberDecimal": "0" } }
+      - { "v": { "$numberDouble": "1.9" }, "asDecimal": { "$numberDecimal": "1.9" } }
+      - { "v": { "$numberDouble": "-2.4" }, "asDecimal": { "$numberDecimal": "-2.4" },  }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asDecimal": { "$numberDecimal": "2147483648.4" } }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asDecimal": { "$numberDecimal": "-2147483649.7" } }
+
+  - description: Cast STRING to DECIMAL, non-numbers return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM strings"
+    result:
+      - { "v": "", "asDecimal": null }
+      - { "v": "string", "asDecimal": null }
+      - { "v": "true", "asDecimal": null }
+      - { "v": "false", "asDecimal": null }
+      - { "v": "0", "asDecimal": { "$numberDecimal": "0" } }
+      - { "v": "0.0", "asDecimal": { "$numberDecimal": "0" } }
+      - { "v": "1", "asDecimal": { "$numberDecimal": "1" } }
+      - { "v": "-1", "asDecimal": { "$numberDecimal": "-1" } }
+      - { "v": "1.4", "asDecimal": { "$numberDecimal": "1.4" } }
+      - { "v": "-1.6", "asDecimal": { "$numberDecimal": "-1.6" } }
+      - { "v": "2147483648", "asDecimal": { "$numberDecimal": "2147483648" } }
+      - { "v": "-2147483649", "asDecimal": { "$numberDecimal": "-2147483649" } }
+      - { "v": "9223372036854775808", "asDecimal": { "$numberDecimal": "9223372036854775808" } }
+      - { "v": "-9223372036854775809", "asDecimal": { "$numberDecimal": "-9223372036854775809" } }
+      - { "v": "5e550", "asDecimal": { "$numberDecimal": "5E+550" } }
+      - { "v": "2018-03-03", "asDecimal": null }
+      - { "v": "2018-03-20 11:00:06 +0500", "asDecimal": null }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asDecimal": null }
+
+  - description: Cast DOCUMENT to DECIMAL is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON ERROR) AS asDecimalOnError FROM documents"
+    result:
+      - { "v": {}, "asDecimalDefault": null, "asDecimalOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asDecimalDefault": null, "asDecimalOnError": "null" }
+
+  - description: Cast ARRAY to DECIMAL is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON ERROR) AS asDecimalOnError FROM arrays"
+    result:
+      - { "v": [], "asDecimalDefault": null, "asDecimalOnError": "null" }
+      - { "v": [1, 2, 3], "asDecimalDefault": null, "asDecimalOnError": "null" }
+
+  - description: Cast OBJECTID to DECIMAL is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON ERROR) AS asDecimalOnError FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDecimalDefault": null, "asDecimalOnError": "null" }
+
+  - description: Cast BOOL to DECIMAL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM bools"
+    result:
+      - { "v": true, "asDecimal": { "$numberDecimal": "1" } }
+      - { "v": false, "asDecimal": { "$numberDecimal": "0" } }
+
+  - description: Cast BSON_DATE to DECIMAL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asDecimal": { "$numberDecimal": "0" } }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDecimal": { "$numberDecimal": "253402300799999" } }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDecimal": { "$numberDecimal": "-62135596800000" } }
+
+  - description: Cast NULL and MISSING to DECIMAL, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON NULL) AS asDecimalOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asDecimalDefault": null, "asDecimalOnNull": "null" }
+      - { "asDecimalDefault": null, "asDecimalOnNull": "null" }
+
+  - description: Cast INT to DECIMAL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asDecimal": { "$numberDecimal": "0" } }
+      - { "v": { "$numberInt": "1" }, "asDecimal": { "$numberDecimal": "1" } }
+      - { "v": { "$numberInt": "-2" }, "asDecimal": { "$numberDecimal": "-2" } }
+
+  - description: Cast LONG to DECIMAL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" }, "asDecimal": { "$numberDecimal": "0" } }
+      - { "v": { "$numberLong": "1" }, "asDecimal": { "$numberDecimal": "1" } }
+      - { "v": { "$numberLong": "-2" }, "asDecimal": { "$numberDecimal": "-2" } }
+      - { "v": { "$numberLong": "2147483648" }, "asDecimal": { "$numberDecimal": "2147483648" } }
+      - { "v": { "$numberLong": "-2147483649" }, "asDecimal": { "$numberDecimal": "-2147483649" } }
+
+  - description: Cast DECIMAL to DECIMAL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" }, "asDecimal": { "$numberDecimal": "0" } }
+      - { "v": { "$numberDecimal": "1.9" }, "asDecimal": { "$numberDecimal": "1.9" } }
+      - { "v": { "$numberDecimal": "-2.4" }, "asDecimal": { "$numberDecimal": "-2.4" } }
+      - { "v": { "$numberDecimal": "2147483648.4" }, "asDecimal": { "$numberDecimal": "2147483648.4" } }
+      - { "v": { "$numberDecimal": "-2147483649.4" }, "asDecimal": { "$numberDecimal": "-2147483649.4" } }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asDecimal": { "$numberDecimal": "9223372036854775808.8" } }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asDecimal": { "$numberDecimal": "-9223372036854775809.8" } }
+
+  - description: Cast invalid source types to DECIMAL
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS DECIMAL) AS asDecimal FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asDecimal": null }
+      - { "type": "undefined", "asDecimal": null }
+      - { "type": "regex", "asDecimal": null }
+      - { "type": "dbPointer", "asDecimal": null }
+      - { "type": "javascript", "asDecimal": null }
+      - { "type": "symbol", "asDecimal": null }
+      - { "type": "javascriptWithScope", "asDecimal": null }
+      - { "type": "timestamp", "asDecimal": null }
+      - { "type": "minKey", "asDecimal": null }
+      - { "type": "maxKey", "asDecimal": null }
+
+  - description: Cast DOUBLE to DOUBLE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asDouble": { "$numberDouble": "0" } }
+      - { "v": { "$numberDouble": "1.9" }, "asDouble": { "$numberDouble": "1.9" } }
+      - { "v": { "$numberDouble": "-2.4" }, "asDouble": { "$numberDouble": "-2.4" },  }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asDouble": { "$numberDouble": "2147483648.4" } }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asDouble": { "$numberDouble": "-2147483649.7" } }
+
+  - description: Cast STRING to DOUBLE, non-numbers and out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM strings"
+    result:
+      - { "v": "", "asDouble": null }
+      - { "v": "string", "asDouble": null }
+      - { "v": "true", "asDouble": null }
+      - { "v": "false", "asDouble": null }
+      - { "v": "0", "asDouble": { "$numberDouble": "0" } }
+      - { "v": "0.0", "asDouble": { "$numberDouble": "0" } }
+      - { "v": "1", "asDouble": { "$numberDouble": "1" } }
+      - { "v": "-1", "asDouble": { "$numberDouble": "-1" } }
+      - { "v": "1.4", "asDouble": { "$numberDouble": "1.4" } }
+      - { "v": "-1.6", "asDouble": { "$numberDouble": "-1.6" } }
+      - { "v": "2147483648", "asDouble": { "$numberDouble": "2147483648" } }
+      - { "v": "-2147483649", "asDouble": { "$numberDouble": "-2147483649" } }
+      - { "v": "9223372036854775808", "asDouble": { "$numberDouble": "9223372036854776000" } }
+      - { "v": "-9223372036854775809", "asDouble": { "$numberDouble": "-9223372036854776000" } }
+      - { "v": "5e550", "asDouble": null }
+      - { "v": "2018-03-03", "asDouble": null }
+      - { "v": "2018-03-20 11:00:06 +0500", "asDouble": null }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asDouble": null }
+
+  - description: Cast DOCUMENT to DOUBLE is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON ERROR) AS asDoubleOnError FROM documents"
+    result:
+      - { "v": {}, "asDoubleDefault": null, "asDoubleOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asDoubleDefault": null, "asDoubleOnError": "null" }
+
+  - description: Cast ARRAY to DOUBLE is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON ERROR) AS asDoubleOnError FROM arrays"
+    result:
+      - { "v": [], "asDoubleDefault": null, "asDoubleOnError": "null" }
+      - { "v": [1, 2, 3], "asDoubleDefault": null, "asDoubleOnError": "null" }
+
+  - description: Cast OBJECTID to DOUBLE is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON ERROR) AS asDoubleOnError FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDoubleDefault": null, "asDoubleOnError": "null" }
+
+  - description: Cast BOOL to DOUBLE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM bools"
+    result:
+      - { "v": true, "asDouble": { "$numberDouble": "1" } }
+      - { "v": false, "asDouble": { "$numberDouble": "0" } }
+
+  - description: Cast BSON_DATE to DOUBLE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asDouble": { "$numberDouble": "0" } }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDouble": { "$numberDouble": "253402300799999" } }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDouble": { "$numberDouble": "-62135596800000" } }
+
+  - description: Cast NULL and MISSING to DOUBLE, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON NULL) AS asDoubleOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asDoubleDefault": null, "asDoubleOnNull": "null" }
+      - { "asDoubleDefault": null, "asDoubleOnNull": "null" }
+
+  - description: Cast INT to DOUBLE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asDouble": { "$numberDouble": "0" } }
+      - { "v": { "$numberInt": "1" }, "asDouble": { "$numberDouble": "1" } }
+      - { "v": { "$numberInt": "-2" }, "asDouble": { "$numberDouble": "-2" } }
+
+  - description: Cast LONG to DOUBLE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" }, "asDouble": { "$numberDouble": "0" } }
+      - { "v": { "$numberLong": "1" }, "asDouble": { "$numberDouble": "1" } }
+      - { "v": { "$numberLong": "-2" }, "asDouble": { "$numberDouble": "-2" } }
+      - { "v": { "$numberLong": "2147483648" }, "asDouble": { "$numberDouble": "2147483648" } }
+      - { "v": { "$numberLong": "-2147483649" }, "asDouble": { "$numberDouble": "-2147483649" } }
+
+  - description: Cast DECIMAL to DOUBLE, out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" }, "asDouble": { "$numberDouble": "0" } }
+      - { "v": { "$numberDecimal": "1.9" }, "asDouble": { "$numberDouble": "1.9" } }
+      - { "v": { "$numberDecimal": "-2.4" }, "asDouble": { "$numberDouble": "-2.4" } }
+      - { "v": { "$numberDecimal": "2147483648.4" }, "asDouble": { "$numberDouble": "2147483648.4" } }
+      - { "v": { "$numberDecimal": "-2147483649.4" }, "asDouble": { "$numberDouble": "-2147483649.4" } }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asDouble": { "$numberDouble": "9223372036854780000" } }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asDouble": { "$numberDouble": "-9223372036854780000" } }
+
+  - description: Cast invalid source types to DOUBLE
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS DOUBLE) AS asDouble FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asDouble": null }
+      - { "type": "undefined", "asDouble": null }
+      - { "type": "regex", "asDouble": null }
+      - { "type": "dbPointer", "asDouble": null }
+      - { "type": "javascript", "asDouble": null }
+      - { "type": "symbol", "asDouble": null }
+      - { "type": "javascriptWithScope", "asDouble": null }
+      - { "type": "timestamp", "asDouble": null }
+      - { "type": "minKey", "asDouble": null }
+      - { "type": "maxKey", "asDouble": null }
+
+  - description: Cast DOUBLE to LONG
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asLong": { "$numberLong": "0" } }
+      - { "v": { "$numberDouble": "1.9" }, "asLong": { "$numberLong": "1" } }
+      - { "v": { "$numberDouble": "-2.4" }, "asLong": { "$numberLong": "-2" },  }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asLong": { "$numberLong": "2147483648" } }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asLong": { "$numberLong": "-2147483649" } }
+
+  - description: Cast STRING to LONG, non-numbers, non-ints, and out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM strings"
+    result:
+      - { "v": "", "asLong": null }
+      - { "v": "string", "asLong": null }
+      - { "v": "true", "asLong": null }
+      - { "v": "false", "asLong": null }
+      - { "v": "0", "asLong": { "$numberLong": "0" } }
+      - { "v": "0.0", "asLong": null }
+      - { "v": "1", "asLong": { "$numberLong": "1" } }
+      - { "v": "-1", "asLong": { "$numberLong": "-1" } }
+      - { "v": "1.4", "asLong": null }
+      - { "v": "-1.6", "asLong": null }
+      - { "v": "2147483648", "asLong": { "$numberLong": "2147483648" } }
+      - { "v": "-2147483649", "asLong": { "$numberLong": "-2147483649" } }
+      - { "v": "9223372036854775808", "asLong": null }
+      - { "v": "-9223372036854775809", "asLong": null }
+      - { "v": "5e550", "asLong": null }
+      - { "v": "2018-03-03", "asLong": null }
+      - { "v": "2018-03-20 11:00:06 +0500", "asLong": null }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asLong": null }
+
+  - description: Cast DOCUMENT to LONG is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON ERROR) AS asLongOnError FROM documents"
+    result:
+      - { "v": {}, "asLongDefault": null, "asLongOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asLongDefault": null, "asLongOnError": "null" }
+
+  - description: Cast ARRAY to LONG is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON ERROR) AS asLongOnError FROM arrays"
+    result:
+      - { "v": [], "asLongDefault": null, "asLongOnError": "null" }
+      - { "v": [1, 2, 3], "asLongDefault": null, "asLongOnError": "null" }
+
+  - description: Cast OBJECTID to LONG is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON ERROR) AS asLongOnError FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asLongDefault": null, "asLongOnError": "null" }
+
+  - description: Cast BOOL to LONG
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM bools"
+    result:
+      - { "v": true, "asLong": { "$numberLong": "1" } }
+      - { "v": false, "asLong": { "$numberLong": "0" } }
+
+  - description: Cast BSON_DATE to LONG
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asLong": { "$numberLong": "0" } }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asLong": { "$numberLong": "253402300799999" } }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asLong": { "$numberLong": "-62135596800000" } }
+
+  - description: Cast NULL and MISSING to LONG, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON NULL) AS asLongOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asLongDefault": null, "asLongOnNull": "null" }
+      - { "asLongDefault": null, "asLongOnNull": "null" }
+
+  - description: Cast INT to LONG
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asLong": { "$numberLong": "0" } }
+      - { "v": { "$numberInt": "1" }, "asLong": { "$numberLong": "1" } }
+      - { "v": { "$numberInt": "-2" }, "asLong": { "$numberLong": "-2" } }
+
+  - description: Cast LONG to LONG
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" }, "asLong": { "$numberLong": "0" } }
+      - { "v": { "$numberLong": "1" }, "asLong": { "$numberLong": "1" } }
+      - { "v": { "$numberLong": "-2" }, "asLong": { "$numberLong": "-2" } }
+      - { "v": { "$numberLong": "2147483648" }, "asLong": { "$numberLong": "2147483648" } }
+      - { "v": { "$numberLong": "-2147483649" }, "asLong": { "$numberLong": "-2147483649" } }
+
+  - description: Cast DECIMAL to LONG, out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" }, "asLong": { "$numberLong": "0" } }
+      - { "v": { "$numberDecimal": "1.9" }, "asLong": { "$numberLong": "1" } }
+      - { "v": { "$numberDecimal": "-2.4" }, "asLong": { "$numberLong": "-2" } }
+      - { "v": { "$numberDecimal": "2147483648.4" }, "asLong": { "$numberLong": "2147483648" } }
+      - { "v": { "$numberDecimal": "-2147483649.4" }, "asLong": { "$numberLong": "-2147483649" } }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asLong": null }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asLong": null }
+
+  - description: Cast invalid source types to LONG
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS LONG) AS asLong FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asLong": null }
+      - { "type": "undefined", "asLong": null }
+      - { "type": "regex", "asLong": null }
+      - { "type": "dbPointer", "asLong": null }
+      - { "type": "javascript", "asLong": null }
+      - { "type": "symbol", "asLong": null }
+      - { "type": "javascriptWithScope", "asLong": null }
+      - { "type": "timestamp", "asLong": null }
+      - { "type": "minKey", "asLong": null }
+      - { "type": "maxKey", "asLong": null }
+
+  - description: Cast DOUBLE to BSON_DATE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asDate": { "$date": { "$numberLong": "0" } } }
+      - { "v": { "$numberDouble": "1.9" }, "asDate": { "$date": { "$numberLong": "1" } } }
+      - { "v": { "$numberDouble": "-2.4" }, "asDate": { "$date": { "$numberLong": "-2" },  } }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asDate": { "$date": { "$numberLong": "2147483648" } } }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asDate": { "$date": { "$numberLong": "-2147483649" } } }
+
+  - description: Cast STRING to BSON_DATE, non-dates are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM strings"
+    result:
+      - { "v": "", "asDate": null }
+      - { "v": "string", "asDate": null }
+      - { "v": "true", "asDate": null }
+      - { "v": "false", "asDate": null }
+      - { "v": "0", "asDate": null }
+      - { "v": "0.0", "asDate": null }
+      - { "v": "1", "asDate": null }
+      - { "v": "-1", "asDate": null }
+      - { "v": "1.4", "asDate": null }
+      - { "v": "-1.6", "asDate": null }
+      - { "v": "2147483648", "asDate": null }
+      - { "v": "-2147483649", "asDate": null }
+      - { "v": "9223372036854775808", "asDate": null }
+      - { "v": "-9223372036854775809", "asDate": null }
+      - { "v": "5e550", "asDate": null }
+      - { "v": "2018-03-03", "asDate": { "$date": { "$numberLong": "1520035200000" } } }
+      - { "v": "2018-03-20 11:00:06 +0500", "asDate": { "$date": { "$numberLong": "1521525606000" } } }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asDate": null }
+
+  - description: Cast DOCUMENT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM documents"
+    result:
+      - { "v": {}, "asDateDefault": null, "asDateOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asDateDefault": null, "asDateOnError": "null" }
+
+  - description: Cast ARRAY to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM arrays"
+    result:
+      - { "v": [], "asDateDefault": null, "asDateOnError": "null" }
+      - { "v": [1, 2, 3], "asDateDefault": null, "asDateOnError": "null" }
+
+  - description: Cast OBJECTID to BSON_DATE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDate": { "$date": { "$numberLong": "1522123738000" } } }
+
+  - description: Cast BOOL to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM bools"
+    result:
+      - { "v": true, "asDateDefault": null, "asDateOnError": "null" }
+      - { "v": false, "asDateDefault": null, "asDateOnError": "null" }
+
+  - description: Cast BSON_DATE to BSON_DATE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asDate": { "$date": { "$numberLong": "0" } } }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDate": { "$date": { "$numberLong": "253402300799999" } } }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDate": { "$date": { "$numberLong": "-62135596800000" } } }
+
+  - description: Cast NULL and MISSING to BSON_DATE, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON NULL) AS asDateOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asDateDefault": null, "asDateOnNull": "null" }
+      - { "asDateDefault": null, "asDateOnNull": "null" }
+
+  - description: Cast INT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asDateDefault": null, "asDateOnError": "null" }
+      - { "v": { "$numberInt": "1" }, "asDateDefault": null, "asDateOnError": "null" }
+      - { "v": { "$numberInt": "-2" }, "asDateDefault": null, "asDateOnError": "null" }
+
+  - description: Cast LONG to BSON_DATE
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" }, "asDate": { "$date": { "$numberLong": "0" } } }
+      - { "v": { "$numberLong": "1" }, "asDate": { "$date": { "$numberLong": "1" } } }
+      - { "v": { "$numberLong": "-2" }, "asDate": { "$date": { "$numberLong": "-2" } } }
+      - { "v": { "$numberLong": "2147483648" }, "asDate": { "$date": { "$numberLong": "2147483648" } } }
+      - { "v": { "$numberLong": "-2147483649" }, "asDate": { "$date": { "$numberLong": "-2147483649" } } }
+
+  - description: Cast DECIMAL to BSON_DATE, out of range numbers are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" }, "asDate": { "$date": { "$numberLong": "0" } } }
+      - { "v": { "$numberDecimal": "1.9" }, "asDate": { "$date": { "$numberLong": "1" } } }
+      - { "v": { "$numberDecimal": "-2.4" }, "asDate": { "$date": { "$numberLong": "-2" } } }
+      - { "v": { "$numberDecimal": "2147483648.4" }, "asDate": { "$date": { "$numberLong": "2147483648" } } }
+      - { "v": { "$numberDecimal": "-2147483649.4" }, "asDate": { "$date": { "$numberLong": "-2147483649" } } }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asDate": null }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asDate": null }
+
+  - description: Cast invalid source types to BSON_DATE
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS BSON_DATE) AS asDate FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asDate": null }
+      - { "type": "undefined", "asDate": null }
+      - { "type": "regex", "asDate": null }
+      - { "type": "dbPointer", "asDate": null }
+      - { "type": "javascript", "asDate": null }
+      - { "type": "symbol", "asDate": null }
+      - { "type": "javascriptWithScope", "asDate": null }
+      - { "type": "timestamp", "asDate": null }
+      - { "type": "minKey", "asDate": null }
+      - { "type": "maxKey", "asDate": null }
+
+  - description: Cast DOUBLE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDouble": "1.9" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDouble": "-2.4" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast STRING to OBJECTID, non-objectIDs are invalid and return NULL
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectID FROM strings"
+    result:
+      - { "v": "", "asObjectID": null }
+      - { "v": "string", "asObjectID": null }
+      - { "v": "true", "asObjectID": null }
+      - { "v": "false", "asObjectID": null }
+      - { "v": "0", "asObjectID": null }
+      - { "v": "0.0", "asObjectID": null }
+      - { "v": "1", "asObjectID": null }
+      - { "v": "-1", "asObjectID": null }
+      - { "v": "1.4", "asObjectID": null }
+      - { "v": "-1.6", "asObjectID": null }
+      - { "v": "2147483648", "asObjectID": null }
+      - { "v": "-2147483649", "asObjectID": null }
+      - { "v": "9223372036854775808", "asObjectID": null }
+      - { "v": "-9223372036854775809", "asObjectID": null }
+      - { "v": "5e550", "asObjectID": null }
+      - { "v": "2018-03-03", "asObjectID": null }
+      - { "v": "2018-03-20 11:00:06 +0500", "asObjectID": null }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asObjectID": { "$oid": "5ab9cbfa31c2ab715d42129e" } }
+
+  - description: Cast DOCUMENT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM documents"
+    result:
+      - { "v": {}, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast ARRAY to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM arrays"
+    result:
+      - { "v": [], "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": [1, 2, 3], "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast OBJECTID to OBJECTID
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectID FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asObjectID": { "$oid": "5ab9c3da31c2ab715d421285" } }
+
+  - description: Cast BOOL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM bools"
+    result:
+      - { "v": true, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": false, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast BSON_DATE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast NULL and MISSING to OBJECTID, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON NULL) AS asObjectIDOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asObjectIDDefault": null, "asObjectIDOnNull": "null" }
+      - { "asObjectIDDefault": null, "asObjectIDOnNull": "null" }
+
+  - description: Cast INT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberInt": "1" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberInt": "-2" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast LONG to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberLong": "1" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberLong": "-2" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberLong": "2147483648" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberLong": "-2147483649" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast DECIMAL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDecimal": "1.9" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDecimal": "-2.4" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDecimal": "2147483648.4" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDecimal": "-2147483649.4" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+
+  - description: Cast invalid source types to OBJECTID
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS OBJECTID) AS asObjectID FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asObjectID": null }
+      - { "type": "undefined", "asObjectID": null }
+      - { "type": "regex", "asObjectID": null }
+      - { "type": "dbPointer", "asObjectID": null }
+      - { "type": "javascript", "asObjectID": null }
+      - { "type": "symbol", "asObjectID": null }
+      - { "type": "javascriptWithScope", "asObjectID": null }
+      - { "type": "timestamp", "asObjectID": null }
+      - { "type": "minKey", "asObjectID": null }
+      - { "type": "maxKey", "asObjectID": null }
+
+  - description: Cast DOUBLE to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asString": "0" }
+      - { "v": { "$numberDouble": "1.9" }, "asString": "1.9" }
+      - { "v": { "$numberDouble": "-2.4" }, "asString": "-2.4" }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asString": "2147483648.4" }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asString": "-2147483649.7" }
+
+  - description: Cast STRING to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM strings"
+    result:
+      - { "v": "", "asString": "" }
+      - { "v": "string", "asString": "string" }
+      - { "v": "true", "asString": "true" }
+      - { "v": "false", "asString": "false" }
+      - { "v": "0", "asString": "0" }
+      - { "v": "0.0", "asString": "0.0" }
+      - { "v": "1", "asString": "1" }
+      - { "v": "-1", "asString": "-1" }
+      - { "v": "1.4", "asString": "1.4" }
+      - { "v": "-1.6", "asString": "-1.6" }
+      - { "v": "2147483648", "asString": "2147483648" }
+      - { "v": "-2147483649", "asString": "-2147483649" }
+      - { "v": "9223372036854775808", "asString": "9223372036854775808" }
+      - { "v": "-9223372036854775809", "asString": "-9223372036854775809" }
+      - { "v": "5e550", "asString": "5e550" }
+      - { "v": "2018-03-03", "asString": "2018-03-03" }
+      - { "v": "2018-03-20 11:00:06 +0500", "asString": "2018-03-20 11:00:06 +0500" }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asString": "5ab9cbfa31c2ab715d42129e" }
+
+  - description: Cast DOCUMENT to STRING is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asStringDefault, CAST(v AS STRING, 'null' ON ERROR) AS asStringOnError FROM documents"
+    result:
+      - { "v": {}, "asStringDefault": null, "asStringOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asStringDefault": null, "asStringOnError": "null" }
+
+  - description: Cast ARRAY to STRING is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asStringDefault, CAST(v AS STRING, 'null' ON ERROR) AS asStringOnError FROM arrays"
+    result:
+      - { "v": [], "asStringDefault": null, "asStringOnError": "null" }
+      - { "v": [1, 2, 3], "asStringDefault": null, "asStringOnError": "null" }
+
+  - description: Cast OBJECTID to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asString": "5ab9c3da31c2ab715d421285" }
+
+  - description: Cast BOOL to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM bools"
+    result:
+      - { "v": true, "asString": "true" }
+      - { "v": false, "asString": "false" }
+
+  - description: Cast BSON_DATE to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asString": "1970-01-01T00:00:00.000Z" }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asString": "9999-12-31T23:59:59.999Z" }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asString": "0001-01-01T00:00:00.000Z" }
+
+  - description: Cast NULL and MISSING to STRING, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asStringDefault, CAST(v AS STRING, 'null' ON NULL) AS asStringOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asStringDefault": null, "asStringOnNull": "null" }
+      - { "asStringDefault": null, "asStringOnNull": "null" }
+
+  - description: Cast INT to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asString": "0" }
+      - { "v": { "$numberInt": "1" }, "asString": "1" }
+      - { "v": { "$numberInt": "-2" }, "asString": "-2" }
+
+  - description: Cast LONG to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" }, "asString": "0" }
+      - { "v": { "$numberLong": "1" }, "asString": "1" }
+      - { "v": { "$numberLong": "-2" }, "asString": "-2" }
+      - { "v": { "$numberLong": "2147483648" }, "asString": "2147483648" }
+      - { "v": { "$numberLong": "-2147483649" }, "asString": "-2147483649" }
+
+  - description: Cast DECIMAL to STRING
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" }, "asString": "0" }
+      - { "v": { "$numberDecimal": "1.9" }, "asString": "1.9" }
+      - { "v": { "$numberDecimal": "-2.4" }, "asString": "-2.4" }
+      - { "v": { "$numberDecimal": "2147483648.4" }, "asString": "2147483648.4" }
+      - { "v": { "$numberDecimal": "-2147483649.4" }, "asString": "-2147483649.4" }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asString": "9223372036854775808.8" }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asString": "-9223372036854775809.8" }
+
+  - description: Cast invalid source types to STRING
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS STRING) AS asString FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asString": null }
+      - { "type": "undefined", "asString": null }
+      - { "type": "regex", "asString": null }
+      - { "type": "dbPointer", "asString": null }
+      - { "type": "javascript", "asString": null }
+      - { "type": "symbol", "asString": null }
+      - { "type": "javascriptWithScope", "asString": null }
+      - { "type": "timestamp", "asString": null }
+      - { "type": "minKey", "asString": null }
+      - { "type": "maxKey", "asString": null }
+
+  - description: Cast DOUBLE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDouble": "1.9" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDouble": "-2.4" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast STRING to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM strings"
+    result:
+      - { "v": "", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "string", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "true", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "false", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "0", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "0.0", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "1", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "-1", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "1.4", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "-1.6", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "2147483648", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "-2147483649", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "9223372036854775808", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "-9223372036854775809", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "5e550", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "2018-03-03", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "2018-03-20 11:00:06 +0500", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast DOCUMENT to DOCUMENT
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocument FROM documents"
+    result:
+      - { "v": {}, "asDocument": {} }
+      - { "v": { "a": 1, "b": 2 }, "asDocument": { "a": 1, "b": 2 } }
+
+  - description: Cast ARRAY to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM arrays"
+    result:
+      - { "v": [], "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": [1, 2, 3], "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast OBJECTID to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast BOOL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM bools"
+    result:
+      - { "v": true, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": false, "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast BSON_DATE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast NULL and MISSING to DOCUMENT, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON NULL) AS asDocumentOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asDocumentDefault": null, "asDocumentOnNull": "null" }
+      - { "asDocumentDefault": null, "asDocumentOnNull": "null" }
+
+  - description: Cast INT to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberInt": "1" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberInt": "-2" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast LONG to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberLong": "1" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberLong": "-2" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberLong": "2147483648" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberLong": "-2147483649" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast DECIMAL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDecimal": "1.9" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDecimal": "-2.4" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDecimal": "2147483648.4" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDecimal": "-2147483649.4" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+
+  - description: Cast invalid source types to DOCUMENT
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS DOCUMENT) AS asDocument FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asDocument": null }
+      - { "type": "undefined", "asDocument": null }
+      - { "type": "regex", "asDocument": null }
+      - { "type": "dbPointer", "asDocument": null }
+      - { "type": "javascript", "asDocument": null }
+      - { "type": "symbol", "asDocument": null }
+      - { "type": "javascriptWithScope", "asDocument": null }
+      - { "type": "timestamp", "asDocument": null }
+      - { "type": "minKey", "asDocument": null }
+      - { "type": "maxKey", "asDocument": null }
+
+  - description: Cast DOUBLE to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM doubles"
+    result:
+      - { "v": { "$numberDouble": "0" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDouble": "1.9" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDouble": "-2.4" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDouble": "2147483648.4" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDouble": "-2147483649.7" }, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast STRING to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM strings"
+    result:
+      - { "v": "", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "string", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "true", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "false", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "0", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "0.0", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "1", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "-1", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "1.4", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "-1.6", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "2147483648", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "-2147483649", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "9223372036854775808", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "-9223372036854775809", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "5e550", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "2018-03-03", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "2018-03-20 11:00:06 +0500", "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": "5ab9cbfa31c2ab715d42129e", "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast DOCUMENT to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM documents"
+    result:
+      - { "v": {}, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "a": 1, "b": 2 }, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast ARRAY to ARRAY
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArray FROM arrays"
+    result:
+      - { "v": [], "asArray": [] }
+      - { "v": [1, 2, 3], "asArray": [1, 2, 3] }
+
+  - description: Cast OBJECTID to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM objectIDs"
+    result:
+      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast BOOL to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM bools"
+    result:
+      - { "v": true, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": false, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast BSON_DATE to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM dates"
+    result:
+      - { "v": { "$date": { "$numberLong": "0" } }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast NULL and MISSING to ARRAY, returns NULL by default and ON NULL when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON NULL) AS asArrayOnNull FROM nullAndMissing"
+    result:
+      - { "v": null, "asArrayDefault": null, "asArrayOnNull": "null" }
+      - { "asArrayDefault": null, "asArrayOnNull": "null" }
+
+  - description: Cast INT to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM ints"
+    result:
+      - { "v": { "$numberInt": "0" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberInt": "1" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberInt": "-2" }, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast LONG to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM longs"
+    result:
+      - { "v": { "$numberLong": "0" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberLong": "1" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberLong": "-2" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberLong": "2147483648" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberLong": "-2147483649" },, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast DECIMAL to ARRAY is invalid, returns NULL by default and ON ERROR when set
+    current_db: foo
+    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM decimals"
+    result:
+      - { "v": { "$numberDecimal": "0" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDecimal": "1.9" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDecimal": "-2.4" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDecimal": "2147483648.4" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDecimal": "-2147483649.4" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDecimal": "9223372036854775808.8" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - { "v": { "$numberDecimal": "-9223372036854775809.8" },, "asArrayDefault": null, "asArrayOnError": "null" }
+
+  - description: Cast invalid source types to ARRAY
+    current_db: foo
+    query: "SELECT type AS type, CAST(v AS ARRAY) AS asArray FROM invalidSourceTypes"
+    result:
+      - { "type": "binData", "asArray": null }
+      - { "type": "undefined", "asArray": null }
+      - { "type": "regex", "asArray": null }
+      - { "type": "dbPointer", "asArray": null }
+      - { "type": "javascript", "asArray": null }
+      - { "type": "symbol", "asArray": null }
+      - { "type": "javascriptWithScope", "asArray": null }
+      - { "type": "timestamp", "asArray": null }
+      - { "type": "minKey", "asArray": null }
+      - { "type": "maxKey", "asArray": null }
+
+  - description: Cast to BINDATA is invalid
+    query: "SELECT CAST('v' AS BINDATA)"
+    error: "error: invalid CAST target type 'BINDATA'"
+
+  - description: Cast to UNDEFINED is invalid
+    query: "SELECT CAST('v' AS UNDEFINED)"
+    error: "error: invalid CAST target type 'UNDEFINED'"
+
+  - description: Cast to REGEX is invalid
+    query: "SELECT CAST('v' AS REGEX)"
+    error: "error: invalid CAST target type 'REGEX'"
+
+  - description: Cast to DBPOINTER is invalid
+    query: "SELECT CAST('v' AS DBPOINTER)"
+    error: "error: invalid CAST target type 'DBPOINTER'"
+
+  - description: Cast to JAVASCRIPT is invalid
+    query: "SELECT CAST('v' AS JAVASCRIPT)"
+    error: "error: invalid CAST target type 'JAVASCRIPT'"
+
+  - description: Cast to SYMBOL is invalid
+    query: "SELECT CAST('v' AS SYMBOL)"
+    error: "error: invalid CAST target type 'SYMBOL'"
+
+  - description: Cast to JAVASCRIPTWITHSCOPE is invalid
+    query: "SELECT CAST('v' AS JAVASCRIPTWITHSCOPE)"
+    error: "error: invalid CAST target type 'JAVASCRIPTWITHSCOPE'"
+
+  - description: Cast to BSON_TIMESTAMP is invalid
+    query: "SELECT CAST('v' AS BSON_TIMESTAMP)"
+    error: "error: invalid CAST target type 'BSON_TIMESTAMP'"
+
+  - description: Cast to MINKEY is invalid
+    query: "SELECT CAST('v' AS MINKEY)"
+    error: "error: invalid CAST target type 'MINKEY'"
+
+  - description: Cast to MAXKEY is invalid
+    query: "SELECT CAST('v' AS MAXKEY)"
+    error: "error: invalid CAST target type 'MAXKEY'"
+
+  - description: Cast to DATE is invalid
+    query: "SELECT CAST('v' AS DATE)"
+    error: "error: invalid CAST target type 'DATE'"
+
+  - description: Cast to TIME is invalid
+    query: "SELECT CAST('v' AS TIME)"
+    error: "error: invalid CAST target type 'TIME'"
