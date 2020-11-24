@@ -30,3 +30,15 @@ tests:
   - description: Alias generated from select-list position when not provided for non-identifier expressions
     query: "SELECT a+b, c+d"
     result: "SELECT VALUE {'_1': a+b, '_2': c+d}"
+
+  - description: sql92 select with set quantifier rewritten to select value
+    query:  "SELECT DISTINCT a FROM foo"
+    result: "SELECT DISTINCT VALUE {'a': a} FROM foo"
+
+  - description: explicit ALL set quantifier rewritten to implicit ALL in select value
+    query:  "SELECT ALL VALUE {'a': 1} FROM foo"
+    result: "SELECT VALUE {'a': 1} FROM foo"
+
+  - description: explicit ALL set quantifier rewritten to implicit ALL in standard select
+    query:  "SELECT ALL a FROM foo"
+    result: "SELECT VALUE {'a': a} FROM foo"
