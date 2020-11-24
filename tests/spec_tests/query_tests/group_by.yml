@@ -132,7 +132,7 @@ tests:
     - description: multi-distinct aggregation function correctness test
       query: "SELECT suma AS suma, countc AS countc FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT (CAST a AS DOUBLE)) AS suma, COUNT(DISTINCT c) AS countc"
       result:
-          - {"a": {"$numberInt": "123"}, "c": {"$numberInt": "2"}}
+          - {"suma": {"$numberInt": "123"}, "countc": {"$numberInt": "2"}}
 
     - description: multi-item group key correctness test
       query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a, b AS b AGGREGATE SUM(CAST(c AS DOUBLE)) AS sumc"
