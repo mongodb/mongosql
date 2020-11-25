@@ -76,7 +76,7 @@ func (c *conn) writeFieldList(status uint16, fs []*Field) error {
 
 	for _, v := range fs {
 		data = data[0:4]
-		data = append(data, v.Dump(c.variables.GetCharset(variable.CharacterSetResults))...)
+		data = append(data, v.Dump(c.variables.GetCharset(variable.CharacterSetResults), true)...)
 		if err := c.writePacket(data); err != nil {
 			return err
 		}

@@ -24,7 +24,7 @@ type Field struct {
 }
 
 // Dump dumps a field as a byte array.
-func (f *Field) Dump(cs *collation.Charset) []byte {
+func (f *Field) Dump(cs *collation.Charset, fieldList bool) []byte {
 	if f.Data != nil {
 		return []byte(f.Data)
 	}
@@ -54,9 +54,16 @@ func (f *Field) Dump(cs *collation.Charset) []byte {
 	data = append(data, f.Decimal)
 	data = append(data, 0, 0)
 
-	if f.DefaultValue != nil {
-		data = append(data, uint64ToBytes(f.DefaultValueLength)...)
-		data = append(data, f.DefaultValue...)
+	if fieldList {
+		// Responses to COM_FIELD_LIST must contain the default values if they exist,
+		// or NULL if they do not exist.
+		if f.DefaultValue != nil {
+			data = append(data, uint64ToBytes(f.DefaultValueLength)...)
+			data = append(data, f.DefaultValue...)
+		} else {
+			// Here we must append NULL (0xfb) to state there are no default values.
+			data = append(data, 0xfb)
+		}
 	}
 
 	return data

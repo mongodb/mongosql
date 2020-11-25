@@ -347,7 +347,7 @@ func (c *conn) writeHeaders(columns []*results.Column, colID collation.ID) error
 		}
 
 		data = data[0:4]
-		data = append(data, field.Dump(c.variables.GetCharset(variable.CharacterSetResults))...)
+		data = append(data, field.Dump(c.variables.GetCharset(variable.CharacterSetResults), false)...)
 
 		// Write a column definition packet for each column in the resultset.
 		if err = c.writePacket(data); err != nil {

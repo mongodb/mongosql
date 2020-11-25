@@ -307,7 +307,7 @@ func (c *conn) writeResultset(r *Resultset) error {
 
 	for _, v := range r.Fields {
 		data = data[0:4]
-		data = append(data, v.Dump(c.variables.GetCharset(variable.CharacterSetResults))...)
+		data = append(data, v.Dump(c.variables.GetCharset(variable.CharacterSetResults), false)...)
 		if err := c.writePacket(data); err != nil {
 			return err
 		}
