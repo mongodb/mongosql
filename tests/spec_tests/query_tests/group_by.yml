@@ -107,7 +107,39 @@ tests:
         -  {"a": {"$numberInt": "2"}}
         -  {"a": null}
 
-    - description: GROUP BY keys may be document field references (contrast above, here a.a.a is essentially b.a.a.a which is always missing)
+    - description: qualified top-level field reference keys can be referenced by qualified name
+      query: "SELECT bar.a FROM foo.bar GROUP BY bar.a"
+      result:
+        - {"a": {"$numberInt": "1"}}
+        - {"a": {"$numberInt": "11"}}
+        - {"a": {"$numberInt": "111"}}
+
+    - description: qualified top-level field reference keys can be referenced by unqualified name
+      query: "SELECT a FROM foo.bar GROUP BY bar.a"
+      result:
+        - {"a": {"$numberInt": "1"}}
+        - {"a": {"$numberInt": "11"}}
+        - {"a": {"$numberInt": "111"}}
+
+    - description: unqualified top-level field reference keys can be referenced by qualified name
+      query: "SELECT bar.a FROM foo.bar GROUP BY a"
+      result:
+        - {"a": {"$numberInt": "1"}}
+        - {"a": {"$numberInt": "11"}}
+        - {"a": {"$numberInt": "111"}}
+
+    - description: unqualified top-level field reference keys can be referenced by unqualified name
+      query: "SELECT a FROM foo.bar GROUP BY a"
+      result:
+        - {"a": {"$numberInt": "1"}}
+        - {"a": {"$numberInt": "11"}}
+        - {"a": {"$numberInt": "111"}}
+
+    - description: top-level field reference keys cannot be referenced by qualified name if aliased
+      query: "SELECT bar.a FROM foo.bar GROUP BY bar.a AS a"
+      error: "unknown field 'bar'"
+
+    - description: GROUP BY keys may be document field references
       query: "SELECT * FROM foo.poly AS b GROUP by a.a.a"
       result:
         -  {"a": null}

@@ -5,63 +5,57 @@ tests:
 
   - description: Rewrite aggregate from multiple copies of same aggregate expression must create only one aggregate expression
     query: "SELECT SUM(a + 1) + 2, SUM(a + 1) + 2 FROM bar GROUP BY b HAVING SUM(a + 1) > 14"
-    result: "SELECT VALUE {'_1' : _agg1 + 2, '_2': _agg1 + 2} FROM bar AS bar GROUP BY b AS b AGGREGATE SUM(a + 1) AS _agg1 HAVING _agg1 > 14"
+    result: "SELECT VALUE {'_1' : _agg1 + 2, '_2': _agg1 + 2} FROM bar AS bar GROUP BY b AGGREGATE SUM(a + 1) AS _agg1 HAVING _agg1 > 14"
 
   - description: Rewrite agg functions not at the top level of expression tree
     query: "SELECT SUM(a + 2) + 1 FROM bar GROUP BY b"
-    result: "SELECT VALUE {'_1' : _agg1 + 1} FROM bar AS bar GROUP BY b AS b AGGREGATE SUM(a + 2) AS _agg1"
+    result: "SELECT VALUE {'_1' : _agg1 + 1} FROM bar AS bar GROUP BY b AGGREGATE SUM(a + 2) AS _agg1"
 
-  - description: Auto generate group key aliases for reference expressions
-    query: "SELECT * FROM foo GROUP BY a, b, c"
-    result: "SELECT * FROM foo AS foo GROUP BY a AS a, b AS b, c AS c"
+  - description: do not auto-generate group key aliases for top-level field references
+    query: "SELECT * FROM foo GROUP BY a, foo.b, c"
+    result: "SELECT * FROM foo AS foo GROUP BY a, foo.b, c"
 
-  - description: Auto generate group key aliases for table-qualified reference and document field reference expressions
-         foo.a is a table reference because foo is in scope from the FROM clause. bar.b is a document field reference, but this
-         has no syntactic affect on the rewrite.
-    query: "SELECT * FROM foo GROUP BY foo.a, bar.b"
-    result: "SELECT * FROM foo AS foo GROUP BY foo.a AS a, bar.b AS b"
+  - description: auto-generate group key aliases for subdocment field references
+    query: "SELECT * FROM foo GROUP BY foo.bar.c, bar.b"
+    result: "SELECT * FROM foo AS foo GROUP BY foo.bar.c AS c, bar.b AS b"
 
   - description: Auto generate group key aliases for non-reference expressions
     query: "SELECT * FROM foo GROUP BY a + b, c * d"
     result: "SELECT * FROM foo AS foo GROUP BY a + b AS _groupKey1, c * d AS _groupKey2"
 
-  - description: Auto generate group key aliases for references admidst explict aliases
-    query: "SELECT * FROM foo GROUP BY a, c AS ca"
-    result: "SELECT * FROM foo GROUP BY a AS a, c AS ca"
-
-  - description: Auto generate group key aliases for non-references admidst explict aliases
+  - description: Auto generate group key aliases for non-references amidst explict aliases
     query: "SELECT * FROM foo GROUP BY a * b AS a, c * d"
     result: "SELECT * FROM foo GROUP BY a * b AS a, c * d AS _groupKey2"
 
   - description: Auto generate group key aliases for mixed non-references and references
     query: "SELECT * FROM foo GROUP BY a, a + b, c, c * d, e"
-    result: "SELECT * FROM foo GROUP BY a AS a, a + b AS _groupKey2, c AS c, c * d AS _groupKey4, e AS e"
+    result: "SELECT * FROM foo GROUP BY a, a + b AS _groupKey2, c, c * d AS _groupKey4, e"
 
   - description: Rewrite GROUP BY such that SELECT aggregates are in the AGGREGATE clause
     query: "SELECT a, SUM(b) FROM bar GROUP BY a"
-    result: "SELECT VALUE{'a': a, '_2': _agg1} FROM bar AS bar GROUP BY a AS a AGGREGATE SUM(b) AS _agg1"
+    result: "SELECT VALUE{'a': a, '_2': _agg1} FROM bar AS bar GROUP BY a AGGREGATE SUM(b) AS _agg1"
 
   - description: Rewrite such that all HAVING aggregates are in AGGREGATE clause
     query: "SELECT * FROM bar GROUP BY a HAVING SUM(b) > 10"
-    result: "SELECT * FROM bar AS bar GROUP BY a AS a AGGREGATE SUM(b) AS _agg1 HAVING _agg1 > 10"
+    result: "SELECT * FROM bar AS bar GROUP BY a AGGREGATE SUM(b) AS _agg1 HAVING _agg1 > 10"
 
   - description: Deduplicate agg functions across SELECT and HAVING when rewriting into AGGREGATE
     query: "SELECT a, SUM(b) FROM bar GROUP BY a HAVING SUM(b) > 10"
-    result: "SELECT VALUE{'a': a, '_2': _agg1} FROM bar AS bar GROUP BY a AS a AGGREGATE SUM(b) AS _agg1 HAVING _agg1 > 10"
+    result: "SELECT VALUE{'a': a, '_2': _agg1} FROM bar AS bar GROUP BY a AGGREGATE SUM(b) AS _agg1 HAVING _agg1 > 10"
 
   - description: agg functions in SELECT are ordered based on first appearance lexically from left to right
       to decide position
     query: "SELECT SUM(x), SUM(y), SUM(x) FROM foo GROUP BY z"
-    result: "SELECT VALUE {'_1': _agg1, '_2': _agg2, '_3': _agg1} FROM foo GROUP BY z AS z AGGREGATE SUM(x) AS _agg1, SUM(Y) AS _agg2"
+    result: "SELECT VALUE {'_1': _agg1, '_2': _agg2, '_3': _agg1} FROM foo GROUP BY z AGGREGATE SUM(x) AS _agg1, SUM(Y) AS _agg2"
 
   - description: agg functions in HAVING are ordered based on first appearance lexically from left to right
       to decide position
     query: "SELECT * FROM foo GROUP BY z HAVING SUM(x) + SUM(y) > SUM(x)"
-    result: "SELECT * FROM foo GROUP BY z AS z AGGREGATE SUM(x) AS _agg1, SUM(Y) AS _agg2 HAVING _agg1 + _agg2 > _agg1"
+    result: "SELECT * FROM foo GROUP BY z AGGREGATE SUM(x) AS _agg1, SUM(Y) AS _agg2 HAVING _agg1 + _agg2 > _agg1"
 
   - description: agg functions from SELECT are ordered before agg functions from HAVING
     query: "SELECT SUM(x) AS sum FROM foo GROUP BY z HAVING COUNT(y) > 0"
-    result: "SELECT VALUE {'sum': _agg1} FROM foo AS foo GROUP BY z AS z AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2 HAVING _agg2 > 0"
+    result: "SELECT VALUE {'sum': _agg1} FROM foo AS foo GROUP BY z AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2 HAVING _agg2 > 0"
 
   - description: Rewrite ALL agg_functions into unmodified agg_functions
     query: "SELECT VALUE {'sum': sum} FROM foo GROUP BY z AGGREGATE SUM(ALL x) AS sum"
