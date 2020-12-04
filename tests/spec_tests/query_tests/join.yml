@@ -1,162 +1,131 @@
 catalog_environment:
     {
-        'foo': {
+        'mydb': {
             'bar': [
-                {
-                  'foo': [{
-                      'bar': 1,
-                      'baz': 2
-                   }]
-                },
-                {
-                   'foo': 42
-                }
+                { 'foo': 1 },
+                { 'foo': 42 },
             ],
             'bar2': [
-                {
-                   'foo': 42,
-                   'baz': 63
-                },
-                {
-                   'foo': 43
-                }
+                { 'foo': 42, 'baz': 63 },
+                { 'foo': 43 }
             ],
             'coll': [
-                {
-                  'bar': [[42, 53]],
-                  'car': 42
-                }
+                { 'bar': 53, 'car': 42 }
             ],
         }
     }
 
 schema_environment:
-    {
-        'foo': {
-            'bar': {
-                '$jsonSchema': {
-                    'bsonType': "object",
-                    'required': ['foo']
-                }
-            },
-            'bar2': {
-                '$jsonSchema': {
-                    'bsonType': "object",
-                    'required': ['foo']
-                }
-            }
+  {
+    'mydb': {
+      'bar': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            'foo': { 'bsonType': "double" },
+          }
         }
+      },
+      'bar2': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            'foo': { 'bsonType': "double" },
+            'baz': { 'bsonType': "double" },
+          }
+        }
+      },
+      'coll': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            'bar': { 'bsonType': "double" },
+            'car': { 'bsonType': "double" },
+          }
+        }
+      },
     }
+  }
 
 tests:
-  - description: Cross Join, note nested collection names
-    current_db: foo
+  - description: cross join correctness test
+    current_db: mydb
     query: "SELECT * FROM bar CROSS JOIN coll"
     result:
-        - {'bar': {'foo': [{'bar': 1, 'baz': 2}]}, 'coll': {'bar': [[42, 53]], 'car': 42}}
-        - {'bar': {'foo': 42}, 'coll': {'bar': [[42, 53]], 'car': 42}}
+        - {'foo': 1, 'bar': 53, 'car': 42}
+        - {'foo': 42, 'bar': 53, 'car': 42}
 
-  - description: Cross join with nested array, note that this looks like an INNER JOIN because it is matching the array in that given document
-    current_db: foo
-    query: "SELECT * FROM bar CROSS JOIN bar.foo"
-    result:
-        - {'bar': {'foo': [{'bar': 1, 'baz': 2}]}, 'foo': {'bar': 1, 'baz': 2}}
-        - {'bar': {'foo': 42}, 'foo': 42}
-
-  - description: Inner Join, note nested collection names
-    current_db: foo
+  - description: inner join correctness test
+    current_db: mydb
     query: "SELECT * FROM bar INNER JOIN coll ON bar.foo = coll.car"
     result:
-        - {'bar': {'foo': 42}, 'coll': {'bar': [[42, 53]], 'car': 42}}
+        - {'foo': 42, 'bar': 53, 'car': 42}
 
-  - description: ON with CAST to BOOLEAN
-    current_db: foo
-    query: "SELECT * FROM bar INNER JOIN coll ON CAST(bar.foo AS BOOLEAN)"
-    result:
-        - {'bar': {'foo': [{'bar': 1, 'baz': 2}]}, 'coll': {'bar': [[42, 53]], 'car': 42}}
-        - {'bar': {'foo': 42}, 'coll': {'bar': [[42, 53]], 'car': 42}}
-
-  - description: ON with CASE that must return BOOLEAN
-    current_db: foo
-    query: "SELECT * FROM bar INNER JOIN coll ON CASE WHEN bar.foo IS BOOLEAN THEN bar.foo ELSE false END"
-    result: []
-
-  - description: On must be statically determined to be a BOOLEAN
-    current_db: foo
-    query: "SELECT * FROM bar INNER JOIN coll ON bar.foo"
-    error: "ON expression must be BOOLEAN. Try changing to 'ON CAST(bar.foo AS BOOLEAN)'"
-
-  - description: Fully Qualified Inner Join, note only nested collection names, no database names
-    query: "SELECT * FROM foo.bar INNER JOIN foo.coll ON bar.foo = coll.car"
-    result:
-        - {'bar': {'foo': 42}, 'coll': {'bar': [[42, 53]], 'car': 42}}
-
-  - description: Union Join, note no nested names
-    current_db: foo
-    query: "SELECT * FROM bar UNION JOIN coll"
-    result:
-        - {'foo': [{'bar': 1, 'baz': 2}]}
-        - {'bar': [[42, 53]], 'car': 42}
-        - {'foo': 42}
-
-  - description: Union All self join
-    current_db: foo
-    query: "SELECT * FROM coll a UNION ALL JOIN coll b"
-    result:
-        - {'bar': [[42, 53]],'car': 42}
-        - {'bar': [[42, 53]],'car': 42}
-
-  - description: Union self join
-    current_db: foo
-    query: "SELECT * FROM coll a UNION JOIN coll b"
-    result:
-        - {'bar': [[42, 53]],'car': 42}
-
-  - description: Parenthesized join
-    current_db: foo
-    query: "SELECT * FROM coll a UNION JOIN (coll b UNION JOIN coll c)"
-    result:
-        - {'bar': [[42, 53]],'car': 42}
-
-  - description: Left join
-    current_db: foo
+  - description: left join correctness test
+    current_db: mydb
     query: "SELECT * from bar2 LEFT JOIN bar USING(foo)"
     result:
         - {'bar2': {'foo': 42, 'baz': 63}, 'bar': {'foo': 42}}
-        - {'bar2': {'foo': 43}, 'bar': {}}
+        - {'bar2': {'foo': 43}}
 
-  - description: Right join
-    current_db: foo
+  - description: right join correctness test
+    current_db: mydb
     query: "SELECT * from bar2 RIGHT JOIN bar USING(foo)"
     result:
         - {'bar': {'foo': 42}, 'bar2': {'foo': 42, 'baz': 63}}
-        - {'bar': {}, 'bar2': {'foo': 43}}
+        - {'bar2': {'foo': 43}}
 
-  - description: Natural Join, note no nested names
-    current_db: foo
-    query: "SELECT * FROM bar NATURAL JOIN bar2"
-    result:
-        - {'foo': 42, 'baz': 63}
-
-  - description: Natural Left Join, note no nested names
-    current_db: foo
-    query: "SELECT * FROM bar NATURAL LEFT JOIN bar2"
-    result:
-        - {'foo': [{'bar': 1, 'baz': 2}]}
-        - {'foo': 42, 'baz': 63}
-
-  - description: Natural Right Join, note no nested names
-    current_db: foo
-    query: "SELECT * FROM bar NATURAL RIGHT JOIN bar2"
-    result:
-        - {'foo': 42, 'baz': 63}
-        - {'foo': 43}
-
-  - description: Natural Join with missing schema is an error
-    current_db: foo
+  - description: natural join is not supported
+    current_db: mydb
     query: "SELECT * FROM bar NATURAL JOIN coll"
-    error: "Both collections in a NATURAL JOIN must have schemata, coll has no schema"
+    error: "natural join is not supported"
 
-  - description: Adding an alias to a join is an error
+  - description: join predicate must be statically determined to be a BOOLEAN
+    current_db: mydb
+    query: "SELECT * FROM bar INNER JOIN coll ON 123"
+    error: "join predicate must be boolean"
+
+  - description: join predicates can contain complex expressions
+    current_db: mydb
+    query: "SELECT * FROM bar INNER JOIN bar2 ON bar.foo + 15 > bar2.baz"
+    result:
+      - {'bar': {'foo': 42}, 'bar2': {'foo': 42, 'baz': 63}}
+
+  - description: join predicates can only reference datasource names from their own join
+    current_db: mydb
+    query: "SELECT * FROM [{'v': 1}] AS a INNER JOIN ([{'v': 1}] AS b INNER JOIN [{'v': 1}] AS c ON a.v = b.v)"
+    error: "unknown field 'a.v'"
+
+  - description: join predicates can reference columns by table-qualified names
+    current_db: mydb
+    query: "SELECT * FROM bar INNER JOIN coll ON bar.foo = coll.car"
+    result:
+        - {'foo': 42, 'bar': 53, 'car': 42}
+
+  - description: join predicates can reference columns by unambiguous unqualified names
+    current_db: mydb
+    query: "SELECT * FROM bar INNER JOIN coll ON foo = coll"
+    result:
+        - {'foo': 42, 'bar': 53, 'car': 42}
+
+  - description: a join datasource cannot be given an alias
     query: "SELECT * FROM (foo.bar CROSS JOIN foo.coll) AS x"
     error: "Whatever parse error our parser gives us"
+
+  - description: joins are left-associative
+    current_db: mydb
+    query: "SELECT * FROM bar AS a CROSS JOIN bar AS b LEFT JOIN bar AS c ON a.foo = c.foo"
+    result:
+      - {'a': {'foo':  1}, 'b': {'foo':  1}, 'c': {'foo':  1}}
+      - {'a': {'foo':  1}, 'b': {'foo': 42}, 'c': {'foo':  1}}
+      - {'a': {'foo': 42}, 'b': {'foo':  1}}
+      - {'a': {'foo': 42}, 'b': {'foo': 42}}
+      - {'a': {'foo':  1}, 'b': {'foo':  1}}
+      - {'a': {'foo':  1}, 'b': {'foo': 42}}
+      - {'a': {'foo': 42}, 'b': {'foo':  1}, 'c': {'foo': 42}}
+      - {'a': {'foo': 42}, 'b': {'foo': 42}, 'c': {'foo': 42}}
+
+  - description: all datasource names in FROM clause must be unique
+    current_db: mydb
+    query: "SELECT * FROM coll INNER JOIN coll USING(bar)"
+    error: "Aliases in FROM CLAUSE must be unique, found 2 instances of `coll`"

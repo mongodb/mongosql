@@ -1,0 +1,12 @@
+tests:
+  - description: generate alias for unqualified collection reference
+    query: "SELECT * FROM foo"
+    result: "SELECT * FROM foo AS foo"
+
+  - description: generate alias for qualified collection reference
+    query: "SELECT * FROM mydb.foo"
+    result: "SELECT * FROM mydb.foo AS foo"
+
+  - description: explicit alias should be left unmodified
+    query: "SELECT * FROM mydb.foo AS bar"
+    result: "SELECT * FROM mydb.foo AS bar"

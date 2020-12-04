@@ -1,0 +1,40 @@
+tests:
+  - description: basic array datasource correctness test
+    query: "SELECT * FROM [{a: 1, b: 1}] AS arr"
+    result:
+      - {'a': 1, 'b': 1}
+
+  - description: unqualified reference to field from array datasource
+    query: "SELECT a FROM [{a: 1, b: 1}] AS arr"
+    result:
+      - {'a': 1}
+
+  - description: qualified reference to field from array datasource
+    query: "SELECT arr.a FROM [{a: 1, b: 1}] AS arr"
+    result:
+      - {'a': 1}
+
+  - description: array datasource must have alias
+    query: "SELECT * FROM [{a: 1}]"
+    error: "parse error: expected <alias>, found EOI"
+
+  - description: empty array datasource is allowed
+    query: "SELECT * FROM [] AS arr"
+    result: []
+
+  - description: array datasource with single empty document is allowed
+    query: "SELECT * FROM [{}] AS _dual"
+    result:
+      - {}
+
+  - description: array datasource elements must be documents
+    query: "SELECT * FROM [{a: 1}, null] AS arr"
+    error: "array datasource elements must be documents"
+
+  - description: array datasource must be array literal
+    query: "SELECT * FROM {'a': [{b: 1}]}['a'] AS arr"
+    error: "parse error"
+
+  - description: array datasource cannot be referenced as value
+    query: "SELECT arr FROM [{'a': 1}] AS arr"
+    error: "unknown field 'arr'"

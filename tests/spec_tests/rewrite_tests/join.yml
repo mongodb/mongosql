@@ -1,20 +1,4 @@
 tests:
-  - description: Rewrite comma join to cross join
-    current_db: foo
+  - description: rewrite comma join to cross join
     query: "SELECT * FROM foo, bar, baz"
     result: "SELECT * FROM foo AS foo CROSS JOIN bar AS bar CROSS JOIN baz AS baz"
-
-  - description: Rewrite full outer join to union of left and right join
-    current_db: foo
-    query: "SELECT * FROM bar FULL OUTER JOIN coll"
-    result: "SELECT * FROM bar AS bar LEFT OUTER JOIN coll AS coll UNION JOIN bar AS bar RIGHT OUTER JOIN coll AS coll"
-
-  - description: From aliases must be unique
-    current_db: foo
-    query: "SELECT * FROM coll INNER JOIN coll USING(bar)"
-    error: "Aliases in FROM CLAUSE must be unique, found 2 instances of `coll`"
-
-  - description: Rewrite USING to equality ON
-    current_db: foo
-    query: "SELECT * FROM coll AS a INNER JOIN coll AS b USING(bar, car)"
-    result: "SELECT * FROM coll AS a INNER JOIN coll AS b ON a.bar = b.bar AND a.car = b.car"
