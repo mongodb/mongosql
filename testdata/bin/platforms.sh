@@ -58,7 +58,6 @@ macos)
 	MONGO_DISTRO='osx'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='false'
-    GOROOT='/opt/golang/go1.14'
     ;;
 rhel62)
     PUSH_ARCH='x86_64-rhel62'
@@ -124,14 +123,12 @@ suse12)
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
-    GOROOT='/opt/golang/go1.13'
     ;;
 suse15)
     PUSH_ARCH='x86_64-suse15'
     PUSH_NAME='linux'
     BUILD_GSSAPI='true'
 	BUILD_FIPS='true'
-    GOROOT='/opt/golang/go1.13'
     ;;
 suse12-s390x)
     LIBRARY_PATH='/opt/mongodbtoolchain/v3/bin/'

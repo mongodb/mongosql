@@ -2237,14 +2237,14 @@ axes:
     variables:
       _variant: suse12
     run_on:
-    - suse12-test
+    - suse12-sp5-small
 
   - id: suse15-64
     display_name: SLES 15
     variables:
       _variant: suse15
     run_on:
-    - suse15-test
+    - suse15sp2-small
     batchtime: 10080 # 1 week
 
   - id: suse12-s390x
