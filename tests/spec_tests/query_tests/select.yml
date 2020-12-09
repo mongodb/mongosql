@@ -1,48 +1,86 @@
+catalog_environment:
+  mydb:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': 1}
+      - {'_id': 1, 'a': 2, 'b': 2}
+    bar:
+      - {'_id': 0, 'a': 1}
+      - {'_id': 1, 'a': 2}
+      - {'_id': 2, 'a': 1}
+
 tests:
-  - description: Column names must be unique
-    query: "SELECT VALUE{'a': a, 'a': a} FROM [{}]"
+  - description: key names in SELECT VALUE document must be unique
+    current_db: mydb
+    query: "SELECT VALUE {'a': a, 'a': a} FROM foo AS f"
     error: "Column aliases must be unique. Found 'a' 2 times"
 
-  - description: Universal * cannot be used in conjunction with other select expressions
-    query: "SELECT *, a FROM [{}]"
-    error: "Universal * expression cannot be used in conjunction with other select expression. Here used with 'a'"
+  - description: star cannot be used in conjunction with other select expressions
+    current_db: mydb
+    query: "SELECT *, a FROM foo AS f"
+    error: "star cannot be used in conjunction with other select expressions"
 
-  - description: Column aliases must be unique in the presence of generated aliases
-    query: "SELECT _2, 1+3 FROM [{}]"
-    error: "Column aliases must be unique. Found '_2' 2 times"
+  - description: star cannot be used in SELECT VALUE
+    current_db: mydb
+    query: "SELECT VALUE * FROM foo AS f"
+    error: "star cannot be used in SELECT VALUE"
 
-  - description: SELECT VALUE only accepts documents, not arrays
-    query: SELECT VALUE [a, b]
-    error: "SELECT VALUE only accepts documents, not arrays"
+  - description: star is not an ordinary expression
+    current_db: mydb
+    query: "SELECT VALUE {'a': *} FROM foo AS f"
+    error: "parse error: expected <expr>, found STAR"
 
-  - description: SELECT VALUE only accepts documents, not arbitrary field refs
-    query: "SELECT VALUE a"
-    error: "SELECT VALUE only accepts documents, not arbitrary field refs"
+  - description: substar is not an ordinary expression
+    current_db: mydb
+    query: "SELECT VALUE {'a': foo.*} FROM foo AS foo"
+    error: "parse error: expected <ident>, found STAR"
 
-  - description: * not allowed in SELECT VALUE
-    query: "SELECT VALUE {'a': *, 'b': b.*}"
-    error: "* expressions are not allowed in SELECT VALUE clauses"
+  - description: aliases disallowed for substar expressions in SELECT VALUE
+    current_db: mydb
+    query: "SELECT VALUE t.* AS a FROM foo AS f"
+    error: "parse error: unexpected AS"
 
-  - description: SELECT VALUES works with a CASE that can statically be proved to always create documents
-    query: "SELECT VALUE CASE WHEN a IS DOCUMENT THEN a ELSE {'hello': 'world'} END FROM [{'a': {'b': 2}}, 'a': 64}]"
+  - description: aliases disallowed for substar expressions in standard SELECT
+    current_db: mydb
+    query: "SELECT t.* AS a FROM foo AS f"
+    error: "parse error: unexpected AS"
+
+  - description: aliases disallowed for document expressions in SELECT VALUE
+    current_db: mydb
+    query: "SELECT VALUE {'a': 1} AS a FROM foo AS f"
+    error: "parse error: unexpected AS"
+
+  - description: duplicate datasource names disallowed in SELECT VALUES
+    current_db: mydb
+    query: "SELECT VALUES f.*, f.* FROM foo AS f"
+    error: "duplicate datasource name 'foo'"
+
+  - description: non-document expressions disallowed in SELECT VALUE
+    current_db: mydb
+    query: SELECT VALUE [a, b] FROM foo
+    error: "SELECT VALUE only accepts document expressions"
+
+  - description: simple star correctness test
+    current_db: mydb
+    query: "SELECT * FROM foo AS f"
     result:
-      - {'a': {'b': 2}}
-      - {'hello': 'world'}
+     - {"_id": 0, "a": 1, "b": 1}
+     - {"_id": 1, "a": 2, "b": 2}
 
-  - description: SELECT VALUE version equivalent to select list
-    query: "SELECT VALUE {'a': a, 'b': b} FROM [{'a': {'c': 2}, 'b': 1}, {'a': 2, 'b': {'c': 2}}]"
+  - description: simple sub-star correctness test
+    current_db: mydb
+    query: "SELECT VALUE f.* FROM foo AS f"
     result:
-     - {"a": {"c": 2}, "b": 1}
-     - {"a": 2, "b": {"c": 2}}
+     - {"_id": 0, "a": 1, "b": 1}
+     - {"_id": 1, "a": 2, "b": 2}
 
-  - description: Simple *
-    query: "SELECT * FROM [{'a': 1, 'b': 1}, {'a': 2, 'b': 2}]"
+  - description: correctness test for mixed sub-star and document
+    current_db: mydb
+    query: "SELECT VALUES {'a': foo.a}, foo.* FROM foo AS foo"
     result:
-     - {"a": 1, "b": 1}
-     - {"a": 2, "b": 2}
+      - {"a": 1, "foo": {"a": 1, "b": 1}}
+      - {"a": 2, "foo": {"a": 2, "b": 2}}
 
-  - description: simple select distinct correctness test
-    query: "SELECT DISTINCT VALUE {'a': a} FROM [{'a': 1}, {'a': 2}, {'a': 1}]"
-    result:
-      - {'a': 1}
-      - {'a': 2}
+  - description: SELECT VALUES may create unmaterializable binding tuples
+    current_db: mydb
+    query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
+    error: "cannot materialize binding tuple with duplicate fields"
