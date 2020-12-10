@@ -1,14 +1,6 @@
 catalog_environment:
     {
         'foo': {
-            'bar': [
-                {
-                  'foo': [{
-                      'bar': 1,
-                      'baz': 2
-                   }]
-                }
-            ],
             'coll': [
                 {
                   'bar': 11,
@@ -23,36 +15,197 @@ catalog_environment:
                   'car': 212
                 }
             ],
+            'schema_coll': [
+                {
+                  'bar': 11,
+                  'car': 12
+                },
+                {
+                  'bar': -11,
+                  'car': -12
+                },
+                {
+                  'bar': 211,
+                  'car': 212
+                }
+            ],
+            'schema_foo': [
+                {'baz': 1}
+            ],
+            'nested': [
+                {'n': {
+                      'a': 1
+                    }
+                }
+            ],
+            'bar': [
+                {'a': 1},
+                {'a': 2}
+            ],
+            'baz': [
+                {'a': 1},
+                {'a': 3}
+            ]
+        },
+        'foo2': {
+             'coll': [
+                {'a': 1, 'b': 2}
+             ]
+
         }
     }
+
+schema_environment:
+  {
+    'foo': {
+      'schema_coll': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            'bar': {
+              'bsonType': "double"
+            },
+            'car': {
+              'bsonType': "double"
+            }
+          }
+        }
+      },
+      'schema_foo': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            'baz': {
+              'bsonType': "double"
+            }
+          }
+        }
+      }
+    }
+  }
+
 tests:
-  - description: Simple query with no ambiguity, note we are in the database foo
+  - description: compound collection references are fully qualified
+    query: "SELECT * FROM foo.coll AS coll"
+    result:
+     - {
+         'bar': 11,
+         'car': 12
+       }
+     - {
+         'bar': -11,
+         'car': -12
+       }
+     - {
+         'bar': 211,
+         'car': 212
+       }
+
+  - description: equivalent qualified and unqualified references to the same field
+    query: "SELECT VALUE {'ubar': bar, 'qbar': coll.bar} FROM foo.coll AS coll"
+    result:
+     - {
+         'ubar': 11,
+         'qbar': 11
+       }
+     - {
+         'ubar': -11,
+         'qbar': -11
+       }
+     - {
+         'ubar': 211,
+         'qbar': 211
+       }
+
+  - description: compound field references prefer qualified names to field references
+    query: "SELECT VALUE {'a': n.a} FROM nested AS n"
+    result:
+     - {}
+
+  - description: compound field reference is treated as unqualified if no datasource name matches first identifier
+    query: "SELECT VALUE {'a': n.a} FROM nested AS nested"
+    result:
+     - {'a': 1}
+
+  - description: field references never resolve to the catalog environment
+    query: "SELECT VALUE {'a': foo.coll} FROM foo.coll AS coll"
+    result:
+     - {}
+     - {}
+     - {}
+
+  - description: unqualified references are ambiguous when there are multiple datasources without schemata
+    query: "SELECT VALUE {'a': bar} FROM foo.coll AS coll JOIN foo.coll AS coll2"
+    error: "Reference 'bar' is ambiguous"
+
+  - description: qualified reference is not ambiguous with multiple datasources
+    query: "SELECT VALUE {'a': coll.bar} FROM foo.coll AS coll JOIN foo.nested AS nested"
+    result:
+     - {
+         'a': 11
+       }
+     - {
+         'a': -11
+       }
+     - {
+         'a': 211
+       }
+
+  - description: unqualified references are not ambiguous when there are multiple datasources with schema that disambiguates
+    query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_foo AS coll2"
+    result:
+     - {
+         'a': 11
+       }
+     - {
+         'a': -11
+       }
+     - {
+         'a': 211
+       }
+
+  - description: unqualified collection reference refers to current database
+    current_db: 'foo2'
+    query: "SELECT * FROM coll AS coll"
+    result:
+     - {'a': 1, 'b': 2}
+
+  - description: unqualified collection references do not resolve to collections in other databases
+    current_db: 'foo2'
+    query: "SELECT * FROM nested AS nested"
+    error: "Unknown collection 'nested' in current database 'foo2'"
+
+  - description: unqualified references are still ambiguous when there are multiple datasources with schema that have the same field names
+    query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_coll AS coll2"
+    error: "Reference 'bar' is ambiguous"
+
+  - description: unqualified collection reference will error if collection not found in current database
     current_db: 'foo'
-    query: "SELECT bar, car FROM coll"
-    result:
-      - {'bar': 11, 'car': 12}
-      - {'bar': -11, 'car': -12}
-      - {'bar': 211, 'car': 212}
+    query: "SELECT * FROM car AS car"
+    error: "Unknown collection 'car' in current database 'foo'"
 
-  - description: foo.bar is the collection in the FROM because it is not prefixed by @
-    query: "SELECT * FROM foo.bar"
-    result:
-     - {'foo': [{'bar': 1, 'baz': 2}]}
+  - description: qualified collection reference in FROM clause will error if collection not found in specified database
+    query: "SELECT * FROM foo.car AS car"
+    error: "Unknown collection 'car' in database 'foo'"
 
-  - description: @foo is forced to be a value reference from the foo.bar collection (which is in scope from left to right in a comma join)
-    query: "SELECT * FROM foo.bar, @foo AS x"
-    result:
-        - {'bar': {'foo': [{'bar': 1, 'baz': 2}]}, x: {'bar': 1, 'baz': 2}}
+  - description: qualified collection reference in FROM clause will error if database not found
+    query: "SELECT * FROM test.car AS car"
+    error: "Unknown database 'test'"
 
-  - description: @foo is forced to be a value reference from the bar collection (which is in scope from left to right in a comma join)
-    current_db: 'foo'
-    query: "SELECT * FROM bar, @foo AS x"
-    result:
-        - {'foo': {'bar': {'foo': [{'bar': 1, 'baz': 2}]}}, x: {'bar': 1, 'baz': 2}}
+  - description: nonexistent field references fail with a schema
+    query: "SELECT VALUE {'bar': foo.coll.bar} FROM foo.schema_coll AS coll"
+    error: "Unknown qualfication or field 'foo'"
 
-  - description: Show binding with subqueries: foo[0].bar is foo.bar from foo.bar, x.bar comes from foo.coll.
-    query: "SELECT (SELECT x.bar, foo[0].bar AS out from foo.bar WHERE foo[0].bar < x.bar) as res FROM  foo.coll AS x"
+  - description: there are no field references in FROM clauses
+    current_db: foo
+    query: "SELECT * FROM foo.bar AS bar"
+    error: "Unknown collection bar in datasource 'foo'"
+
+  - description: a qualfied reference in a FROM clause can have no more than two parts
+    query: "SELECT * FROM foo.bar.bar AS bar"
+    error: "Collection references cannot have more than 2 parts, found 'foo.bar.bar' with 3 parts"
+
+  - description: c.a refers to a in baz.a in the derived table and bar.a in the outer query
+    query: "SELECT * FROM bar AS c WHERE c.a IN (SELECT c.a FROM baz AS c)"
     result:
-      - {'res': [{'bar': 11, 'out': 1}]}
-      - {'res': []}
-      - {'res': [{'bar': 211, 'out': 1}]}
+     - {'a': 1}
