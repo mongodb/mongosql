@@ -1,0 +1,30 @@
+catalog_environment:
+  mydb:
+    foo:
+      - {'_id': 0, 'a': 1}
+      - {'_id': 1, 'a': 2}
+    bar:
+      - {'_id': 0, 'sub': {'a': 1, 'b': 1}}
+      - {'_id': 1, 'sub': {'a': 2, 'b': 2}}
+
+tests:
+  - description: document literal key ordering is not guaranteed to be preserved
+    current_db: mydb
+    query: "SELECT VALUE {'b': _id, 'c': a} FROM foo AS f"
+    result:
+      - {'c': 1, 'b': 0}
+      - {'b': 1, 'c': 2}
+
+  - description: key ordering from docs in collections is not guaranteed to be preserved
+    current_db: mydb
+    query: "SELECT * FROM foo AS f"
+    result:
+      - {'a': 1, '_id': 0}
+      - {'_id': 1, 'a': 2}
+
+  - description: subdocument key ordering is not guaranteed to be preserved
+    current_db: mydb
+    query: "SELECT * FROM bar AS b"
+    result:
+      - {'_id': 0, 'sub': {'b': 1, 'a': 1}}
+      - {'_id': 1, 'sub': {'a': 2, 'b': 2}}
