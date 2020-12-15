@@ -1,0 +1,47 @@
+catalog_environment:
+    {
+        'test': {
+            'foo': [
+                {
+                  'x': 11,
+                  'y': 12
+                },
+            ],
+            'bar': [
+                {
+                  'x': 11,
+                  'y': 12
+                },
+            ],
+        }
+    }
+
+tests:
+  - description: both unqualified and qualified references to derived table datasource fields are allowed
+    query: "SELECT apo, derived.bpt FROM (SELECT VALUE{'apo': a + 1, 'bpt': b + 2} FROM [{a: 1, b: 1}] AS arr) AS derived"
+    result:
+      - {'apo': 2, 'bpt': 3}
+
+  - description: derived table cannot reference other datasources in same FROM clause
+    query: "SELECT * FROM [{'x': 1}] AS foo CROSS JOIN (SELECT * FROM [{'x': 1}] AS bar WHERE foo.x = bar.x) AS derived"
+    error: "no field 'foo' in datasource 'bar'"
+
+  - description: derived table must have alias
+    query: "SELECT * FROM (SELECT * FROM [{a: 1}] AS arr)"
+    error: "parse error: expected <alias>, found EOI"
+
+  - description: datasource names in derived table are not visible outside of derived table query
+    query: "SELECT derived.foo.x FROM (SELECT * FROM [{'x': 1}] AS foo, [{'a': 1}] AS bar) AS derived"
+    error: "Unknown field 'foo'"
+
+  - description: derived table query with data sources that statically have ambiguous field must report a static error
+    query: "SELECT * FROM (SELECT * FROM [{'x': 1, 'y': 2}] AS foo, [{'a': 1, 'x': 3}] AS bar) AS derived"
+    error: "Ambiguous field 'x' in derived table"
+
+  - description: derived table can result in ambiguous fields when the datasource fields are not enumerable and must report a static error
+    query: "SELECT * FROM (SELECT * FROM foo AS foo, bar AS bar) AS derived"
+    error: "The keys of datasources 'foo', 'bar' are not enumerable, and may be ambiguous. Try replacing 'SELECT *' with direct references, or providing schemata for 'foo', 'bar'"
+
+  - description: there is no ambiguity with one schema-less datasource in a derived table
+    query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"
+    result: [{'x': 11, 'y': 12}]
