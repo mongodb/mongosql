@@ -1,0 +1,24 @@
+tests:
+  - description: JOIN condition must have type BOOL or NULL, or be MISSING
+    query: "SELECT * FROM foo JOIN bar ON arg"
+    valid_types:
+      - { "arg": ["BOOL", "NULL", "MISSING"] }
+
+  - description: Columns in USING must have constrained types for equality to work
+    query: "SELECT * FROM foo JOIN bar USING arg"
+    valid_types:
+      - { "arg": ["STRING", "NULL", "MISSING"] }
+      - { "arg": ["BINDATA", "NULL", "MISSING"] }
+      - { "arg": ["UNDEFINED", "NULL", "MISSING"] }
+      - { "arg": ["OBJECTID", "NULL", "MISSING"] }
+      - { "arg": ["BOOL", "NULL", "MISSING"] }
+      - { "arg": ["BSON_DATE", "NULL", "MISSING"] }
+      - { "arg": ["REGEX", "NULL", "MISSING"] }
+      - { "arg": ["DBPOINTER", "NULL", "MISSING"] }
+      - { "arg": ["JAVASCRIPT", "NULL", "MISSING"] }
+      - { "arg": ["SYMBOL", "NULL", "MISSING"] }
+      - { "arg": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
+      - { "arg": ["BSON_TIMESTAMP", "NULL", "MISSING"] }
+      - { "arg": ["MINKEY", "NULL", "MISSING"] }
+      - { "arg": ["MAXKEY", "NULL", "MISSING"] }
+      - { "arg": ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"] }

@@ -1,0 +1,643 @@
+catalog_environment:
+  foo:
+    numbers:
+      - { "_id": 0, "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" } }
+      - { "_id": 1, "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" } }
+      - { "_id": 2, "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" } }
+      - { "_id": 3, "a": { "$numberDouble": "6.25" }, "b": null }
+      - { "_id": 4, "a": null, "b": { "$numberInt": "3" } }
+      - { "_id": 5, "a": { "$numberDouble": "6.25" } }
+      - { "_id": 6, "b": { "$numberLong": "3" } }
+    strings:
+      - { "_id": 0, "a": "abc", "b": "def" }
+      - { "_id": 1, "a": "xyz", "b": "xyz" }
+      - { "_id": 2, "a": "xyz", "b": "abc" }
+      - { "_id": 3, "a": "", "b": null }
+      - { "_id": 4, "a": null, "b": "abc" }
+      - { "_id": 5, "a": "abc" }
+      - { "_id": 6, "b": "" }
+    bools:
+      - { "_id": 0, "a": false, "b": true }
+      - { "_id": 1, "a": true, "b": true }
+      - { "_id": 2, "a": true, "b": false }
+      - { "_id": 3, "a": false, "b": null }
+      - { "_id": 4, "a": null, "b": true }
+      - { "_id": 5, "a": false }
+      - { "_id": 6, "b": true }
+    dates:
+      - { "_id": 0, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } } }
+      - { "_id": 1, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } } }
+      - { "_id": 2, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } } }
+      - { "_id": 3, "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null }
+      - { "_id": 4, "a": null, "b": { "$date": { "$numberLong": "253402300799999" } } }
+      - { "_id": 5, "a": { "$date": { "$numberLong": "253402300799999" } } }
+      - { "_id": 6, "b": { "$date": { "$numberLong": "253402300799999" } } }
+    nullAndMissing:
+      - { "_id": 0, "a": null, "b": null }
+      - { "_id": 1, "a": null }
+      - { "_id": 2, "b": null }
+      - { "_id": 3 }
+    betweenNumeric:
+      - { "_id": 0, "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" } }
+      - { "_id": 1, "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" } }
+      - { "_id": 2, "a": { "$numberInt": "3" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+      - { "_id": 3, "a": { "$numberInt": "0" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+      - { "_id": 4, "a": { "$numberInt": "4" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+      - { "_id": 5, "a": null, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+      - { "_id": 6, "a": { "$numberLong": "2" }, "b": null, "c": { "$numberInt": "3" } }
+      - { "_id": 7, "a": { "$numberLong": "2" }, "b": { "$numberLong": "1" }, "c": null }
+      - { "_id": 8, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" } }
+      - { "_id": 9, "a": { "$numberLong": "2" }, "c": { "$numberInt": "3" } }
+      - { "_id": 10, "a": { "$numberLong": "2" }, "b": { "$numberInt": "1" } }
+    betweenStrings:
+      - { "_id": 0, "a": "y", "b": "x", "c": "z" }
+      - { "_id": 1, "a": "x", "b": "x", "c": "z" }
+      - { "_id": 2, "a": "z", "b": "x", "c": "z" }
+      - { "_id": 3, "a": "w", "b": "x", "c": "z" }
+      - { "_id": 4, "a": "~", "b": "x", "c": "z" }
+      - { "_id": 5, "a": null, "b": "x", "c": "z" }
+      - { "_id": 6, "a": "y", "b": null, "c": "z" }
+      - { "_id": 7, "a": "y", "b": "x", "c": null }
+      - { "_id": 8, "b": "x", "c": "z" }
+      - { "_id": 9, "a": "y", "c": "z" }
+      - { "_id": 10, "a": "y", "b": "x" }
+    betweenDates:
+      - { "_id": 0, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 1, "a": { "$date": { "$numberLong": "5" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 2, "a": { "$date": { "$numberLong": "15" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 3, "a": { "$date": { "$numberLong": "0" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 4, "a": { "$date": { "$numberLong": "20" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 5, "a": null, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 6, "a": { "$date": { "$numberLong": "10" } }, "b": null, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 7, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": null }
+      - { "_id": 8, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 9, "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } } }
+      - { "_id": 10, "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } } }
+
+schema_environment:
+  {
+    "foo": {
+      "numbers": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "int" },
+                { "bsonType": "long" },
+                { "bsonType": "double" },
+                { "bsonType": "decimal" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "int" },
+                { "bsonType": "long" },
+                { "bsonType": "double" },
+                { "bsonType": "decimal" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "strings": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "bools": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "bool" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "bool" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "dates": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "date" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "date" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "nullAndMissing": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "bsonType": "null"
+            },
+            "b": {
+              "bsonType": "null"
+            }
+          }
+        }
+      },
+      "betweenNumeric": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "int" },
+                { "bsonType": "long" },
+                { "bsonType": "double" },
+                { "bsonType": "decimal" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "int" },
+                { "bsonType": "long" },
+                { "bsonType": "double" },
+                { "bsonType": "decimal" },
+                { "bsonType": "null" }
+              ]
+            },
+            "c": {
+              "anyOf": [
+                { "bsonType": "int" },
+                { "bsonType": "long" },
+                { "bsonType": "double" },
+                { "bsonType": "decimal" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "betweenStrings": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            },
+            "c": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "betweenDates": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "date" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "date" },
+                { "bsonType": "null" }
+              ]
+            },
+            "c": {
+              "anyOf": [
+                { "bsonType": "date" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: correctness test for < for numeric types
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM numbers AS numbers"
+    result:
+      - { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false }
+      - { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false }
+      - { "a": { "$numberDouble": "6.25" }, "b": null, "c": null }
+      - { "a": null, "b": { "$numberInt": "3" }, "c": null }
+      - { "a": { "$numberDouble": "6.25" }, "c": null }
+      - { "b": { "$numberLong": "3" }, "c": null }
+
+  - description: correctness test for <= for numeric types
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM numbers AS numbers"
+    result:
+      - { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true }
+      - { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false }
+      - { "a": { "$numberDouble": "6.25" }, "b": null, "c": null }
+      - { "a": null, "b": { "$numberInt": "3" }, "c": null }
+      - { "a": { "$numberDouble": "6.25" }, "c": null }
+      - { "b": { "$numberLong": "3" }, "c": null }
+
+  - description: correctness test for <> for numeric types
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM numbers AS numbers"
+    result:
+      - { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false }
+      - { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true }
+      - { "a": { "$numberDouble": "6.25" }, "b": null, "c": null }
+      - { "a": null, "b": { "$numberInt": "3" }, "c": null }
+      - { "a": { "$numberDouble": "6.25" }, "c": null }
+      - { "b": { "$numberLong": "3" }, "c": null }
+
+  - description: correctness test for = for numeric types
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM numbers AS numbers"
+    result:
+      - { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true }
+      - { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false }
+      - { "a": { "$numberDouble": "6.25" }, "b": null, "c": null }
+      - { "a": null, "b": { "$numberInt": "3" }, "c": null }
+      - { "a": { "$numberDouble": "6.25" }, "c": null }
+      - { "b": { "$numberLong": "3" }, "c": null }
+
+  - description: correctness test for > for numeric types
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM numbers AS numbers"
+    result:
+      - { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false }
+      - { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true }
+      - { "a": { "$numberDouble": "6.25" }, "b": null, "c": null }
+      - { "a": null, "b": { "$numberInt": "3" }, "c": null }
+      - { "a": { "$numberDouble": "6.25" }, "c": null }
+      - { "b": { "$numberLong": "3" }, "c": null }
+
+  - description: correctness test for >= for numeric types
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM numbers AS numbers"
+    result:
+      - { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true }
+      - { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true }
+      - { "a": { "$numberDouble": "6.25" }, "b": null, "c": null }
+      - { "a": null, "b": { "$numberInt": "3" }, "c": null }
+      - { "a": { "$numberDouble": "6.25" }, "c": null }
+      - { "b": { "$numberLong": "3" }, "c": null }
+
+  - description: correctness test for < for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM strings AS strings"
+    result:
+      - { "a": "abc", "b": "def", "c": true }
+      - { "a": "xyz", "b": "xyz", "c": false }
+      - { "a": "xyz", "b": "abc", "c": false }
+      - { "a": "", "b": null, "c": null }
+      - { "a": null, "b": "abc", "c": null }
+      - { "a": "abc", "c": null }
+      - { "b": "", "c": null }
+
+  - description: correctness test for <= for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM strings AS strings"
+    result:
+      - { "a": "abc", "b": "def", "c": true }
+      - { "a": "xyz", "b": "xyz", "c": true }
+      - { "a": "xyz", "b": "abc", "c": false }
+      - { "a": "", "b": null, "c": null }
+      - { "a": null, "b": "abc", "c": null }
+      - { "a": "abc", "c": null }
+      - { "b": "", "c": null }
+
+  - description: correctness test for <> for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM strings AS strings"
+    result:
+      - { "a": "abc", "b": "def", "c": true }
+      - { "a": "xyz", "b": "xyz", "c": false }
+      - { "a": "xyz", "b": "abc", "c": true }
+      - { "a": "", "b": null, "c": null }
+      - { "a": null, "b": "abc", "c": null }
+      - { "a": "abc", "c": null }
+      - { "b": "", "c": null }
+
+  - description: correctness test for = for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM strings AS strings"
+    result:
+      - { "a": "abc", "b": "def", "c": false }
+      - { "a": "xyz", "b": "xyz", "c": true }
+      - { "a": "xyz", "b": "abc", "c": false }
+      - { "a": "", "b": null, "c": null }
+      - { "a": null, "b": "abc", "c": null }
+      - { "a": "abc", "c": null }
+      - { "b": "", "c": null }
+
+  - description: correctness test for > for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM strings AS strings"
+    result:
+      - { "a": "abc", "b": "def", "c": false }
+      - { "a": "xyz", "b": "xyz", "c": false }
+      - { "a": "xyz", "b": "abc", "c": true }
+      - { "a": "", "b": null, "c": null }
+      - { "a": null, "b": "abc", "c": null }
+      - { "a": "abc", "c": null }
+      - { "b": "", "c": null }
+
+  - description: correctness test for >= for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM strings AS strings"
+    result:
+      - { "a": "abc", "b": "def", "c": false }
+      - { "a": "xyz", "b": "xyz", "c": true }
+      - { "a": "xyz", "b": "abc", "c": true }
+      - { "a": "", "b": null, "c": null }
+      - { "a": null, "b": "abc", "c": null }
+      - { "a": "abc", "c": null }
+      - { "b": "", "c": null }
+
+  - description: correctness test for < for bools
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM bools AS bools"
+    result:
+      - { "a": false, "b": true, "c": true }
+      - { "a": true, "b": true, "c": false }
+      - { "a": true, "b": false, "c": false }
+      - { "a": false, "b": null, "c": null }
+      - { "a": null, "b": true, "c": null }
+      - { "a": false, "c": null }
+      - { "b": true, "c": null }
+
+  - description: correctness test for <= for bools
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM bools AS bools"
+    result:
+      - { "a": false, "b": true, "c": true }
+      - { "a": true, "b": true, "c": true }
+      - { "a": true, "b": false, "c": false }
+      - { "a": false, "b": null, "c": null }
+      - { "a": null, "b": true, "c": null }
+      - { "a": false, "c": null }
+      - { "b": true, "c": null }
+
+  - description: correctness test for <> for bools
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM bools AS bools"
+    result:
+      - { "a": false, "b": true, "c": true }
+      - { "a": true, "b": true, "c": false }
+      - { "a": true, "b": false, "c": true }
+      - { "a": false, "b": null, "c": null }
+      - { "a": null, "b": true, "c": null }
+      - { "a": false, "c": null }
+      - { "b": true, "c": null }
+
+  - description: correctness test for = for bools
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM bools AS bools"
+    result:
+      - { "a": false, "b": true, "c": false }
+      - { "a": true, "b": true, "c": true }
+      - { "a": true, "b": false, "c": false }
+      - { "a": false, "b": null, "c": null }
+      - { "a": null, "b": true, "c": null }
+      - { "a": false, "c": null }
+      - { "b": true, "c": null }
+
+  - description: correctness test for > for bools
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM bools AS bools"
+    result:
+      - { "a": false, "b": true, "c": false }
+      - { "a": true, "b": true, "c": false }
+      - { "a": true, "b": false, "c": true }
+      - { "a": false, "b": null, "c": null }
+      - { "a": null, "b": true, "c": null }
+      - { "a": false, "c": null }
+      - { "b": true, "c": null }
+
+  - description: correctness test for >= for bools
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM bools AS bools"
+    result:
+      - { "a": false, "b": true, "c": false }
+      - { "a": true, "b": true, "c": true }
+      - { "a": true, "b": false, "c": true }
+      - { "a": false, "b": null, "c": null }
+      - { "a": null, "b": true, "c": null }
+      - { "a": false, "c": null }
+      - { "b": true, "c": null }
+
+  - description: correctness test for < for dates
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM dates AS dates"
+    result:
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null }
+      - { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+
+  - description: correctness test for <= for dates
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM dates AS dates"
+    result:
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null }
+      - { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+
+  - description: correctness test for <> for dates
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM dates AS dates"
+    result:
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null }
+      - { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+
+  - description: correctness test for = for dates
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM dates AS dates"
+    result:
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null }
+      - { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+
+  - description: correctness test for > for dates
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM dates AS dates"
+    result:
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null }
+      - { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+
+  - description: correctness test for >= for dates
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM dates AS dates"
+    result:
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": false }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": true }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null }
+      - { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+      - { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null }
+
+
+  - description: correctness test for < for null and missing
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - { "a": null, "b": null, "c": null }
+      - { "a": null, "c": null }
+      - { "b": null, "c": null }
+      - { "c": null }
+
+  - description: correctness test for <= for null and missing
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - { "a": null, "b": null, "c": null }
+      - { "a": null, "c": null }
+      - { "b": null, "c": null }
+      - { "c": null }
+
+  - description: correctness test for <> for null and missing
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - { "a": null, "b": null, "c": null }
+      - { "a": null, "c": null }
+      - { "b": null, "c": null }
+      - { "c": null }
+
+  - description: correctness test for = for null and missing
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - { "a": null, "b": null, "c": null }
+      - { "a": null, "c": null }
+      - { "b": null, "c": null }
+      - { "c": null }
+
+  - description: correctness test for > for null and missing
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - { "a": null, "b": null, "c": null }
+      - { "a": null, "c": null }
+      - { "b": null, "c": null }
+      - { "c": null }
+
+  - description: correctness test for >= for null and missing
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - { "a": null, "b": null, "c": null }
+      - { "a": null, "c": null }
+      - { "b": null, "c": null }
+      - { "c": null }
+
+  - description: correctness test for BETWEEN for numeric types
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenNumeric AS betweenNumeric"
+    result:
+      - { "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" }, "r": true }
+      - { "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" }, "r": true }
+      - { "a": { "$numberInt": "3" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": true }
+      - { "a": { "$numberInt": "0" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false }
+      - { "a": { "$numberInt": "4" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false }
+      - { "a": null, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null }
+      - { "a": { "$numberLong": "2" }, "b": null, "c": { "$numberInt": "3" }, "r": null }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberLong": "1" }, "c": null, "r": null }
+      - { "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null }
+      - { "a": { "$numberLong": "2" }, "c": { "$numberInt": "3" }, "r": null }
+      - { "a": { "$numberLong": "2" }, "b": { "$numberInt": "1" }, "r": null }
+
+  - description: correctness test for BETWEEN for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenStrings AS betweenStrings"
+    result:
+      - { "a": "y", "b": "x", "c": "z", "r": true }
+      - { "a": "x", "b": "x", "c": "x", "r": true }
+      - { "a": "z", "b": "x", "c": "z", "r": true }
+      - { "a": "w", "b": "x", "c": "z", "r": false }
+      - { "a": "~", "b": "x", "c": "z", "r": false }
+      - { "a": null, "b": "x", "c": "z", "r": null }
+      - { "a": "y", "b": null, "c": "z", "r": null }
+      - { "a": "y", "b": "x", "c": null, "r": null }
+      - { "b": "x", "c": "z", "r": null }
+      - { "a": "y", "c": "z", "r": null }
+      - { "a": "y", "b": "x", "r": null }
+
+  - description: correctness test for BETWEEN for strings
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenStrings AS betweenStrings"
+    result:
+      - { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true }
+      - { "a": { "$date": { "$numberLong": "5" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "5" } }, "r": true }
+      - { "a": { "$date": { "$numberLong": "15" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true }
+      - { "a": { "$date": { "$numberLong": "0" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false }
+      - { "a": { "$date": { "$numberLong": "20" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false }
+      - { "a": null, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null }
+      - { "a": { "$date": { "$numberLong": "10" } }, "b": null, "c": { "$date": { "$numberLong": "15" } }, "r": null }
+      - { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": null, "r": null }
+      - { "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null }
+      - { "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null }
+      - { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "r": null }

@@ -1,0 +1,109 @@
+variables:
+  - bool: &bool ["BOOL", "NULL", "MISSING"]
+  - string: &string ["STRING", "NULL", "MISSING"]
+  - numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+  - comparisonValidTypes: &comparisonValidTypes
+    - { "arg1": *string, "arg2": *string }
+    - { "arg1": ["BINDATA", "NULL", "MISSING"], "arg2": ["BINDATA", "NULL", "MISSING"] }
+    - { "arg1": ["UNDEFINED", "NULL", "MISSING"], "arg2": ["UNDEFINED", "NULL", "MISSING"] }
+    - { "arg1": ["OBJECTID", "NULL", "MISSING"], "arg2": ["OBJECTID", "NULL", "MISSING"] }
+    - { "arg1": *bool, "arg2": *bool }
+    - { "arg1": ["BSON_DATE", "NULL", "MISSING"], "arg2": ["BSON_DATE", "NULL", "MISSING"] }
+    - { "arg1": ["REGEX", "NULL", "MISSING"], "arg2": ["REGEX", "NULL", "MISSING"] }
+    - { "arg1": ["DBPOINTER", "NULL", "MISSING"], "arg2": ["DBPOINTER", "NULL", "MISSING"] }
+    - { "arg1": ["JAVASCRIPT", "NULL", "MISSING"], "arg2": ["JAVASCRIPT", "NULL", "MISSING"] }
+    - { "arg1": ["SYMBOL", "NULL", "MISSING"], "arg2": ["SYMBOL", "NULL", "MISSING"] }
+    - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
+    - { "arg1": ["BSON_TIMESTAMP", "NULL", "MISSING"], "arg2": ["BSON_TIMESTAMP", "NULL", "MISSING"] }
+    - { "arg1": ["MINKEY", "NULL", "MISSING"], "arg2": ["MINKEY", "NULL", "MISSING"] }
+    - { "arg1": ["MAXKEY", "NULL", "MISSING"], "arg2": ["MAXKEY", "NULL", "MISSING"] }
+    - { "arg1": *numerics, "arg2": *numerics }
+
+tests:
+  - description: String concatenation operands must have type STRING or NULL, or be MISSING
+    query: "SELECT arg1 || arg2"
+    valid_types:
+      - { "arg1": *string, "arg2": *string }
+
+  - description: LIKE operands must have type STRING or NULL, or be MISSING
+    query: "SELECT arg1 LIKE arg2"
+    valid_types:
+      - { "arg1": *string, "arg2": *string }
+
+  - description: Unary plus operand must have numeric type or type NULL, or be MISSING
+    query: "SELECT + arg"
+    valid_types:
+      - { "arg": *numerics }
+
+  - description: Unary minus operand must have numeric type or type NULL, or be MISSING
+    query: "SELECT - arg"
+    valid_types:
+      - { "arg": *numerics }
+
+  - description: Addition operands must have numeric type or type NULL, or be MISSING
+    query: "SELECT arg1 + arg2"
+    valid_types:
+      - { "arg1": *numerics, "arg2": *numerics }
+
+  - description: Subtraction operands must have numeric type or type NULL, or be MISSING
+    query: "SELECT arg1 - arg2"
+    valid_types:
+      - { "arg1": *numerics, "arg2": *numerics }
+
+  - description: Multiplication operands must have numeric type or type NULL, or be MISSING
+    query: "SELECT arg1 * arg2"
+    valid_types:
+      - { "arg1": *numerics, "arg2": *numerics }
+
+  - description: Division operands must have numeric type or type NULL, or be MISSING
+    query: "SELECT arg1 / arg2"
+    valid_types:
+      - { "arg1": *numerics, "arg2": *numerics }
+
+  - description: NOT operand must have type BOOL or NULL, or be MISSING
+    query: "SELECT NOT arg"
+    valid_types:
+      - { "arg": *bool }
+
+  - description: AND operands must have type BOOL or NULL, or be MISSING
+    query: "SELECT arg1 AND arg2"
+    valid_types:
+      - { "arg1": *bool, "arg2": *bool }
+
+  - description: OR operands must have type BOOL or NULL, or be MISSING
+    query: "SELECT arg1 OR arg2"
+    valid_types:
+      - { "arg1": *bool, "arg2": *bool }
+
+  - description: Searched CASE expression WHEN operands must have type BOOL or NULL, or be MISSING
+    query: "SELECT CASE WHEN arg THEN 1 ELSE NULL END"
+    valid_types:
+      - { "arg": *bool }
+
+  - description: "< operands must have comparable types (NULL and MISSING are always allowed)"
+    query: "SELECT arg1 < arg2"
+    valid_types: *comparisonValidTypes
+
+  - description: "<= operands must have comparable types (NULL and MISSING are always allowed)"
+    query: "SELECT arg1 <= arg2"
+    valid_types: *comparisonValidTypes
+
+  - description: "<> operands must have comparable types (NULL and MISSING are always allowed)"
+    query: "SELECT arg1 <> arg2"
+    valid_types: *comparisonValidTypes
+
+  - description: = operands must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT arg1 = arg2"
+    valid_types: *comparisonValidTypes
+
+  - description: "> operands must have comparable types (NULL and MISSING are always allowed)"
+    query: "SELECT arg1 > arg2"
+    valid_types: *comparisonValidTypes
+
+  - description: ">= operands must have comparable types (NULL and MISSING are always allowed)"
+    query: "SELECT arg1 >= arg2"
+    valid_types: *comparisonValidTypes
+
+  - description: Simple CASE expression WHEN operands must have comparable type to CASE operand
+    query: "SELECT CASE arg1 WHEN arg2 THEN 1 ELSE NULL END"
+    valid_types: *comparisonValidTypes

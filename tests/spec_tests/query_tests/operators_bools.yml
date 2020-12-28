@@ -1,0 +1,117 @@
+catalog_environment:
+  foo:
+    unary:
+      - { "_id": 0, "a": true }
+      - { "_id": 1, "a": false }
+      - { "_id": 2, "a": null }
+      - { "_id": 3 }
+    binary:
+      - { "_id": 0, "a": true, "b": true }
+      - { "_id": 1, "a": true, "b": false }
+      - { "_id": 2, "a": true, "b": null }
+      - { "_id": 3, "a": true }
+      - { "_id": 4, "a": false, "b": true }
+      - { "_id": 5, "a": false, "b": false }
+      - { "_id": 6, "a": false, "b": null }
+      - { "_id": 7, "a": false }
+      - { "_id": 8, "a": null, "b": true }
+      - { "_id": 9, "a": null, "b": false }
+      - { "_id": 10, "a": null, "b": null }
+      - { "_id": 11, "a": null }
+      - { "_id": 12, "b": true }
+      - { "_id": 13, "b": false }
+      - { "_id": 14, "b": null }
+      - { "_id": 15 }
+
+schema_environment:
+  {
+    "foo": {
+      "unary": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "bool" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "binary": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+                { "bsonType": "bool" },
+                { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "bool" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: NOT correctness test
+    query: "SELECT VALUE { 'a': a, 'not_a': NOT a } FROM unary AS unary"
+    result:
+      - { "a": true, "not_a": false }
+      - { "a": false, "not_a": true }
+      - { "a": null, "not_a": null }
+      - { "not_a": null }
+
+  - description: AND correctness test
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a_and_b': a AND b } FROM binary AS binary"
+    result:
+      - { "a": true, "b": true, "a_and_b": true }
+      - { "a": true, "b": false, "a_and_b": false }
+      - { "a": true, "b": null, "a_and_b": null }
+      - { "a": true, "a_and_b": null }
+      - { "a": false, "b": true, "a_and_b": false }
+      - { "a": false, "b": false, "a_and_b": false }
+      - { "a": false, "b": null, "a_and_b": false }
+      - { "a": false, "a_and_b": false }
+      - { "a": null, "b": true, "a_and_b": null }
+      - { "a": null, "b": false, "a_and_b": false }
+      - { "a": null, "b": null, "a_and_b": null }
+      - { "a": null, "a_and_b": null }
+      - { "b": true, "a_and_b": null }
+      - { "b": false, "a_and_b": false }
+      - { "b": null, "a_and_b": null }
+      - { "a_and_b": null }
+
+  - description: OR correctness test
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a_or_b': a OR b } FROM binary AS binary"
+    result:
+      - { "a": true, "b": true, "a_or_b": true }
+      - { "a": true, "b": false, "a_or_b": true }
+      - { "a": true, "b": null, "a_or_b": true }
+      - { "a": true, "a_or_b": true }
+      - { "a": false, "b": true, "a_or_b": true }
+      - { "a": false, "b": false, "a_or_b": false }
+      - { "a": false, "b": null, "a_or_b": null }
+      - { "a": false, "a_or_b": null }
+      - { "a": null, "b": true, "a_or_b": true }
+      - { "a": null, "b": false, "a_or_b": null }
+      - { "a": null, "b": null, "a_or_b": null }
+      - { "a": null, "a_or_b": null }
+      - { "b": true, "a_or_b": true }
+      - { "b": false, "a_or_b": null }
+      - { "b": null, "a_or_b": null }
+      - { "a_or_b": null }

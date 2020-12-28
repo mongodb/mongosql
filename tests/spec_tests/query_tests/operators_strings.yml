@@ -1,0 +1,166 @@
+catalog_environment:
+  foo:
+    concat:
+      - { "_id": 0, "s1": "ab", "s2": "c", }
+      - { "_id": 1, "s1": "ab", "s2": null, }
+      - { "_id": 2, "s1": "ab" }
+    nullAndMissing:
+      - { "_id": 0, "s": null, "p": "abc" }
+      - { "_id": 1, "p": "abc" }
+      - { "_id": 2, "s": "abc", "p": null }
+      - { "_id": 3, "s": "abc" }
+    like:
+      - { "_id": 0, "s": "abc", "p": "abc" }
+      - { "_id": 1, "s": "abc", "p": "a_c" }
+      - { "_id": 2, "s": "abc", "p": "a%" }
+      - { "_id": 3, "s": "abc", "p": "ab_%", }
+      - { "_id": 4, "s": "bc", "p": "abc", }
+      - { "_id": 5, "s": "bc", "p": "_bc", }
+      - { "_id": 6, "s": "bc", "p": "ab%c", }
+      - { "_id": 7, "s": "bc", "p": "%_bc", }
+    escape:
+      - { "_id": 0, "s": "abc", "p": "abc" }
+      - { "_id": 1, "s": "abc", "p": "a$_c" }
+      - { "_id": 2, "s": "a$_%c", "p": "a$$$_$%c" }
+      - { "_id": 3, "s": "abc", "p": "ab$c" }
+
+schema_environment:
+  {
+    "foo": {
+      "concat": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "s1": {
+              "bsonType": "string"
+            },
+            "s2": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "nullAndMissing": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "s": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+            "p": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "like": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "s": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+            "p": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "escape": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "s": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+            "p": {
+              "anyOf": [
+                { "bsonType": "string" },
+                { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: correctness test for string concatentation
+    current_db: foo
+    query: "SELECT VALUE { 's1': s1, 's2': s2, 's': s1 || s2 } FROM concat AS concat"
+    result:
+      - { "s1": "ab", "s2": "c", "s": "abc" }
+      - { "s1": "ab", "s2": null, "s": null }
+      - { "s1": "ab", "s": null }
+
+  - description: LIKE ESCAPE value cannot be longer than 1 character
+    query: "SELECT VALUE { '_1': 'a' LIKE '_' ESCAPE 'abc' }"
+    error: "error: ESCAPE character must be exactly 1 character"
+
+  - description: LIKE ESCAPE value cannot be empty string
+    query: "SELECT VALUE { '_1': 'a' LIKE '_' ESCAPE '' }"
+    error: "error: ESCAPE character must be exactly 1 character"
+
+  - description: LIKE ESCAPE value cannot be non-literal
+    current_db: foo
+    query: "SELECT VALUE { '_1': 'a' LIKE '_' ESCAPE s } FROM like AS like"
+    error: "error: ESCAPE value must be literal"
+
+  - description: LIKE operator - NULL or MISSING arguments result in NULL
+    query: "SELECT VALUE { 's': s, 'p': p, 'r': s LIKE p } FROM nullAndMissing AS nullAndMissing"
+    result:
+      - { "s": null, "p": "abc", "r": null }
+      - { "p": "abc", "r": null }
+      - { "s": "abc", "p": null, "r": null }
+      - { "s": "abc", "r": null }
+
+  - description: LIKE operator with no ESCAPE correctness tests
+    query: "SELECT VALUE { 's': s, 'p': p, 'r': s LIKE p } FROM like AS like"
+    result:
+      - { "s": "abc", "p": "abc", "r": true }
+      - { "s": "abc", "p": "a_c", "r": true }
+      - { "s": "abc", "p": "a%", "r": true }
+      - { "s": "abc", "p": "ab_%", "r": true }
+      - { "s": "bc", "p": "abc", "r": false }
+      - { "s": "bc", "p": "_bc", "r": false }
+      - { "s": "bc", "p": "ab%c", "r": false }
+      - { "s": "bc", "p": "%_bc", "r": false }
+
+  - description: LIKE operator with ESCAPE correctness tests
+    query: "SELECT VALUE { 's': s, 'p': p, 'r': s LIKE p ESCAPE '$' } FROM escape AS escape"
+    result:
+      - { "s": "abc", "p": "abc", "r": true }
+      - { "s": "abc", "p": "a$_c", "r": false }
+      - { "s": "a$_%c", "p": "a$$$_$%c", "r": true }
+      - { "s": "abc", "p": "ab$c", "r": true }

@@ -1,0 +1,597 @@
+catalog_environment:
+  foo:
+    bar:
+      - { "_id": 0, "type": "double", "v": { "$numberDouble": "1.9" } }
+      - { "_id": 1, "type": "string", "v": "xyz" }
+      - { "_id": 2, "type": "document", "v": { "a": 1 } }
+      - { "_id": 3, "type": "array", "v": [1, 2, 3] }
+      - { "_id": 4, "type": "binData", "v": { "$binary": { "base64": "yO2rw/c4TKO2jauSqRR4ow==", "subtype": "04" } } }
+      - { "_id": 5, "type": "undefined", "v": { "$undefined": true } }
+      - { "_id": 6, "type": "objectid", "v": { "$oid": "5ab9c3da31c2ab715d421285" } }
+      - { "_id": 7, "type": "boolean", "v": true }
+      - { "_id": 8, "type": "date", "v": { "$date": { "$numberLong": "253402300799999" } } }
+      - { "_id": 9, "type": "null", "v": null }
+      - { "_id": 10, "type": "missing" }, { "_id": 11, "type": "regex", "v": { "$regularExpression": { "pattern": "foo*", "options": "ix" } } }
+      - { "_id": 12, "type": "dbPointer", "v": { "$dbPointer": { "$ref": "foo", "$id": { "$oid": "57e193d7a9cc81b4027498b5" } } } }
+      - { "_id": 13, "type": "javascript", "v": { "$code": "function() {}" } }
+      - { "_id": 14, "type": "symbol", "v": { "$symbol": "symbol" } }
+      - { "_id": 15, "type": "javascriptWithScope", "v": { "$code": "function() {}", "$scope": {} } }
+      - { "_id": 16, "type": "int", "v": { "$numberInt": "1" } }
+      - { "_id": 17, "type": "timestamp", "v": { "$timestamp": { "t": 42, "i": 1 } } }
+      - { "_id": 18, "type": "long", "v": { "$numberLong": "1" } }
+      - { "_id": 19, "type": "decimal", "v": { "$numberDecimal": "1.9" } }
+      - { "_id": 20, "type": "minKey", "v": { "$minKey": 1 } }
+      - { "_id": 21, "type": "maxKey", "v": { "$maxKey": 1 } }
+
+tests:
+  - description: Correctness test for IS DOUBLE
+    query: "SELECT VALUE { 'type': type, 'tc': v IS DOUBLE } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": true }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS STRING
+    query: "SELECT VALUE { 'type': type, 'tc': v IS STRING } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": true }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS DOCUMENT
+    query: "SELECT VALUE { 'type': type, 'tc': v IS DOCUMENT } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": true }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS ARRAY
+    query: "SELECT VALUE { 'type': type, 'tc': v IS ARRAY } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": true }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS BINDATA
+    query: "SELECT VALUE { 'type': type, 'tc': v IS BINDATA } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": true }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS UNDEFINED
+    query: "SELECT VALUE { 'type': type, 'tc': v IS UNDEFINED } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": true }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS OBJECTID
+    query: "SELECT VALUE { 'type': type, 'tc': v IS OBJECTID } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": true }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS BOOL
+    query: "SELECT VALUE { 'type': type, 'tc': v IS BOOL } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": true }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS BSON_DATE
+    query: "SELECT VALUE { 'type': type, 'tc': v IS BSON_DATE } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": true }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS NULL
+    query: "SELECT VALUE { 'type': type, 'tc': v IS NULL } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": true }
+      - { "type": "missing", "tc": true }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS MISSING
+    query: "SELECT VALUE { 'type': type, 'tc': v IS MISSING } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": true }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS REGEX
+    query: "SELECT VALUE { 'type': type, 'tc': v IS REGEX } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": true }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS DBPOINTER
+    query: "SELECT VALUE { 'type': type, 'tc': v IS DBPOINTER } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": true }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS JAVASCRIPT
+    query: "SELECT VALUE { 'type': type, 'tc': v IS JAVASCRIPT } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": true }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS SYMBOL
+    query: "SELECT VALUE { 'type': type, 'tc': v IS SYMBOL } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": true }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS JAVASCRIPTWITHSCOPE
+    query: "SELECT VALUE { 'type': type, 'tc': v IS JAVASCRIPTWITHSCOPE } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": true }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS INT
+    query: "SELECT VALUE { 'type': type, 'tc': v IS INT } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": true }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS BSON_TIMESTAMP
+    query: "SELECT VALUE { 'type': type, 'tc': v IS BSON_TIMESTAMP } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": true }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS LONG
+    query: "SELECT VALUE { 'type': type, 'tc': v IS LONG } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": true }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS DECIMAL
+    query: "SELECT VALUE { 'type': type, 'tc': v IS DECIMAL } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": true }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS MINKEY
+    query: "SELECT VALUE { 'type': type, 'tc': v IS MINKEY } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": true }
+      - { "type": "maxKey", "tc": false }
+
+  - description: Correctness test for IS MAXKEY
+    query: "SELECT VALUE { 'type': type, 'tc': v IS MAXKEY } FROM bar AS bar"
+    result:
+      - { "type": "double", "tc": false }
+      - { "type": "string", "tc": false }
+      - { "type": "document", "tc": false }
+      - { "type": "array", "tc": false }
+      - { "type": "binData", "tc": false }
+      - { "type": "undefined", "tc": false }
+      - { "type": "objectid", "tc": false }
+      - { "type": "boolean", "tc": false }
+      - { "type": "date", "tc": false }
+      - { "type": "null", "tc": false }
+      - { "type": "missing", "tc": false }
+      - { "type": "regex", "tc": false }
+      - { "type": "dbPointer", "tc": false }
+      - { "type": "javascript", "tc": false }
+      - { "type": "symbol", "tc": false }
+      - { "type": "javascriptWithScope", "tc": false }
+      - { "type": "int", "tc": false }
+      - { "type": "timestamp", "tc": false }
+      - { "type": "long", "tc": false }
+      - { "type": "decimal", "tc": false }
+      - { "type": "minKey", "tc": false }
+      - { "type": "maxKey", "tc": true }

@@ -1,0 +1,310 @@
+catalog_environment:
+  foo:
+    unary:
+      - { "_id": 0, "a": { "$numberInt": "1" } }
+      - { "_id": 1, "a": { "$numberInt": "-1" } }
+      - { "_id": 2, "a": { "$numberLong": "1" } }
+      - { "_id": 3, "a": { "$numberLong": "-1" } }
+      - { "_id": 4, "a": { "$numberDouble": "1" } }
+      - { "_id": 5, "a": { "$numberDouble": "-1" } }
+      - { "_id": 6, "a": { "$numberDecimal": "1" } }
+      - { "_id": 7, "a": { "$numberDecimal": "-1" } }
+      - { "_id": 8, "a": null }
+      - { "_id": 9 }
+    binary:
+      - { "_id": 0, "a": { "$numberInt": "6" }, "b": { "$numberInt": "2" } }
+      - { "_id": 1, "a": { "$numberInt": "6" }, "b": { "$numberLong": "2" } }
+      - { "_id": 2, "a": { "$numberInt": "6" }, "b": { "$numberDouble": "2" } }
+      - { "_id": 3, "a": { "$numberInt": "6" }, "b": { "$numberDecimal": "2" } }
+      - { "_id": 4, "a": { "$numberInt": "6" }, "b": null }
+      - { "_id": 5, "a": { "$numberInt": "6" } }
+      - { "_id": 6, "a": { "$numberLong": "6" }, "b": { "$numberInt": "2" } }
+      - { "_id": 7, "a": { "$numberLong": "6" }, "b": { "$numberLong": "2" } }
+      - { "_id": 8, "a": { "$numberLong": "6" }, "b": { "$numberDouble": "2" } }
+      - { "_id": 9, "a": { "$numberLong": "6" }, "b": { "$numberDecimal": "2" } }
+      - { "_id": 10, "a": { "$numberLong": "6" }, "b": null }
+      - { "_id": 11, "a": { "$numberLong": "6" } }
+      - { "_id": 12, "a": { "$numberDouble": "6" }, "b": { "$numberInt": "2" } }
+      - { "_id": 13, "a": { "$numberDouble": "6" }, "b": { "$numberLong": "2" } }
+      - { "_id": 14, "a": { "$numberDouble": "6" }, "b": { "$numberDouble": "2" } }
+      - { "_id": 15, "a": { "$numberDouble": "6" }, "b": { "$numberDecimal": "2" } }
+      - { "_id": 16, "a": { "$numberDouble": "6" }, "b": null }
+      - { "_id": 17, "a": { "$numberDouble": "6" } }
+      - { "_id": 18, "a": { "$numberDecimal": "6" }, "b": { "$numberInt": "2" } }
+      - { "_id": 19, "a": { "$numberDecimal": "6" }, "b": { "$numberLong": "2" } }
+      - { "_id": 20, "a": { "$numberDecimal": "6" }, "b": { "$numberDouble": "2" } }
+      - { "_id": 21, "a": { "$numberDecimal": "6" }, "b": { "$numberDecimal": "2" } }
+      - { "_id": 22, "a": { "$numberDecimal": "6" }, "b": null }
+      - { "_id": 23, "a": { "$numberDecimal": "6" } }
+      - { "_id": 24, "a": null, "b": { "$numberInt": "2" } }
+      - { "_id": 25, "a": null, "b": { "$numberLong": "2" } }
+      - { "_id": 26, "a": null, "b": { "$numberDouble": "2" } }
+      - { "_id": 27, "a": null, "b": { "$numberDecimal": "2" } }
+      - { "_id": 28, "a": null, "b": null }
+      - { "_id": 29, "a": null }
+      - { "_id": 30, "b": { "$numberInt": "2" } }
+      - { "_id": 31, "b": { "$numberLong": "2" } }
+      - { "_id": 32, "b": { "$numberDouble": "2" } }
+      - { "_id": 33, "b": { "$numberDecimal": "2" } }
+      - { "_id": 34, "b": null }
+      - { "_id": 35 }
+    integer_division:
+      - { "_id": 1, "a": { "$numberInt": "5" }, "b": { "$numberInt": "2" } }
+      - { "_id": 2, "a": { "$numberInt": "5" }, "b": { "$numberLong": "2" } }
+      - { "_id": 3, "a": { "$numberLong": "5" }, "b": { "$numberInt": "2" } }
+      - { "_id": 4, "a": { "$numberLong": "5" }, "b": { "$numberLong": "2" } }
+
+schema_environment:
+  {
+    "foo": {
+      "unary": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      },
+      "binary": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "a": {
+              "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "null" }
+              ]
+            },
+            "b": {
+              "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: Unary plus correctness tests
+    query: "SELECT VALUE { 'a': a, '+a': +a } FROM unary AS unary"
+    result:
+      - { "a": { "$numberInt": "1" }, "+a": { "$numberInt": "1" } }
+      - { "a": { "$numberInt": "-1" }, "+a": { "$numberInt": "-1" } }
+      - { "a": { "$numberLong": "1" }, "+a": { "$numberLong": "1" } }
+      - { "a": { "$numberLong": "-1" }, "+a": { "$numberLong": "-1" } }
+      - { "a": { "$numberDouble": "1" }, "+a": { "$numberDouble": "1" } }
+      - { "a": { "$numberDouble": "-1" }, "+a": { "$numberDouble": "-1" } }
+      - { "a": { "$numberDecimal": "1" }, "+a": { "$numberDecimal": "1" } }
+      - { "a": { "$numberDecimal": "-1" }, "+a": { "$numberDecimal": "-1" } }
+      - { "a": null, "+a": null }
+      - { "+a": null }
+
+  - description: Unary minus correctness tests
+    query: "SELECT VALUE { 'a': a, '-a': -a } FROM unary AS unary"
+    result:
+      - { "a": { "$numberInt": "1" }, "-a": { "$numberInt": "-1" } }
+      - { "a": { "$numberInt": "-1" }, "-a": { "$numberInt": "1" } }
+      - { "a": { "$numberLong": "1" }, "-a": { "$numberLong": "-1" } }
+      - { "a": { "$numberLong": "-1" }, "-a": { "$numberLong": "1" } }
+      - { "a": { "$numberDouble": "1" }, "-a": { "$numberDouble": "-1" } }
+      - { "a": { "$numberDouble": "-1" }, "-a": { "$numberDouble": "1" } }
+      - { "a": { "$numberDecimal": "1" }, "-a": { "$numberDecimal": "-1" } }
+      - { "a": { "$numberDecimal": "-1" }, "-a": { "$numberDecimal": "1" } }
+      - { "a": null, "-a": null }
+      - { "-a": null }
+
+  - description: Addition correctness tests
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a+b': a + b } FROM binary AS binary"
+    result:
+      - { "a": { "$numberInt": "6" }, "b": { "$numberInt": "2" }, "a+b": { "$numberInt": "8" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberLong": "2" }, "a+b": { "$numberLong": "8" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDouble": "2" }, "a+b": { "$numberDouble": "8" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDecimal": "2" }, "a+b": { "$numberDecimal": "8" } }
+      - { "a": { "$numberInt": "6" }, "b": null, "a+b": null }
+      - { "a": { "$numberInt": "6" }, "a+b": null }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberInt": "2" }, "a+b": { "$numberLong": "8" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberLong": "2" }, "a+b": { "$numberLong": "8" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDouble": "2" }, "a+b": { "$numberDouble": "8" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDecimal": "2" }, "a+b": { "$numberDecimal": "8" } }
+      - { "a": { "$numberLong": "6" }, "b": null, "a+b": null }
+      - { "a": { "$numberLong": "6" }, "a+b": null }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberInt": "2" }, "a+b": { "$numberDouble": "8" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberLong": "2" }, "a+b": { "$numberDouble": "8" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDouble": "2" }, "a+b": { "$numberDouble": "8" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDecimal": "2" }, "a+b": { "$numberDecimal": "8" } }
+      - { "a": { "$numberDouble": "6" }, "b": null, "a+b": null }
+      - { "a": { "$numberDouble": "6" }, "a+b": null }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberInt": "2" }, "a+b": { "$numberDecimal": "8" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberLong": "2" }, "a+b": { "$numberDecimal": "8" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDouble": "2" }, "a+b": { "$numberDecimal": "8" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDecimal": "2" }, "a+b": { "$numberDecimal": "8" } }
+      - { "a": { "$numberDecimal": "6" }, "b": null, "a+b": null }
+      - { "a": { "$numberDecimal": "6" }, "a+b": null }
+      - { "a": null, "b": { "$numberInt": "2" }, "a+b": null }
+      - { "a": null, "b": { "$numberLong": "2" }, "a+b": null }
+      - { "a": null, "b": { "$numberDouble": "2" }, "a+b": null }
+      - { "a": null, "b": { "$numberDecimal": "2" }, "a+b": null }
+      - { "a": null, "b": null, "a+b": null }
+      - { "a": null, "a+b": null }
+      - { "b": { "$numberInt": "2" }, "a+b": null }
+      - { "b": { "$numberLong": "2" }, "a+b": null }
+      - { "b": { "$numberDouble": "2" }, "a+b": null }
+      - { "b": { "$numberDecimal": "2" }, "a+b": null }
+      - { "b": null, "a+b": null }
+      - { "a+b": null }
+
+  - description: Subtraction correctness tests
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a-b': a - b } FROM binary AS binary"
+    result:
+      - { "a": { "$numberInt": "6" }, "b": { "$numberInt": "2" }, "a-b": { "$numberInt": "4" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberLong": "2" }, "a-b": { "$numberLong": "4" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDouble": "2" }, "a-b": { "$numberDouble": "4" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDecimal": "2" }, "a-b": { "$numberDecimal": "4" } }
+      - { "a": { "$numberInt": "6" }, "b": null, "a-b": null }
+      - { "a": { "$numberInt": "6" }, "a-b": null }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberInt": "2" }, "a-b": { "$numberLong": "4" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberLong": "2" }, "a-b": { "$numberLong": "4" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDouble": "2" }, "a-b": { "$numberDouble": "4" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDecimal": "2" }, "a-b": { "$numberDecimal": "4" } }
+      - { "a": { "$numberLong": "6" }, "b": null, "a-b": null }
+      - { "a": { "$numberLong": "6" }, "a-b": null }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberInt": "2" }, "a-b": { "$numberDouble": "4" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberLong": "2" }, "a-b": { "$numberDouble": "4" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDouble": "2" }, "a-b": { "$numberDouble": "4" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDecimal": "2" }, "a-b": { "$numberDecimal": "4" } }
+      - { "a": { "$numberDouble": "6" }, "b": null, "a-b": null }
+      - { "a": { "$numberDouble": "6" }, "a-b": null }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberInt": "2" }, "a-b": { "$numberDecimal": "4" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberLong": "2" }, "a-b": { "$numberDecimal": "4" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDouble": "2" }, "a-b": { "$numberDecimal": "4" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDecimal": "2" }, "a-b": { "$numberDecimal": "4" } }
+      - { "a": { "$numberDecimal": "6" }, "b": null, "a-b": null }
+      - { "a": { "$numberDecimal": "6" }, "a-b": null }
+      - { "a": null, "b": { "$numberInt": "2" }, "a-b": null }
+      - { "a": null, "b": { "$numberLong": "2" }, "a-b": null }
+      - { "a": null, "b": { "$numberDouble": "2" }, "a-b": null }
+      - { "a": null, "b": { "$numberDecimal": "2" }, "a-b": null }
+      - { "a": null, "b": null, "a-b": null }
+      - { "a": null, "a-b": null }
+      - { "b": { "$numberInt": "2" }, "a-b": null }
+      - { "b": { "$numberLong": "2" }, "a-b": null }
+      - { "b": { "$numberDouble": "2" }, "a-b": null }
+      - { "b": { "$numberDecimal": "2" }, "a-b": null }
+      - { "b": null, "a-b": null }
+      - { "a-b": null }
+
+  - description: Multiplication correctness tests
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a*b': a * b } FROM binary AS binary"
+    result:
+      - { "a": { "$numberInt": "6" }, "b": { "$numberInt": "2" }, "a*b": { "$numberInt": "12" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberLong": "2" }, "a*b": { "$numberLong": "12" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDouble": "2" }, "a*b": { "$numberDouble": "12" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDecimal": "2" }, "a*b": { "$numberDecimal": "12" } }
+      - { "a": { "$numberInt": "6" }, "b": null, "a*b": null }
+      - { "a": { "$numberInt": "6" }, "a*b": null }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberInt": "2" }, "a*b": { "$numberLong": "12" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberLong": "2" }, "a*b": { "$numberLong": "12" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDouble": "2" }, "a*b": { "$numberDouble": "12" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDecimal": "2" }, "a*b": { "$numberDecimal": "12" } }
+      - { "a": { "$numberLong": "6" }, "b": null, "a*b": null }
+      - { "a": { "$numberLong": "6" }, "a*b": null }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberInt": "2" }, "a*b": { "$numberDouble": "12" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberLong": "2" }, "a*b": { "$numberDouble": "12" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDouble": "2" }, "a*b": { "$numberDouble": "12" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDecimal": "2" }, "a*b": { "$numberDecimal": "12" } }
+      - { "a": { "$numberDouble": "6" }, "b": null, "a*b": null }
+      - { "a": { "$numberDouble": "6" }, "a*b": null }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberInt": "2" }, "a*b": { "$numberDecimal": "12" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberLong": "2" }, "a*b": { "$numberDecimal": "12" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDouble": "2" }, "a*b": { "$numberDecimal": "12" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDecimal": "2" }, "a*b": { "$numberDecimal": "12" } }
+      - { "a": { "$numberDecimal": "6" }, "b": null, "a*b": null }
+      - { "a": { "$numberDecimal": "6" }, "a*b": null }
+      - { "a": null, "b": { "$numberInt": "2" }, "a*b": null }
+      - { "a": null, "b": { "$numberLong": "2" }, "a*b": null }
+      - { "a": null, "b": { "$numberDouble": "2" }, "a*b": null }
+      - { "a": null, "b": { "$numberDecimal": "2" }, "a*b": null }
+      - { "a": null, "b": null, "a*b": null }
+      - { "a": null, "a*b": null }
+      - { "b": { "$numberInt": "2" }, "a*b": null }
+      - { "b": { "$numberLong": "2" }, "a*b": null }
+      - { "b": { "$numberDouble": "2" }, "a*b": null }
+      - { "b": { "$numberDecimal": "2" }, "a*b": null }
+      - { "b": null, "a*b": null }
+      - { "a*b": null }
+
+  - description: Division correctness tests
+    query: "SELECT VALUE { 'a': a, 'b': b, 'a/b': a / b } FROM binary AS binary"
+    result:
+      - { "a": { "$numberInt": "6" }, "b": { "$numberInt": "2" }, "a/b": { "$numberInt": "3" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberLong": "2" }, "a/b": { "$numberLong": "3" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDouble": "2" }, "a/b": { "$numberDouble": "3" } }
+      - { "a": { "$numberInt": "6" }, "b": { "$numberDecimal": "2" }, "a/b": { "$numberDecimal": "3" } }
+      - { "a": { "$numberInt": "6" }, "b": null, "a/b": null }
+      - { "a": { "$numberInt": "6" }, "a/b": null }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberInt": "2" }, "a/b": { "$numberLong": "3" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberLong": "2" }, "a/b": { "$numberLong": "3" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDouble": "2" }, "a/b": { "$numberDouble": "3" } }
+      - { "a": { "$numberLong": "6" }, "b": { "$numberDecimal": "2" }, "a/b": { "$numberDecimal": "3" } }
+      - { "a": { "$numberLong": "6" }, "b": null, "a/b": null }
+      - { "a": { "$numberLong": "6" }, "a/b": null }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberInt": "2" }, "a/b": { "$numberDouble": "3" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberLong": "2" }, "a/b": { "$numberDouble": "3" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDouble": "2" }, "a/b": { "$numberDouble": "3" } }
+      - { "a": { "$numberDouble": "6" }, "b": { "$numberDecimal": "2" }, "a/b": { "$numberDecimal": "3" } }
+      - { "a": { "$numberDouble": "6" }, "b": null, "a/b": null }
+      - { "a": { "$numberDouble": "6" }, "a/b": null }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberInt": "2" }, "a/b": { "$numberDecimal": "3" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberLong": "2" }, "a/b": { "$numberDecimal": "3" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDouble": "2" }, "a/b": { "$numberDecimal": "3" } }
+      - { "a": { "$numberDecimal": "6" }, "b": { "$numberDecimal": "2" }, "a/b": { "$numberDecimal": "3" } }
+      - { "a": { "$numberDecimal": "6" }, "b": null, "a/b": null }
+      - { "a": { "$numberDecimal": "6" }, "a/b": null }
+      - { "a": null, "b": { "$numberInt": "2" }, "a/b": null }
+      - { "a": null, "b": { "$numberLong": "2" }, "a/b": null }
+      - { "a": null, "b": { "$numberDouble": "2" }, "a/b": null }
+      - { "a": null, "b": { "$numberDecimal": "2" }, "a/b": null }
+      - { "a": null, "b": null, "a/b": null }
+      - { "a": null, "a/b": null }
+      - { "b": { "$numberInt": "2" }, "a/b": null }
+      - { "b": { "$numberLong": "2" }, "a/b": null }
+      - { "b": { "$numberDouble": "2" }, "a/b": null }
+      - { "b": { "$numberDecimal": "2" }, "a/b": null }
+      - { "b": null, "a/b": null }
+      - { "a/b": null }
+
+  - description: Division by zero results in NULL
+    query: "SELECT VALUE { 'a': a, 'n': a / 0 } FROM unary AS unary"
+    result:
+      - { "a": { "$numberInt": "1" }, "n": null }
+      - { "a": { "$numberInt": "-1" }, "n": null }
+      - { "a": { "$numberLong": "1" }, "n": null }
+      - { "a": { "$numberLong": "-1" }, "n": null }
+      - { "a": { "$numberDouble": "1" }, "n": null }
+      - { "a": { "$numberDouble": "-1" }, "n": null }
+      - { "a": { "$numberDecimal": "1" }, "n": null }
+      - { "a": { "$numberDecimal": "-1" }, "n": null }
+      - { "a": null, "n": null }
+      - { "n": null }
+
+  - description: Long and integer division with non-integer results are truncated
+    query: "SELECT VALUE { 'a': a, 'b': b, 'n': a / b } FROM integer_division AS integer_division"
+    result:
+      - { "a": { "$numberInt": "5" }, "b": { "$numberInt": "2" }, "n": { "$numberInt": "2" } }
+      - { "a": { "$numberInt": "5" }, "b": { "$numberLong": "2" }, "n": { "$numberLong": "2" } }
+      - { "a": { "$numberLong": "5" }, "b": { "$numberInt": "2" }, "n": { "$numberLong": "2" } }
+      - { "a": { "$numberLong": "5" }, "b": { "$numberLong": "2" }, "n": { "$numberLong": "2" } }

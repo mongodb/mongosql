@@ -1,0 +1,10 @@
+tests:
+  - description: Array indexing type constraints
+    query: "SELECT a[arg1] FROM foo"
+    valid_types:
+      - { "arg1": ["INT", "NULL", "MISSING"] }
+
+  - description: Array slicing type constraints
+    query: "SELECT SLICE(arg1, arg2, arg3) FROM foo"
+    valid_types:
+      - { "arg1": ["ARRAY", "NULL", "MISSING"], "arg2": ["INT", "NULL", "MISSING"], "arg3": ["INT", "NULL", "MISSING"] }

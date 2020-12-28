@@ -1,0 +1,5 @@
+tests:
+  - description: WHERE condition must have type BOOL or NULL, or be MISSING
+    query: "SELECT * FROM foo WHERE arg"
+    valid_types:
+      - { "arg": ["BOOL", "NULL", "MISSING"] }

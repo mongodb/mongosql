@@ -1,0 +1,64 @@
+catalog_environment:
+  foo:
+    bar:
+      - { "_id": 0, "a": 2, "b": null }
+
+schema_environment:
+  {
+    "foo": {
+      "bar": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "a": {
+              "bsonType": "int"
+            },
+            "b": {
+              "anyOf": [
+                { "bsonType": "int" },
+                { "bsonType": "null" }
+              ]
+            },
+            "c": {
+              "bsonType": "int"
+            },
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: Simple CASE expression - No WHEN comparison evalutes to TRUE, return ELSE result
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
+    result:
+      - { "a": 2, "b": null, "r": "none" }
+
+  - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
+    query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
+    result:
+      - { "r": "b" }
+
+  - description: Simple CASE expression - Multiple WHEN comparison evalutes to TRUE, return first corresponding THEN result
+    query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
+    result:
+      - { "r": "a" }
+
+  - description: Simple CASE expression - Static type mismatch for case operand and when operand
+    query: "SELECT VALUE { 'r': CASE 1 WHEN '2' THEN '2' ELSE NULL END } FROM [{}] AS _dual"
+    error: "error: type mismatch in CASE expression, operands must have comparable types (found STRING and INT)"
+
+  - description: Searched CASE expression - No WHEN condition evalutes to TRUE, return ELSE result
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
+    result:
+      - { "a": 2, "b": null, "r": "a" }
+
+  - description: Searched CASE expression - One WHEN condition evalutes to TRUE, return corresponding THEN result
+    query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
+    result:
+      - { "r": "b" }
+
+  - description: Searched CASE expression - Multiple WHEN conditions evalutes to TRUE, return first corresponding THEN result
+    query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
+    result:
+      - { "r": "a" }
