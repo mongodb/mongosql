@@ -1,0 +1,249 @@
+catalog_environment:
+  foo:
+    bar:
+      - {'_id': 1, 'v': 1}
+      - {'_id': 2, 'v': 2}
+      - {'_id': 3, 'v': 3}
+      - {'_id': 4, 'v': 4}
+      - {'_id': 5, 'v': null}
+      - {'_id': 6}
+    target:
+      - {'_id': 1, 'a': 2}
+      - {'_id': 2, 'a': 3}
+      - {'_id': 3, 'a': null}
+
+schema_environment:
+  {
+    'foo': {
+      'bar': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            '_id': {
+              'bsonType': "int"
+            },
+            'v': {
+              'anyOf': [
+              { 'bsonType': "int" },
+              { 'bsonType': "null" }
+              ]
+            }
+          }
+        }
+      },
+      'target': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            '_id': {
+              'bsonType': "int"
+            },
+            'v': {
+              'anyOf': [
+              { 'bsonType': "int" },
+              { 'bsonType': "null" }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+  - description: correctness test for = ANY Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v = ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+
+  - description: correctness test for = ANY Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v = ANY(SELECT a FROM target)"
+    result:
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+
+  - description: correctness test for <> ANY Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <> ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for <> ANY Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <> ANY(SELECT a FROM target)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for < ANY Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v < ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 2, "v": 2}
+
+  - description: correctness test for < ANY Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v < ANY(SELECT a FROM target)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 2, "v": 2}
+
+  - description: correctness test for <= ANY Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <= ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+
+  - description: correctness test for <= ANY Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <= ANY(SELECT a FROM target)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+
+  - description: correctness test for > ANY Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v > ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 3, "v": 3}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for > ANY Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v > ANY(SELECT a FROM target)"
+    result:
+      - {"_id": 3, "v": 3}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for >= ANY Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v >= ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for >= ANY Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v >= ANY(SELECT a FROM target)"
+    result:
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for = ALL Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v = ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    result: []
+
+  - description: correctness test for = ALL Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v = ALL(SELECT a FROM target)"
+    result: []
+
+  - description: correctness test for = ALL Operator with matching result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v = ALL(SELECT a FROM target WHERE a = 1)"
+    result:
+      - {"_id": 1, "v": 1}
+
+  - description: correctness test for <> ALL Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <> ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for <> ALL Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <> ALL(SELECT a FROM target)"
+    result: []
+
+  - description: correctness test for < ALL Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v < ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 1, "v": 1}
+
+  - description: correctness test for < ALL Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v < ALL(SELECT a FROM target)"
+    result: []
+
+  - description: correctness test for <= ALL Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <= ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 2, "v": 2}
+
+  - description: correctness test for <= ALL Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <= ALL(SELECT a FROM target)"
+    result: []
+
+  - description: correctness test for > ALL Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v > ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for > ALL Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v > ALL(SELECT a FROM target)"
+    result: []
+
+  - description: correctness test for >= ALL Operator without NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v >= ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    result:
+      - {"_id": 3, "v": 3}
+      - {"_id": 4, "v": 4}
+
+  - description: correctness test for >= ALL Operator with NULL in subquery result
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v >= ALL(SELECT a FROM target)"
+    result: []
+
+  - description: correctness test for EXISTS Operator
+    current_db: foo
+    query: "SELECT * FROM bar WHERE EXISTS(SELECT * FROM target WHERE v = a)"
+    result:
+      - {"_id": 2, "v": 2}
+      - {"_id": 3, "v": 3}
+
+  - description: correctness test for NOT EXISTS Operator
+    current_db: foo
+    query: "SELECT * FROM bar WHERE NOT EXISTS(SELECT * FROM target WHERE v = a)"
+    result:
+      - {"_id": 1, "v": 1}
+      - {"_id": 4, "v": 4}
+      - {"_id": 5, "v": null}
+      - {"_id": 6, "v": null}
+
+  - description: IN Operator fails if it has different degree on both sides
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v IN(SELECT * FROM target)"
+    error: "Operand should contain 1 column(s)"
+
+  - description: ANY Operator fails if it has different degree on both sides
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v <> ANY(SELECT * FROM target)"
+    error: "Operand should contain 1 column(s)"
+
+  - description: ALL Operator fails if it has different degree on both sides
+    current_db: foo
+    query: "SELECT * FROM bar WHERE v = ALL(SELECT * FROM target)"
+    error: "Operand should contain 1 column(s)"

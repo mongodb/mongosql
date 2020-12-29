@@ -1,0 +1,119 @@
+catalog_environment:
+  foo:
+    employees:
+      - {'_id': 1, 'name': 'a', 'salary': 2, 'department_id': 1}
+      - {'_id': 2, 'name': 'b', 'salary': 4, 'department_id': 1}
+      - {'_id': 3, 'name': 'c', 'salary': 9, 'department_id': 1}
+      - {'_id': 4, 'name': 'd', 'salary': 1, 'department_id': 2}
+    department:
+      - {'_id': 1, 'name': 'd1'}
+      - {'_id': 2, 'name': 'd2'}
+      - {'_id': 3, 'name': 'd3'}
+    employees_w_schema:
+      - {'_id': 1, 'name': 'a', 'salary': 2, 'department_id': 1}
+      - {'_id': 2, 'name': 'b', 'salary': 4, 'department_id': 1}
+      - {'_id': 3, 'name': 'c', 'salary': 9, 'department_id': 1}
+      - {'_id': 4, 'name': 'd', 'salary': 1, 'department_id': 2}
+    department_w_schema:
+      - {'_id': 1, 'name': 'd1'}
+      - {'_id': 2, 'name': 'd2'}
+      - {'_id': 3, 'name': 'd3'}
+
+schema_environment:
+  {
+    'foo': {
+      'employees_w_schema': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            '_id': {
+              'bsonType': "int"
+            },
+            'name': {
+              'bsonType': "string"
+            },
+            'salary': {
+              'bsonType': "int"
+            },
+            'department_id': {
+              'bsonType': "int"
+            }
+          }
+        }
+      },
+      'department_w_schema': {
+        '$jsonSchema': {
+          'bsonType': "object",
+          'properties': {
+            '_id': {
+              'bsonType': "int"
+            },
+            'name': {
+              'bsonType': "string"
+            }
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: uncorrelated scalar subquery expression correctness test
+    current_db: foo
+    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{a: 4}] AS arr)} FROM employees AS emp"
+    result:
+      - {'name': 'a', 'avg_salary': 4}
+      - {'name': 'b', 'avg_salary': 4}
+      - {'name': 'c', 'avg_salary': 4}
+      - {'name': 'd', 'avg_salary': 4}
+
+  - description: correlated scalar subquery correctness test
+    current_db: foo
+    query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees AS emp"
+    result:
+      - {'name': 'a', 'department_name': 'd1'}
+      - {'name': 'b', 'department_name': 'd1'}
+      - {'name': 'c', 'department_name': 'd1'}
+      - {'name': 'd', 'department_name': 'd2'}
+
+  - descripton: scalar subquery fails if it cannot prove that it statically returns a single row
+    current_db: foo
+    query: "SELECT VALUE {'department_name': (SELECT dep.name FROM department AS dep WHERE dep.`_id` = emp.department_id)} FROM employees AS emp"
+    error: "Scalar subquery must be statically proved to return only one value"
+
+  - descripton: scalar subquery fails if it cannot prove that it statically returns a single column
+    current_db: foo
+    query: "SELECT VALUE {'department_name': (SELECT * FROM department AS dep WHERE dep.id = emp.department_id LIMIT 1)} FROM employees AS emp"
+    error: "Scalar subquery must be statically proved to return only one value"
+
+  - description: cardinality of 1 should be inferrable from array datasource
+    current_db: foo
+    query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM department"
+    result:
+      - {'name': 'd1', 'sub': 1}
+      - {'name': 'd2', 'sub': 1}
+      - {'name': 'd3', 'sub': 1}
+  
+  - description: cardinality of 1 should be inferrable from group by constant
+    current_db: foo
+    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees GROUP BY NULL AS _ AGGREGATE AVG(CAST(salary AS DOUBLE)))} FROM employees AS emp"
+    result:
+      - {'name': 'a', 'avg_salary': 4}
+      - {'name': 'b', 'avg_salary': 4}
+      - {'name': 'c', 'avg_salary': 4}
+      - {'name': 'd', 'avg_salary': 4}
+
+  - description: nested subquery should be able to access field from its grandparent query correctness test
+    current_db: foo
+    query: "SELECT VALUE {'name': name, 'department_name': (SELECT department.name FROM department AS department WHERE department._id = (SELECT emp.department_id FROM employees AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1) } FROM employees AS emp1"
+    result:
+      - {'name': 'a', 'department_name': 'd1'}
+      - {'name': 'b', 'department_name': 'd1'}
+      - {'name': 'c', 'department_name': 'd1'}
+      - {'name': 'd', 'department_name': 'd2'}
+
+  - description: SELECT VALUE is not supported in subquery expressions
+    current_db: foo
+    query: "SELECT VALUE {'average_salary': ( SELECT VALUE {'a': arr.a} FROM [{a: 4}] AS arr)} FROM employees AS emp"
+    error: "SELECT VALUE is not supported in subquery expressions"
+
