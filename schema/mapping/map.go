@@ -178,7 +178,7 @@ func getDataLakeMongoDBInfo(db, collection string) *mongodb.Info {
 
 	databaseInfo := make(map[mongodb.DatabaseName]*mongodb.DatabaseInfo)
 	databaseInfo[mongodb.DatabaseName(strings.ToLower(db))] = &mongodb.DatabaseInfo{
-		Name: mongodb.DatabaseName(strings.ToLower(db)),
+		CaseSensitiveName: db,
 		// Add visibility privileges so catalog builder knows to add the
 		// database and collection to the catalog.
 		Privileges:  mongodb.VisibilityPrivileges,

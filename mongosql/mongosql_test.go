@@ -838,14 +838,14 @@ func makeTestCatalogWithShardedCollections(s *schema.Schema) (catalog.Catalog, e
 			collectionInfos[collectionName] = collectionInfo
 		}
 
-		dbName := mongodb.DatabaseName(db.Name())
+		dbName := db.Name()
 		dbInfo := &mongodb.DatabaseInfo{
-			Name:        dbName,
-			Privileges:  mongodb.AllPrivileges,
-			Collections: collectionInfos,
+			CaseSensitiveName: dbName,
+			Privileges:        mongodb.AllPrivileges,
+			Collections:       collectionInfos,
 		}
 
-		dbInfos[dbName] = dbInfo
+		dbInfos[mongodb.DatabaseName(dbName)] = dbInfo
 	}
 
 	info := &mongodb.Info{

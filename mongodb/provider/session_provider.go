@@ -547,11 +547,10 @@ func createDatabasesFromSchema(config *schema.Schema) map[mongodb.DatabaseName]*
 		dbName := strings.ToLower(dbSchema.Name())
 		dbInfo := &mongodb.DatabaseInfo{
 			CaseSensitiveName: dbSchema.Name(),
-			Name:              mongodb.DatabaseName(dbName),
 			Collections:       make(map[mongodb.CollectionName]*mongodb.CollectionInfo),
 		}
 
-		dbInfos[dbInfo.Name] = dbInfo
+		dbInfos[mongodb.DatabaseName(dbName)] = dbInfo
 
 		for _, table := range dbSchema.Tables() {
 			name := mongodb.CollectionName(table.MongoName())

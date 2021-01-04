@@ -3,6 +3,7 @@ package evaluator
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/10gen/mongoast/ast"
 
@@ -187,12 +188,12 @@ func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb
 
 	for _, db := range sch.Databases() {
 		dbInfo := &mongodb.DatabaseInfo{
-			Privileges:  privileges,
-			Name:        mongodb.DatabaseName(db.Name()),
-			Collections: make(map[mongodb.CollectionName]*mongodb.CollectionInfo),
+			Privileges:        privileges,
+			CaseSensitiveName: db.Name(),
+			Collections:       make(map[mongodb.CollectionName]*mongodb.CollectionInfo),
 		}
 
-		i.Databases[dbInfo.Name] = dbInfo
+		i.Databases[mongodb.DatabaseName(strings.ToLower(dbInfo.CaseSensitiveName))] = dbInfo
 
 		for _, col := range db.Tables() {
 			if _, ok := dbInfo.Collections[mongodb.CollectionName(col.MongoName())]; ok {

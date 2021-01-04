@@ -46,7 +46,7 @@ type Info struct {
 	CompatibleVersion string
 	// CompatibleVersionArray are the components of the compatible version.
 	CompatibleVersionArray []uint8
-	// Databases is information about databases by name.
+	// Databases is information about databases by name, in which the key is the lowercased database name.
 	Databases map[DatabaseName]*DatabaseInfo
 	// Git version is the git hash of the mongodb server.
 	GitVersion string
@@ -127,8 +127,6 @@ type CollectionInfo struct {
 type DatabaseInfo struct {
 	CaseSensitiveName string
 
-	// Name is the name of the database.
-	Name DatabaseName
 	// Privileges is a union of all the collection privileges.
 	Privileges Privilege
 	// Collections is information about collections by name.
@@ -150,7 +148,7 @@ func (i *Info) LoadMetadata(ctx context.Context, logger log.Logger, cr CommandRu
 			logger.Warnf(
 				log.Admin,
 				"error while loading metadata for database %q: %v",
-				dbInfo.Name, err,
+				dbInfo.CaseSensitiveName, err,
 			)
 		}
 		dbInfo.loadIndexes(ctx, logger, cr)
@@ -276,7 +274,7 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Log
 				bsonutil.NewDocElem("collStats", collectionName),
 			)
 
-			err := cr.Run(ctx, string(dbInfo.Name), collStatsCommand, &stats)
+			err := cr.Run(ctx, dbInfo.CaseSensitiveName, collStatsCommand, &stats)
 			if err != nil {
 				logger.Warnf(
 					log.Admin,
