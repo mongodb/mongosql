@@ -1485,6 +1485,34 @@
     - {"_id": 0, "dt_date": {$date: "2000-01-02T12:34:56Z"}, "dt_str": "2000-01-02T12:34:56Z", "dt_timestamp": 946816496000, "dt_yyyymmdd": 20000102}
     - {"_id": 1, "dt_date": {$date: "2000-01-02T12:34:57Z"}, "dt_str": "2000-01-02T12:34:57Z", "dt_timestamp": 946816497000, "dt_yyyymmdd": 20000102}
 
+- db: "geo_index_test"
+  collection: "sphere2dpoint"
+  indexes:
+    - {key: {pos : "2dsphere"}, name: "pos_sphere_point_index"}
+  docs:
+    - {pos : {type: "Point", coordinates: [ -73.97, 40.77 ]}, name: "Central Park", category : "Parks"}
+
+- db: "geo_index_test"
+  collection: "sphere2dlinestring"
+  indexes:
+    - {key: {pos : "2dsphere"}, name: "pos_sphere_linestring_index"}
+  docs:
+    - {pos : {type: "LineString", coordinates: [[0, 0], [0, 1], [1, 1], [1, 0]]}}
+
+- db: "geo_index_test"
+  collection: "sphere2darr"
+  indexes:
+    - {key: {pos : "2dsphere"}, name: "pos_sphere_arr_index"}
+  docs:
+    - {pos : [ -73.97, 40.77 ]}
+
+- db: "geo_index_test"
+  collection: "geo2darr"
+  indexes:
+    - {key: {pos : "2d"}, name: "pos_geo_index"}
+  docs:
+    - {pos : [ -73.97, 40.77 ]}
+
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
 #

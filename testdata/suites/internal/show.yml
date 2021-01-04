@@ -801,6 +801,7 @@ testcases:
       - [cte_test]
       - [explain_test]
       - [functions_test]
+      - [geo_index_test]
       - [groupby_test]
       - [information_schema_test]
       - [information_schema_test_Mixed_Case]

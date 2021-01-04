@@ -608,8 +608,43 @@ func (s *Schemata) InferSpecialTypes() {
 	}
 
 	for typ, sch := range s.Schemas {
-		if typ == Array && has2DIndex {
-			sch.SpecialType = GeoPoint
+		if has2DIndex {
+			// sphere2d indexes are often on GeoJSON objects containing "coordinates" arrays rather than on the arrays
+			// directly:
+			//
+			// see example: https://docs.mongodb.com/bi-connector/master/schema/geospatial-data
+			//
+			// In this case, we need to apply the specialType to the coordinate array under the object.
+			// However, we do not support GeoJSON objects with multidimensional coordinate arrays
+			// (anything other than the "Point" type).
+			if typ == Object {
+				var v *Schemata
+				var ok bool
+				if v, ok = sch.Properties["coordinates"]; !ok {
+					continue
+				}
+				for typ, sch := range v.Schemas {
+					if typ != Array {
+						// The type of coordinates should always be array for there to be a geo
+						// index applied in current versions of MongoDB, so this case should be
+						// impossible.
+						break
+					}
+					for itemTyp := range sch.Items.Schemas {
+						// We will assume that if _any_ Items type for the coordinates array is
+						// not an Array, that we can map this as a GeoPoint. MongoDB currently
+						// does not allow applying geo indexes to objects with polymorphic
+						// coordinate arrays, so this will be no different in practice.
+						if itemTyp != Array {
+							sch.SpecialType = GeoPoint
+							break
+						}
+					}
+				}
+			// geo indexes can also be applied directly to arrays.
+			} else if typ == Array {
+				sch.SpecialType = GeoPoint
+			}
 		}
 		sch.InferSpecialTypes()
 	}
