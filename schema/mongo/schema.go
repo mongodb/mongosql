@@ -641,8 +641,8 @@ func (s *Schemata) InferSpecialTypes() {
 						}
 					}
 				}
-			// geo indexes can also be applied directly to arrays.
 			} else if typ == Array {
+				// geo indexes can also be applied directly to arrays.
 				sch.SpecialType = GeoPoint
 			}
 		}

@@ -1320,6 +1320,7 @@ testcases:
       - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
     expected_types: [float, float, float, int, int]
     id: arithmetic_overflow_subtracting_literals_from_max_int64_literal
+    skip: true
     sql: select 9223372036854775807 - 1 as a, 9223372036854775807 - 2 as b, 9223372036854775807 - 3 as c, 9223372036854775807 - 9223372036854775807 as d, 9223372036854775807 - -9223372036854775808 as e
 
   - db: select_sTest
@@ -1333,6 +1334,7 @@ testcases:
       - [3, 9223372036854775804]
     expected_types: [int, float]
     id: arithmetic_overflow_subtracting_columns_from_max_int64_literal
+    skip: true
     sql: select a, 9223372036854775807 - a as result from int_bounds
 
   - db: select_sTest
@@ -1346,6 +1348,7 @@ testcases:
       - [9223372036854775806, 9223372036854775805, 9223372036854775804, 0, -1]
     expected_types: [float, float, float, int, int]
     id: arithmetic_overflow_subtracting_literals_from_max_int64_column
+    skip: true
     sql: select maxInt - 1 as a, maxInt - 2 as b, maxInt - 3 as c, maxInt - 9223372036854775807 as d, maxInt - -9223372036854775808 as e from int_bounds
 
   - db: select_sTest
@@ -1359,6 +1362,7 @@ testcases:
       - [3, 9223372036854775804]
     expected_types: [int, float]
     id: arithmetic_overflow_subtracting_columns_from_max_int64_column
+    skip: true
     sql: select a, maxInt - a as result from int_bounds
 
   - db: select_sTest
@@ -1506,6 +1510,7 @@ testcases:
       - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
     expected_types: [float, float, float, int, int]
     id: arithmetic_overflow_subtracting_literals_from_min_int64_literal
+    skip: true
     sql: select -9223372036854775808 - 1 as a, -9223372036854775808 - 2 as b, -9223372036854775808 - 3 as c, -9223372036854775808 - 9223372036854775807 as d, -9223372036854775808 - -9223372036854775808 as e
 
   - db: select_sTest
@@ -1519,6 +1524,7 @@ testcases:
       - [3, 9223372036854775805]
     expected_types: [int, float]
     id: arithmetic_overflow_subtracting_columns_from_min_int64_literal
+    skip: true
     sql: select a, -9223372036854775808 - a as result from int_bounds
 
   - db: select_sTest
@@ -1532,6 +1538,7 @@ testcases:
       - [9223372036854775807, 9223372036854775806, 9223372036854775805, 1, 0]
     expected_types: [float, float, float, int, int]
     id: arithmetic_overflow_subtracting_literals_from_min_int64_column
+    skip: true
     sql: select minInt - 1 as a, minInt - 2 as b, minInt - 3 as c, minInt - 9223372036854775807 as d, minInt - -9223372036854775808 as e from int_bounds
 
   - db: select_sTest
@@ -1545,6 +1552,7 @@ testcases:
       - [3, 9223372036854775805]
     expected_types: [int, float]
     id: arithmetic_overflow_subtracting_columns_from_min_int64_column
+    skip: true
     sql: select a, minInt - a as result from int_bounds
 
   - db: select_sTest
