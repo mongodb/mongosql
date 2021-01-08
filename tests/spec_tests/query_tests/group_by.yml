@@ -1,48 +1,46 @@
-catalog_environment: {
-    "foo": {
-        "bar":[
-            {"_id": {"$numberInt": "1"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "2"},"c": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "2"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "12"},"c": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "42"},"c": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "111"},"b": {"$numberInt": "142"},"c": {"$numberInt": "13"}}
-            ],
-        "multi": [
-            {"_id": {"$numberInt": "1"}, "a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "1"}},
-            {"_id": {"$numberInt": "2"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "2"}},
-            {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}, "c": {"$numberInt": "4"}},
-            {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "5"}}
-        ],
-        "nullAndMissing": [
-            {"_id": {"$numberInt": "1"}, "n": null},
-            {"_id": {"$numberInt": "2"}},
-            {"_id": {"$numberInt": "3"}, "n": {"$numberInt": "1"}}
-        ],
-        "poly":[
-            {"_id": {"$numberInt": "1"}, "a":{"a": {"$numberInt": "1"},"b": {"$numberInt": "2"}}},
-            {"_id": {"$numberInt": "2"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "2"}}},
-            {"_id": {"$numberInt": "3"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "3"}}},
-            {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "6"}, "a": {"$numberInt": "4"}}
-            ],
-        "poly2":[
-            {"_id": {"$numberInt": "1"}, "a":{"a": {"$numberInt": "1"},"b": {"$numberInt": "2"}}},
-            {"_id": {"$numberInt": "2"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "2"}}},
-            {"_id": {"$numberInt": "3"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "3"}}},
-            {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "3"}},
-            {"_id": {"$numberInt": "6"}, "a": {"$numberInt": "4"}},
-            {"_id": {"$numberInt": "7"}, "a":{"c": {"$numberInt": "1"}}}
-            ],
-        "numerics": [
-            {"_id": {"$numberInt": "1"}, "a": {"$numberDecimal": "3.0"}},
-            {"_id": {"$numberInt": "2"}, "a": {"$numberDouble": "3.0"}},
-            {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "3"}}
-        ]
-        }
-    }
+catalog_environment:
+  foo:
+    bar:
+      - {"_id": {"$numberInt": "1"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "2"},"c": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "2"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "12"},"c": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "42"},"c": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "111"},"b": {"$numberInt": "142"},"c": {"$numberInt": "13"}}
+
+    multi:
+      - {"_id": {"$numberInt": "1"}, "a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "1"}}
+      - {"_id": {"$numberInt": "2"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "2"}}
+      - {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}, "c": {"$numberInt": "4"}}
+      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "5"}}
+
+    nullAndMissing:
+      - {"_id": {"$numberInt": "1"}, "n": null}
+      - {"_id": {"$numberInt": "2"}, "n": null}
+      - {"_id": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "4"}, "n": {"$numberInt": "1"}}
+
+    poly:
+      - {"_id": {"$numberInt": "1"}, "a":{"a": {"$numberInt": "1"},"b": {"$numberInt": "2"}}}
+      - {"_id": {"$numberInt": "2"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "2"}}}
+      - {"_id": {"$numberInt": "3"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "3"}}}
+      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "6"}, "a": {"$numberInt": "4"}}
+
+    poly2:
+      - {"_id": {"$numberInt": "1"}, "a":{"a": {"$numberInt": "1"},"b": {"$numberInt": "2"}}}
+      - {"_id": {"$numberInt": "2"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "2"}}}
+      - {"_id": {"$numberInt": "3"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "3"}}}
+      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "3"}}
+      - {"_id": {"$numberInt": "6"}, "a": {"$numberInt": "4"}}
+      - {"_id": {"$numberInt": "7"}, "a":{"c": {"$numberInt": "1"}}}
+
+    numerics:
+      - {"_id": {"$numberInt": "1"}, "a": {"$numberDecimal": "3.0"}}
+      - {"_id": {"$numberInt": "2"}, "a": {"$numberDouble": "3.0"}}
+      - {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "3"}}
 
 schema_environment:
     {
@@ -63,6 +61,23 @@ schema_environment:
                         }
                     }
                 }
+            },
+            'nullAndMissing': {
+                '$jsonSchema': {
+                    'bsonType': "object",
+                    'required': ['_id', 'n'],
+                    'properties': {
+                        "_id": {"bsonType": "int"},
+                        "n": {
+                            'anyOf':
+                             [
+                                {"bsonType": "int"},
+                                {"bsonType": "null"}
+                            ]
+                        }
+                    }
+                }
+
             }
         }
     }
@@ -87,164 +102,148 @@ tests:
       result:
         - {"n": "hello"}
 
-    - description: GROUP BY MISSING converts MISSING to NULL
+    - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
       query: "SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n"
       result:
         - {"n": null}
         - {"n": {"$numberInt": "1"}}
 
-    - description: GROUP BY document, missing in document does not convert to NULL
+    - description: group keys must be mutually comparable types
       query: "SELECT * FROM foo.poly GROUP BY {'out': a.a} AS doc"
-      result:
-        - {"doc": {"out": {"$numberInt": "1"}}}
-        - {"doc": {"out": {"$numberInt": "2"}}}
-        - {"doc": {}}
+      error: "all possible group key values must have mutually comparable types"
 
     - description: GROUP BY keys may be table-qualified
-      query: "SELECT * FROM foo.poly AS a GROUP by a.a.a"
+      query: "SELECT * FROM foo.poly AS a GROUP by a.a.a::INT AS a"
       result:
         -  {"a": {"$numberInt": "1"}}
         -  {"a": {"$numberInt": "2"}}
         -  {"a": null}
 
     - description: qualified top-level field reference keys can be referenced by qualified name
-      query: "SELECT bar.a FROM foo.bar GROUP BY bar.a"
+      query: "SELECT VALUE {'a': bar.a} FROM foo.bar GROUP BY bar.a::INT AS a"
       result:
         - {"a": {"$numberInt": "1"}}
         - {"a": {"$numberInt": "11"}}
         - {"a": {"$numberInt": "111"}}
 
     - description: qualified top-level field reference keys can be referenced by unqualified name
-      query: "SELECT a FROM foo.bar GROUP BY bar.a"
+      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY bar.a::INT AS a"
       result:
         - {"a": {"$numberInt": "1"}}
         - {"a": {"$numberInt": "11"}}
         - {"a": {"$numberInt": "111"}}
 
     - description: unqualified top-level field reference keys can be referenced by qualified name
-      query: "SELECT bar.a FROM foo.bar GROUP BY a"
+      query: "SELECT VALUE{'a': bar.a} FROM foo.bar GROUP BY a::INT AS a"
       result:
         - {"a": {"$numberInt": "1"}}
         - {"a": {"$numberInt": "11"}}
         - {"a": {"$numberInt": "111"}}
 
     - description: unqualified top-level field reference keys can be referenced by unqualified name
-      query: "SELECT a FROM foo.bar GROUP BY a"
+      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY a::INT AS a"
       result:
         - {"a": {"$numberInt": "1"}}
         - {"a": {"$numberInt": "11"}}
         - {"a": {"$numberInt": "111"}}
 
     - description: top-level field reference keys cannot be referenced by qualified name if aliased
-      query: "SELECT bar.a FROM foo.bar GROUP BY bar.a AS a"
+      query: "SELECT VALUE {'a': bar.a} FROM foo.bar GROUP BY bar.a::INT AS a"
       error: "unknown field 'bar'"
 
     - description: GROUP BY keys may be document field references
-      query: "SELECT * FROM foo.poly AS b GROUP by a.a.a"
+      query: "SELECT * FROM foo.poly AS b GROUP by a.a.a::INT AS a"
       result:
         -  {"a": null}
 
     - description: GROUP BY arbitrary expression
-      query: "SELECT * FROM foo.bar GROUP BY CAST(a AS INT) / 2"
+      query: "SELECT * FROM foo.bar GROUP BY a::INT / 2 AS ad2"
       result:
-        - {"a": {"$numberInt": "0"}}
-        - {"a": {"$numberInt": "5"}}
-        - {"a": {"$numberInt": "55"}}
+        - {"ad2": {"$numberInt": "0"}}
+        - {"ad2": {"$numberInt": "5"}}
+        - {"ad2": {"$numberInt": "55"}}
 
-    - description: single distinct aggregation function correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT CAST(a AS DOUBLE)) AS suma"
+    - description: single DISTINCT aggregation function correctness test
+      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::DOUBLE) AS suma"
       result:
           - {"n": null, "suma": {"$numberInt": "123"}}
 
-    - description: correctness test for distinct and non-distinct aggregation over same field
-      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT CAST(a AS DOUBLE)) AS dsuma, SUM(CAST(a AS DOUBLE)) AS suma"
+    - description: argument to DISTINCT aggregation function must have statically determined type that is mutually comparable
+      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
+      error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
+
+    - description: argument to DISTINCT aggregation function cannot have type DOCUMENT
+      query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::DOCUMENT) AS suma"
+      error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
+      
+    - description: argument to DISTINCT aggregation function cannot have type ARRAY
+      query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::ARRAY) AS suma"
+      error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
+
+    - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
+      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::DOUBLE) AS dsuma, SUM(a::DOUBLE) AS suma"
       result:
           - {"n": null, "a": {"$numberInt": "123"}, "a": {"$numberInt": "125"}}
 
-    - description: multi-distinct aggregation function correctness test
-      query: "SELECT suma AS suma, countc AS countc FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT (CAST a AS DOUBLE)) AS suma, COUNT(DISTINCT c) AS countc"
+    - description: multi-DISTINCT aggregation function correctness test
+      query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::DOUBLE) AS suma, COUNT(DISTINCT c::INT) AS countc"
       result:
           - {"suma": {"$numberInt": "123"}, "countc": {"$numberInt": "2"}}
 
     - description: multi-item group key correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a, b AS b AGGREGATE SUM(CAST(c AS DOUBLE)) AS sumc"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a::INT AS a, b AS b AGGREGATE SUM(c::DOUBLE) AS sumc"
       result:
           - {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "6"}}
           - {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "5"}}
           - {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}, "c": {"$numberInt": "4"}}
 
     - description: multi-item group key with HAVING correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a, b AS b AGGREGATE SUM(CAST(c AS DOUBLE)) AS sumc HAVING a != 1 AND sumc != 4"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a::INT AS a, b AS b AGGREGATE SUM(c::DOUBLE) AS sumc HAVING a != 1 AND sumc != 4"
       result:
           - {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "5"}}
 
     - description: AGGREGATE expressions must be aggregation functions, not arbitrary expressions
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a AGGREGATE 1 + SUM(a)"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a::INT AS a AGGREGATE 1 + SUM(a)"
       error: "Expressions in AGGREGATE phrase must be aggregation function applications not arbitrary expressions"
 
     - description: AGGREGATE expressions must be aggregation functions, not scalar functions
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a AGGREGATE COS(a)"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a::INT AS a AGGREGATE COS(a)"
       error: "Expressions in AGGREGATE phrase must be aggregation function applications not scalar function applications"
 
     - description: field reference a is undefined in GROUP BY
-      query: "SELECT a AS a, sb AS sb FROM foo.bar AS bar GROUP BY c AS c AGGREGATE SUM(CAST(b AS DOUBLE)) AS sb"
+      query: "SELECT VALUE {'a': a, 'sb': sb} FROM foo.bar AS bar GROUP BY c AS c AGGREGATE SUM(b::DOUBLE) AS sb"
       error: "No such field a"
 
     - description: Aggregation functions are not allowed in SELECT VALUE
-      query: "SELECT VALUE {'suma': SUM(a + 2) } FROM bar AS bar GROUP BY b AS b"
+      query: "SELECT VALUE {'suma': SUM(a + 2) } FROM bar AS bar GROUP BY b::INT AS b"
       error: "Aggregation functions are not allowed in SELECT VALUE clause"
 
     - description: HAVING without GROUP BY works as a WHERE cluase, but happens after the WHERE clause
-      query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
+      query: "SELECT * FROM foo.bar AS bar WHERE a::INT < 15 HAVING a::INT > 5"
       result:
         - {"a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}}
 
     - description: ADD_TO_ARRAY correctness test
-      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(a) AS garr"
+      query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::INT) AS arr GROUP BY a.a::INT AS a AGGREGATE ADD_TO_ARRAY(a.a::INT) AS garr"
       result:
-        - {
-            "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
-            "garr": [{"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}, {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}]
-          }
-        - {
-            "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
-            "garr": [{"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}]
-          }
-        - {
-            "a": {"$numberInt": "3"},
-            "garr": [3, 3]
-          }
-        - {
-            "a": {"$numberInt": "4"},
-            "garr": [4]
-          }
+        - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
+        - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}, {"$numberInt": "2"}]}
+        - {"a": null, "garr": []}
+
+    - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
+      query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::INT) AS arr GROUP BY a.a::INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::INT) AS garr"
+      result:
+        - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
+        - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}]}
+        - {"a": null, "garr": []}
 
     - description: ADD_TO_ARRAY(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::INT AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
       error: "* is not an allowed argument to ADD_TO_ARRAY"
 
-    - description: ADD_TO_SET correctness test
-      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_SET(CAST(a AS DOCUMENT)) AS gset"
-      result:
-        - {
-            "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
-            "gset": [{"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}]
-          }
-        - {
-            "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
-            "gset": [{"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}]
-          }
-        - {
-            "a": {"$numberInt": "3"},
-            "gset": [null]
-          }
-        - {
-            "a": {"$numberInt": "4"},
-            "gset": [null]
-          }
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
-      query: "SELECT gset, TYPE(gset[0]) AS ty FROM (SELECT * foo.numerics ORDER BY _id ASC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset' : gset, 'ty': TYPE(gset[0])} FROM (SELECT * foo.numerics ORDER BY _id ASC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
       result:
         - {
             'gset': [{ '$numberDecimal': '3' }],
@@ -252,7 +251,7 @@ tests:
           }
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
-      query: "SELECT gset, TYPE(gset[0]) AS ty FROM (SELECT * foo.numerics ORDER BY _id DSC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset': gset, 'ty': TYPE(gset[0])} FROM (SELECT * foo.numerics ORDER BY _id DSC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
       result:
         - {
             "gset": [{ "$numberInt": "3" }],
@@ -260,15 +259,22 @@ tests:
           }
 
     - description: ADD_TO_SET(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE ADD_TO_SET(*) AS gset"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE ADD_TO_SET(*) AS gset"
       error: "* is not an allowed argument to ADD_TO_SET"
 
-    - description: ADD_TO_SET requires all elements have statically uniform type
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE ADD_TO_SET(a) AS gset"
-      error: "Argument to ADD_TO_SET must have statically uniform type"
+    - description: ADD_TO_SET requires all elements have statically mutually comparable type
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE ADD_TO_SET(a) AS gset"
+      error: "Argument to ADD_TO_SET must have statically mutually comparable type"
+
+    - description: ADD_TO_SET correctness test
+      query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::INT) AS arr GROUP BY a.a::INT AS a AGGREGATE ADD_TO_SET(a.a::INT) AS gset"
+      result:
+        - {"a": {"$numberInt": "1"},"gset": [{"$numberInt": "1"}]}
+        - {"a": {"$numberInt": "2"},"gset": [{"$numberInt": "2"}]}
+        - {"a": null, "gset": []}
 
     - description: AVG correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE AVG(CAST(a AS DOUBLE)) AS gavg"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE AVG(a::DOUBLE) AS gavg"
       result:
         - {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
@@ -288,15 +294,15 @@ tests:
           }
 
     - description: AVG(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE AVG(*) AS gavg"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE AVG(*) AS gavg"
       error: "* is not an allowed argument to AVG"
 
     - description: AVG requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE AVG(a) AS gavg"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE AVG(a) AS gavg"
       error: "Argument to AVG must be statically determined as NUMERIC"
 
     - description: COUNT correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE COUNT(a) AS gcount"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE COUNT(a) AS gcount"
       result:
         - {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
@@ -316,7 +322,7 @@ tests:
           }
 
     - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
       result:
         - {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
@@ -340,7 +346,7 @@ tests:
           }
 
     - description: FIRST correctness test
-      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE FIRST(a) AS gfirst"
+      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::INT AS a AGGREGATE FIRST(a) AS gfirst"
       result:
         - {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
@@ -360,11 +366,11 @@ tests:
           }
 
     - description: FIRST(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE FIRST(*) AS gfirst"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE FIRST(*) AS gfirst"
       error: "* is not an allowed argument to FIRST"
 
     - description: LAST correctness test
-      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE LAST(a) AS glast"
+      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::INT AS a AGGREGATE LAST(a) AS glast"
       result:
         - {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
@@ -384,26 +390,26 @@ tests:
           }
 
     - description: LAST(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE LAST(*) AS glast"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE LAST(*) AS glast"
       error: "* is not an allowed argument to LAST"
 
     - description: MAX correctness test
-      query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(CAST(b AS INT)) AS gmax"
+      query: "SELECT * FROM foo.bar AS arr GROUP BY a::INT AS a AGGREGATE MAX(b::INT) AS gmax"
       result:
         -  {"a": {"$numberInt": "1"},"gmax": {"$numberInt": "42"}}
         -  {"a": {"$numberInt": "11"},"gmax": {"$numberInt": "22"}}
         -  {"a": {"$numberInt": "111"},"gmax": {"$numberInt": "142"}}
 
     - description: MAX(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE MAX(*) AS gmax"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE MAX(*) AS gmax"
       error: "* is not an allowed argument to MAX"
 
-    - description: MAX must have statically uniform type
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE MAX(a) AS gmax"
-      error: "Argument to MAX must have statically uniform type"
+    - description: MAX must have statically mutually comparable type
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE MAX(a) AS gmax"
+      error: "Argument to MAX must have statically mutually comparable type"
 
     - description: MERGE_DOCUMENTS correctness test
-      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a AS a MERGE_DOCUMENTS(CAST(a.a AS DOCUMENT)) AS gmerge"
+      query: "SELECT * FROM (SELECT _id::INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::INT AS a MERGE_DOCUMENTS(a::DOCUMENT) AS gmerge"
       result:
         - {
             "a": {"$numberInt": "1"},
@@ -419,30 +425,30 @@ tests:
           }
 
     - description: MERGE_DOCUMENTS(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
       error: "* is not an allowed argument to MERGE_DOCUMENTS"
 
     - description: MERGE_DOCUMENTS requires a statically document argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(a) AS gmerge"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE MERGE_DOCUMENTS(a) AS gmerge"
       error: "Argument to MERGE_DOCUMENTS must be statically determined as DOCUMENT"
 
     - description: MIN correctness test
-      query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(CAST(b AS INT)) AS gmin"
+      query: "SELECT * FROM foo.bar AS arr GROUP BY a::INT AS a AGGREGATE MIN(b::INT) AS gmin"
       result:
         -    {"a": {"$numberInt": "1"},"gmin": {"$numberInt": "2"}}
         -    {"a": {"$numberInt": "11"},"gmin": {"$numberInt": "22"}}
         -    {"a": {"$numberInt": "111"},"gmin": {"$numberInt": "142"}}
 
     - description: MIN(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE MIN(*) AS gmin"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE MIN(*) AS gmin"
       error: "* is not an allowed argument to MIN"
 
-    - description: MIN must have statically uniform type
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE MIN(a) AS gmin"
-      error: "Argument to MIN must have statically uniform type"
+    - description: MIN must have statically mutually comparable type
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE MIN(a) AS gmin"
+      error: "Argument to MIN must have statically mutually comparable type"
 
     - description: STDDEV_POP correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a AS a AGGREGATE STDDEV_POP(CAST(a AS DOUBLE)) AS gstdp"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::INT AS a AGGREGATE STDDEV_POP(a::DOUBLE) AS gstdp"
       result:
         - {
             "a": {"$numberInt": "1"},
@@ -458,15 +464,15 @@ tests:
           }
 
     - description: STDDEV_POP(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(*) AS gstdp"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE STDDEV_POP(*) AS gstdp"
       error: "* is not an allowed argument to STDDEV_POP"
 
     - description: STDDEV_POP requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(a) AS gstdp"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE STDDEV_POP(a) AS gstdp"
       error: "Argument to STDDEV_POP must be statically determined as NUMERIC"
 
     - description: STDDEV_SAMP correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a AS a AGGREGATE STDDEV_SAMP(CAST(a AS DOUBLE)) as gstds"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::INT AS a AGGREGATE STDDEV_SAMP(a::DOUBLE) as gstds"
       result:
         - {
             "a": {"$numberInt": "1"},
@@ -482,15 +488,15 @@ tests:
           }
 
     - description: STDDEV_SAMP(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
       error: "* is not an allowed argument to STDDEV_SAMP"
 
     - description: STDDEV_SAMP requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
       error: "Argument to STDDEV_SAMP must be statically determined as NUMERIC"
 
     - description: SUM correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a AS a AGGREGATE SUM(CAST(a AS DOUBLE)) AS gsum"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::INT AS a AGGREGATE SUM(a::DOUBLE) AS gsum"
       result:
         - {
             "a": {"$numberInt": "1"},
@@ -506,9 +512,9 @@ tests:
           }
 
     - description: SUM(*) is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE SUM(*) AS gsum"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE SUM(*) AS gsum"
       error: "* is not an allowed argument to SUM"
 
     - description: SUM requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a AS a AGGREGATE SUM(a) AS gsum"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::INT AS a AGGREGATE SUM(a) AS gsum"
       error: "Argument to SUM must be statically determined as NUMERIC"

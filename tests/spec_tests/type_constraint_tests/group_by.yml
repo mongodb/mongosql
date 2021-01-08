@@ -1,0 +1,35 @@
+variables:
+  - bool: &bool ["BOOL", "NULL", "MISSING"]
+  - document: &document ["DOCUMENT", "NULL", "MISSING"]
+  - numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+
+tests:
+  - description: AVG argument must be numeric
+    query: "SELECT * FROM foo GROUP BY key AGGREGATE AVG(arg)"
+    valid_types:
+      - {"arg": *numerics}
+
+  - description: MERGE_DOCUMENTS argument must be document
+    query: "SELECT * FROM foo GROUP BY key AGGREGATE MERGE_DOCUMENTS(arg)"
+    valid_types:
+      - {"arg": *document}
+
+  - description: STDDEV_POP argument must be numeric
+    query: "SELECT * FROM foo GROUP BY key AGGREGATE STDDEV_POP(arg)"
+    valid_types:
+      - {"arg": *numerics}
+
+  - description: STDDEV_SAMP argument must be numeric
+    query: "SELECT * FROM foo GROUP BY key AGGREGATE STDDEV_SAMP(arg)"
+    valid_types:
+      - {"arg": *numerics}
+
+  - description: SUM argument must be numeric
+    query: "SELECT * FROM foo GROUP BY key AGGREGATE SUM(arg)"
+    valid_types:
+      - {"arg": *numerics}
+
+  - description: HAVING argument must be bool
+    query: "SELECT * FROM foo HAVING arg"
+    valid_types:
+      - {"arg": *bool}
