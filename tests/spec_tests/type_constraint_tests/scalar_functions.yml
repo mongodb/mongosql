@@ -1,0 +1,81 @@
+variables:
+  - bson_date: &bson_date ["BSON_DATE", "NULL", "MISSING"]
+  - string: &string ["STRING", "NULL", "MISSING"]
+  - int: &int ["INT", "NULL", "MISSING"]
+  - numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+  - comparisonValidTypes: &comparisonValidTypes
+      - { "arg1": *string, "arg2": *string }
+      - { "arg1": ["BINDATA", "NULL", "MISSING"], "arg2": ["BINDATA", "NULL", "MISSING"] }
+      - { "arg1": ["UNDEFINED", "NULL", "MISSING"], "arg2": ["UNDEFINED", "NULL", "MISSING"] }
+      - { "arg1": ["OBJECTID", "NULL", "MISSING"], "arg2": ["OBJECTID", "NULL", "MISSING"] }
+      - { "arg1": ["BOOL", "NULL", "MISSING"], "arg2": ["BOOL", "NULL", "MISSING"] }
+      - { "arg1": *bson_date, "arg2": *bson_date }
+      - { "arg1": ["REGEX", "NULL", "MISSING"], "arg2": ["REGEX", "NULL", "MISSING"] }
+      - { "arg1": ["DBPOINTER", "NULL", "MISSING"], "arg2": ["DBPOINTER", "NULL", "MISSING"] }
+      - { "arg1": ["JAVASCRIPT", "NULL", "MISSING"], "arg2": ["JAVASCRIPT", "NULL", "MISSING"] }
+      - { "arg1": ["SYMBOL", "NULL", "MISSING"], "arg2": ["SYMBOL", "NULL", "MISSING"] }
+      - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
+      - { "arg1": ["BSON_TIMESTAMP", "NULL", "MISSING"], "arg2": ["BSON_TIMESTAMP", "NULL", "MISSING"] }
+      - { "arg1": ["MINKEY", "NULL", "MISSING"], "arg2": ["MINKEY", "NULL", "MISSING"] }
+      - { "arg1": ["MAXKEY", "NULL", "MISSING"], "arg2": ["MAXKEY", "NULL", "MISSING"] }
+      - { "arg1": *numerics, "arg2": *numerics }
+
+tests:
+  - description: NULLIF operands must have comparable types (NULL and MISSING are always allowed)
+    query: "SELECT NULLIF(arg1, arg2)"
+    valid_types: *comparisonValidTypes
+
+  - description: SIZE operand must have type ARRAY or NULL, or be MISSING
+    query: "SELECT SIZE(arg)"
+    valid_types:
+      - { "arg": ["ARRAY", "NULL", "MISSING"] }
+
+  - description: POSITION operands must have type STRING or NULL, or be MISSING
+    query: "SELECT POSITION(arg1 IN arg2)"
+    valid_types:
+      - { "arg1": *string, "arg2": *string }
+
+  - description: CHAR_LENGTH operand must have type STRING or NULL, or be MISSING
+    query: "SELECT CHAR_LENGTH(arg)"
+    valid_types:
+      - { "arg": *string }
+
+  - description: OCTET_LENGTH operand must have type STRING or NULL, or be MISSING
+    query: "SELECT OCTET_LENGTH(arg)"
+    valid_types:
+      - { "arg": *string }
+
+  - description: BIT_LENGTH operand must have type STRING or NULL, or be MISSING
+    query: "SELECT BIT_LENGTH(arg)"
+    valid_types:
+      - { "arg": *string }
+
+  - description: EXTRACT operand must have type BSON_DATE or NULL, or be MISSING
+    query: "SELECT EXTRACT(year FROM arg)"
+    valid_types:
+      - { "arg": *bson_date }
+
+  - description: SUBSTRING operand type constraints
+    query: "SELECT SUBSTRING(arg1 FROM arg2 FOR arg3)"
+    valid_types:
+      - { "arg1": *string, "arg2": *int, "arg3": *int }
+
+  - description: UPPER operand must have type STRING or NULL, or be MISSING
+    query: "SELECT UPPER(arg)"
+    valid_types:
+      - { "arg": *string }
+
+  - description: LOWER operand must have type STRING or NULL, or be MISSING
+    query: "SELECT LOWER(arg)"
+    valid_types:
+      - { "arg": *string }
+
+  - description: TRIM operands must have type STRING or NULL, or be MISSING
+    query: "SELECT TRIM(arg1 FROM arg2)"
+    valid_types:
+      - { "arg1": *string, "arg2": *string }
+
+  - description: CURRENT_TIMESTAMP operand must have type INT or NULL, or be MISSING
+    query: "SELECT CURRENT_TIMESTAMP(arg)"
+    valid_types:
+      - { "arg": *int }
