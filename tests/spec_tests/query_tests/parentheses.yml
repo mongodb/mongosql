@@ -1,0 +1,16 @@
+catalog_environment:
+  foo:
+    ternary:
+      - { "_id": 0, "a": 6, "b": 2, "c": 11 }
+      - { "_id": 1, "a": 6, "b": 1, "c": 10 }
+
+tests:
+  - description: parentheses correctness tests
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'a+b*c': a + b * c, '(a+b)*c': (a + b) * c } FROM ternary AS ternary"
+    result:
+      - { "a": 6, "b": 2, "c": 11, "a+b*c": 28, "(a+b)*c": 88 }
+      - { "a": 6, "b": 1, "c": 10, "a+b*c": 16, "(a+b)*c": 70 }
+  
+  - description: parentheses are not allowed on any data source except a derived table
+    query: "SELECT * FROM (ternary) AS ternary"
+    error: "parse error: unexpected <identifier> 'ternary' after '(', expected 'SELECT'"
