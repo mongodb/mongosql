@@ -784,68 +784,42 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, Pus
 	}
 
 	numChildren := len(or.children)
-
-	// the operands of the OR
 	ops := make([]ast.Expr, 0, numChildren)
-
-	// the conditions of the OR
-	// if any condition is true, the OR will evaluate to null;
-	// if none of the conditions are true, the OR will evaluate.
-	conds := make([]ast.Expr, 0)
-
 	assignments := make([]*ast.LetVariable, 0, numChildren)
-	nullChecks := make([]ast.Expr, 0, numChildren)
-	notChecks := make([]ast.Expr, 0, numChildren)
-
-	containsLiteral := false
-	containsNullLiteral := false
-	containsFalsyLiteral := false
 
 	for i, arg := range args {
-		switch a := arg.(type) {
-		case *ast.Constant:
-			containsNullLiteral = containsNullLiteral || a.Value.Type == bsontype.Null
-			containsFalsyLiteral = containsFalsyLiteral || !values.Bool(or.children[i].(SQLValueExpr).Value)
-			containsLiteral = true
-		default:
-			binding := fmt.Sprintf("expr%d", i)
-			bindingRef := ast.NewVariableRef(binding)
-
-			assignments = append(assignments, ast.NewLetVariable(binding, arg))
-
-			ops = append(ops, bindingRef)
-			nullChecks = append(nullChecks, astutil.WrapInNullCheck(bindingRef))
-			notChecks = append(notChecks, ast.NewFunction(bsonutil.OpNot, bindingRef))
-		}
-	}
-
-	// if there is at least one literal, and there are no null or falsy literals, whole expression evaluates to true.
-	if containsLiteral && !containsNullLiteral && !containsFalsyLiteral {
-		return astutil.TrueLiteral, nil
-	}
-
-	// build the conditions
-	// if there is a null literal, return null if all other expressions are falsy.
-	if containsNullLiteral {
-		conds = []ast.Expr{astutil.WrapInOp(bsonutil.OpAnd, notChecks...)}
-	} else if containsFalsyLiteral { // if there is a falsy literal, return null if all other expressions are null.
-		conds = []ast.Expr{astutil.WrapInOp(bsonutil.OpAnd, nullChecks...)}
-	} else { // if there are no literals, return null using the following condition:
-		for i := range nullChecks {
-			// If the "i"th expression is null, and all of the others are falsy,
-			nots := append(append([]ast.Expr{}, notChecks[:i]...), notChecks[i+1:]...)
-			if len(nots) > 0 {
-				// need to include the null check along with all the other nots.
-				nots = append(nots, nullChecks[i])
-				conds = append(conds, astutil.WrapInOp(bsonutil.OpAnd, nots...))
-			} else {
-				conds = append(conds, nullChecks[i])
+		if _, ok := arg.(*ast.Constant); ok {
+			isTrueLiteral := values.Bool(or.children[i].(SQLValueExpr).Value)
+			if isTrueLiteral {
+				return astutil.TrueLiteral, nil
 			}
 		}
+
+		binding := fmt.Sprintf("expr%d", i)
+		bindingRef := ast.NewVariableRef(binding)
+		assignments = append(assignments, ast.NewLetVariable(binding, arg))
+		ops = append(ops, bindingRef)
 	}
 
-	// build the expression
-	evaluation := astutil.WrapInCond(astutil.NullLiteral, astutil.WrapInOp(bsonutil.OpOr, ops...), conds...)
+	evaluation := astutil.WrapInReduce(
+		ast.NewArray(ops...),
+		astutil.FalseLiteral,
+		astutil.WrapInSwitch(
+			astutil.FalseLiteral,
+			astutil.WrapInCase(
+				ast.NewBinary(bsonutil.OpOr, astutil.ThisVarRef, astutil.ValueVarRef),
+				astutil.TrueLiteral,
+			),
+			astutil.WrapInEqCase(
+				astutil.ThisVarRef, astutil.NullLiteral,
+				astutil.NullLiteral,
+			),
+			astutil.WrapInEqCase(
+				astutil.ValueVarRef, astutil.NullLiteral,
+				astutil.NullLiteral,
+			),
+		),
+	)
 	return ast.NewLet(assignments, evaluation), nil
 }
 
