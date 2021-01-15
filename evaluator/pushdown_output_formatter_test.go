@@ -20,9 +20,11 @@ func TestGetPushdownOutputFormatter(t *testing.T) {
 		expectedError bool
 	}{
 		{"jdbc v1 exists", "jdbc", 1, false},
-		{"jdbc v2 does not exist", "jdbc", 2, true},
+		{"jdbc v2 exists", "jdbc", 2, false},
+		{"jdbc v99999 does not exist", "jdbc", 99999, true},
 		{"odbc v1 exists", "odbc", 1, false},
-		{"odbc v2 does not exist", "odbc", 2, true},
+		{"odbc v2 exists", "odbc", 2, false},
+		{"odbc v99999 does not exist", "odbc", 99999, true},
 		{"unknown does not exist", "unknown", 1, true},
 	}
 
@@ -190,6 +192,106 @@ func TestFormatUnflattenedProject(t *testing.T) {
 			}
 
 			actual, err := formatUnflattenedProject(ms)
+			req.NoError(err, "unexpected error")
+			req.Equal(test.expected, actual, "actual stage different from expected stage")
+		})
+	}
+}
+
+func TestFormatValuesArray(t *testing.T) {
+	tests := []struct {
+		name      string
+		mrFields  map[string]map[string]map[string]string
+		mrColumns []*results.Column
+		expected  *ast.ProjectStage
+	}{
+		{
+			"no aliases",
+			map[string]map[string]map[string]string{
+				"db": {
+					"foo": {
+						"a": "db_DOT_foo_DOT_a",
+						"b": "db_DOT_foo_DOT_b",
+					},
+				},
+			},
+			[]*results.Column{
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "a", OriginalName: "a", ColumnType: &results.ColumnType{EvalType: types.EvalString}},
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "b", OriginalName: "b", ColumnType: &results.ColumnType{EvalType: types.EvalBoolean}},
+			},
+			ast.NewProjectStage(
+				ast.NewAssignProjectItem("values", ast.NewArray(
+					ast.NewFieldRef("db_DOT_foo_DOT_a", nil),
+					ast.NewFieldRef("db_DOT_foo_DOT_b", nil),
+				)),
+				ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+			),
+		},
+		{
+			"table and column aliases",
+			map[string]map[string]map[string]string{
+				"db": {
+					"t1": {
+						"ah": "db_DOT_t1_DOT_ah",
+					},
+					"t2": {
+						"be": "db_DOT_t2_DOT_be",
+					},
+				},
+			},
+			[]*results.Column{
+				{Database: "db", Table: "t1", OriginalTable: "foo", Name: "ah", OriginalName: "a", ColumnType: &results.ColumnType{EvalType: types.EvalString}},
+				{Database: "db", Table: "t2", OriginalTable: "foo", Name: "be", OriginalName: "b", ColumnType: &results.ColumnType{EvalType: types.EvalInt64}},
+			},
+			ast.NewProjectStage(
+				ast.NewAssignProjectItem("values", ast.NewArray(
+					ast.NewFieldRef("db_DOT_t1_DOT_ah", nil),
+					ast.NewFieldRef("db_DOT_t2_DOT_be", nil),
+				)),
+				ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+			),
+		},
+		{
+			"missing table names and original name (computed column)",
+			map[string]map[string]map[string]string{
+				"db": {
+					"foo": {
+						"a": "db_DOT_foo_DOT_a",
+						"b": "db_DOT_foo_DOT_b",
+					},
+					"": {
+						"a+b": "db_DOT_foo_DOT_a+db_DOT_foo_DOT_b",
+					},
+				},
+			},
+			[]*results.Column{
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "a", OriginalName: "a", ColumnType: &results.ColumnType{EvalType: types.EvalDecimal128}},
+				{Database: "db", Table: "foo", OriginalTable: "foo", Name: "b", OriginalName: "b", ColumnType: &results.ColumnType{EvalType: types.EvalInt32}},
+				{Database: "db", Table: "", OriginalTable: "", Name: "a+b", OriginalName: "", ColumnType: &results.ColumnType{EvalType: types.EvalDouble}},
+			},
+			ast.NewProjectStage(
+				ast.NewAssignProjectItem("values", ast.NewArray(
+					ast.NewFieldRef("db_DOT_foo_DOT_a", nil),
+					ast.NewFieldRef("db_DOT_foo_DOT_b", nil),
+					ast.NewFieldRef("db_DOT_foo_DOT_a+db_DOT_foo_DOT_b", nil),
+				)),
+				ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+			),
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			req := require.New(t)
+
+			ms := &MongoSourceStage{
+				mappingRegistry: &mappingRegistry{
+					fields:  test.mrFields,
+					columns: test.mrColumns,
+				},
+			}
+
+			actual, err := formatValuesArray(ms)
 			req.NoError(err, "unexpected error")
 			req.Equal(test.expected, actual, "actual stage different from expected stage")
 		})

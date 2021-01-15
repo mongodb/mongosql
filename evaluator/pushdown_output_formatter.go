@@ -30,9 +30,11 @@ const (
 var formatters = map[string]map[int]pushdownOutputFormatter{
 	JDBCOutputFormat: {
 		1: formatUnflattenedProject,
+		2: formatValuesArray,
 	},
 	ODBCOutputFormat: {
 		1: formatUnflattenedProject,
+		2: formatValuesArray,
 	},
 }
 
@@ -130,6 +132,24 @@ func formatUnflattenedProject(ms *MongoSourceStage) (*ast.ProjectStage, error) {
 
 	return ast.NewProjectStage(
 		ast.NewAssignProjectItem("values", ast.NewArray(richFieldData...)),
+		ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
+	), nil
+}
+
+func formatValuesArray(ms *MongoSourceStage) (*ast.ProjectStage, error) {
+	columns := ms.Columns()
+	values := make([]ast.Expr, len(columns))
+
+	for i, c := range columns {
+		ref, ok := ms.mappingRegistry.lookupFieldRef(c.Database, c.Table, c.Name)
+		if !ok {
+			return nil, fmt.Errorf("failed to find field ref for column '%v.%v.%v'", c.Database, c.Table, c.Name)
+		}
+		values[i] = ref
+	}
+
+	return ast.NewProjectStage(
+		ast.NewAssignProjectItem("values", ast.NewArray(values...)),
 		ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil)),
 	), nil
 }

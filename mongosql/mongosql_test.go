@@ -2,6 +2,7 @@ package mongosql
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	"github.com/10gen/sqlproxy/evaluator"
@@ -40,6 +41,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 		expectedError      string
 		expectedOutput     string
 		expectedCollection string
+		expectedMetadata   *ResultSetMetadata
 	}{
 		{
 			desc:         "query that can't be parsed/explained (command)",
@@ -469,6 +471,7 @@ schema:
 		expectedOutput     string
 		expectedDatabase   string
 		expectedCollection string
+		expectedMetadata   *ResultSetMetadata
 	}{
 		{
 			desc:          "unsupported statement (command)",
@@ -537,6 +540,18 @@ schema:
 			expectedOutput:     `[{"$project": {"values": [{"database": {"$literal": "test"},"table": {"$literal": "foo"},"tableAlias": {"$literal": "foo"},"column": {"$literal": "a"},"columnAlias": {"$literal": "a"},"bsonType": {"$literal": "long"},"value": "$a"}],"_id": {"$numberInt":"0"}}}]`,
 			expectedDatabase:   testDBName,
 			expectedCollection: "foo",
+			expectedMetadata: &ResultSetMetadata{
+				Columns: []*ColumnMetadata{
+					{
+						Database:    "test",
+						Table:       "foo",
+						TableAlias:  "foo",
+						Column:      "a",
+						ColumnAlias: "a",
+						BsonType:    "long",
+					},
+				},
+			},
 		},
 		{
 			desc:               "empty pipeline because of falsy filter",
@@ -785,7 +800,7 @@ schema:
 	for _, tcase := range tcases {
 		t.Run(tcase.desc, func(t *testing.T) {
 			tCfg := NewTranslationConfig(tcase.ctlg, evaluator.ODBCOutputFormat, 1, tcase.dbName)
-			actualOutputRaw, actualDatabase, actualCollection, err := TranslateSQLQueryRaw(context.Background(), tCfg, tcase.query)
+			actualOutputRaw, actualDatabase, actualCollection, actualMetadata, err := TranslateSQLQueryRaw(context.Background(), tCfg, tcase.query)
 
 			if tcase.expectedError != "" {
 				if err == nil {
@@ -815,6 +830,12 @@ schema:
 				}
 				if actualCollection != tcase.expectedCollection {
 					t.Fatalf("%s: actual collection is not same as expected (+++ actual, --- expected)\n+++ %s\n--- %s\n", tcase.desc, actualCollection, tcase.expectedCollection)
+				}
+				if tcase.expectedMetadata != nil {
+					// not every test case asserts the metadata
+					if !reflect.DeepEqual(actualMetadata, tcase.expectedMetadata) {
+						t.Fatalf("%s: actual metadata is not same as expected: (+++ actual, --- expected)\n+++ %+v\n--- %+v\n", tcase.desc, actualMetadata, tcase.expectedMetadata)
+					}
 				}
 			}
 		})

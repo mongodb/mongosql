@@ -14,6 +14,7 @@ import (
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
 	"github.com/10gen/sqlproxy/evaluator/catalog"
+	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/procutil"
@@ -112,7 +113,7 @@ func ADLTranslate(sqlQuery, dbName, schemaPath string) (string, error) {
 	}
 
 	tCfg := NewTranslationConfig(ctlg, evaluator.ODBCOutputFormat, 1, dbName)
-	arr, _, _, err := TranslateSQLQueryRaw(context.Background(), tCfg, sqlQuery)
+	arr, _, _, _, err := TranslateSQLQueryRaw(context.Background(), tCfg, sqlQuery)
 	if err != nil {
 		return "", err
 	}
@@ -129,28 +130,44 @@ func TranslateSQLQueryRaw(
 	ctx context.Context,
 	cfg *TranslationConfig,
 	sqlQuery string,
-) (bsoncore.Array, string, string, error) {
+) (bsoncore.Array, string, string, *ResultSetMetadata, error) {
 	qCfg := NewQueryConfigFromTranslationConfig(cfg)
 
 	res, err := evaluator.ExecuteSQL(ctx, qCfg, sqlQuery)
 	if err != nil {
-		return nil, "", "", fmt.Errorf("fatal error executing sql %q: %v", sqlQuery, err)
+		return nil, "", "", nil, fmt.Errorf("fatal error executing sql %q: %v", sqlQuery, err)
 	}
 
 	if !res.Stats.FullyPushedDown {
-		return nil, "", "", errors.New("query not fully pushed down")
+		return nil, "", "", nil, errors.New("query not fully pushed down")
 	}
 
 	ms, ok := res.PlanStage.(*evaluator.MongoSourceStage)
 	if !ok {
-		return nil, "", "", errors.New("query not fully pushed down")
+		return nil, "", "", nil, errors.New("query not fully pushed down")
 	}
 
 	pipeline := parser.DeparsePipeline(ms.Pipeline()).Array()
 	database := ms.Database()
 	collection := ms.Collection()
+	columns := ms.Columns()
 
-	return pipeline, database, collection, nil
+	metadata := &ResultSetMetadata{
+		Columns: make([]*ColumnMetadata, len(columns)),
+	}
+
+	for i, c := range columns {
+		metadata.Columns[i] = &ColumnMetadata{
+			Database:    c.Database,
+			Table:       c.OriginalTable,
+			TableAlias:  c.Table,
+			Column:      c.OriginalName,
+			ColumnAlias: c.Name,
+			BsonType:    types.EvalTypeToBSONName(c.ColumnType.EvalType),
+		}
+	}
+
+	return pipeline, database, collection, metadata, nil
 }
 
 func getExplainOutput(format string, explainRecords []*evaluator.ExplainRecord) (string, string, error) {
