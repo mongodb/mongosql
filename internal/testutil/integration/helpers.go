@@ -20,6 +20,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/go-sql-driver/mysql"
+	"github.com/mongodb/mongo-tools-common/util"
 	"github.com/shopspring/decimal"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -427,7 +428,7 @@ func RunIntegrationSuite(t *testing.T, name string) {
 
 func getServerVersion(t *testing.T) []uint8 {
 	t.Log(">> Getting MongoDB server version...")
-	uri := fmt.Sprintf("mongodb://%v:%v", *flags.Host, *flags.Port)
+	uri := util.BuildURI(*flags.Host, *flags.Port)
 
 	// Get connection string from uri.
 	cs, err := connstring.Parse(uri)
