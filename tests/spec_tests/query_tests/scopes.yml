@@ -1,59 +1,27 @@
 catalog_environment:
-    {
-        'foo': {
-            'coll': [
-                {
-                  'bar': 11,
-                  'car': 12
-                },
-                {
-                  'bar': -11,
-                  'car': -12
-                },
-                {
-                  'bar': 211,
-                  'car': 212
-                }
-            ],
-            'schema_coll': [
-                {
-                  'bar': 11,
-                  'car': 12
-                },
-                {
-                  'bar': -11,
-                  'car': -12
-                },
-                {
-                  'bar': 211,
-                  'car': 212
-                }
-            ],
-            'schema_foo': [
-                {'baz': 1}
-            ],
-            'nested': [
-                {'n': {
-                      'a': 1
-                    }
-                }
-            ],
-            'bar': [
-                {'a': 1},
-                {'a': 2}
-            ],
-            'baz': [
-                {'a': 1},
-                {'a': 3}
-            ]
-        },
-        'foo2': {
-             'coll': [
-                {'a': 1, 'b': 2}
-             ]
+  foo:
+    coll:
+      - {'_id': 1, 'bar': 11, 'car': 12}
+      - {'_id': 2, 'bar': -11,'car': -12}
+      - {'_id': 3, 'bar': 211,'car': 212}
+    schema_coll:
+      - {'_id': 1, 'bar': 11, 'car': 12}
+      - {'_id': 2, 'bar': -11,'car': -12}
+      - {'_id': 3, 'bar': 211,'car': 212}
+    schema_foo:
+      - {'_id': 1,'baz': 1}
+    nested:
+      - {'_id': 1,'n': {'a': 1}}
+    bar:
+      - {'_id': 1, 'a': 1}
+      - {'_id': 2, 'a': 2}
+    baz:
+      - {'_id': 1, 'a': 1}
+      - {'_id': 2, 'a': 3}
 
-        }
-    }
+  foo2:
+    coll:
+      - {'_id': 1, 'a': 1, 'b': 2}
 
 schema_environment:
   {
@@ -61,6 +29,7 @@ schema_environment:
       'schema_coll': {
         '$jsonSchema': {
           'bsonType': "object",
+          'additionalProperties': false,
           'properties': {
             'bar': {
               'bsonType': "double"
@@ -74,6 +43,7 @@ schema_environment:
       'schema_foo': {
         '$jsonSchema': {
           'bsonType': "object",
+          'additionalProperties': false,
           'properties': {
             'baz': {
               'bsonType': "double"
@@ -86,89 +56,100 @@ schema_environment:
 
 tests:
   - description: compound collection references are fully qualified
+    current_db: 'foo'
     query: "SELECT * FROM foo.coll AS coll"
     result:
-     - {
-         'bar': 11,
-         'car': 12
-       }
-     - {
-         'bar': -11,
-         'car': -12
-       }
-     - {
-         'bar': 211,
-         'car': 212
-       }
+      - {
+          '_id': 1,
+          'bar': 11,
+          'car': 12
+        }
+      - {
+          '_id': 2,
+          'bar': -11,
+          'car': -12
+        }
+      - {
+          '_id': 3,
+          'bar': 211,
+          'car': 212
+        }
 
   - description: equivalent qualified and unqualified references to the same field
+    current_db: 'foo'
     query: "SELECT VALUE {'ubar': bar, 'qbar': coll.bar} FROM foo.coll AS coll"
     result:
-     - {
-         'ubar': 11,
-         'qbar': 11
-       }
-     - {
-         'ubar': -11,
-         'qbar': -11
-       }
-     - {
-         'ubar': 211,
-         'qbar': 211
-       }
+      - {
+          'ubar': 11,
+          'qbar': 11
+        }
+      - {
+          'ubar': -11,
+          'qbar': -11
+        }
+      - {
+          'ubar': 211,
+          'qbar': 211
+        }
 
   - description: compound field references prefer qualified names to field references
+    current_db: 'foo'
     query: "SELECT VALUE {'a': n.a} FROM nested AS n"
     result:
-     - {}
+      - {}
 
   - description: compound field reference is treated as unqualified if no datasource name matches first identifier
+    current_db: 'foo'
     query: "SELECT VALUE {'a': n.a} FROM nested AS nested"
     result:
-     - {'a': 1}
+      - {'a': 1}
 
   - description: field references never resolve to the catalog environment
+    current_db: 'foo'
     query: "SELECT VALUE {'a': foo.coll} FROM foo.coll AS coll"
     result:
-     - {}
-     - {}
-     - {}
+      - {}
+      - {}
+      - {}
 
   - description: unqualified references are ambiguous when there are multiple datasources without schemata
+    current_db: 'foo'
     query: "SELECT VALUE {'a': bar} FROM foo.coll AS coll JOIN foo.coll AS coll2"
     error: "Reference 'bar' is ambiguous"
 
   - description: qualified reference is not ambiguous with multiple datasources
+    current_db: 'foo'
     query: "SELECT VALUE {'a': coll.bar} FROM foo.coll AS coll JOIN foo.nested AS nested"
     result:
-     - {
-         'a': 11
-       }
-     - {
-         'a': -11
-       }
-     - {
-         'a': 211
-       }
+      - {
+          'a': 11
+        }
+      - {
+          'a': -11
+        }
+      - {
+          'a': 211
+        }
 
   - description: unqualified references are not ambiguous when there are multiple datasources with schema that disambiguates
+    current_db: 'foo'
     query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_foo AS coll2"
     result:
-     - {
-         'a': 11
-       }
-     - {
-         'a': -11
-       }
-     - {
-         'a': 211
-       }
+      - {
+          'a': 11
+        }
+      - {
+          'a': -11
+        }
+      - {
+          'a': 211
+        }
 
   - description: unqualified collection reference refers to current database
     current_db: 'foo2'
     query: "SELECT * FROM coll AS coll"
     result:
-     - {'a': 1, 'b': 2}
+      - {'_id': 1, 'a': 1, 'b': 2}
 
   - description: unqualified collection references do not resolve to collections in other databases
     current_db: 'foo2'
@@ -185,10 +166,12 @@ tests:
     error: "Unknown collection 'car' in current database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if collection not found in specified database
+    current_db: 'foo'
     query: "SELECT * FROM foo.car AS car"
     error: "Unknown collection 'car' in database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if database not found
+    current_db: 'foo'
     query: "SELECT * FROM test.car AS car"
     error: "Unknown database 'test'"
 
@@ -202,10 +185,73 @@ tests:
     error: "Unknown collection bar in datasource 'foo'"
 
   - description: a qualfied reference in a FROM clause can have no more than two parts
+    current_db: 'foo'
     query: "SELECT * FROM foo.bar.bar AS bar"
     error: "Collection references cannot have more than 2 parts, found 'foo.bar.bar' with 3 parts"
 
-  - description: c.a refers to a in baz.a in the derived table and bar.a in the outer query
+  - description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
+    current_db: 'foo'
     query: "SELECT * FROM bar AS c WHERE c.a IN (SELECT c.a FROM baz AS c)"
     result:
-     - {'a': 1}
+      - {'_id': 1, 'a': 1}
+
+  - description: with a qualified reference, the highest scope number for repeated qualifiers is chosen
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT q.bar FROM schema_foo AS q)} FROM schema_coll AS q"
+    error: "datasource 'q' does not contain field 'bar'"
+
+  - description: with an unqualified reference, CANNOT contain sub + MUST contain outer query, the datasource resolves to the outer query
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q limit 1)} FROM schema_coll AS q"
+    result:
+      - {'bar': 11}
+      - {'bar': -11}
+      - {'bar': 211}
+
+  - description: with an unqualified reference, CANNOT contain sub + MAY contain outer query, the datasource is resolved to the outer query
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q limit 1)} FROM coll AS q"
+    result:
+      - {'bar': 11}
+      - {'bar': -11}
+      - {'bar': 211}
+
+  - description: with an unqualified reference and CANNOT contain sub + CANNOT contain outer query, the datasource cannot be found
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT x FROM schema_coll AS q limit 1)} FROM schema_foo AS q"
+    error: "reference 'x' does not exist in any in scope datasource: 'schema_coll', 'schema_foo'"
+
+  - description: with an unqualified reference and MAY contain sub + MAY contain outer query, the datasource is ambiguous
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM coll AS q"
+    error: "ambiguous reference 'bar' MAY exist in datasource 'baz' or datasource 'coll'"
+
+  - description: with an unqualified reference and MAY contain sub + MUST contain outer query, the datasource is ambiguous
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM schema_coll AS q"
+    error: "ambiguous reference 'bar' MAY exist in datasource 'baz', but MUST exist in datasource 'schema_coll'"
+
+  - description: with an unqualified reference and MAY contain sub + CANNOT contain outer query, the datasource that MAY contain the field is chosen
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM schema_foo AS q"
+    result:
+      - {}
+      - {}
+      - {}
+
+  - description: with an unqualified reference and MUST contain sub + MUST contain outer query, the highest scope number is chosen
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM schema_coll AS q"
+      - {'bar': 11}
+
+  - description: with an unqualified reference and MUST contain sub + MAY contain outer query, the datasource that resolves to the inner query
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM coll AS q"
+      - {'bar': 11}
+
+
+  - description: with an unqualified reference and MUST contain sub + CANNOT contain outer query, the datasource that MUST contain the field is chosen
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM schema_foo AS q"
+    result:
+      - {'bar': 11}
