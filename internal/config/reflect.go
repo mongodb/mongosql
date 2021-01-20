@@ -10,7 +10,7 @@ import (
 	"unicode/utf8"
 )
 
-func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) error {
+func fromMap(key string, v reflect.Value, values map[interface{}]interface{}, enabledExpansions Expansion) error {
 
 	if v.Kind() != reflect.Ptr {
 		return fmt.Errorf("expected a pointer")
@@ -29,6 +29,12 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 
 		newKey := joinKeys(key, name)
 
+		eval, err := evaluateExpansionDirective(enabledExpansions, val)
+		if err != nil {
+			return err
+		}
+		val = eval
+
 		switch e.Field(i).Kind() {
 		case reflect.Struct:
 			tval, ok := val.(map[interface{}]interface{})
@@ -36,7 +42,7 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}) er
 				return fmt.Errorf("invalid value for %s, expected a map: %v(%T)", newKey, val, val)
 			}
 
-			err := fromMap(newKey, e.Field(i).Addr(), tval)
+			err := fromMap(newKey, e.Field(i).Addr(), tval, enabledExpansions)
 			if err != nil {
 				return err
 			}

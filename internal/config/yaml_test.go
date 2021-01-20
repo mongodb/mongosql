@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"runtime"
+	"strings"
 	"testing"
 
 	. "github.com/10gen/sqlproxy/internal/config"
@@ -95,7 +96,7 @@ processManagement:
 setParameter:
   anonymize_metrics: false
   enableTableAlterations: true
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -243,7 +244,7 @@ func TestParseYaml_Valid2(t *testing.T) {
 net:
   bindIp: 192.168.20.1,host2
   port: 3306
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -260,7 +261,7 @@ net:
     - 192.168.20.1
     - host2
   port: 3306
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -275,7 +276,7 @@ func TestParseYaml_MongodbSRVURI(t *testing.T) {
 mongodb:
   net:
     uri: "mongodb+srv://hostname"
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -288,7 +289,7 @@ func TestParseYaml_RefreshInterval(t *testing.T) {
 	err := ParseYaml(cfg, bytes.NewBufferString(`
 schema:
   refreshIntervalSecs: 10
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -303,7 +304,7 @@ func TestParseYaml_RefreshInterval_Deprecated(t *testing.T) {
 schema:
   sample:
     refreshIntervalSecs: 10
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -319,7 +320,7 @@ schema:
   refreshIntervalSecs: 0
   sample:
     refreshIntervalSecs: 10
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -335,13 +336,152 @@ schema:
   refreshIntervalSecs: 100
   sample:
     refreshIntervalSecs: 10
-`))
+`), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
 	testInt64(t, cfg.Schema.RefreshIntervalSecs, 100, "cfg.Schema.RefreshIntervalSecs")
 	testInt64(t, cfg.Schema.Sample.RefreshIntervalSecsDeprecated, 0, "cfg.Schema.Sample.RefreshIntervalSecsDeprecated")
+}
+
+func TestParseYaml_Exec_Config_Expand(t *testing.T) {
+	cfg := Default()
+	yaml := `
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+`
+
+	// --configExpand=none
+	cfg.ConfigExpand = Expansion{
+		Exec: false,
+		Rest: false,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "invalid value for mongodb.net.auth.password, expected a string") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+
+	// --configExpand=rest
+	cfg.ConfigExpand = Expansion{
+		Rest: true,
+	}
+	err = ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "__exec has not been enabled via --configExpand") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+
+	// --configExpand=exec,rest
+	cfg.ConfigExpand = Expansion{
+		Exec: true,
+		Rest: true,
+	}
+	err = ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// __exec command execution fails
+func TestParseYaml_Exec_Command_Failure(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Exec: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "false"
+`), cfg.ConfigExpand)
+
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "error executing '__exec' command") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// All exec'd values should be of type string. Type conversions are not supported for non-ints.
+func TestParseYaml_Exec_Failure_Non_String_Field(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Exec: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+schema:
+  path: "/var/test"
+  sample:
+    prejoin:
+      __exec: "echo true"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "invalid value for schema.sample.prejoin, expected a bool") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// If multiple '__exec' keys are present, only the last one will be evaluated.
+func TestParseYaml_Exec_Failure_Multiple_Exec_Keys(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Exec: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        __exec: "echo another_pwd"
+`), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "another_pwd", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Fail when there is an unknown key in the __exec block.
+func TestParseYaml_Exec_Failure_Unknown_Key(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Exec: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        name: "random"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "invalid value for mongodb.net.auth.password, expected a string") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
 }
 
 func TestParseYaml_Invalid(t *testing.T) {
@@ -393,7 +533,7 @@ setParameter:
 	for i, test := range tests {
 		t.Run(fmt.Sprintf("%v-%v", i, test.err), func(t *testing.T) {
 			cfg := Default()
-			err := ParseYaml(cfg, bytes.NewBufferString(test.yaml))
+			err := ParseYaml(cfg, bytes.NewBufferString(test.yaml), cfg.ConfigExpand)
 			if err == nil {
 				t.Fatalf("expected error, but got none")
 			}

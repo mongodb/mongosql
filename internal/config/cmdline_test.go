@@ -15,6 +15,9 @@ import (
 func TestParseArgs_Valid(t *testing.T) {
 	cfg := Default()
 	args := []string{
+		// ConfigExpand
+		"--configExpand", "none",
+
 		// Client Connection
 		"--auth",
 		"--addr", "host:3306",
@@ -101,6 +104,9 @@ func TestParseArgs_Valid(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
+
+	testBool(t, cfg.ConfigExpand.Exec, false, "cfg.ConfigExpand.Exec")
+	testBool(t, cfg.ConfigExpand.Rest, false, "cfg.ConfigExpand.Rest")
 
 	testBool(t, cfg.SystemLog.LogAppend, true, "cfg.SystemLog.LogAppend")
 	testString(t, string(cfg.SystemLog.LogRotate), string(log.Reopen), "cfg.SystemLog.LogRotate")
@@ -306,6 +312,26 @@ func TestParseArgs_Invalid(t *testing.T) {
 		err  string
 		args []string
 	}{
+		{
+			err:  "invalid value for --configExpand: \"none\"",
+			args: []string{"--configExpand", "none,exec"},
+		},
+		{
+			err:  "invalid value for --configExpand: \"none\"",
+			args: []string{"--configExpand", "exec,none"},
+		},
+		{
+			err:  "invalid value for --configExpand: \"none\"",
+			args: []string{"--configExpand", "rest,none,exec"},
+		},
+		{
+			err:  "invalid value for --configExpand: \"none\"",
+			args: []string{"--configExpand", "none,none"},
+		},
+		{
+			err:  "invalid value for --configExpand: \"blah\"",
+			args: []string{"--configExpand", "blah,exec"},
+		},
 		{err: "", args: []string{"--addr", "sdffewg:2134:12344"}},
 		{
 			err:  "must specify only one of --schema or --schemaDirectory",
@@ -487,6 +513,39 @@ func TestSetParameter_Valid(t *testing.T) {
 			cfg.SetParameter.EnableTableAlterations,
 			test.alterationsEnabled,
 			"cfg.SetParameter.EnableTableAlterations",
+		)
+	}
+}
+
+func TestConfigExpandValid(t *testing.T) {
+	var tests = []struct {
+		expansion Expansion
+		args      []string
+	}{
+		{expansion: Expansion{Exec: true, Rest: false}, args: []string{"--configExpand=exec"}},
+		{expansion: Expansion{Exec: false, Rest: true}, args: []string{"--configExpand=rest"}},
+		{expansion: Expansion{Exec: false, Rest: false}, args: []string{"--configExpand=none"}},
+		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=exec,rest"}},
+		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=rest,exec"}},
+		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=rest,rest,exec"}},
+		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=exec,rest,exec"}},
+		{expansion: Expansion{Exec: false, Rest: true}, args: []string{"--configExpand=rest,rest"}},
+	}
+	for _, test := range tests {
+		cfg := Default()
+		_, err := ParseArgs(cfg, test.args)
+		if err != nil {
+			t.Fatalf("got err: \n\t%v\n\tduring call to ParseArgs", err)
+		}
+		testBool(t,
+			cfg.ConfigExpand.Exec,
+			test.expansion.Exec,
+			"cfg.ConfigExpand.Exec",
+		)
+		testBool(t,
+			cfg.ConfigExpand.Rest,
+			test.expansion.Rest,
+			"cfg.ConfigExpand.Rest",
 		)
 	}
 }

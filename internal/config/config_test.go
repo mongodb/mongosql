@@ -14,6 +14,8 @@ import (
 func TestDefault(t *testing.T) {
 	cfg := Default()
 
+	testBool(t, cfg.ConfigExpand.Exec, false, "cfg.ConfigExpand.Exec")
+	testBool(t, cfg.ConfigExpand.Rest, false, "cfg.ConfigExpand.Rest")
 	testBool(t, cfg.SystemLog.LogAppend, false, "cfg.SystemLog.LogAppend")
 	testString(t, string(cfg.SystemLog.LogRotate), string(log.Rename), "cfg.SystemLog.LogRotate")
 	testString(t, cfg.SystemLog.Path, "", "cfg.SystemLog.Path")
@@ -1290,6 +1292,20 @@ func TestValidate_Invalid_usageLogInterval_negative(t *testing.T) {
 	expected := "debug.usageLogInterval (-1) must be greater than or equal to 0"
 	if err.Error() != expected {
 		t.Fatalf("expected error to be '%s', but got '%s'", expected, err)
+	}
+}
+
+func TestValidate_ConfigExpand_without_config(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand.Exec = true
+	cfg.ConfigExpand.Rest = true
+
+	err := Validate(cfg)
+
+	// There should be no error if a user sets --configExpand to 'exec' and/or 'rest' without
+	// supplying their own config.
+	if err != nil {
+		t.Fatalf("unexpected error: %v\n", err)
 	}
 }
 

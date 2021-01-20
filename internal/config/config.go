@@ -75,11 +75,13 @@ func Load(args []string) (*Config, []string, error) {
 			return cfg, args, nil
 		}
 
+		enabledExpansions := cfg.ConfigExpand
+
 		// we'll start over with a new default set and then re-parse
 		// the args because they should override anything specified in
 		// the yaml file.
 		cfg = Default()
-		err = ParseYaml(cfg, bytes.NewReader(yaml))
+		err = ParseYaml(cfg, bytes.NewReader(yaml), enabledExpansions)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to parse configuration file: %s", err)
 		}
@@ -162,6 +164,10 @@ func Default() *Config {
 	cfg.Debug.UsageLogInterval = 60
 
 	cfg.SetParameter.AnonymizeMetrics = true
+	cfg.ConfigExpand = Expansion{
+		Exec: false,
+		Rest: false,
+	}
 	cfg.SetParameter.EnableTableAlterations = false
 	cfg.SetParameter.MetricsBackend = "off"
 	cfg.SetParameter.OptimizeCrossJoins = true
@@ -474,7 +480,8 @@ func checkForDissallowedWriteModeSettings(cfg *Config) error {
 // Config is the root of the configuration tree for mongosqld.
 type Config struct {
 	// Config is the file to load extra configuration from.
-	Config string
+	Config       string
+	ConfigExpand Expansion
 
 	SystemLog         SystemLog
 	Schema            Schema
@@ -699,6 +706,12 @@ type MongoDBNetAuth struct {
 // Metrics holds configuration for metrics collection.
 type Metrics struct {
 	StitchURL string `config:"stitchURL,protected"`
+}
+
+// Expansion holds configuration for enabling expansion directives.
+type Expansion struct {
+	Exec bool
+	Rest bool
 }
 
 // SetParameter holds miscellaneous configuration options.

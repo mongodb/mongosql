@@ -368,6 +368,7 @@ type generalOptions struct {
 	Help         *bool              `short:"h" long:"help" description:"print usage"`
 	Version      *bool              `long:"version" description:"display version information"`
 	Config       *string            `long:"config" description:"path to a configuration file"`
+	ConfigExpand *string            `long:"configExpand" description:"comma-separated list of expansion directives to enable ('none' by default)"`
 	SetParameter func(string) error `long:"setParameter" hidden:"true"`
 	Params       map[string]string  `no-flag:"true"`
 }
@@ -382,6 +383,36 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 	}
 	if !isEmptyOrUnset(o.Config) {
 		cfg.Config = *o.Config
+	}
+
+	// A user cannot specify 'none' in addition to 'exec' or 'rest'
+	if !isEmptyOrUnset(o.ConfigExpand) {
+		configExpand := Expansion{}
+		expansions := strings.Split(*o.ConfigExpand, ",")
+		none := false
+		invalidValueErr := fmt.Errorf("invalid value for --configExpand: \"none\"")
+		for _, exp := range expansions {
+			switch exp {
+			case "exec":
+				if none {
+					return invalidValueErr
+				}
+				configExpand.Exec = true
+			case "rest":
+				if none {
+					return invalidValueErr
+				}
+				configExpand.Rest = true
+			case "none":
+				if configExpand.Exec || configExpand.Rest || none {
+					return invalidValueErr
+				}
+				none = true
+			default:
+				return fmt.Errorf("invalid value for --configExpand: %q", exp)
+			}
+		}
+		cfg.ConfigExpand = configExpand
 	}
 
 	for key, val := range o.Params {
