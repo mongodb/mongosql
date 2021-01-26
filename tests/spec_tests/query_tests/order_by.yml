@@ -39,7 +39,7 @@ tests:
 
   - description: ascending-sort correctness test
     current_db: mydb
-    query: "SELECT VALUE {'a': a::INT} FROM foo ORDER BY a ASC"
+    query: "SELECT VALUE {'a': a::!INT} FROM foo ORDER BY a ASC"
     result:
       - {'a': 1}
       - {'a': 1}
@@ -47,7 +47,7 @@ tests:
 
   - description: descending-sort correctness test
     current_db: mydb
-    query: "SELECT VALUE {'a': a::int} FROM foo ORDER BY a DESC"
+    query: "SELECT VALUE {'a': a::!INT} FROM foo ORDER BY a DESC"
     result:
       - {'a': 2}
       - {'a': 1}
@@ -55,7 +55,7 @@ tests:
 
   - description: multiple-sort-key correctness test
     current_db: mydb
-    query: "SELECT VALUE {'a': a::int, 'b': b::string} FROM foo ORDER BY a ASC, b ASC"
+    query: "SELECT VALUE {'a': a::!INT, 'b': b::!STRING} FROM foo ORDER BY a ASC, b ASC"
     result:
       - {'a': 1, 'b': 'abc'}
       - {'a': 1, 'b': 'def'}
@@ -71,7 +71,7 @@ tests:
 
   - description: null sorts before non-null values
     current_db: mydb
-    query: "SELECT {'a': a::int} FROM nullAndNonNull ORDER BY a ASC"
+    query: "SELECT {'a': a::!INT} FROM nullAndNonNull ORDER BY a ASC"
     result:
       - {'a': null}
       - {'a': null}

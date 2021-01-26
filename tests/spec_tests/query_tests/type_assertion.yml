@@ -1,0 +1,55 @@
+catalog_environment:
+  foo:
+    bar:
+      - { _id: {"$numberInt": "1"}, v1: "abc"}
+      - { _id: {"$numberInt": "2"}, v1: {"$numberInt": "2"}}
+      - { _id: {"$numberInt": "3"}, v1: null}
+    bar_schema:
+      - { _id: {"$numberInt": "1"}, v1: "abc"}
+      - { _id: {"$numberInt": "2"}, v1: {"$numberInt": "2"}}
+      - { _id: {"$numberInt": "3"}, v1: null}
+
+schema_environment:
+  {
+    "foo": {
+      "bar_schema": {
+        "$jsonSchema": {
+          "bsonType": "object",
+          "properties": {
+            "_id": {
+              "bsonType": "int"
+            },
+            "v1": {
+              "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "int" },
+              { "bsonType": "null" }
+              ]
+            },
+          }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: for expression with determined types, asserted type must be among those types
+    current_db: "foo"
+    query: "SELECT v1::!DOUBLE AS v1 FROM bar_schema"
+    error: "v1 cannot be asserted to DOUBLE type"
+
+  - description: correctness test for type assertion in schema mode
+    current_db: "foo"
+    query: "SELECT v1::!INT AS v1 FROM bar_schema"
+    result:
+      - {v1: "abc"}
+      - {v1: {"$numberInt": "2"}}
+      - {v1: null}
+
+  - description: correctness test for type assertion in schema-less mode, target type can be any
+    current_db: "foo"
+    query: "SELECT v1::!DOUBLE AS v1 FROM bar"
+    result:
+      - {v1: "abc"}
+      - {v1: {"$numberInt": "2"}}
+      - {v1: null}
