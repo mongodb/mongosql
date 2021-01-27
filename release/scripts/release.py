@@ -223,8 +223,9 @@ class BIReleaser(object):
 
         # *2 because we are uploading the sig file and an archive.
         # adding 1 since we upload the .zip binary for Windows.
-        if len(self.__urls) != NUM_RELEASE_PLATFORMS * 2 + 1:
-            print("Expected %s URLs, got %s" % (NUM_RELEASE_PLATFORMS + 1, len(self.__urls)))
+        expected_artifact_count = NUM_RELEASE_PLATFORMS * 2 + 1
+        if len(self.__urls) != expected_artifact_count:
+            print("Expected %s URLs, got %s" % (expected_artifact_count, len(self.__urls)))
             sys.exit(1)
 
     def modify_version_string(self, file_name):
