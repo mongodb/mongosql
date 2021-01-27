@@ -2176,6 +2176,13 @@ axes:
     run_on:
     - amazon2-test
 
+  - id: amazon2-arm64
+    display_name: Amazon Linux 2 arm
+    variables:
+      _variant: amazon2-arm64
+    run_on:
+    - amazon2-arm64-small
+
   - id: rhel62
     display_name: RHEL 6.2
     variables:
@@ -2420,12 +2427,20 @@ buildvariants:
   display_name: "${os_single_variant}"
   tags: ["packager"]
   tasks:
-    - ".test !.config !.oneoff-task"
     - name: compile
     - name: sign
       run_on: amazon1-2018-test
   matrix_spec:
     os_single_variant: "*"
+  rules:
+    - if:
+        os_single_variant:
+          - debian10
+          - rhel80
+          - ubuntu2004-64
+          - suse15-64
+      then:
+        add_tasks: [ ".test !.config !.oneoff-task"]
 
 - name: benchmark
   display_name: Benchmarks (CentOS 6)

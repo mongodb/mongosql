@@ -24,6 +24,14 @@ amazon2)
     PYTHON_PATH='/opt/mongodbtoolchain/v3/bin'
 	BUILD_FIPS='true'
     ;;
+amazon2-arm64)
+    PUSH_ARCH='arm64-amazon2'
+    PUSH_NAME='linux'
+    MONGO_ARCH='aarch64'
+    BUILD_GSSAPI='true'
+    PYTHON_PATH='/opt/mongodbtoolchain/v3/bin'
+    BUILD_FIPS='true'
+    ;;
 centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
