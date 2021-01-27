@@ -21,27 +21,27 @@ type ColumnMetadata struct {
 	BsonType    string
 }
 
-// EmptyResultSetDoc returns a BSON document specifying an $addFields
+// EmptyResultSetAddFields returns a BSON document specifying an $addFields
 // stage that is used by data lake for handling empty result sets for
 // ODBC/JDBC formatVersion 1.
 func (meta *ResultSetMetadata) EmptyResultSetAddFields() ([]byte, error) {
 	columnsWithValues := make([]bson.D, len(meta.Columns))
 	for i, col := range meta.Columns {
 		columnsWithValues[i] = bson.D{
-			{"database", nullIfEmpty(col.Database)},
-			{"table", nullIfEmpty(col.Table)},
-			{"tableAlias", nullIfEmpty(col.TableAlias)},
-			{"column", nullIfEmpty(col.Column)},
-			{"columnAlias", nullIfEmpty(col.ColumnAlias)},
-			{"bsonType", col.BsonType},
-			{"value", nil},
+			{Key: "database", Value: nullIfEmpty(col.Database)},
+			{Key: "table", Value: nullIfEmpty(col.Table)},
+			{Key: "tableAlias", Value: nullIfEmpty(col.TableAlias)},
+			{Key: "column", Value: nullIfEmpty(col.Column)},
+			{Key: "columnAlias", Value: nullIfEmpty(col.ColumnAlias)},
+			{Key: "bsonType", Value: col.BsonType},
+			{Key: "value", Value: nil},
 		}
 	}
 
 	addFields := bson.D{
-		{"$addFields", bson.D{
-			{"emptyResultSet", true},
-			{"values", columnsWithValues},
+		{Key: "$addFields", Value: bson.D{
+			{Key: "emptyResultSet", Value: true},
+			{Key: "values", Value: columnsWithValues},
 		}},
 	}
 
@@ -55,15 +55,15 @@ func (meta *ResultSetMetadata) MetadataDoc() ([]byte, error) {
 	columns := make([]bson.D, len(meta.Columns))
 	for i, col := range meta.Columns {
 		columns[i] = bson.D{
-			{"database", nullIfEmpty(col.Database)},
-			{"table", nullIfEmpty(col.Table)},
-			{"tableAlias", nullIfEmpty(col.TableAlias)},
-			{"column", nullIfEmpty(col.Column)},
-			{"columnAlias", nullIfEmpty(col.ColumnAlias)},
-			{"bsonType", col.BsonType},
+			{Key: "database", Value: nullIfEmpty(col.Database)},
+			{Key: "table", Value: nullIfEmpty(col.Table)},
+			{Key: "tableAlias", Value: nullIfEmpty(col.TableAlias)},
+			{Key: "column", Value: nullIfEmpty(col.Column)},
+			{Key: "columnAlias", Value: nullIfEmpty(col.ColumnAlias)},
+			{Key: "bsonType", Value: col.BsonType},
 		}
 	}
-	return bson.Marshal(bson.D{{"columns", columns}})
+	return bson.Marshal(bson.D{{Key: "columns", Value: columns}})
 }
 
 func nullIfEmpty(name string) interface{} {

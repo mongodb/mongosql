@@ -2124,8 +2124,8 @@ axes:
     variables:
       _variant: ubuntu1604
   - id: osx
-    display_name: OSX 10.12
-    run_on: macos-1012
+    display_name: macOS 10.14
+    run_on: macos-1014
     variables:
       _variant: macos
   - id: windows
@@ -2521,10 +2521,10 @@ buildvariants:
     - ".test .config .gssapi"
 
 - name: gssapi-macos
-  display_name: GSSAPI Auth macOS 10.12
+  display_name: GSSAPI Auth macOS 10.14
   expansions:
     _variant: macos
-  run_on: macos-1012
+  run_on: macos-1014
   tasks:
     - ".test .config .gssapi !.gssapi-skip-macos"
 

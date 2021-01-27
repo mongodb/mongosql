@@ -41,7 +41,6 @@ func TestTranslateSQLQuery(t *testing.T) {
 		expectedError      string
 		expectedOutput     string
 		expectedCollection string
-		expectedMetadata   *ResultSetMetadata
 	}{
 		{
 			desc:         "query that can't be parsed/explained (command)",

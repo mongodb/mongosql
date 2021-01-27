@@ -12,8 +12,6 @@ get_latest_for_distro() {
         version_for_curator="3.6.4" # Support for Enterprise Ubuntu 16.04 s390x was removed in r3.6.5
    elif [ "$distro" = "rhel67" ] ; then
          version_for_curator="4.2.0" # Support for RHEL 6.7 was removed in r4.2.1
-   elif [ "$distro" = 'macos' ] || [ "$distro" = 'osx' ]; then
-         version_for_curator="4.3.6" # BI-2476: server 4.4 requires macOS 10.14
    else
          version_for_curator="4.4.0-rc10"
    fi
