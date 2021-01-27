@@ -2,10 +2,16 @@ package config_test
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/10gen/sqlproxy/internal/httputil"
 
 	. "github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/log"
@@ -542,5 +548,208 @@ setParameter:
 				t.Fatalf("expected err '%s' but got '%v'", test.err, err)
 			}
 		})
+	}
+}
+
+func TestParseYaml_Rest_Success(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Rest: true,
+	}
+
+	// Create a new reader with the password string.
+	r := ioutil.NopCloser(bytes.NewReader([]byte("pwd123")))
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}}
+	httputil.SetClient(&client)
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __rest: "fakeurl"
+`), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected err: %v\n", err)
+	}
+
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Fail when the GET request fails (non-200 error code).
+func TestParseYaml_Rest_Request_400_Status(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Rest: true,
+	}
+
+	// Create a new reader with the password string, and a response object with a non-200 error code.
+	r := ioutil.NopCloser(bytes.NewReader([]byte("pwd123")))
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 400,
+			Body:       r,
+		}, nil
+	}}
+	httputil.SetClient(&client)
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __rest: "fakeurl"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "GET request resulted in status code 400 from url") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Test when the GET request fails with an error and no response.
+func TestParseYaml_Rest_Request_Failure(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Rest: true,
+	}
+
+	errString := "no response error"
+
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return nil, errors.New(errString)
+	}}
+	httputil.SetClient(&client)
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __rest: "fakeurl"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), errString) {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Cannot have both an '__exec' and a '__rest' in a block.
+func TestParseYaml_Failure_Both_Exec_And_Rest(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Exec: true,
+		Rest: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        __rest: "fakeurl"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "invalid config: can only use __exec or __rest, not both") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// startTestServer creates a server with `numRoutes` routes to test redirect handling when evaluating
+// a '__rest' expansion directive.
+func startTestServer(numRoutes int, body string) *httptest.Server {
+	mux := http.NewServeMux()
+
+	for i := 0; i < numRoutes; i++ {
+		route := fmt.Sprintf("/route%v/", i)
+		nextRoute := fmt.Sprintf("/route%v/", i+1)
+		mux.HandleFunc(route, func(w http.ResponseWriter, req *http.Request) {
+			http.Redirect(w, req, nextRoute, 302)
+		})
+	}
+	route := fmt.Sprintf("/route%v/", numRoutes)
+	mux.HandleFunc(route, func(w http.ResponseWriter, req *http.Request) {
+		_, _ = fmt.Fprint(w, body)
+	})
+	return httptest.NewServer(mux)
+}
+
+func TestParseYaml_Rest_Handle_Redirects(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Rest: true,
+	}
+
+	// The max number of redirects is currently set to 5, so we will create 5 redirects.
+	numRoutes := 5
+	server := startTestServer(numRoutes, "pwd123")
+	defer server.Close()
+
+	server.Client().CheckRedirect = httputil.CheckRedirectFunc
+	httputil.SetClient(server.Client())
+
+	// Construct a yaml string with the value of "__rest" set to the server's first route in the chain of redirects.
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __rest: %s/route0/
+`, server.URL)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Fail if there are too many redirects in the GET request.
+func TestParseYaml_Rest_Too_Many_Redirects(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = Expansion{
+		Rest: true,
+	}
+
+	// The max number of redirects is currently set to 5, so to trigger a failure, we will
+	// create 6 redirects.
+	numRoutes := 6
+	server := startTestServer(numRoutes, "pwd123")
+	defer server.Close()
+
+	server.Client().CheckRedirect = httputil.CheckRedirectFunc
+	httputil.SetClient(server.Client())
+
+	// Construct a yaml string with the value of "__rest" set to the server's first route in the chain of redirects.
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __rest: %s/route0/
+`, server.URL)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "too many redirects (5 max)") {
+		t.Fatalf("incorrect error string: %v", err.Error())
 	}
 }
