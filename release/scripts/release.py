@@ -33,6 +33,7 @@ UNITS = ['', 'Ki', 'Mi', 'Gi', 'Ti', 'Pi', 'Ei', 'Zi']
 HASH_TYPES = ["md5", "sha1", "sha256"]
 NUM_RELEASE_PLATFORMS = 27
 ZIP_SUFFIX = " (zip)"
+SIG_SUFFIX = " (sig)"
 DEV_RUN = False
 USAGE = """
 BI Connector Release tool 0.1
@@ -202,11 +203,11 @@ class BIReleaser(object):
             entry = json.loads(rpc.text)
             variant = entry["build_variant"]
             if "osx" in variant:
-                extension = [".zip"]
+                extension = {".zip"}
             elif "windows" in variant:
-                extension = [".msi", ".zip"]
+                extension = {".msi", ".zip"}
             else:
-                extension = [".tgz"]
+                extension = {".tgz"}
             for entry_file in entry["files"]:
                 url = entry_file["url"]
                 _, ext = os.path.splitext(url)
@@ -217,9 +218,12 @@ class BIReleaser(object):
                     else:
                         variant_with_suffix = variant
                     self.__urls[variant_with_suffix] = url
+                if ".sig" == ext and self.__release_version in url:
+                    self.__urls[variant + SIG_SUFFIX] = url
 
-        # adding 1 since we upload the .zip binary for Windows
-        if len(self.__urls) != NUM_RELEASE_PLATFORMS + 1:
+        # *2 because we are uploading the sig file and an archive.
+        # adding 1 since we upload the .zip binary for Windows.
+        if len(self.__urls) != NUM_RELEASE_PLATFORMS * 2 + 1:
             print("Expected %s URLs, got %s" % (NUM_RELEASE_PLATFORMS + 1, len(self.__urls)))
             sys.exit(1)
 
@@ -230,7 +234,7 @@ class BIReleaser(object):
         # If the file ends with an extension followed by a checksum
         # extension (e.g. ".tgz.md5"), we must use a different regex
         # to match on the full extension.
-        if any(file_name.endswith(hash_type) for hash_type in HASH_TYPES):
+        if any(file_name.endswith(hash_type) for hash_type in HASH_TYPES + ['sig']):
             match = re.match(r'(.*)-v.*\.(.*\..*)$', file_name)
         else:
             match = re.match(r'(.*)-v.*\.(.*)$', file_name)
@@ -259,6 +263,10 @@ class BIReleaser(object):
         def create_and_upload_hash(key_name, file_name, file_path, hash_type):
             """Creates and uploads a checksum file for the given file and hash function.
             """
+            # don't hash .sig files
+            if file_path.endswith(".sig"):
+                return
+
             hash_fxn = hashlib.new(hash_type)
 
             file_handle = open(file_path)
@@ -298,12 +306,12 @@ class BIReleaser(object):
             for hash_type in HASH_TYPES:
                 create_and_upload_hash(key_name, file_name, file_location, hash_type)
 
-            if file_location.endswith(".zip"):
+            if file_location.endswith(".zip") or file_location.endswith(".sig"):
                 os.remove(file_location)
 
         # delete the zip archive from the URL map
         for key, _ in self.__urls.items():
-            if key.endswith(ZIP_SUFFIX):
+            if key.endswith(ZIP_SUFFIX) or key.endswith(SIG_SUFFIX):
                 del self.__urls[key]
                 break
 
