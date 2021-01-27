@@ -666,13 +666,12 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_files_include_filter:
-          - src/github.com/10gen/sqlproxy/testdata/artifacts/*.${ARCHIVE_FORMAT}.sig
-        remote_file: sqlproxy/binaries/${PUSH_NAME}/sig-file-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}/
+        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/release.${ARCHIVE_FORMAT}.sig
+        remote_file: sqlproxy/binaries/${PUSH_NAME}/mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.${ARCHIVE_FORMAT}.sig
         bucket: mciuploads
         permissions: public-read
         content_type: application/pgp-signature
-        display_name: "Sig File - "
+        display_name: mongodb-bi-${PUSH_NAME}-${PUSH_ARCH}-${CURRENT_VERSION}.${ARCHIVE_FORMAT}.sig
 
   "sign macos zip":
     - command: shell.exec
