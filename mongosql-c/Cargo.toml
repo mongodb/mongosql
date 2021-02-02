@@ -14,8 +14,3 @@ mongosql = { path = "../mongosql" }
 name = "mongosql"
 crate-type = ["staticlib"]
 
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-panic = "abort"

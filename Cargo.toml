@@ -4,3 +4,9 @@ members = [
   "mongosql-c",
   "mongosql",
 ]
+
+[profile.dev]
+panic = "abort"
+
+[profile.release]
+panic = "abort"
