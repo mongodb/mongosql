@@ -1,7 +1,7 @@
 package mongosql
 
 /*
-#cgo LDFLAGS: -L../../target/debug/ -lmongosql -ldl -lm
+#cgo LDFLAGS: -L../../target/debug/ -lmongosql -lm -lgcc -lws2_32 -luser32 -lkernel32 -luserenv
 #include <stdlib.h>
 #include "./mongosql.h"
 */
