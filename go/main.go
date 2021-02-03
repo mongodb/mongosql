@@ -7,7 +7,6 @@ import (
 )
 
 func main() {
-	fmt.Println("HELLO!")
 	v := mongosql.Version()
 	fmt.Printf("version: %s\n", v)
 	tr := mongosql.Translate("select * from foo join bar")

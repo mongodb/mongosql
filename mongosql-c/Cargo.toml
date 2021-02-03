@@ -12,5 +12,5 @@ mongosql = { path = "../mongosql" }
 
 [lib]
 name = "mongosql"
-crate-type = ["staticlib"]
+crate-type = ["cdylib"]
 
