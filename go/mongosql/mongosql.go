@@ -1,8 +1,5 @@
 package mongosql
 
-// #include <stdlib.h>
-import "C"
-
 import (
 	"syscall"
 	"unsafe"
@@ -19,6 +16,13 @@ func uintptr2string(u uintptr) string {
 		p = unsafe.Pointer(uintptr(p) +  1)
 	}
 	return string(bs)
+}
+
+func string2uintptr(s string) uintptr {
+	bs := []byte(s)
+	bs = append(bs, 0)
+	p := unsafe.Pointer(&bs[0])
+	return uintptr(p)
 }
 
 // Version returns the version of the underlying translation library. This version should match the version of the
@@ -46,10 +50,8 @@ func Translate(sql string) string {
 	if err != nil {
 		panic("could not find translate in mongosql.dll")
 	}
-	arg := C.CString(sql)
-	unsafeArg := unsafe.Pointer(arg)
-	defer C.free(unsafeArg)
-	ret1, _, _ := proc.Call(uintptr(unsafeArg))
+	arg := string2uintptr(sql)
+	ret1, _, _ := proc.Call(arg)
 	return uintptr2string(ret1)
 }
 
