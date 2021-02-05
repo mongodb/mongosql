@@ -1,0 +1,11 @@
+use crate::parser::ast::*;
+
+grammar;
+
+pub Query: Query = {
+	SELECT => Query::Select,
+}
+
+match {
+	r"(?i)select" => SELECT,
+}

@@ -6,4 +6,9 @@ edition = "2018"
 
 [dependencies]
 bson = "1"
+lalrpop-util = "0.19.4"
+regex = "1"
 serde_json = "1"
+
+[build-dependencies]
+lalrpop = "0.19.4"

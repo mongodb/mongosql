@@ -104,6 +104,16 @@ functions:
           ${prepare_shell}
           cargo build --release
 
+  "run tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo test
+
   "upload c library":
     - command: s3.put
       params:
@@ -137,6 +147,10 @@ tasks:
       - func: "compile release"
       - func: "upload c library"
 
+  - name: test
+    commands:
+      - func: "run tests"
+
 buildvariants:
 
   - name: static-analysis
@@ -151,3 +165,4 @@ buildvariants:
     run_on: [ ubuntu1804-build ]
     tasks:
       - name: compile
+      - name: test
