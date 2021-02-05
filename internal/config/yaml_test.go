@@ -954,7 +954,7 @@ systemLog:
 	if err == nil {
 		t.Fatalf("test should have failed")
 	}
-	if !strings.Contains(err.Error(), "a top-level expansion directive and its options must be the only values specified in the config file") {
+	if !strings.Contains(err.Error(), "unrecognized key") {
 		t.Fatalf("incorrect error string: %v", err.Error())
 	}
 }
@@ -1009,6 +1009,74 @@ mongodb:
 	}
 
 	if !strings.Contains(err.Error(), "invalid config: {type: \"blah\"}") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Test {trim: "whitespace"}.
+func TestParseYaml_Trim_Whitespace(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo \tx\ny\n"
+        trim: "whitespace"
+`), cfg.ConfigExpand)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "x\ny", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Test {trim: "none"} (default).
+func TestParseYaml_Trim_None(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo \tx\ny\n"
+        trim: "none"
+`), cfg.ConfigExpand)
+
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "\tx\ny\n", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Fail when the value of "trim" is not "none" or "whitespace".
+func TestParseYaml_Trim_Invalid_Value(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "false"
+        trim: "blah"
+`), cfg.ConfigExpand)
+
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "invalid config: {trim: \"blah\"}") {
 		t.Fatalf("incorrect error string: %v", err.Error())
 	}
 }

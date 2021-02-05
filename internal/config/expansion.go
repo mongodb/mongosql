@@ -16,6 +16,7 @@ var isExpansionField = map[string]struct{}{
 	"__exec": {},
 	"__rest": {},
 	"type":   {},
+	"trim":   {},
 }
 
 // configExpander holds information about expansion directive evaluation.
@@ -36,9 +37,6 @@ func newConfigExpander(e EnabledExpansions) configExpander {
 // parse checks if the specified yaml document has an expansion directive, and if so, it parses
 // it into an expansionBlock.
 func (e *configExpander) parse(yaml map[interface{}]interface{}) (*expansionBlock, error) {
-	if e.isRoot && len(yaml) > 2 {
-		return nil, fmt.Errorf("a top-level expansion directive and its options must be the only values specified in the config file")
-	}
 	expansionBlock := newExpansionBlock()
 	for field, value := range yaml {
 		switch field.(string) {
@@ -57,6 +55,11 @@ func (e *configExpander) parse(yaml map[interface{}]interface{}) (*expansionBloc
 				return nil, err
 			}
 			expansionBlock.typeOpt = value.(string)
+		case "trim":
+			if err := validateTrim(value.(string)); err != nil {
+				return nil, err
+			}
+			expansionBlock.trimOpt = value.(string)
 		default:
 			return nil, nil
 		}
@@ -95,6 +98,9 @@ func (e *configExpander) evaluate(val interface{}) (interface{}, error) {
 		if evalErr != nil {
 			return nil, evalErr
 		}
+		if expansionBlock.trimOpt == "whitespace" {
+			eval = strings.TrimSpace(eval)
+		}
 		if expansionBlock.typeOpt == "yaml" {
 			return parseYaml(eval)
 		}
@@ -107,6 +113,7 @@ type expansionBlock struct {
 	exec    string
 	rest    string
 	typeOpt string
+	trimOpt string
 }
 
 func newExpansionBlock() *expansionBlock {
@@ -114,6 +121,7 @@ func newExpansionBlock() *expansionBlock {
 		exec:    "",
 		rest:    "",
 		typeOpt: "string",
+		trimOpt: "none",
 	}
 }
 
@@ -175,5 +183,17 @@ func validateType(typeOpt string, isRoot bool) error {
 		return nil
 	default:
 		return fmt.Errorf("invalid config: {type: \"%v\"}", typeOpt)
+	}
+}
+
+// validateTrim returns an error if the value of "trim" is invalid.
+func validateTrim(trimOpt string) error {
+	switch trimOpt {
+	case "none":
+		return nil
+	case "whitespace":
+		return nil
+	default:
+		return fmt.Errorf("invalid config: {trim: \"%v\"}", trimOpt)
 	}
 }
