@@ -110,7 +110,7 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/libmongosql.a
-        remote_file: mongosql-rs/artifacts/${build_variant}/${task_id}/libmongosql.a
+        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/libmongosql.a
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
