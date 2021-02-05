@@ -8,7 +8,7 @@ import (
 )
 
 // ParseYaml parses the yaml in the reader into the cfg.
-func ParseYaml(cfg *Config, r io.Reader, enabledExpansions Expansion) error {
+func ParseYaml(cfg *Config, r io.Reader, enabledExpansions EnabledExpansions) error {
 	decoder := candiedyaml.NewDecoder(r)
 	decoder.StrictMode(true)
 
@@ -18,7 +18,7 @@ func ParseYaml(cfg *Config, r io.Reader, enabledExpansions Expansion) error {
 		return err
 	}
 
-	err = fromMap("", reflect.ValueOf(cfg), root, enabledExpansions)
+	err = fromMap("", reflect.ValueOf(cfg), root, newConfigExpander(enabledExpansions))
 	if err != nil {
 		return err
 	}

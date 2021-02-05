@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"runtime"
 	"strings"
 	"testing"
@@ -363,7 +364,7 @@ mongodb:
 `
 
 	// --configExpand=none
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: false,
 		Rest: false,
 	}
@@ -377,7 +378,7 @@ mongodb:
 	}
 
 	// --configExpand=rest
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Rest: true,
 	}
 	err = ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
@@ -390,7 +391,7 @@ mongodb:
 	}
 
 	// --configExpand=exec,rest
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: true,
 		Rest: true,
 	}
@@ -405,7 +406,7 @@ mongodb:
 // __exec command execution fails
 func TestParseYaml_Exec_Command_Failure(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: true,
 	}
 	err := ParseYaml(cfg, bytes.NewBufferString(`
@@ -428,7 +429,7 @@ mongodb:
 // All exec'd values should be of type string. Type conversions are not supported for non-ints.
 func TestParseYaml_Exec_Failure_Non_String_Field(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: true,
 	}
 	err := ParseYaml(cfg, bytes.NewBufferString(`
@@ -449,14 +450,14 @@ schema:
 // If multiple '__exec' keys are present, only the last one will be evaluated.
 func TestParseYaml_Exec_Failure_Multiple_Exec_Keys(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: true,
 	}
 	err := ParseYaml(cfg, bytes.NewBufferString(`
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __exec: "echo pwd123"
         __exec: "echo another_pwd"
@@ -470,14 +471,14 @@ mongodb:
 // Fail when there is an unknown key in the __exec block.
 func TestParseYaml_Exec_Failure_Unknown_Key(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: true,
 	}
 	err := ParseYaml(cfg, bytes.NewBufferString(`
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __exec: "echo pwd123"
         name: "random"
@@ -553,7 +554,7 @@ setParameter:
 
 func TestParseYaml_Rest_Success(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Rest: true,
 	}
 
@@ -571,7 +572,7 @@ func TestParseYaml_Rest_Success(t *testing.T) {
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __rest: "fakeurl"
 `), cfg.ConfigExpand)
@@ -585,7 +586,7 @@ mongodb:
 // Fail when the GET request fails (non-200 error code).
 func TestParseYaml_Rest_Request_400_Status(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Rest: true,
 	}
 
@@ -603,7 +604,7 @@ func TestParseYaml_Rest_Request_400_Status(t *testing.T) {
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __rest: "fakeurl"
 `), cfg.ConfigExpand)
@@ -619,7 +620,7 @@ mongodb:
 // Test when the GET request fails with an error and no response.
 func TestParseYaml_Rest_Request_Failure(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Rest: true,
 	}
 
@@ -634,7 +635,7 @@ func TestParseYaml_Rest_Request_Failure(t *testing.T) {
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __rest: "fakeurl"
 `), cfg.ConfigExpand)
@@ -650,7 +651,7 @@ mongodb:
 // Cannot have both an '__exec' and a '__rest' in a block.
 func TestParseYaml_Failure_Both_Exec_And_Rest(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: true,
 		Rest: true,
 	}
@@ -658,7 +659,7 @@ func TestParseYaml_Failure_Both_Exec_And_Rest(t *testing.T) {
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __exec: "echo pwd123"
         __rest: "fakeurl"
@@ -666,7 +667,7 @@ mongodb:
 	if err == nil {
 		t.Fatalf("test should have failed")
 	}
-	if !strings.Contains(err.Error(), "invalid config: can only use __exec or __rest, not both") {
+	if !strings.Contains(err.Error(), "can only use __exec or __rest, not both") {
 		t.Fatalf("incorrect error string: %v", err.Error())
 	}
 }
@@ -692,7 +693,7 @@ func startTestServer(numRoutes int, body string) *httptest.Server {
 
 func TestParseYaml_Rest_Handle_Redirects(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Rest: true,
 	}
 
@@ -709,7 +710,7 @@ func TestParseYaml_Rest_Handle_Redirects(t *testing.T) {
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __rest: %s/route0/
 `, server.URL)
@@ -723,7 +724,7 @@ mongodb:
 // Fail if there are too many redirects in the GET request.
 func TestParseYaml_Rest_Too_Many_Redirects(t *testing.T) {
 	cfg := Default()
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Rest: true,
 	}
 
@@ -741,7 +742,7 @@ func TestParseYaml_Rest_Too_Many_Redirects(t *testing.T) {
 mongodb:
   net:
     auth:
-      username: user
+      username: "user"
       password:
         __rest: %s/route0/
 `, server.URL)
@@ -750,6 +751,264 @@ mongodb:
 		t.Fatalf("test should have failed")
 	}
 	if !strings.Contains(err.Error(), "too many redirects (5 max)") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Test that a top-level '__exec' that evaluates to another yaml document gets successfully parsed.
+func TestParseYaml_Exec_Type_Yaml_Success(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+		Rest: true,
+	}
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("failed to create a temporary file: %v", err)
+	}
+
+	defer os.Remove(tmpFile.Name())
+
+	tmpFileYaml := `
+mongodb:
+  net:
+    auth:
+      username: "user"
+      password: "pwd123"
+`
+
+	if _, err = tmpFile.WriteString(tmpFileYaml); err != nil {
+		t.Fatalf("failed to write to the temporary file: %v", err)
+	}
+	yaml := fmt.Sprintf(`
+__exec: "cat %s"
+type: "yaml"
+`, tmpFile.Name())
+	err = ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Test that a top-level '__rest' that evaluates to another yaml document gets successfully parsed.
+func TestParseYaml_Rest_Type_Yaml_Success(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	// Create a new reader with a yaml string.
+	r := ioutil.NopCloser(bytes.NewReader([]byte(`
+mongodb:
+  net:
+    auth:
+      username: "user"
+      password: "pwd123"
+`)))
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}}
+	httputil.SetClient(&client)
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+__rest: "fakeurl"
+type: "yaml"
+`), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Fail when a top-level expansion directive evaluates to a yaml document that includes another expansion directive.
+func TestParseYaml_Type_Yaml_Recursion(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+		Exec: true,
+	}
+
+	// Create a new reader with a yaml string that includes an expansion directive.
+	r := ioutil.NopCloser(bytes.NewReader([]byte(`
+mongodb:
+  net:
+    auth:
+      username: "user"
+      password:
+        __exec: "echo pwd123"
+`)))
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}}
+	httputil.SetClient(&client)
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+__rest: "fakeurl"
+type: "yaml"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "expansion directive recursion is not supported") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when a top-level expansion directive evaluates to a yaml string that also has a top-level expansion directive.
+func TestParseYaml_Type_Yaml_Recursion_Top_Level(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	// Create a new reader with a yaml string that includes an expansion directive.
+	r := ioutil.NopCloser(bytes.NewReader([]byte(`
+__exec: "echo this command doesn't matter'"
+type: "yaml"
+`)))
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}}
+	httputil.SetClient(&client)
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+__rest: "fakeurl"
+type: "yaml"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "expansion directive recursion is not supported") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when there's a top-level expansion directive but "type" is not set to "yaml".
+func TestParseYaml_Type_String_Failure(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	// Incorrectly set the value of "type" to "string" instead of "yaml"
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+__rest: "fakeurl"
+type: "string"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "set {type: 'yaml'} if the config has a top-level expansion directive") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when a user sets {type: "yaml"} for a non-root expansion directive.
+func TestParseYaml_Type_Non_Root_Yaml_Failure(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    __rest: "fakeurl"
+    type: "yaml"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "{type: 'yaml'} is only supported for top-level expansion directives") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when there are other keys after a top-level expansion directive.
+func TestParseYaml_Type_Yaml_Other_Keys_Failure(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+__rest: "fakeurl"
+type: "yaml"
+
+systemLog:
+  quiet: false
+  verbosity: 1
+  logRotate: "rename"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+	if !strings.Contains(err.Error(), "a top-level expansion directive and its options must be the only values specified in the config file") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when a top-level '__rest' doesn't set {type: "yaml"}.
+func TestParseYaml_Rest_Type_Default_String(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+__rest: "fakeurl"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "set {type: 'yaml'} if the config has a top-level expansion directive") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail if the value of "type" is not "string" or "yaml".
+func TestParseYaml_Type_Invalid_Value(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	// Create a new reader with the password string.
+	r := ioutil.NopCloser(bytes.NewReader([]byte("pwd123")))
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}}
+	httputil.SetClient(&client)
+
+	err := ParseYaml(cfg, bytes.NewBufferString(`
+mongodb:
+  net:
+    auth:
+      username: "user"
+      password:
+        __rest: "fakeurl"
+        type: "blah"
+`), cfg.ConfigExpand)
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "invalid config: {type: \"blah\"}") {
 		t.Fatalf("incorrect error string: %v", err.Error())
 	}
 }

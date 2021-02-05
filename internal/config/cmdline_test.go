@@ -519,17 +519,17 @@ func TestSetParameter_Valid(t *testing.T) {
 
 func TestConfigExpandValid(t *testing.T) {
 	var tests = []struct {
-		expansion Expansion
+		expansion EnabledExpansions
 		args      []string
 	}{
-		{expansion: Expansion{Exec: true, Rest: false}, args: []string{"--configExpand=exec"}},
-		{expansion: Expansion{Exec: false, Rest: true}, args: []string{"--configExpand=rest"}},
-		{expansion: Expansion{Exec: false, Rest: false}, args: []string{"--configExpand=none"}},
-		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=exec,rest"}},
-		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=rest,exec"}},
-		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=rest,rest,exec"}},
-		{expansion: Expansion{Exec: true, Rest: true}, args: []string{"--configExpand=exec,rest,exec"}},
-		{expansion: Expansion{Exec: false, Rest: true}, args: []string{"--configExpand=rest,rest"}},
+		{expansion: EnabledExpansions{Exec: true, Rest: false}, args: []string{"--configExpand=exec"}},
+		{expansion: EnabledExpansions{Exec: false, Rest: true}, args: []string{"--configExpand=rest"}},
+		{expansion: EnabledExpansions{Exec: false, Rest: false}, args: []string{"--configExpand=none"}},
+		{expansion: EnabledExpansions{Exec: true, Rest: true}, args: []string{"--configExpand=exec,rest"}},
+		{expansion: EnabledExpansions{Exec: true, Rest: true}, args: []string{"--configExpand=rest,exec"}},
+		{expansion: EnabledExpansions{Exec: true, Rest: true}, args: []string{"--configExpand=rest,rest,exec"}},
+		{expansion: EnabledExpansions{Exec: true, Rest: true}, args: []string{"--configExpand=exec,rest,exec"}},
+		{expansion: EnabledExpansions{Exec: false, Rest: true}, args: []string{"--configExpand=rest,rest"}},
 	}
 	for _, test := range tests {
 		cfg := Default()

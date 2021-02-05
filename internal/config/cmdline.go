@@ -387,7 +387,7 @@ func (o *generalOptions) mapToConfig(cfg *Config) error {
 
 	// A user cannot specify 'none' in addition to 'exec' or 'rest'
 	if !isEmptyOrUnset(o.ConfigExpand) {
-		configExpand := Expansion{}
+		configExpand := EnabledExpansions{}
 		expansions := strings.Split(*o.ConfigExpand, ",")
 		none := false
 		invalidValueErr := fmt.Errorf("invalid value for --configExpand: \"none\"")

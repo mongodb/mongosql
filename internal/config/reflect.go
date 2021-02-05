@@ -10,11 +10,27 @@ import (
 	"unicode/utf8"
 )
 
-func fromMap(key string, v reflect.Value, values map[interface{}]interface{}, enabledExpansions Expansion) error {
+func fromMap(key string, v reflect.Value, values map[interface{}]interface{}, configExpander configExpander) error {
 
 	if v.Kind() != reflect.Ptr {
 		return fmt.Errorf("expected a pointer")
 	}
+
+	// If a user specifies a top-level expansion directive (and {type: 'yaml'}), evaluate it and replace the entire
+	// config file with the resulting yaml document.
+	eval, err := configExpander.evaluate(values)
+	if err != nil {
+		return err
+	}
+	tval, ok := eval.(map[interface{}]interface{})
+	if !ok {
+		return fmt.Errorf("invalid value for yaml, expected a map: %v(%T)", values, values)
+	}
+	if !reflect.DeepEqual(tval, values) {
+		configExpander.isExpandedYaml = true
+		configExpander.isRoot = true
+	}
+	values = tval
 
 	e := v.Elem()
 	for i := 0; i < e.NumField(); i++ {
@@ -28,8 +44,7 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}, en
 		delete(values, name)
 
 		newKey := joinKeys(key, name)
-
-		eval, err := evaluateExpansionDirective(enabledExpansions, val)
+		eval, err := configExpander.evaluate(val)
 		if err != nil {
 			return err
 		}
@@ -42,7 +57,8 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}, en
 				return fmt.Errorf("invalid value for %s, expected a map: %v(%T)", newKey, val, val)
 			}
 
-			err := fromMap(newKey, e.Field(i).Addr(), tval, enabledExpansions)
+			configExpander.isRoot = false
+			err := fromMap(newKey, e.Field(i).Addr(), tval, configExpander)
 			if err != nil {
 				return err
 			}
@@ -112,10 +128,14 @@ func fromMap(key string, v reflect.Value, values map[interface{}]interface{}, en
 	}
 
 	for k := range values {
-		if key == "" {
-			return fmt.Errorf("unrecognized key '%v'", k)
+		recursionErrString := ""
+		if _, ok := isExpansionField[k.(string)]; ok && configExpander.isExpandedYaml {
+			recursionErrString = ": expansion directive recursion is not supported"
 		}
-		return fmt.Errorf("unrecognized key '%s.%v'", key, k)
+		if key == "" {
+			return fmt.Errorf("unrecognized key '%v'%s", k, recursionErrString)
+		}
+		return fmt.Errorf("unrecognized key '%s.%v'%s", key, k, recursionErrString)
 	}
 
 	return nil

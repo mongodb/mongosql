@@ -164,7 +164,7 @@ func Default() *Config {
 	cfg.Debug.UsageLogInterval = 60
 
 	cfg.SetParameter.AnonymizeMetrics = true
-	cfg.ConfigExpand = Expansion{
+	cfg.ConfigExpand = EnabledExpansions{
 		Exec: false,
 		Rest: false,
 	}
@@ -481,7 +481,7 @@ func checkForDissallowedWriteModeSettings(cfg *Config) error {
 type Config struct {
 	// Config is the file to load extra configuration from.
 	Config       string
-	ConfigExpand Expansion
+	ConfigExpand EnabledExpansions
 
 	SystemLog         SystemLog
 	Schema            Schema
@@ -708,8 +708,8 @@ type Metrics struct {
 	StitchURL string `config:"stitchURL,protected"`
 }
 
-// Expansion holds configuration for enabling expansion directives.
-type Expansion struct {
+// EnabledExpansions holds a 2-bit state enabling expansion directives.
+type EnabledExpansions struct {
 	Exec bool
 	Rest bool
 }
