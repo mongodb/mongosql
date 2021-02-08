@@ -2,6 +2,9 @@ package config
 
 import (
 	"bytes"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os/exec"
@@ -13,10 +16,12 @@ import (
 )
 
 var isExpansionField = map[string]struct{}{
-	"__exec": {},
-	"__rest": {},
-	"type":   {},
-	"trim":   {},
+	"__exec":     {},
+	"__rest":     {},
+	"type":       {},
+	"trim":       {},
+	"digest":     {},
+	"digest_key": {},
 }
 
 // configExpander holds information about expansion directive evaluation.
@@ -60,12 +65,19 @@ func (e *configExpander) parse(yaml map[interface{}]interface{}) (*expansionBloc
 				return nil, err
 			}
 			expansionBlock.trimOpt = value.(string)
+		case "digest":
+			expansionBlock.digestOpt = value.(string)
+		case "digest_key":
+			expansionBlock.digestKeyOpt = value.(string)
 		default:
 			return nil, nil
 		}
 		if e.isExpandedYaml {
 			return nil, fmt.Errorf("expansion directive recursion is not supported")
 		}
+	}
+	if err := validateDigest(expansionBlock.digestOpt, expansionBlock.digestKeyOpt); err != nil {
+		return nil, err
 	}
 	if expansionBlock.rest != "" && expansionBlock.exec != "" {
 		return nil, fmt.Errorf("can only use __exec or __rest, not both")
@@ -101,6 +113,11 @@ func (e *configExpander) evaluate(val interface{}) (interface{}, error) {
 		if expansionBlock.trimOpt == "whitespace" {
 			eval = strings.TrimSpace(eval)
 		}
+		if expansionBlock.digestKeyOpt != "" {
+			if err := checkHash(eval, expansionBlock.digestOpt, expansionBlock.digestKeyOpt); err != nil {
+				return nil, err
+			}
+		}
 		if expansionBlock.typeOpt == "yaml" {
 			return parseYaml(eval)
 		}
@@ -110,18 +127,22 @@ func (e *configExpander) evaluate(val interface{}) (interface{}, error) {
 }
 
 type expansionBlock struct {
-	exec    string
-	rest    string
-	typeOpt string
-	trimOpt string
+	exec         string
+	rest         string
+	typeOpt      string
+	trimOpt      string
+	digestOpt    string
+	digestKeyOpt string
 }
 
 func newExpansionBlock() *expansionBlock {
 	return &expansionBlock{
-		exec:    "",
-		rest:    "",
-		typeOpt: "string",
-		trimOpt: "none",
+		exec:         "",
+		rest:         "",
+		typeOpt:      "string",
+		trimOpt:      "none",
+		digestOpt:    "",
+		digestKeyOpt: "",
 	}
 }
 
@@ -171,6 +192,24 @@ func parseYaml(value string) (map[interface{}]interface{}, error) {
 	return yaml, nil
 }
 
+// checkHash returns an error if the SHA256 hashed result of `value` does not match `digest`.
+func checkHash(value, digest, digestKey string) error {
+	secret, err := hex.DecodeString(digestKey)
+	if err != nil {
+		return err
+	}
+	h := hmac.New(sha256.New, secret)
+	_, err = h.Write([]byte(value))
+	if err != nil {
+		return fmt.Errorf("failed to write to HMAC hash: %v", err)
+	}
+	sha := hex.EncodeToString(h.Sum(nil))
+	if sha != digest {
+		return fmt.Errorf("hashed result does not match digest: %v", sha)
+	}
+	return nil
+}
+
 // validateType returns an error if the value of "type" is invalid.
 func validateType(typeOpt string, isRoot bool) error {
 	switch typeOpt {
@@ -195,5 +234,18 @@ func validateTrim(trimOpt string) error {
 		return nil
 	default:
 		return fmt.Errorf("invalid config: {trim: \"%v\"}", trimOpt)
+	}
+}
+
+// validateDigest returns an error if the value of "digest" or "digest_key" is invalid.
+func validateDigest(digest, digestKey string) error {
+	if digest == "" && digestKey == "" {
+		return nil
+	} else if digest != "" && digestKey == "" {
+		return fmt.Errorf("must specify 'digest_key' if 'digest' is specified")
+	} else if digest == "" && digestKey != "" {
+		return fmt.Errorf("must specify 'digest' if 'digest_key' is specified")
+	} else {
+		return nil
 	}
 }

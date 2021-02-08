@@ -18,6 +18,11 @@ import (
 	"github.com/10gen/sqlproxy/log"
 )
 
+// hash === SHA256HMAC('pwd123', 'secret')
+const hash = "f06f043029484a50667d7e00c7a0fe9256310d3c503e7d8ccc090637efc26fc4"
+const hashYaml = "9f3efaba72ecff8efe0872d2cae480d623f2859205e521f9e8b28eedf2989048"
+const digestKey = "736563726574"
+
 func TestParseYaml_Valid(t *testing.T) {
 	cfg := Default()
 	err := ParseYaml(cfg, bytes.NewBufferString(`
@@ -712,7 +717,7 @@ mongodb:
     auth:
       username: "user"
       password:
-        __rest: %s/route0/
+        __rest: "%s/route0/"
 `, server.URL)
 	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
 	if err != nil {
@@ -744,7 +749,7 @@ mongodb:
     auth:
       username: "user"
       password:
-        __rest: %s/route0/
+        __rest: "%s/route0/"
 `, server.URL)
 	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
 	if err == nil {
@@ -1079,4 +1084,239 @@ mongodb:
 	if !strings.Contains(err.Error(), "invalid config: {trim: \"blah\"}") {
 		t.Fatalf("incorrect error string: %v", err.Error())
 	}
+}
+
+// Test a successful usage of 'digest' and 'digest_key' with '__exec'.
+func TestParseYaml_Exec_Digest_Success(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        digest: %q
+        digest_key: %q
+`, hash, digestKey)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Test a successful usage of 'digest' and 'digest_key' with '__rest'.
+func TestParseYaml_Rest_Digest_Success(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Rest: true,
+	}
+
+	// Create a new reader with the password string.
+	r := ioutil.NopCloser(bytes.NewReader([]byte("pwd123")))
+	client := httputil.MockClient{GetFunc: func(_ string) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: 200,
+			Body:       r,
+		}, nil
+	}}
+	httputil.SetClient(&client)
+
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __rest: "fakeurl"
+        digest: %q
+        digest_key: %q
+`, hash, digestKey)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected err: %v\n", err)
+	}
+
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Fail when digest has an invalid length.
+func TestParseYaml_Exec_Digest_Invalid_Length(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        digest: "123"
+        digest_key: %q
+`, digestKey)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "hashed result does not match digest") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when digest_key has invalid characters.
+func TestParseYaml_Exec_Digest_Key_Invalid_Characters(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        digest: %q
+        digest_key: "736563X26574"
+`, hash)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "encoding/hex: invalid byte: U+0058 'X'") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when the digest_key is not provided.
+func TestParseYaml_Exec_No_Digest_Key(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        digest: %q
+`, hash)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "must specify 'digest_key' if 'digest' is specified") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Fail when the digest is not provided.
+func TestParseYaml_Exec_No_Digest(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo pwd123"
+        digest_key: %q
+`, digestKey)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+
+	if err == nil {
+		t.Fatalf("test should have failed")
+	}
+
+	if !strings.Contains(err.Error(), "must specify 'digest' if 'digest_key' is specified") {
+		t.Fatalf("incorrect error string: %v", err.Error())
+	}
+}
+
+// Test that the digest is checked post trimming.
+func TestParseYaml_Exec_Digest_Post_Trimming(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+	}
+
+	yaml := fmt.Sprintf(`
+mongodb:
+  net:
+    auth:
+      username: user
+      password:
+        __exec: "echo \tpwd123\n"
+        trim: "whitespace"
+        digest: %q
+        digest_key: %q
+`, hash, digestKey)
+	err := ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
+}
+
+// Test that digests are supported for yaml expansions.
+func TestParseYaml_Exec_Digest_Yaml(t *testing.T) {
+	cfg := Default()
+	cfg.ConfigExpand = EnabledExpansions{
+		Exec: true,
+		Rest: true,
+	}
+
+	tmpFile, err := ioutil.TempFile(os.TempDir(), "")
+	if err != nil {
+		t.Fatalf("failed to create a temporary file: %v", err)
+	}
+
+	defer os.Remove(tmpFile.Name())
+
+	tmpFileYaml := `
+mongodb:
+  net:
+    auth:
+      username: "user"
+      password: "pwd123"
+`
+
+	if _, err = tmpFile.WriteString(tmpFileYaml); err != nil {
+		t.Fatalf("failed to write to the temporary file: %v", err)
+	}
+	yaml := fmt.Sprintf(`
+__exec: "cat %s"
+type: "yaml"
+digest: %q
+digest_key: %q
+`, tmpFile.Name(), hashYaml, digestKey)
+	err = ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	testString(t, cfg.MongoDB.Net.Auth.Password, "pwd123", "cfg.MongoDB.Net.Auth.Password")
 }
