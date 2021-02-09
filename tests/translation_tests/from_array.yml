@@ -1,0 +1,9 @@
+tests:
+  - description: basic array datasource with multiple documents correctness test
+    query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr"
+    translation:
+      - {'$array': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
+    result:
+      - {'arr': {'a': 1}}
+      - {'arr': {'a': 2}}
+      - {'arr': {'a': 3}}
