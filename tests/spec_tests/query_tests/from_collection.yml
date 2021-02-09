@@ -12,20 +12,26 @@ tests:
   - description: reference collection in current db by fully qualified name
     current_db: mydb
     query: "SELECT * FROM mydb.foo AS foo"
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
     result:
-      - {'_id': 0, 'a': 1}
+      - {'foo': {'_id': 0, 'a': 1}}
 
   - description: reference collection in current db by unqualified name
     current_db: mydb
     query: "SELECT * FROM foo AS foo"
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
     result:
-      - {'_id': 0, 'a': 1}
+      - {'foo': {'_id': 0, 'a': 1}}
 
   - description: reference collection in other db by fully qualified name
     current_db: mydb
     query: "SELECT * FROM otherdb.foo AS foo"
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
     result:
-      - {'_id': 0, 'b': 1}
+      - {'foo': {'_id': 0, 'b': 1}}
 
   - description: collection references may have at most two parts
     query: "SELECT * FROM a.b.c"
