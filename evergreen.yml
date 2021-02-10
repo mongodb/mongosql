@@ -157,6 +157,7 @@ buildvariants:
     tasks:
       - name: clippy
       - name: rustfmt
+      - name: release
 
   - name: ubuntu1804
     display_name: "Ubuntu 18.04"
