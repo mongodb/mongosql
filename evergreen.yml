@@ -115,6 +115,13 @@ functions:
         permissions: public-read
         content_type: application/octet-stream
 
+  "release library":
+    - command: shell.exec
+      params:
+        shell: bash
+        script: |
+            echo "hello world"
+
 pre:
   - func: "fetch source"
   - func: "install rust toolchain"
@@ -136,6 +143,11 @@ tasks:
     commands:
       - func: "compile release"
       - func: "upload c library"
+
+  - name: release
+    git_tag_only: true
+    commands:
+      - func: "release library"
 
 buildvariants:
 
