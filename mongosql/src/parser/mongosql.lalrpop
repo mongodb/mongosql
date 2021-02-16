@@ -3,9 +3,87 @@ use crate::parser::ast::*;
 grammar;
 
 pub Query: Query = {
-	SELECT => Query::Select,
+	<s:SelectQuery> => Query::Select(s),
+};
+
+SelectQuery: SelectQuery = {
+  <s:SelectClause> => SelectQuery{select_clause:s},
+};
+
+SelectClause: SelectClause = {
+  SELECT <q:SetQuantifier?> <b:SelectBody> => SelectClause{set_quantifier:q.unwrap_or(SetQuantifier::All), body:b},
 }
 
+SetQuantifier: SetQuantifier = {
+  ALL => SetQuantifier::All,
+  DISTINCT => SetQuantifier::Distinct,
+};
+
+SelectBody: SelectBody = {
+  <e:Comma<SelectExpression>> => SelectBody::Standard(e),
+  VALUE <e:Comma<SelectValuesExpression>> => SelectBody::Values(e),
+};
+
+SelectValuesExpression: SelectValuesExpression = {
+  <e:Expression> => SelectValuesExpression::Expression(e),
+  <s:SubstarExpression> => SelectValuesExpression::Substar(s),
+}
+
+SelectExpression: SelectExpression = {
+  STAR => SelectExpression::Star,
+  <s:SubstarExpression> => SelectExpression::Substar(s),
+  <a:AliasedExpression> => SelectExpression::Aliased(a),
+};
+
+AliasedExpression: AliasedExpression = {
+  <e:Expression> <s:(AS? <SimpleIdentifier>)?> => AliasedExpression{expression:e, alias:s}
+};
+
+SubstarExpression: SubstarExpression = {
+  <i:SimpleIdentifier> DOT STAR => SubstarExpression{datasource: i}
+};
+
+Expression: Expression = {
+  <i:Identifier> => Expression::Identifier(i)
+};
+
+Identifier: Identifier = {
+  <s:SimpleIdentifier> => Identifier::Simple(s),
+  <c:CompoundIdentifier> => Identifier::Compound(c),
+};
+
+SimpleIdentifier: String = {
+  ID => <>.to_string()
+}
+
+CompoundIdentifier: Vec<String> = {
+  <s1:SimpleIdentifier> <s2:(DOT <SimpleIdentifier>)+> => {
+    let mut ids = vec![s1];
+    ids.extend(s2);
+    ids
+  }
+}
+
+Comma<T>: Vec<T> = {
+    <v:(<T> COMMA)*> <e:T?> => match e {
+        None => v,
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        }
+    }
+};
+
 match {
-	r"(?i)select" => SELECT,
+  r"(?i)select" => SELECT,
+	"." => DOT,
+	"," => COMMA,
+	"*" => STAR,
+	r"(?i)all" => ALL,
+	r"(?i)as" => AS,
+	r"(?i)distinct" => DISTINCT,
+	r"(?i)values?" => VALUE,
+} else {
+  r"[A-Za-z_][A-Za-z0-9_]*" => ID,
 }
