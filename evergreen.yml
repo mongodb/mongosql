@@ -33,10 +33,20 @@ functions:
         shell: bash
         working_dir: mongosql-rs
         script: |
+          export PATH="$PATH:$HOME/.cargo/bin"
+          export CARGO_NET_GIT_FETCH_WITH_CLI=true
+
+          export GOPATH="$HOME/go"
+          export GOROOT=/opt/golang/go1.15
+          export PATH="$GOROOT/bin:$PATH"
+
           cat <<EOT > expansions.yml
           prepare_shell: |
             set -o errexit
-            . ~/.cargo/env
+            export PATH="$PATH"
+            export CARGO_NET_GIT_FETCH_WITH_CLI="$CARGO_NET_GIT_FETCH_WITH_CLI"
+            export GOPATH="$GOPATH"
+            export GOROOT="$GOROOT"
           EOT
     - command: expansions.update
       params:
@@ -47,6 +57,8 @@ functions:
       params:
         shell: bash
         script: |
+          ${prepare_shell}
+
           # make sure to use msvc toolchain rather than gnu, which is
           # the default for cygwin
           if [ "Windows_NT" == "$OS" ]; then
@@ -64,13 +76,6 @@ functions:
                 ln -s /cygdrive/c/Users/$USER/.cargo/ ~/.cargo
           fi
 
-          # this file is not created by default on Windows
-          echo 'export PATH=$PATH:~/.cargo/bin' >> ~/.cargo/env
-
-          echo "export CARGO_NET_GIT_FETCH_WITH_CLI=true" >> ~/.cargo/env
-
-          . ~/.cargo/env
-
           # install nightly rustfmt
           rustup toolchain install nightly -c rustfmt
 
@@ -83,6 +88,16 @@ functions:
         script: |
           ${prepare_shell}
           cargo clippy --all-targets -- -D warnings
+
+  "check gofmt":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs/go
+        script: |
+          ${prepare_shell}
+          gofmt -s -d .
 
   "check rustfmt":
     - command: shell.exec
@@ -104,7 +119,27 @@ functions:
           ${prepare_shell}
           cargo build --release
 
-  "run tests":
+  "download c library":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
+        local_file: mongosql-rs/libmongosql.a
+        bucket: mciuploads
+
+  "run go tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs/go/mongosql
+        script: |
+          ${prepare_shell}
+          export LIBRARY_PATH="$(cd ../.. && pwd)"
+          go test -v | tee go-test-results.txt
+
+  "run rust tests":
     - command: shell.exec
       type: test
       params:
@@ -120,14 +155,19 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/libmongosql.a
-        remote_file: mongosql-rs/artifacts/${build_variant}/${task_id}/libmongosql.a
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
 
+  "upload go test results":
+    - command: gotest.parse_files
+      params:
+        files:
+          - mongosql-rs/go/mongosql/go-test-results.txt
+
 pre:
   - func: "fetch source"
-  - func: "install rust toolchain"
   - func: "generate expansions"
 
 post: []
@@ -136,20 +176,36 @@ tasks:
 
   - name: clippy
     commands:
+      - func: "install rust toolchain"
       - func: "check clippy"
 
   - name: rustfmt
     commands:
+      - func: "install rust toolchain"
       - func: "check rustfmt"
+
+  - name: gofmt
+    commands:
+      - func: "check gofmt"
 
   - name: compile
     commands:
+      - func: "install rust toolchain"
       - func: "compile release"
       - func: "upload c library"
 
-  - name: test
+  - name: test-rust
     commands:
-      - func: "run tests"
+      - func: "install rust toolchain"
+      - func: "run rust tests"
+
+  - name: test-go
+    depends_on:
+      - name: compile
+    commands:
+      - func: "download c library"
+      - func: "run go tests"
+      - func: "upload go test results"
 
 buildvariants:
 
@@ -159,10 +215,20 @@ buildvariants:
     tasks:
       - name: clippy
       - name: rustfmt
+      - name: gofmt
 
   - name: ubuntu1804
     display_name: "Ubuntu 18.04"
-    run_on: [ ubuntu1804-build ]
+    run_on: [ ubuntu1804-large ]
     tasks:
       - name: compile
-      - name: test
+      - name: test-rust
+      - name: test-go
+
+  - name: rhel76
+    display_name: "RHEL 7.6"
+    run_on: [ rhel76-large ]
+    tasks:
+      - name: compile
+      - name: test-rust
+      - name: test-go

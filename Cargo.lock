@@ -333,6 +333,7 @@ dependencies = [
  "lalrpop",
  "lalrpop-util",
  "regex",
+ "serde",
  "serde_json",
 ]
 
