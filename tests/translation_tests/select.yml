@@ -1,0 +1,85 @@
+catalog_environment:
+  mydb:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': {'c': 2}}
+      - {'_id': 1, 'a': 2, 'b': {'c': 3}}
+    bar:
+      - {'_id': 0, 'a': 10}
+    baz:
+      - {'_id': 0, 'a': 100}
+
+tests:
+  - description: select values substar expr for each FROM datasource
+    current_db: mydb
+    query: "SELECT VALUES t1.*, t2.*, t3.* FROM foo AS t1, bar AS t2, baz AS t3"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'TODO': 'SQL-150: joins'}
+      - {'$project': {'_id': 0, 't1': '$t1', 't2': '$t2', 't3': '$t3'}}
+    result:
+      - {'t1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
+      - {'t1': {'_id': 1, 'a': 2, 'b': {'c': 3}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
+
+  - description: select values substar exprs for subset of FROM datasources
+    current_db: mydb
+    query: "SELECT VALUES t1.*, t3.* FROM foo AS t1, bar AS t2, baz AS t3"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'TODO': 'SQL-150: joins'}
+      - {'$project': {'_id': 0, 't1': '$t1', 't3': '$t3'}}
+    result:
+      - {'t1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't3': {'_id': 0, 'a': 100}}
+      - {'t1': {'_id': 1, 'a': 2, 'b': {'c': 3}}, 't3': {'_id': 0, 'a': 100}}
+
+  - description: select values non-literal document expr correctness test
+    current_db: mydb
+    query: "SELECT VALUE t1.b::!DOCUMENT FROM foo AS t1"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': '$t1.b'}}
+    result:
+      - {'__bot': {'c': 2}}
+      - {'__bot': {'c': 3}}
+
+  - description: select values mixed document expr and substar exprs with one substar expr for each FROM datasource
+    current_db: mydb
+    query: "SELECT VALUE {'a': t1.a}, t1.*, t2.*, t3.* FROM foo AS t1, bar AS t2, baz AS t3"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'TODO': 'SQL-150: joins'}
+      - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't1': '$t1', 't2': '$t2', 't3': '$t3'}}
+    result:
+      - {'__bot': {'a': 1}, 't1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
+      - {'__bot': {'a': 2}, 't1': {'_id': 1, 'a': 2, 'b': {'c': 3}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
+
+  - description: select values mixed document expr and substar exprs with substar exprs for subset of FROM datasources
+    current_db: mydb
+    query: "SELECT VALUE {'a': t1.a}, t3.* FROM foo AS t1, bar AS t2, baz AS t3"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'TODO': 'SQL-150: joins'}
+      - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't3': '$t3'}}
+    result:
+      - {'__bot': {'a': 1}, 't3': {'_id': 0, 'a': 100}}
+      - {'__bot': {'a': 2}, 't3': {'_id': 0, 'a': 100}}
+
+  - description: select values mixed document expr and substar expr with __bot name conflict
+    current_db: mydb
+    query: "SELECT VALUE {'a': a}, __bot.* FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] AS __bot"
+    translation_target_db: mydb
+    translation:
+      - {'$array': {'__bot': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]}}
+      - {'$project': {'_id': 0, '___bot': {'a': '$__bot.a'}, '__bot': '$__bot'}}
+    result:
+      - {'___bot': {'a': 1}, '__bot': {'a': 1, 'b': 2}}
+      - {'___bot': {'a': 3}, '__bot': {'a': 3, 'b': 4}}

@@ -1,62 +1,92 @@
 tests:
   - description: Undelimited identifier containing a . character is a compound identifier
-    query: "SELECT a.c FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]"
+    query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}] arr"
+    translation:
+      - {'$array': {'arr': [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]}}
+      - {'$project': {'_id': 0, '__bot': {'c': '$arr.a.c'}}}
     result:
-      - {"c": 1}
-      - {}
+      - {'__bot': {'c': 1}}
+      - {'__bot': {}}
 
   - description: Delimited identifier containing a . character includes the .
-    query: "SELECT `a.c` FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]"
+    query: "SELECT VALUE {'a.c': `a.c`} FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}] arr"
+    translation:
+      - {'$array': {'arr': [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]}}
+      - {'$project': {'_id': 0, '__bot': {'a.c': {'TODO': 'SQL-146: operators for accessing field names'}}}}
     result:
-      - {"a.c": 2}
-      - {"a.c": 4}
+      - {'__bot': {'a.c': 2}}
+      - {'__bot': {'a.c': 4}}
 
   - description: Undelimited identifier starting with digit is not parsed as an identifier
-    query: "SELECT 1a FROM [{'1a': 2}]"
+    query: "SELECT 1a FROM [{'1a': 2}] arr"
     error: "error: undelimited identifiers may not start with a digit"
 
   - description: Delimited identifier starting with digit is an identifier
-    query: "SELECT `1a` FROM [{'1a': 2}]"
+    query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
+    translation:
+      - {'$array': {'arr': [{'1a': 2}]}}
+      - {'$project': {'_id': 0, '__bot': {'1a': '$arr.1a'}}}
     result:
-      - {"1a": 2}
+      - {'__bot': {'1a': 2}}
 
   - description: Backtick delimited identifiers containing delimiter characters
-    query: "SELECT `a``b`, `a\"b`, `a``\"b` FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}]"
+    query: "SELECT VALUE {'a`b': `a``b`, 'a\"b': `a\"b`, 'a`\"b': `a``\"b`} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
+    translation:
+      - {'$array': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
+      - {'$project': {'_id': 0, '__bot': {'a`b': '$arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
     result:
-      - {"a`b": 1, "a\"b": 2, "a`\"b": 3}
+      - {'__bot': {'a`b': 1, 'a\"b': 2, 'a`\"b': 3}}
 
   - description: Double quote delimited identifiers containing delimiter characters
-    query: "SELECT \"a`b\", \"a\"\"b\", \"a`\"\"b\" FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}]"
+    query: "SELECT VALUE {'a`b': \"a`b\", 'a\"b': \"a\"\"b\", 'a`\"b': \"a`\"\"b\"} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
+    translation:
+      - {'$array': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
+      - {'$project': {'_id': 0, '__bot': {'a`b': 'arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
     result:
-      - {"a`b": 1, "a\"b": 2, "a`\"b": 3}
+      - {'__bot': {'a`b': 1, 'a"b': 2, 'a`"b': 3}}
 
   - description: Regular and delimited identifiers
-    query: "SELECT a, `b` FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]"
+    query: "SELECT VALUE {'a': a, 'b': `b`} FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] arr"
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b'}}}
     result:
-      - {"a": 1, "b": 2}
-      - {"a": 3, "b": 4}
+      - {'__bot': {'a': 1, 'b': 2}}
+      - {'__bot': {'a': 3, 'b': 4}}
 
   - description: Identifier with non-ASCII characters
-    query: "SELECT αβγ FROM [{'αβγ': 1}]"
+    query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
+    translation:
+      - {'$array': {'arr': [{'αβγ': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'αβγ': '$arr.αβγ'}}}
     result:
-      - {"αβγ": 1}
+      - {'__bot': {'αβγ': 1}}
 
   - description: Compound identifier with > 3 parts
-    query: "SELECT a.b.c.d FROM [{'a': {'b': {'c': {'d': 1}}}}]"
+    query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
+    translation:
+      - {'$array': {'arr': [{'a': {'b': {'c': {'d': 1}}}}]}}
+      - {'$project': {'_id': 0, '__bot': {'d': '$arr.a.b.c.d'}}}
     result:
-      - {"d": 1}
+      - {'__bot': {'d': 1}}
 
   - description: Compound identifier with mixed delimited and undelimited components
-    query: "SELECT `a.b`.c FROM [{'a.b': {'c': 1}, 'a': {'b': {'c': 2}, 'b.c': 3}}]"
+    query: "SELECT VALUE {'c': `a.b`.c} FROM [{'a.b': {'c': 1}, 'a': {'b': {'c': 2}, 'b.c': 3}}] arr"
+    translation:
+      - {'$array': {'arr': [{'a.b': {'c': 1}, 'a': {'b': {'c': 2}, 'b.c': 3}}]}}
+      - {'$project': {'_id': 0, '__bot': {'c': {'TODO': 'SQL-146: operators for accessing field names'}}}}
     result:
-      - {"c": 1}
+      - {'__bot': {'c': 1}}
 
   - description: Case-sensitive identifiers
-    query: "SELECT a, A FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]"
+    query: "SELECT VALUE {'a': a, 'A': A} FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}] arr"
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'A': '$arr.A'}}}
     result:
-      - {"a": 1, "A": 2}
-      - {"a": 3}
-      - {"A": 4}
+      - {'__bot': {'a': 1, 'A': 2}}
+      - {'__bot': {'a': 3}}
+      - {'__bot': {'A': 4}}
 
   - description: Identifiers cannot contain null character (hex)
     query: "SELECT a\x00b FROM foo"

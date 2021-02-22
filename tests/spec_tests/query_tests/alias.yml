@@ -1,29 +1,28 @@
 catalog_environment:
-    {
-        'db': {
-            'foo': [
-                {'a': 1, 'b': 2}
-            ]
-        }
-    }
+  db:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': 2}
 
 tests:
   - description: Cannot use duplicate implicit aliases for fields
-    query: "SELECT a, a FROM [{'a': 1}]"
+    query: "SELECT a, a FROM [{'a': 1}] arr"
     error: "error: alias 'a' used two times"
 
   - description: Cannot use duplicate explicit aliases for fields
-    query: "SELECT a AS alias, a AS alias FROM [{'a': 1}]"
+    query: "SELECT a AS alias, a AS alias FROM [{'a': 1}] arr"
     error: "error: alias 'alias' used two times"
 
   - description: Cannot use duplicate generated aliases for fields
-    query: "SELECT a AS _2, a+1 FROM [{'a': 1}]"
+    query: "SELECT a AS _2, a+1 FROM [{'a': 1}] arr"
     error: "error: alias '_2' used two times"
 
   - description: Can use different aliases for same field
-    query: "SELECT a AS a1, a AS a2 FROM [{'a': 1}]"
+    query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
+    translation:
+      - {'$array': {'arr': [{'a': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'a1': '$arr.a', 'a2': '$arr.a'}}}
     result:
-      - {"a1": 1, "a2": 1}
+      - {'__bot': {'a1': 1, 'a2': 1}}
 
   - description: Cannot use duplicate implicit aliases for collections
     query: "SELECT * FROM foo, foo"
@@ -33,23 +32,22 @@ tests:
     query: "SELECT * FROM foo AS alias, foo AS alias"
     error: "error: alias 'alias' used two times"
 
-  - description: Cannot use duplicate generated aliases for FROM arrays
-    query: "SELECT * FROM [{'a': 1}], [{'b': 2}] AS _2"
-    error: "error: alias '_2' used two times"
-
   - description: Can use different alias for same collection
     current_db: db
     query: "SELECT * FROM foo AS foo1, foo AS foo2"
+    translation_target_db: db
+    translation_target_coll: foo
+    translation:
+      - {'TODO': 'SQL-150'}
     result:
       - {"foo1": {"a": 1, "b": 2}, "foo2": {"a": 1, "b": 2}}
 
   - description: Can use duplicate aliases on both sides of UNION
+    current_db: db
     query: "SELECT a, b AS c FROM foo AS foo UNION SELECT a, b AS c FROM foo AS foo"
+    translation_target_db: db
+    translation_target_coll: foo
+    translation:
+      - {'TODO': 'SQL-151'}
     result:
       - {"a": 1, "c": 2}
-
-  - description: Can use duplicate aliases on both sides of UNION JOIN
-    query: "SELECT * FROM foo AS foo UNION ALL JOIN foo AS foo"
-    result:
-      - {"a": 1, "b": 2}
-      - {"a": 1, "b": 2}

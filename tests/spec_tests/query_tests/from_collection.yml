@@ -1,17 +1,17 @@
 catalog_environment:
-  {
-    'mydb': {
-      'foo': [{'_id': 0, 'a': 1}],
-    },
-    'otherdb': {
-      'foo': [{'_id': 0, 'b': 1}],
-    },
-  }
+  mydb:
+    foo:
+      - {'_id': 0, 'a': 1}
+  otherdb:
+    foo:
+      - {'_id': 0, 'b': 1}
 
 tests:
   - description: reference collection in current db by fully qualified name
     current_db: mydb
     query: "SELECT * FROM mydb.foo AS foo"
+    translation_target_db: mydb
+    translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
     result:
@@ -20,6 +20,8 @@ tests:
   - description: reference collection in current db by unqualified name
     current_db: mydb
     query: "SELECT * FROM foo AS foo"
+    translation_target_db: mydb
+    translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
     result:
@@ -28,6 +30,8 @@ tests:
   - description: reference collection in other db by fully qualified name
     current_db: mydb
     query: "SELECT * FROM otherdb.foo AS foo"
+    translation_target_db: otherdb
+    translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
     result:
