@@ -18,21 +18,16 @@ The only uncompleted ticket in the release should be the release ticket.
 If there are any remaining tickets that will not be included in this release, remove the fixVersion and assign them a new one if appropriate.
 Close the release on JIRA, adding the current date.
 
-### File Downstream Tickets
-File downstream tickets for the release, all of which should depend on the release JIRA ticket.
+### Update Release Ticket
 
-Two CLOUDP tickets:
-- "Release BI Connector 2.14.X to CM/OM" with a component of "BI Connector" and assigned team of "Automation"
-- "Release BI Connector 2.14.X to Atlas" with a component of "BI Connector" and assigned team of "Atlas Triage"
-
-And one DOCSP ticket:
-- "BI Connector 2.14.X Release Notes", with a component of "BI Connector" and a link to the release notes.
+Add a link to the release notes into the release ticket.
+Mark the release ticket as "Docs Changes Needed".
 
 ### Send Slack Notifications
 Inform stakeholders that a release is about to occur by sending slack messages in the following channels:
 - `#enterprise-tools`
-- `#connectors-mgmt` (include links to the CLOUDP tickets)
-- `#docs-bic` (include a link to the DOCSP ticket)
+- `#connectors-mgmt`
+- `#docs-bic`
 
 ## Releasing
 
@@ -72,3 +67,6 @@ Send a release announcement email to the [biconnector-announcements](https://gro
 
 ### Close Release Ticket
 Move the JIRA ticket tracking this release to the "Closed" state.
+
+### Ensure Downstream Tickets Created
+Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects and linked to the release ticket.
