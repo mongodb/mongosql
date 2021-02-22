@@ -1,45 +1,72 @@
 tests:
   - description: Null literal
-    query: "SELECT null, NULL, nUlL"
+    query: "SELECT VALUE {'_1': null, '_2': NULL, '_3': nUlL} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': null}, '_2': {'$literal': null}, '_3': {'$literal': null}}}}
     result:
-      - {"_1": null, "_2": null, "_3": null}
+      - {'__bot': {'_1': null, '_2': null, '_3': null}}
 
   - description: Boolean literals
-    query: "SELECT true, TRUE, TruE, false, FALSE, fAlSe"
+    query: "SELECT VALUE {'_1': true, '_2': TRUE, '_3': TruE, '_4': false, '_5': FALSE, '_6': fAlSe} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': true}, '_2': {'$literal': true}, '_3': {'$literal': true}, '_4': {'$literal': false}, '_5': {'$literal': false}, '_6': {'$literal': false}}}}
     result:
-      - {"_1": true, "_2": true, "_3": true, "_4": false, "_5": false, "_6": false}
+      - {'__bot': {'_1': true, '_2': true, '_3': true, '_4': false, '_5': false, '_6': false}}
 
   - description: String literals
-    query: "SELECT '', 'abc', 'αβγ'"
+    query: "SELECT VALUE {'_1': '', '_2': 'abc', '_3': 'αβγ'} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': ''}, '_2': {'$literal': 'abc'}, '_3': {'$literal': 'αβγ'}}}}
     result:
-      - {"_1": '', "_2": 'abc', "_3": 'αβγ'}
+      - {'__bot': {'_1': '', '_2': 'abc', '_3': 'αβγ'}}
 
   - description: Unsigned integer literals
-    query: "SELECT 0, 1, 10, 11, 567"
+    query: "SELECT VALUE {'_1': 0, '_2': 1, '_3': 10, '_4': 11, '_5': 567} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 1}, '_3': {'$literal': 10}, '_4': {'$literal': 11}, '_5': {'$literal': 567}}}}
     result:
-      - {"_1": 0, "_2": 1, "_3": 10, "_4": 11, "_5": 567}
+      - {'__bot': {'_1': 0, '_2': 1, '_3': 10, '_4': 11, '_5': 567}}
 
   - description: Signed integer literals
-    query: "SELECT -0, +0, -1, +1, -10, +10, -789, +789"
+    query: "SELECT VALUE {'_1': -0, '_2': +0, '_3': -1, '_4': +1, '_5': -10, '_6': +10, '_7': -789, '_8': +789} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 0}, '_3': {'$literal': -1}, '_4': {'$literal': 1}, '_5': {'$literal': -10}, '_6': {'$literal': 10}, '_7': {'$literal': -789}, '_8': {'$literal': 789}}}}
     result:
-      - {"_1": 0, "_2": 0, "_3": -1, "_4": 1, "_5": -10, "_6": 10, "_7": -789, "_8": 789}
+      - {'__bot': {'_1': 0, '_2': 0, '_3': -1, '_4': 1, '_5': -10, '_6': 10, '_7': -789, '_8': 789}}
 
   - description: Unsigned double literals (no exponent parts)
-    query: "SELECT 0., 1., 0.123, 2.0, 3.4, 50.607, .1"
+    query: "SELECT VALUE {'_1': 0., '_2': 1., '_3': 0.123, '_4': 2.0, '_5': 3.4, '_6': 50.607, '_7': .1} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 1}, '_3': {'$literal': 0.123}, '_4': {'$literal': 2.0}, '_5': {'$literal': 3.4}, '_6': {'$literal': 50.607}, '_7': {'$literal': 0.1}}}}
     result:
-      - {"_1": 0, "_2": 1, "_3": 0.123, "_4": 2.0, "_5": 3.4, "_6": 50.607, "_7": 0.1}
+      - {'__bot': {'_1': 0, '_2': 1, '_3': 0.123, '_4': 2.0, '_5': 3.4, '_6': 50.607, '_7': 0.1}}
 
   - description: Unsigned double literals (exponent parts)
-    query: "SELECT 1e2, 2E3, 3.0e4, 4.567E22, 8.e23, 9.E2, .1e3, .2E3, 5e000, 10E00"
+    query: "SELECT VALUE {'_1': 1e2, '_2': 2E3, '_3': 3.0e4, '_4': 4.567E22, '_5': 8.e23, '_6': 9.E2, '_7': .1e3, '_8': .2E3, '_9': 5e000, '_10': 10E00} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 100}, '_2': {'$literal': 2000}, '_3': {'$literal': 30000}, '_4': {'$literal': 4.567e+22}, '_5': {'$literal': 8e+23}, '_6': {'$literal': 900}, '_7': {'$literal': 100}, '_8': {'$literal': 200}, '_9': {'$literal': 5}, '_10': {'$literal': 10}}}}
     result:
-      - {"_1": 100, "_2": 2000, "_3": 30000, "_4": 4.567e+22, "_5": 8e+23, "_6": 900, "_7": 100, "_8": 200, "_9": 5, "_10": 10}
+      - {'__bot': {'_1': 100, '_2': 2000, '_3': 30000, '_4': 4.567e+22, '_5': 8e+23, '_6': 900, '_7': 100, '_8': 200, '_9': 5, '_10': 10}}
 
   - description: Signed double literals (no exponent parts)
-    query: "SELECT -0., +0., -1., +1., -0.123, +0.123, -2.0, +2.0, -3.4, +3.4, -50.607, +50.607, -.1, +.1"
+    query: "SELECT VALUE {'_1': -0., '_2':` +0., '_2':` -1., '_2':` +1., '_2':` -0.123, '_2':` +0.123, '_2':` -2.0, '_2':` +2.0, '_2':` -3.4, '_2':` +3.4, '_2':` -50.607, '_2':` +50.607, '_2':` -.1, '_2':` +.1} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 0}, '_3': {'$literal': -1}, '_4': {'$literal': 1}, '_5': {'$literal': -0.123}, '_6': {'$literal': 0.123}, '_7': {'$literal': -2.0}, '_8': {'$literal': 2.0}, '_9': {'$literal': -3.4}, '_10': {'$literal': 3.4}, '_11': {'$literal': -50.607}, '_12': {'$literal': 50.607}, '_13': {'$literal': -.1}, '_14': {'$literal': .1}}}}
     result:
-      - {"_1": 0, "_2": 0., "_3": -1., "_4": 1., "_5": -0.123, "_6": 0.123, "_7": -2.0, "_8": 2.0, "_9": -3.4, "_10": 3.4, "_11": -50.607, "_12": 50.607, "_13": -.1, "_14": .1}
+      - {'__bot': {'_1': 0, '_2': 0, '_3': -1, '_4': 1, '_5': -0.123, '_6': 0.123, '_7': -2.0, '_8': 2.0, '_9': -3.4, '_10': 3.4, '_11': -50.607, '_12': 50.607, '_13': -.1, '_14': .1}}
 
   - description: Signed double literals (exponent parts)
-    query: "SELECT -1e-2, -3.0e+4, -4.567e22, +8.e-23, +.1e+3, +5e00"
+    query: "SELECT VALUE {'_1': -1e-2, '_2': -3.0e+4, '_3': -4.567e22, '_4': +8.e-23, '_5' +.1e+3, '_6': +5e00} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': -.01}, '_2': {'$literal': -30000}, '_3': {'$literal': -4.567e+22}, '_4': {'$literal': 8e-23}, '_5': {'$literal': 100}, '_6': {'$literal': 5}}}}
     result:
-      - {"_1": -.01, "_2": -30000, "_3": -4.567e+22, "_4": 8e-23, "_5": 100, "_6": 5}
+      - {'__bot': {'_1': -.01, '_2': -30000, '_3': -4.567e+22, '_4': 8e-23, '_5': 100, '_6': 5}}

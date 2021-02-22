@@ -1,15 +1,7 @@
 catalog_environment:
-  {
-    'foo': {
-      'bar': [
-        {
-          'arr': [1, 2, 3],
-          'd': 2.3,
-          'i': 2
-        }
-      ]
-    }
-  }
+  foo:
+    bar:
+      - {'_id': 0, 'arr': [1, 2, 3], 'd': 2.3, 'i': 2}
 
 schema_environment:
   {
@@ -32,59 +24,105 @@ schema_environment:
 
 tests:
   - description: SELECT empty array literal
-    query: "SELECT []"
+    query: "SELECT VALUE {'_1': []} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': []}}}}
     result:
-      - {"_1": []}
+      - {'__bot': {'_1': []}}
 
   - description: SELECT non-empty array literal
-    query: "SELECT [1, true, 'yes', {'a': 'b'}, [1.0, false]]"
+    query: "SELECT VALUE {'_1': [1, true, 'yes', {'a': 'b'}, [1.0, false]]} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': [1, true, 'yes', {'a': 'b'}, [1.0, false]]}}}}
     result:
-      - {"_1": [1, true, 'yes', {'a': 'b'}, [1.0, false]]}
+      - {'__bot': {'_1': [1, true, 'yes', {'a': 'b'}, [1.0, false]]}}
 
   - description: Array index access - zero and positive indexes
     current_db: foo
-    query: "SELECT arr[0] AS a, arr[1] AS b, arr[2] AS c FROM bar"
+    query: "SELECT VALUE {'a': arr[0], 'b': arr[1], 'c': arr[2]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}, 'b': {'TODO': 'SQL-146: operators'}, 'c': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {"a": 1, "b": 2, "c": 3}
+      - {'__bot': {'a': 1, 'b': 2, 'c': 3}}
 
   - description: Array index access - negative indexes
     current_db: foo
-    query: "SELECT arr[-1] AS a, arr[-2] AS b, arr[-3] AS c FROM bar"
+    query: "SELECT VALUE {'a': arr[-1], 'b': arr[-2], 'c': arr[-3]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}, 'b': {'TODO': 'SQL-146: operators'}, 'c': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {"a": 3, "b": 2, "c": 1}
+      - {'__bot': {'a': 3, 'b': 2, 'c': 1}}
 
   - description: Array index access - positive index out of bounds (MISSING)
     current_db: foo
-    query: "SELECT arr[4] AS a FROM bar"
+    query: "SELECT VALUE {'a': arr[4]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {}
+      - {'__bot': {}}
 
   - description: Array index access - negative index out of bounds (MISSING)
     current_db: foo
-    query: "SELECT arr[-4] AS a FROM bar"
+    query: "SELECT VALUE {'a': arr[-4]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {}
+      - {'__bot': {}}
 
   - description: Array index access - null index
     current_db: foo
-    query: "SELECT arr[NULL] AS a FROM bar"
+    query: "SELECT VALUE {'a': arr[NULL]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {"a": null}
+      - {'__bot': {'a': null}}
 
   - description: Array index access - missing index
     current_db: foo
-    query: "SELECT x, arr[x] AS a FROM bar"
+    query: "SELECT VALUE {'x': x, 'a': arr[x]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'x': '$bar.x', 'a': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {"a": null}
+      - {'__bot': {'a': null}}
 
   - description: Array index access - column known to be integer
     current_db: foo
-    query: "SELECT arr, i, arr[i] AS a FROM bar"
+    query: "SELECT VALUE {'arr': arr, 'i': i, 'a': arr[i]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'arr': '$bar.arr', 'i': '$bar.i', 'a': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {"arr": [1, 2, 3], "i": 2, "a": 3}
+      - {'__bot': {'arr': [1, 2, 3], 'i': 2, 'a': 3}}
 
   - description: Array index access - column CAST to integer
     current_db: foo
-    query: "SELECT arr, d, arr[CAST(d AS INT)] AS a FROM bar"
+    query: "SELECT VALUE {'arr': arr, 'd': d, 'a': arr[CAST(d AS INT)]} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'arr': '$bar.arr', 'i': '$bar.i', 'a': {'TODO': 'SQL-146: operators'}}}}
     result:
-      - {"arr": [1, 2, 3], "d": 2.3, "a": 3}
+      - {'__bot': {'arr': [1, 2, 3], 'd': 2.3, 'a': 3}}
