@@ -685,9 +685,9 @@ func (v *pushdownVisitor) extractPreUnwindMatch(mr *mappingRegistry, expr SQLExp
 
 	combined := combineExpressions(partsToMove)
 
-	// We don't care about the remaining. We will still be placing a match after the unwind,
-	// so anything we can't do here gets handled there anyways.
-	matchBody, _, _ := t.TranslatePredicate(combined)
+	// We don't care about the remaining part which could only be translated to aggregation language and the remaining untranslated predicate.
+	// We will still be placing a match after the unwind, so anything we can't do here gets handled there anyways.
+	matchBody, _, _, _ := t.TranslatePredicate(combined)
 	if matchBody == nil {
 		// Nothing to do.
 		return nil, false
@@ -762,10 +762,18 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 		}
 
 		var matchBody ast.Expr
-		matchBody, localMatcher, _ = t.TranslatePredicate(filter.matcher)
-		if matchBody != nil {
+		var aggrBody *ast.AggExpr
+
+		matchBody, aggrBody, localMatcher, _ = t.TranslatePredicate(filter.matcher)
+		if matchBody != nil || aggrBody != nil {
 			pipeline.Stages = append(pipeline.Stages, t.subqueryLookupStages...)
+		}
+
+		if matchBody != nil {
 			pipeline.Stages = append(pipeline.Stages, ast.NewMatchStage(matchBody))
+		}
+		if aggrBody != nil {
+			pipeline.Stages = append(pipeline.Stages, ast.NewMatchStage(aggrBody))
 		}
 
 		if localMatcher != nil {
@@ -1976,7 +1984,7 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 		matcherValExpr, ok := join.matcher.(SQLValueExpr)
 		if !ok || matcherValExpr.Value.Value() != true {
 			// Build the foreign pipeline.
-			translated, _, pf := t.TranslatePredicate(join.matcher)
+			matchBody, aggrBody, _, pf := t.TranslatePredicate(join.matcher)
 			if pf != nil {
 				v.logger.Warnf(log.Dev, "unable to translate join criteria: %v", join.matcher)
 				v.addPushdownFailure(join, pf)
@@ -1984,7 +1992,12 @@ func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error
 			}
 
 			matchPipeline = append(matchPipeline, t.subqueryLookupStages...)
-			matchPipeline = append(matchPipeline, ast.NewMatchStage(translated))
+			if matchBody != nil {
+				matchPipeline = append(matchPipeline, ast.NewMatchStage(matchBody))
+			}
+			if aggrBody != nil {
+				matchPipeline = append(matchPipeline, ast.NewMatchStage(aggrBody))
+			}
 		}
 	}
 

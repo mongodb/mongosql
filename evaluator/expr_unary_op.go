@@ -132,7 +132,7 @@ func (not *SQLNotExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, 
 // ToMatchLanguage translates SQLNotExpr into something that can
 // be used in an match expression. If SQLNotExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLNotExpr.
+// a partial translation and the remaining SQLNotExpr.
 func (not *SQLNotExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	match, ex := t.ToMatchLanguage(not.expr)
 	if match == nil {

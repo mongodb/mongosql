@@ -125,7 +125,7 @@ func (e *MongoFilterExpr) String() string {
 // ToMatchLanguage translates MongoFilterExpr into something that can
 // be used in an match expression. If MongoFilterExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original MongoFilterExpr.
+// a partial translation and the remaining MongoFilterExpr.
 func (e *MongoFilterExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	return e.query, nil
 }
@@ -670,7 +670,7 @@ func (e SQLColumnExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, 
 // ToMatchLanguage translates SQLColumnExpr into something that can
 // be used in an match expression. If SQLColumnExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLColumnExpr.
+// a partial translation and the remaining SQLColumnExpr.
 func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	if e.correlated {
 		return nil, e
@@ -680,15 +680,23 @@ func (e SQLColumnExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr
 		return nil, e
 	}
 
-	if e.EvalType() != types.EvalBoolean {
-		return ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral), e
+	// We need special handling for Int and Bool value here because for other types when they are used as filter,
+	// they will be wrapped in $convert and converted to INT first.
+	if e.EvalType() == types.EvalInt32 || e.EvalType() == types.EvalInt64 ||
+		e.EvalType() == types.EvalUint32 || e.EvalType() == types.EvalUint64 {
+		return astutil.WrapInOp(bsonutil.OpAnd,
+			ast.NewBinary(bsonutil.OpNeq, ref, astutil.ZeroInt32Literal),
+			ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral),
+		), nil
+	} else if e.EvalType() == types.EvalBoolean {
+		return astutil.WrapInOp(bsonutil.OpAnd,
+			ast.NewBinary(bsonutil.OpNeq, ref, astutil.FalseLiteral),
+			ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral),
+			ast.NewBinary(bsonutil.OpNeq, ref, astutil.ZeroInt32Literal),
+		), nil
+	} else {
+		return ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral), nil
 	}
-
-	return astutil.WrapInOp(bsonutil.OpAnd,
-		ast.NewBinary(bsonutil.OpNeq, ref, astutil.FalseLiteral),
-		ast.NewBinary(bsonutil.OpNeq, ref, astutil.NullLiteral),
-		ast.NewBinary(bsonutil.OpNeq, ref, astutil.ZeroInt32Literal),
-	), nil
 }
 
 // EvalType returns the EvalType associated with SQLColumnExpr.
@@ -1367,7 +1375,7 @@ func (e *SQLLikeExpr) String() string {
 // ToMatchLanguage translates SQLLikeExpr into something that can
 // be used in an match expression. If SQLLikeExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLLikeExpr.
+// a partial translation and the remaining SQLLikeExpr.
 func (e *SQLLikeExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	// we cannot do a like comparison on an ObjectID in mongodb.
 	if c, ok := e.left.(SQLColumnExpr); ok &&
@@ -1687,7 +1695,7 @@ func (e *SQLRegexExpr) String() string {
 // ToMatchLanguage translates SQLRegexExpr into something that can
 // be used in an match expression. If SQLRegexExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLRegexExpr.
+// a partial translation and the remaining SQLRegexExpr.
 func (e *SQLRegexExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	ref, ok := t.getFieldRef(e.operand)
 	if !ok {

@@ -706,13 +706,24 @@ func translatePredicate(t *testing.T, version []uint8, sql string, sqlValueKind 
 	e, ok := n.(evaluator.SQLExpr)
 	req.True(ok, "node was not a SQLExpr")
 
-	match, local, _ := translator.TranslatePredicate(e)
+	match, aggr, localMatcher, _ := translator.TranslatePredicate(e)
 
-	if local == nil {
-		return parser.DeparseMatchExpr(match).String()
+	ret := ""
+	if localMatcher != nil {
+		return ""
 	}
 
-	return ""
+	if match != nil {
+		ret += parser.DeparseMatchExpr(match).String()
+	}
+	if aggr != nil {
+		if ret != "" {
+			ret += ","
+		}
+		ret += parser.DeparseMatchExpr(aggr).String()
+	}
+
+	return ret
 }
 
 func TestTranslatePartialPredicate(t *testing.T) {
@@ -755,7 +766,7 @@ func TestTranslatePartialPredicate(t *testing.T) {
 				)
 				req.Nilf(err, "could not get sql expr for %v", test.localDesc)
 
-				match, local, _ := translator.TranslatePredicate(e)
+				match, _, local, _ := translator.TranslatePredicate(e)
 				jsonResult := parser.DeparseMatchExpr(match).String()
 				req.Equalf(test.expected, jsonResult, "actual match expr did "+
 					"not match expected in %v", test.localDesc)
@@ -770,8 +781,8 @@ func TestTranslatePartialPredicate(t *testing.T) {
 	tests := []test{
 		// non-boolean types always exclude null
 		{
-			"0", "a", `{"a": {"$ne": null}}`, `a`,
-			testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
+			"0", "a", `{"$and": [{"a": {"$ne": {"$numberInt":"0"}}},{"a": {"$ne": null}}]}`, `a`,
+			nil,
 		},
 		{
 			"1", "a = 3 AND a < b", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",

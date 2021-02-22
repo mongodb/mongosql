@@ -450,7 +450,7 @@ func (and *SQLAndExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, P
 // ToMatchLanguage translates SQLAndExpr into something that can
 // be used in a match expression. If SQLAndExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLAndExpr.
+// a partial translation and the remaining SQLAndExpr.
 func (and *SQLAndExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	nonNilChildrenToMatch := make([]ast.Expr, 0, len(and.children))
 	nonNilExChildren := make([]SQLExpr, 0, len(and.children))
@@ -826,7 +826,7 @@ func (or *SQLOrExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, Pus
 // ToMatchLanguage translates SQLOrExpr into something that can
 // be used in an match expression. If SQLOrExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLOrExpr.
+// a partial translation and the remaining SQLOrExpr.
 func (or *SQLOrExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	childrenToMatch := make([]ast.Expr, 0, len(or.children))
 

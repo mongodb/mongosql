@@ -294,7 +294,7 @@ func (t *PushdownTranslator) ToAggregationPredicate(e SQLExpr) (ast.Expr, Pushdo
 // first return value will be the translated expression, and the second will be
 // nil. If the provided SQLExpr cannot be fully translated, the first return
 // value will be the partially translated expression, and the second will be the
-// original SQLExpr.
+// remaining SQLExpr.
 func (t *PushdownTranslator) ToMatchLanguage(e SQLExpr) (ast.Expr, SQLExpr) {
 	if predicate, ok := e.(translatableToMatch); ok {
 		return predicate.ToMatchLanguage(t)
@@ -328,11 +328,12 @@ func (t *PushdownTranslator) TranslateExpr(e SQLExpr) (ast.Expr, PushdownFailure
 }
 
 // TranslatePredicate translates predicates for use in $match. It first attempts to
-// translate the predicate to the match language. If this fails, it then attempts to
-// translate the predicate to the aggregation language for use with $expr. To do this, it
+// translate the predicate to the match language. If this fails or only partially translated, it then attempts to
+// translate the remaining predicate to the aggregation language for use with $expr. To do this, it
 // uses the ToAggregationPredicate function. It will also fail to translate the expr if
 // the resulting aggregation exceeds the maximum allowed nesting depth for BSON documents.
-func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (ast.Expr, SQLExpr, PushdownFailure) {
+// In this case, the partial predicate which cannot be translated will be returned.
+func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (ast.Expr, *ast.AggExpr, SQLExpr, PushdownFailure) {
 	var doc ast.Expr
 	var expr SQLExpr
 
@@ -342,7 +343,8 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (ast.Expr, SQLExpr, P
 		if doc != nil && expr == nil {
 			depth := ComputeDocNestingDepthWithMaxDepth(doc, MaxDepth)
 			if depth <= MaxDepth {
-				return doc, expr, nil
+				// Fully translated to match language
+				return doc, nil, nil, nil
 			}
 			t.Cfg.lg.Debugf(log.Dev,
 				"maximum predicate depth: %d exceeded, cannot pushdown, predicate was: %v",
@@ -359,13 +361,15 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (ast.Expr, SQLExpr, P
 	// If that fails and we're running on MongoDB 3.6+, try to translate the predicate to
 	// the aggregation language for use with $expr.
 	if expr != nil && t.versionAtLeast(3, 6, 0) {
-		agg, err := t.ToAggregationPredicate(e)
+		agg, err := t.ToAggregationPredicate(expr)
+		if err != nil {
+			return doc, nil, expr, err
+		}
+
 		depth := ComputeDocNestingDepthWithMaxDepth(agg, MaxDepth)
 		if depth <= MaxDepth {
-			if err == nil {
-				return ast.NewAggExpr(agg), nil, nil
-			}
-			return doc, expr, err
+			// Translated part to match language and remaining to aggregation predicate
+			return doc, ast.NewAggExpr(agg), nil, nil
 		}
 
 		t.Cfg.lg.Debugf(log.Dev,
@@ -378,10 +382,13 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (ast.Expr, SQLExpr, P
 			"depth", strconv.Itoa(MaxDepth),
 			"expression", fmt.Sprintf("%v", e),
 		)
-		return nil, expr, err
+
+		// Partially translated to match language and failed to translated the remaining to aggregation predicate due to max depth
+		return doc, nil, expr, err
 	}
 
-	return doc, expr, nil
+	// Partially translated to match language and the remaining cannot be translated to aggregation language
+	return doc, nil, expr, nil
 }
 
 func (t *PushdownTranslator) getFieldRef(e SQLExpr) (ast.Ref, bool) {

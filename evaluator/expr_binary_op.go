@@ -560,7 +560,7 @@ func (is *SQLIsExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, Pu
 // ToMatchLanguage translates SQLIsExpr into something that can
 // be used in an match expression. If SQLIsExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLIsExpr.
+// a partial translation and the remaining SQLIsExpr.
 func (is *SQLIsExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	ref, ok := t.getFieldRef(is.left)
 	if !ok {
@@ -838,7 +838,7 @@ func (comp *SQLComparisonExpr) ToAggregationPredicate(t *PushdownTranslator) (as
 // ToMatchLanguage translates SQLComparisonExpr into something that can
 // be used in an match expression. If SQLComparisonExpr can be fully translated,
 // it will return the translation and nil, otherwise it will return
-// a partial translation and the original SQLComparisonExpr.
+// a partial translation and the remaining SQLComparisonExpr.
 func (comp *SQLComparisonExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
 	if !t.Cfg.allowUUIDLiteralComparisons && isUUIDColumnAndLiteral(comp.left, comp.right) {
 		return nil, comp
