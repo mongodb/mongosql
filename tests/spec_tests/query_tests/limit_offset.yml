@@ -1,37 +1,35 @@
 catalog_environment:
-  {
-      'foo': {
-          'bar': [
-              {
-                  'a': 1
-              },
-              {
-                  'a': 2
-              },
-              {
-                  'a': 3
-              },
-          ],
-          'baz': [
-              {
-                  'a': 1
-              },
-              {
-                  'a': 2
-              },
-          ]
-      }
-  }
+  foo:
+    bar:
+      - {'_id': 0, 'a': 1}
+      - {'_id': 1, 'a': 2}
+      - {'_id': 2, 'a': 3}
+    baz:
+      - {'_id': 0, 'a': 1}
+      - {'_id': 1, 'a': 2}
+
 tests:
   - description: Simple select with limit clause
     current_db: foo
-    query: "SELECT * FROM bar ORDER BY a LIMIT 1"
+    query: "SELECT * FROM bar AS bar ORDER BY a LIMIT 1"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$sort': {'bar.a': 1}}
+      - {'$limit': 1}
     result:
       - {'bar': {'a': 1}}
 
   - description: Simple select with offset clause
     current_db: foo
-    query: "SELECT * FROM bar ORDER BY a OFFSET 1"
+    query: "SELECT * FROM bar AS bar ORDER BY a OFFSET 1"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$sort': {'bar.a': 1}}
+      - {'$skip': 1}
     result:
       - {'bar': {'a': 2}}
       - {'bar': {'a': 3}}
@@ -58,25 +56,47 @@ tests:
 
   - description: Select with limit + offset
     current_db: foo
-    query: "SELECT * FROM bar ORDER BY a LIMIT 1 OFFSET 1"
+    query: "SELECT * FROM bar AS bar ORDER BY a LIMIT 1 OFFSET 1"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$sort': {'bar.a': 1}}
+      - {'$skip': 1}
+      - {'$limit': 1}
     result:
       - {'bar': {'a': 2}}
 
   - description: Limit in subquery
     current_db: foo
-    query: "SELECT * FROM bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1)"
+    query: "SELECT * FROM bar AS bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'TODO': {'SQL-142': 'where clause', 'SQL-148': 'subquery exprs'}}
     result:
       - {'bar': {'a': 1}}
 
   - description: Offset in subquery
     current_db: foo
-    query: "SELECT * FROM bar WHERE a IN (SELECT a FROM baz ORDER BY a OFFSET 1)"
+    query: "SELECT * FROM bar AS bar WHERE a IN (SELECT a FROM baz ORDER BY a OFFSET 1)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'TODO': {'SQL-142': 'where clause', 'SQL-148': 'subquery exprs'}}
     result:
       - {'bar': {'a': 2}}
       - {'bar': {'a': 3}}
 
   - description: Limit + offset in subquery
     current_db: foo
-    query: "SELECT * FROM bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1 OFFSET 1)"
+    query: "SELECT * FROM bar AS bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1 OFFSET 1)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'TODO': {'SQL-142': 'where clause', 'SQL-148': 'subquery exprs'}}
     result:
       - {'bar': {'a': 2}}
