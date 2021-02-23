@@ -232,3 +232,11 @@ buildvariants:
       - name: compile
       - name: test-rust
       - name: test-go
+
+  - name: macos
+    display_name: "macOS 10.14"
+    run_on: [ macos-1014 ]
+    tasks:
+      - name: compile
+      - name: test-rust
+      - name: test-go
