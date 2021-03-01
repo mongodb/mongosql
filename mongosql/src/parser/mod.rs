@@ -1,5 +1,6 @@
 pub mod ast;
 mod lalrpop;
+mod util;
 
 #[cfg(test)]
 mod test;

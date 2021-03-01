@@ -1,4 +1,5 @@
 use crate::parser::ast::*;
+use crate::parser::util::*;
 
 grammar;
 
@@ -53,7 +54,9 @@ Identifier: Identifier = {
 };
 
 SimpleIdentifier: String = {
-  ID => <>.to_string()
+  ID => <>.to_string(),
+  DELIMITED_IDENT_QUOTE => process_delimited_ident(<>),
+  DELIMITED_IDENT_BACKTICK => process_delimited_ident(<>),
 }
 
 CompoundIdentifier: Vec<String> = {
@@ -86,4 +89,6 @@ match {
 	r"(?i)values?" => VALUE,
 } else {
   r"[A-Za-z_][A-Za-z0-9_]*" => ID,
+  r#""([^\x00"]|"")*""# => DELIMITED_IDENT_QUOTE,
+  r"`([^\x00`]|``)*`" => DELIMITED_IDENT_BACKTICK,
 }

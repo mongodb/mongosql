@@ -1,4 +1,5 @@
 use crate::parser;
+use crate::parser::ast::*;
 
 macro_rules! should_parse {
     ($func_name:ident, $should_parse:expr, $input:expr) => {
@@ -11,6 +12,15 @@ macro_rules! should_parse {
             } else {
                 assert!(res.is_err());
             }
+        }
+    };
+}
+
+macro_rules! validate_ast {
+    ($func_name:ident, $input:expr, $ast:expr) => {
+        #[test]
+        fn $func_name() {
+            assert_eq!(parser::parse($input).unwrap(), $ast)
         }
     };
 }
@@ -48,6 +58,20 @@ should_parse!(
 );
 should_parse!(select_long_compound, true, "SELECT a.b.c.d");
 should_parse!(select_letter_number_ident, true, "SELECT a9");
+should_parse!(select_delimited_ident_quotes, true, r#"SELECT "foo""#);
+should_parse!(select_delimited_ident_backticks, true, "SELECT `foo`");
+should_parse!(select_delimited_quote_empty, true, r#"SELECT """#);
+should_parse!(select_delimited_backtick_empty, true, "SELECT ``");
+should_parse!(
+    select_delimited_escaped_quote,
+    true,
+    r#"SELECT "fo""o""""""#
+);
+should_parse!(
+    select_delimited_escaped_backtick,
+    true,
+    "SELECT `f``oo`````"
+);
 
 should_parse!(use_stmt, false, "use foo");
 should_parse!(select_compound_star, false, "SELECT a.b.c.*");
@@ -56,3 +80,123 @@ should_parse!(select_value_star, false, "SELECT VALUE *");
 should_parse!(select_value_alias, false, "SELECT VALUE foo AS f");
 should_parse!(select_dangling_alias, false, "SELECT a.b AS");
 should_parse!(select_compound_alias, false, "SELECT a AS b.c");
+
+should_parse!(
+    select_delimited_extra_quote_outer,
+    false,
+    r#"SELECT ""foo"""#
+);
+should_parse!(
+    select_delimited_extra_backtick_outer,
+    false,
+    "SELECT ``foo``"
+);
+should_parse!(
+    select_delimited_escaped_quote_odd,
+    false,
+    r#"SELECT "f"oo"""#
+);
+should_parse!(
+    select_delimited_escaped_backtick_odd,
+    false,
+    "SELECT `foo````"
+);
+should_parse!(
+    select_delimited_backslash_escape,
+    false,
+    r#"SELECT "fo\"\"o""#
+);
+should_parse!(select_unescaped_quotes_in_ident, false, r#"SELECT fo""o"#);
+should_parse!(select_unescaped_backticks_in_ident, false, "SELECT fo``o");
+
+validate_ast!(
+    ident,
+    "SELECT foo",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
+                alias: None
+            })])
+        }
+    })
+);
+validate_ast!(
+    delimited_quote,
+    r#"SELECT "foo""#,
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
+                alias: None
+            })])
+        }
+    })
+);
+validate_ast!(
+    delimited_backtick,
+    "select `foo`",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
+                alias: None
+            })])
+        }
+    })
+);
+validate_ast!(
+    delimited_escaped_backtick,
+    "SELECT `fo``o`````",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                expression: Expression::Identifier(Identifier::Simple("fo`o``".to_string())),
+                alias: None
+            })])
+        }
+    })
+);
+validate_ast!(
+    delimited_escaped_quote,
+    r#"SELECT "fo""o""""""#,
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                expression: Expression::Identifier(Identifier::Simple(r#"fo"o"""#.to_string())),
+                alias: None
+            })])
+        }
+    })
+);
+validate_ast!(
+    backtick_delimiter_escaped_quote,
+    r#"SELECT `fo""o`"#,
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                expression: Expression::Identifier(Identifier::Simple(r#"fo""o"#.to_string())),
+                alias: None
+            })])
+        }
+    })
+);
+validate_ast!(
+    quote_delimiter_escaped_backtick,
+    r#"SELECT "fo``o""#,
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                expression: Expression::Identifier(Identifier::Simple("fo``o".to_string())),
+                alias: None
+            })])
+        }
+    })
+);
