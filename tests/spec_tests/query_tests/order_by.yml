@@ -1,27 +1,46 @@
 catalog_environment:
-  {
-    'mydb': {
-      'foo': [
-        {'a': 1, 'b': 'def'},
-        {'a': 2, 'b': 'abc'},
-        {'a': 1, 'b': 'abc'},
-      ],
-      'nullAndMissing': [
-        {'a': null},
-        {},
-        {'a': null},
-      ],
-      'nullAndNonNull': [
-        {'a': null},
-        {'a': 1},
-        {'a': null},
-      ],
-    },
-  }
+  mydb:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': 'def'}
+      - {'_id': 1, 'a': 2, 'b': 'abc'}
+      - {'_id': 2, 'a': 1, 'b': 'abc'}
+    bar:
+      - {'_id': 0, 'a': 3, 'b': {'c': 1}}
+      - {'_id': 1, 'a': 2, 'b': {'c': 3}}
+      - {'_id': 2, 'a': 1, 'b': {'c': 2}}
+    nullAndMissing:
+      - {'_id': 0, 'a': null}
+      - {'_id': 1}
+      - {'_id': 2, 'a': null}
+    nullAndNonNull:
+      - {'_id': 0, 'a': null}
+      - {'_id': 1, 'a': 1}
+      - {'_id': 2, 'a': null}
 
 schema_environment:
   {
     'mydb': {
+      'bar': {
+        '$jsonSchema': {
+          'bsonType': 'object',
+          'properties': {
+            '_id': {
+              'bsonType': 'int'
+            },
+            'a': {
+              'bsonType': 'int'
+            },
+            'b': {
+              'bsonType': 'object',
+              'properties': {
+                'c': {
+                  'bsonType': 'int'
+                }
+              }
+            },
+          }
+        }
+      },
       'nullAndMissing': {
         '$jsonSchema': {
           'bsonType': "object",
@@ -39,56 +58,141 @@ tests:
 
   - description: ascending-sort correctness test
     current_db: mydb
-    query: "SELECT VALUE {'a': a::!INT} FROM foo ORDER BY a ASC"
+    query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a ASC"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
+      - {'$sort': {'__bot.a': 1}}
     result:
-      - {'a': 1}
-      - {'a': 1}
-      - {'a': 2}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 2}}
 
   - description: descending-sort correctness test
     current_db: mydb
-    query: "SELECT VALUE {'a': a::!INT} FROM foo ORDER BY a DESC"
+    query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a DESC"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
+      - {'$sort': {'__bot.a': -1}}
     result:
-      - {'a': 2}
-      - {'a': 1}
-      - {'a': 1}
+      - {'__bot': {'a': 2}}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 1}}
 
   - description: multiple-sort-key correctness test
     current_db: mydb
-    query: "SELECT VALUE {'a': a::!INT, 'b': b::!STRING} FROM foo ORDER BY a ASC, b ASC"
+    query: "SELECT VALUE {'a': a::!INT, 'b': b::!STRING} FROM foo AS foo ORDER BY a ASC, b ASC"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a', 'b': '$foo.b'}}}
+      - {'$sort': {'__bot.a': 1, '__bot.b': 1}}
     result:
-      - {'a': 1, 'b': 'abc'}
-      - {'a': 1, 'b': 'def'}
-      - {'a': 2, 'b': 'abc'}
+      - {'__bot': {'a': 1, 'b': 'abc'}}
+      - {'__bot': {'a': 1, 'b': 'def'}}
+      - {'__bot': {'a': 2, 'b': 'abc'}}
 
   - description: missing sorts before null
     current_db: mydb
-    query: "SELECT * FROM nullAndMissing ORDER BY a ASC"
+    query: "SELECT * FROM nullAndMissing AS nullAndMissing ORDER BY a ASC"
+    translation_target_db: mydb
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$sort': {'nullAndMissing.a': 1}}
     result:
-      - {}
-      - {'a': null}
-      - {'a': null}
+      - {'nullAndMissing': {}}
+      - {'nullAndMissing': {'a': null}}
+      - {'nullAndMissing': {'a': null}}
 
   - description: null sorts before non-null values
     current_db: mydb
-    query: "SELECT {'a': a::!INT} FROM nullAndNonNull ORDER BY a ASC"
+    query: "SELECT {'a': a::!INT} FROM nullAndNonNull AS nullAndNonNull ORDER BY a ASC"
+    translation_target_db: mydb
+    translation_target_coll: nullAndNonNull
+    translation:
+      - {'$project': {'_id': 0, 'nullAndNonNull': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndNonNull.a'}}}
+      - {'$sort': {'__bot.a': 1}}
     result:
-      - {'a': null}
-      - {'a': null}
-      - {'a': 1}
+      - {'__bot': {'a': null}}
+      - {'__bot': {'a': null}}
+      - {'__bot': {'a': 1}}
 
   - description: sort keys must be mutually comparable types
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY a ASC"
     error: "sort keys must be mutually comparable types"
 
-  - description: column references in sort keys can be qualified with table name
+  - description: column references in sort keys can be qualified with table name after select star
     current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM nullAndMissing n ORDER BY n.a ASC"
+    query: "SELECT * FROM bar AS bar ORDER BY bar.a ASC"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$sort': {'bar.a': 1}}
     result:
-      - {}
-      - {'a': null}
-      - {'a': null}
+      - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
+      - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
+      - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}
+
+  - description: column references in sort keys can be qualified with table name after select substar
+    current_db: mydb
+    query: "SELECT VALUE bar.* FROM bar AS bar ORDER BY bar.a ASC"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$sort': {'bar.a': 1}}
+    result:
+      - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
+      - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
+      - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}
+
+  - description: column references in sort keys can be compound identifiers referencing document subfields
+    current_db: mydb
+    query: "SELECT VALUE {'b': b} FROM bar AS bar ORDER BY b.c ASC"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'b': '$bar.b'}}}
+      - {'$sort': {'__bot.b.c': 1}}
+    result:
+      - {'__bot': {'b': {'c': 1}}}
+      - {'__bot': {'b': {'c': 2}}}
+      - {'__bot': {'b': {'c': 3}}}
+
+  - description: column references in sort keys can be compound identifiers referencing document subfields and be qualified with table name
+    current_db: mydb
+    query: "SELECT * FROM bar AS bar ORDER BY bar.b.c ASC"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$sort': {'bar.b.c': 1}}
+    result:
+      - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}
+      - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
+      - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
+
+  - description: ordering by ambiguous column reference is an error
+    current_db: mydb
+    query: "SELECT VALUES {'a': a}, bar.* FROM bar AS bar ORDER BY a ASC"
+    error: "ambiguous sort key 'a'"
+
+  - description: ordering by qualified column reference is an error if qualifier is not in scope
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM nullAndMissing AS n ORDER BY n.a ASC"
+    error: "unknown datasource 'n' in sort key 'n.a'"
 
   - description: ordering by a non-integer constant expression is an error
     current_db: mydb
