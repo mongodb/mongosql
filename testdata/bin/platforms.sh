@@ -4,6 +4,8 @@ if [ "$VARIANT" != "" ]; then
     ARCHIVE_FORMAT='tgz'
     JAVA_HOME='/opt/java/jdk8'
     GOROOT='/opt/golang/go1.15'
+    BUILD_GSSAPI='true'
+    BUILD_FIPS='true'
 fi
 
 ARCHIVE_CONTENT_TYPE='x-gzip'
@@ -13,222 +15,159 @@ case $VARIANT in
 amazon)
     PUSH_ARCH='x86_64-amzn64'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
     ;;
 amazon2)
     PUSH_ARCH='x86_64-amazon2'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
 amazon2-arm64)
     PUSH_ARCH='arm64-amazon2'
     PUSH_NAME='linux'
     MONGO_ARCH='aarch64'
-    BUILD_GSSAPI='true'
-    BUILD_FIPS='true'
     ;;
 centos6-perf)
     PUSH_ARCH='x86_64-centos6'
     PUSH_NAME='linux'
-	MONGO_DISTRO='rhel62'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
+    MONGO_DISTRO='rhel62'
     ;;
 debian81)
     PUSH_ARCH='x86_64-debian81'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
     ;;
 debian92)
     PUSH_ARCH='x86_64-debian92'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
     ;;
 debian10)
     PUSH_ARCH='x86_64-debian10'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
     ;;
 macos)
     ARCHIVE_FORMAT='zip'
     PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'
-	MONGO_DISTRO='osx'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    MONGO_DISTRO='osx'
+    BUILD_FIPS='false'
     ;;
 rhel62)
     PUSH_ARCH='x86_64-rhel62'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     PYTHON_PATH='/opt/python/2.7/bin'
-    ;;
-rhel70)
-    PUSH_ARCH='x86_64-rhel70'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
-rhel80)
-    PUSH_ARCH='x86_64-rhel80'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
 rhel67-s390x)
     PUSH_ARCH='s390x-rhel67'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
+    ;;
+rhel70)
+    PUSH_ARCH='x86_64-rhel70'
+    PUSH_NAME='linux'
+    ;;
+rhel71-ppc)
+    PUSH_ARCH='ppc64le-rhel71'
+    PUSH_NAME='linux'
     ;;
 rhel72-s390x)
     PUSH_ARCH='s390x-rhel72'
     PUSH_NAME='linux'
     CC='s390x-redhat-linux-gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
-rhel80-s390x)
-    PUSH_ARCH='s390x-rhel80'
+rhel80)
+    PUSH_ARCH='x86_64-rhel80'
     PUSH_NAME='linux'
-    CC='s390x-mongodb-linux-gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
-rhel71-ppc)
-    PUSH_ARCH='ppc64le-rhel71'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
 rhel81-ppc)
     PUSH_ARCH='ppc64le-rhel81'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
-suse15)
-    PUSH_ARCH='x86_64-suse15'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
 suse12-s390x)
     PUSH_ARCH='s390x-suse12'
     PUSH_NAME='linux'
     CC='gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
-suse15-s390x)
-    PUSH_ARCH='s390x-suse15'
+suse15)
+    PUSH_ARCH='x86_64-suse15'
     PUSH_NAME='linux'
-    CC='s390x-mongodb-linux-gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
-    ;;
-suse15-ppc)
-    PUSH_ARCH='ppc64le-suse15'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
 ubuntu1404)
     PUSH_ARCH='x86_64-ubuntu1404'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
     ;;
 ubuntu1604)
     PUSH_ARCH='x86_64-ubuntu1604'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu1804)
-    PUSH_ARCH='x86_64-ubuntu1804'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu2004)
-    PUSH_ARCH='x86_64-ubuntu2004'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu1804-arm64)
-    PUSH_ARCH='arm64-ubuntu1804'
-    PUSH_NAME='linux'
-	MONGO_ARCH='aarch64'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu2004-arm64)
-    PUSH_ARCH='arm64-ubuntu2004'
-    PUSH_NAME='linux'
-	MONGO_ARCH='aarch64'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
     ;;
 ubuntu1604-ppc)
     PUSH_ARCH='ppc64le-ubuntu1604'
     PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
-    ;;
-ubuntu1804-ppc)
-    PUSH_ARCH='ppc64le-ubuntu1804'
-    PUSH_NAME='linux'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
     ;;
 ubuntu1604-s390x)
     PUSH_ARCH='s390x-ubuntu1604'
     PUSH_NAME='linux'
     CC='gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
+    ;;
+ubuntu1804)
+    PUSH_ARCH='x86_64-ubuntu1804'
+    PUSH_NAME='linux'
+    BUILD_FIPS='false'
+    ;;
+ubuntu1804-arm64)
+    PUSH_ARCH='arm64-ubuntu1804'
+    PUSH_NAME='linux'
+    MONGO_ARCH='aarch64'
+    BUILD_FIPS='false'
+    ;;
+ubuntu1804-ppc)
+    PUSH_ARCH='ppc64le-ubuntu1804'
+    PUSH_NAME='linux'
+    BUILD_FIPS='false'
     ;;
 ubuntu1804-s390x)
     PUSH_ARCH='s390x-ubuntu1804'
     PUSH_NAME='linux'
     CC='gcc'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
+    ;;
+ubuntu2004)
+    PUSH_ARCH='x86_64-ubuntu2004'
+    PUSH_NAME='linux'
+    BUILD_FIPS='false'
+    ;;
+ubuntu2004-arm64)
+    PUSH_ARCH='arm64-ubuntu2004'
+    PUSH_NAME='linux'
+    MONGO_ARCH='aarch64'
+    BUILD_FIPS='false'
     ;;
 windows)
-	BIN_TYPE_FLAG="-buildmode=exe"
+    BIN_TYPE_FLAG="-buildmode=exe"
     PUSH_ARCH='x86_64'
     PUSH_NAME='win32'
-	MONGO_DISTRO='windows'
+    MONGO_DISTRO='windows'
     LIBRARY_PATH='/cygdrive/c/sasl/'
     MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
     ARCHIVE_FORMAT='zip'
     ARCHIVE_CONTENT_TYPE='zip'
     GOROOT='c:\golang\go1.15'
     GOBINDIR='/cygdrive/c/golang/go1.15/bin'
-    BUILD_GSSAPI='true'
-	BUILD_FIPS='true'
     ;;
 *) # local
-	echo "$VARIANT is unknown variant, is this a LOCAL run?"
-	PUSH_ARCH="$(uname -m)"
-	MONGO_DISTRO='ubuntu1604'
+    echo "$VARIANT is unknown variant, is this a LOCAL run?"
+    PUSH_ARCH="$(uname -m)"
+    MONGO_DISTRO='ubuntu1604'
     BUILD_GSSAPI='true'
-	BUILD_FIPS='false'
+    BUILD_FIPS='false'
 esac

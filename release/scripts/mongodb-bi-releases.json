@@ -25,110 +25,12 @@
          "target": "amzn64"
       },
       {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~OSX_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
-         },
-         "edition": "enterprise",
-         "target": "osx"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~WINDOWS_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
-         },
-         "edition": "enterprise",
-         "target": "windows"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU1404-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "ubuntu1404"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-64"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "ubuntu1604"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-64"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "ubuntu1804"
-      },
-      {
          "arch": "aarch64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-ARM64"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~AMAZON2-ARM64"
          },
          "edition": "enterprise",
-         "packages": [],
-         "target": "ubuntu1804"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-64"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "ubuntu2004"
-      },
-      {
-         "arch": "aarch64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-ARM64"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "ubuntu2004"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL62"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "rhel62"
-      },
-      {
-         "arch": "s390x",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-67-S390X"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "rhel67"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL70"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "rhel70"
-      },
-      {
-         "arch": "x86_64",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL80"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "rhel80"
+         "target": "amzn64"
       },
       {
          "arch": "x86_64",
@@ -160,6 +62,77 @@
       {
          "arch": "x86_64",
          "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~OSX_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
+         },
+         "edition": "enterprise",
+         "target": "osx"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL62"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel62"
+      },
+      {
+         "arch": "s390x",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-67-S390X"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel67"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL70"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel70"
+      },
+      {
+         "arch": "ppc64le",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-71-PPC64LE"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel71"
+      },
+      {
+         "arch": "s390x",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-72-S390X"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel72"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL80"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel80"
+      },
+      {
+         "arch": "ppc64le",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-81-PPC64LE"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel81"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE12-64"
          },
          "edition": "enterprise",
@@ -185,31 +158,22 @@
          "target": "suse15"
       },
       {
-         "arch": "ppc64le",
+         "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-71-PPC64LE"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU1404-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
          },
          "edition": "enterprise",
          "packages": [],
-         "target": "rhel71"
+         "target": "ubuntu1404"
       },
       {
-         "arch": "s390x",
+         "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-72-S390X"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-64"
          },
          "edition": "enterprise",
          "packages": [],
-         "target": "rhel72"
-      },
-      {
-         "arch": "ppc64le",
-         "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL-81-PPC64LE"
-         },
-         "edition": "enterprise",
-         "packages": [],
-         "target": "rhel81"
+         "target": "ubuntu1604"
       },
       {
          "arch": "ppc64le",
@@ -230,6 +194,24 @@
          "target": "ubuntu1604"
       },
       {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu1804"
+      },
+      {
+         "arch": "aarch64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-ARM64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu1804"
+      },
+      {
          "arch": "ppc64le",
          "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-PPC64LE"
@@ -246,6 +228,32 @@
          "edition": "enterprise",
          "packages": [],
          "target": "ubuntu1804"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu2004"
+      },
+      {
+         "arch": "aarch64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-ARM64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "ubuntu2004"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~WINDOWS_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
+         },
+         "edition": "enterprise",
+         "target": "windows"
       }
    ]
 }
