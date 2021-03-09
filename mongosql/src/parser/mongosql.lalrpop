@@ -4,8 +4,13 @@ use crate::parser::util::*;
 grammar;
 
 pub Query: Query = {
+  <s:SetQuery> => Query::Set(s),
 	<s:SelectQuery> => Query::Select(s),
 };
+
+SetQuery: SetQuery = {
+  <q:Query> <o:SetOperator> <s:SelectQuery>  => SetQuery{left:Box::new(q), op:o, right:Box::new(Query::Select(s))},
+}
 
 SelectQuery: SelectQuery = {
   <s:SelectClause> => SelectQuery{select_clause:s},
@@ -13,6 +18,11 @@ SelectQuery: SelectQuery = {
 
 SelectClause: SelectClause = {
   SELECT <q:SetQuantifier?> <b:SelectBody> => SelectClause{set_quantifier:q.unwrap_or(SetQuantifier::All), body:b},
+}
+
+SetOperator: SetOperator = {
+  UNION => SetOperator::Union,
+  UNION ALL => SetOperator::UnionAll,
 }
 
 SetQuantifier: SetQuantifier = {
@@ -86,6 +96,7 @@ match {
 	r"(?i)all" => ALL,
 	r"(?i)as" => AS,
 	r"(?i)distinct" => DISTINCT,
+	r"(?i)union" => UNION,
 	r"(?i)values?" => VALUE,
 } else {
   r"[A-Za-z_][A-Za-z0-9_]*" => ID,

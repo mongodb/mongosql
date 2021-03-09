@@ -72,6 +72,17 @@ should_parse!(
     true,
     "SELECT `f``oo`````"
 );
+should_parse!(select_union_simple, true, "SELECT a UNION SELECT b");
+should_parse!(
+    select_union_multiple,
+    true,
+    "SELECT a UNION SELECT b UNION SELECT c"
+);
+should_parse!(
+    select_union_all_multiple,
+    true,
+    "SELECT a UNION ALL SELECT b UNION ALL SELECT c"
+);
 
 should_parse!(use_stmt, false, "use foo");
 should_parse!(select_compound_star, false, "SELECT a.b.c.*");
@@ -198,5 +209,47 @@ validate_ast!(
                 alias: None
             })])
         }
+    })
+);
+
+validate_ast!(
+    union_is_left_associative,
+    "select a union select b union all select c",
+    Query::Set(SetQuery {
+        left: Box::new(Query::Set(SetQuery {
+            left: Box::new(Query::Select(SelectQuery {
+                select_clause: SelectClause {
+                    set_quantifier: SetQuantifier::All,
+                    body: SelectBody::Standard(vec![SelectExpression::Aliased(
+                        AliasedExpression {
+                            expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                            alias: None
+                        }
+                    )])
+                }
+            })),
+            op: SetOperator::Union,
+            right: Box::new(Query::Select(SelectQuery {
+                select_clause: SelectClause {
+                    set_quantifier: SetQuantifier::All,
+                    body: SelectBody::Standard(vec![SelectExpression::Aliased(
+                        AliasedExpression {
+                            expression: Expression::Identifier(Identifier::Simple("b".to_string())),
+                            alias: None
+                        }
+                    )])
+                }
+            }))
+        })),
+        op: SetOperator::UnionAll,
+        right: Box::new(Query::Select(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                    expression: Expression::Identifier(Identifier::Simple("c".to_string())),
+                    alias: None
+                })])
+            }
+        }))
     })
 );

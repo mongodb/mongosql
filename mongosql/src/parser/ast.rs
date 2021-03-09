@@ -1,11 +1,25 @@
 #[derive(PartialEq, Debug, Clone)]
 pub enum Query {
     Select(SelectQuery),
+    Set(SetQuery),
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct SelectQuery {
     pub select_clause: SelectClause,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SetQuery {
+    pub left: Box<Query>,
+    pub op: SetOperator,
+    pub right: Box<Query>,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum SetOperator {
+    Union,
+    UnionAll,
 }
 
 #[derive(PartialEq, Debug, Clone)]
