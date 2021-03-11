@@ -4,8 +4,8 @@ use crate::parser::util::*;
 grammar;
 
 pub Query: Query = {
-  <s:SetQuery> => Query::Set(s),
-	<s:SelectQuery> => Query::Select(s),
+  SetQuery => Query::Set(<>),
+	SelectQuery => Query::Select(<>),
 };
 
 SetQuery: SetQuery = {
@@ -13,7 +13,7 @@ SetQuery: SetQuery = {
 }
 
 SelectQuery: SelectQuery = {
-  <s:SelectClause> => SelectQuery{select_clause:s},
+  SelectClause => SelectQuery{select_clause:<>},
 };
 
 SelectClause: SelectClause = {
@@ -31,19 +31,19 @@ SetQuantifier: SetQuantifier = {
 };
 
 SelectBody: SelectBody = {
-  <e:Comma<SelectExpression>> => SelectBody::Standard(e),
+  Comma<SelectExpression> => SelectBody::Standard(<>),
   VALUE <e:Comma<SelectValuesExpression>> => SelectBody::Values(e),
 };
 
 SelectValuesExpression: SelectValuesExpression = {
-  <e:Expression> => SelectValuesExpression::Expression(e),
-  <s:SubstarExpression> => SelectValuesExpression::Substar(s),
+  Expression => SelectValuesExpression::Expression(<>),
+  SubstarExpression => SelectValuesExpression::Substar(<>),
 }
 
 SelectExpression: SelectExpression = {
   STAR => SelectExpression::Star,
-  <s:SubstarExpression> => SelectExpression::Substar(s),
-  <a:AliasedExpression> => SelectExpression::Aliased(a),
+  SubstarExpression => SelectExpression::Substar(<>),
+  AliasedExpression => SelectExpression::Aliased(<>),
 };
 
 AliasedExpression: AliasedExpression = {
@@ -54,13 +54,33 @@ SubstarExpression: SubstarExpression = {
   <i:SimpleIdentifier> DOT STAR => SubstarExpression{datasource: i}
 };
 
-Expression: Expression = {
-  <i:Identifier> => Expression::Identifier(i)
+pub Expression: Expression = {
+  Tier1Expr => *<>,
+  BetweenExpr,
+  CaseExpr => Expression::Case(<>),
 };
 
+BetweenExpr: Expression = {
+  <e:Expression> BETWEEN <l:Tier3Expr> AND <r:Tier3Expr> => Expression::Between(BetweenExpr{expr:Box::new(e), min:l, max:r}),
+  <e:Expression> <n:NotOp> BETWEEN <l:Tier3Expr> AND <r:Tier3Expr>  => Expression::Unary(UnaryExpr{op:n, expr:Box::new(Expression::Between(BetweenExpr{expr:Box::new(e), min:l, max:r}))}),
+}
+
+CaseExpr: CaseExpr = {
+  CASE <w:WhenBranch+> <e:ElseBranch?> END => CaseExpr{expr:None, when_branch:w, else_branch:e},
+  CASE <expr:Expression> <w:WhenBranch+> <e:ElseBranch?> END => CaseExpr{expr:Some(Box::new(expr)), when_branch:w, else_branch:e},
+}
+
+WhenBranch: WhenBranch = {
+  WHEN <e1:Tier4Expr> <o:BoolOp> <e2:Tier4Expr> THEN <e3:Expression> => WhenBranch{when:Box::new(Expression::Binary(BinaryExpr{left:e1, op:o, right:e2})), then:Box::new(e3)},
+}
+
+ElseBranch: Box<Expression> = {
+  ELSE <e:Expression> => Box::new(e),
+}
+
 Identifier: Identifier = {
-  <s:SimpleIdentifier> => Identifier::Simple(s),
-  <c:CompoundIdentifier> => Identifier::Compound(c),
+  SimpleIdentifier => Identifier::Simple(<>),
+  CompoundIdentifier => Identifier::Compound(<>),
 };
 
 SimpleIdentifier: String = {
@@ -77,6 +97,75 @@ CompoundIdentifier: Vec<String> = {
   }
 }
 
+BinaryTier<Op,NextTier>: Box<Expression> = {
+  <left:BinaryTier<Op,NextTier>> <op:Op> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{<>})),
+  NextTier
+};
+
+UnaryTier<Op,NextTier>: Box<Expression> = {
+  <op:Op> <expr:UnaryTier<Op, NextTier>> => Box::new(Expression::Unary(UnaryExpr{<>})),
+  NextTier
+}
+
+Tier1Expr = BinaryTier<OrOp, Tier2Expr>;
+Tier2Expr = BinaryTier<AndOp, Tier3Expr>;
+Tier3Expr = BinaryTier<CompareOp, Tier4Expr>;
+Tier4Expr = BinaryTier<ConcatOp, Tier5Expr>;
+Tier5Expr = BinaryTier<AddOp, Tier6Expr>;
+Tier6Expr = BinaryTier<MulOp, Tier7Expr>;
+Tier7Expr = UnaryTier<UnaryOp, BottomExpr>;
+
+BottomExpr: Box<Expression> = {
+  Identifier    => Box::new(Expression::Identifier(<>)),
+};
+
+OrOp: BinaryOp = {
+  OR => BinaryOp::Or,
+};
+
+AndOp: BinaryOp = {
+  AND  => BinaryOp::And,
+};
+
+CompareOp: BinaryOp = {
+  EQ => BinaryOp::Eq,
+  NEQ => BinaryOp::Neq,
+  LTE => BinaryOp::Lte,
+  GTE => BinaryOp::Gte,
+  LT  => BinaryOp::Lt,
+  GT  => BinaryOp::Gt,
+};
+
+BoolOp: BinaryOp = {
+  OrOp,
+  AndOp,
+  CompareOp,
+}
+
+ConcatOp: BinaryOp = {
+  CONCAT => BinaryOp::Concat,
+}
+
+AddOp: BinaryOp = {
+  ADD => BinaryOp::Add,
+  SUB => BinaryOp::Sub,
+};
+
+MulOp: BinaryOp = {
+  STAR => BinaryOp::Mul,
+  DIV => BinaryOp::Div,
+};
+
+NotOp: UnaryOp = {
+  NOT => UnaryOp::Not
+}
+
+UnaryOp: UnaryOp = {
+  ADD => UnaryOp::Pos,
+  SUB => UnaryOp::Neg,
+  NotOp,
+}
+
 Comma<T>: Vec<T> = {
     <v:(<T> COMMA)*> <e:T?> => match e {
         None => v,
@@ -90,14 +179,34 @@ Comma<T>: Vec<T> = {
 
 match {
   r"(?i)select" => SELECT,
+  "+" => ADD,
+  "," => COMMA,
+  "||" => CONCAT,
+	"/" => DIV,
 	"." => DOT,
-	"," => COMMA,
-	"*" => STAR,
+  "=" => EQ,
+  ">" => GT,
+  ">=" => GTE,
+  "<" => LT,
+  "<=" => LTE,
+	"<>" => NEQ,
+	"-" => SUB,
 	r"(?i)all" => ALL,
+	r"(?i)and" => AND,
 	r"(?i)as" => AS,
+	r"(?i)between" => BETWEEN,
+	r"(?i)case" => CASE,
 	r"(?i)distinct" => DISTINCT,
+	r"(?i)else" => ELSE,
+	r"(?i)end" => END,
+	r"(?i)missing" => MISSING,
+	r"(?i)not" => NOT,
+	r"(?i)or" => OR,
+	"*" => STAR,
+	r"(?i)then" => THEN,
 	r"(?i)union" => UNION,
 	r"(?i)values?" => VALUE,
+	r"(?i)when" => WHEN,
 } else {
   r"[A-Za-z_][A-Za-z0-9_]*" => ID,
   r#""([^\x00"]|"")*""# => DELIMITED_IDENT_QUOTE,

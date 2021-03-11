@@ -1,11 +1,12 @@
-use crate::parser;
 use crate::parser::ast::*;
+use crate::parser::Parser;
 
 macro_rules! should_parse {
     ($func_name:ident, $should_parse:expr, $input:expr) => {
         #[test]
         fn $func_name() {
-            let res = parser::parse($input);
+            let p = Parser::new();
+            let res = p.parse_query($input);
             let should_parse = $should_parse;
             if should_parse {
                 res.expect("expected input to parse, but it failed");
@@ -16,15 +17,26 @@ macro_rules! should_parse {
     };
 }
 
-macro_rules! validate_ast {
+macro_rules! validate_query_ast {
     ($func_name:ident, $input:expr, $ast:expr) => {
         #[test]
         fn $func_name() {
-            assert_eq!(parser::parse($input).unwrap(), $ast)
+            let p = Parser::new();
+            assert_eq!(p.parse_query($input).unwrap(), $ast)
         }
     };
 }
 
+macro_rules! validate_expression_ast {
+    ($func_name:ident, $input:expr, $ast:expr) => {
+        #[test]
+        fn $func_name() {
+            let p = Parser::new();
+            assert_eq!(p.parse_expression($input).unwrap(), $ast)
+        }
+    };
+}
+// Select tests
 should_parse!(select_star, true, "select *");
 should_parse!(select_star_upper, true, "SELECT *");
 should_parse!(select_mixed_case, true, "SeLeCt *");
@@ -72,17 +84,6 @@ should_parse!(
     true,
     "SELECT `f``oo`````"
 );
-should_parse!(select_union_simple, true, "SELECT a UNION SELECT b");
-should_parse!(
-    select_union_multiple,
-    true,
-    "SELECT a UNION SELECT b UNION SELECT c"
-);
-should_parse!(
-    select_union_all_multiple,
-    true,
-    "SELECT a UNION ALL SELECT b UNION ALL SELECT c"
-);
 
 should_parse!(use_stmt, false, "use foo");
 should_parse!(select_compound_star, false, "SELECT a.b.c.*");
@@ -120,7 +121,7 @@ should_parse!(
 should_parse!(select_unescaped_quotes_in_ident, false, r#"SELECT fo""o"#);
 should_parse!(select_unescaped_backticks_in_ident, false, "SELECT fo``o");
 
-validate_ast!(
+validate_query_ast!(
     ident,
     "SELECT foo",
     Query::Select(SelectQuery {
@@ -133,7 +134,7 @@ validate_ast!(
         }
     })
 );
-validate_ast!(
+validate_query_ast!(
     delimited_quote,
     r#"SELECT "foo""#,
     Query::Select(SelectQuery {
@@ -146,7 +147,7 @@ validate_ast!(
         }
     })
 );
-validate_ast!(
+validate_query_ast!(
     delimited_backtick,
     "select `foo`",
     Query::Select(SelectQuery {
@@ -159,7 +160,7 @@ validate_ast!(
         }
     })
 );
-validate_ast!(
+validate_query_ast!(
     delimited_escaped_backtick,
     "SELECT `fo``o`````",
     Query::Select(SelectQuery {
@@ -172,7 +173,7 @@ validate_ast!(
         }
     })
 );
-validate_ast!(
+validate_query_ast!(
     delimited_escaped_quote,
     r#"SELECT "fo""o""""""#,
     Query::Select(SelectQuery {
@@ -185,7 +186,7 @@ validate_ast!(
         }
     })
 );
-validate_ast!(
+validate_query_ast!(
     backtick_delimiter_escaped_quote,
     r#"SELECT `fo""o`"#,
     Query::Select(SelectQuery {
@@ -198,7 +199,7 @@ validate_ast!(
         }
     })
 );
-validate_ast!(
+validate_query_ast!(
     quote_delimiter_escaped_backtick,
     r#"SELECT "fo``o""#,
     Query::Select(SelectQuery {
@@ -212,7 +213,20 @@ validate_ast!(
     })
 );
 
-validate_ast!(
+// Set query tests
+should_parse!(select_union_simple, true, "SELECT a UNION SELECT b");
+should_parse!(
+    select_union_multiple,
+    true,
+    "SELECT a UNION SELECT b UNION SELECT c"
+);
+should_parse!(
+    select_union_all_multiple,
+    true,
+    "SELECT a UNION ALL SELECT b UNION ALL SELECT c"
+);
+
+validate_query_ast!(
     union_is_left_associative,
     "select a union select b union all select c",
     Query::Set(SetQuery {
@@ -251,5 +265,203 @@ validate_ast!(
                 })])
             }
         }))
+    })
+);
+
+// Operator tests
+should_parse!(unary_pos, true, "select +a");
+should_parse!(unary_neg, true, "select -a");
+should_parse!(unary_not, true, "select NOT a");
+should_parse!(binary_add, true, "select a+b+c+d+e");
+should_parse!(binary_sub, true, "select a-b-c-d-e");
+should_parse!(binary_mul, true, "select a*b*c*d*e");
+should_parse!(binary_mul_add, true, "select a*b+c*d+e");
+should_parse!(binary_div_add, true, "select a/b+c/d+e");
+should_parse!(binary_div_mul, true, "select a/b*c");
+should_parse!(binary_lt, true, "select a<b<c<d<e");
+should_parse!(binary_lte, true, "select a<=b");
+should_parse!(binary_gt, true, "select a>b");
+should_parse!(binary_gte, true, "select a>=b");
+should_parse!(binary_neq, true, "select a<>b");
+should_parse!(binary_eq, true, "select a=b");
+should_parse!(binary_string_concat, true, "select a || b");
+should_parse!(binary_or, true, "select a OR b");
+should_parse!(binary_and, true, "select a AND b");
+should_parse!(binary_compare_and_add, true, "select b<a+c and b>d+e");
+should_parse!(binary_compare_or_mul, true, "select b<a*c or b>d*e");
+should_parse!(binary_lt_and_neq, true, "select a<b and c<>e");
+should_parse!(between, true, "select a BETWEEN b AND c");
+should_parse!(case, true, "select CASE WHEN a=b THEN a ELSE c END");
+should_parse!(
+    case_multiple_when_clauses,
+    true,
+    "select CASE WHEN a or b THEN a WHEN c=d THEN c ELSE e END"
+);
+should_parse!(
+    case_multiple_exprs,
+    true,
+    "select CASE a WHEN a <> b THEN a WHEN c and d THEN c ELSE e END"
+);
+
+should_parse!(between_invalid_binary_op, false, "select a BETWEEN b + c");
+should_parse!(
+    case_non_bool_conditions,
+    false,
+    "select case a when a+b then a else c-d"
+);
+
+validate_expression_ast!(
+    binary_sub_unary_neg_ast,
+    "b--a",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
+        op: BinaryOp::Sub,
+        right: Box::new(Expression::Unary(UnaryExpr {
+            op: UnaryOp::Neg,
+            expr: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+        }))
+    })
+);
+
+validate_expression_ast!(
+    binary_mul_add_ast,
+    "c*a+b",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+            op: BinaryOp::Mul,
+            right: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+        })),
+        op: BinaryOp::Add,
+        right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+    })
+);
+
+validate_expression_ast!(
+    binary_add_concat_ast,
+    "a+b||c",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            op: BinaryOp::Add,
+            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+        })),
+        op: BinaryOp::Concat,
+        right: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+    })
+);
+
+validate_expression_ast!(
+    binary_concat_compare_ast,
+    "c>a||b",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+        op: BinaryOp::Gt,
+        right: Box::new(Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            op: BinaryOp::Concat,
+            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+        }))
+    })
+);
+
+validate_expression_ast!(
+    binary_compare_and_ast,
+    "a<b AND c",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            op: BinaryOp::Lt,
+            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+        })),
+        op: BinaryOp::And,
+        right: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+    })
+);
+
+validate_expression_ast!(
+    binary_and_or_ast,
+    "a AND b OR b",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            op: BinaryOp::And,
+            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+        })),
+        op: BinaryOp::Or,
+        right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+    })
+);
+
+validate_expression_ast!(
+    between_ast,
+    "a between b and c",
+    Expression::Between(BetweenExpr {
+        expr: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+        min: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
+        max: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+    })
+);
+
+validate_expression_ast!(
+    not_between_ast,
+    "a not between b and c",
+    Expression::Unary(UnaryExpr {
+        op: UnaryOp::Not,
+        expr: Box::new(Expression::Between(BetweenExpr {
+            expr: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            min: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
+            max: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+        }))
+    })
+);
+
+validate_expression_ast!(
+    case_multiple_when_branches_ast,
+    "case when a=b then a when c=d then c else e end",
+    Expression::Case(CaseExpr {
+        expr: None,
+        when_branch: vec![
+            WhenBranch {
+                when: Box::new(Expression::Binary(BinaryExpr {
+                    left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                    op: BinaryOp::Eq,
+                    right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+                })),
+                then: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+            },
+            WhenBranch {
+                when: Box::new(Expression::Binary(BinaryExpr {
+                    left: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+                    op: BinaryOp::Eq,
+                    right: Box::new(Expression::Identifier(Identifier::Simple("d".to_string())))
+                })),
+                then: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+            }
+        ],
+        else_branch: Some(Box::new(Expression::Identifier(Identifier::Simple(
+            "e".to_string()
+        ))))
+    })
+);
+
+validate_expression_ast!(
+    case_multiple_exprs_ast,
+    "case a when a=b then a else c end",
+    Expression::Case(CaseExpr {
+        expr: Some(Box::new(Expression::Identifier(Identifier::Simple(
+            "a".to_string()
+        )))),
+        when_branch: vec![WhenBranch {
+            when: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                op: BinaryOp::Eq,
+                right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+            })),
+            then: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+        }],
+        else_branch: Some(Box::new(Expression::Identifier(Identifier::Simple(
+            "c".to_string()
+        ))))
     })
 );

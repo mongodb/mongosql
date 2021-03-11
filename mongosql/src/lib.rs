@@ -1,5 +1,6 @@
 mod parser;
 mod result;
+use crate::parser::Parser;
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -13,7 +14,8 @@ pub struct Translation {
 /// specified db. Currently a stub implementation that returns a
 /// hard-coded result.
 pub fn translate_sql(current_db: &str, sql: &str) -> Translation {
-    parser::parse(sql).expect("provided sql query should parse");
+    let p = Parser::new();
+    p.parse_query(sql).expect("provided sql query should parse");
     Translation {
         target_db: current_db.into(),
         target_collection: "foo".into(),
