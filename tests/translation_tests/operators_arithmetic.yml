@@ -1,0 +1,49 @@
+catalog_environment:
+  foo:
+    bar:
+      - {'_id': 0, 'a': {'$numberInt': '1'}, 'b': {'$numberInt': '2'}, 'c': {'$numberInt': '3'}}
+
+tests:
+  - description: addition with more than 2 operands
+    current_db: foo
+    query: "SELECT VALUE {'n': a::!INT + b::!INT + c::!INT} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'n': {'$add': ['$bar.a', '$bar.b', '$bar.c']}}}}
+    result:
+      - {'__bot': {'n': {'$numberInt': '6'}}}
+
+  - description: subtraction with more than 2 operands
+    current_db: foo
+    query: "SELECT VALUE {'n': a::!INT - b::!INT - c::!INT} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'n': {'$subtract': [{'$subtract': ['$bar.a', '$bar.b']}, '$bar.c']}}}}
+    result:
+      - {'__bot': {'n': {'$numberInt': '-4'}}}
+
+  - description: multiplication with more than 2 operands
+    current_db: foo
+    query: "SELECT VALUE {'n': a::!INT * b::!INT * c::!INT} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'n': {'$multiply': ['$bar.a', '$bar.b', '$bar.c']}}}}
+    result:
+      - {'__bot': {'n': {'$numberInt': '6'}}}
+
+  - description: division with more than 2 operands
+    current_db: foo
+    query: "SELECT VALUE {'n': a::!INT / b::!INT / c::!INT} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'n': {'$divide': {'dividend': {'$divide': {'dividend': '$bar.a', 'divisor': '$bar.b', 'onError': {'$literal': null}}}, 'divisor': '$bar.c', 'onError': {'$literal': null}}}}}}
+    result:
+      - {'__bot': {'n': {'$numberInt': '0'}}}

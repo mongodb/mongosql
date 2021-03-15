@@ -1,0 +1,16 @@
+catalog_environment:
+  foo:
+    bar:
+      - {'_id': 0, 'a': 'a', 'b': 'b', 'c': 'c'}
+
+tests:
+  - description: concatenation with more than 2 operands
+    current_db: foo
+    query: "SELECT VALUE {'s': a::!STRING || b::!STRING || c::!STRING} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'s': {'$concat': ['$bar.a', '$bar.b', '$bar.c']}}}}
+    result:
+      - {'__bot': {'s': 'abc'}}

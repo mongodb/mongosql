@@ -118,49 +118,72 @@ schema_environment:
 tests:
   - description: correctness test for string concatentation
     current_db: foo
-    query: "SELECT VALUE { 's1': s1, 's2': s2, 's': s1 || s2 } FROM concat AS concat"
+    query: "SELECT VALUE {'s1': s1, 's2': s2, 's': s1 || s2} FROM concat AS c"
+    translation_target_db: foo
+    translation_target_coll: concat
+    translation:
+      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'s1': '$c.s1', 's2': '$c.s2', 's': {'$concat': ['$c.s1', '$c.s2']}}}}
     result:
-      - { "s1": "ab", "s2": "c", "s": "abc" }
-      - { "s1": "ab", "s2": null, "s": null }
-      - { "s1": "ab", "s": null }
+      - {'__bot': {'s1': 'ab', 's2': 'c', 's': 'abc'}}
+      - {'__bot': {'s1': 'ab', 's2': null, 's': null}}
+      - {'__bot': {'s1': 'ab', 's': null}}
 
   - description: LIKE ESCAPE value cannot be longer than 1 character
-    query: "SELECT VALUE { '_1': 'a' LIKE '_' ESCAPE 'abc' }"
+    query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE 'abc'}"
     error: "error: ESCAPE character must be exactly 1 character"
 
   - description: LIKE ESCAPE value cannot be empty string
-    query: "SELECT VALUE { '_1': 'a' LIKE '_' ESCAPE '' }"
+    query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE ''}"
     error: "error: ESCAPE character must be exactly 1 character"
 
   - description: LIKE ESCAPE value cannot be non-literal
     current_db: foo
-    query: "SELECT VALUE { '_1': 'a' LIKE '_' ESCAPE s } FROM like AS like"
+    query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE s} FROM like AS like"
     error: "error: ESCAPE value must be literal"
 
   - description: LIKE operator - NULL or MISSING arguments result in NULL
-    query: "SELECT VALUE { 's': s, 'p': p, 'r': s LIKE p } FROM nullAndMissing AS nullAndMissing"
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM nullAndMissing AS n"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'n': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'s': '$n.s', 'p': '$n.p', 'r': {'$like': {'input': '$n.s', 'pattern': '$n.p'}}}}}
     result:
-      - { "s": null, "p": "abc", "r": null }
-      - { "p": "abc", "r": null }
-      - { "s": "abc", "p": null, "r": null }
-      - { "s": "abc", "r": null }
+      - {'__bot': {'s': null, 'p': 'abc', 'r': null}}
+      - {'__bot': {'p': 'abc', 'r': null}}
+      - {'__bot': {'s': 'abc', 'p': null, 'r': null}}
+      - {'__bot': {'s': 'abc', 'r': null}}
 
   - description: LIKE operator with no ESCAPE correctness tests
-    query: "SELECT VALUE { 's': s, 'p': p, 'r': s LIKE p } FROM like AS like"
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM like AS l"
+    translation_target_db: foo
+    translation_target_coll: like
+    translation:
+      - {'$project': {'_id': 0, 'l': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'s': '$l.s', 'p': '$l.p', 'r': {'$like': {'input': '$l.s', 'pattern': '$l.p'}}}}}
     result:
-      - { "s": "abc", "p": "abc", "r": true }
-      - { "s": "abc", "p": "a_c", "r": true }
-      - { "s": "abc", "p": "a%", "r": true }
-      - { "s": "abc", "p": "ab_%", "r": true }
-      - { "s": "bc", "p": "abc", "r": false }
-      - { "s": "bc", "p": "_bc", "r": false }
-      - { "s": "bc", "p": "ab%c", "r": false }
-      - { "s": "bc", "p": "%_bc", "r": false }
+      - {'__bot': {'s': 'abc', 'p': 'abc', 'r': true}}
+      - {'__bot': {'s': 'abc', 'p': 'a_c', 'r': true}}
+      - {'__bot': {'s': 'abc', 'p': 'a%', 'r': true}}
+      - {'__bot': {'s': 'abc', 'p': 'ab_%', 'r': true}}
+      - {'__bot': {'s': 'bc', 'p': 'abc', 'r': false}}
+      - {'__bot': {'s': 'bc', 'p': '_bc', 'r': false}}
+      - {'__bot': {'s': 'bc', 'p': 'ab%c', 'r': false}}
+      - {'__bot': {'s': 'bc', 'p': '%_bc', 'r': false}}
 
   - description: LIKE operator with ESCAPE correctness tests
-    query: "SELECT VALUE { 's': s, 'p': p, 'r': s LIKE p ESCAPE '$' } FROM escape AS escape"
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p ESCAPE '$'} FROM escape AS e"
+    translation_target_db: foo
+    translation_target_coll: escape
+    translation:
+      - {'$project': {'_id': 0, 'e': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'s': '$e.s', 'p': '$e.p', 'r': {'$like': {'input': '$e.s', 'pattern': '$e.p', 'escape': {'$literal': '$'}}}}}}
     result:
-      - { "s": "abc", "p": "abc", "r": true }
-      - { "s": "abc", "p": "a$_c", "r": false }
-      - { "s": "a$_%c", "p": "a$$$_$%c", "r": true }
-      - { "s": "abc", "p": "ab$c", "r": true }
+      - {'__bot': {'s': 'abc', 'p': 'abc', 'r': true}}
+      - {'__bot': {'s': 'abc', 'p': 'a$_c', 'r': false}}
+      - {'__bot': {'s': 'a$_%c', 'p': 'a$$$_$%c', 'r': true}}
+      - {'__bot': {'s': 'abc', 'p': 'ab$c', 'r': true}}
