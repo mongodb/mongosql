@@ -1,1390 +1,1923 @@
 catalog_environment:
-  {
-    'foo': {
-      'doubles': [
-        { 'v': { '$numberDouble': "0" } },
-        { 'v': { '$numberDouble': "1.9" } },
-        { 'v': { '$numberDouble': "-2.4" } },
-        { 'v': { '$numberDouble': "2147483648.4" } },
-        { 'v': { '$numberDouble': "-2147483649.7" } }
-      ],
-      'strings': [
-        { 'v': "" },
-        { 'v': "string" },
-        { 'v': "true" },
-        { 'v': "false" },
-        { 'v': "0" },
-        { 'v': "0.0" },
-        { 'v': "1" },
-        { 'v': "-1" },
-        { 'v': "1.4" },
-        { 'v': "-1.6" },
-        { 'v': "2147483648" },
-        { 'v': "-2147483649" },
-        { 'v': "9223372036854775808" },
-        { 'v': "-9223372036854775809" },
-        { 'v': "5e550" },
-        { 'v': "2018-03-03" },
-        { 'v': "2018-03-20 11:00:06 +0500" },
-        { 'v': "5ab9cbfa31c2ab715d42129e" }
-      ],
-      'documents': [
-        { 'v': {} },
-        { 'v': { 'a': 1, 'b': 2 } }
-      ],
-      'arrays': [
-        { 'v': [] },
-        { 'v': [1, 2, 3] }
-      ],
-      'objectIDs': [
-        { 'v': { '$oid': "5ab9c3da31c2ab715d421285" } }
-      ],
-      'bools': [
-        { 'v': true },
-        { 'v': false }
-      ],
-      'dates': [
-        { 'v': { '$date': { '$numberLong': "0" } } },
-        { 'v': { '$date': { '$numberLong': "253402300799999" } } },
-        { 'v': { '$date': { '$numberLong': "-62135596800000" } } }
-      ],
-      'nullAndMissing': [
-        { 'v': null },
-        {}
-      ],
-      'ints': [
-        { 'v': { '$numberInt': "0" } },
-        { 'v': { '$numberInt': "1" } },
-        { 'v': { '$numberInt': "-2" } }
-      ],
-      'longs': [
-        { 'v': { '$numberLong': "0" } },
-        { 'v': { '$numberLong': "1" } },
-        { 'v': { '$numberLong': "-2" } },
-        { 'v': { '$numberLong': "2147483648" } },
-        { 'v': { '$numberLong': "-2147483649" } }
-      ],
-      'decimals': [
-        { 'v': { '$numberDecimal': "0" } },
-        { 'v': { '$numberDecimal': "1.9" } },
-        { 'v': { '$numberDecimal': "-2.4" } },
-        { 'v': { '$numberDecimal': "2147483648.4" } },
-        { 'v': { '$numberDecimal': "-2147483649.4" } },
-        { 'v': { '$numberDecimal': "9223372036854775808.8" } },
-        { 'v': { '$numberDecimal': "-9223372036854775809.8" } }
-      ],
-      'invalidSourceTypes': [
-        {
-          'type': "binData",
-          'v': {
-            '$binary': {
-              'base64': "yO2rw/c4TKO2jauSqRR4ow==",
-              'subtype': "04"
-            }
-          }
-        },
-        {
-          'type': "undefined",
-          'v': { '$undefined': true } },
-        {
-          'type': "regex",
-          'v': {
-            '$regularExpression': {
-              'pattern': "foo*",
-              'options': "ix"
-            }
-          }
-        },
-        {
-          'type': "dbPointer",
-          'v': {
-            '$dbPointer': {
-              '$ref': "foo",
-              '$id': { '$oid': "57e193d7a9cc81b4027498b5" }
-            }
-          }
-        },
-        {
-          'type': "javascript",
-          'v': { '$code': "function() {}" }
-        },
-        {
-          'type': "symbol",
-          'v': { '$symbol': "symbol" }
-        },
-        {
-          'type': "javascriptWithScope",
-          'v': {
-            '$code': "function() {}",
-            '$scope': {}
-          }
-        },
-        {
-          'type': "timestamp",
-          'v': {
-            '$timestamp': {
-              't': 42,
-              'i': 1
-            }
-          }
-        },
-        {
-          'type': "minKey",
-          'v': { '$minKey': 1 }
-        },
-        {
-          'type': "maxKey",
-          'v': { '$maxKey': 1 }
-        }
-      ]
-    }
-  }
+  foo:
+    doubles:
+      - {'_id': 0, 'v': {'$numberDouble': '0'}}
+      - {'_id': 1, 'v': {'$numberDouble': '1.9'}}
+      - {'_id': 2, 'v': {'$numberDouble': '-2.4'}}
+      - {'_id': 3, 'v': {'$numberDouble': '2147483648.4'}}
+      - {'_id': 4, 'v': {'$numberDouble': '-2147483649.7'}}
+    strings:
+      - {'_id': 0, 'v': ''}
+      - {'_id': 1, 'v': 'string'}
+      - {'_id': 2, 'v': 'true'}
+      - {'_id': 3, 'v': 'false'}
+      - {'_id': 4, 'v': '0'}
+      - {'_id': 5, 'v': '0.0'}
+      - {'_id': 6, 'v': '1'}
+      - {'_id': 7, 'v': '-1'}
+      - {'_id': 8, 'v': '1.4'}
+      - {'_id': 9, 'v': '-1.6'}
+      - {'_id': 10, 'v': '2147483648'}
+      - {'_id': 11, 'v': '-2147483649'}
+      - {'_id': 12, 'v': '9223372036854775808'}
+      - {'_id': 13, 'v': '-9223372036854775809'}
+      - {'_id': 14, 'v': '5e550'}
+      - {'_id': 15, 'v': '2018-03-03'}
+      - {'_id': 16, 'v': '2018-03-20 11:00:06 +0500'}
+      - {'_id': 17, 'v': '5ab9cbfa31c2ab715d42129e'}
+    documents:
+      - {'_id': 0, 'v': {}}
+      - {'_id': 1, 'v': {'a': 1, 'b': 2}}
+    arrays:
+      - {'_id': 0, 'v': []},
+      - {'_id': 1, 'v': [1, 2, 3]}
+    objectIDs:
+      - {'_id': 0, 'v': {'$oid': '5ab9c3da31c2ab715d421285'}}
+    bools:
+      - {'_id': 0, 'v': true}
+      - {'_id': 1, 'v': false}
+    dates:
+      - {'_id': 0, 'v': {'$date': {'$numberLong': '0'}}}
+      - {'_id': 1, 'v': {'$date': {'$numberLong': '253402300799999'}}}
+      - {'_id': 2, 'v': {'$date': {'$numberLong': '-62135596800000'}}}
+    nullAndMissing:
+      - {'_id': 0, 'v': null}
+      - {'_id': 1}
+    ints:
+      - {'_id': 0, 'v': {'$numberInt': '0'}}
+      - {'_id': 1, 'v': {'$numberInt': '1'}}
+      - {'_id': 2, 'v': {'$numberInt': '-2'}}
+    longs:
+      - {'_id': 0, 'v': {'$numberLong': '0'}}
+      - {'_id': 1, 'v': {'$numberLong': '1'}}
+      - {'_id': 2, 'v': {'$numberLong': '-2'}}
+      - {'_id': 3, 'v': {'$numberLong': '2147483648'}}
+      - {'_id': 4, 'v': {'$numberLong': '-2147483649'}}
+    decimals:
+      - {'_id': 0, 'v': {'$numberDecimal': '0'}}
+      - {'_id': 1, 'v': {'$numberDecimal': '1.9'}}
+      - {'_id': 2, 'v': {'$numberDecimal': '-2.4'}}
+      - {'_id': 3, 'v': {'$numberDecimal': '2147483648.4'}}
+      - {'_id': 4, 'v': {'$numberDecimal': '-2147483649.4'}}
+      - {'_id': 5, 'v': {'$numberDecimal': '9223372036854775808.8'}}
+      - {'_id': 6, 'v': {'$numberDecimal': '-9223372036854775809.8'}}
+    invalidSourceTypes:
+      - {'_id': 0, 'type': 'binData', 'v': {'$binary': {'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subtype': '04'}}}
+      - {'_id': 0, 'type': 'undefined', 'v': {'$undefined': true}}
+      - {'_id': 0, 'type': 'regex', 'v': {'$regularExpression': {'pattern': 'foo*', 'options': 'ix'}}}
+      - {'_id': 0, 'type': 'dbPointer', 'v': {'$dbPointer': {'$ref': 'foo', '$id': {'$oid': '57e193d7a9cc81b4027498b5'}}}}
+      - {'_id': 0, 'type': 'javascript', 'v': {'$code': 'function() {}'}}
+      - {'_id': 0, 'type': 'symbol', 'v': {'$symbol': 'symbol'}}
+      - {'_id': 0, 'type': 'javascriptWithScope', 'v': {'$code': 'function() {}', '$scope': {}}}
+      - {'_id': 0, 'type': 'timestamp', 'v': {'$timestamp': {'t': 42, 'i': 1}}}
+      - {'_id': 0, 'type': 'minKey', 'v': {'$minKey': 1}}
+      - {'_id': 0, 'type': 'maxKey', 'v': {'$maxKey': 1}}
 
 tests:
   - description: Cast DOUBLE to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asBool': {'$convert': {'input': '$doubles.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asBool": false }
-      - { "v": { "$numberDouble": "1.9" }, "asBool": true }
-      - { "v": { "$numberDouble": "-2.4" }, "asBool": true }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asBool": true }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asBool": true }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asBool': false}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asBool': true}}
 
   - description: Cast STRING to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM strings"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asBool': {'$convert': {'input': '$strings.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asBool": true }
-      - { "v": "string", "asBool": true }
-      - { "v": "true", "asBool": true }
-      - { "v": "false", "asBool": true }
-      - { "v": "0", "asBool": true }
-      - { "v": "0.0", "asBool": true }
-      - { "v": "1", "asBool": true }
-      - { "v": "-1", "asBool": true }
-      - { "v": "1.4", "asBool": true }
-      - { "v": "-1.6", "asBool": true }
-      - { "v": "2147483648", "asBool": true }
-      - { "v": "-2147483649", "asBool": true }
-      - { "v": "9223372036854775808", "asBool": true }
-      - { "v": "-9223372036854775809", "asBool": true }
-      - { "v": "5e550", "asBool": true }
-      - { "v": "2018-03-03", "asBool": true }
-      - { "v": "2018-03-20 11:00:06 +0500", "asBool": true }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asBool": true }
+      - {'__bot': {'v': '', 'asBool': true}}
+      - {'__bot': {'v': 'string', 'asBool': true}}
+      - {'__bot': {'v': 'true', 'asBool': true}}
+      - {'__bot': {'v': 'false', 'asBool': true}}
+      - {'__bot': {'v': '0', 'asBool': true}}
+      - {'__bot': {'v': '0.0', 'asBool': true}}
+      - {'__bot': {'v': '1', 'asBool': true}}
+      - {'__bot': {'v': '-1', 'asBool': true}}
+      - {'__bot': {'v': '1.4', 'asBool': true}}
+      - {'__bot': {'v': '-1.6', 'asBool': true}}
+      - {'__bot': {'v': '2147483648', 'asBool': true}}
+      - {'__bot': {'v': '-2147483649', 'asBool': true}}
+      - {'__bot': {'v': '9223372036854775808', 'asBool': true}}
+      - {'__bot': {'v': '-9223372036854775809', 'asBool': true}}
+      - {'__bot': {'v': '5e550', 'asBool': true}}
+      - {'__bot': {'v': '2018-03-03', 'asBool': true}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asBool': true}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asBool': true}}
 
   - description: Cast DOCUMENT to BOOL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBoolDefault, CAST(v AS BOOL, 'null' ON ERROR) AS asBoolOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnError': CAST(v AS BOOL, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asBoolDefault': {'$convert': {'input': '$documents.v', 'to': 'bool', 'onNull': null, 'onError': null}}, 'asBoolOnError': {'$convert': {'input': '$documents.v', 'to': 'bool', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asBoolDefault": null, "asBoolOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asBoolDefault": null, "asBoolOnError": "null" }
+      - {'__bot': {'v': {}, 'asBoolDefault': null, 'asBoolOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asBoolDefault': null, 'asBoolOnError': 'null'}}
 
   - description: Cast ARRAY to BOOL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBoolDefault, CAST(v AS BOOL, 'null' ON ERROR) AS asBoolOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnError': CAST(v AS BOOL, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asBoolDefault': {'$convert': {'input': '$arrays.v', 'to': 'bool', 'onNull': null, 'onError': null}}, 'asBoolOnError': {'$convert': {'input': '$arrays.v', 'to': 'bool', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asBoolDefault": null, "asBoolOnError": "null" }
-      - { "v": [1, 2, 3], "asBoolDefault": null, "asBoolOnError": "null" }
+      - {'__bot': {'v': [], 'asBoolDefault': null, 'asBoolOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asBoolDefault': null, 'asBoolOnError': 'null'}}
 
   - description: Cast OBJECTID to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asBool': {'$convert': {'input': '$objectIDs.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asBool": true }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asBool': true}}
 
   - description: Cast BOOL to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM bools"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asBool': {'$convert': {'input': '$bools.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": true, "asBool": true }
-      - { "v": false, "asBool": false }
+      - {'__bot': {'v': true, 'asBool': true}}
+      - {'__bot': {'v': false, 'asBool': false}}
 
   - description: Cast BSON_DATE to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM dates"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asBool': {'$convert': {'input': '$dates.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asBool": true }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asBool": true }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asBool": true }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asBool': true}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asBool': true}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asBool': true}}
 
   - description: Cast NULL and MISSING to BOOL, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBoolDefault, CAST(v AS BOOL, 'null' ON NULL) AS asBoolOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnNull': CAST(v AS BOOL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asBoolDefault': {'$convert': {'input': '$documents.v', 'to': 'bool', 'onNull': null, 'onError': null}}, 'asBoolOnNull': {'$convert': {'input': '$documents.v', 'to': 'bool', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asBoolDefault": null, "asBoolOnNull": "null" }
-      - { "asBoolDefault": null, "asBoolOnNull": "null" }
+      - {'__bot': {'v': null, 'asBoolDefault': null, 'asBoolOnNull': 'null'}}
+      - {'__bot': {'asBoolDefault': null, 'asBoolOnNull': 'null'}}
 
   - description: Cast INT to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM ints"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asBool': {'$convert': {'input': '$ints.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asBool": false }
-      - { "v": { "$numberInt": "1" }, "asBool": true }
-      - { "v": { "$numberInt": "-2" }, "asBool": true }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asBool': false}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asBool': true}}
 
   - description: Cast LONG to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM longs"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asBool': {'$convert': {'input': '$longs.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberLong": "0" }, "asBool": false }
-      - { "v": { "$numberLong": "1" }, "asBool": true }
-      - { "v": { "$numberLong": "-2" }, "asBool": true }
-      - { "v": { "$numberLong": "2147483648" }, "asBool": true }
-      - { "v": { "$numberLong": "-2147483649" }, "asBool": true }
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asBool': false}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asBool': true}}
 
   - description: Cast DECIMAL to BOOL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BOOL) AS asBool FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asBool': {'$convert': {'input': '$decimals.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" }, "asBool": false }
-      - { "v": { "$numberDecimal": "1.9" }, "asBool": true }
-      - { "v": { "$numberDecimal": "-2.4" }, "asBool": true }
-      - { "v": { "$numberDecimal": "2147483648.4" }, "asBool": true }
-      - { "v": { "$numberDecimal": "-2147483649.4" }, "asBool": true }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asBool": true }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asBool": true }
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asBool': false}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asBool': true}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asBool': true}}
 
   - description: Cast invalid source types to BOOL
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS BOOL) AS asBool FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asBool': CAST(v AS BOOL)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asBool': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'bool', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asBool": null }
-      - { "type": "undefined", "asBool": null }
-      - { "type": "regex", "asBool": null }
-      - { "type": "dbPointer", "asBool": null }
-      - { "type": "javascript", "asBool": null }
-      - { "type": "symbol", "asBool": null }
-      - { "type": "javascriptWithScope", "asBool": null }
-      - { "type": "timestamp", "asBool": null }
-      - { "type": "minKey", "asBool": null }
-      - { "type": "maxKey", "asBool": null }
+      - {'__bot': {'type': 'binData', 'asBool': null}}
+      - {'__bot': {'type': 'undefined', 'asBool': null}}
+      - {'__bot': {'type': 'regex', 'asBool': null}}
+      - {'__bot': {'type': 'dbPointer', 'asBool': null}}
+      - {'__bot': {'type': 'javascript', 'asBool': null}}
+      - {'__bot': {'type': 'symbol', 'asBool': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asBool': null}}
+      - {'__bot': {'type': 'timestamp', 'asBool': null}}
+      - {'__bot': {'type': 'minKey', 'asBool': null}}
+      - {'__bot': {'type': 'maxKey', 'asBool': null}}
 
   - description: Cast DOUBLE to INT, out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asInt': {'$convert': {'input': '$doubles.v', 'to': 'int', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asInt": { "$numberInt": "0" } }
-      - { "v": { "$numberDouble": "1.9" }, "asInt": { "$numberInt": "1" } }
-      - { "v": { "$numberDouble": "-2.4" }, "asInt": { "$numberInt": "-2" } }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asInt": null }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asInt": null }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asInt': {'$numberInt': '0'}}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asInt': {'$numberInt': '1'}}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asInt': {'$numberInt': '-2'}}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asInt': null}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asInt': null}}
 
   - description: Cast STRING to INT, non-numbers, non-ints, and out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM strings"
+    query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asInt': {'$convert': {'input': '$strings.v', 'to': 'int', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asInt": null }
-      - { "v": "string", "asInt": null }
-      - { "v": "true", "asInt": null }
-      - { "v": "false", "asInt": null }
-      - { "v": "0", "asInt": 0 }
-      - { "v": "0.0", "asInt": null }
-      - { "v": "1", "asInt": { "$numberInt": "1" } }
-      - { "v": "-1", "asInt": { "$numberInt": "-1" } }
-      - { "v": "1.4", "asInt": null }
-      - { "v": "-1.6", "asInt": null }
-      - { "v": "2147483648", "asInt": null }
-      - { "v": "-2147483649", "asInt": null }
-      - { "v": "9223372036854775808", "asInt": null }
-      - { "v": "-9223372036854775809", "asInt": null }
-      - { "v": "5e550", "asInt": null }
-      - { "v": "2018-03-03", "asInt": null }
-      - { "v": "2018-03-20 11:00:06 +0500", "asInt": null }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asInt": null }
+      - {'__bot': {'v': '', 'asInt': null}}
+      - {'__bot': {'v': 'string', 'asInt': null}}
+      - {'__bot': {'v': 'true', 'asInt': null}}
+      - {'__bot': {'v': 'false', 'asInt': null}}
+      - {'__bot': {'v': '0', 'asInt': 0}}
+      - {'__bot': {'v': '0.0', 'asInt': null}}
+      - {'__bot': {'v': '1', 'asInt': {'$numberInt': '1'}}}
+      - {'__bot': {'v': '-1', 'asInt': {'$numberInt': '-1'}}}
+      - {'__bot': {'v': '1.4', 'asInt': null}}
+      - {'__bot': {'v': '-1.6', 'asInt': null}}
+      - {'__bot': {'v': '2147483648', 'asInt': null}}
+      - {'__bot': {'v': '-2147483649', 'asInt': null}}
+      - {'__bot': {'v': '9223372036854775808', 'asInt': null}}
+      - {'__bot': {'v': '-9223372036854775809', 'asInt': null}}
+      - {'__bot': {'v': '5e550', 'asInt': null}}
+      - {'__bot': {'v': '2018-03-03', 'asInt': null}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asInt': null}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asInt': null}}
 
   - description: Cast DOCUMENT to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asIntDefault': {'$convert': {'input': '$documents.v', 'to': 'int', 'onNull': null, 'onError': null}}, 'asIntOnError': {'$convert': {'input': '$documents.v', 'to': 'int', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asIntDefault": null, "asIntOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asIntDefault": null, "asIntOnError": "null" }
+      - {'__bot': {'v': {}, 'asIntDefault': null, 'asIntOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asIntDefault': null, 'asIntOnError': 'null'}}
 
   - description: Cast ARRAY to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asIntDefault': {'$convert': {'input': '$arrays.v', 'to': 'int', 'onNull': null, 'onError': null}}, 'asIntOnError': {'$convert': {'input': '$arrays.v', 'to': 'int', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asIntDefault": null, "asIntOnError": "null" }
-      - { "v": [1, 2, 3], "asIntDefault": null, "asIntOnError": "null" }
+      - {'__bot': {'v': [], 'asIntDefault': null, 'asIntOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asIntDefault': null, 'asIntOnError': 'null'}}
 
   - description: Cast OBJECTID to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asIntDefault': {'$convert': {'input': '$objectIDs.v', 'to': 'int', 'onNull': null, 'onError': null}}, 'asIntOnError': {'$convert': {'input': '$objectIDs.v', 'to': 'int', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asIntDefault": null, "asIntOnError": "null" }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asIntDefault': null, 'asIntOnError': 'null'}}
 
   - description: Cast BOOL to INT
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM bools"
+    query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asInt': {'$convert': {'input': '$bools.v', 'to': 'int', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": true, "asInt": { "$numberInt": "1" } }
-      - { "v": false, "asInt": { "$numberInt": "0" } }
+      - {'__bot': {'v': true, 'asInt': {'$numberInt': '1'}}}
+      - {'__bot': {'v': false, 'asInt': {'$numberInt': '0'}}}
 
   - description: Cast BSON_DATE to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON ERROR) AS asIntOnError FROM dates"
+    query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asIntDefault': {'$convert': {'input': '$dates.v', 'to': 'int', 'onNull': null, 'onError': null}}, 'asIntOnError': {'$convert': {'input': '$dates.v', 'to': 'int', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asIntDefault": null, "asIntOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asIntDefault": null, "asIntOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asIntDefault": null, "asIntOnError": "null" }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asIntDefault': null, 'asIntOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asIntDefault': null, 'asIntOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asIntDefault': null, 'asIntOnError': 'null'}}
 
   - description: Cast NULL and MISSING to INT, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asIntDefault, CAST(v AS INT, 'null' ON NULL) AS asIntOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnNull': CAST(v AS INT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asIntDefault': {'$convert': {'input': '$nullAndMissing.v', 'to': 'int', 'onNull': null, 'onError': null}}, 'asIntOnNull': {'$convert': {'input': '$nullAndMissing.v', 'to': 'int', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asIntDefault": null, "asIntOnNull": "null" }
-      - { "asIntDefault": null, "asIntOnNull": "null" }
+      - {'__bot': {'v': null, 'asIntDefault': null, 'asIntOnNull': 'null'}}
+      - {'__bot': {'asIntDefault': null, 'asIntOnNull': 'null'}}
 
   - description: Cast INT to INT
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM ints"
+    query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asInt': {'$convert': {'input': '$ints.v', 'to': 'int', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asInt": { "$numberInt": "0" } }
-      - { "v": { "$numberInt": "1" }, "asInt": { "$numberInt": "-1" } }
-      - { "v": { "$numberInt": "-2" }, "asInt": { "$numberInt": "-2" } }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asInt': {'$numberInt': '0'}}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asInt': {'$numberInt': '-1'}}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asInt': {'$numberInt': '-2'}}}
 
   - description: Cast LONG to INT, out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM longs"
+    query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asInt': {'$convert': {'input': '$longs.v', 'to': 'int', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberLong": "0" }, "asInt": { "$numberInt": "0" } }
-      - { "v": { "$numberLong": "1" }, "asInt": { "$numberInt": "1" } }
-      - { "v": { "$numberLong": "-2" }, "asInt": { "$numberInt": "-2" } }
-      - { "v": { "$numberLong": "2147483648" }, "asInt": null }
-      - { "v": { "$numberLong": "-2147483649" }, "asInt": null }
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asInt': {'$numberInt': '0'}}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asInt': {'$numberInt': '1'}}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asInt': {'$numberInt': '-2'}}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asInt': null}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asInt': null}}
 
   - description: Cast DECIMAL to INT, out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS INT) AS asInt FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asInt': {'$convert': {'input': '$decimals.v', 'to': 'int', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" }, "asInt": { "$numberInt": "0" } }
-      - { "v": { "$numberDecimal": "1.9" }, "asInt": { "$numberInt": "1" } }
-      - { "v": { "$numberDecimal": "-2.4" }, "asInt": { "$numberInt": "-2" } }
-      - { "v": { "$numberDecimal": "2147483648.4" }, "asInt": null }
-      - { "v": { "$numberDecimal": "-2147483649.4" }, "asInt": null }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asInt": null }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asInt": null }
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asInt': {'$numberInt': '0'}}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asInt': {'$numberInt': '1'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asInt': {'$numberInt': '-2'}}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asInt': null}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asInt': null}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asInt': null}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asInt': null}}
 
   - description: Cast invalid source types to INT
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS INT) AS asInt FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asInt': CAST(v AS INT)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asInt': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'int', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asInt": null }
-      - { "type": "undefined", "asInt": null }
-      - { "type": "regex", "asInt": null }
-      - { "type": "dbPointer", "asInt": null }
-      - { "type": "javascript", "asInt": null }
-      - { "type": "symbol", "asInt": null }
-      - { "type": "javascriptWithScope", "asInt": null }
-      - { "type": "timestamp", "asInt": null }
-      - { "type": "minKey", "asInt": null }
-      - { "type": "maxKey", "asInt": null }
+      - {'__bot': {'type': 'binData', 'asInt': null}}
+      - {'__bot': {'type': 'undefined', 'asInt': null}}
+      - {'__bot': {'type': 'regex', 'asInt': null}}
+      - {'__bot': {'type': 'dbPointer', 'asInt': null}}
+      - {'__bot': {'type': 'javascript', 'asInt': null}}
+      - {'__bot': {'type': 'symbol', 'asInt': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asInt': null}}
+      - {'__bot': {'type': 'timestamp', 'asInt': null}}
+      - {'__bot': {'type': 'minKey', 'asInt': null}}
+      - {'__bot': {'type': 'maxKey', 'asInt': null}}
 
   - description: Cast DOUBLE to DECIMAL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asDecimal': {'$convert': {'input': '$doubles.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asDecimal": { "$numberDecimal": "0" } }
-      - { "v": { "$numberDouble": "1.9" }, "asDecimal": { "$numberDecimal": "1.9" } }
-      - { "v": { "$numberDouble": "-2.4" }, "asDecimal": { "$numberDecimal": "-2.4" },  }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asDecimal": { "$numberDecimal": "2147483648.4" } }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asDecimal": { "$numberDecimal": "-2147483649.7" } }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asDecimal': {'$numberDecimal': '1.9'}}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asDecimal': {'$numberDecimal': '-2.4'}}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asDecimal': {'$numberDecimal': '2147483648.4'}}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asDecimal': {'$numberDecimal': '-2147483649.7'}}}
 
   - description: Cast STRING to DECIMAL, non-numbers return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM strings"
+    query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asDecimal': {'$convert': {'input': '$strings.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asDecimal": null }
-      - { "v": "string", "asDecimal": null }
-      - { "v": "true", "asDecimal": null }
-      - { "v": "false", "asDecimal": null }
-      - { "v": "0", "asDecimal": { "$numberDecimal": "0" } }
-      - { "v": "0.0", "asDecimal": { "$numberDecimal": "0" } }
-      - { "v": "1", "asDecimal": { "$numberDecimal": "1" } }
-      - { "v": "-1", "asDecimal": { "$numberDecimal": "-1" } }
-      - { "v": "1.4", "asDecimal": { "$numberDecimal": "1.4" } }
-      - { "v": "-1.6", "asDecimal": { "$numberDecimal": "-1.6" } }
-      - { "v": "2147483648", "asDecimal": { "$numberDecimal": "2147483648" } }
-      - { "v": "-2147483649", "asDecimal": { "$numberDecimal": "-2147483649" } }
-      - { "v": "9223372036854775808", "asDecimal": { "$numberDecimal": "9223372036854775808" } }
-      - { "v": "-9223372036854775809", "asDecimal": { "$numberDecimal": "-9223372036854775809" } }
-      - { "v": "5e550", "asDecimal": { "$numberDecimal": "5E+550" } }
-      - { "v": "2018-03-03", "asDecimal": null }
-      - { "v": "2018-03-20 11:00:06 +0500", "asDecimal": null }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asDecimal": null }
+      - {'__bot': {'v': '', 'asDecimal': null}}
+      - {'__bot': {'v': 'string', 'asDecimal': null}}
+      - {'__bot': {'v': 'true', 'asDecimal': null}}
+      - {'__bot': {'v': 'false', 'asDecimal': null}}
+      - {'__bot': {'v': '0', 'asDecimal': {'$numberDecimal': '0'}}}
+      - {'__bot': {'v': '0.0', 'asDecimal': {'$numberDecimal': '0'}}}
+      - {'__bot': {'v': '1', 'asDecimal': {'$numberDecimal': '1'}}}
+      - {'__bot': {'v': '-1', 'asDecimal': {'$numberDecimal': '-1'}}}
+      - {'__bot': {'v': '1.4', 'asDecimal': {'$numberDecimal': '1.4'}}}
+      - {'__bot': {'v': '-1.6', 'asDecimal': {'$numberDecimal': '-1.6'}}}
+      - {'__bot': {'v': '2147483648', 'asDecimal': {'$numberDecimal': '2147483648'}}}
+      - {'__bot': {'v': '-2147483649', 'asDecimal': {'$numberDecimal': '-2147483649'}}}
+      - {'__bot': {'v': '9223372036854775808', 'asDecimal': {'$numberDecimal': '9223372036854775808'}}}
+      - {'__bot': {'v': '-9223372036854775809', 'asDecimal': {'$numberDecimal': '-9223372036854775809'}}}
+      - {'__bot': {'v': '5e550', 'asDecimal': {'$numberDecimal': '5E+550'}}}
+      - {'__bot': {'v': '2018-03-03', 'asDecimal': null}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asDecimal': null}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asDecimal': null}}
 
   - description: Cast DOCUMENT to DECIMAL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON ERROR) AS asDecimalOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asDecimalDefault': {'$convert': {'input': '$documents.v', 'to': 'decimal', 'onNull': null, 'onError': null}}, 'asDecimalOnError': {'$convert': {'input': '$documents.v', 'to': 'decimal', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asDecimalDefault": null, "asDecimalOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asDecimalDefault": null, "asDecimalOnError": "null" }
+      - {'__bot': {'v': {}, 'asDecimalDefault': null, 'asDecimalOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asDecimalDefault': null, 'asDecimalOnError': 'null'}}
 
   - description: Cast ARRAY to DECIMAL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON ERROR) AS asDecimalOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asDecimalDefault': {'$convert': {'input': '$arrays.v', 'to': 'decimal', 'onNull': null, 'onError': null}}, 'asDecimalOnError': {'$convert': {'input': '$arrays.v', 'to': 'decimal', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asDecimalDefault": null, "asDecimalOnError": "null" }
-      - { "v": [1, 2, 3], "asDecimalDefault": null, "asDecimalOnError": "null" }
+      - {'__bot': {'v': [], 'asDecimalDefault': null, 'asDecimalOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asDecimalDefault': null, 'asDecimalOnError': 'null'}}
 
   - description: Cast OBJECTID to DECIMAL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON ERROR) AS asDecimalOnError FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asDecimalDefault': {'$convert': {'input': '$objectIDs.v', 'to': 'decimal', 'onNull': null, 'onError': null}}, 'asDecimalOnError': {'$convert': {'input': '$objectIDs.v', 'to': 'decimal', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDecimalDefault": null, "asDecimalOnError": "null" }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDecimalDefault': null, 'asDecimalOnError': 'null'}}
 
   - description: Cast BOOL to DECIMAL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM bools"
+    query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asDecimal': {'$convert': {'input': '$bools.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": true, "asDecimal": { "$numberDecimal": "1" } }
-      - { "v": false, "asDecimal": { "$numberDecimal": "0" } }
+      - {'__bot': {'v': true, 'asDecimal': {'$numberDecimal': '1'}}}
+      - {'__bot': {'v': false, 'asDecimal': {'$numberDecimal': '0'}}}
 
   - description: Cast BSON_DATE to DECIMAL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM dates"
+    query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asDecimal': {'$convert': {'input': '$dates.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asDecimal": { "$numberDecimal": "0" } }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDecimal": { "$numberDecimal": "253402300799999" } }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDecimal": { "$numberDecimal": "-62135596800000" } }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asDecimal': {'$numberDecimal': '0'}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asDecimal': {'$numberDecimal': '253402300799999'}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDecimal': {'$numberDecimal': '-62135596800000'}}}
 
   - description: Cast NULL and MISSING to DECIMAL, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimalDefault, CAST(v AS DECIMAL, 'null' ON NULL) AS asDecimalOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnNull': CAST(v AS DECIMAL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asDecimalDefault': {'$convert': {'input': '$nullAndMissing.v', 'to': 'decimal', 'onNull': null, 'onError': null}}, 'asDecimalOnNull': {'$convert': {'input': '$nullAndMissing.v', 'to': 'decimal', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asDecimalDefault": null, "asDecimalOnNull": "null" }
-      - { "asDecimalDefault": null, "asDecimalOnNull": "null" }
+      - {'__bot': {'v': null, 'asDecimalDefault': null, 'asDecimalOnNull': 'null'}}
+      - {'__bot': {'asDecimalDefault': null, 'asDecimalOnNull': 'null'}}
 
   - description: Cast INT to DECIMAL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM ints"
+    query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asDecimal': {'$convert': {'input': '$ints.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asDecimal": { "$numberDecimal": "0" } }
-      - { "v": { "$numberInt": "1" }, "asDecimal": { "$numberDecimal": "1" } }
-      - { "v": { "$numberInt": "-2" }, "asDecimal": { "$numberDecimal": "-2" } }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asDecimal': {'$numberDecimal': '1'}}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asDecimal': {'$numberDecimal': '-2'}}}
 
   - description: Cast LONG to DECIMAL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM longs"
+    query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asDecimal': {'$convert': {'input': '$longs.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberLong": "0" }, "asDecimal": { "$numberDecimal": "0" } }
-      - { "v": { "$numberLong": "1" }, "asDecimal": { "$numberDecimal": "1" } }
-      - { "v": { "$numberLong": "-2" }, "asDecimal": { "$numberDecimal": "-2" } }
-      - { "v": { "$numberLong": "2147483648" }, "asDecimal": { "$numberDecimal": "2147483648" } }
-      - { "v": { "$numberLong": "-2147483649" }, "asDecimal": { "$numberDecimal": "-2147483649" } }
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asDecimal': {'$numberDecimal': '1'}}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asDecimal': {'$numberDecimal': '-2'}}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asDecimal': {'$numberDecimal': '2147483648'}}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asDecimal': {'$numberDecimal': '-2147483649'}}}
 
   - description: Cast DECIMAL to DECIMAL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DECIMAL) AS asDecimal FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asDecimal': {'$convert': {'input': '$decimals.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" }, "asDecimal": { "$numberDecimal": "0" } }
-      - { "v": { "$numberDecimal": "1.9" }, "asDecimal": { "$numberDecimal": "1.9" } }
-      - { "v": { "$numberDecimal": "-2.4" }, "asDecimal": { "$numberDecimal": "-2.4" } }
-      - { "v": { "$numberDecimal": "2147483648.4" }, "asDecimal": { "$numberDecimal": "2147483648.4" } }
-      - { "v": { "$numberDecimal": "-2147483649.4" }, "asDecimal": { "$numberDecimal": "-2147483649.4" } }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asDecimal": { "$numberDecimal": "9223372036854775808.8" } }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asDecimal": { "$numberDecimal": "-9223372036854775809.8" } }
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asDecimal': {'$numberDecimal': '0'}}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asDecimal': {'$numberDecimal': '1.9'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asDecimal': {'$numberDecimal': '-2.4'}}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asDecimal': {'$numberDecimal': '2147483648.4'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asDecimal': {'$numberDecimal': '-2147483649.4'}}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asDecimal': {'$numberDecimal': '9223372036854775808.8'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asDecimal': {'$numberDecimal': '-9223372036854775809.8'}}}
 
   - description: Cast invalid source types to DECIMAL
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS DECIMAL) AS asDecimal FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asDecimal': CAST(v AS DECIMAL)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asDecimal': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'decimal', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asDecimal": null }
-      - { "type": "undefined", "asDecimal": null }
-      - { "type": "regex", "asDecimal": null }
-      - { "type": "dbPointer", "asDecimal": null }
-      - { "type": "javascript", "asDecimal": null }
-      - { "type": "symbol", "asDecimal": null }
-      - { "type": "javascriptWithScope", "asDecimal": null }
-      - { "type": "timestamp", "asDecimal": null }
-      - { "type": "minKey", "asDecimal": null }
-      - { "type": "maxKey", "asDecimal": null }
+      - {'__bot': {'type': 'binData', 'asDecimal': null}}
+      - {'__bot': {'type': 'undefined', 'asDecimal': null}}
+      - {'__bot': {'type': 'regex', 'asDecimal': null}}
+      - {'__bot': {'type': 'dbPointer', 'asDecimal': null}}
+      - {'__bot': {'type': 'javascript', 'asDecimal': null}}
+      - {'__bot': {'type': 'symbol', 'asDecimal': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asDecimal': null}}
+      - {'__bot': {'type': 'timestamp', 'asDecimal': null}}
+      - {'__bot': {'type': 'minKey', 'asDecimal': null}}
+      - {'__bot': {'type': 'maxKey', 'asDecimal': null}}
 
   - description: Cast DOUBLE to DOUBLE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asDouble': {'$convert': {'input': '$doubles.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asDouble": { "$numberDouble": "0" } }
-      - { "v": { "$numberDouble": "1.9" }, "asDouble": { "$numberDouble": "1.9" } }
-      - { "v": { "$numberDouble": "-2.4" }, "asDouble": { "$numberDouble": "-2.4" },  }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asDouble": { "$numberDouble": "2147483648.4" } }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asDouble": { "$numberDouble": "-2147483649.7" } }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asDouble': {'$numberDouble': '0'}}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asDouble': {'$numberDouble': '1.9'}}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asDouble': {'$numberDouble': '-2.4'}, }}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asDouble': {'$numberDouble': '2147483648.4'}}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asDouble': {'$numberDouble': '-2147483649.7'}}}
 
   - description: Cast STRING to DOUBLE, non-numbers and out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM strings"
+    query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asDouble': {'$convert': {'input': '$strings.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asDouble": null }
-      - { "v": "string", "asDouble": null }
-      - { "v": "true", "asDouble": null }
-      - { "v": "false", "asDouble": null }
-      - { "v": "0", "asDouble": { "$numberDouble": "0" } }
-      - { "v": "0.0", "asDouble": { "$numberDouble": "0" } }
-      - { "v": "1", "asDouble": { "$numberDouble": "1" } }
-      - { "v": "-1", "asDouble": { "$numberDouble": "-1" } }
-      - { "v": "1.4", "asDouble": { "$numberDouble": "1.4" } }
-      - { "v": "-1.6", "asDouble": { "$numberDouble": "-1.6" } }
-      - { "v": "2147483648", "asDouble": { "$numberDouble": "2147483648" } }
-      - { "v": "-2147483649", "asDouble": { "$numberDouble": "-2147483649" } }
-      - { "v": "9223372036854775808", "asDouble": { "$numberDouble": "9223372036854776000" } }
-      - { "v": "-9223372036854775809", "asDouble": { "$numberDouble": "-9223372036854776000" } }
-      - { "v": "5e550", "asDouble": null }
-      - { "v": "2018-03-03", "asDouble": null }
-      - { "v": "2018-03-20 11:00:06 +0500", "asDouble": null }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asDouble": null }
+      - {'__bot': {'v': '', 'asDouble': null}}
+      - {'__bot': {'v': 'string', 'asDouble': null}}
+      - {'__bot': {'v': 'true', 'asDouble': null}}
+      - {'__bot': {'v': 'false', 'asDouble': null}}
+      - {'__bot': {'v': '0', 'asDouble': {'$numberDouble': '0'}}}
+      - {'__bot': {'v': '0.0', 'asDouble': {'$numberDouble': '0'}}}
+      - {'__bot': {'v': '1', 'asDouble': {'$numberDouble': '1'}}}
+      - {'__bot': {'v': '-1', 'asDouble': {'$numberDouble': '-1'}}}
+      - {'__bot': {'v': '1.4', 'asDouble': {'$numberDouble': '1.4'}}}
+      - {'__bot': {'v': '-1.6', 'asDouble': {'$numberDouble': '-1.6'}}}
+      - {'__bot': {'v': '2147483648', 'asDouble': {'$numberDouble': '2147483648'}}}
+      - {'__bot': {'v': '-2147483649', 'asDouble': {'$numberDouble': '-2147483649'}}}
+      - {'__bot': {'v': '9223372036854775808', 'asDouble': {'$numberDouble': '9223372036854776000'}}}
+      - {'__bot': {'v': '-9223372036854775809', 'asDouble': {'$numberDouble': '-9223372036854776000'}}}
+      - {'__bot': {'v': '5e550', 'asDouble': null}}
+      - {'__bot': {'v': '2018-03-03', 'asDouble': null}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asDouble': null}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asDouble': null}}
 
   - description: Cast DOCUMENT to DOUBLE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON ERROR) AS asDoubleOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asDoubleDefault': {'$convert': {'input': '$documents.v', 'to': 'double', 'onNull': null, 'onError': null}}, 'asDoubleOnError': {'$convert': {'input': '$documents.v', 'to': 'double', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asDoubleDefault": null, "asDoubleOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asDoubleDefault": null, "asDoubleOnError": "null" }
+      - {'__bot': {'v': {}, 'asDoubleDefault': null, 'asDoubleOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asDoubleDefault': null, 'asDoubleOnError': 'null'}}
 
   - description: Cast ARRAY to DOUBLE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON ERROR) AS asDoubleOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asDoubleDefault': {'$convert': {'input': '$arrays.v', 'to': 'double', 'onNull': null, 'onError': null}}, 'asDoubleOnError': {'$convert': {'input': '$arrays.v', 'to': 'double', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asDoubleDefault": null, "asDoubleOnError": "null" }
-      - { "v": [1, 2, 3], "asDoubleDefault": null, "asDoubleOnError": "null" }
+      - {'__bot': {'v': [], 'asDoubleDefault': null, 'asDoubleOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asDoubleDefault': null, 'asDoubleOnError': 'null'}}
 
   - description: Cast OBJECTID to DOUBLE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON ERROR) AS asDoubleOnError FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asDoubleDefault': {'$convert': {'input': '$objectIDs.v', 'to': 'double', 'onNull': null, 'onError': null}}, 'asDoubleOnError': {'$convert': {'input': '$objectIDs.v', 'to': 'double', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDoubleDefault": null, "asDoubleOnError": "null" }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDoubleDefault': null, 'asDoubleOnError': 'null'}}
 
   - description: Cast BOOL to DOUBLE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM bools"
+    query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asDouble': {'$convert': {'input': '$bools.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": true, "asDouble": { "$numberDouble": "1" } }
-      - { "v": false, "asDouble": { "$numberDouble": "0" } }
+      - {'__bot': {'v': true, 'asDouble': {'$numberDouble': '1'}}}
+      - {'__bot': {'v': false, 'asDouble': {'$numberDouble': '0'}}}
 
   - description: Cast BSON_DATE to DOUBLE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM dates"
+    query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asDouble': {'$convert': {'input': '$dates.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asDouble": { "$numberDouble": "0" } }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDouble": { "$numberDouble": "253402300799999" } }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDouble": { "$numberDouble": "-62135596800000" } }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asDouble': {'$numberDouble': '0'}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asDouble': {'$numberDouble': '253402300799999'}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDouble': {'$numberDouble': '-62135596800000'}}}
 
   - description: Cast NULL and MISSING to DOUBLE, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDoubleDefault, CAST(v AS DOUBLE, 'null' ON NULL) AS asDoubleOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnNull': CAST(v AS DOUBLE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asDoubleDefault': {'$convert': {'input': '$nullAndMissing.v', 'to': 'double', 'onNull': null, 'onError': null}}, 'asDoubleOnNull': {'$convert': {'input': '$nullAndMissing.v', 'to': 'double', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asDoubleDefault": null, "asDoubleOnNull": "null" }
-      - { "asDoubleDefault": null, "asDoubleOnNull": "null" }
+      - {'__bot': {'v': null, 'asDoubleDefault': null, 'asDoubleOnNull': 'null'}}
+      - {'__bot': {'asDoubleDefault': null, 'asDoubleOnNull': 'null'}}
 
   - description: Cast INT to DOUBLE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM ints"
+    query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asDouble': {'$convert': {'input': '$ints.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asDouble": { "$numberDouble": "0" } }
-      - { "v": { "$numberInt": "1" }, "asDouble": { "$numberDouble": "1" } }
-      - { "v": { "$numberInt": "-2" }, "asDouble": { "$numberDouble": "-2" } }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asDouble': {'$numberDouble': '0'}}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asDouble': {'$numberDouble': '1'}}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asDouble': {'$numberDouble': '-2'}}}
 
   - description: Cast LONG to DOUBLE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM longs"
+    query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asDouble': {'$convert': {'input': '$longs.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberLong": "0" }, "asDouble": { "$numberDouble": "0" } }
-      - { "v": { "$numberLong": "1" }, "asDouble": { "$numberDouble": "1" } }
-      - { "v": { "$numberLong": "-2" }, "asDouble": { "$numberDouble": "-2" } }
-      - { "v": { "$numberLong": "2147483648" }, "asDouble": { "$numberDouble": "2147483648" } }
-      - { "v": { "$numberLong": "-2147483649" }, "asDouble": { "$numberDouble": "-2147483649" } }
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asDouble': {'$numberDouble': '0'}}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asDouble': {'$numberDouble': '1'}}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asDouble': {'$numberDouble': '-2'}}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asDouble': {'$numberDouble': '2147483648'}}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asDouble': {'$numberDouble': '-2147483649'}}}
 
   - description: Cast DECIMAL to DOUBLE, out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOUBLE) AS asDouble FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asDouble': {'$convert': {'input': '$decimals.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" }, "asDouble": { "$numberDouble": "0" } }
-      - { "v": { "$numberDecimal": "1.9" }, "asDouble": { "$numberDouble": "1.9" } }
-      - { "v": { "$numberDecimal": "-2.4" }, "asDouble": { "$numberDouble": "-2.4" } }
-      - { "v": { "$numberDecimal": "2147483648.4" }, "asDouble": { "$numberDouble": "2147483648.4" } }
-      - { "v": { "$numberDecimal": "-2147483649.4" }, "asDouble": { "$numberDouble": "-2147483649.4" } }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asDouble": { "$numberDouble": "9223372036854780000" } }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asDouble": { "$numberDouble": "-9223372036854780000" } }
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asDouble': {'$numberDouble': '0'}}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asDouble': {'$numberDouble': '1.9'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asDouble': {'$numberDouble': '-2.4'}}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asDouble': {'$numberDouble': '2147483648.4'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asDouble': {'$numberDouble': '-2147483649.4'}}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asDouble': {'$numberDouble': '9223372036854780000'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asDouble': {'$numberDouble': '-9223372036854780000'}}}
 
   - description: Cast invalid source types to DOUBLE
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS DOUBLE) AS asDouble FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asDouble': CAST(v AS DOUBLE)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asDouble': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'double', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asDouble": null }
-      - { "type": "undefined", "asDouble": null }
-      - { "type": "regex", "asDouble": null }
-      - { "type": "dbPointer", "asDouble": null }
-      - { "type": "javascript", "asDouble": null }
-      - { "type": "symbol", "asDouble": null }
-      - { "type": "javascriptWithScope", "asDouble": null }
-      - { "type": "timestamp", "asDouble": null }
-      - { "type": "minKey", "asDouble": null }
-      - { "type": "maxKey", "asDouble": null }
+      - {'__bot': {'type': 'binData', 'asDouble': null}}
+      - {'__bot': {'type': 'undefined', 'asDouble': null}}
+      - {'__bot': {'type': 'regex', 'asDouble': null}}
+      - {'__bot': {'type': 'dbPointer', 'asDouble': null}}
+      - {'__bot': {'type': 'javascript', 'asDouble': null}}
+      - {'__bot': {'type': 'symbol', 'asDouble': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asDouble': null}}
+      - {'__bot': {'type': 'timestamp', 'asDouble': null}}
+      - {'__bot': {'type': 'minKey', 'asDouble': null}}
+      - {'__bot': {'type': 'maxKey', 'asDouble': null}}
 
   - description: Cast DOUBLE to LONG
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asLong': {'$convert': {'input': '$doubles.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asLong": { "$numberLong": "0" } }
-      - { "v": { "$numberDouble": "1.9" }, "asLong": { "$numberLong": "1" } }
-      - { "v": { "$numberDouble": "-2.4" }, "asLong": { "$numberLong": "-2" },  }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asLong": { "$numberLong": "2147483648" } }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asLong": { "$numberLong": "-2147483649" } }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asLong': {'$numberLong': '0'}}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asLong': {'$numberLong': '1'}}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asLong': {'$numberLong': '-2'}, }}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asLong': {'$numberLong': '2147483648'}}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asLong': {'$numberLong': '-2147483649'}}}
 
   - description: Cast STRING to LONG, non-numbers, non-ints, and out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM strings"
+    query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asLong': {'$convert': {'input': '$strings.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asLong": null }
-      - { "v": "string", "asLong": null }
-      - { "v": "true", "asLong": null }
-      - { "v": "false", "asLong": null }
-      - { "v": "0", "asLong": { "$numberLong": "0" } }
-      - { "v": "0.0", "asLong": null }
-      - { "v": "1", "asLong": { "$numberLong": "1" } }
-      - { "v": "-1", "asLong": { "$numberLong": "-1" } }
-      - { "v": "1.4", "asLong": null }
-      - { "v": "-1.6", "asLong": null }
-      - { "v": "2147483648", "asLong": { "$numberLong": "2147483648" } }
-      - { "v": "-2147483649", "asLong": { "$numberLong": "-2147483649" } }
-      - { "v": "9223372036854775808", "asLong": null }
-      - { "v": "-9223372036854775809", "asLong": null }
-      - { "v": "5e550", "asLong": null }
-      - { "v": "2018-03-03", "asLong": null }
-      - { "v": "2018-03-20 11:00:06 +0500", "asLong": null }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asLong": null }
+      - {'__bot': {'v': '', 'asLong': null}}
+      - {'__bot': {'v': 'string', 'asLong': null}}
+      - {'__bot': {'v': 'true', 'asLong': null}}
+      - {'__bot': {'v': 'false', 'asLong': null}}
+      - {'__bot': {'v': '0', 'asLong': {'$numberLong': '0'}}}
+      - {'__bot': {'v': '0.0', 'asLong': null}}
+      - {'__bot': {'v': '1', 'asLong': {'$numberLong': '1'}}}
+      - {'__bot': {'v': '-1', 'asLong': {'$numberLong': '-1'}}}
+      - {'__bot': {'v': '1.4', 'asLong': null}}
+      - {'__bot': {'v': '-1.6', 'asLong': null}}
+      - {'__bot': {'v': '2147483648', 'asLong': {'$numberLong': '2147483648'}}}
+      - {'__bot': {'v': '-2147483649', 'asLong': {'$numberLong': '-2147483649'}}}
+      - {'__bot': {'v': '9223372036854775808', 'asLong': null}}
+      - {'__bot': {'v': '-9223372036854775809', 'asLong': null}}
+      - {'__bot': {'v': '5e550', 'asLong': null}}
+      - {'__bot': {'v': '2018-03-03', 'asLong': null}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asLong': null}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asLong': null}}
 
   - description: Cast DOCUMENT to LONG is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON ERROR) AS asLongOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asLongDefault': {'$convert': {'input': '$documents.v', 'to': 'long', 'onNull': null, 'onError': null}}, 'asLongOnError': {'$convert': {'input': '$documents.v', 'to': 'long', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asLongDefault": null, "asLongOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asLongDefault": null, "asLongOnError": "null" }
+      - {'__bot': {'v': {}, 'asLongDefault': null, 'asLongOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asLongDefault': null, 'asLongOnError': 'null'}}
 
   - description: Cast ARRAY to LONG is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON ERROR) AS asLongOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asLongDefault': {'$convert': {'input': '$arrays.v', 'to': 'long', 'onNull': null, 'onError': null}}, 'asLongOnError': {'$convert': {'input': '$arrays.v', 'to': 'long', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asLongDefault": null, "asLongOnError": "null" }
-      - { "v": [1, 2, 3], "asLongDefault": null, "asLongOnError": "null" }
+      - {'__bot': {'v': [], 'asLongDefault': null, 'asLongOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asLongDefault': null, 'asLongOnError': 'null'}}
 
   - description: Cast OBJECTID to LONG is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON ERROR) AS asLongOnError FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asLongDefault': {'$convert': {'input': '$objectIDs.v', 'to': 'long', 'onNull': null, 'onError': null}}, 'asLongOnError': {'$convert': {'input': '$objectIDs.v', 'to': 'long', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asLongDefault": null, "asLongOnError": "null" }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asLongDefault': null, 'asLongOnError': 'null'}}
 
   - description: Cast BOOL to LONG
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM bools"
+    query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asLong': {'$convert': {'input': '$bools.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": true, "asLong": { "$numberLong": "1" } }
-      - { "v": false, "asLong": { "$numberLong": "0" } }
+      - {'__bot': {'v': true, 'asLong': {'$numberLong': '1'}}}
+      - {'__bot': {'v': false, 'asLong': {'$numberLong': '0'}}}
 
   - description: Cast BSON_DATE to LONG
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM dates"
+    query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asLong': {'$convert': {'input': '$dates.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asLong": { "$numberLong": "0" } }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asLong": { "$numberLong": "253402300799999" } }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asLong": { "$numberLong": "-62135596800000" } }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asLong': {'$numberLong': '0'}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asLong': {'$numberLong': '253402300799999'}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asLong': {'$numberLong': '-62135596800000'}}}
 
   - description: Cast NULL and MISSING to LONG, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLongDefault, CAST(v AS LONG, 'null' ON NULL) AS asLongOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnNull': CAST(v AS LONG, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asLongDefault': {'$convert': {'input': '$nullAndMissing.v', 'to': 'long', 'onNull': null, 'onError': null}}, 'asLongOnNull': {'$convert': {'input': '$nullAndMissing.v', 'to': 'long', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asLongDefault": null, "asLongOnNull": "null" }
-      - { "asLongDefault": null, "asLongOnNull": "null" }
+      - {'__bot': {'v': null, 'asLongDefault': null, 'asLongOnNull': 'null'}}
+      - {'__bot': {'asLongDefault': null, 'asLongOnNull': 'null'}}
 
   - description: Cast INT to LONG
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM ints"
+    query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asLong': {'$convert': {'input': '$ints.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asLong": { "$numberLong": "0" } }
-      - { "v": { "$numberInt": "1" }, "asLong": { "$numberLong": "1" } }
-      - { "v": { "$numberInt": "-2" }, "asLong": { "$numberLong": "-2" } }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asLong': {'$numberLong': '0'}}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asLong': {'$numberLong': '1'}}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asLong': {'$numberLong': '-2'}}}
 
   - description: Cast LONG to LONG
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM longs"
+    query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asLong': {'$convert': {'input': '$longs.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberLong": "0" }, "asLong": { "$numberLong": "0" } }
-      - { "v": { "$numberLong": "1" }, "asLong": { "$numberLong": "1" } }
-      - { "v": { "$numberLong": "-2" }, "asLong": { "$numberLong": "-2" } }
-      - { "v": { "$numberLong": "2147483648" }, "asLong": { "$numberLong": "2147483648" } }
-      - { "v": { "$numberLong": "-2147483649" }, "asLong": { "$numberLong": "-2147483649" } }
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asLong': {'$numberLong': '0'}}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asLong': {'$numberLong': '1'}}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asLong': {'$numberLong': '-2'}}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asLong': {'$numberLong': '2147483648'}}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asLong': {'$numberLong': '-2147483649'}}}
 
   - description: Cast DECIMAL to LONG, out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS LONG) AS asLong FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asLong': {'$convert': {'input': '$decimals.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" }, "asLong": { "$numberLong": "0" } }
-      - { "v": { "$numberDecimal": "1.9" }, "asLong": { "$numberLong": "1" } }
-      - { "v": { "$numberDecimal": "-2.4" }, "asLong": { "$numberLong": "-2" } }
-      - { "v": { "$numberDecimal": "2147483648.4" }, "asLong": { "$numberLong": "2147483648" } }
-      - { "v": { "$numberDecimal": "-2147483649.4" }, "asLong": { "$numberLong": "-2147483649" } }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asLong": null }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asLong": null }
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asLong': {'$numberLong': '0'}}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asLong': {'$numberLong': '1'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asLong': {'$numberLong': '-2'}}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asLong': {'$numberLong': '2147483648'}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asLong': {'$numberLong': '-2147483649'}}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asLong': null}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asLong': null}}
 
   - description: Cast invalid source types to LONG
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS LONG) AS asLong FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asLong': CAST(v AS LONG)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asLong': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'long', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asLong": null }
-      - { "type": "undefined", "asLong": null }
-      - { "type": "regex", "asLong": null }
-      - { "type": "dbPointer", "asLong": null }
-      - { "type": "javascript", "asLong": null }
-      - { "type": "symbol", "asLong": null }
-      - { "type": "javascriptWithScope", "asLong": null }
-      - { "type": "timestamp", "asLong": null }
-      - { "type": "minKey", "asLong": null }
-      - { "type": "maxKey", "asLong": null }
+      - {'__bot': {'type': 'binData', 'asLong': null}}
+      - {'__bot': {'type': 'undefined', 'asLong': null}}
+      - {'__bot': {'type': 'regex', 'asLong': null}}
+      - {'__bot': {'type': 'dbPointer', 'asLong': null}}
+      - {'__bot': {'type': 'javascript', 'asLong': null}}
+      - {'__bot': {'type': 'symbol', 'asLong': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asLong': null}}
+      - {'__bot': {'type': 'timestamp', 'asLong': null}}
+      - {'__bot': {'type': 'minKey', 'asLong': null}}
+      - {'__bot': {'type': 'maxKey', 'asLong': null}}
 
   - description: Cast DOUBLE to BSON_DATE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asDate': {'$convert': {'input': '$doubles.v', 'to': 'date', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asDate": { "$date": { "$numberLong": "0" } } }
-      - { "v": { "$numberDouble": "1.9" }, "asDate": { "$date": { "$numberLong": "1" } } }
-      - { "v": { "$numberDouble": "-2.4" }, "asDate": { "$date": { "$numberLong": "-2" },  } }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asDate": { "$date": { "$numberLong": "2147483648" } } }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asDate": { "$date": { "$numberLong": "-2147483649" } } }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asDate': {'$date': {'$numberLong': '0'}}}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asDate': {'$date': {'$numberLong': '1'}}}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asDate': {'$date': {'$numberLong': '-2'}, }}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asDate': {'$date': {'$numberLong': '2147483648'}}}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asDate': {'$date': {'$numberLong': '-2147483649'}}}}
 
   - description: Cast STRING to BSON_DATE, non-dates are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM strings"
+    query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asDate': {'$convert': {'input': '$strings.v', 'to': 'date', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asDate": null }
-      - { "v": "string", "asDate": null }
-      - { "v": "true", "asDate": null }
-      - { "v": "false", "asDate": null }
-      - { "v": "0", "asDate": null }
-      - { "v": "0.0", "asDate": null }
-      - { "v": "1", "asDate": null }
-      - { "v": "-1", "asDate": null }
-      - { "v": "1.4", "asDate": null }
-      - { "v": "-1.6", "asDate": null }
-      - { "v": "2147483648", "asDate": null }
-      - { "v": "-2147483649", "asDate": null }
-      - { "v": "9223372036854775808", "asDate": null }
-      - { "v": "-9223372036854775809", "asDate": null }
-      - { "v": "5e550", "asDate": null }
-      - { "v": "2018-03-03", "asDate": { "$date": { "$numberLong": "1520035200000" } } }
-      - { "v": "2018-03-20 11:00:06 +0500", "asDate": { "$date": { "$numberLong": "1521525606000" } } }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asDate": null }
+      - {'__bot': {'v': '', 'asDate': null}}
+      - {'__bot': {'v': 'string', 'asDate': null}}
+      - {'__bot': {'v': 'true', 'asDate': null}}
+      - {'__bot': {'v': 'false', 'asDate': null}}
+      - {'__bot': {'v': '0', 'asDate': null}}
+      - {'__bot': {'v': '0.0', 'asDate': null}}
+      - {'__bot': {'v': '1', 'asDate': null}}
+      - {'__bot': {'v': '-1', 'asDate': null}}
+      - {'__bot': {'v': '1.4', 'asDate': null}}
+      - {'__bot': {'v': '-1.6', 'asDate': null}}
+      - {'__bot': {'v': '2147483648', 'asDate': null}}
+      - {'__bot': {'v': '-2147483649', 'asDate': null}}
+      - {'__bot': {'v': '9223372036854775808', 'asDate': null}}
+      - {'__bot': {'v': '-9223372036854775809', 'asDate': null}}
+      - {'__bot': {'v': '5e550', 'asDate': null}}
+      - {'__bot': {'v': '2018-03-03', 'asDate': {'$date': {'$numberLong': '1520035200000'}}}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asDate': {'$date': {'$numberLong': '1521525606000'}}}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asDate': null}}
 
   - description: Cast DOCUMENT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asDateDefault': {'$convert': {'input': '$documents.v', 'to': 'bson_date', 'onNull': null, 'onError': null}}, 'asDateOnError': {'$convert': {'input': '$documents.v', 'to': 'bson_date', 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asDateDefault": null, "asDateOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asDateDefault": null, "asDateOnError": "null" }
+      - {'__bot': {'v': {}, 'asDateDefault': null, 'asDateOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asDateDefault': null, 'asDateOnError': 'null'}}
 
   - description: Cast ARRAY to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asDateDefault': {'$convert': {'input': '$arrays.v', 'to': 'bson_date', 'onNull': null, 'onError': null}}, 'asDateOnError': {'$convert': {'input': '$arrays.v', 'to': 'bson_date', 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asDateDefault": null, "asDateOnError": "null" }
-      - { "v": [1, 2, 3], "asDateDefault": null, "asDateOnError": "null" }
+      - {'__bot': {'v': [], 'asDateDefault': null, 'asDateOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asDateDefault': null, 'asDateOnError': 'null'}}
 
   - description: Cast OBJECTID to BSON_DATE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asDate': {'$convert': {'input': '$objectIDs.v', 'to': 'date', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDate": { "$date": { "$numberLong": "1522123738000" } } }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDate': {'$date': {'$numberLong': '1522123738000'}}}}
 
   - description: Cast BOOL to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM bools"
+    query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asDateDefault': {'$convert': {'input': '$bools.v', 'to': 'bson_date', 'onNull': null, 'onError': null}}, 'asDateOnError': {'$convert': {'input': '$bools.v', 'to': 'bson_date', 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": true, "asDateDefault": null, "asDateOnError": "null" }
-      - { "v": false, "asDateDefault": null, "asDateOnError": "null" }
+      - {'__bot': {'v': true, 'asDateDefault': null, 'asDateOnError': 'null'}}
+      - {'__bot': {'v': false, 'asDateDefault': null, 'asDateOnError': 'null'}}
 
   - description: Cast BSON_DATE to BSON_DATE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM dates"
+    query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asDate': {'$convert': {'input': '$dates.v', 'to': 'date', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asDate": { "$date": { "$numberLong": "0" } } }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDate": { "$date": { "$numberLong": "253402300799999" } } }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDate": { "$date": { "$numberLong": "-62135596800000" } } }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asDate': {'$date': {'$numberLong': '0'}}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asDate': {'$date': {'$numberLong': '253402300799999'}}}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDate': {'$date': {'$numberLong': '-62135596800000'}}}}
 
   - description: Cast NULL and MISSING to BSON_DATE, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON NULL) AS asDateOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnNull': CAST(v AS BSON_DATE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asDateDefault': {'$convert': {'input': '$nullAndMissing.v', 'to': 'bson_date', 'onNull': null, 'onError': null}}, 'asDateOnNull': {'$convert': {'input': '$nullAndMissing.v', 'to': 'bson_date', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asDateDefault": null, "asDateOnNull": "null" }
-      - { "asDateDefault": null, "asDateOnNull": "null" }
+      - {'__bot': {'v': null, 'asDateDefault': null, 'asDateOnNull': 'null'}}
+      - {'__bot': {'asDateDefault': null, 'asDateOnNull': 'null'}}
 
   - description: Cast INT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDateDefault, CAST(v AS BSON_DATE, 'null' ON ERROR) AS asDateOnError FROM ints"
+    query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asDateDefault': {'$convert': {'input': '$ints.v', 'to': 'bson_date', 'onNull': null, 'onError': null}}, 'asDateOnError': {'$convert': {'input': '$ints.v', 'to': 'bson_date', 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asDateDefault": null, "asDateOnError": "null" }
-      - { "v": { "$numberInt": "1" }, "asDateDefault": null, "asDateOnError": "null" }
-      - { "v": { "$numberInt": "-2" }, "asDateDefault": null, "asDateOnError": "null" }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asDateDefault': null, 'asDateOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asDateDefault': null, 'asDateOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asDateDefault': null, 'asDateOnError': 'null'}}
 
   - description: Cast LONG to BSON_DATE
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM longs"
+    query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asDate': {'$convert': {'input': '$longs.v', 'to': 'date', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberLong": "0" }, "asDate": { "$date": { "$numberLong": "0" } } }
-      - { "v": { "$numberLong": "1" }, "asDate": { "$date": { "$numberLong": "1" } } }
-      - { "v": { "$numberLong": "-2" }, "asDate": { "$date": { "$numberLong": "-2" } } }
-      - { "v": { "$numberLong": "2147483648" }, "asDate": { "$date": { "$numberLong": "2147483648" } } }
-      - { "v": { "$numberLong": "-2147483649" }, "asDate": { "$date": { "$numberLong": "-2147483649" } } }
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asDate': {'$date': {'$numberLong': '0'}}}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asDate': {'$date': {'$numberLong': '1'}}}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asDate': {'$date': {'$numberLong': '-2'}}}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asDate': {'$date': {'$numberLong': '2147483648'}}}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asDate': {'$date': {'$numberLong': '-2147483649'}}}}
 
   - description: Cast DECIMAL to BSON_DATE, out of range numbers are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS BSON_DATE) AS asDate FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asDate': {'$convert': {'input': '$decimals.v', 'to': 'date', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" }, "asDate": { "$date": { "$numberLong": "0" } } }
-      - { "v": { "$numberDecimal": "1.9" }, "asDate": { "$date": { "$numberLong": "1" } } }
-      - { "v": { "$numberDecimal": "-2.4" }, "asDate": { "$date": { "$numberLong": "-2" } } }
-      - { "v": { "$numberDecimal": "2147483648.4" }, "asDate": { "$date": { "$numberLong": "2147483648" } } }
-      - { "v": { "$numberDecimal": "-2147483649.4" }, "asDate": { "$date": { "$numberLong": "-2147483649" } } }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asDate": null }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asDate": null }
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asDate': {'$date': {'$numberLong': '0'}}}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asDate': {'$date': {'$numberLong': '1'}}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asDate': {'$date': {'$numberLong': '-2'}}}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asDate': {'$date': {'$numberLong': '2147483648'}}}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asDate': {'$date': {'$numberLong': '-2147483649'}}}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asDate': null}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asDate': null}}
 
   - description: Cast invalid source types to BSON_DATE
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS BSON_DATE) AS asDate FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asDate': CAST(v AS BSON_DATE)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asDate': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'date', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asDate": null }
-      - { "type": "undefined", "asDate": null }
-      - { "type": "regex", "asDate": null }
-      - { "type": "dbPointer", "asDate": null }
-      - { "type": "javascript", "asDate": null }
-      - { "type": "symbol", "asDate": null }
-      - { "type": "javascriptWithScope", "asDate": null }
-      - { "type": "timestamp", "asDate": null }
-      - { "type": "minKey", "asDate": null }
-      - { "type": "maxKey", "asDate": null }
+      - {'__bot': {'type': 'binData', 'asDate': null}}
+      - {'__bot': {'type': 'undefined', 'asDate': null}}
+      - {'__bot': {'type': 'regex', 'asDate': null}}
+      - {'__bot': {'type': 'dbPointer', 'asDate': null}}
+      - {'__bot': {'type': 'javascript', 'asDate': null}}
+      - {'__bot': {'type': 'symbol', 'asDate': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asDate': null}}
+      - {'__bot': {'type': 'timestamp', 'asDate': null}}
+      - {'__bot': {'type': 'minKey', 'asDate': null}}
+      - {'__bot': {'type': 'maxKey', 'asDate': null}}
 
   - description: Cast DOUBLE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asObjectIDDefault': {'$convert': {'input': '$doubles.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$doubles.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDouble": "1.9" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDouble": "-2.4" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast STRING to OBJECTID, non-objectIDs are invalid and return NULL
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectID FROM strings"
+    query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asObjectID': {'$convert': {'input': '$strings.v', 'to': 'objectId', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asObjectID": null }
-      - { "v": "string", "asObjectID": null }
-      - { "v": "true", "asObjectID": null }
-      - { "v": "false", "asObjectID": null }
-      - { "v": "0", "asObjectID": null }
-      - { "v": "0.0", "asObjectID": null }
-      - { "v": "1", "asObjectID": null }
-      - { "v": "-1", "asObjectID": null }
-      - { "v": "1.4", "asObjectID": null }
-      - { "v": "-1.6", "asObjectID": null }
-      - { "v": "2147483648", "asObjectID": null }
-      - { "v": "-2147483649", "asObjectID": null }
-      - { "v": "9223372036854775808", "asObjectID": null }
-      - { "v": "-9223372036854775809", "asObjectID": null }
-      - { "v": "5e550", "asObjectID": null }
-      - { "v": "2018-03-03", "asObjectID": null }
-      - { "v": "2018-03-20 11:00:06 +0500", "asObjectID": null }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asObjectID": { "$oid": "5ab9cbfa31c2ab715d42129e" } }
+      - {'__bot': {'v': '', 'asObjectID': null}}
+      - {'__bot': {'v': 'string', 'asObjectID': null}}
+      - {'__bot': {'v': 'true', 'asObjectID': null}}
+      - {'__bot': {'v': 'false', 'asObjectID': null}}
+      - {'__bot': {'v': '0', 'asObjectID': null}}
+      - {'__bot': {'v': '0.0', 'asObjectID': null}}
+      - {'__bot': {'v': '1', 'asObjectID': null}}
+      - {'__bot': {'v': '-1', 'asObjectID': null}}
+      - {'__bot': {'v': '1.4', 'asObjectID': null}}
+      - {'__bot': {'v': '-1.6', 'asObjectID': null}}
+      - {'__bot': {'v': '2147483648', 'asObjectID': null}}
+      - {'__bot': {'v': '-2147483649', 'asObjectID': null}}
+      - {'__bot': {'v': '9223372036854775808', 'asObjectID': null}}
+      - {'__bot': {'v': '-9223372036854775809', 'asObjectID': null}}
+      - {'__bot': {'v': '5e550', 'asObjectID': null}}
+      - {'__bot': {'v': '2018-03-03', 'asObjectID': null}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asObjectID': null}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asObjectID': {'$oid': '5ab9cbfa31c2ab715d42129e'}}}
 
   - description: Cast DOCUMENT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asObjectIDDefault': {'$convert': {'input': '$documents.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$documents.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': {}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast ARRAY to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asObjectIDDefault': {'$convert': {'input': '$arrays.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$arrays.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": [1, 2, 3], "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': [], 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast OBJECTID to OBJECTID
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectID FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asObjectID': {'$convert': {'input': '$objectIDs.v', 'to': 'objectId', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asObjectID": { "$oid": "5ab9c3da31c2ab715d421285" } }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asObjectID': {'$oid': '5ab9c3da31c2ab715d421285'}}}
 
   - description: Cast BOOL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM bools"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asObjectIDDefault': {'$convert': {'input': '$bools.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$bools.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": true, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": false, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': true, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': false, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast BSON_DATE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM dates"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asObjectIDDefault': {'$convert': {'input': '$dates.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$dates.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast NULL and MISSING to OBJECTID, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON NULL) AS asObjectIDOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnNull': CAST(v AS OBJECTID, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asObjectIDDefault': {'$convert': {'input': '$nullAndMissing.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnNull': {'$convert': {'input': '$nullAndMissing.v', 'to': 'objectid', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asObjectIDDefault": null, "asObjectIDOnNull": "null" }
-      - { "asObjectIDDefault": null, "asObjectIDOnNull": "null" }
+      - {'__bot': {'v': null, 'asObjectIDDefault': null, 'asObjectIDOnNull': 'null'}}
+      - {'__bot': {'asObjectIDDefault': null, 'asObjectIDOnNull': 'null'}}
 
   - description: Cast INT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM ints"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asObjectIDDefault': {'$convert': {'input': '$ints.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$ints.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberInt": "1" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberInt": "-2" }, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast LONG to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM longs"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asObjectIDDefault': {'$convert': {'input': '$longs.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$longs.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberLong": "0" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberLong": "1" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberLong": "-2" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberLong": "2147483648" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberLong": "-2147483649" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': {'$numberLong': '0'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '1'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast DECIMAL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS OBJECTID) AS asObjectIDDefault, CAST(v AS OBJECTID, 'null' ON ERROR) AS asObjectIDOnError FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asObjectIDDefault': {'$convert': {'input': '$decimals.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$decimals.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDecimal": "1.9" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDecimal": "-2.4" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDecimal": "2147483648.4" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDecimal": "-2147483649.4" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" },, "asObjectIDDefault": null, "asObjectIDOnError": "null" }
+      - {'__bot': {'v': {'$numberDecimal': '0'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast invalid source types to OBJECTID
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS OBJECTID) AS asObjectID FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asObjectID': CAST(v AS OBJECTID)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asObjectID': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'objectId', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asObjectID": null }
-      - { "type": "undefined", "asObjectID": null }
-      - { "type": "regex", "asObjectID": null }
-      - { "type": "dbPointer", "asObjectID": null }
-      - { "type": "javascript", "asObjectID": null }
-      - { "type": "symbol", "asObjectID": null }
-      - { "type": "javascriptWithScope", "asObjectID": null }
-      - { "type": "timestamp", "asObjectID": null }
-      - { "type": "minKey", "asObjectID": null }
-      - { "type": "maxKey", "asObjectID": null }
+      - {'__bot': {'type': 'binData', 'asObjectID': null}}
+      - {'__bot': {'type': 'undefined', 'asObjectID': null}}
+      - {'__bot': {'type': 'regex', 'asObjectID': null}}
+      - {'__bot': {'type': 'dbPointer', 'asObjectID': null}}
+      - {'__bot': {'type': 'javascript', 'asObjectID': null}}
+      - {'__bot': {'type': 'symbol', 'asObjectID': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asObjectID': null}}
+      - {'__bot': {'type': 'timestamp', 'asObjectID': null}}
+      - {'__bot': {'type': 'minKey', 'asObjectID': null}}
+      - {'__bot': {'type': 'maxKey', 'asObjectID': null}}
 
   - description: Cast DOUBLE to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asString': {'$convert': {'input': '$doubles.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asString": "0" }
-      - { "v": { "$numberDouble": "1.9" }, "asString": "1.9" }
-      - { "v": { "$numberDouble": "-2.4" }, "asString": "-2.4" }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asString": "2147483648.4" }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asString": "-2147483649.7" }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asString': '0'}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asString': '1.9'}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asString': '-2.4'}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asString': '2147483648.4'}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asString': '-2147483649.7'}}
 
   - description: Cast STRING to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM strings"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asString': {'$convert': {'input': '$strings.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": "", "asString": "" }
-      - { "v": "string", "asString": "string" }
-      - { "v": "true", "asString": "true" }
-      - { "v": "false", "asString": "false" }
-      - { "v": "0", "asString": "0" }
-      - { "v": "0.0", "asString": "0.0" }
-      - { "v": "1", "asString": "1" }
-      - { "v": "-1", "asString": "-1" }
-      - { "v": "1.4", "asString": "1.4" }
-      - { "v": "-1.6", "asString": "-1.6" }
-      - { "v": "2147483648", "asString": "2147483648" }
-      - { "v": "-2147483649", "asString": "-2147483649" }
-      - { "v": "9223372036854775808", "asString": "9223372036854775808" }
-      - { "v": "-9223372036854775809", "asString": "-9223372036854775809" }
-      - { "v": "5e550", "asString": "5e550" }
-      - { "v": "2018-03-03", "asString": "2018-03-03" }
-      - { "v": "2018-03-20 11:00:06 +0500", "asString": "2018-03-20 11:00:06 +0500" }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asString": "5ab9cbfa31c2ab715d42129e" }
+      - {'__bot': {'v': '', 'asString': ''}}
+      - {'__bot': {'v': 'string', 'asString': 'string'}}
+      - {'__bot': {'v': 'true', 'asString': 'true'}}
+      - {'__bot': {'v': 'false', 'asString': 'false'}}
+      - {'__bot': {'v': '0', 'asString': '0'}}
+      - {'__bot': {'v': '0.0', 'asString': '0.0'}}
+      - {'__bot': {'v': '1', 'asString': '1'}}
+      - {'__bot': {'v': '-1', 'asString': '-1'}}
+      - {'__bot': {'v': '1.4', 'asString': '1.4'}}
+      - {'__bot': {'v': '-1.6', 'asString': '-1.6'}}
+      - {'__bot': {'v': '2147483648', 'asString': '2147483648'}}
+      - {'__bot': {'v': '-2147483649', 'asString': '-2147483649'}}
+      - {'__bot': {'v': '9223372036854775808', 'asString': '9223372036854775808'}}
+      - {'__bot': {'v': '-9223372036854775809', 'asString': '-9223372036854775809'}}
+      - {'__bot': {'v': '5e550', 'asString': '5e550'}}
+      - {'__bot': {'v': '2018-03-03', 'asString': '2018-03-03'}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asString': '2018-03-20 11:00:06 +0500'}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asString': '5ab9cbfa31c2ab715d42129e'}}
 
   - description: Cast DOCUMENT to STRING is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asStringDefault, CAST(v AS STRING, 'null' ON ERROR) AS asStringOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asStringDefault': {'$convert': {'input': '$documents.v', 'to': 'string', 'onNull': null, 'onError': null}}, 'asStringOnError': {'$convert': {'input': '$documents.v', 'to': 'string', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asStringDefault": null, "asStringOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asStringDefault": null, "asStringOnError": "null" }
+      - {'__bot': {'v': {}, 'asStringDefault': null, 'asStringOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asStringDefault': null, 'asStringOnError': 'null'}}
 
   - description: Cast ARRAY to STRING is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asStringDefault, CAST(v AS STRING, 'null' ON ERROR) AS asStringOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asStringDefault': {'$convert': {'input': '$arrays.v', 'to': 'string', 'onNull': null, 'onError': null}}, 'asStringOnError': {'$convert': {'input': '$arrays.v', 'to': 'string', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asStringDefault": null, "asStringOnError": "null" }
-      - { "v": [1, 2, 3], "asStringDefault": null, "asStringOnError": "null" }
+      - {'__bot': {'v': [], 'asStringDefault': null, 'asStringOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asStringDefault': null, 'asStringOnError': 'null'}}
 
   - description: Cast OBJECTID to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asString': {'$convert': {'input': '$objectIDs.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asString": "5ab9c3da31c2ab715d421285" }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asString': '5ab9c3da31c2ab715d421285'}}
 
   - description: Cast BOOL to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM bools"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asString': {'$convert': {'input': '$bools.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": true, "asString": "true" }
-      - { "v": false, "asString": "false" }
+      - {'__bot': {'v': true, 'asString': 'true'}}
+      - {'__bot': {'v': false, 'asString': 'false'}}
 
   - description: Cast BSON_DATE to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM dates"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asString': {'$convert': {'input': '$dates.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asString": "1970-01-01T00:00:00.000Z" }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asString": "9999-12-31T23:59:59.999Z" }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asString": "0001-01-01T00:00:00.000Z" }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asString': '1970-01-01T00:00:00.000Z'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asString': '9999-12-31T23:59:59.999Z'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asString': '0001-01-01T00:00:00.000Z'}}
 
   - description: Cast NULL and MISSING to STRING, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asStringDefault, CAST(v AS STRING, 'null' ON NULL) AS asStringOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnNull': CAST(v AS STRING, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asStringDefault': {'$convert': {'input': '$nullAndMissing.v', 'to': 'string', 'onNull': null, 'onError': null}}, 'asStringOnNull': {'$convert': {'input': '$nullAndMissing.v', 'to': 'string', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asStringDefault": null, "asStringOnNull": "null" }
-      - { "asStringDefault": null, "asStringOnNull": "null" }
+      - {'__bot': {'v': null, 'asStringDefault': null, 'asStringOnNull': 'null'}}
+      - {'__bot': {'asStringDefault': null, 'asStringOnNull': 'null'}}
 
   - description: Cast INT to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM ints"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asString': {'$convert': {'input': '$ints.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asString": "0" }
-      - { "v": { "$numberInt": "1" }, "asString": "1" }
-      - { "v": { "$numberInt": "-2" }, "asString": "-2" }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asString': '0'}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asString': '1'}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asString': '-2'}}
 
   - description: Cast LONG to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM longs"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asString': {'$convert': {'input': '$longs.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberLong": "0" }, "asString": "0" }
-      - { "v": { "$numberLong": "1" }, "asString": "1" }
-      - { "v": { "$numberLong": "-2" }, "asString": "-2" }
-      - { "v": { "$numberLong": "2147483648" }, "asString": "2147483648" }
-      - { "v": { "$numberLong": "-2147483649" }, "asString": "-2147483649" }
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asString': '0'}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asString': '1'}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asString': '-2'}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asString': '2147483648'}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asString': '-2147483649'}}
 
   - description: Cast DECIMAL to STRING
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS STRING) AS asString FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asString': {'$convert': {'input': '$decimals.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" }, "asString": "0" }
-      - { "v": { "$numberDecimal": "1.9" }, "asString": "1.9" }
-      - { "v": { "$numberDecimal": "-2.4" }, "asString": "-2.4" }
-      - { "v": { "$numberDecimal": "2147483648.4" }, "asString": "2147483648.4" }
-      - { "v": { "$numberDecimal": "-2147483649.4" }, "asString": "-2147483649.4" }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" }, "asString": "9223372036854775808.8" }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" }, "asString": "-9223372036854775809.8" }
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asString': '0'}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asString': '1.9'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asString': '-2.4'}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asString': '2147483648.4'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asString': '-2147483649.4'}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asString': '9223372036854775808.8'}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asString': '-9223372036854775809.8'}}
 
   - description: Cast invalid source types to STRING
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS STRING) AS asString FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asString': CAST(v AS STRING)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asString': {'$convert': {'input': '$invalidSourceTypes.v', 'to': 'string', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asString": null }
-      - { "type": "undefined", "asString": null }
-      - { "type": "regex", "asString": null }
-      - { "type": "dbPointer", "asString": null }
-      - { "type": "javascript", "asString": null }
-      - { "type": "symbol", "asString": null }
-      - { "type": "javascriptWithScope", "asString": null }
-      - { "type": "timestamp", "asString": null }
-      - { "type": "minKey", "asString": null }
-      - { "type": "maxKey", "asString": null }
+      - {'__bot': {'type': 'binData', 'asString': null}}
+      - {'__bot': {'type': 'undefined', 'asString': null}}
+      - {'__bot': {'type': 'regex', 'asString': null}}
+      - {'__bot': {'type': 'dbPointer', 'asString': null}}
+      - {'__bot': {'type': 'javascript', 'asString': null}}
+      - {'__bot': {'type': 'symbol', 'asString': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asString': null}}
+      - {'__bot': {'type': 'timestamp', 'asString': null}}
+      - {'__bot': {'type': 'minKey', 'asString': null}}
+      - {'__bot': {'type': 'maxKey', 'asString': null}}
 
   - description: Cast DOUBLE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$doubles.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$doubles.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDouble": "1.9" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDouble": "-2.4" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast STRING to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM strings"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$strings.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$strings.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": "", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "string", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "true", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "false", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "0", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "0.0", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "1", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "-1", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "1.4", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "-1.6", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "2147483648", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "-2147483649", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "9223372036854775808", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "-9223372036854775809", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "5e550", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "2018-03-03", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "2018-03-20 11:00:06 +0500", "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': '', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': 'string', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': 'true', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': 'false', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '0', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '0.0', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '1', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '-1', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '1.4', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '-1.6', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '2147483648', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '-2147483649', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '9223372036854775808', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '-9223372036854775809', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '5e550', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '2018-03-03', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast DOCUMENT to DOCUMENT
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocument FROM documents"
+    query: "SELECT VALUE {'v': v, 'asDocument': CAST(v AS DOCUMENT)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asDocument': {'$sqlConvert': {'input': '$documents.v', 'to': 'object', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": {}, "asDocument": {} }
-      - { "v": { "a": 1, "b": 2 }, "asDocument": { "a": 1, "b": 2 } }
+      - {'__bot': {'v': {}, 'asDocument': {}}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asDocument': {'a': 1, 'b': 2}}}
 
   - description: Cast ARRAY to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$arrays.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$arrays.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": [], "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": [1, 2, 3], "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': [], 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': [1, 2, 3], 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast OBJECTID to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$objectIDs.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$objectIDs.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast BOOL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM bools"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$bools.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$bools.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": true, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": false, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': true, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': false, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast BSON_DATE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM dates"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$dates.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$dates.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast NULL and MISSING to DOCUMENT, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON NULL) AS asDocumentOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnNull': CAST(v AS DOCUMENT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$nullAndMissing.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnNull': {'$sqlConvert': {'input': '$nullAndMissing.v', 'to': 'object', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asDocumentDefault": null, "asDocumentOnNull": "null" }
-      - { "asDocumentDefault": null, "asDocumentOnNull": "null" }
+      - {'__bot': {'v': null, 'asDocumentDefault': null, 'asDocumentOnNull': 'null'}}
+      - {'__bot': {'asDocumentDefault': null, 'asDocumentOnNull': 'null'}}
 
   - description: Cast INT to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM ints"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$ints.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$ints.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberInt": "1" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberInt": "-2" }, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast LONG to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM longs"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$longs.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$longs.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberLong": "0" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberLong": "1" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberLong": "-2" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberLong": "2147483648" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberLong": "-2147483649" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': {'$numberLong': '0'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '1'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast DECIMAL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS DOCUMENT) AS asDocumentDefault, CAST(v AS DOCUMENT, 'null' ON ERROR) AS asDocumentOnError FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$decimals.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$decimals.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDecimal": "1.9" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDecimal": "-2.4" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDecimal": "2147483648.4" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDecimal": "-2147483649.4" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" },, "asDocumentDefault": null, "asDocumentOnError": "null" }
+      - {'__bot': {'v': {'$numberDecimal': '0'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast invalid source types to DOCUMENT
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS DOCUMENT) AS asDocument FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asDocument': CAST(v AS DOCUMENT)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asDocument': {'$sqlConvert': {'input': '$invalidSourceTypes.v', 'to': 'object', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asDocument": null }
-      - { "type": "undefined", "asDocument": null }
-      - { "type": "regex", "asDocument": null }
-      - { "type": "dbPointer", "asDocument": null }
-      - { "type": "javascript", "asDocument": null }
-      - { "type": "symbol", "asDocument": null }
-      - { "type": "javascriptWithScope", "asDocument": null }
-      - { "type": "timestamp", "asDocument": null }
-      - { "type": "minKey", "asDocument": null }
-      - { "type": "maxKey", "asDocument": null }
+      - {'__bot': {'type': 'binData', 'asDocument': null}}
+      - {'__bot': {'type': 'undefined', 'asDocument': null}}
+      - {'__bot': {'type': 'regex', 'asDocument': null}}
+      - {'__bot': {'type': 'dbPointer', 'asDocument': null}}
+      - {'__bot': {'type': 'javascript', 'asDocument': null}}
+      - {'__bot': {'type': 'symbol', 'asDocument': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asDocument': null}}
+      - {'__bot': {'type': 'timestamp', 'asDocument': null}}
+      - {'__bot': {'type': 'minKey', 'asDocument': null}}
+      - {'__bot': {'type': 'maxKey', 'asDocument': null}}
 
   - description: Cast DOUBLE to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM doubles"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM doubles AS doubles"
+    translation_target_db: foo
+    translation_target_coll: doubles
+    translation:
+      - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$doubles.v', 'asArrayDefault': {'$sqlConvert': {'input': '$doubles.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$doubles.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberDouble": "0" }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDouble": "1.9" }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDouble": "-2.4" }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDouble": "2147483648.4" }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDouble": "-2147483649.7" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': {'$numberDouble': '0'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '1.9'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '-2.4'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '2147483648.4'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDouble': '-2147483649.7'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast STRING to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM strings"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM strings AS strings"
+    translation_target_db: foo
+    translation_target_coll: strings
+    translation:
+      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$strings.v', 'asArrayDefault': {'$sqlConvert': {'input': '$strings.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$strings.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": "", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "string", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "true", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "false", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "0", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "0.0", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "1", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "-1", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "1.4", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "-1.6", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "2147483648", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "-2147483649", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "9223372036854775808", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "-9223372036854775809", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "5e550", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "2018-03-03", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "2018-03-20 11:00:06 +0500", "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": "5ab9cbfa31c2ab715d42129e", "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': '', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': 'string', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': 'true', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': 'false', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '0', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '0.0', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '1', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '-1', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '1.4', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '-1.6', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '2147483648', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '-2147483649', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '9223372036854775808', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '-9223372036854775809', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '5e550', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '2018-03-03', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '2018-03-20 11:00:06 +0500', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': '5ab9cbfa31c2ab715d42129e', 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast DOCUMENT to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM documents"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM documents AS documents"
+    translation_target_db: foo
+    translation_target_coll: documents
+    translation:
+      - {'$project': {'_id': 0, 'documents': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$documents.v', 'asArrayDefault': {'$sqlConvert': {'input': '$documents.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$documents.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": {}, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "a": 1, "b": 2 }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': {}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'a': 1, 'b': 2}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast ARRAY to ARRAY
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArray FROM arrays"
+    query: "SELECT VALUE {'v': v, 'asArray': CAST(v AS ARRAY)} FROM arrays AS arrays"
+    translation_target_db: foo
+    translation_target_coll: arrays
+    translation:
+      - {'$project': {'_id': 0, 'arrays': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$arrays.v', 'asArray': {'$sqlConvert': {'input': '$arrays.v', 'to': 'array', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "v": [], "asArray": [] }
-      - { "v": [1, 2, 3], "asArray": [1, 2, 3] }
+      - {'__bot': {'v': [], 'asArray': []}}
+      - {'__bot': {'v': [1, 2, 3], 'asArray': [1, 2, 3]}}
 
   - description: Cast OBJECTID to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM objectIDs"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    translation_target_db: foo
+    translation_target_coll: objectIDs
+    translation:
+      - {'$project': {'_id': 0, 'objectIDs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$objectIDs.v', 'asArrayDefault': {'$sqlConvert': {'input': '$objectIDs.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$objectIDs.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$oid": "5ab9c3da31c2ab715d421285" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': {'$oid': '5ab9c3da31c2ab715d421285'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast BOOL to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM bools"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM bools AS bools"
+    translation_target_db: foo
+    translation_target_coll: bools
+    translation:
+      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bools.v', 'asArrayDefault': {'$sqlConvert': {'input': '$bools.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$bools.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": true, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": false, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': true, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': false, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast BSON_DATE to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM dates"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM dates AS dates"
+    translation_target_db: foo
+    translation_target_coll: dates
+    translation:
+      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$dates.v', 'asArrayDefault': {'$sqlConvert': {'input': '$dates.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$dates.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$date": { "$numberLong": "0" } }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "253402300799999" } }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$date": { "$numberLong": "-62135596800000" } }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': {'$date': {'$numberLong': '0'}}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '253402300799999'}}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$date': {'$numberLong': '-62135596800000'}}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast NULL and MISSING to ARRAY, returns NULL by default and ON NULL when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON NULL) AS asArrayOnNull FROM nullAndMissing"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnNull': CAST(v AS ARRAY, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    translation_target_db: foo
+    translation_target_coll: nullAndMissing
+    translation:
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$nullAndMissing.v', 'asArrayDefault': {'$sqlConvert': {'input': '$nullAndMissing.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$nullAndMissing.v', 'to': 'array', 'onNull': {'$literal': 'null'}, 'onError': null}}}}}
     result:
-      - { "v": null, "asArrayDefault": null, "asArrayOnNull": "null" }
-      - { "asArrayDefault": null, "asArrayOnNull": "null" }
+      - {'__bot': {'v': null, 'asArrayDefault': null, 'asArrayOnNull': 'null'}}
+      - {'__bot': {'asArrayDefault': null, 'asArrayOnNull': 'null'}}
 
   - description: Cast INT to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM ints"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM ints AS ints"
+    translation_target_db: foo
+    translation_target_coll: ints
+    translation:
+      - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', ''asArrayDefault': {'$sqlConvert': {'input': '$ints.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$ints.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberInt": "0" }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberInt": "1" }, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberInt": "-2" }, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': {'$numberInt': '0'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '1'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberInt': '-2'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast LONG to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM longs"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM longs AS longs"
+    translation_target_db: foo
+    translation_target_coll: longs
+    translation:
+      - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asArrayDefault': {'$sqlConvert': {'input': '$longs.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$longs.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberLong": "0" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberLong": "1" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberLong": "-2" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberLong": "2147483648" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberLong": "-2147483649" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': {'$numberLong': '0'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '1'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast DECIMAL to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
-    query: "SELECT v AS v, CAST(v AS ARRAY) AS asArrayDefault, CAST(v AS ARRAY, 'null' ON ERROR) AS asArrayOnError FROM decimals"
+    query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM decimals AS decimals"
+    translation_target_db: foo
+    translation_target_coll: decimals
+    translation:
+      - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asArrayDefault': {'$sqlConvert': {'input': '$decimals.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$decimals.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - { "v": { "$numberDecimal": "0" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDecimal": "1.9" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDecimal": "-2.4" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDecimal": "2147483648.4" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDecimal": "-2147483649.4" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDecimal": "9223372036854775808.8" },, "asArrayDefault": null, "asArrayOnError": "null" }
-      - { "v": { "$numberDecimal": "-9223372036854775809.8" },, "asArrayDefault": null, "asArrayOnError": "null" }
+      - {'__bot': {'v': {'$numberDecimal': '0'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast invalid source types to ARRAY
     current_db: foo
-    query: "SELECT type AS type, CAST(v AS ARRAY) AS asArray FROM invalidSourceTypes"
+    query: "SELECT VALUE {'type': type, 'asArray': CAST(v AS ARRAY)} FROM invalidSourceTypes AS invalidSourceTypes"
+    translation_target_db: foo
+    translation_target_coll: invalidSourceTypes
+    translation:
+      - {'$project': {'_id': 0, 'invalidSourceTypes': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$invalidSourceTypes.type', 'asArray': {'$sqlConvert': {'input': '$invalidSourceTypes.v', 'to': 'array', 'onNull': null, 'onError': null}}}}}
     result:
-      - { "type": "binData", "asArray": null }
-      - { "type": "undefined", "asArray": null }
-      - { "type": "regex", "asArray": null }
-      - { "type": "dbPointer", "asArray": null }
-      - { "type": "javascript", "asArray": null }
-      - { "type": "symbol", "asArray": null }
-      - { "type": "javascriptWithScope", "asArray": null }
-      - { "type": "timestamp", "asArray": null }
-      - { "type": "minKey", "asArray": null }
-      - { "type": "maxKey", "asArray": null }
+      - {'__bot': {'type': 'binData', 'asArray': null}}
+      - {'__bot': {'type': 'undefined', 'asArray': null}}
+      - {'__bot': {'type': 'regex', 'asArray': null}}
+      - {'__bot': {'type': 'dbPointer', 'asArray': null}}
+      - {'__bot': {'type': 'javascript', 'asArray': null}}
+      - {'__bot': {'type': 'symbol', 'asArray': null}}
+      - {'__bot': {'type': 'javascriptWithScope', 'asArray': null}}
+      - {'__bot': {'type': 'timestamp', 'asArray': null}}
+      - {'__bot': {'type': 'minKey', 'asArray': null}}
+      - {'__bot': {'type': 'maxKey', 'asArray': null}}
 
   - description: Cast to BINDATA is invalid
-    query: "SELECT CAST('v' AS BINDATA)"
+    query: "SELECT VALUE {'_1': CAST('v' AS BINDATA)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'BINDATA'"
 
   - description: Cast to UNDEFINED is invalid
-    query: "SELECT CAST('v' AS UNDEFINED)"
+    query: "SELECT VALUE {'_1': CAST('v' AS UNDEFINED)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'UNDEFINED'"
 
   - description: Cast to REGEX is invalid
-    query: "SELECT CAST('v' AS REGEX)"
+    query: "SELECT VALUE {'_1': CAST('v' AS REGEX)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'REGEX'"
 
   - description: Cast to DBPOINTER is invalid
-    query: "SELECT CAST('v' AS DBPOINTER)"
+    query: "SELECT VALUE {'_1': CAST('v' AS DBPOINTER)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'DBPOINTER'"
 
   - description: Cast to JAVASCRIPT is invalid
-    query: "SELECT CAST('v' AS JAVASCRIPT)"
+    query: "SELECT VALUE {'_1': CAST('v' AS JAVASCRIPT)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'JAVASCRIPT'"
 
   - description: Cast to SYMBOL is invalid
-    query: "SELECT CAST('v' AS SYMBOL)"
+    query: "SELECT VALUE {'_1': CAST('v' AS SYMBOL)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'SYMBOL'"
 
   - description: Cast to JAVASCRIPTWITHSCOPE is invalid
-    query: "SELECT CAST('v' AS JAVASCRIPTWITHSCOPE)"
+    query: "SELECT VALUE {'_1': CAST('v' AS JAVASCRIPTWITHSCOPE)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'JAVASCRIPTWITHSCOPE'"
 
   - description: Cast to BSON_TIMESTAMP is invalid
-    query: "SELECT CAST('v' AS BSON_TIMESTAMP)"
+    query: "SELECT VALUE {'_1': CAST('v' AS BSON_TIMESTAMP)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'BSON_TIMESTAMP'"
 
   - description: Cast to MINKEY is invalid
-    query: "SELECT CAST('v' AS MINKEY)"
+    query: "SELECT VALUE {'_1': CAST('v' AS MINKEY)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'MINKEY'"
 
   - description: Cast to MAXKEY is invalid
-    query: "SELECT CAST('v' AS MAXKEY)"
+    query: "SELECT VALUE {'_1': CAST('v' AS MAXKEY)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'MAXKEY'"
 
   - description: Cast to DATE is invalid
-    query: "SELECT CAST('v' AS DATE)"
+    query: "SELECT VALUE {'_1': CAST('v' AS DATE)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'DATE'"
 
   - description: Cast to TIME is invalid
-    query: "SELECT CAST('v' AS TIME)"
+    query: "SELECT VALUE {'_1': CAST('v' AS TIME)} FROM [{}] AS _dual"
     error: "error: invalid CAST target type 'TIME'"
