@@ -70,48 +70,63 @@ schema_environment:
 tests:
   - description: NOT correctness test
     query: "SELECT VALUE { 'a': a, 'not_a': NOT a } FROM unary AS unary"
+    translation_target_db: foo
+    translation_target_coll: unary
+    translation:
+      - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'not_a': {"$sqlNot": "$unary.a"}}}}
     result:
-      - { "a": true, "not_a": false }
-      - { "a": false, "not_a": true }
-      - { "a": null, "not_a": null }
-      - { "not_a": null }
+      - {'__bot': {"a": true, "not_a": false } }
+      - {'__bot': {"a": false, "not_a": true } }
+      - {'__bot': {"a": null, "not_a": null } }
+      - {'__bot': {"not_a": null } }
 
   - description: AND correctness test
     query: "SELECT VALUE { 'a': a, 'b': b, 'a_and_b': a AND b } FROM binary AS binary"
+    translation_target_db: foo
+    translation_target_coll: binary
+    translation:
+      - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a_and_b': {"$sqlAnd": ["$binary.a", "$binary.b"]}}}}}
     result:
-      - { "a": true, "b": true, "a_and_b": true }
-      - { "a": true, "b": false, "a_and_b": false }
-      - { "a": true, "b": null, "a_and_b": null }
-      - { "a": true, "a_and_b": null }
-      - { "a": false, "b": true, "a_and_b": false }
-      - { "a": false, "b": false, "a_and_b": false }
-      - { "a": false, "b": null, "a_and_b": false }
-      - { "a": false, "a_and_b": false }
-      - { "a": null, "b": true, "a_and_b": null }
-      - { "a": null, "b": false, "a_and_b": false }
-      - { "a": null, "b": null, "a_and_b": null }
-      - { "a": null, "a_and_b": null }
-      - { "b": true, "a_and_b": null }
-      - { "b": false, "a_and_b": false }
-      - { "b": null, "a_and_b": null }
-      - { "a_and_b": null }
+      - {'__bot': {"a": true, "b": true, "a_and_b": true } }
+      - {'__bot': {"a": true, "b": false, "a_and_b": false } }
+      - {'__bot': {"a": true, "b": null, "a_and_b": null } }
+      - {'__bot': {"a": true, "a_and_b": null } }
+      - {'__bot': {"a": false, "b": true, "a_and_b": false } }
+      - {'__bot': {"a": false, "b": false, "a_and_b": false } }
+      - {'__bot': {"a": false, "b": null, "a_and_b": false } }
+      - {'__bot': {"a": false, "a_and_b": false } }
+      - {'__bot': {"a": null, "b": true, "a_and_b": null } }
+      - {'__bot': {"a": null, "b": false, "a_and_b": false } }
+      - {'__bot': {"a": null, "b": null, "a_and_b": null } }
+      - {'__bot': {"a": null, "a_and_b": null } }
+      - {'__bot': {"b": true, "a_and_b": null } }
+      - {'__bot': {"b": false, "a_and_b": false } }
+      - {'__bot': {"b": null, "a_and_b": null } }
+      - {'__bot': {"a_and_b": null } }
 
   - description: OR correctness test
     query: "SELECT VALUE { 'a': a, 'b': b, 'a_or_b': a OR b } FROM binary AS binary"
+    translation_target_db: foo
+    translation_target_coll: binary
+    translation:
+      - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a_or_b': {"$sqlOr": ["$$binary.a", "$$binary.b"]}}}}}
     result:
-      - { "a": true, "b": true, "a_or_b": true }
-      - { "a": true, "b": false, "a_or_b": true }
-      - { "a": true, "b": null, "a_or_b": true }
-      - { "a": true, "a_or_b": true }
-      - { "a": false, "b": true, "a_or_b": true }
-      - { "a": false, "b": false, "a_or_b": false }
-      - { "a": false, "b": null, "a_or_b": null }
-      - { "a": false, "a_or_b": null }
-      - { "a": null, "b": true, "a_or_b": true }
-      - { "a": null, "b": false, "a_or_b": null }
-      - { "a": null, "b": null, "a_or_b": null }
-      - { "a": null, "a_or_b": null }
-      - { "b": true, "a_or_b": true }
-      - { "b": false, "a_or_b": null }
-      - { "b": null, "a_or_b": null }
-      - { "a_or_b": null }
+      - {'__bot': {"a": true, "b": true, "a_or_b": true } }
+      - {'__bot': {"a": true, "b": false, "a_or_b": true } }
+      - {'__bot': {"a": true, "b": null, "a_or_b": true } }
+      - {'__bot': {"a": true, "a_or_b": true } }
+      - {'__bot': {"a": false, "b": true, "a_or_b": true } }
+      - {'__bot': {"a": false, "b": false, "a_or_b": false } }
+      - {'__bot': {"a": false, "b": null, "a_or_b": null } }
+      - {'__bot': {"a": false, "a_or_b": null } }
+      - {'__bot': {"a": null, "b": true, "a_or_b": true } }
+      - {'__bot': {"a": null, "b": false, "a_or_b": null } }
+      - {'__bot': {"a": null, "b": null, "a_or_b": null } }
+      - {'__bot': {"a": null, "a_or_b": null } }
+      - {'__bot': {"b": true, "a_or_b": true } }
+      - {'__bot': {"b": false, "a_or_b": null } }
+      - {'__bot': {"b": null, "a_or_b": null } }
+      - {'__bot': {"a_or_b": null } }

@@ -15,8 +15,8 @@ schema_environment:
             },
             "b": {
               "anyOf": [
-                { "bsonType": "int" },
-                { "bsonType": "null" }
+              { "bsonType": "int" },
+              { "bsonType": "null" }
               ]
             },
             "c": {
@@ -31,18 +31,59 @@ schema_environment:
 tests:
   - description: Simple CASE expression - No WHEN comparison evalutes to TRUE, return ELSE result
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b', 'c': '$bar.c',
+                                          'r': {'$let': {
+                                            'vars': {'target': { $literal: 1 }},
+                                            'in':
+                                              {"$switch": {
+                                                "branches": [
+                                                {"case": { "$sqlEq": [ '$$target', "$bar.a" ] }, "then": 'a' },
+                                                {"case": { "$sqlEq": [ '$$target', "$bar.b" ] }, "then": 'b' },
+                                                {"case": { "$sqlEq": [ '$$target', "$bar.c" ] }, "then": 'c' }
+                                                ],
+                                                "default": 'none'
+                                              }}}}}}}
     result:
-      - { "a": 2, "b": null, "r": "none" }
+      - {'__bot': { "a": 2, "b": null, "r": "none" } }
 
   - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
+      - {'$array': {'arr': [{'a': 2, 'b': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
+        'vars': {'target': { $literal: 1 }},
+        'in':
+          {"$switch": {
+            "branches": [
+            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": 'a' },
+            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": 'b' },
+            ],
+            "default": 'none'
+          }}}}}}}
     result:
-      - { "r": "b" }
+      - {'__bot': { "r": "b" } }
 
   - description: Simple CASE expression - Multiple WHEN comparison evalutes to TRUE, return first corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
-    result:
-      - { "r": "a" }
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
+        'vars': {'target': { $literal: 1 }},
+        'in':
+          {"$switch": {
+            "branches": [
+            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": 'a' },
+            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": 'b' },
+            ],
+            "default": 'none'
+          }}}}}}}
+        result:
+      - {'__bot': { "r": "a" } }
 
   - description: Simple CASE expression - Static type mismatch for case operand and when operand
     query: "SELECT VALUE { 'r': CASE 1 WHEN '2' THEN '2' ELSE NULL END } FROM [{}] AS _dual"
@@ -50,15 +91,53 @@ tests:
 
   - description: Searched CASE expression - No WHEN condition evalutes to TRUE, return ELSE result
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b', c': '$bar.c',
+                                          'r': {"$switch": {
+                                            "branches": [
+                                            {"case": { "$sqlEq": [ "$bar.a", { $literal: 1 } ] }, "then": 'a' },
+                                            {"case": { "$sqlEq": [ "$bar.b", { $literal: 1 } ] }, "then": 'b' },
+                                            {"case": { "$sqlNeq": [ "$bar.c", { $literal: 0 } ] }, "then": 'c' }
+                                            ],
+                                            "default": 'none'
+                                          }}}}}
     result:
-      - { "a": 2, "b": null, "r": "a" }
+      - {'__bot': { "a": 2, "b": null, "r": "a" } }
 
   - description: Searched CASE expression - One WHEN condition evalutes to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b',
+                                          'r': {"$switch": {
+                                            "branches": [
+                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": 'a' },
+                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": 'b' },
+                                            ],
+                                            "default": 'none'
+                                          }}}}}
     result:
-      - { "r": "b" }
+      - {'__bot': { "r": "b" } }
 
   - description: Searched CASE expression - Multiple WHEN conditions evalutes to TRUE, return first corresponding THEN result
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b',
+                                          'r': {"$switch": {
+                                            "branches": [
+                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": 'a' },
+                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": 'b' },
+                                            ],
+                                            "default": 'none'
+                                          }}}}}
     result:
-      - { "r": "a" }
+      - {'__bot': { "r": "a" } }
+

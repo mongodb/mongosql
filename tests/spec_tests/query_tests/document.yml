@@ -52,7 +52,7 @@ tests:
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
     translation:
       - {'$array': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'$let': {'vars': {'docExpr': {'a': 1, 'b': 2}}, 'in': '$$docExpr.a'}}}}}
     result:
       - {'__bot': {'a': 1}}
 
@@ -104,7 +104,7 @@ tests:
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}['a']} FROM [{}] AS _dual"
     translation:
       - {'$array': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'$let': {'vars': {'docExpr': {'a': 1, 'b': 2}}, 'in': '$$docExpr.a'}}}}}
     result:
       - {'__bot': {'a': 1}}
 
@@ -142,9 +142,7 @@ tests:
 
   - description: Bracket notation CAST to STRING expression
     query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS arr"
-    translation:
-      - {'array': {'arr': [{'a': {'c': 100}, 'b': 'c'}]}}
-      - {'$project': {'_id': 0, '__bot': {'_1': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "TODO: SQL-210. We don't support non-String literal subfield path now."
     result:
       - {'__bot': {'_1': 100}}
 

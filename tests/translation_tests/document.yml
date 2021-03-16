@@ -1,0 +1,8 @@
+tests:
+  - description: multi-level field access from literal document
+    query: "SELECT VALUE {'c': {'a': {'b': {'c': 1}}}.a.b['c']} FROM [{}] AS _dual"
+    translation:
+      - {'$array': {'_dual': [{}]}}
+      - {'$project': {'_id': 0, '__bot': {'c': {'$let': {'vars': {'docExpr': {'a': {'b': {'c': 1}}}, 'in': '$$docExpr.a.b.c'}}}}}
+    result:
+      - {'__bot': {'c': 1}}

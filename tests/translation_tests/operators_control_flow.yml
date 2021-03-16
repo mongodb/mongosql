@@ -1,0 +1,30 @@
+tests:
+  - description: Nested Case expression translation
+    query: "SELECT VALUE { 'r': CASE 1 WHEN (CASE 2 WHEN a THEN 2 ELSE 1) THEN 'YES' ELSE 'NO'} FROM [{'a': 1, 'b': 1}] AS arr"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
+        'vars': {'target': { $literal: 1 }},
+        'in':
+          {'$switch': {
+            'branches': [
+            {'case': { '$eq': [ '$$target',
+                                   {'$let': {
+                                     'vars': {'target': { $literal: 2 }},
+                                     'in':
+                                       {'$switch': {
+                                         'branches': [
+                                         {'case': { '$eq': ['$$target', '$arr.a'] }, 'then': { $literal: 2 }}
+                                         ],
+                                         'default': { $literal: 1 }
+                                       }}}}
+
+            ] }, 'then': 'YES' },
+            ],
+            'default': 'NO'
+          }}}}}}}
+        result:
+      - {'__bot': { 'r': 'YES' } }
+
