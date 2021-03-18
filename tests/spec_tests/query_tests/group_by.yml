@@ -1,78 +1,89 @@
 catalog_environment:
   foo:
     bar:
-      - {"_id": {"$numberInt": "1"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "2"},"c": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "2"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "12"},"c": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "1"},"b": {"$numberInt": "42"},"c": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "111"},"b": {"$numberInt": "142"},"c": {"$numberInt": "13"}}
+      - {'_id': {'$numberInt': '1'}, 'a': {'$numberInt': '1'},'b': {'$numberInt': '2'},'c': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '2'}, 'a': {'$numberInt': '1'},'b': {'$numberInt': '12'},'c': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '11'},'b': {'$numberInt': '22'},'c': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '4'}, 'a': {'$numberInt': '1'},'b': {'$numberInt': '42'},'c': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '5'}, 'a': {'$numberInt': '111'},'b': {'$numberInt': '142'},'c': {'$numberInt': '13'}}
 
     multi:
-      - {"_id": {"$numberInt": "1"}, "a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "1"}}
-      - {"_id": {"$numberInt": "2"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "2"}}
-      - {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}, "c": {"$numberInt": "4"}}
-      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "5"}}
+      - {'_id': {'$numberInt': '1'}, 'a': {'$numberInt': '1'}, 'b': {'$numberInt': '2'}, 'c': {'$numberInt': '1'}}
+      - {'_id': {'$numberInt': '2'}, 'a': {'$numberInt': '2'}, 'b': {'$numberInt': '2'}, 'c': {'$numberInt': '2'}}
+      - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '2'}, 'b': {'$numberInt': '2'}, 'c': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '4'}, 'a': {'$numberInt': '2'}, 'b': {'$numberInt': '3'}, 'c': {'$numberInt': '4'}}
+      - {'_id': {'$numberInt': '5'}, 'a': {'$numberInt': '1'}, 'b': {'$numberInt': '2'}, 'c': {'$numberInt': '5'}}
 
     nullAndMissing:
-      - {"_id": {"$numberInt": "1"}, "n": null}
-      - {"_id": {"$numberInt": "2"}, "n": null}
-      - {"_id": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "4"}, "n": {"$numberInt": "1"}}
+      - {'_id': {'$numberInt': '1'}, 'n': null}
+      - {'_id': {'$numberInt': '2'}, 'n': null}
+      - {'_id': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '4'}, 'n': {'$numberInt': '1'}}
 
     poly:
-      - {"_id": {"$numberInt": "1"}, "a":{"a": {"$numberInt": "1"},"b": {"$numberInt": "2"}}}
-      - {"_id": {"$numberInt": "2"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "2"}}}
-      - {"_id": {"$numberInt": "3"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "3"}}}
-      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "6"}, "a": {"$numberInt": "4"}}
+      - {'_id': {'$numberInt': '1'}, 'a':{'a': {'$numberInt': '1'},'b': {'$numberInt': '2'}}}
+      - {'_id': {'$numberInt': '2'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '2'}}}
+      - {'_id': {'$numberInt': '3'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '3'}}}
+      - {'_id': {'$numberInt': '4'}, 'a': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '5'}, 'a': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '6'}, 'a': {'$numberInt': '4'}}
 
     poly2:
-      - {"_id": {"$numberInt": "1"}, "a":{"a": {"$numberInt": "1"},"b": {"$numberInt": "2"}}}
-      - {"_id": {"$numberInt": "2"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "2"}}}
-      - {"_id": {"$numberInt": "3"}, "a":{"a": {"$numberInt": "2"},"b": {"$numberInt": "3"}}}
-      - {"_id": {"$numberInt": "4"}, "a": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "5"}, "a": {"$numberInt": "3"}}
-      - {"_id": {"$numberInt": "6"}, "a": {"$numberInt": "4"}}
-      - {"_id": {"$numberInt": "7"}, "a":{"c": {"$numberInt": "1"}}}
+      - {'_id': {'$numberInt': '1'}, 'a':{'a': {'$numberInt': '1'},'b': {'$numberInt': '2'}}}
+      - {'_id': {'$numberInt': '2'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '2'}}}
+      - {'_id': {'$numberInt': '3'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '3'}}}
+      - {'_id': {'$numberInt': '4'}, 'a': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '5'}, 'a': {'$numberInt': '3'}}
+      - {'_id': {'$numberInt': '6'}, 'a': {'$numberInt': '4'}}
+      - {'_id': {'$numberInt': '7'}, 'a':{'c': {'$numberInt': '1'}}}
 
     numerics:
-      - {"_id": {"$numberInt": "1"}, "a": {"$numberDecimal": "3.0"}}
-      - {"_id": {"$numberInt": "2"}, "a": {"$numberDouble": "3.0"}}
-      - {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "3"}}
+      - {'_id': {'$numberInt': '1'}, 'a': {'$numberDecimal': '3.0'}}
+      - {'_id': {'$numberInt': '2'}, 'a': {'$numberDouble': '3.0'}}
+      - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '3'}}
 
 schema_environment:
     {
         'foo': {
             'numerics': {
                 '$jsonSchema': {
-                    'bsonType': "object",
+                    'bsonType': 'object',
                     'required': ['_id', 'a'],
                     'properties': {
-                        "_id": {"bsonType": "int"},
-                        "a": {
+                        '_id': {'bsonType': 'int'},
+                        'a': {
                             'anyOf':
                              [
-                                {"bsonType": "int"},
-                                {"bsonType": "double"},
-                                {"bsonType": "decimal128"}
+                                {'bsonType': 'int'},
+                                {'bsonType': 'double'},
+                                {'bsonType': 'decimal128'}
                             ]
                         }
                     }
-                }
+                },
+                'bar': {
+                  '$jsonSchema': {
+                    'bsonType': 'object',
+                    'required': ['_id', 'a', 'b', 'c'],
+                    'properties': {
+                      '_id': {'bsonType': 'int'},
+                      'a': {'bsonType': 'int'},
+                      'b': {'bsonType': 'int'},
+                      'c': {'bsonType': 'int'},
+                    }
+                  }
             },
             'nullAndMissing': {
                 '$jsonSchema': {
-                    'bsonType': "object",
+                    'bsonType': 'object',
                     'required': ['_id', 'n'],
                     'properties': {
-                        "_id": {"bsonType": "int"},
-                        "n": {
+                        '_id': {'bsonType': 'int'},
+                        'n': {
                             'anyOf':
                              [
-                                {"bsonType": "int"},
-                                {"bsonType": "null"}
+                                {'bsonType': 'int'},
+                                {'bsonType': 'null'}
                             ]
                         }
                     }
@@ -84,89 +95,182 @@ schema_environment:
 
 tests:
     - description: GROUP BY with empty input outputs empty
-      query: "SELECT * FROM [] GROUP BY NULL AS n"
+      query: "SELECT * FROM [] AS arr GROUP BY NULL AS n"
+      current_db: foo
+      translation:
+        - {'$array': {'arr': []}}
+        - {'$group': {'_id': {'n': null}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
       result: []
 
     - description: GROUP BY NULL creates only one group
       query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'n': null}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
       result:
-        - {"n": null}
+        - {'__bot': {"n": null}}
 
     - description: GROUP BY 1 creates only one group
       query: "SELECT * FROM foo.bar AS bar GROUP BY 1 AS n"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'n': 1}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
       result:
-        - {"n": {"$numberInt": "1"}}
+        - {'__bot': {"n": {"$numberInt": "1"}}}
 
     - description: GROUP BY 'hello' creates only one group
       query: "SELECT * FROM foo.bar AS bar GROUP BY 'hello' AS n"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'n': 'hello'}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
       result:
-        - {"n": "hello"}
+        - {'__bot': {"n": "hello"}
 
     - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
       query: "SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: nullAndMissing
+      translations:
+        - {'$project': {'_id': 0, 'a': '$$ROOT'}}
+        - {'$group': {'_id': {'n': '$a.n'}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
       result:
-        - {"n": null}
-        - {"n": {"$numberInt": "1"}}
+        - {'__bot': {"n": null}
+        - {'__bot': {"n": {"$numberInt": "1"}}
 
     - description: group keys must be mutually comparable types
-      query: "SELECT * FROM foo.poly GROUP BY {'out': a.a} AS doc"
+      query: "SELECT * FROM foo.poly AS a GROUP BY {'out': a.a} AS doc"
       error: "all possible group key values must have mutually comparable types"
 
     - description: GROUP BY keys may be table-qualified
       query: "SELECT * FROM foo.poly AS a GROUP by a.a.a::!INT AS a"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'a': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$a.a.a'}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}
       result:
-        -  {"a": {"$numberInt": "1"}}
-        -  {"a": {"$numberInt": "2"}}
-        -  {"a": null}
+        -  {'__bot': {"a": {"$numberInt": "1"}}
+        -  {'__bot': {"a": {"$numberInt": "2"}}
+        -  {'__bot': {"a": null}}
 
     - description: qualified top-level field reference keys can be referenced by qualified name
-      query: "SELECT VALUE {'a': bar.a} FROM foo.bar GROUP BY bar.a::!INT AS a"
+      query: "SELECT VALUE {'a': bar.a} FROM foo.bar AS bar GROUP BY bar.a"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
+        - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
       result:
-        - {"a": {"$numberInt": "1"}}
-        - {"a": {"$numberInt": "11"}}
-        - {"a": {"$numberInt": "111"}}
+        - {'__bot': {"a": {"$numberInt": "1"}} }
+        - {'__bot': {"a": {"$numberInt": "11"}} }
+        - {'__bot': {"a": {"$numberInt": "111"}} }
 
     - description: qualified top-level field reference keys can be referenced by unqualified name
-      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY bar.a::!INT AS a"
+      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY bar.a"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
+        - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
       result:
-        - {"a": {"$numberInt": "1"}}
-        - {"a": {"$numberInt": "11"}}
-        - {"a": {"$numberInt": "111"}}
+        - {'__bot': {"a": {"$numberInt": "1"}} }
+        - {'__bot': {"a": {"$numberInt": "11"}} }
+        - {'__bot': {"a": {"$numberInt": "111"}} }
 
     - description: unqualified top-level field reference keys can be referenced by qualified name
-      query: "SELECT VALUE{'a': bar.a} FROM foo.bar GROUP BY a::!INT AS a"
+      query: "SELECT VALUE{'a': bar.a} FROM foo.bar GROUP BY a"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
+        - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
       result:
-        - {"a": {"$numberInt": "1"}}
-        - {"a": {"$numberInt": "11"}}
-        - {"a": {"$numberInt": "111"}}
+        - {'__bot': {"a": {"$numberInt": "1"}} }
+        - {'__bot': {"a": {"$numberInt": "11"}} }
+        - {'__bot': {"a": {"$numberInt": "111"}} }
 
     - description: unqualified top-level field reference keys can be referenced by unqualified name
-      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY a::!INT AS a"
+      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY a"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$bar.a'}}}
+        - {'$project': {'_id': 0, 'bar': {'a': '$__unaliasedKey1.a'}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
       result:
-        - {"a": {"$numberInt": "1"}}
-        - {"a": {"$numberInt": "11"}}
-        - {"a": {"$numberInt": "111"}}
+        - {'__bot': {"a": {"$numberInt": "1"}} }
+        - {'__bot': {"a": {"$numberInt": "11"}} }
+        - {'__bot': {"a": {"$numberInt": "111"}} }
 
     - description: top-level field reference keys cannot be referenced by qualified name if aliased
-      query: "SELECT VALUE {'a': bar.a} FROM foo.bar GROUP BY bar.a::!INT AS a"
+      query: "SELECT VALUE {'a': bar.a} FROM foo.bar GROUP BY bar.a AS a"
       error: "unknown field 'bar'"
 
     - description: GROUP BY keys may be document field references
       query: "SELECT * FROM foo.poly AS b GROUP by a.a.a::!INT AS a"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'b': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$b.a.a.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}
       result:
-        -  {"a": null}
+        -  {'__bot': {'a': null}}
 
     - description: GROUP BY arbitrary expression
-      query: "SELECT * FROM foo.bar GROUP BY a::!INT / 2 AS ad2"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a/ 2 AS ad2"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'ad2': {'$divde': {'dividend': '$bar.a', 'divisor': {'$literal': 2}, 'onError': null}}}}
+        - {'$project': {'_id': 0, '__bot': {'ad2': '$_id.a'}}}
       result:
-        - {"ad2": {"$numberInt": "0"}}
-        - {"ad2": {"$numberInt": "5"}}
-        - {"ad2": {"$numberInt": "55"}}
+        - {'__bot': {"ad2": {"$numberInt": "0"}} }
+        - {'__bot': {"ad2": {"$numberInt": "5"}} }
+        - {'__bot': {"ad2": {"$numberInt": "55"}} }
 
     - description: single DISTINCT aggregation function correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOUBLE) AS suma"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'n': null}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'suma': '$suma'}}}
       result:
-          - {"n": null, "suma": {"$numberInt": "123"}}
+        - {'__bot': {"n": null, "suma": {"$numberInt": "123"}} }
 
     - description: argument to DISTINCT aggregation function must have statically determined type that is mutually comparable
       query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
@@ -175,32 +279,61 @@ tests:
     - description: argument to DISTINCT aggregation function cannot have type DOCUMENT
       query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOCUMENT) AS suma"
       error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
-      
+
     - description: argument to DISTINCT aggregation function cannot have type ARRAY
       query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!ARRAY) AS suma"
       error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
 
     - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
-      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOUBLE) AS dsuma, SUM(a::DOUBLE) AS suma"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'n': null}, 'dsuma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'dsuma': '$dsuma', 'suma': '$suma'}}}
       result:
-          - {"n": null, "a": {"$numberInt": "123"}, "a": {"$numberInt": "125"}}
+        - {'__bot': {"n": null, "dsuma": {"$numberInt": "123"}, "suma": {"$numberInt": "125"}} }
 
     - description: multi-DISTINCT aggregation function correctness test
-      query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOUBLE) AS suma, COUNT(DISTINCT c::!INT) AS countc"
+      query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma, COUNT(DISTINCT c) AS countc"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'n': null}, 'dsuma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'countc': {'$sqlCount': {'var': '$bar.c', 'distinct': true}}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'dsuma': '$dsuma', 'countc': '$countc'}}}
       result:
-          - {"suma": {"$numberInt": "123"}, "countc": {"$numberInt": "2"}}
+        - {'__bot': {"suma": {"$numberInt": "123"}, "countc": {"$numberInt": "2"}} }
 
     - description: multi-item group key correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a, b AS b AGGREGATE SUM(c::!DOUBLE) AS sumc"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$bar.a', 'b': '$bar.b'}, 'sumc': {$sqlSum: {'var': '$bar.c', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'sumc': '$sumc'}}}
       result:
-          - {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "6"}}
-          - {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "5"}}
-          - {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}, "c": {"$numberInt": "4"}}
+        - {'__bot': {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}, "sumc": {"$numberInt": "6"}} }
+        - {'__bot': {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "sumc": {"$numberInt": "5"}} }
+        - {'__bot': {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}, "sumc": {"$numberInt": "4"}} }
 
     - description: multi-item group key with HAVING correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a, b AS b AGGREGATE SUM(c::!DOUBLE) AS sumc HAVING a != 1 AND sumc != 4"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a != 1 AND sumc != 4"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$bar.a', 'b': '$bar.b'}, 'sumc': {$sqlSum: {'var': '$bar.c', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'sumc': '$sumc'}}}
+        - {'$match': { $and: [ {'$neq': ['$__bot.a', 1]}, {'$neq': ['$__bot.b', 4]}]}}
       result:
-          - {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "c": {"$numberInt": "5"}}
+        - {'__bot': {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "sumc": {"$numberInt": "5"}} }
 
     - description: AGGREGATE expressions must be aggregation functions, not arbitrary expressions
       query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE 1 + SUM(a)"
@@ -211,7 +344,7 @@ tests:
       error: "Expressions in AGGREGATE phrase must be aggregation function applications not scalar function applications"
 
     - description: field reference a is undefined in GROUP BY
-      query: "SELECT VALUE {'a': a, 'sb': sb} FROM foo.bar AS bar GROUP BY c AS c AGGREGATE SUM(b::!DOUBLE) AS sb"
+      query: "SELECT VALUE {'a': a, 'sb': sb} FROM foo.bar AS bar GROUP BY c AS c AGGREGATE SUM(b) AS sb"
       error: "No such field a"
 
     - description: Aggregation functions are not allowed in SELECT VALUE
@@ -219,44 +352,69 @@ tests:
       error: "Aggregation functions are not allowed in SELECT VALUE clause"
 
     - description: HAVING without GROUP BY works as a WHERE cluase, but happens after the WHERE clause
-      query: "SELECT * FROM foo.bar AS bar WHERE a::!INT < 15 HAVING a::!INT > 5"
+      query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: bar
+      translations:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$match': {'TODO': 'SQL-142: where clause'}}
       result:
-        - {"a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}}
+        - {'__bot': {"a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}} }
 
     - description: ADD_TO_ARRAY correctness test
-      query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(a.a::!INT) AS garr"
+      query: "SELECT * FROM (SELECT a FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(a.a::!INT) AS garr"
+      current_db: foo
+      translation_target_db: foo
+      translations:
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$push': '$arr.a.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'garr': $garr}}}
       result:
-        - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
-        - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}, {"$numberInt": "2"}]}
-        - {"a": null, "garr": []}
+        - {'__bot': {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]} }
+        - {'__bot': {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}, {"$numberInt": "2"}]} }
+        - {'__bot': {"a": null, "garr": [null, null, null]} }
 
-    - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-      query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
-      result:
-        - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
-        - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}]}
-        - {"a": null, "garr": []}
+      - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
+        query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
+        current_db: foo
+        translation_target_db: foo
+        translations:
+          - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+          - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$addToSet': '$arr.a.a'}}}
+          - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'garr': '$garr'}}}
+        result:
+          - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
+          - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}]}
+          - {"a": null, "garr": []}
 
     - description: ADD_TO_ARRAY(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
       error: "* is not an allowed argument to ADD_TO_ARRAY"
 
-
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
-      query: "SELECT VALUE {'gset' : gset, 'ty': TYPE(gset[0])} FROM (SELECT * foo.numerics ORDER BY _id ASC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset' : gset} FROM (SELECT * foo.numerics ORDER BY _id ASC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      current_db: foo
+      translation_target_db: foo
+      translations:
+        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-148: subquerys'}}}
+        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'gset': '$gset'}}}
+        - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
       result:
-        - {
-            'gset': [{ '$numberDecimal': '3' }],
-            'ty': 'DECIMAL'
-          }
+        - {'__bot': {'gset': [{ '$numberDecimal': '3' }]}}
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
-      query: "SELECT VALUE {'gset': gset, 'ty': TYPE(gset[0])} FROM (SELECT * foo.numerics ORDER BY _id DSC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset': gset} FROM (SELECT * foo.numerics ORDER BY _id DSC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      current_db: foo
+      translation_target_db: foo
+      translations:
+        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-148: subquerys'}}}
+        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'_': '_id._', 'gset': '$gset'}}}
+        - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
       result:
-        - {
-            "gset": [{ "$numberInt": "3" }],
-            "ty": "INT"
-          }
+        - {'__bot': {"gset": [{ "$numberInt": "3" }]}}
 
     - description: ADD_TO_SET(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE ADD_TO_SET(*) AS gset"
@@ -267,31 +425,45 @@ tests:
       error: "Argument to ADD_TO_SET must have statically mutually comparable type"
 
     - description: ADD_TO_SET correctness test
-      query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_SET(a.a::!INT) AS gset"
+      query: "SELECT * FROM (SELECT a FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_SET(a.a::!INT) AS gset"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-148: subquerys'}}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gset': {'$addToSet': '$arr.a.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gset': '$gset'}}}
       result:
-        - {"a": {"$numberInt": "1"},"gset": [{"$numberInt": "1"}]}
-        - {"a": {"$numberInt": "2"},"gset": [{"$numberInt": "2"}]}
-        - {"a": null, "gset": []}
+        - {'__bot': {"a": {"$numberInt": "1"},"gset": [{"$numberInt": "1"}]}}
+        - {'__bot': {"a": {"$numberInt": "2"},"gset": [{"$numberInt": "2"}]}}
+        - {'__bot': {"a": null, "gset": [null]}}
 
     - description: AVG correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(a::!DOUBLE) AS gavg"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gavg': {'$sqlAvg': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gavg': '$gavg'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
             "gavg": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
             "gavg": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "3"},
             "gavg": {"$numberInt": "3"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "4"},
             "gavg": {"$numberInt": "4"}
-          }
+          }}
 
     - description: AVG(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(*) AS gavg"
@@ -303,67 +475,88 @@ tests:
 
     - description: COUNT correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE COUNT(a) AS gcount"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gcount': {'$sqlCount': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gcount': '$gcount'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
             "gcount": {"$numberInt": "2"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
             "gcount": {"$numberInt": "1"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "3"},
             "gcount": {"$numberInt": "2"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "4"},
             "gcount": {"$numberInt": "1"}
-          }
+          }}
 
     - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gcounta': {'$sqlCount': {'var': '$arr.a', 'distinct': false}, 'gcountn': {'$sqlCount': {'var': null, 'distinct': false}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gcounta': '$gcounta', 'gcountn': '$gcountn'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
             "gcounta": {"$numberInt": "2"},
             "gcountn": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
             "gcounta": {"$numberInt": "1"},
             "gcountn": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "3"},
             "gcounta": {"$numberInt": "0"},
             "gcountn": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "4"},
             "gcounta": {"$numberInt": "0"},
             "gcountn": {"$numberInt": "0"}
-          }
+          }}
 
     - description: FIRST correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::!INT AS a AGGREGATE FIRST(a) AS gfirst"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gfirst': {'$first': '$bar.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gfirst': '$gfirst'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
             "gfirst": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
             "gfirst": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "3"},
             "gfirst": {"$numberInt": "3"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "4"},
             "gfirst": {"$numberInt": "4"}
-          }
+          }}
 
     - description: FIRST(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE FIRST(*) AS gfirst"
@@ -371,34 +564,48 @@ tests:
 
     - description: LAST correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::!INT AS a AGGREGATE LAST(a) AS glast"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'glast': {'$sqlLast': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'glast': '$glast'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
             "glast": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
             "glast": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "3"},
             "glast": {"$numberInt": "3"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "4"},
             "glast": {"$numberInt": "4"}
-          }
+          }}
 
     - description: LAST(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE LAST(*) AS glast"
       error: "* is not an allowed argument to LAST"
 
     - description: MAX correctness test
-      query: "SELECT * FROM foo.bar AS arr GROUP BY a::!INT AS a AGGREGATE MAX(b::!INT) AS gmax"
+      query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gmax': {'$max': '$bar.b'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmax': '$gmax'}}}
       result:
-        -  {"a": {"$numberInt": "1"},"gmax": {"$numberInt": "42"}}
-        -  {"a": {"$numberInt": "11"},"gmax": {"$numberInt": "22"}}
-        -  {"a": {"$numberInt": "111"},"gmax": {"$numberInt": "142"}}
+        -  {'__bot': {'a': {'$numberInt': '1'}, 'gmax': {'$numberInt': '42'}}}
+        -  {'__bot': {'a': {'$numberInt': '11'}, 'gmax': {'$numberInt': '22'}}}
+        -  {'__bot': {'a': {'$numberInt': '111'}, 'gmax': {'$numberInt': '142'}}}
 
     - description: MAX(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MAX(*) AS gmax"
@@ -410,19 +617,26 @@ tests:
 
     - description: MERGE_DOCUMENTS correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::!INT AS a MERGE_DOCUMENTS(a::!DOCUMENT) AS gmerge"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gmerge': {'$sqlMergeObjects': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmerge': '$gmerge'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"$numberInt": "1"},
             "gmerge": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "2"},
             "gmerge": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": null,
             "gmerge": {"c": {"$numberInt": "1"}}
-          }
+          }}
 
     - description: MERGE_DOCUMENTS(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
@@ -433,11 +647,18 @@ tests:
       error: "Argument to MERGE_DOCUMENTS must be statically determined as DOCUMENT"
 
     - description: MIN correctness test
-      query: "SELECT * FROM foo.bar AS arr GROUP BY a::!INT AS a AGGREGATE MIN(b::!INT) AS gmin"
+      query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gmin': {'$min': '$arr.b'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmin': '$gmin'}}}
       result:
-        -    {"a": {"$numberInt": "1"},"gmin": {"$numberInt": "2"}}
-        -    {"a": {"$numberInt": "11"},"gmin": {"$numberInt": "22"}}
-        -    {"a": {"$numberInt": "111"},"gmin": {"$numberInt": "142"}}
+        - {'__bot': {'a': {'$numberInt': '1'}, 'gmax': {'$numberInt': '2'}}}
+        - {'__bot': {'a': {'$numberInt': '1'}, 'gmax': {'$numberInt': '22'}}}
+        - {'__bot': {'a': {'$numberInt': '1'}, 'gmax': {'$numberInt': '142'}}}
 
     - description: MIN(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MIN(*) AS gmin"
@@ -449,19 +670,26 @@ tests:
 
     - description: STDDEV_POP correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_POP(a::!DOUBLE) AS gstdp"
+      translation_target_db: foo
+      translation_target_coll: poly
+      current_db: foo
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gstdp': {'$sqlStdDevPop': {'var': '$arr.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gstdp': '$gstdp'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"$numberInt": "1"},
             "gstdp": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "2"},
             "gstdp": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": null,
             "gstdp": {"$numberDouble": "0.4714045207910316"}
-          }
+          }}
 
     - description: STDDEV_POP(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_POP(*) AS gstdp"
@@ -473,19 +701,26 @@ tests:
 
     - description: STDDEV_SAMP correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_SAMP(a::!DOUBLE) as gstds"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gstds': {'$sqlStdDevSamp': {'var': '$arr.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gstds': '$gstds'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"$numberInt": "1"},
             "gstds": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "2"},
             "gstds": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": null,
             "gstds": {"$numberDouble": "0.4714045207910316"}
-          }
+          }}
 
     - description: STDDEV_SAMP(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
@@ -497,19 +732,26 @@ tests:
 
     - description: SUM correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE SUM(a::!DOUBLE) AS gsum"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gsum':  {'$sqlSum': {'var': '$arr.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gsum': '$gsum'}}}
       result:
-        - {
+        - {'__bot': {
             "a": {"$numberInt": "1"},
             "gsum": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": {"$numberInt": "2"},
             "gsum": {"$numberInt": "0"}
-          }
-        - {
+          }}
+        - {'__bot': {
             "a": null,
             "gsum": {"$numberInt": "10"}
-          }
+          }}
 
     - description: SUM(*) is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(*) AS gsum"
@@ -518,3 +760,4 @@ tests:
     - description: SUM requires a statically numeric argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(a) AS gsum"
       error: "Argument to SUM must be statically determined as NUMERIC"
+

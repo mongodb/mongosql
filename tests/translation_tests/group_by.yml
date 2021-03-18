@@ -1,0 +1,21 @@
+tests:
+  - description: aggregated field name of _id will be prepended with _ in $group stage
+    query: "SELECT * FROM [{'a': 1}, {'a': 1}, {'a': 3}] AS arr GROUP BY a AS a AGGREGATE SUM(a) AS _id"
+    translation:
+      - {'$array': {'arr': [{'a': 1}, {'a': 1}, {'a': 3}] }}
+      - {'$group': {'_id': {'a': '$arr.a'}, '__id': {'$sqlSum': {'var': '$arr.a', 'distinct': false}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', '_id': '$__id'}}}
+    result:
+      - {'__bot': {"a": {"$numberint": "1"}, "_id": {"$numberint": "2"}}}
+      - {'__bot': {"a": {"$numberint": "3"}, "_id": {"$numberint": "3"}}}
+
+  - description: field name for unaliased group key will be prepended with _ if conflicted with user provided group key alias
+    query: "SELECT VALUE {a: a} FROM [{'a': 1, 'b': 1}, {'a': 1, 'b': 1}, {'a': 3, 'b': 3}] AS arr GROUP BY a, b AS __unaliasedKey1"
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'b': 1}, {'a': 1, 'b': 1}, {'a': 3, 'b': 3}] }}
+      - {'$group': {'_id': {'___unaliasedKey1': '$arr.a', '__unaliasedKey1': '$arr.b'}}}}
+      - {'$project': {'_id': 0, '__bot': {'b': '$_id.__unaliasedKey1'}, 'arr': {'a': '$_id.___unaliasedKey1'}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
+    result:
+      - {'__bot': {'a': {'$numberint': '1'}}}
+      - {'__bot': {'a': {'$numberint': '3'}}}
