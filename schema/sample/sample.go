@@ -38,8 +38,8 @@ type NSMapping map[string]NSCollections
 
 // fetchSortedNamespaces returns the fetched namespaces sorted by database name.
 // We need this to ensure a stable schema in the face of hitting the global table limit.
-func fetchSortedNamespaces(ctx context.Context, s *provider.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
-	namespaces, err := fetchNamespaces(ctx, s, lgr, match)
+func fetchSortedNamespaces(ctx context.Context, session, primarySession *provider.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
+	namespaces, err := fetchNamespaces(ctx, session, primarySession, lgr, match)
 	if err != nil {
 		return nil, err
 	}
@@ -48,8 +48,8 @@ func fetchSortedNamespaces(ctx context.Context, s *provider.Session, lgr log.Log
 }
 
 // fetchNamespaceMap provides the same data as fetchNamespaces in a map form
-func fetchNamespaceMap(ctx context.Context, s *provider.Session, lgr log.Logger, match *strutil.Matcher) (NSMapping, error) {
-	namespaces, err := fetchNamespaces(ctx, s, lgr, match)
+func fetchNamespaceMap(ctx context.Context, session, primarySession *provider.Session, lgr log.Logger, match *strutil.Matcher) (NSMapping, error) {
+	namespaces, err := fetchNamespaces(ctx, session, primarySession, lgr, match)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func fetchNamespaceMap(ctx context.Context, s *provider.Session, lgr log.Logger,
 
 // fetchNamespaces returns a slice of database, collections pairs that exist in the MongoDB cluster
 // to the collection(s) within each database.
-func fetchNamespaces(ctx context.Context, s *provider.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
+func fetchNamespaces(ctx context.Context, session, primarySession *provider.Session, lgr log.Logger, match *strutil.Matcher) ([]NSPair, error) {
 
 	// If the matcher's inclusionary patterns don't include any wildcards, we can simply return the
 	// namespaces that were specified without having to query MongoDB.
@@ -92,7 +92,7 @@ func fetchNamespaces(ctx context.Context, s *provider.Session, lgr log.Logger, m
 			lgr.Debugf(log.Dev, "namespace exclusion selector used: running listDatabases")
 		}
 
-		dbResult, err := s.ListDatabases(ctx)
+		dbResult, err := primarySession.ListDatabases(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error listing databases: %v", err)
 		}
@@ -131,7 +131,7 @@ func fetchNamespaces(ctx context.Context, s *provider.Session, lgr log.Logger, m
 			continue
 		}
 
-		cursor, err := s.ListCollections(ctx, db, driver.CursorOptions{})
+		cursor, err := session.ListCollections(ctx, db, driver.CursorOptions{})
 		if err != nil {
 			return nil, fmt.Errorf("can't get the collection names for '%v': %v", db, err)
 		}

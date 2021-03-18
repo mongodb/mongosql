@@ -297,9 +297,18 @@ func (s *Session) ListCollections(ctx context.Context, db string, opts driver.Cu
 	return mongodb.NewListCollectionsCursor(cursor), nil
 }
 
-// ListDatabases returns a cursor to iterate through
-// the database names present on a server.
+// ListDatabases returns a cursor to iterate through the database
+// names present on a server. ListDatabases should always be called
+// with readPreference primary and no readPreference tags.
 func (s *Session) ListDatabases(ctx context.Context) (*operation.ListDatabasesResult, error) {
+	// ListDatabases may need to talk to the CSRS, so we should always
+	// use readpref primary and no tags, to ensure that the
+	// user-provided readpref doesn't result in a server selection
+	// failure on the CSRS.
+	if s.ReadPreference.Mode() != readpref.PrimaryMode || len(s.ReadPreference.TagSets()) != 0 {
+		return nil, fmt.Errorf("listDatabases should always be run with readpref.Primary()")
+	}
+
 	cmd := operation.NewListDatabases(nil).
 		Database("admin").
 		Deployment(s.Deployment).

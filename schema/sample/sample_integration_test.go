@@ -49,6 +49,12 @@ func TestFetchNamespaces(t *testing.T) {
 	}
 	defer session.Close()
 
+	primarySession, err := sp.AuthenticatedAdminSessionPrimary()
+	if err != nil {
+		t.Fatalf("failed to set up primary session to test server: %v", err)
+	}
+	defer primarySession.Close()
+
 	matcher, err := strutil.NewMatcher([]string{"*.*"})
 	if err != nil {
 		t.Fatal(err)
@@ -65,7 +71,7 @@ func TestFetchNamespaces(t *testing.T) {
 	dbutils.InsertDocuments(session, db2, c2, doc)
 	dbutils.InsertDocuments(session, db2, c1, doc)
 
-	mappings, err := fetchNamespaceMap(context.Background(), session, lgr, matcher)
+	mappings, err := fetchNamespaceMap(context.Background(), session, primarySession, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 
 	req.Equal(len(mappings[db1]), 1)
@@ -73,7 +79,7 @@ func TestFetchNamespaces(t *testing.T) {
 	req.Equal(len(mappings[db2]), 2)
 
 	dbutils.DropDatabase(session, db2)
-	mappings, err = fetchNamespaceMap(context.Background(), session, lgr, matcher)
+	mappings, err = fetchNamespaceMap(context.Background(), session, primarySession, lgr, matcher)
 	req.Nil(err, "error fetching namespaces")
 	_, found := mappings[db1]
 

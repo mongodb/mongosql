@@ -370,6 +370,12 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 	}
 	defer session.Close()
 
+	primarySession, err := s.sp.AuthenticatedAdminSessionPrimary()
+	if err != nil {
+		return nil, err
+	}
+	defer primarySession.Close()
+
 	namespaces := s.cfg.Namespaces()
 
 	var nsMatcher *strutil.Matcher
@@ -380,7 +386,7 @@ func (s Sampler) readModeSample(ctx context.Context) (*schema.Schema, error) {
 
 	s.lg.Infof(log.Always, "sampling MongoDB for schema...")
 
-	fetchedNSes, err := fetchSortedNamespaces(ctx, session, s.lg, nsMatcher)
+	fetchedNSes, err := fetchSortedNamespaces(ctx, session, primarySession, s.lg, nsMatcher)
 	if err != nil {
 		return nil, err
 	}
