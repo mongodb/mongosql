@@ -9,6 +9,7 @@ package mongosql
 */
 import "C"
 import (
+	"encoding/base64"
 	"unsafe"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -31,12 +32,12 @@ func Translate(db, sql string) (queryDB string, queryCollection string, pipeline
 	cSQL := C.CString(sql)
 	cDB := C.CString(db)
 
-	cTranslationJSON := C.translate(cDB, cSQL)
-	translationJSON := C.GoString(cTranslationJSON)
+	cTranslationBase64 := C.translate(cDB, cSQL)
+	translationBase64 := C.GoString(cTranslationBase64)
 
 	C.free(unsafe.Pointer(cSQL))
 	C.free(unsafe.Pointer(cDB))
-	C.free(unsafe.Pointer(cTranslationJSON))
+	C.free(unsafe.Pointer(cTranslationBase64))
 
 	translation := struct {
 		Db         string   `bson:"target_db"`
@@ -44,7 +45,12 @@ func Translate(db, sql string) (queryDB string, queryCollection string, pipeline
 		Pipeline   []bson.M `bson:"pipeline"`
 	}{}
 
-	err := bson.UnmarshalExtJSON([]byte(translationJSON), true, &translation)
+	translationBytes, err := base64.StdEncoding.DecodeString(translationBase64)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bson.Unmarshal(translationBytes, &translation)
 	if err != nil {
 		panic(err)
 	}

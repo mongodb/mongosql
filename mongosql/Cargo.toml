@@ -5,6 +5,7 @@ authors = ["Ryan Chipman <ryan@ryanchipman.com>"]
 edition = "2018"
 
 [dependencies]
+base64 = "0.13"
 bson = "1"
 lalrpop-util = "0.19.4"
 regex = "1"

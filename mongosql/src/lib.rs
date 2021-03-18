@@ -26,15 +26,19 @@ pub fn translate_sql(current_db: &str, sql: &str) -> Translation {
 }
 
 /// A variant of translate_sql that encodes the resulting Translation
-/// as extended JSON. This function will become unnecessary once we
-/// switch the mongosql-c API to encode its return values as BSON
-/// instead of extended JSON.
-pub fn translate_sql_extjson(current_db: &str, sql: &str) -> String {
+/// as BSON and then base64-encodes it.
+pub fn translate_sql_bson_base64(current_db: &str, sql: &str) -> String {
     let translation = translate_sql(current_db, sql);
-    let translation = bson::bson!({
+    let translation = bson::doc! {
         "target_db": translation.target_db,
         "target_collection": translation.target_collection,
         "pipeline": translation.pipeline,
-    });
-    serde_json::to_string(&translation.into_canonical_extjson()).unwrap()
+    };
+
+    let mut buf = Vec::new();
+    translation
+        .to_writer(&mut buf)
+        .expect("failed to serialize Translation");
+
+    base64::encode(buf)
 }
