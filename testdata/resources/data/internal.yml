@@ -82,6 +82,13 @@
   docs:
     - {_id: 0, a: 123, b: { $c: 456 }}
 
+- db: "bugs_database"
+  collection: "BI_2623"
+  docs:
+    - {_id: 0, a: 1}
+    - {_id: 1, a: 0}
+    - {_id: 2, a: ~}
+
 - db: "collation_test"
   collection: "collation_1"
   collation: {locale: "en_US", strength: 1}

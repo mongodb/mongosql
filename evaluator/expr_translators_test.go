@@ -811,10 +811,17 @@ func TestTranslatePartialPredicate(t *testing.T) {
 		{
 			"4", "NOT (a = 3 AND a < b)", `{"$and": [{"a": {"$ne": {"$numberLong":"3"}}},{"a": {"$ne": null}}]}`, "NOT a < b",
 			evaluator.NewSQLNotExpr(
-				evaluator.NewSQLComparisonExpr(
-					evaluator.LT,
-					testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
-					testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
+				evaluator.NewSQLAndExpr(
+					evaluator.NewSQLComparisonExpr(
+						evaluator.EQ,
+						testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
+						evaluator.NewSQLValueExpr(values.NewSQLInt64(values.MySQLValueKind, 3)),
+					),
+					evaluator.NewSQLComparisonExpr(
+						evaluator.LT,
+						testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
+						testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
+					),
 				),
 			),
 		},

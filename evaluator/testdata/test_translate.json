@@ -4532,24 +4532,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",false]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",false]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",false]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",false]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",false]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",false]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -4578,24 +4578,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -4624,24 +4624,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",true]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",true]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",true]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",true]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",true]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"t\": {\"$ne\": true}},{\"t\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$eq\": [\"$t\",true]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -4670,24 +4670,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$ne\": null}}",
-                "mysql-mode": "{\"a\": {\"$ne\": null}}"
+                "mongosql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$ne\": null}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$lte\": [\"$a\",null]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -5912,24 +5912,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -5958,24 +5958,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}",
-                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}"
+                "mongosql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6050,24 +6050,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6096,24 +6096,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6142,24 +6142,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6188,24 +6188,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$cond\": [{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"^.*un.*$\",\"options\": \"s\"}},{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"s\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$cond\": [{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"^.*un.*$\",\"options\": \"s\"}},{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6280,24 +6280,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$cond\": [{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"^.*un.*$\",\"options\": \"si\"}},{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"^.*un.*$\",\"$options\": \"si\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$cond\": [{\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"^.*un.*$\",\"options\": \"si\"}},{\"$numberInt\":\"1\"},{\"$numberInt\":\"0\"}]}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6326,24 +6326,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$ne\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$ne\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$ne\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$ne\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$ne\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$ne\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6372,24 +6372,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}",
-                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]}"
+                "mongosql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$or\": [{\"$and\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": [{\"$or\": [{\"$eq\": [\"$$expr0\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr0\",false]},{\"$eq\": [\"$$expr1\",{\"$numberInt\":\"0\"}]},{\"$eq\": [\"$$expr1\",false]}]},false,{\"$cond\": [{\"$or\": [{\"$lte\": [\"$$expr0\",null]},{\"$lte\": [\"$$expr1\",null]}]},null,true]}]}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6418,24 +6418,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}",
-                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}}"
+                "mongosql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6464,24 +6464,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}",
-                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]}"
+                "mongosql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$or\": [{\"a\": {\"$eq\": {\"$numberLong\":\"1\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$eq\": {\"$numberLong\":\"5\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"1\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"3\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}},\"expr2\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"5\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$eq\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\",\"$$expr2\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6510,24 +6510,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}",
-                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"a\": {\"$gt\": {\"$numberLong\":\"3\"}}},{\"a\": {\"$lt\": {\"$numberLong\":\"10\"}}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"expr0\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"3\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}},\"expr1\": {\"$let\": {\"vars\": {\"left\": \"$a\",\"right\": {\"$numberLong\":\"10\"}},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$reduce\": {\"input\": [\"$$expr0\",\"$$expr1\"],\"initialValue\": false,\"in\": {\"$switch\": {\"branches\": [{\"case\": {\"$or\": [\"$$this\",\"$$value\"]},\"then\": true},{\"case\": {\"$eq\": [\"$$this\",null]},\"then\": null},{\"case\": {\"$eq\": [\"$$value\",null]},\"then\": null}],\"default\": false}}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6602,24 +6602,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(a|b)\",\"$options\": \"\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(a|b)\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6694,24 +6694,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"abc\",\"$options\": \"\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"abc\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -6786,24 +6786,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}",
-                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]}"
+                "mongosql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"s\": {\"$regex\": \"(.* )?\",\"$options\": \"\"}}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$regexMatch\": {\"input\": \"$s\",\"regex\": \"(.* )?\",\"options\": \"si\"}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -16998,24 +16998,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -17044,24 +17044,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -21414,24 +21414,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"a\": {\"$ne\": {\"$numberInt\":\"0\"}}},{\"a\": {\"$ne\": null}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -21460,24 +21460,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}",
-                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]}"
+                "mongosql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"$nor\": [{\"$and\": [{\"t\": {\"$ne\": false}},{\"t\": {\"$ne\": null}},{\"t\": {\"$ne\": {\"$numberInt\":\"0\"}}}]}]},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": \"$t\"},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -21552,24 +21552,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     },
@@ -21598,24 +21598,24 @@
         },
         "predicate": {
             "3.2": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.4": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "",
+                "mysql-mode": ""
             },
             "3.6": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.0": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             },
             "4.2": {
-                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}",
-                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}}"
+                "mongosql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}",
+                "mysql-mode": "{\"a\": {\"$lte\": {\"$numberLong\":\"5\"}}},{\"$expr\": {\"$let\": {\"vars\": {\"arg\": {\"$let\": {\"vars\": {\"left\": {\"$numberLong\":\"5\"},\"right\": \"$a\"},\"in\": {\"$cond\": {\"if\": {\"$or\": [{\"$lte\": [\"$$left\",null]},{\"$lte\": [\"$$right\",null]}]},\"then\": null,\"else\": {\"$lt\": [\"$$left\",\"$$right\"]}}}}}},\"in\": {\"$cond\": {\"if\": {\"$lte\": [\"$$arg\",null]},\"then\": null,\"else\": {\"$not\": \"$$arg\"}}}}}}"
             }
         }
     }

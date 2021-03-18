@@ -406,3 +406,12 @@ testcases:
     id: BI-2463-timestamp_date_diff_within_24hour_mongosqld
     sql: select dt_timestamp, datediff(dt_timestamp, '2000-01-01T22:34:56Z') from group_by_date
     variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    expected_names: [a]
+    expected_results:
+      - [0]
+    expected_types: [int]
+    id: BI-2623-ifnull-match-negation
+    sql: select a from BI_2623 where not(a <> 0)
+    variables: {type_conversion_mode: mongosql}

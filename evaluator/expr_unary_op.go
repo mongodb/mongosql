@@ -134,16 +134,15 @@ func (not *SQLNotExpr) ToAggregationPredicate(t *PushdownTranslator) (ast.Expr, 
 // it will return the translation and nil, otherwise it will return
 // a partial translation and the remaining SQLNotExpr.
 func (not *SQLNotExpr) ToMatchLanguage(t *PushdownTranslator) (ast.Expr, SQLExpr) {
-	match, ex := t.ToMatchLanguage(not.expr)
+	match, _ := t.ToMatchLanguage(not.expr)
 	if match == nil {
 		return nil, not
-	} else if ex == nil {
-		return negate(match), nil
-	} else {
-		// partial translation of Not
-		return negate(match), NewSQLNotExpr(ex)
 	}
 
+	// Right now, we always return the whole not expression for
+	// subsequent filtration in the agg language, since negate
+	// incorrectly negates null checks (see BI-2623).
+	return negate(match), not
 }
 
 // EvalType returns the EvalType associated with SQLNotExpr.
