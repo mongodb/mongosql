@@ -7,6 +7,7 @@ pub enum Query {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SelectQuery {
     pub select_clause: SelectClause,
+    pub order_by_clause: Option<OrderByClause>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -134,4 +135,26 @@ pub enum BinaryOp {
     Neq,
     Or,
     Sub,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct OrderByClause {
+    pub sort_specs: Vec<SortSpec>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SortSpec {
+    pub key: SortKey,
+    pub direction: SortDirection,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum SortKey {
+    Key(Identifier),
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum SortDirection {
+    Asc,
+    Desc,
 }

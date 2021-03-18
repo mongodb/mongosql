@@ -131,7 +131,8 @@ validate_query_ast!(
                 expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
                 alias: None
             })])
-        }
+        },
+        order_by_clause: None,
     })
 );
 validate_query_ast!(
@@ -144,7 +145,8 @@ validate_query_ast!(
                 expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
                 alias: None
             })])
-        }
+        },
+        order_by_clause: None,
     })
 );
 validate_query_ast!(
@@ -157,7 +159,8 @@ validate_query_ast!(
                 expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
                 alias: None
             })])
-        }
+        },
+        order_by_clause: None,
     })
 );
 validate_query_ast!(
@@ -170,7 +173,8 @@ validate_query_ast!(
                 expression: Expression::Identifier(Identifier::Simple("fo`o``".to_string())),
                 alias: None
             })])
-        }
+        },
+        order_by_clause: None,
     })
 );
 validate_query_ast!(
@@ -183,7 +187,8 @@ validate_query_ast!(
                 expression: Expression::Identifier(Identifier::Simple(r#"fo"o"""#.to_string())),
                 alias: None
             })])
-        }
+        },
+        order_by_clause: None,
     })
 );
 validate_query_ast!(
@@ -196,7 +201,8 @@ validate_query_ast!(
                 expression: Expression::Identifier(Identifier::Simple(r#"fo""o"#.to_string())),
                 alias: None
             })])
-        }
+        },
+        order_by_clause: None,
     })
 );
 validate_query_ast!(
@@ -209,7 +215,8 @@ validate_query_ast!(
                 expression: Expression::Identifier(Identifier::Simple("fo``o".to_string())),
                 alias: None
             })])
-        }
+        },
+        order_by_clause: None,
     })
 );
 
@@ -240,7 +247,8 @@ validate_query_ast!(
                             alias: None
                         }
                     )])
-                }
+                },
+                order_by_clause: None,
             })),
             op: SetOperator::Union,
             right: Box::new(Query::Select(SelectQuery {
@@ -252,7 +260,8 @@ validate_query_ast!(
                             alias: None
                         }
                     )])
-                }
+                },
+                order_by_clause: None,
             }))
         })),
         op: SetOperator::UnionAll,
@@ -263,7 +272,8 @@ validate_query_ast!(
                     expression: Expression::Identifier(Identifier::Simple("c".to_string())),
                     alias: None
                 })])
-            }
+            },
+            order_by_clause: None,
         }))
     })
 );
@@ -463,5 +473,32 @@ validate_expression_ast!(
         else_branch: Some(Box::new(Expression::Identifier(Identifier::Simple(
             "c".to_string()
         ))))
+    })
+);
+// Order by tests
+should_parse!(order_by_simple, true, "select * order by a");
+should_parse!(order_by_asc, true, "select * order by a ASC");
+should_parse!(order_by_desc, true, "select * order by a DESC");
+should_parse!(order_by_multiple, true, "select a, b, c order by a, b");
+should_parse!(
+    order_by_multiple_directions,
+    true,
+    "select * order by a DESC, b ASC, c"
+);
+
+validate_query_ast!(
+    order_by_default_direction,
+    "select * order by a",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        order_by_clause: Some(OrderByClause {
+            sort_specs: vec![SortSpec {
+                key: SortKey::Key(Identifier::Simple("a".to_string())),
+                direction: SortDirection::Asc
+            }]
+        })
     })
 );

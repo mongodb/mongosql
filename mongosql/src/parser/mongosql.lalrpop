@@ -13,11 +13,28 @@ SetQuery: SetQuery = {
 }
 
 SelectQuery: SelectQuery = {
-  SelectClause => SelectQuery{select_clause:<>},
+  <s:SelectClause> <o:OrderByClause?> => SelectQuery{select_clause:s, order_by_clause: o},
 };
 
 SelectClause: SelectClause = {
   SELECT <q:SetQuantifier?> <b:SelectBody> => SelectClause{set_quantifier:q.unwrap_or(SetQuantifier::All), body:b},
+}
+
+OrderByClause: OrderByClause = {
+  ORDER BY <s:Comma<SortSpec>> => OrderByClause{sort_specs:s},
+}
+
+SortSpec: SortSpec = {
+  <k:SortKey> <d:SortDirection?> => SortSpec{key:k, direction:d.unwrap_or(SortDirection::Asc)},
+}
+
+SortKey: SortKey = {
+  Identifier => SortKey::Key(<>),
+}
+
+SortDirection: SortDirection = {
+  ASC => SortDirection::Asc,
+  DESC => SortDirection::Desc,
 }
 
 SetOperator: SetOperator = {
@@ -194,14 +211,18 @@ match {
 	r"(?i)all" => ALL,
 	r"(?i)and" => AND,
 	r"(?i)as" => AS,
+	r"(?i)asc" => ASC,
 	r"(?i)between" => BETWEEN,
+	r"(?i)by" => BY,
 	r"(?i)case" => CASE,
+	r"(?i)desc" => DESC,
 	r"(?i)distinct" => DISTINCT,
 	r"(?i)else" => ELSE,
 	r"(?i)end" => END,
 	r"(?i)missing" => MISSING,
 	r"(?i)not" => NOT,
 	r"(?i)or" => OR,
+	r"(?i)order" => ORDER,
 	"*" => STAR,
 	r"(?i)then" => THEN,
 	r"(?i)union" => UNION,
