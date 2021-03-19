@@ -55,7 +55,12 @@ func (a *CleartextSessionAuthenticator) Auth(ctx context.Context, conns []driver
 	}
 
 	for i := 0; i < len(conns); i++ {
-		err := authenticator.Auth(ctx, conns[i].Description(), conns[i])
+		cfg := auth.Config{
+			Description:  conns[i].Description(),
+			Connection:   conns[i],
+			ClusterClock: nil,
+		}
+		err := authenticator.Auth(ctx, &cfg)
 		if err != nil {
 			return fmt.Errorf("unable to authenticate conversation %d: %s", i, err)
 		}

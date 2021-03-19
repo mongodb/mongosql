@@ -13,9 +13,7 @@ import (
 
 	"github.com/xdg/stringprep"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // SCRAMSHA256 is the mechanism name for SCRAM-SHA-256.
@@ -51,7 +49,7 @@ type ScramSHA256Authenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *ScramSHA256Authenticator) Auth(ctx context.Context, _ description.Server, c driver.Connection) error {
+func (a *ScramSHA256Authenticator) Auth(ctx context.Context, cfg *auth.Config) error {
 	client := &scramSaslClient{
 		username:       a.Username,
 		password:       a.Password,
@@ -62,7 +60,7 @@ func (a *ScramSHA256Authenticator) Auth(ctx context.Context, _ description.Serve
 		serverKey:      a.serverKey,
 	}
 
-	err := auth.ConductSaslConversation(ctx, c, a.DB, client)
+	err := auth.ConductSaslConversation(ctx, cfg, a.DB, client)
 	if err != nil {
 		return err
 	}

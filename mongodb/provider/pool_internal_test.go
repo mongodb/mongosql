@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -265,6 +265,7 @@ func (c *mockConn) ReadWireMessage(ctx context.Context, dst []byte) ([]byte, err
 func (c *mockConn) Description() description.Server {
 	return description.Server{}
 }
+
 func (c *mockConn) Close() error {
 	return nil
 }
@@ -272,6 +273,11 @@ func (c *mockConn) Close() error {
 func (c *mockConn) ID() string {
 	return ""
 }
+
 func (c *mockConn) Address() address.Address {
 	return ""
+}
+
+func (c *mockConn) Stale() bool {
+	return false
 }

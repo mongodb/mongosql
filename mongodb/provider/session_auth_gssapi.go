@@ -63,7 +63,12 @@ func (a *GssapiSessionAuthenticator) Auth(ctx context.Context, conns []driver.Co
 			false,
 			"",
 		)
-		err := auth.ConductSaslConversation(ctx, c, "$external", client)
+		cfg := auth.Config{
+			Description:  c.Description(),
+			Connection:   c,
+			ClusterClock: nil,
+		}
+		err := auth.ConductSaslConversation(ctx, &cfg, "$external", client)
 		client.Close()
 
 		if err != nil {

@@ -63,7 +63,7 @@ func (p *SessionConnPool) Close() {
 	}
 }
 
-// Get returns a connection to a sessionConn in the SessionConnPool.
+// Get returns a sessionConn from the SessionConnPool.
 func (p *SessionConnPool) Get(ctx context.Context) (driver.Connection, error) {
 	p.connsLock.Lock()
 	conns := p.conns
@@ -89,6 +89,8 @@ func (p *SessionConnPool) getConn(ctx context.Context, conns <-chan *sessionConn
 	}
 }
 
+// returnConn sends a sessionConn back to its SessionConnPool's channel
+// of connections. The connection is closed if the channel is nil.
 func (p *SessionConnPool) returnConn(c *sessionConn) error {
 	p.connsLock.Lock()
 	defer p.connsLock.Unlock()
@@ -106,6 +108,7 @@ type sessionConn struct {
 	p *SessionConnPool
 }
 
+// Close puts a sessionConn back in its SessionConnPool.
 func (c *sessionConn) Close() error {
 	return c.p.returnConn(c)
 }
@@ -119,4 +122,15 @@ func (c *sessionConn) CompressWireMessage(src, dst []byte) ([]byte, error) {
 
 	// Cannot compress if the underlying driver.Connection is not a driver.Compressor.
 	return append(dst, src...), nil
+}
+
+// noopCloseSessionConn wraps a connection and replaces the Close func with a no-op.
+// This is used when passing a sessionConn to the driver during (*Session).Login to
+// prevent any premature calls to (*sessionConn).Close from the driver.
+type noopCloseSessionConn struct {
+	driver.Connection
+}
+
+func (ncsc noopCloseSessionConn) Close() error {
+	return nil
 }

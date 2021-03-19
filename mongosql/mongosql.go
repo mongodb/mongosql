@@ -167,7 +167,7 @@ func TranslateSQLQueryRaw(
 		}
 	}
 
-	return pipeline, database, collection, metadata, nil
+	return bsoncore.Array(pipeline), database, collection, metadata, nil
 }
 
 func getExplainOutput(format string, explainRecords []*evaluator.ExplainRecord) (string, string, error) {

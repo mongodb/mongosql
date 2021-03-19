@@ -10,8 +10,8 @@ import (
 	"github.com/10gen/sqlproxy/log"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // Collections used to perform sampling operations.

@@ -13,11 +13,11 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/wiremessage"
 )
 
@@ -348,7 +348,7 @@ type dummyAuthenticator struct {
 	InvokedCount int
 }
 
-func (a *dummyAuthenticator) Auth(context.Context, description.Server, driver.Connection) error {
+func (a *dummyAuthenticator) Auth(context.Context, *auth.Config) error {
 	a.InvokedCount++
 	return nil
 }
@@ -443,4 +443,8 @@ func (c *mockConnection) ID() string {
 
 func (c *mockConnection) Address() address.Address {
 	return ""
+}
+
+func (c *mockConnection) Stale() bool {
+	return false
 }

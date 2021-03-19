@@ -29,7 +29,7 @@ test-drdl-auth-no-creds: test-drdl-connect-failure
 
 # drdl should fail to connect with incorrect credentials
 test-drdl-auth-wrong-creds: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,drdl/auth/wrong-creds
-test-drdl-auth-wrong-creds: EXPECTED_ERROR = Failed: unable to execute command: connection() : auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.
+test-drdl-auth-wrong-creds: EXPECTED_ERROR = Failed: unable to execute command: connection() error occured during connection handshake: auth error: sasl conversation error: unable to authenticate using mechanism \"SCRAM-SHA-1\": (AuthenticationFailed) Authentication failed.
 test-drdl-auth-wrong-creds: test-drdl-connect-failure
 
 # test that drdl connects with ssl

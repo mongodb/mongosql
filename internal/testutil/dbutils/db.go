@@ -39,7 +39,7 @@ func CreateIndex(s driver.Server, db, col string, keys []string) {
 
 	d := driver.SingleServerDeployment{Server: s}
 
-	c := operation.NewCreateIndexes(indexesBytes).Database(db).Collection(col).Deployment(d)
+	c := operation.NewCreateIndexes(bsoncore.Document(indexesBytes)).Database(db).Collection(col).Deployment(d)
 	err = c.Execute(context.Background())
 	if err != nil {
 		panic(fmt.Errorf("failed to execute createIndexes: %v", err))

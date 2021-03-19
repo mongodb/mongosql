@@ -15,12 +15,12 @@ import (
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
 
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/tag"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/connstring"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/topology"
 )
 
@@ -73,10 +73,7 @@ func NewSqldSessionProvider(cfg *config.Config) (*SessionProvider, error) {
 				topology.WithMaxConnections(func(uint64) uint64 { return 0 }), // no upper limit per host
 				topology.WithServerAppName(func(string) string { return "mongosqld" }),
 				topology.WithConnectionOptions(func(options ...topology.ConnectionOption) []topology.ConnectionOption {
-					return append(options,
-						topology.WithLifeTimeout(func(time.Duration) time.Duration { return 0 }),
-						topology.WithIdleTimeout(func(time.Duration) time.Duration { return 0 }),
-					)
+					return append(options, topology.WithIdleTimeout(func(time.Duration) time.Duration { return 0 }))
 				}),
 			)
 		}),
@@ -234,11 +231,6 @@ func (t *adminTopology) SelectServer(ctx context.Context, ss description.ServerS
 	}
 
 	return &adminServer{s, t.session, t.auth}, nil
-}
-
-// SupportsRetryWrites implements the driver.Deployment interface.
-func (t *adminTopology) SupportsRetryWrites() bool {
-	return t.deployment.SupportsRetryWrites()
 }
 
 // Kind implements the driver.Deployment interface.
