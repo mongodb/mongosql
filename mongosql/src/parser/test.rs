@@ -5,8 +5,7 @@ macro_rules! should_parse {
     ($func_name:ident, $should_parse:expr, $input:expr) => {
         #[test]
         fn $func_name() {
-            let p = Parser::new();
-            let res = p.parse_query($input);
+            let res = Parser::new().parse_query($input);
             let should_parse = $should_parse;
             if should_parse {
                 res.expect("expected input to parse, but it failed");
@@ -62,6 +61,7 @@ should_parse!(select_values_mixed_case, true, "SELECT vAluES foo.*, bar.*");
 should_parse!(select_alias_lower, true, "SELECT foo as f");
 should_parse!(select_alias_upper, true, "SELECT foo AS f");
 should_parse!(select_alias_mixed_case, true, "SELECT foo aS f");
+should_parse!(select_alias_no_as, true, "SELECT foo f");
 should_parse!(select_alias_compound_column, true, "SELECT a.b as a");
 should_parse!(
     select_alias_multiple_combined,
@@ -87,7 +87,7 @@ should_parse!(
 
 should_parse!(use_stmt, false, "use foo");
 should_parse!(select_compound_star, false, "SELECT a.b.c.*");
-should_parse!(select_numerical_ident_prefix, false, "SELECT 9a");
+should_parse!(select_numerical_ident_prefix, false, "SELECT 9ae");
 should_parse!(select_value_star, false, "SELECT VALUE *");
 should_parse!(select_value_alias, false, "SELECT VALUE foo AS f");
 should_parse!(select_dangling_alias, false, "SELECT a.b AS");
@@ -475,6 +475,7 @@ validate_expression_ast!(
         ))))
     })
 );
+
 // Order by tests
 should_parse!(order_by_simple, true, "select * order by a");
 should_parse!(order_by_asc, true, "select * order by a ASC");
@@ -500,5 +501,88 @@ validate_query_ast!(
                 direction: SortDirection::Asc
             }]
         })
+    })
+);
+
+// Literals tests
+should_parse!(null_literal, true, "select null");
+should_parse!(null_literal_mixed_case, true, "select nULL");
+should_parse!(unsigned_int_literal, true, "select 123");
+should_parse!(neg_int_literal, true, "select -123");
+should_parse!(pos_int_literal, true, "select +123");
+should_parse!(int_literal_leading_zeros, true, "select 008");
+should_parse!(convert_to_long, true, "select 2147483648");
+should_parse!(string_literal, true, "select 'foo'");
+should_parse!(string_literal_special_characters, true, "select 'αβγ'");
+should_parse!(empty_string_literal, true, "select ''");
+should_parse!(unsigned_double_literal, true, "select 0.5");
+should_parse!(unsigned_double_literal_no_fraction, true, "select 1.");
+should_parse!(unsigned_double_literal_no_whole_num, true, "select .6");
+should_parse!(neg_double_literal, true, "select -4.089015");
+should_parse!(pos_double_literal, true, "select +0.0");
+should_parse!(double_literal_exponent_lowercase, true, "select 1e2");
+should_parse!(double_literal_exponent_uppercase, true, "select 2E3");
+should_parse!(double_literal_exponent_beg_fraction, true, "select 8.e+23");
+should_parse!(double_literal_exponent_mid_fraction, true, "select 9.07e-2");
+should_parse!(double_literal_exponent_no_whole_num, true, "select .2E3");
+should_parse!(double_literal_exponent_signed, true, "select -7.2E3");
+should_parse!(boolean_literal_true, true, "select true");
+should_parse!(boolean_literal_false, true, "select false");
+should_parse!(
+    boolean_literal_binary,
+    true,
+    "select true AND false OR false"
+);
+
+should_parse!(string_literal_single_quote, false, "select '''");
+should_parse!(double_exponent_no_exp, false, "select 1e");
+should_parse!(long_too_big, false, "select 9223372036854775808");
+
+validate_expression_ast!(
+    string_escaped_quote_no_chars,
+    "''''",
+    Expression::Literal(Literal::String(r#"'"#.to_string()))
+);
+
+validate_expression_ast!(
+    string_escaped_quote,
+    "'foo''s'",
+    Expression::Literal(Literal::String(r#"foo's"#.to_string()))
+);
+
+validate_expression_ast!(
+    double_neg_no_decimal,
+    "-2E+3",
+    Expression::Unary(UnaryExpr {
+        op: UnaryOp::Neg,
+        expr: Box::new(Expression::Literal(Literal::Double(2000.0)))
+    })
+);
+
+validate_expression_ast!(
+    double_no_whole,
+    ".2E-3",
+    Expression::Literal(Literal::Double(0.0002))
+);
+
+validate_expression_ast!(
+    double_no_frac_or_sign,
+    "234.E6",
+    Expression::Literal(Literal::Double(234000000.0))
+);
+
+validate_expression_ast!(
+    double_all_components,
+    "234.2E-3",
+    Expression::Literal(Literal::Double(0.2342))
+);
+
+validate_expression_ast!(
+    double_binary_add,
+    "2E3 + 5.16E-8",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Literal(Literal::Double(2000.0))),
+        op: BinaryOp::Add,
+        right: Box::new(Expression::Literal(Literal::Double(0.0000000516)))
     })
 );

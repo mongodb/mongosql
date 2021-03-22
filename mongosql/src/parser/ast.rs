@@ -72,6 +72,7 @@ pub enum Expression {
     Between(BetweenExpr),
     Case(CaseExpr),
     Identifier(Identifier),
+    Literal(Literal),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -157,4 +158,14 @@ pub enum SortKey {
 pub enum SortDirection {
     Asc,
     Desc,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum Literal {
+    Null,
+    Boolean(bool),
+    String(String),
+    Integer(i32),
+    Long(i64),
+    Double(f64),
 }

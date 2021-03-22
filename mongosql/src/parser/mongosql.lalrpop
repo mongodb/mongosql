@@ -1,5 +1,8 @@
 use crate::parser::ast::*;
 use crate::parser::util::*;
+use lalrpop_util::ParseError;
+use std::str::FromStr;
+use std::convert::TryFrom;
 
 grammar;
 
@@ -133,7 +136,8 @@ Tier6Expr = BinaryTier<MulOp, Tier7Expr>;
 Tier7Expr = UnaryTier<UnaryOp, BottomExpr>;
 
 BottomExpr: Box<Expression> = {
-  Identifier    => Box::new(Expression::Identifier(<>)),
+  Identifier => Box::new(Expression::Identifier(<>)),
+  Literal => Box::new(Expression::Literal(<>)),
 };
 
 OrOp: BinaryOp = {
@@ -183,6 +187,45 @@ UnaryOp: UnaryOp = {
   NotOp,
 }
 
+Literal: Literal = {
+  NULL => Literal::Null,
+  Boolean => Literal::Boolean(<>),
+  String => Literal::String(<>),
+  Integer,
+  Double,
+}
+
+Boolean: bool = {
+  TRUE => true,
+  FALSE => false,
+}
+
+String: String = {
+  <s:STRING> => s[1..s.len() - 1].replace("\'\'", "\'")
+}
+
+Integer: Literal = {
+  INT =>? {
+    i64::from_str(<>).map(|long| {
+      if let Ok(int) = i32::try_from(long) {
+        Literal::Integer(int)
+      } else {
+        Literal::Long(long)
+      }
+    }).or(Err(ParseError::from("failed to parse integer")))
+  }
+}
+
+Double: Literal = {
+  DOUBLE =>? {
+     let d: Result<f64, ParseError<usize, Token, &str>> = f64::from_str(<>).map_err(|_| ParseError::from("failed to convert number to f64"));
+     match d {
+       Ok(x) => Ok(Literal::Double(x)),
+       Err(x) => Err(x)
+     }
+   },
+}
+
 Comma<T>: Vec<T> = {
     <v:(<T> COMMA)*> <e:T?> => match e {
         None => v,
@@ -207,6 +250,7 @@ match {
   "<" => LT,
   "<=" => LTE,
 	"<>" => NEQ,
+	"*" => STAR,
 	"-" => SUB,
 	r"(?i)all" => ALL,
 	r"(?i)and" => AND,
@@ -219,17 +263,25 @@ match {
 	r"(?i)distinct" => DISTINCT,
 	r"(?i)else" => ELSE,
 	r"(?i)end" => END,
+	r"(?i)false" => FALSE,
 	r"(?i)missing" => MISSING,
 	r"(?i)not" => NOT,
+	r"(?i)null" => NULL,
 	r"(?i)or" => OR,
 	r"(?i)order" => ORDER,
-	"*" => STAR,
 	r"(?i)then" => THEN,
+	r"(?i)true" => TRUE,
 	r"(?i)union" => UNION,
 	r"(?i)values?" => VALUE,
 	r"(?i)when" => WHEN,
+  r"[0-9]+" => INT,
+  r#"'([^\x00']|'')*'"# => STRING,
 } else {
   r"[A-Za-z_][A-Za-z0-9_]*" => ID,
   r#""([^\x00"]|"")*""# => DELIMITED_IDENT_QUOTE,
   r"`([^\x00`]|``)*`" => DELIMITED_IDENT_BACKTICK,
+  r"([0-9]*\.[0-9]+|[0-9]+(\.)?)([Ee]?[\+\-]?[0-9]+)?" => DOUBLE,
+} else {
+  // NUM_PREFIXED_IDENT conflicts with the keywords in the match block
+  r"[0-9]*[A-Za-z_][A-Za-z0-9_]*" => NUM_PREFIXED_IDENT,
 }
