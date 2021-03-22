@@ -146,6 +146,45 @@ functions:
         local_file: mongosql-rs/go/mongosql/mongosql.dll
         bucket: mciuploads
 
+  "perform release":
+    - command: s3.get
+      params:
+        build_variants: ['macos', 'rhel76', 'ubuntu1804']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
+        local_file: mongosql-rs/libmongosql.a
+        bucket: mciuploads
+    - command: s3.get
+      params:
+        build_variants: ['windows']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql.dll
+        local_file: mongosql-rs/mongosql.dll
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        build_variants: ['macos', 'rhel76', 'ubuntu1804']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/libmongosql.a
+        remote_file: mongosql-rs/${build_variant}/${triggered_by_git_tag}/libmongosql.a
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        build_variants: ['windows']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongosql.dll
+        remote_file: mongosql-rs/${build_variant}/${triggered_by_git_tag}/mongosql.dll
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+
+
   "run go tests":
     - command: shell.exec
       type: test
@@ -235,6 +274,13 @@ tasks:
       - func: "download c library"
       - func: "run go tests"
       - func: "upload go test results"
+
+  - name: release
+    git_tag_only: true
+    depends_on:
+      - name: test-go
+    commands:
+      - func: "perform release"
 
 buildvariants:
 
