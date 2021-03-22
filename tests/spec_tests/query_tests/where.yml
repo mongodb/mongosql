@@ -33,42 +33,69 @@ schema_environment:
     }
 tests:
   - description: WHERE with BOOLEAN returning expression
-    query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] WHERE a >= 2"
+    query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
+    translation:
+      - {'$array': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
+      - {'$match': {'$expr': {'$sqlGte': ['$arr.a', {'$literal': 2}]}}}
     result:
-        - {'a': 2}
-        - {'a': 3}
+      - {'arr': {'a': 2}}
+      - {'arr': {'a': 3}}
 
   - description: WHERE with CAST to BOOLEAN
-    query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] WHERE CAST(a AS BOOLEAN)"
+    query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE CAST(a AS BOOLEAN)"
+    translation:
+      - {'$array': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
+      - {'$match': {'$expr': {'$convert': {'input': '$arr.a', 'to': 'bool', 'onNull': null, 'onError': null}}}}
     result:
-        - {'a': 1}
-        - {'a': 2}
-        - {'a': 3}
+      - {'arr': {'a': 1}}
+      - {'arr': {'a': 2}}
+      - {'arr': {'a': 3}}
 
   - description: WHERE with CASE that must return BOOLEAN
-    query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}] WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
+    query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
+    translation:
+      - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}]}}
+      - {'$match': {'$expr': {"$switch": {
+            "branches": [
+            {"case": {'$sqlEq': [{$type: '$arr.a'}, 'bool']}, "then": '$arr.a' },
+            ],
+            "default": {'$literal': false}
+          }}}}
     result:
-        - {'a': true}
-        - {'a': true}
+      - {'arr': {'a': true}}
+      - {'arr': {'a': true}}
 
   - description: NULL is a valid BOOLEAN
-    query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}] WHERE NULL"
+    query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}] AS arr WHERE NULL"
+    translation:
+      - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
+      - {'$match': {'$expr': {'$literal': null}}}
     result: []
 
   - description: WHERE must be statically determined to be a BOOLEAN
-    query: "SELECT * FROM [{'a': 1}] WHERE a"
+    query: "SELECT * FROM [{'a': 1}] AS arr WHERE a"
     error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(a AS BOOLEAN)'"
 
   - description: WHERE statically determined to be BOOLEAN from literal
-    query: "SELECT * FROM [{'a': true}] WHERE a"
+    query: "SELECT * FROM [{'a': true}] AS arr WHERE a"
+    translation:
+      - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
+      - {'$match': {'$expr': '$arr.a'}}
     result:
-        - {'a': true}
+      - {'arr': {'a': true}}
 
   - description: WHERE statically determined to be BOOLEAN from schema
-    query: "SELECT * FROM bar WHERE NOT foo"
+    query: "SELECT * FROM bar AS bar WHERE NOT foo"
+    current_db: foo
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$sqlNot': ['$bar.foo']}}
     result:
-        - {'a': false}
+      - {'bar': {'a': false}}
 
   - description: WHERE must be statically determined to be a BOOLEAN and no schema for bar2
     query: "SELECT * FROM bar2 WHERE NOT foo"
+    current_db: foo
     error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(NOT foo AS BOOLEAN)'"

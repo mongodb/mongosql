@@ -358,7 +358,8 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-        - {'$match': {'TODO': 'SQL-142: where clause'}}
+        - {'$match': {'$expr': {'$sqlLt': ['$bar.a', {'$literal': 15}]}}}
+        - {'$match': {'$expr': {'$sqlGt': ['$bar.a', {'$literal': 5}]}}}
       result:
         - {'__bot': {"a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}} }
 
