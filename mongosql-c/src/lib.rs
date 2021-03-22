@@ -8,8 +8,8 @@ mod version;
 /// Returns the semantic version of this library as a C string.
 /// The caller is responsible for freeing the returned value.
 #[no_mangle]
-pub extern "C" fn version() -> *const raw::c_char {
-    to_extern_string(version::VERSION).expect("semver string contained NUL byte")
+pub extern "C" fn version() -> *mut raw::c_char {
+    to_raw_c_string(version::VERSION).expect("semver string contained NUL byte")
 }
 
 /// Returns an extjson-encoded version of
@@ -23,26 +23,30 @@ pub extern "C" fn translate(
     let current_db = from_extern_string(current_db).expect("current_db not valid UTF-8");
     let sql = from_extern_string(sql).expect("sql not valid UTF-8");
     let res = mongosql::translate_sql_bson_base64(&current_db, &sql);
-    to_extern_string(&res).expect("failed to convert base64 string to extern string")
+    to_raw_c_string(&res).expect("failed to convert base64 string to extern string")
 }
 
-/// Creates a String from the provided C string.
+/// # Safety
+///
+/// Deletes a rust-allocated C string passed as a *mut raw::c_char.
+/// The C string MUST have been allocated in rust and obtained using
+/// into_raw().
+#[no_mangle]
+pub unsafe extern "C" fn delete_string(to_delete: *mut raw::c_char) {
+    let _ = CString::from_raw(to_delete);
+}
+
+/// Creates a String from the provided C string
 fn from_extern_string(s: *const libc::c_char) -> Result<String, FromUtf8Error> {
     let s = unsafe { CStr::from_ptr(s).to_bytes() };
     String::from_utf8(s.to_vec())
 }
 
 /// Returns a C string with the same value as the provided &str.
-/// The caller is responsible for freeing the returned value.
-fn to_extern_string(s: &str) -> Result<*const raw::c_char, NulError> {
+/// The returned C string has been forgotten with std::mem::forget, and will not be freed when
+/// at the end of scope.
+fn to_raw_c_string(s: &str) -> Result<*mut raw::c_char, NulError> {
     // build a new nul-terminated string
     let c_str = CString::new(s)?;
-
-    // turn it into a pointer
-    let c_str_ptr = c_str.as_ptr();
-
-    // tell rust not to free the string when this func ends
-    std::mem::forget(c_str);
-
-    Ok(c_str_ptr)
+    Ok(c_str.into_raw())
 }

@@ -38,6 +38,14 @@ functions:
 
           export GOPATH="$HOME/go"
           export GOROOT=/opt/golang/go1.15
+          export GOCACHE="$HOME/gocache"
+          mkdir -p "$GOCACHE"
+          if [ "Windows_NT" = "$OS" ]; then
+             set -o igncr
+             export GOROOT='C:\golang\go1.15'
+             export GOPATH=$(cygpath -w "$GOPATH")
+             export GOCACHE=$(cygpath -w "$GOCACHE")
+          fi
           export PATH="$GOROOT/bin:$PATH"
 
           cat <<EOT > expansions.yml
@@ -47,6 +55,7 @@ functions:
             export CARGO_NET_GIT_FETCH_WITH_CLI="$CARGO_NET_GIT_FETCH_WITH_CLI"
             export GOPATH="$GOPATH"
             export GOROOT="$GOROOT"
+            export GOCACHE="$GOCACHE"
           EOT
     - command: expansions.update
       params:
@@ -122,10 +131,19 @@ functions:
   "download c library":
     - command: s3.get
       params:
+        build_variants: ['macos', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
         local_file: mongosql-rs/libmongosql.a
+        bucket: mciuploads
+    - command: s3.get
+      params:
+        build_variants: ['windows']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql.dll
+        local_file: mongosql-rs/go/mongosql/mongosql.dll
         bucket: mciuploads
 
   "run go tests":
@@ -152,10 +170,21 @@ functions:
   "upload c library":
     - command: s3.put
       params:
+        build_variants: ['macos', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/libmongosql.a
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        build_variants: ['windows']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/release/mongosql.dll
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql.dll
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -236,6 +265,14 @@ buildvariants:
   - name: macos
     display_name: "macOS 10.14"
     run_on: [ macos-1014 ]
+    tasks:
+      - name: compile
+      - name: test-rust
+      - name: test-go
+
+  - name: windows
+    display_name: "Windows"
+    run_on: [ windows-64-vs2019-large ]
     tasks:
       - name: compile
       - name: test-rust

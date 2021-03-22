@@ -1,7 +1,7 @@
 [package]
 name = "mongosql"
 version = "0.1.0"
-authors = ["Ryan Chipman <ryan@ryanchipman.com>"]
+authors = ["Ryan Chipman <ryan@ryanchipman.com>", "Patrick Meredith <pmeredit@protonmail.com>"]
 edition = "2018"
 
 [dependencies]
