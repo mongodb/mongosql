@@ -149,37 +149,39 @@ functions:
   "perform release":
     - command: s3.get
       params:
-        build_variants: ['macos', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
-        local_file: mongosql-rs/libmongosql.a
+        remote_file: mongosql-rs/artifacts/${version_id}/macos/libmongosql.a
+        local_file: mongosql-rs/release/macos/libmongosql.a
         bucket: mciuploads
     - command: s3.get
       params:
-        build_variants: ['windows']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql.dll
-        local_file: mongosql-rs/mongosql.dll
+        remote_file: mongosql-rs/artifacts/${version_id}/rhel76/libmongosql.a
+        local_file: mongosql-rs/release/rhel76/libmongosql.a
+        bucket: mciuploads
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/ubuntu1804/libmongosql.a
+        local_file: mongosql-rs/release/ubuntu1804/libmongosql.a
+        bucket: mciuploads
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/windows/mongosql.dll
+        local_file: mongosql-rs/release/windows/mongosql.dll
         bucket: mciuploads
     - command: s3.put
       params:
-        build_variants: ['macos', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: mongosql-rs/libmongosql.a
-        remote_file: mongosql-rs/${build_variant}/${triggered_by_git_tag}/libmongosql.a
-        bucket: translators-connectors-releases
-        permissions: public-read
-        content_type: application/octet-stream
-    - command: s3.put
-      params:
-        build_variants: ['windows']
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: mongosql-rs/mongosql.dll
-        remote_file: mongosql-rs/${build_variant}/${triggered_by_git_tag}/mongosql.dll
+        local_files_include_filter:
+          - mongosql-rs/release/*
+        remote_file: mongosql-rs/
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
@@ -277,8 +279,6 @@ tasks:
 
   - name: release
     git_tag_only: true
-    depends_on:
-      - name: test-go
     commands:
       - func: "perform release"
 
@@ -323,3 +323,9 @@ buildvariants:
       - name: compile
       - name: test-rust
       - name: test-go
+
+  - name: release
+    display_name: "Release"
+    run_on: [ ubuntu1804-large ]
+    tasks:
+      - name: release
