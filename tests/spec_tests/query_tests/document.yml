@@ -84,7 +84,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a', 'b': '$bar.a.b'}}}
-      - {'TODO': 'SQL-144: ORDER BY' }
+      - {'$sort': {'__bot._id': 1}}
     result:
       - {'__bot': {'_id': 1, 'a': {'b': 1}, 'b': 1}}
       - {'__bot': {'_id': 2, 'a': {'b': 2}, 'b': 2}}

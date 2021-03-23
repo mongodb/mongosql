@@ -42,87 +42,55 @@ tests:
   - description: Array index access - zero and positive indexes
     current_db: foo
     query: "SELECT VALUE {'a': arr[0], 'b': arr[1], 'c': arr[2]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}, 'b': {'TODO': 'SQL-146: operators'}, 'c': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {'a': 1, 'b': 2, 'c': 3}}
 
   - description: Array index access - negative indexes
     current_db: foo
     query: "SELECT VALUE {'a': arr[-1], 'b': arr[-2], 'c': arr[-3]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}, 'b': {'TODO': 'SQL-146: operators'}, 'c': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {'a': 3, 'b': 2, 'c': 1}}
 
   - description: Array index access - positive index out of bounds (MISSING)
     current_db: foo
     query: "SELECT VALUE {'a': arr[4]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {}}
 
   - description: Array index access - negative index out of bounds (MISSING)
     current_db: foo
     query: "SELECT VALUE {'a': arr[-4]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {}}
 
   - description: Array index access - null index
     current_db: foo
     query: "SELECT VALUE {'a': arr[NULL]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {'a': null}}
 
   - description: Array index access - missing index
     current_db: foo
     query: "SELECT VALUE {'x': x, 'a': arr[x]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'x': '$bar.x', 'a': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {'a': null}}
 
   - description: Array index access - column known to be integer
     current_db: foo
     query: "SELECT VALUE {'arr': arr, 'i': i, 'a': arr[i]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'arr': '$bar.arr', 'i': '$bar.i', 'a': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {'arr': [1, 2, 3], 'i': 2, 'a': 3}}
 
   - description: Array index access - column CAST to integer
     current_db: foo
     query: "SELECT VALUE {'arr': arr, 'd': d, 'a': arr[CAST(d AS INT)]} FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'arr': '$bar.arr', 'i': '$bar.i', 'a': {'TODO': 'SQL-146: operators'}}}}
+    skip_reason: "SQL-204: disable array indexing"
     result:
       - {'__bot': {'arr': [1, 2, 3], 'd': 2.3, 'a': 3}}
