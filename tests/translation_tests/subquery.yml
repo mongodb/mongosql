@@ -1,0 +1,31 @@
+catalog_environment:
+  db:
+    foo:
+      - {'_id': 0, 'a_b': 1}
+    foo_a:
+      - {'_id': 0, 'b': 1}
+
+tests:
+  - description: correlated columns with potential naming conflict translate without conflict
+    current_db: db
+    query: "SELECT VALUE {'x': (SELECT bar.b = foo.a_b::!INT AND bar.b = foo_a.b::!INT AS x FROM [{'b': 1}] AS bar)} FROM foo AS foo JOIN foo_a AS foo_a"
+    translation_target_db: db
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'TODO': {'SQL-150': 'joins'}}
+      - {'$project': {'_id': 0, '__bot': {
+                                           'x': {'$subquery': {
+                                                                'let': {
+                                                                         'foo_a_b_0': '$foo.a_b',
+                                                                         '_foo_a_b_0': '$foo_a.b'
+                                                                },
+                                                                'outputPath': ['__bot', 'x'],
+                                                                'pipeline': [
+                                                                              {'$array': {'bar': [{'b': 1}]}},
+                                                                              {'$project': {'_id': 0, '__bot': {'x': {'$sqlAnd': [{'$sqlEq': ['$bar.b', '$$foo_a_b_0']}, {'$sqlEq': ['$bar.b', '$$_foo_a_b_0']}]}}}}
+                                                                ]
+                                           }}
+      }}}
+    result:
+      - {'__bot': {'x': true}}

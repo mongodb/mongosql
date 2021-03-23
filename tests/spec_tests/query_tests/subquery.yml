@@ -60,60 +60,153 @@ schema_environment:
 tests:
   - description: uncorrelated scalar subquery expression correctness test
     current_db: foo
-    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{a: 4}] AS arr)} FROM employees AS emp"
+    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{'a': 4}] AS arr)} FROM employees AS emp"
+    translation_target_db: foo
+    translation_target_coll: employees
+    translation:
+      - {'$project': {'_id': 0, 'emp': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {
+                                           'name': '$emp.name',
+                                           'avg_salary': {'$subquery': {
+                                                                         'let': {},
+                                                                         'outputPath': ['__bot', 'a'],
+                                                                         'pipeline': [
+                                                                                       {'$array': {'arr': [{'a': 4}]}},
+                                                                                       {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
+                                                                         ]
+                                           }}
+      }}}
     result:
-      - {'name': 'a', 'avg_salary': 4}
-      - {'name': 'b', 'avg_salary': 4}
-      - {'name': 'c', 'avg_salary': 4}
-      - {'name': 'd', 'avg_salary': 4}
+      - {'__bot': {'name': 'a', 'avg_salary': 4}}
+      - {'__bot': {'name': 'b', 'avg_salary': 4}}
+      - {'__bot': {'name': 'c', 'avg_salary': 4}}
+      - {'__bot': {'name': 'd', 'avg_salary': 4}}
 
   - description: correlated scalar subquery correctness test
     current_db: foo
-    query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees AS emp"
+    query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
+    translation_target_db: foo
+    translation_target_coll: employees_w_schema
+    translation:
+      - {'$project': {'_id': 0, 'emp': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {
+                                           'name': '$emp.name',
+                                           'department_name': {'$subquery': {
+                                                                              'collection': 'department_w_schema',
+                                                                              'let': {'emp_department_id_0': '$emp.department_id'},
+                                                                              'outputPath': ['__bot', 'name'],
+                                                                              'pipeline': [
+                                                                                            {'$project': {'_id': 0, 'dep': '$$ROOT'}},
+                                                                                            {'$match': {'$expr': {'$sqlEq': ['$dep._id', '$$emp_department_id_0']}}},
+                                                                                            {'$project': {'_id': 0, '__bot': {'name': '$dep.name'}}},
+                                                                                            {'$limit': 1}
+                                                                              ]
+                                           }}
+      }}}
     result:
-      - {'name': 'a', 'department_name': 'd1'}
-      - {'name': 'b', 'department_name': 'd1'}
-      - {'name': 'c', 'department_name': 'd1'}
-      - {'name': 'd', 'department_name': 'd2'}
+      - {'__bot': {'name': 'a', 'department_name': 'd1'}}
+      - {'__bot': {'name': 'b', 'department_name': 'd1'}}
+      - {'__bot': {'name': 'c', 'department_name': 'd1'}}
+      - {'__bot': {'name': 'd', 'department_name': 'd2'}}
 
   - descripton: scalar subquery fails if it cannot prove that it statically returns a single row
     current_db: foo
-    query: "SELECT VALUE {'department_name': (SELECT dep.name FROM department AS dep WHERE dep.`_id` = emp.department_id)} FROM employees AS emp"
+    query: "SELECT VALUE {'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id)} FROM employees_w_schema AS emp"
     error: "Scalar subquery must be statically proved to return only one value"
 
   - descripton: scalar subquery fails if it cannot prove that it statically returns a single column
     current_db: foo
-    query: "SELECT VALUE {'department_name': (SELECT * FROM department AS dep WHERE dep.id = emp.department_id LIMIT 1)} FROM employees AS emp"
+    query: "SELECT VALUE {'department_name': (SELECT * FROM department_w_schema AS dep WHERE dep.id = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
     error: "Scalar subquery must be statically proved to return only one value"
 
   - description: cardinality of 1 should be inferrable from array datasource
     current_db: foo
-    query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM department"
+    query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM department AS dep"
+    translation_target_db: foo
+    translation_target_coll: department
+    translation:
+      - {'$project': {'_id': 0, 'dep': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {
+                                           'name': '$dep.name',
+                                           'sub': {'$subquery': {
+                                                                  'let': {},
+                                                                  'outputPath': ['__bot', 'a'],
+                                                                  'pipeline': [
+                                                                                {'$array': {'arr': [{'a': 1}]}},
+                                                                                {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
+                                                                  ]
+                                           }}
+      }}}
     result:
-      - {'name': 'd1', 'sub': 1}
-      - {'name': 'd2', 'sub': 1}
-      - {'name': 'd3', 'sub': 1}
+      - {'__bot': {'name': 'd1', 'sub': 1}}
+      - {'__bot': {'name': 'd2', 'sub': 1}}
+      - {'__bot': {'name': 'd3', 'sub': 1}}
   
   - description: cardinality of 1 should be inferrable from group by constant
     current_db: foo
-    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees GROUP BY NULL AS _ AGGREGATE AVG(salary::!DOUBLE))} FROM employees AS emp"
+    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary::!DOUBLE) AS avg_salary)} FROM employees AS emp"
+    translation_target_db: foo
+    translation_target_coll: employees
+    translation:
+      - {'$project': {'_id': 0, 'emp': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {
+                                           'name': '$emp.name',
+                                           'avg_salary': {'$subquery': {
+                                                                         'collection': 'employees',
+                                                                         'let': {},
+                                                                         'ouputPath': ['__bot', 'avg_salary'],
+                                                                         'pipeline': [
+                                                                                       {'$project': {'_id': 0, 'emp': '$$ROOT'}},
+                                                                                       {'$group': {'_id': {'_': null}, 'avg_salary': {'$sqlAvg': {'var': '$emp.salary', 'distinct': false}}}},
+                                                                                       {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'avg_salary': '$avg_salary'}}},
+                                                                                       {'$project': {'_id': 0, '__bot': {'avg_salary': '$__bot.avg_salary'}}}
+                                                                         ]
+                                           }}
+      }}}
     result:
-      - {'name': 'a', 'avg_salary': 4}
-      - {'name': 'b', 'avg_salary': 4}
-      - {'name': 'c', 'avg_salary': 4}
-      - {'name': 'd', 'avg_salary': 4}
+      - {'__bot': {'name': 'a', 'avg_salary': 4}}
+      - {'__bot': {'name': 'b', 'avg_salary': 4}}
+      - {'__bot': {'name': 'c', 'avg_salary': 4}}
+      - {'__bot': {'name': 'd', 'avg_salary': 4}}
 
   - description: nested subquery should be able to access field from its grandparent query correctness test
     current_db: foo
-    query: "SELECT VALUE {'name': name, 'department_name': (SELECT department.name FROM department AS department WHERE department._id = (SELECT emp.department_id FROM employees AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1) } FROM employees AS emp1"
+    query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
+    translation_target_db: foo
+    translation_target_coll: employees_w_schema
+    translation:
+      - {'$project': {'_id': 0, 'emp1': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {
+                                           'name': '$emp1.name',
+                                           'department_name': {'$subquery': {
+                                                                              'collection': 'department_w_schema',
+                                                                              'let': {'emp1__id_0': '$emp1._id'},
+                                                                              'outputPath': ['__bot', 'name'],
+                                                                              'pipeline': [
+                                                                                            {'$project': {'_id': 0, 'dep': '$$ROOT'}},
+                                                                                            {'$match': {'$expr': {'$sqlEq': ['$dep._id', {'$subquery': {
+                                                                                                                                                         'collection': 'employees_w_schema',
+                                                                                                                                                         'let': {},
+                                                                                                                                                         'outputPath': ['__bot', 'department_id'],
+                                                                                                                                                         'pipeline': [
+                                                                                                                                                                       {'$project': {'_id': 0, 'emp2': '$$ROOT'}},
+                                                                                                                                                                       {'$match': {'$expr': {'$sqlEq': ['$emp2._id', '$$emp1__id_0']}}},
+                                                                                                                                                                       {'$project': {'_id': 0, '__bot': {'department_id': '$emp2.department_id'}}},
+                                                                                                                                                                       {'$limit': 1}
+                                                                                                                                                         ]
+                                                                                            }}]}}},
+                                                                                            {'$project': {'_id': 0, '__bot': {'name': '$dep.name'}}},
+                                                                                            {'$limit': 1}
+                                                                              ]
+                                           }}
+      }}}
     result:
-      - {'name': 'a', 'department_name': 'd1'}
-      - {'name': 'b', 'department_name': 'd1'}
-      - {'name': 'c', 'department_name': 'd1'}
-      - {'name': 'd', 'department_name': 'd2'}
+      - {'__bot': {'name': 'a', 'department_name': 'd1'}}
+      - {'__bot': {'name': 'b', 'department_name': 'd1'}}
+      - {'__bot': {'name': 'c', 'department_name': 'd1'}}
+      - {'__bot': {'name': 'd', 'department_name': 'd2'}}
 
   - description: SELECT VALUE is not supported in subquery expressions
     current_db: foo
-    query: "SELECT VALUE {'average_salary': ( SELECT VALUE {'a': arr.a} FROM [{a: 4}] AS arr)} FROM employees AS emp"
+    query: "SELECT VALUE {'average_salary': (SELECT VALUE {'a': arr.a} FROM [{a: 4}] AS arr)} FROM employees AS emp"
     error: "SELECT VALUE is not supported in subquery expressions"
-

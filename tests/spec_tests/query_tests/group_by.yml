@@ -335,11 +335,11 @@ tests:
       result:
         - {'__bot': {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "sumc": {"$numberInt": "5"}} }
 
-    - description: AGGREGATE expressions must be aggregation functions, not arbitrary expressions
+    - description: AGGREGATE expressions must be aggregation functions not arbitrary expressions
       query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE 1 + SUM(a)"
       error: "Expressions in AGGREGATE phrase must be aggregation function applications not arbitrary expressions"
 
-    - description: AGGREGATE expressions must be aggregation functions, not scalar functions
+    - description: AGGREGATE expressions must be aggregation functions not scalar functions
       query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE COS(a)"
       error: "Expressions in AGGREGATE phrase must be aggregation function applications not scalar function applications"
 
@@ -351,7 +351,7 @@ tests:
       query: "SELECT VALUE {'suma': SUM(a + 2) } FROM bar AS bar GROUP BY b::!INT AS b"
       error: "Aggregation functions are not allowed in SELECT VALUE clause"
 
-    - description: HAVING without GROUP BY works as a WHERE cluase, but happens after the WHERE clause
+    - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
       query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
       current_db: foo
       translation_target_db: foo
@@ -368,7 +368,7 @@ tests:
       current_db: foo
       translation_target_db: foo
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$push': '$arr.a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'garr': $garr}}}
       result:
@@ -381,7 +381,7 @@ tests:
         current_db: foo
         translation_target_db: foo
         translations:
-          - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+          - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
           - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$addToSet': '$arr.a.a'}}}
           - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'garr': '$garr'}}}
         result:
@@ -398,7 +398,7 @@ tests:
       current_db: foo
       translation_target_db: foo
       translations:
-        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-148: subquerys'}}}
+        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-149: derived tables'}}}
         - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
         - {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
@@ -410,7 +410,7 @@ tests:
       current_db: foo
       translation_target_db: foo
       translations:
-        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-148: subquerys'}}}
+        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-149: derived tables'}}}
         - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
         - {'$project': {'_id': 0, '__bot': {'_': '_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
@@ -431,7 +431,7 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-148: subquerys'}}}
+        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-149: derived tables'}}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'gset': {'$addToSet': '$arr.a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gset': '$gset'}}}
       result:
@@ -538,7 +538,7 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gfirst': {'$first': '$bar.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gfirst': '$gfirst'}}}
       result:
@@ -569,7 +569,7 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'glast': {'$sqlLast': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'glast': '$glast'}}}
       result:
@@ -622,7 +622,7 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-148: subquerys'}}}
+        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gmerge': {'$sqlMergeObjects': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmerge': '$gmerge'}}}
       result:
@@ -761,4 +761,3 @@ tests:
     - description: SUM requires a statically numeric argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(a) AS gsum"
       error: "Argument to SUM must be statically determined as NUMERIC"
-

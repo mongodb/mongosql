@@ -38,7 +38,7 @@ schema_environment:
             '_id': {
               'bsonType': "int"
             },
-            'v': {
+            'a': {
               'anyOf': [
               { 'bsonType': "int" },
               { 'bsonType': "null" }
@@ -53,197 +53,766 @@ schema_environment:
 
   - description: correctness test for = ANY Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v = ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'eq',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for = ANY Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v = ANY(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'eq',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for <> ANY Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <> ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'ne',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for <> ANY Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <> ANY(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'ne',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for < ANY Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v < ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lt',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 2, "v": 2}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 2, 'v': 2}}
 
   - description: correctness test for < ANY Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v < ANY(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lt',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 2, "v": 2}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 2, 'v': 2}}
 
   - description: correctness test for <= ANY Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <= ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lte',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for <= ANY Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <= ANY(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lte',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for > ANY Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v > ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gt',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 3, "v": 3}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 3, 'v': 3}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for > ANY Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v > ANY(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gt',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 3, "v": 3}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 3, 'v': 3}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for >= ANY Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v >= ANY(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gte',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for >= ANY Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v >= ANY(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gte',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for = ALL Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v = ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'eq',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result: []
 
   - description: correctness test for = ALL Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v = ALL(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'eq',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result: []
 
   - description: correctness test for = ALL Operator with matching result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v = ALL(SELECT a FROM target WHERE a = 1)"
+    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE a = 1)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': '',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlEq': ['$target.a', {'$literal': 1}]}}}
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
+      - {'bar': {'_id': 1, 'v': 1}}
 
   - description: correctness test for <> ALL Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <> ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'ne',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for <> ALL Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <> ALL(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'ne',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result: []
 
   - description: correctness test for < ALL Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v < ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lt',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
+      - {'bar': {'_id': 1, 'v': 1}}
 
   - description: correctness test for < ALL Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v < ALL(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lt',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result: []
 
   - description: correctness test for <= ALL Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <= ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lte',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 2, "v": 2}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 2, 'v': 2}}
 
   - description: correctness test for <= ALL Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <= ALL(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'lte',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result: []
 
   - description: correctness test for > ALL Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v > ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gt',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for > ALL Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v > ALL(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gt',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result: []
 
   - description: correctness test for >= ALL Operator without NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v >= ALL(SELECT a FROM target WHERE a IS NOT NULL)"
+    query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gte',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result:
-      - {"_id": 3, "v": 3}
-      - {"_id": 4, "v": 4}
+      - {'bar': {'_id': 3, 'v': 3}}
+      - {'bar': {'_id': 4, 'v': 4}}
 
   - description: correctness test for >= ALL Operator with NULL in subquery result
     current_db: foo
-    query: "SELECT * FROM bar WHERE v >= ALL(SELECT a FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'gte',
+                                                       'modifier': 'all',
+                                                       'arg': '$bar.v',
+                                                       'subquery': {
+                                                                     'collection': 'target',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                     ]
+                                                       }
+      }}}}
     result: []
+
+  - description: ANY subquery comparison in SELECT clause
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'x': bar.v = ANY (SELECT a FROM target AS target)} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryComparison': {
+                                                                                        'op': 'eq',
+                                                                                        'modifier': 'any',
+                                                                                        'arg': '$bar.v',
+                                                                                        'subquery': {
+                                                                                                      'collection': 'target',
+                                                                                                      'let': {},
+                                                                                                      'outputPath': ['__bot', 'a']
+                                                                                                      'pipeline': [
+                                                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                                                      ]
+                                                                                        }
+      }}}}}
+    result:
+      - {'__bot': {'v': 1, 'x': false}}
+      - {'__bot': {'v': 2, 'x': true}}
+      - {'__bot': {'v': 3, 'x': true}}
+      - {'__bot': {'v': 4, 'x': false}}
+      - {'__bot': {'v': null, 'x': null}}
+      - {'__bot': {'x': null}}
+
+  - description: ALL subquery comparison in SELECT clause
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE NOT(a IS NULL))} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryComparison': {
+                                                                                        'op': 'eq',
+                                                                                        'modifier': 'all',
+                                                                                        'arg': '$bar.v',
+                                                                                        'subquery': {
+                                                                                                      'collection': 'target',
+                                                                                                      'let': {},
+                                                                                                      'outputPath': ['__bot', 'a']
+                                                                                                      'pipeline': [
+                                                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
+                                                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+                                                                                                      ]
+                                                                                        }
+      }}}}}
+    result:
+      - {'__bot': {'v': 1, 'x': false}}
+      - {'__bot': {'v': 2, 'x': false}}
+      - {'__bot': {'v': 3, 'x': false}}
+      - {'__bot': {'v': 4, 'x': false}}
+      - {'__bot': {'v': null, 'x': null}}
+      - {'__bot': {'x': null}}
 
   - description: correctness test for EXISTS Operator
     current_db: foo
-    query: "SELECT * FROM bar WHERE EXISTS(SELECT * FROM target WHERE v = a)"
+    query: "SELECT * FROM bar AS bar WHERE EXISTS(SELECT * FROM target AS target WHERE v = a)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$subqueryExists': {
+                                                   'collection': 'target',
+                                                   'let': {'bar_v_0': '$bar.v'},
+                                                   'pipeline': [
+                                                                 {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                 {'$match': {'$expr': {'$sqlEq': ['$$bar_v_0', '$target.a']}}}
+                                                   ]
+      }}}}
     result:
-      - {"_id": 2, "v": 2}
-      - {"_id": 3, "v": 3}
+      - {'bar': {'_id': 2, 'v': 2}}
+      - {'bar': {'_id': 3, 'v': 3}}
 
   - description: correctness test for NOT EXISTS Operator
     current_db: foo
-    query: "SELECT * FROM bar WHERE NOT EXISTS(SELECT * FROM target WHERE v = a)"
+    query: "SELECT * FROM bar AS bar WHERE NOT EXISTS(SELECT * FROM target AS target WHERE v = a)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$match': {'$expr': {'$sqlNot': {'$subqueryExists': {
+                                                               'collection': 'target',
+                                                               'let': {'bar_v_0': '$bar.v'},
+                                                               'pipeline': [
+                                                                             {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                             {'$match': {'$expr': {'$sqlEq': ['$$bar_v_0', '$target.a']}}}
+                                                               ]
+      }}}}}
     result:
-      - {"_id": 1, "v": 1}
-      - {"_id": 4, "v": 4}
-      - {"_id": 5, "v": null}
-      - {"_id": 6, "v": null}
+      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 4, 'v': 4}}
+      - {'bar': {'_id': 5, 'v': null}}
+      - {'bar': {'_id': 6, 'v': null}}
+
+  - description: EXISTS expression in SELECT clause
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'x': EXISTS(SELECT * FROM target AS target WHERE target.a = bar.v)} FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryExists': {
+                                                                                    'collection': 'target',
+                                                                                    'let': {'bar_v_0': '$bar.v'},
+                                                                                    'pipeline': [
+                                                                                                  {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                                  {'$match': {'$expr': {'$sqlEq': ['$target.a', '$$bar_a_0']}}}
+                                                                                    ]
+      }}}}}
+    result:
+      - {'__bot': {'v': 1, 'x': false}}
+      - {'__bot': {'v': 2, 'x': true}}
+      - {'__bot': {'v': 3, 'x': true}}
+      - {'__bot': {'v': 4, 'x': false}}
+      - {'__bot': {'v': null, 'x': false}}
+      - {'__bot': {'x': false}}
 
   - description: IN Operator fails if it has different degree on both sides
     current_db: foo
-    query: "SELECT * FROM bar WHERE v IN(SELECT * FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v IN(SELECT * FROM target)"
     error: "Operand should contain 1 column(s)"
 
   - description: ANY Operator fails if it has different degree on both sides
     current_db: foo
-    query: "SELECT * FROM bar WHERE v <> ANY(SELECT * FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT * FROM target)"
     error: "Operand should contain 1 column(s)"
 
   - description: ALL Operator fails if it has different degree on both sides
     current_db: foo
-    query: "SELECT * FROM bar WHERE v = ALL(SELECT * FROM target)"
+    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT * FROM target)"
     error: "Operand should contain 1 column(s)"

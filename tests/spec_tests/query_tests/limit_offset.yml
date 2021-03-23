@@ -69,34 +69,80 @@ tests:
 
   - description: Limit in subquery
     current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1)"
+    query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1)"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'TODO': {'SQL-142': 'where clause', 'SQL-148': 'subquery exprs'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'eq',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.a',
+                                                       'subquery': {
+                                                                     'collection': 'baz',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'baz': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$baz.a'}}},
+                                                                                   {'$sort': {'__bot.a': 1}},
+                                                                                   {'$limit': 1}
+                                                                     ]
+                                                       }
+      }}}}
     result:
       - {'bar': {'a': 1}}
 
   - description: Offset in subquery
     current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE a IN (SELECT a FROM baz ORDER BY a OFFSET 1)"
+    query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a OFFSET 1)"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'TODO': {'SQL-142': 'where clause', 'SQL-148': 'subquery exprs'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'eq',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.a',
+                                                       'subquery': {
+                                                                     'collection': 'baz',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'baz': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$baz.a'}}},
+                                                                                   {'$sort': {'__bot.a': 1}},
+                                                                                   {'$skip': 1}
+                                                                     ]
+                                                       }
+      }}}}
     result:
       - {'bar': {'a': 2}}
       - {'bar': {'a': 3}}
 
   - description: Limit + offset in subquery
     current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE a IN (SELECT a FROM baz ORDER BY a LIMIT 1 OFFSET 1)"
+    query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1 OFFSET 1)"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'TODO': {'SQL-142': 'where clause', 'SQL-148': 'subquery exprs'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+                                                       'op': 'eq',
+                                                       'modifier': 'any',
+                                                       'arg': '$bar.a',
+                                                       'subquery': {
+                                                                     'collection': 'baz',
+                                                                     'let': {},
+                                                                     'outputPath': ['__bot', 'a'],
+                                                                     'pipeline': [
+                                                                                   {'$project': {'_id': 0, 'baz': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$baz.a'}}},
+                                                                                   {'$sort': {'__bot.a': 1}},
+                                                                                   {'$skip': 1}
+                                                                                   {'$limit': 1},
+                                                                     ]
+                                                       }
+      }}}}
     result:
       - {'bar': {'a': 2}}
