@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"

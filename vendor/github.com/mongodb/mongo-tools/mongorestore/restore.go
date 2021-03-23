@@ -12,12 +12,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mongodb/mongo-tools-common/bsonutil"
-	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/intents"
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/progress"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/common/bsonutil"
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/intents"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/progress"
+	"github.com/mongodb/mongo-tools/common/util"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -112,16 +112,15 @@ func (restore *MongoRestore) RestoreIntents() Result {
 		}
 
 		var totalResult Result
-		var totalErr error
 		// wait until all goroutines are done or one of them errors out
 		for i := 0; i < restore.OutputOptions.NumParallelCollections; i++ {
 			result := <-resultChan
 			totalResult.combineWith(result)
-			if totalErr == nil && totalResult.Err != nil {
-				totalErr = totalResult.Err
+			if totalResult.Err != nil {
+				return totalResult
 			}
 		}
-		return totalResult.withErr(totalErr)
+		return totalResult
 	}
 
 	var totalResult Result
@@ -144,7 +143,6 @@ func (restore *MongoRestore) RestoreIntents() Result {
 
 // RestoreIntent attempts to restore a given intent into MongoDB.
 func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
-
 	collectionExists, err := restore.CollectionExists(intent)
 	if err != nil {
 		return Result{Err: fmt.Errorf("error reading database: %v", err)}
@@ -209,7 +207,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 			indexes = metadata.Indexes
 			if restore.OutputOptions.PreserveUUID {
 				if metadata.UUID == "" {
-					return Result{Err: fmt.Errorf("--preserveUUID used but no UUID found in %v", intent.MetadataLocation)}
+					log.Logvf(log.Always, "--preserveUUID used but no UUID found in %v, generating new UUID for %v", intent.MetadataLocation, intent.Namespace())
 				}
 				uuid = metadata.UUID
 			}
@@ -262,6 +260,7 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 		if err != nil {
 			return Result{Err: fmt.Errorf("error creating collection %v: %v", intent.Namespace(), err)}
 		}
+		restore.addToKnownCollections(intent)
 	} else {
 		log.Logvf(log.Info, "collection %v already exists - skipping collection create", intent.Namespace())
 	}
@@ -289,7 +288,13 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	// finally, add indexes
 	if len(indexes) > 0 && !restore.OutputOptions.NoIndexRestore {
 		log.Logvf(log.Always, "restoring indexes for collection %v from metadata", intent.Namespace())
-		err = restore.CreateIndexes(intent, indexes, hasNonSimpleCollation)
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			indexes = restore.convertLegacyIndexes(indexes, intent.Namespace())
+		}
+		if restore.OutputOptions.FixDottedHashedIndexes {
+			fixDottedHashedIndexes(indexes)
+		}
+		err = restore.CreateIndexes(intent.DB, intent.C, indexes, hasNonSimpleCollation)
 		if err != nil {
 			result.Err = fmt.Errorf("error creating indexes for %v: %v", intent.Namespace(), err)
 			return result
@@ -299,6 +304,58 @@ func (restore *MongoRestore) RestoreIntent(intent *intents.Intent) Result {
 	}
 
 	return result
+}
+
+func (restore *MongoRestore) convertLegacyIndexes(indexes []IndexDocument, ns string) []IndexDocument {
+	var indexKeys []bson.D
+	var indexesConverted []IndexDocument
+	for _, index := range indexes {
+		bsonutil.ConvertLegacyIndexKeys(index.Key, ns)
+
+		foundIdenticalIndex := false
+		for _, keys := range indexKeys {
+			if bsonutil.IsIndexKeysEqual(keys, index.Key) {
+				foundIdenticalIndex = true
+				break
+			}
+		}
+
+		if foundIdenticalIndex {
+			log.Logvf(log.Always, "index %v contains duplicate key with an existing index after ConvertLegacyIndexKeys, Skipping...", index.Options["name"])
+			continue
+		}
+
+		indexKeys = append(indexKeys, index.Key)
+
+		// It is preferable to use the ignoreUnknownIndexOptions on the createIndex command to
+		// force the server to remove unknown options. But ignoreUnknownIndexOptions was only added in 4.1.9.
+		// So for pre 3.4 indexes being added to servers < 4.1.9 we must strip the options here.
+		if restore.serverVersion.LT(db.Version{4, 1, 9}) {
+			bsonutil.ConvertLegacyIndexOptions(index.Options)
+		}
+		indexesConverted = append(indexesConverted, index)
+	}
+	return indexesConverted
+}
+
+func fixDottedHashedIndexes(indexes []IndexDocument) {
+	for _, index := range indexes {
+		fixDottedHashedIndex(index)
+	}
+}
+
+// fixDottedHashedIndex fixes the issue introduced by a server bug where hashed index constraints are not
+// correctly enforced under all circumstance by changing the hashed index on the dotted field to an
+// ascending single field index.
+func fixDottedHashedIndex(index IndexDocument) {
+	indexFields := index.Key
+	for i, field := range indexFields {
+		fieldName := field.Key
+		if strings.Contains(fieldName, ".") && field.Value == "hashed" {
+			// Change the hashed index to single field index
+			indexFields[i].Value = int32(1)
+		}
+	}
 }
 
 // RestoreCollectionToDB pipes the given BSON data into the database.
@@ -334,18 +391,18 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 			if doc == nil {
 				break
 			}
-			select {
-			case <-restore.termChan:
+
+			if restore.terminate {
 				log.Logvf(log.Always, "terminating read on %v.%v", dbName, colName)
 				termErr = util.ErrTerminated
 				close(docChan)
 				return
-			default:
-				rawBytes := make([]byte, len(doc))
-				copy(rawBytes, doc)
-				docChan <- bson.Raw(rawBytes)
-				documentCount++
 			}
+
+			rawBytes := make([]byte, len(doc))
+			copy(rawBytes, doc)
+			docChan <- bson.Raw(rawBytes)
+			documentCount++
 		}
 		close(docChan)
 	}()
@@ -382,7 +439,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		}()
 
 		// sleep to prevent all threads from inserting at the same time at start
-		time.Sleep(time.Duration(i) * 10 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 	}
 
 	var totalResult Result
@@ -393,7 +450,7 @@ func (restore *MongoRestore) RestoreCollectionToDB(dbName, colName string,
 		totalResult.combineWith(<-resultChan)
 		if finalErr == nil && totalResult.Err != nil {
 			finalErr = totalResult.Err
-			close(restore.termChan)
+			restore.terminate = true
 		}
 	}
 

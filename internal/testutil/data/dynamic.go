@@ -1,7 +1,7 @@
 package data
 
 import (
-	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

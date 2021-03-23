@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 
 	yaml "github.com/10gen/candiedyaml"
-	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 )
 
 // A YMLDataset is a dataset defined in a yml file. The yml file should be

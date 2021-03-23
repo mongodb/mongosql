@@ -9,8 +9,8 @@ import (
 	"strings"
 
 	"github.com/10gen/sqlproxy/internal/testutil/mongodb"
-	toolsdb "github.com/mongodb/mongo-tools-common/db"
-	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	toolsdb "github.com/mongodb/mongo-tools/common/db"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 	"github.com/mongodb/mongo-tools/mongorestore"
 )
 
@@ -89,6 +89,8 @@ func (b BSONDataset) download(clobber bool) error {
 }
 
 func (b BSONDataset) restoreFromFile(opts *toolsoptions.ToolOptions) error {
+	opts.DB = ""
+	opts.Collection = ""
 	sp, err := toolsdb.NewSessionProvider(*opts)
 	if err != nil {
 		return err
@@ -115,10 +117,7 @@ func (b BSONDataset) restoreFromFile(opts *toolsoptions.ToolOptions) error {
 			NumInsertionWorkers:    10,
 			MaintainInsertionOrder: true,
 		},
-		NSOptions: &mongorestore.NSOptions{
-			DB:         "",
-			Collection: "",
-		},
+		NSOptions:       &mongorestore.NSOptions{},
 		SessionProvider: sp,
 	}
 

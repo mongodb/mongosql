@@ -11,12 +11,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/mongodb/mongo-tools-common/db"
-	"github.com/mongodb/mongo-tools-common/intents"
-	"github.com/mongodb/mongo-tools-common/log"
-	"github.com/mongodb/mongo-tools-common/progress"
-	"github.com/mongodb/mongo-tools-common/txn"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/common/db"
+	"github.com/mongodb/mongo-tools/common/intents"
+	"github.com/mongodb/mongo-tools/common/log"
+	"github.com/mongodb/mongo-tools/common/progress"
+	"github.com/mongodb/mongo-tools/common/txn"
+	"github.com/mongodb/mongo-tools/common/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -35,6 +35,15 @@ type oplogContext struct {
 	txnBuffer  *txn.Buffer
 }
 
+// shouldIgnoreNamespace returns true if the given namespace should be ignored during applyOps.
+func shouldIgnoreNamespace(ns string) bool {
+	if strings.HasPrefix(ns, "config.cache.") || ns == "config.system.sessions" || ns == "config.system.indexBuilds" {
+		log.Logv(log.Always, "skipping applying the "+ns+" namespace in applyOps")
+		return true
+	}
+	return false
+}
+
 // RestoreOplog attempts to restore a MongoDB oplog.
 func (restore *MongoRestore) RestoreOplog() error {
 	log.Logv(log.Always, "replaying oplog")
@@ -51,11 +60,16 @@ func (restore *MongoRestore) RestoreOplog() error {
 		fileNeedsIOBuffer.TakeIOBuffer(make([]byte, db.MaxBSONSize))
 	}
 	defer intent.BSONFile.Close()
+
 	// NewBufferlessBSONSource reads each bson document into its own buffer
 	// because bson.Unmarshal currently can't unmarshal binary types without
-	// them referencing the source buffer
-	bsonSource := db.NewDecodedBSONSource(db.NewBufferlessBSONSource(intent.BSONFile))
-	defer bsonSource.Close()
+	// them referencing the source buffer.
+	// We also increase the max BSON size by 16 KiB to accommodate the maximum
+	// document size of 16 MiB plus any additional oplog-specific data.
+	bsonSource := db.NewBufferlessBSONSource(intent.BSONFile)
+	bsonSource.SetMaxBSONSize(db.MaxBSONSize + 16*1024)
+	decodedBsonSource := db.NewDecodedBSONSource(bsonSource)
+	defer decodedBsonSource.Close()
 
 	session, err := restore.SessionProvider.GetSession()
 	if err != nil {
@@ -75,21 +89,36 @@ func (restore *MongoRestore) RestoreOplog() error {
 	}
 
 	for {
-		rawOplogEntry := bsonSource.LoadNext()
+		rawOplogEntry := decodedBsonSource.LoadNext()
 		if rawOplogEntry == nil {
 			break
 		}
 		oplogCtx.progressor.Inc(int64(len(rawOplogEntry)))
 
 		entryAsOplog := db.Oplog{}
+
 		err = bson.Unmarshal(rawOplogEntry, &entryAsOplog)
 		if err != nil {
 			return fmt.Errorf("error reading oplog: %v", err)
 		}
+
+		if shouldIgnoreNamespace(entryAsOplog.Namespace) {
+			continue
+		}
+
 		if entryAsOplog.Operation == "n" {
 			//skip no-ops
 			continue
 		}
+
+		if entryAsOplog.Operation == "c" && len(entryAsOplog.Object) > 0 {
+			entryName := entryAsOplog.Object[0].Key
+			if entryName == "startIndexBuild" || entryName == "abortIndexBuild" {
+				log.Logv(log.Always, "skipping applying the oplog entry "+entryName)
+				continue
+			}
+		}
+
 		if !restore.TimestampBeforeLimit(entryAsOplog.Timestamp) {
 			log.Logvf(
 				log.DebugLow,
@@ -123,7 +152,7 @@ func (restore *MongoRestore) RestoreOplog() error {
 	}
 
 	log.Logvf(log.Always, "applied %v oplog entries", oplogCtx.totalOps)
-	if err := bsonSource.Err(); err != nil {
+	if err := decodedBsonSource.Err(); err != nil {
 		return fmt.Errorf("error reading oplog bson input: %v", err)
 	}
 	return nil
@@ -136,6 +165,34 @@ func (restore *MongoRestore) HandleNonTxnOp(oplogCtx *oplogContext, op db.Oplog)
 	op, err := restore.filterUUIDs(op)
 	if err != nil {
 		return fmt.Errorf("error filtering UUIDs from oplog: %v", err)
+	}
+
+	if op.Operation == "c" && op.Object[0].Key == "commitIndexBuild" {
+		// commitIndexBuild was introduced in 4.4, one "commitIndexBuild" command can contain several
+		// indexes, we need to convert the command to "createIndexes" command for each single index and apply
+		collectionName, indexes := extractIndexDocumentFromCommitIndexBuilds(op)
+		if indexes == nil {
+			return fmt.Errorf("failed to parse IndexDocument from commitIndexBuild in %s, %v", collectionName, op)
+		}
+
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
+		}
+
+		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
+	} else if op.Operation == "c" && op.Object[0].Key == "createIndexes" {
+		// server > 4.4 no longer supports applying createIndexes oplog, we need to convert the oplog to createIndexes command and execute it
+		collectionName, index := extractIndexDocumentFromCreateIndexes(op)
+		if index.Key == nil {
+			return fmt.Errorf("failed to parse IndexDocument from createIndexes in %s, %v", collectionName, op)
+		}
+
+		indexes := []IndexDocument{index}
+		if restore.OutputOptions.ConvertLegacyIndexes {
+			indexes = restore.convertLegacyIndexes(indexes, op.Namespace)
+		}
+
+		return restore.CreateIndexes(strings.Split(op.Namespace, ".")[0], collectionName, indexes, false)
 	}
 
 	return restore.ApplyOps(oplogCtx.session, []interface{}{op})
@@ -311,6 +368,55 @@ func convertCreateIndexToIndexInsert(op db.Oplog) (db.Oplog, error) {
 	op.Operation = "i"
 
 	return op, nil
+}
+
+// extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "commitIndexBuild" oplog entry and convert to IndexDocument
+// returns collection name and index specs
+func extractIndexDocumentFromCommitIndexBuilds(op db.Oplog) (string, []IndexDocument) {
+	collectionName := ""
+	for _, elem := range op.Object {
+		if elem.Key == "commitIndexBuild" {
+			collectionName = elem.Value.(string)
+		}
+	}
+	// We need second iteration to split the indexes into single createIndex command
+	for _, elem := range op.Object {
+		if elem.Key == "indexes" {
+			indexes := elem.Value.(bson.A)
+			indexDocuments := make([]IndexDocument, len(indexes))
+			for i, index := range indexes {
+				indexDocuments[i].Options = bson.M{}
+				for _, elem := range index.(bson.D) {
+					if elem.Key == "key" {
+						indexDocuments[i].Key = elem.Value.(bson.D)
+					} else {
+						indexDocuments[i].Options[elem.Key] = elem.Value
+					}
+				}
+			}
+			return collectionName, indexDocuments
+		}
+	}
+
+	return collectionName, nil
+}
+
+// extractIndexDocumentFromCommitIndexBuilds extracts the index specs out of  "createIndexes" oplog entry and convert to IndexDocument
+// returns collection name and index spec
+func extractIndexDocumentFromCreateIndexes(op db.Oplog) (string, IndexDocument) {
+	collectionName := ""
+	indexDocument := IndexDocument{Options: bson.M{}}
+	for _, elem := range op.Object {
+		if elem.Key == "createIndexes" {
+			collectionName = elem.Value.(string)
+		} else if elem.Key == "key" {
+			indexDocument.Key = elem.Value.(bson.D)
+		} else {
+			indexDocument.Options[elem.Key] = elem.Value
+		}
+	}
+
+	return collectionName, indexDocument
 }
 
 // isApplyOpsCmd returns true if a document seems to be an applyOps command.

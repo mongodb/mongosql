@@ -20,7 +20,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb/ssl"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/go-sql-driver/mysql"
-	"github.com/mongodb/mongo-tools-common/util"
+	"github.com/mongodb/mongo-tools/common/util"
 	"github.com/shopspring/decimal"
 
 	"go.mongodb.org/mongo-driver/bson"

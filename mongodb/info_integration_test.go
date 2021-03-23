@@ -18,7 +18,7 @@ import (
 	"github.com/10gen/sqlproxy/mongodb/provider"
 	"github.com/10gen/sqlproxy/schema"
 	"github.com/10gen/sqlproxy/schema/drdl"
-	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 )
 
 var (

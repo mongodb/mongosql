@@ -7,8 +7,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/testutil/mongodb"
 
-	toolsdb "github.com/mongodb/mongo-tools-common/db"
-	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	toolsdb "github.com/mongodb/mongo-tools/common/db"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"

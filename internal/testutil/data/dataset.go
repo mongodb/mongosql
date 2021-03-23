@@ -1,7 +1,7 @@
 package data
 
 import (
-	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 )
 
 // Dataset is an interface to be implemented by types that represent data to be

@@ -6,8 +6,8 @@ import (
 	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/testutil/flags"
 
-	toolsdb "github.com/mongodb/mongo-tools-common/db"
-	toolsoptions "github.com/mongodb/mongo-tools-common/options"
+	toolsdb "github.com/mongodb/mongo-tools/common/db"
+	toolsoptions "github.com/mongodb/mongo-tools/common/options"
 )
 
 const (
