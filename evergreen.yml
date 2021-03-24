@@ -146,6 +146,72 @@ functions:
         local_file: mongosql-rs/go/mongosql/mongosql.dll
         bucket: mciuploads
 
+  "perform release":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/macos/libmongosql.a
+        local_file: mongosql-rs/release/macos/libmongosql.a
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/macos/libmongosql.a
+        remote_file: mongosql-rs/macos/${triggered_by_git_tag|test_release}/libmongosql.a
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/rhel76/libmongosql.a
+        local_file: mongosql-rs/release/rhel76/libmongosql.a
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/rhel76/libmongosql.a
+        remote_file: mongosql-rs/rhel76/${triggered_by_git_tag|test_release}/libmongosql.a
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/ubuntu1804/libmongosql.a
+        local_file: mongosql-rs/release/ubuntu1804/libmongosql.a
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/ubuntu1804/libmongosql.a
+        remote_file: mongosql-rs/ubuntu1804/${triggered_by_git_tag|test_release}/libmongosql.a
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/windows/mongosql.dll
+        local_file: mongosql-rs/release/windows/mongosql.dll
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/windows/mongosql.dll
+        remote_file: mongosql-rs/windows/${triggered_by_git_tag|test_release}/mongosql.dll
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+
   "run go tests":
     - command: shell.exec
       type: test
@@ -236,6 +302,16 @@ tasks:
       - func: "run go tests"
       - func: "upload go test results"
 
+  - name: release
+    git_tag_only: true
+    depends_on:
+     - name: test-go
+       variant: '*'
+     - name: test-rust
+       variant: '*'
+    commands:
+      - func: "perform release"
+
 buildvariants:
 
   - name: static-analysis
@@ -277,3 +353,9 @@ buildvariants:
       - name: compile
       - name: test-rust
       - name: test-go
+
+  - name: release
+    display_name: "Release"
+    run_on: [ ubuntu1804-large ]
+    tasks:
+      - name: release
