@@ -364,24 +364,32 @@ tests:
         - {'__bot': {"a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}} }
 
     - description: ADD_TO_ARRAY correctness test
-      query: "SELECT * FROM (SELECT a FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(a.a::!INT) AS garr"
+      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(a.a::!INT) AS garr"
       current_db: foo
       translation_target_db: foo
+      translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$sort': {'__bot._id': 1}}
+        - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$push': '$arr.a.a'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'garr': $garr}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'garr': '$garr'}}}
       result:
         - {'__bot': {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]} }
         - {'__bot': {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}, {"$numberInt": "2"}]} }
         - {'__bot': {"a": null, "garr": [null, null, null]} }
 
       - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-        query: "SELECT * FROM (SELECT a, garr FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
+        query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
         current_db: foo
         translation_target_db: foo
+        translation_target_coll: poly
         translations:
-          - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
+          - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+          - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+          - {'$sort': {'__bot._id': 1}}
+          - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
           - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$addToSet': '$arr.a.a'}}}
           - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'garr': '$garr'}}}
         result:
@@ -394,11 +402,14 @@ tests:
       error: "* is not an allowed argument to ADD_TO_ARRAY"
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
-      query: "SELECT VALUE {'gset' : gset} FROM (SELECT * foo.numerics ORDER BY _id ASC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
       current_db: foo
       translation_target_db: foo
+      translation_target_coll: numerics
       translations:
-        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-149: derived tables'}}}
+        - {'$project': {'_id': 0, 'numerics': '$$ROOT'}}
+        - {'$sort': {'numerics._id': 1}}
+        - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
         - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
         - {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
@@ -406,11 +417,14 @@ tests:
         - {'__bot': {'gset': [{ '$numberDecimal': '3' }]}}
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
-      query: "SELECT VALUE {'gset': gset} FROM (SELECT * foo.numerics ORDER BY _id DSC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics ORDER BY _id DSC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
       current_db: foo
       translation_target_db: foo
+      translation_target_coll: numerics
       translations:
-        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-149: derived tables'}}}
+        - {'$project': {'_id': 0, 'numerics': '$$ROOT'}}
+        - {'$sort': {'numerics._id': -1}}
+        - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
         - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
         - {'$project': {'_id': 0, '__bot': {'_': '_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
@@ -426,12 +440,15 @@ tests:
       error: "Argument to ADD_TO_SET must have statically mutually comparable type"
 
     - description: ADD_TO_SET correctness test
-      query: "SELECT * FROM (SELECT a FROM foo.poly AS poly ORDER BY _id::!INT) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_SET(a.a::!INT) AS gset"
+      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_SET(a.a::!INT) AS gset"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'numeric': {TODO: 'SQL-149: derived tables'}}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$sort': {'__bot._id': 1}}
+        - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'gset': {'$addToSet': '$arr.a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gset': '$gset'}}}
       result:
@@ -538,7 +555,10 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$sort': {'__bot._id': 1}}
+        - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gfirst': {'$first': '$bar.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gfirst': '$gfirst'}}}
       result:
@@ -569,7 +589,10 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$sort': {'__bot._id': 1}}
+        - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'glast': {'$sqlLast': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'glast': '$glast'}}}
       result:
@@ -620,9 +643,12 @@ tests:
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::!INT AS a MERGE_DOCUMENTS(a::!DOCUMENT) AS gmerge"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: poly2
       translations:
-        - {'$project': {'_id': 0, 'arr': {TODO: 'SQL-149: derived tables'}}}
+        - {'$project': {'_id': 0, 'poly2': '$$ROOT'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$poly2._id', 'a': '$poly2.a'}}}
+        - {'$sort': {'__bot._id': 1}}
+        - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gmerge': {'$sqlMergeObjects': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmerge': '$gmerge'}}}
       result:

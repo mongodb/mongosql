@@ -1,26 +1,20 @@
 catalog_environment:
-    {
-        'test': {
-            'foo': [
-                {
-                  'x': 11,
-                  'y': 12
-                },
-            ],
-            'bar': [
-                {
-                  'x': 11,
-                  'y': 12
-                },
-            ],
-        }
-    }
+  test:
+    foo:
+      - {'_id': 0, 'x': 11, 'y': 12}
+    bar:
+      - {'_id': 0, 'x': 11, 'y': 12}
 
 tests:
   - description: both unqualified and qualified references to derived table datasource fields are allowed
-    query: "SELECT apo, derived.bpt FROM (SELECT VALUE{'apo': a + 1, 'bpt': b + 2} FROM [{a: 1, b: 1}] AS arr) AS derived"
+    query: "SELECT VALUE {'apo': apo, 'bpt': derived.bpt} FROM (SELECT VALUE {'apo': a + 1, 'bpt': b + 2} FROM [{a: 1, b: 1}] AS arr) AS derived"
+    translation:
+      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$project': {'_id': 0, '__bot': {'apo': {'$add': ['$arr.a', {'$literal': 1}]}, 'bpt': {'$add': ['$arr.b', {'$literal': 2}]}}}}
+      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$__bot']}}}
+      - {'$project': {'_id': 0, '__bot': {'apo': '$derived.apo', 'bpt': '$derived.bpt'}}}
     result:
-      - {'apo': 2, 'bpt': 3}
+      - {'__bot': {'apo': 2, 'bpt': 3}}
 
   - description: derived table cannot reference other datasources in same FROM clause
     query: "SELECT * FROM [{'x': 1}] AS foo CROSS JOIN (SELECT * FROM [{'x': 1}] AS bar WHERE foo.x = bar.x) AS derived"
@@ -43,5 +37,25 @@ tests:
     error: "The keys of datasources 'foo', 'bar' are not enumerable, and may be ambiguous. Try replacing 'SELECT *' with direct references, or providing schemata for 'foo', 'bar'"
 
   - description: there is no ambiguity with one schema-less datasource in a derived table
+    current_db: test
     query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"
-    result: [{'x': 11, 'y': 12}]
+    translation_target_db: test
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo']}}}
+    result:
+      - {'derived': {'x': 11, 'y': 12}}
+
+  - description: derived table merges namespaces under alias namespace
+    current_db: test
+    query: "SELECT * FROM (SELECT foo.*, bar.* FROM [{'a': 1}] foo JOIN [{'b': 2}] bar) AS derived"
+    translation_target_db: test
+    translation_target_coll: foo
+    translation:
+      - {'$array': {'foo': [{'a': 1}]}}
+      - {'TODO': {'SQL-150': 'join'}}
+      - {'$project': {'_id': 0, 'foo': '$foo', 'bar': '$bar'}}
+      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo', '$bar']}}}
+    result:
+      - {'derived': {'a': 1, 'b': 2}}
