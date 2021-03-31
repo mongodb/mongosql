@@ -66,18 +66,19 @@ SelectExpression: SelectExpression = {
   AliasedExpression => SelectExpression::Aliased(<>),
 };
 
-AliasedExpression: AliasedExpression = {
-  <e:Expression> <s:(AS? <SimpleIdentifier>)?> => AliasedExpression{expression:e, alias:s}
-};
-
 SubstarExpression: SubstarExpression = {
   <i:SimpleIdentifier> DOT STAR => SubstarExpression{datasource: i}
+};
+
+AliasedExpression: AliasedExpression = {
+  <e:Expression> <s:(AS? <SimpleIdentifier>)?> => AliasedExpression{expression:e, alias:s}
 };
 
 pub Expression: Expression = {
   Tier1Expr => *<>,
   BetweenExpr,
   CaseExpr => Expression::Case(<>),
+  FunctionExpr => Expression::Function(<>),
 };
 
 BetweenExpr: Expression = {
@@ -96,6 +97,75 @@ WhenBranch: WhenBranch = {
 
 ElseBranch: Box<Expression> = {
   ELSE <e:Expression> => Box::new(e),
+}
+
+FunctionExpr: FunctionExpr = {
+  <i:ID> LEFT_PAREN <e:Comma<Expression>> RIGHT_PAREN => FunctionExpr{function:FunctionName(i.to_string()), args:e.iter().map(|x| FunctionArg::Expr(x.clone())).collect()},
+  Position,
+  Extract,
+  Substring,
+  Fold,
+  Trim,
+  CurrentTimestamp,
+}
+
+Position: FunctionExpr = {
+  POSITION LEFT_PAREN <e1:Expression> IN <e2:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("POSITION".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)]},
+}
+
+ExtractSpec: ExtractSpec = {
+  TIMEZONE_HOUR => ExtractSpec::TimezoneHour,
+  TIMEZONE_MINUTE => ExtractSpec::TimezoneMinute,
+  YEAR => ExtractSpec::Year,
+  MONTH => ExtractSpec::Month,
+  DAY => ExtractSpec::Day,
+  HOUR => ExtractSpec::Hour,
+  MINUTE => ExtractSpec::Minute,
+  SECOND => ExtractSpec::Second,
+}
+
+Extract: FunctionExpr = {
+  EXTRACT LEFT_PAREN <f:ExtractSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("EXTRACT".to_string()), args:vec![FunctionArg::Extract(f), FunctionArg::Expr(e)]},
+}
+
+Substring: FunctionExpr = {
+  SUBSTRING LEFT_PAREN <e1:Expression> FROM <e2:Expression> <e3:(FOR <Expression>)?> RIGHT_PAREN => match e3 {
+    Some(e3) => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)]},
+    None => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)]},
+  },
+  SUBSTRING LEFT_PAREN <e1:Expression> COMMA <e2:Expression> <e3:(COMMA <Expression>)?> RIGHT_PAREN => match e3 {
+    Some(e3) => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)]},
+    None => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)]},
+  }
+}
+
+Casing: Casing = {
+  UPPER => Casing::Upper,
+  LOWER => Casing::Lower,
+}
+
+Fold: FunctionExpr = {
+  <c:Casing> LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("FOLD".to_string()), args:vec![FunctionArg::Fold(c), FunctionArg::Expr(e)]},
+}
+
+TrimSpec: TrimSpec = {
+  LEADING => TrimSpec::Leading,
+  TRAILING => TrimSpec::Trailing,
+  BOTH => TrimSpec::Both,
+}
+
+Trim: FunctionExpr = {
+  TRIM LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))), FunctionArg::Expr(e)]},
+  TRIM LEFT_PAREN <s:TrimSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))), FunctionArg::Expr(e)]},
+  TRIM LEFT_PAREN <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(substr), FunctionArg::Expr(e)]},
+  TRIM LEFT_PAREN <s:TrimSpec> <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(substr), FunctionArg::Expr(e)]},
+}
+
+CurrentTimestamp: FunctionExpr = {
+  CURRENT_TIMESTAMP <e:(LEFT_PAREN <Expression> RIGHT_PAREN)?> => match e {
+    Some(e) => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![FunctionArg::Expr(e)]},
+    None => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![]},
+  }
 }
 
 Identifier: Identifier = {
@@ -138,6 +208,7 @@ Tier7Expr = UnaryTier<UnaryOp, BottomExpr>;
 BottomExpr: Box<Expression> = {
   Identifier => Box::new(Expression::Identifier(<>)),
   Literal => Box::new(Expression::Literal(<>)),
+  LEFT_PAREN <e:Expression> RIGHT_PAREN => Box::new(e),
 };
 
 OrOp: BinaryOp = {
@@ -247,9 +318,11 @@ match {
   "=" => EQ,
   ">" => GT,
   ">=" => GTE,
+  "(" => LEFT_PAREN,
   "<" => LT,
   "<=" => LTE,
 	"<>" => NEQ,
+	")" => RIGHT_PAREN,
 	"*" => STAR,
 	"-" => SUB,
 	r"(?i)all" => ALL,
@@ -257,23 +330,44 @@ match {
 	r"(?i)as" => AS,
 	r"(?i)asc" => ASC,
 	r"(?i)between" => BETWEEN,
+  r"(?i)both" => BOTH,
 	r"(?i)by" => BY,
 	r"(?i)case" => CASE,
+	r"(?i)current_timestamp" => CURRENT_TIMESTAMP,
+	r"(?i)day" => DAY,
 	r"(?i)desc" => DESC,
 	r"(?i)distinct" => DISTINCT,
 	r"(?i)else" => ELSE,
 	r"(?i)end" => END,
+	r"(?i)extract" => EXTRACT,
 	r"(?i)false" => FALSE,
+	r"(?i)for" => FOR,
+	r"(?i)from" => FROM,
+	r"(?i)hour" => HOUR,
+	r"(?i)in" => IN,
+	r"(?i)leading" => LEADING,
+	r"(?i)lower" => LOWER,
+	r"(?i)minute" => MINUTE,
 	r"(?i)missing" => MISSING,
+	r"(?i)month" => MONTH,
 	r"(?i)not" => NOT,
 	r"(?i)null" => NULL,
 	r"(?i)or" => OR,
 	r"(?i)order" => ORDER,
+	r"(?i)position" => POSITION,
+	r"(?i)second" => SECOND,
+	r"(?i)substring" => SUBSTRING,
 	r"(?i)then" => THEN,
+	r"(?i)timezone_hour" => TIMEZONE_HOUR,
+	r"(?i)timezone_minute" => TIMEZONE_MINUTE,
+	r"(?i)trailing" => TRAILING,
+	r"(?i)trim" => TRIM,
 	r"(?i)true" => TRUE,
 	r"(?i)union" => UNION,
+	r"(?i)upper" => UPPER,
 	r"(?i)values?" => VALUE,
 	r"(?i)when" => WHEN,
+	r"(?i)year" => YEAR,
   r"[0-9]+" => INT,
   r#"'([^\x00']|'')*'"# => STRING,
 } else {

@@ -35,6 +35,7 @@ macro_rules! validate_expression_ast {
         }
     };
 }
+
 // Select tests
 should_parse!(select_star, true, "select *");
 should_parse!(select_star_upper, true, "SELECT *");
@@ -584,5 +585,141 @@ validate_expression_ast!(
         left: Box::new(Expression::Literal(Literal::Double(2000.0))),
         op: BinaryOp::Add,
         right: Box::new(Expression::Literal(Literal::Double(0.0000000516)))
+    })
+);
+
+// Parenthesized expressions tests
+should_parse!(parens_multiple_binary_ops, true, "SELECT ((a+b)-(d/c))*7");
+should_parse!(
+    parens_case_expr,
+    true,
+    "select (CASE WHEN a=b THEN 1 ELSE 2 END)*4"
+);
+
+should_parse!(unbalanced_parens, false, "SELECT ((a+b)");
+should_parse!(empty_parens, false, "SELECT ()");
+
+// Scalar function tests
+should_parse!(null_if, true, "select nullif(a, b)");
+should_parse!(coalesce, true, "select coalesce(a, b, c, d)");
+should_parse!(size, true, "select size(a)");
+should_parse!(position, true, "select position('b' IN 'abc')");
+should_parse!(char_length, true, "select char_length('foo')");
+should_parse!(character_length, true, "select character_length('bar')");
+should_parse!(octet_length, true, "select octet_length(a)");
+should_parse!(bit_length, true, "select bit_length(a)");
+should_parse!(
+    extract_timezone_hour,
+    true,
+    "select extract(timezone_hour from a)"
+);
+should_parse!(
+    extract_timezone_minute,
+    true,
+    "select extract(timezone_minute from a)"
+);
+should_parse!(extract_year, true, "select extract(year from a)");
+should_parse!(extract_month, true, "select extract(month from a)");
+should_parse!(extract_day, true, "select extract(day from a)");
+should_parse!(extract_hour, true, "select extract(hour from a)");
+should_parse!(extract_minute, true, "select extract(minute from a)");
+should_parse!(extract_second, true, "select extract(second from a)");
+should_parse!(
+    substring_from,
+    true,
+    "select SUBSTRING(str FROM start FOR length)"
+);
+should_parse!(
+    substring_comma,
+    true,
+    "select SUBSTRING(str, start, length)"
+);
+should_parse!(
+    substring_comma_no_length,
+    true,
+    "select SUBSTRING(str, start)"
+);
+should_parse!(fold_upper, true, "select upper(a)");
+should_parse!(fold_lower, true, "select lower(a)");
+should_parse!(trim_leading, true, "select trim(LEADING substr FROM str)");
+should_parse!(trim_trailing, true, "select trim(TRAILING substr FROM str)");
+should_parse!(trim_both, true, "select trim(BOTH substr FROM str)");
+should_parse!(current_timestamp_no_args, true, "select current_timestamp");
+should_parse!(
+    current_timestamp_with_args,
+    true,
+    "select current_timestamp(a)"
+);
+should_parse!(create_func_no_args, true, "select brand_new_func()");
+should_parse!(
+    create_func_with_args,
+    true,
+    "select brand_new_func(a, b, c)"
+);
+should_parse!(nested_scalar_func, true, "select nullif(coalesce(a, b), c)");
+validate_expression_ast!(
+    extract_ast,
+    "extract(year from a)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("EXTRACT".to_string()),
+        args: vec![
+            FunctionArg::Extract(ExtractSpec::Year),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("a".to_string())))
+        ]
+    })
+);
+validate_expression_ast!(
+    fold_ast,
+    "upper(a)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("FOLD".to_string()),
+        args: vec![
+            FunctionArg::Fold(Casing::Upper),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("a".to_string())))
+        ]
+    })
+);
+validate_expression_ast!(
+    trim_default_spec,
+    "trim(substr FROM str)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("TRIM".to_string()),
+        args: vec![
+            FunctionArg::Trim(TrimSpec::Both),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
+                "substr".to_string()
+            ))),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
+                "str".to_string()
+            )))
+        ]
+    })
+);
+validate_expression_ast!(
+    trim_default_substr,
+    "trim(leading FROM str)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("TRIM".to_string()),
+        args: vec![
+            FunctionArg::Trim(TrimSpec::Leading),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
+                "str".to_string()
+            )))
+        ]
+    })
+);
+validate_expression_ast!(
+    trim_default_spec_and_substr,
+    "trim(str)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("TRIM".to_string()),
+        args: vec![
+            FunctionArg::Trim(TrimSpec::Both),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
+                "str".to_string()
+            )))
+        ]
     })
 );

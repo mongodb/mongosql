@@ -55,14 +55,14 @@ pub enum SelectExpression {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct AliasedExpression {
-    pub expression: Expression,
-    pub alias: Option<String>,
+pub struct SubstarExpression {
+    pub datasource: String,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct SubstarExpression {
-    pub datasource: String,
+pub struct AliasedExpression {
+    pub expression: Expression,
+    pub alias: Option<String>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -71,6 +71,7 @@ pub enum Expression {
     Unary(UnaryExpr),
     Between(BetweenExpr),
     Case(CaseExpr),
+    Function(FunctionExpr),
     Identifier(Identifier),
     Literal(Literal),
 }
@@ -106,6 +107,48 @@ pub struct CaseExpr {
 pub struct WhenBranch {
     pub when: Box<Expression>,
     pub then: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct FunctionExpr {
+    pub function: FunctionName,
+    pub args: Vec<FunctionArg>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct FunctionName(pub String);
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum FunctionArg {
+    Expr(Expression),
+    Extract(ExtractSpec),
+    Fold(Casing),
+    Trim(TrimSpec),
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum ExtractSpec {
+    TimezoneHour,
+    TimezoneMinute,
+    Year,
+    Month,
+    Day,
+    Hour,
+    Minute,
+    Second,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum Casing {
+    Upper,
+    Lower,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum TrimSpec {
+    Leading,
+    Trailing,
+    Both,
 }
 
 #[derive(PartialEq, Debug, Clone)]
