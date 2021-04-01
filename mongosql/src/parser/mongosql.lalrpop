@@ -32,7 +32,14 @@ SortSpec: SortSpec = {
 }
 
 SortKey: SortKey = {
-  Identifier => SortKey::Key(<>),
+  Identifier => SortKey::Simple(<>),
+  INT =>? {
+    let i: Result<u32, ParseError<usize, Token, &str>> = u32::from_str(<>).map_err(|_| ParseError::from("failed to convert to unsigned int"));
+    match i {
+      Ok(x) => Ok(SortKey::Positional(x)),
+      Err(x) => Err(x)
+    }
+  },
 }
 
 SortDirection: SortDirection = {

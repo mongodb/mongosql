@@ -194,7 +194,8 @@ pub struct SortSpec {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum SortKey {
-    Key(Identifier),
+    Simple(Identifier),
+    Positional(u32),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]

@@ -487,6 +487,12 @@ should_parse!(
     true,
     "select * order by a DESC, b ASC, c"
 );
+should_parse!(order_by_positional_sort, true, "select a, b order by 1, 2");
+should_parse!(
+    order_by_positional_sort_with_star,
+    true,
+    "select * order by 1"
+);
 
 validate_query_ast!(
     order_by_default_direction,
@@ -498,11 +504,22 @@ validate_query_ast!(
         },
         order_by_clause: Some(OrderByClause {
             sort_specs: vec![SortSpec {
-                key: SortKey::Key(Identifier::Simple("a".to_string())),
+                key: SortKey::Simple(Identifier::Simple("a".to_string())),
                 direction: SortDirection::Asc
             }]
         })
     })
+);
+
+should_parse!(
+    order_by_neg_positional_sort,
+    false,
+    "select a, b order by -1, 2"
+);
+should_parse!(
+    order_by_positional_sort_too_big,
+    false,
+    "select a, b order by 9223372036854775808"
 );
 
 // Literals tests
