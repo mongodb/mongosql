@@ -8,7 +8,7 @@ grammar;
 
 pub Query: Query = {
   SetQuery => Query::Set(<>),
-	SelectQuery => Query::Select(<>),
+  SelectQuery => Query::Select(<>),
 };
 
 SetQuery: SetQuery = {
@@ -16,7 +16,7 @@ SetQuery: SetQuery = {
 }
 
 SelectQuery: SelectQuery = {
-  <s:SelectClause> <o:OrderByClause?> => SelectQuery{select_clause:s, order_by_clause: o},
+  <s:SelectClause> <o:OrderByClause?> <lo:LimitOffset?> => SelectQuery{select_clause:s, order_by_clause:o, limit:lo.unwrap_or((None,None)).0, offset:lo.unwrap_or((None,None)).1}
 };
 
 SelectClause: SelectClause = {
@@ -45,6 +45,20 @@ SortKey: SortKey = {
 SortDirection: SortDirection = {
   ASC => SortDirection::Asc,
   DESC => SortDirection::Desc,
+}
+
+LimitOffset: (Option<u32>, Option<u32>) = {
+  <l:Limit> <o:Offset?> => (Some(l), o),
+  <o:Offset> <l:Limit?> => (l, Some(o)),
+  LIMIT <l:Unsigned32> COMMA <o:Unsigned32> => (Some(l), Some(o)),
+};
+
+Limit: u32 = {
+  LIMIT <Unsigned32>,
+}
+
+Offset: u32 = {
+  OFFSET <Unsigned32>,
 }
 
 SetOperator: SetOperator = {
@@ -304,6 +318,16 @@ Double: Literal = {
    },
 }
 
+Unsigned32: u32 = {
+  INT =>? {
+    let u: Result<u32, ParseError<usize, Token, &str>> = u32::from_str(<>).map_err(|_| ParseError::from("failed to convert number to u32"));
+    match u {
+      Ok(x) => Ok(x),
+      Err(x) => Err(x)
+    }
+  },
+}
+
 Comma<T>: Vec<T> = {
     <v:(<T> COMMA)*> <e:T?> => match e {
         None => v,
@@ -320,61 +344,63 @@ match {
   "+" => ADD,
   "," => COMMA,
   "||" => CONCAT,
-	"/" => DIV,
-	"." => DOT,
+  "/" => DIV,
+  "." => DOT,
   "=" => EQ,
   ">" => GT,
   ">=" => GTE,
   "(" => LEFT_PAREN,
   "<" => LT,
   "<=" => LTE,
-	"<>" => NEQ,
-	")" => RIGHT_PAREN,
-	"*" => STAR,
-	"-" => SUB,
-	r"(?i)all" => ALL,
-	r"(?i)and" => AND,
-	r"(?i)as" => AS,
-	r"(?i)asc" => ASC,
-	r"(?i)between" => BETWEEN,
+  "<>" => NEQ,
+  ")" => RIGHT_PAREN,
+  "*" => STAR,
+  "-" => SUB,
+  r"(?i)all" => ALL,
+  r"(?i)and" => AND,
+  r"(?i)as" => AS,
+  r"(?i)asc" => ASC,
+  r"(?i)between" => BETWEEN,
   r"(?i)both" => BOTH,
-	r"(?i)by" => BY,
-	r"(?i)case" => CASE,
-	r"(?i)current_timestamp" => CURRENT_TIMESTAMP,
-	r"(?i)day" => DAY,
-	r"(?i)desc" => DESC,
-	r"(?i)distinct" => DISTINCT,
-	r"(?i)else" => ELSE,
-	r"(?i)end" => END,
-	r"(?i)extract" => EXTRACT,
-	r"(?i)false" => FALSE,
-	r"(?i)for" => FOR,
-	r"(?i)from" => FROM,
-	r"(?i)hour" => HOUR,
-	r"(?i)in" => IN,
-	r"(?i)leading" => LEADING,
-	r"(?i)lower" => LOWER,
-	r"(?i)minute" => MINUTE,
-	r"(?i)missing" => MISSING,
-	r"(?i)month" => MONTH,
-	r"(?i)not" => NOT,
-	r"(?i)null" => NULL,
-	r"(?i)or" => OR,
-	r"(?i)order" => ORDER,
-	r"(?i)position" => POSITION,
-	r"(?i)second" => SECOND,
-	r"(?i)substring" => SUBSTRING,
-	r"(?i)then" => THEN,
-	r"(?i)timezone_hour" => TIMEZONE_HOUR,
-	r"(?i)timezone_minute" => TIMEZONE_MINUTE,
-	r"(?i)trailing" => TRAILING,
-	r"(?i)trim" => TRIM,
-	r"(?i)true" => TRUE,
-	r"(?i)union" => UNION,
-	r"(?i)upper" => UPPER,
-	r"(?i)values?" => VALUE,
-	r"(?i)when" => WHEN,
-	r"(?i)year" => YEAR,
+  r"(?i)by" => BY,
+  r"(?i)case" => CASE,
+  r"(?i)current_timestamp" => CURRENT_TIMESTAMP,
+  r"(?i)day" => DAY,
+  r"(?i)desc" => DESC,
+  r"(?i)distinct" => DISTINCT,
+  r"(?i)else" => ELSE,
+  r"(?i)end" => END,
+  r"(?i)extract" => EXTRACT,
+  r"(?i)false" => FALSE,
+  r"(?i)for" => FOR,
+  r"(?i)from" => FROM,
+  r"(?i)hour" => HOUR,
+  r"(?i)in" => IN,
+  r"(?i)leading" => LEADING,
+  r"(?i)limit" => LIMIT,
+  r"(?i)lower" => LOWER,
+  r"(?i)minute" => MINUTE,
+  r"(?i)missing" => MISSING,
+  r"(?i)month" => MONTH,
+  r"(?i)not" => NOT,
+  r"(?i)null" => NULL,
+  r"(?i)offset" => OFFSET,
+  r"(?i)or" => OR,
+  r"(?i)order" => ORDER,
+  r"(?i)position" => POSITION,
+  r"(?i)second" => SECOND,
+  r"(?i)substring" => SUBSTRING,
+  r"(?i)then" => THEN,
+  r"(?i)timezone_hour" => TIMEZONE_HOUR,
+  r"(?i)timezone_minute" => TIMEZONE_MINUTE,
+  r"(?i)trailing" => TRAILING,
+  r"(?i)trim" => TRIM,
+  r"(?i)true" => TRUE,
+  r"(?i)union" => UNION,
+  r"(?i)upper" => UPPER,
+  r"(?i)values?" => VALUE,
+  r"(?i)when" => WHEN,
+  r"(?i)year" => YEAR,
   r"[0-9]+" => INT,
   r#"'([^\x00']|'')*'"# => STRING,
 } else {

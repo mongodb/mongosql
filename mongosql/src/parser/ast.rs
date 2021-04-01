@@ -8,6 +8,8 @@ pub enum Query {
 pub struct SelectQuery {
     pub select_clause: SelectClause,
     pub order_by_clause: Option<OrderByClause>,
+    pub limit: Option<u32>,
+    pub offset: Option<u32>,
 }
 
 #[derive(PartialEq, Debug, Clone)]

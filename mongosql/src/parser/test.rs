@@ -134,6 +134,8 @@ validate_query_ast!(
             })])
         },
         order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 validate_query_ast!(
@@ -148,6 +150,8 @@ validate_query_ast!(
             })])
         },
         order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 validate_query_ast!(
@@ -162,6 +166,8 @@ validate_query_ast!(
             })])
         },
         order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 validate_query_ast!(
@@ -176,6 +182,8 @@ validate_query_ast!(
             })])
         },
         order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 validate_query_ast!(
@@ -190,6 +198,8 @@ validate_query_ast!(
             })])
         },
         order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 validate_query_ast!(
@@ -204,6 +214,8 @@ validate_query_ast!(
             })])
         },
         order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 validate_query_ast!(
@@ -218,6 +230,8 @@ validate_query_ast!(
             })])
         },
         order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 
@@ -250,6 +264,8 @@ validate_query_ast!(
                     )])
                 },
                 order_by_clause: None,
+                limit: None,
+                offset: None,
             })),
             op: SetOperator::Union,
             right: Box::new(Query::Select(SelectQuery {
@@ -263,6 +279,8 @@ validate_query_ast!(
                     )])
                 },
                 order_by_clause: None,
+                limit: None,
+                offset: None,
             }))
         })),
         op: SetOperator::UnionAll,
@@ -275,6 +293,8 @@ validate_query_ast!(
                 })])
             },
             order_by_clause: None,
+            limit: None,
+            offset: None,
         }))
     })
 );
@@ -507,7 +527,63 @@ validate_query_ast!(
                 key: SortKey::Simple(Identifier::Simple("a".to_string())),
                 direction: SortDirection::Asc
             }]
-        })
+        }),
+        limit: None,
+        offset: None,
+    })
+);
+
+// Limit and offset tests
+should_parse!(limit_simple, true, "select * limit 42");
+should_parse!(offset_simple, true, "select * offset 42");
+should_parse!(limit_comma_offset, true, "select * limit 42, 24");
+should_parse!(limit_then_offset, true, "select * limit 42 offset 24");
+should_parse!(offset_then_limit, true, "select * offset 42 limit 24");
+should_parse!(offset_twice, false, "select * limit 42, 24 offset 24");
+should_parse!(limit_alphabetic, false, "select * limit a");
+should_parse!(limit_non_integer, false, "select * limit 42.0");
+should_parse!(limit_negative, false, "select * limit -42");
+should_parse!(limit_overflow, false, "select * limit 4294967296"); // 2^32
+
+validate_query_ast!(
+    limit_one_value,
+    "select * limit 42",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        order_by_clause: None,
+        limit: Some(42_u32),
+        offset: None,
+    })
+);
+
+validate_query_ast!(
+    limit_two_values,
+    "select * limit 42, 24",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        order_by_clause: None,
+        limit: Some(42_u32),
+        offset: Some(24_u32),
+    })
+);
+
+validate_query_ast!(
+    limit_with_offset,
+    "select * limit 42 offset 24",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        order_by_clause: None,
+        limit: Some(42_u32),
+        offset: Some(24_u32),
     })
 );
 
