@@ -2295,6 +2295,13 @@ axes:
     variables:
       _variant: ubuntu2004-arm64
 
+  - id: ubuntu1804-container
+    display_name: Ubuntu 18.04 container
+    run_on:
+    - ubuntu1804-container
+    variables:
+      _variant: ubuntu1804-container
+
   - id: ubuntu1604-s390x
     display_name: Ubuntu 16.04 s390x
     run_on:
