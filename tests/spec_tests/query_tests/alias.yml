@@ -44,10 +44,13 @@ tests:
 
   - description: Can use duplicate aliases on both sides of UNION
     current_db: db
-    query: "SELECT a, b AS c FROM foo AS foo UNION SELECT a, b AS c FROM foo AS foo"
+    query: "SELECT VALUE {'a': a, 'c': b} FROM foo AS alias UNION ALL SELECT VALUE {'a': a, 'c': b} FROM foo AS alias"
     translation_target_db: db
     translation_target_coll: foo
     translation:
-      - {'TODO': 'SQL-151'}
+      - {'$project': {'_id': 0, 'alias': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$alias.a', 'c': '$alias.b'}}}
+      - {'$unionWith': {'coll': 'foo', 'pipeline': [{'$project': {'_id': 0, 'alias': '$$ROOT'}}, {'$project': {'_id': 0, '__bot': {'a': '$alias.a', 'c': '$alias.b'}}}]}}
     result:
-      - {"a": 1, "c": 2}
+      - {'__bot': {'a': 1, 'c': 2}}
+      - {'__bot': {'a': 1, 'c': 2}}

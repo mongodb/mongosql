@@ -1,52 +1,87 @@
 catalog_environment:
-    {
-      'mydb': {
-        'foo': [
-          {'a': 1},
-          {'a': 2},
-          {'a': 1},
-        ],
-        'bar': [
-          {'b': 1, 'c': 1}
-        ]
-      },
-    }
+  mydb:
+    foo:
+      - {'_id': 0, 'a': 1}
+      - {'_id': 1, 'a': 2}
+      - {'_id': 2, 'a': 1}
+    bar:
+      - {'_id': 0, 'b': 1, 'c': 1}
 
 tests:
-
   - description: collections with different schema can be unioned
     current_db: mydb
-    query: "SELECT * FROM foo UNION SELECT * FROM bar"
+    query: "SELECT * FROM foo AS foo UNION ALL SELECT * FROM bar AS bar"
     ordered: false
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$unionWith': {'coll': 'bar', 'pipeline': [{'$project': {'_id': 0, 'bar': '$$ROOT'}}]}}
     result:
-      - {'a': 1}
-      - {'a': 2}
-      - {'b': 1, 'c': 1}
+      - {'foo': {'_id': 0, 'a': 1}}
+      - {'foo': {'_id': 1, 'a': 2}}
+      - {'foo': {'_id': 2, 'a': 1}}
+      - {'bar': {'_id': 0, 'b': 1, 'c': 1}}
+
+  - description: duplicates are still removed when collections with different schema are unioned
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo AS foo UNION SELECT VALUE {'b': b, 'c': c} FROM bar AS bar"
+    ordered: false
+    skip_reason: "distinct UNION not currently supported"
+    result:
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 2}}
+      - {'__bot': {'b': 1, 'c': 1}}
 
   - description: basic union correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     ordered: false
+    skip_reason: "distinct UNION not currently supported"
     result:
-      - {'a': 1}
-      - {'a': 2}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 2}}
 
   - description: basic union all correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo"
     ordered: false
+    translation_target_db: mydb
+    translation_taget_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
+      - {'$unionWith': {'coll': 'foo', 'pipeline': [{'$project': {'_id': 0, 'foo': '$$ROOT'}}, {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}]}}
     result:
-      - {'a': 1}
-      - {'a': 1}
-      - {'a': 1}
-      - {'a': 1}
-      - {'a': 2}
-      - {'a': 2}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 2}}
+      - {'__bot': {'a': 2}}
 
   - description: union is left associative
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     ordered: false
+    skip_reason: "distinct UNION not currently supported"
     result:
-      - {'a': 1}
-      - {'a': 2}
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 2}}
+
+  - description: union works with array datasources
+    current_db: mydb
+    query: "SELECT VALUE {'a': a} FROM foo AS foo UNION ALL SELECT * FROM [{'b': 1}, {'b': 2}] AS arr"
+    ordered: false
+    translation_target_db: mydb
+    translation_target_collection: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
+      - {'$unionWith': {'pipeline': [{'$array': {'arr': [{'b': 1}, {'b': 2}]}}]}}
+    result:
+      - {'__bot': {'a': 1}}
+      - {'__bot': {'a': 2}}
+      - {'__bot': {'a': 1}}
+      - {'arr': {'b': 1}}
+      - {'arr': {'b': 2}}
