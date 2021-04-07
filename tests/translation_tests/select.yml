@@ -16,7 +16,18 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 't1': '$$ROOT'}}
-      - {'TODO': 'SQL-150: joins'}
+      - {'$join': {
+        'source': 'bar',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+      }}
+      - {'$join': {
+        'source': 'baz',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+      }}
       - {'$project': {'_id': 0, 't1': '$t1', 't2': '$t2', 't3': '$t3'}}
     result:
       - {'t1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
@@ -29,7 +40,18 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 't1': '$$ROOT'}}
-      - {'TODO': 'SQL-150: joins'}
+      - {'$join': {
+        'source': 'bar',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+      }}
+      - {'$join': {
+        'source': 'baz',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+      }}
       - {'$project': {'_id': 0, 't1': '$t1', 't3': '$t3'}}
     result:
       - {'t1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't3': {'_id': 0, 'a': 100}}
@@ -54,7 +76,18 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 't1': '$$ROOT'}}
-      - {'TODO': 'SQL-150: joins'}
+      - {'$join': {
+        'source': 'bar',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+      }}
+      - {'$join': {
+        'source': 'baz',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+      }}
       - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't1': '$t1', 't2': '$t2', 't3': '$t3'}}
     result:
       - {'__bot': {'a': 1}, 't1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
@@ -67,7 +100,18 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 't1': '$$ROOT'}}
-      - {'TODO': 'SQL-150: joins'}
+      - {'$join': {
+        'source': 'bar',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+      }}
+      - {'$join': {
+        'source': 'baz',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+      }}
       - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't3': '$t3'}}
     result:
       - {'__bot': {'a': 1}, 't3': {'_id': 0, 'a': 100}}

@@ -13,7 +13,12 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'TODO': {'SQL-150': 'joins'}}
+      - {'$join': {
+          'source': 'foo_a',
+          'joinType': 'inner',
+          'let': {},
+          'pipeline': [{'$project': {'foo_a': '$$ROOT'}}],
+      }}
       - {'$project': {'_id': 0, '__bot': {
                                            'x': {'$subquery': {
                                                                 'let': {

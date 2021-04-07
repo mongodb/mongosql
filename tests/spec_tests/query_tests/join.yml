@@ -1,19 +1,13 @@
 catalog_environment:
-    {
-        'mydb': {
-            'bar': [
-                { 'foo': 1 },
-                { 'foo': 42 },
-            ],
-            'bar2': [
-                { 'foo': 42, 'baz': 63 },
-                { 'foo': 43 }
-            ],
-            'coll': [
-                { 'bar': 53, 'car': 42 }
-            ],
-        }
-    }
+  'mydb':
+    'bar':
+      - { '_id': 0, 'foo': 1 }
+      - { '_id': 1, 'foo': 42 }
+    'bar2':
+      - { '_id': 0, 'foo': 42, 'baz': 63 }
+      - { '_id': 1, 'foo': 43 }
+    'coll':
+      - { '_id': 0, 'bar': 53, 'car': 42 }
 
 schema_environment:
   {
@@ -50,30 +44,73 @@ schema_environment:
 tests:
   - description: cross join correctness test
     current_db: mydb
-    query: "SELECT * FROM bar CROSS JOIN coll"
+    query: "SELECT * FROM bar AS bar CROSS JOIN coll AS coll"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$join': {
+          'source': 'coll',
+          'joinType': 'inner',
+          'let': {},
+          'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+        }}
     result:
-        - {'foo': 1, 'bar': 53, 'car': 42}
-        - {'foo': 42, 'bar': 53, 'car': 42}
+        - {'bar': {'_id': 0, 'foo': 1}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
+        - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
 
   - description: inner join correctness test
     current_db: mydb
-    query: "SELECT * FROM bar INNER JOIN coll ON bar.foo = coll.car"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car"
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$join': {
+        'source': 'coll',
+        'joinType': 'inner',
+        'let': {'__bar_foo': '$bar.foo'},
+        'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}},
+      }}}
     result:
-        - {'foo': 42, 'bar': 53, 'car': 42}
+      - {'bar': {'_id': 0, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
 
   - description: left join correctness test
     current_db: mydb
-    query: "SELECT * from bar2 LEFT JOIN bar USING(foo)"
+    query: "SELECT * from bar2 AS bar2 LEFT JOIN bar AS bar on bar2.foo = bar.foo"
+    translation_target_db: mydb
+    translation_target_coll: bar2
+    translation:
+      - {'$project': {'_id': 0, 'bar2': '$$ROOT'}}
+      - {'$join': {
+        'source': 'bar',
+        'joinType': 'left',
+        'let': {'__bar2_foo': '$bar2.foo'},
+        'pipeline': [{'$project': {'bar': '$$ROOT'}}],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar2_foo', '$bar.foo']}}},
+      }
     result:
-        - {'bar2': {'foo': 42, 'baz': 63}, 'bar': {'foo': 42}}
-        - {'bar2': {'foo': 43}}
+      - {'bar2': {'_id': 0, 'foo': 42, 'baz': 63}, 'bar': {'_id': 1, 'foo': 42}}
+      - {'bar2': {'_id': 1, 'foo': 43}}
 
   - description: right join correctness test
     current_db: mydb
-    query: "SELECT * from bar2 RIGHT JOIN bar USING(foo)"
+    query: "SELECT * from bar2 AS bar2 RIGHT JOIN bar as bar ON bar2.foo = bar.foo"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$join': {
+        'source': 'bar2',
+        'joinType': 'left',
+        'let': {'__bar_foo': '$bar.foo'},
+        'pipeline': [{'$project': {'bar2': '$$ROOT'}}],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$bar2.foo']}}},
+      }
     result:
-        - {'bar': {'foo': 42}, 'bar2': {'foo': 42, 'baz': 63}}
-        - {'bar2': {'foo': 43}}
+        - {'bar': {'_id': 1, 'foo': 42}, 'bar2': {'_id': 0, 'foo': 42, 'baz': 63}}
+        - {'bar2': {'_id': 1, 'foo': 43}}
 
   - description: natural join is not supported
     current_db: mydb
@@ -87,7 +124,18 @@ tests:
 
   - description: join predicates can contain complex expressions
     current_db: mydb
-    query: "SELECT * FROM bar INNER JOIN bar2 ON bar.foo + 15 > bar2.baz"
+    query: "SELECT * FROM bar AS bar INNER JOIN bar2 AS bar2 ON bar.foo + 15 > bar2.baz"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$join': {
+        'source': 'bar2',
+        'joinType': 'inner',
+        'let': {'__bar_foo': '$bar.foo'},
+        'pipeline': [{'$project': {'bar2': '$$ROOT'}}],
+        'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': ['$$__bar_foo', {'$literal': 15}]}, '$bar2.baz']}}}
+      }
     result:
       - {'bar': {'foo': 42}, 'bar2': {'foo': 42, 'baz': 63}}
 
@@ -98,15 +146,37 @@ tests:
 
   - description: join predicates can reference columns by table-qualified names
     current_db: mydb
-    query: "SELECT * FROM bar INNER JOIN coll ON bar.foo = coll.car"
+    query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$join': {
+        'source': 'coll',
+        'joinType': 'inner',
+        'let': {'__bar_foo': '$bar.foo'},
+        'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}},
+      }}
     result:
-        - {'foo': 42, 'bar': 53, 'car': 42}
+        - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
 
   - description: join predicates can reference columns by unambiguous unqualified names
     current_db: mydb
-    query: "SELECT * FROM bar INNER JOIN coll ON foo = coll"
+    query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON foo = car"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$join': {
+        'source': 'coll',
+        'joinType': 'inner',
+        'let': {'__bar_foo': '$bar.foo'},
+        'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}}
+      }
     result:
-        - {'foo': 42, 'bar': 53, 'car': 42}
+        - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
 
   - description: a join datasource cannot be given an alias
     query: "SELECT * FROM (foo.bar CROSS JOIN foo.coll) AS x"
@@ -115,17 +185,34 @@ tests:
   - description: joins are left-associative
     current_db: mydb
     query: "SELECT * FROM bar AS a CROSS JOIN bar AS b LEFT JOIN bar AS c ON a.foo = c.foo"
+    translation_target_db: mydb
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'a': '$$ROOT'}}
+      - {'$join': {
+        'source': 'bar',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'b': '$$ROOT'}}],
+      }}
+      - {'$join': {
+        'source': 'bar',
+        'joinType': 'left',
+        'let': {'__a_foo': '$a.foo'},
+        'pipeline': [{'$project': {'c': '$$ROOT'}}],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__a_foo', '$c.foo']}}}
+      }
     result:
-      - {'a': {'foo':  1}, 'b': {'foo':  1}, 'c': {'foo':  1}}
-      - {'a': {'foo':  1}, 'b': {'foo': 42}, 'c': {'foo':  1}}
-      - {'a': {'foo': 42}, 'b': {'foo':  1}}
-      - {'a': {'foo': 42}, 'b': {'foo': 42}}
-      - {'a': {'foo':  1}, 'b': {'foo':  1}}
-      - {'a': {'foo':  1}, 'b': {'foo': 42}}
-      - {'a': {'foo': 42}, 'b': {'foo':  1}, 'c': {'foo': 42}}
-      - {'a': {'foo': 42}, 'b': {'foo': 42}, 'c': {'foo': 42}}
+      - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 0, 'foo':  1}, 'c': {'_id': 0, 'foo':  1}}
+      - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 1, 'foo': 42}, 'c': {'_id': 0, 'foo':  1}}
+      - {'a': {'_id': 1, 'foo': 42}, 'b': {'_id': 0, 'foo':  1}}
+      - {'a': {'_id': 1, 'foo': 42}, 'b': {'_id': 1, 'foo': 42}}
+      - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 0, 'foo':  1}}
+      - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 1, 'foo': 42}}
+      - {'a': {'_id': 1, 'foo': 42}, 'b': {'_id': 0, 'foo':  1}, 'c': {'_id': 1, 'foo': 42}}
+      - {'a': {'_id': 1, 'foo': 42}, 'b': {'_id': 1, 'foo': 42}, 'c': {'_id': 1, 'foo': 42}}
 
   - description: all datasource names in FROM clause must be unique
     current_db: mydb
-    query: "SELECT * FROM coll INNER JOIN coll USING(bar)"
+    query: "SELECT * FROM coll CROSS JOIN coll"
     error: "Aliases in FROM CLAUSE must be unique, found 2 instances of `coll`"

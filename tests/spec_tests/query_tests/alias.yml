@@ -38,9 +38,15 @@ tests:
     translation_target_db: db
     translation_target_coll: foo
     translation:
-      - {'TODO': 'SQL-150'}
+      - {'$project': {'_id': 0, 'foo1': '$$ROOT'}}
+      - {'$join': {
+        'source': 'foo',
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$project': {'foo2': '$$ROOT'}}],
+      }}
     result:
-      - {"foo1": {"a": 1, "b": 2}, "foo2": {"a": 1, "b": 2}}
+      - {"foo1": {'_id': 0, "a": 1, "b": 2}, "foo2": {'_id': 0, "a": 1, "b": 2}}
 
   - description: Can use duplicate aliases on both sides of UNION
     current_db: db

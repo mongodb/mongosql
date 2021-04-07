@@ -54,7 +54,11 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$array': {'foo': [{'a': 1}]}}
-      - {'TODO': {'SQL-150': 'join'}}
+      - {'$join': {
+        'joinType': 'inner',
+        'let': {},
+        'pipeline': [{'$array': {'bar': [{'b': 2}]}}],
+      }}
       - {'$project': {'_id': 0, 'foo': '$foo', 'bar': '$bar'}}
       - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo', '$bar']}}}
     result:
