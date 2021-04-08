@@ -126,6 +126,7 @@ pub enum FunctionArg {
     Extract(ExtractSpec),
     Fold(Casing),
     Trim(TrimSpec),
+    Cast(Type),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -214,4 +215,29 @@ pub enum Literal {
     Integer(i32),
     Long(i64),
     Double(f64),
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum Type {
+    Array,
+    BinData,
+    Boolean,
+    Datetime,
+    DbPointer,
+    Decimal128(Option<u32>),
+    Document,
+    Double(Option<u32>),
+    Int32,
+    Int64,
+    Javascript,
+    JavascriptWithScope,
+    MaxKey,
+    MinKey,
+    Null,
+    ObjectId,
+    RegularExpression,
+    String(Option<u32>),
+    Symbol,
+    Timestamp,
+    Undefined,
 }

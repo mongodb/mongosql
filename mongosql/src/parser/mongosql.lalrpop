@@ -33,13 +33,7 @@ SortSpec: SortSpec = {
 
 SortKey: SortKey = {
   Identifier => SortKey::Simple(<>),
-  INT =>? {
-    let i: Result<u32, ParseError<usize, Token, &str>> = u32::from_str(<>).map_err(|_| ParseError::from("failed to convert to unsigned int"));
-    match i {
-      Ok(x) => Ok(SortKey::Positional(x)),
-      Err(x) => Err(x)
-    }
-  },
+  Unsigned32 => SortKey::Positional(<>),
 }
 
 SortDirection: SortDirection = {
@@ -122,16 +116,28 @@ ElseBranch: Box<Expression> = {
 
 FunctionExpr: FunctionExpr = {
   <i:ID> LEFT_PAREN <e:Comma<Expression>> RIGHT_PAREN => FunctionExpr{function:FunctionName(i.to_string()), args:e.iter().map(|x| FunctionArg::Expr(x.clone())).collect()},
-  Position,
-  Extract,
-  Substring,
-  Fold,
-  Trim,
+  Cast,
   CurrentTimestamp,
+  Extract,
+  Fold,
+  Position,
+  Substring,
+  Trim,
 }
 
-Position: FunctionExpr = {
-  POSITION LEFT_PAREN <e1:Expression> IN <e2:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("POSITION".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)]},
+Cast: FunctionExpr = {
+  <e:Expression> DOUBLE_COLON <t:Type> => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(e), FunctionArg::Cast(t)]},
+  CAST LEFT_PAREN <ex:Expression> AS <t:Type> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t)]},
+  CAST LEFT_PAREN <ex:Expression> AS <t:Type> <n:(COMMA <Expression> ON NULL)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(n)]},
+  CAST LEFT_PAREN <ex:Expression> AS <t:Type> <e:(COMMA <Expression> ON ERROR)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(e)]},
+  CAST LEFT_PAREN <ex:Expression> AS <t:Type> <n:(COMMA <Expression> ON NULL)> <e:(COMMA <Expression> ON ERROR)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(n), FunctionArg::Expr(e)]},
+}
+
+CurrentTimestamp: FunctionExpr = {
+  CURRENT_TIMESTAMP <e:(LEFT_PAREN <Expression> RIGHT_PAREN)?> => match e {
+    Some(e) => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![FunctionArg::Expr(e)]},
+    None => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![]},
+  }
 }
 
 ExtractSpec: ExtractSpec = {
@@ -149,6 +155,19 @@ Extract: FunctionExpr = {
   EXTRACT LEFT_PAREN <f:ExtractSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("EXTRACT".to_string()), args:vec![FunctionArg::Extract(f), FunctionArg::Expr(e)]},
 }
 
+Casing: Casing = {
+  UPPER => Casing::Upper,
+  LOWER => Casing::Lower,
+}
+
+Fold: FunctionExpr = {
+  <c:Casing> LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("FOLD".to_string()), args:vec![FunctionArg::Fold(c), FunctionArg::Expr(e)]},
+}
+
+Position: FunctionExpr = {
+  POSITION LEFT_PAREN <e1:Expression> IN <e2:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("POSITION".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)]},
+}
+
 Substring: FunctionExpr = {
   SUBSTRING LEFT_PAREN <e1:Expression> FROM <e2:Expression> <e3:(FOR <Expression>)?> RIGHT_PAREN => match e3 {
     Some(e3) => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)]},
@@ -158,15 +177,6 @@ Substring: FunctionExpr = {
     Some(e3) => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)]},
     None => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)]},
   }
-}
-
-Casing: Casing = {
-  UPPER => Casing::Upper,
-  LOWER => Casing::Lower,
-}
-
-Fold: FunctionExpr = {
-  <c:Casing> LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("FOLD".to_string()), args:vec![FunctionArg::Fold(c), FunctionArg::Expr(e)]},
 }
 
 TrimSpec: TrimSpec = {
@@ -180,13 +190,6 @@ Trim: FunctionExpr = {
   TRIM LEFT_PAREN <s:TrimSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))), FunctionArg::Expr(e)]},
   TRIM LEFT_PAREN <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(substr), FunctionArg::Expr(e)]},
   TRIM LEFT_PAREN <s:TrimSpec> <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(substr), FunctionArg::Expr(e)]},
-}
-
-CurrentTimestamp: FunctionExpr = {
-  CURRENT_TIMESTAMP <e:(LEFT_PAREN <Expression> RIGHT_PAREN)?> => match e {
-    Some(e) => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![FunctionArg::Expr(e)]},
-    None => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![]},
-  }
 }
 
 Identifier: Identifier = {
@@ -328,6 +331,68 @@ Unsigned32: u32 = {
   },
 }
 
+Type: Type = {
+  BooleanType,
+  DatetimeType,
+  Decimal128Type,
+  DoubleType,
+  Int32Type,
+  StringType,
+  DOCUMENT => Type::Document,
+  ARRAY => Type::Array,
+  BINDATA => Type::BinData,
+  UNDEFINED => Type::Undefined,
+  OBJECTID => Type::ObjectId,
+  NULL => Type::Null,
+  REGEX => Type::RegularExpression,
+  DBPOINTER => Type::DbPointer,
+  JAVASCRIPT => Type::Javascript,
+  SYMBOL => Type::Symbol,
+  JAVASCRIPT_WITH_SCOPE => Type::JavascriptWithScope,
+  BSON_TIMESTAMP => Type::Timestamp,
+  LONG => Type::Int64,
+  MINKEY => Type::MinKey,
+  MAXKEY => Type::MaxKey,
+}
+
+Int32Type: Type = {
+  INT_TYPE => Type::Int32,
+  INTEGER => Type::Int32,
+  SMALLINT => Type::Int32,
+}
+
+Decimal128Type: Type = {
+  DECIMAL <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Decimal128(<>),
+  DEC <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Decimal128(<>),
+  NUMERIC <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Decimal128(<>),
+}
+
+DoubleType: Type = {
+  DOUBLE_TYPE PRECISION? => Type::Double(None),
+  REAL => Type::Double(None),
+  FLOAT <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Double(<>),
+}
+
+StringType: Type = {
+  STRING_TYPE => Type::String(None),
+  VARCHAR <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
+  CHAR <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
+  CHARACTER <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
+  CHAR_VARYING <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
+  CHARACTER_VARYING <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
+}
+
+BooleanType: Type = {
+  BOOL => Type::Boolean,
+  BIT => Type::Boolean,
+  BOOLEAN => Type::Boolean,
+}
+
+DatetimeType: Type = {
+  BSON_DATE => Type::Datetime,
+  TIMESTAMP => Type::Datetime,
+}
+
 Comma<T>: Vec<T> = {
     <v:(<T> COMMA)*> <e:T?> => match e {
         None => v,
@@ -342,6 +407,7 @@ Comma<T>: Vec<T> = {
 match {
   r"(?i)select" => SELECT,
   "+" => ADD,
+  "::" => DOUBLE_COLON,
   "," => COMMA,
   "||" => CONCAT,
   "/" => DIV,
@@ -358,47 +424,85 @@ match {
   "-" => SUB,
   r"(?i)all" => ALL,
   r"(?i)and" => AND,
+  r"(?i)array" => ARRAY,
   r"(?i)as" => AS,
   r"(?i)asc" => ASC,
   r"(?i)between" => BETWEEN,
+  r"(?i)bindata" => BINDATA,
+  r"(?i)bit" => BIT,
+  r"(?i)bool" => BOOL,
+  r"(?i)boolean" => BOOLEAN,
   r"(?i)both" => BOTH,
+  r"(?i)bson_date" => BSON_DATE,
+  r"(?i)bson_timestamp" => BSON_TIMESTAMP,
   r"(?i)by" => BY,
   r"(?i)case" => CASE,
+  r"(?i)cast" => CAST,
+  r"(?i)char" => CHAR,
+  r"(?i)character" => CHARACTER,
+  r"(?i)char varying" => CHAR_VARYING,
+  r"(?i)character varying" => CHARACTER_VARYING,
   r"(?i)current_timestamp" => CURRENT_TIMESTAMP,
   r"(?i)day" => DAY,
+  r"(?i)dbpointer" => DBPOINTER,
+  r"(?i)dec" => DEC,
+  r"(?i)decimal" => DECIMAL,
   r"(?i)desc" => DESC,
   r"(?i)distinct" => DISTINCT,
+  r"(?i)document" => DOCUMENT,
+  r"(?i)double" => DOUBLE_TYPE,
   r"(?i)else" => ELSE,
   r"(?i)end" => END,
+  r"(?i)error" => ERROR,
   r"(?i)extract" => EXTRACT,
   r"(?i)false" => FALSE,
+  r"(?i)float" => FLOAT,
   r"(?i)for" => FOR,
   r"(?i)from" => FROM,
   r"(?i)hour" => HOUR,
   r"(?i)in" => IN,
+  r"(?i)int" => INT_TYPE,
+  r"(?i)integer" => INTEGER,
+  r"(?i)javascript" => JAVASCRIPT,
+  r"(?i)javascriptwithscope" => JAVASCRIPT_WITH_SCOPE,
   r"(?i)leading" => LEADING,
   r"(?i)limit" => LIMIT,
+  r"(?i)long" => LONG,
   r"(?i)lower" => LOWER,
+  r"(?i)maxkey" => MAXKEY,
+  r"(?i)minkey" => MINKEY,
   r"(?i)minute" => MINUTE,
   r"(?i)missing" => MISSING,
   r"(?i)month" => MONTH,
   r"(?i)not" => NOT,
   r"(?i)null" => NULL,
+  r"(?i)numeric" => NUMERIC,
+  r"(?i)objectid" => OBJECTID,
   r"(?i)offset" => OFFSET,
+  r"(?i)on" => ON,
   r"(?i)or" => OR,
   r"(?i)order" => ORDER,
   r"(?i)position" => POSITION,
+  r"(?i)precision" => PRECISION,
+  r"(?i)real" => REAL,
+  r"(?i)regex" => REGEX,
   r"(?i)second" => SECOND,
+  r"(?i)smallint" => SMALLINT,
+  r"(?i)string" => STRING_TYPE,
   r"(?i)substring" => SUBSTRING,
+  r"(?i)symbol" => SYMBOL,
   r"(?i)then" => THEN,
+  r"(?i)timestamp" => TIMESTAMP,
   r"(?i)timezone_hour" => TIMEZONE_HOUR,
   r"(?i)timezone_minute" => TIMEZONE_MINUTE,
   r"(?i)trailing" => TRAILING,
   r"(?i)trim" => TRIM,
   r"(?i)true" => TRUE,
+  r"(?i)undefined" => UNDEFINED,
   r"(?i)union" => UNION,
   r"(?i)upper" => UPPER,
   r"(?i)values?" => VALUE,
+  r"(?i)varchar" => VARCHAR,
   r"(?i)when" => WHEN,
   r"(?i)year" => YEAR,
   r"[0-9]+" => INT,

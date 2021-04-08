@@ -816,3 +816,154 @@ validate_expression_ast!(
         ]
     })
 );
+
+// Type conversion tests
+should_parse!(cast_to_double, true, "select CAST(v AS DOUBLE)");
+should_parse!(
+    cast_to_double_precision,
+    true,
+    "select CAST(v AS DOUBLE PRECISION)"
+);
+should_parse!(cast_to_double_shorthand, true, "select v::DOUBLE PRECISION");
+should_parse!(cast_to_real, true, "select CAST(v AS REAL)");
+should_parse!(cast_to_real_shorthand, true, "select v::REAL");
+should_parse!(cast_to_float, true, "select CAST(v AS FLOAT)");
+should_parse!(cast_to_float_int, true, "select CAST(v AS FLOAT(25))");
+should_parse!(cast_to_float_shorthand, true, "select v::FLOAT(25)");
+should_parse!(cast_to_string, true, "select CAST(v AS STRING)");
+should_parse!(cast_to_string_shorthand, true, "select v::STRING");
+should_parse!(cast_to_varchar, true, "select CAST(v AS VARCHAR)");
+should_parse!(cast_to_varchar_int, true, "select CAST(v AS VARCHAR(1))");
+should_parse!(cast_to_varchar_shorthand, true, "select v::VARCHAR(1)");
+should_parse!(cast_to_char, true, "select CAST(v AS CHAR)");
+should_parse!(cast_to_char_int, true, "select CAST(v AS CHAR(1))");
+should_parse!(cast_to_char_shorthand, true, "select v::CHAR(1)");
+should_parse!(cast_to_character, true, "select CAST(v AS CHARACTER)");
+should_parse!(
+    cast_to_character_int,
+    true,
+    "select CAST(v AS CHARACTER(1))"
+);
+should_parse!(cast_to_character_shorthand, true, "select v::CHARACTER(1)");
+should_parse!(cast_to_char_varying, true, "select CAST(v AS CHAR VARYING)");
+should_parse!(
+    cast_to_char_varying_int,
+    true,
+    "select CAST(v AS CHAR VARYING(1))"
+);
+should_parse!(
+    cast_to_char_varying_shorthand,
+    true,
+    "select v::CHAR VARYING(1)"
+);
+should_parse!(
+    cast_to_character_varying,
+    true,
+    "select CAST(v AS CHARACTER VARYING)"
+);
+should_parse!(
+    cast_to_character_varying_int,
+    true,
+    "select CAST(v AS CHARACTER VARYING(1))"
+);
+should_parse!(
+    cast_to_character_varying_shorthand,
+    true,
+    "select v::CHARACTER VARYING(1)"
+);
+should_parse!(cast_to_document, true, "select CAST(v AS DOCUMENT)");
+should_parse!(cast_to_document_shorthand, true, "select v::DOCUMENT");
+should_parse!(cast_to_array, true, "select CAST(v AS ARRAY)");
+should_parse!(cast_to_array_shorthand, true, "select v::ARRAY");
+should_parse!(cast_to_bindata, true, "select CAST(v AS BINDATA)");
+should_parse!(cast_to_bindata_shorthand, true, "select v::BINDATA");
+should_parse!(cast_to_undefined, true, "select CAST(v AS UNDEFINED)");
+should_parse!(cast_to_undefined_shorthand, true, "select v::UNDEFINED");
+should_parse!(cast_to_object_id, true, "select CAST(v AS OBJECTID)");
+should_parse!(cast_to_object_id_shorthand, true, "select v::OBJECTID");
+should_parse!(cast_to_bool, true, "select CAST(v AS BOOL)");
+should_parse!(cast_to_bool_shorthand, true, "select v::BOOL");
+should_parse!(cast_to_bit, true, "select CAST(v AS BIT)");
+should_parse!(cast_to_bit_shorthand, true, "select v::BIT");
+should_parse!(cast_to_boolean, true, "select CAST(v AS BOOLEAN)");
+should_parse!(cast_to_boolean_shorthand, true, "select v::BOOLEAN");
+should_parse!(cast_to_bson_date, true, "select CAST(v AS BSON_DATE)");
+should_parse!(cast_to_bson_date_shorthand, true, "select v::BSON_DATE");
+should_parse!(cast_to_timestamp, true, "select CAST(v AS TIMESTAMP)");
+should_parse!(cast_to_timestamp_shorthand, true, "select v::TIMESTAMP");
+should_parse!(cast_to_null, true, "select CAST(v AS NULL)");
+should_parse!(cast_to_null_shorthand, true, "select v::NULL");
+should_parse!(cast_to_regex, true, "select CAST(v AS REGEX)");
+should_parse!(cast_to_regex_shorthand, true, "select v::REGEX");
+should_parse!(cast_to_dbpointer, true, "select CAST(v AS DBPOINTER)");
+should_parse!(cast_to_dbpointer_shorthand, true, "select v::DBPOINTER");
+should_parse!(cast_to_javascript, true, "select CAST(v AS JAVASCRIPT)");
+should_parse!(cast_to_javascript_shorthand, true, "select v::JAVASCRIPT");
+should_parse!(cast_to_symbol, true, "select CAST(v AS SYMBOL)");
+should_parse!(cast_to_symbol_shorthand, true, "select v::SYMBOL");
+should_parse!(
+    cast_to_javascriptwithscope,
+    true,
+    "select CAST(v AS JAVASCRIPTWITHSCOPE)"
+);
+should_parse!(
+    cast_to_javascriptwithscope_shorthand,
+    true,
+    "select v::JAVASCRIPTWITHSCOPE"
+);
+should_parse!(cast_to_int, true, "select CAST(v AS INT)");
+should_parse!(cast_to_int_shorthand, true, "select v::INT");
+should_parse!(cast_to_integer, true, "select CAST(v AS INTEGER)");
+should_parse!(cast_to_integer_shorthand, true, "select v::INTEGER");
+should_parse!(cast_to_small_int, true, "select CAST(v AS SMALLINT)");
+should_parse!(cast_to_small_int_shorthand, true, "select v::SMALLINT");
+should_parse!(
+    cast_to_bson_timestamp,
+    true,
+    "select CAST(v AS BSON_TIMESTAMP)"
+);
+should_parse!(
+    cast_to_bson_timestamp_shorthand,
+    true,
+    "select v::BSON_TIMESTAMP"
+);
+should_parse!(cast_to_long, true, "select CAST(v AS LONG)");
+should_parse!(cast_to_long_shorthand, true, "select v::LONG");
+should_parse!(cast_to_decimal, true, "select CAST(v AS DECIMAL)");
+should_parse!(cast_to_decimal_int, true, "select CAST(v AS DECIMAL(1))");
+should_parse!(cast_to_decimal_shorthand, true, "select v::DECIMAL(1)");
+should_parse!(cast_to_dec, true, "select CAST(v AS DEC)");
+should_parse!(cast_to_dec_int, true, "select CAST(v AS DEC(1))");
+should_parse!(cast_to_dec_shorthand, true, "select v::DEC");
+should_parse!(cast_to_numeric, true, "select CAST(v AS NUMERIC)");
+should_parse!(cast_to_numeric_int, true, "select CAST(v AS NUMERIC(1))");
+should_parse!(cast_to_numeric_shorthand, true, "select v::NUMERIC");
+should_parse!(cast_to_minkey, true, "select CAST(v AS MINKEY)");
+should_parse!(cast_to_minkey_shorthand, true, "select v::MINKEY");
+should_parse!(cast_to_maxkey, true, "select CAST(v AS MAXKEY)");
+should_parse!(cast_to_maxkey_shorthand, true, "select v::MAXKEY");
+should_parse!(cast_on_null, true, "select CAST(v AS BOOL, 'null' ON NULL)");
+should_parse!(
+    cast_on_error,
+    true,
+    "select CAST(v AS INT, 'null' ON ERROR)"
+);
+should_parse!(
+    cast_on_null_on_error,
+    true,
+    "select CAST(v AS INT, 'null' ON NULL, 'error' ON ERROR)"
+);
+
+validate_expression_ast!(
+    cast_to_decimal_ast,
+    "CAST(v AS DECIMAL(1), 'null' ON NULL, 'error' ON ERROR)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("CAST".to_string()),
+        args: vec![
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("v".to_string()))),
+            FunctionArg::Cast(Type::Decimal128(Some(1))),
+            FunctionArg::Expr(Expression::Literal(Literal::String("null".to_string()))),
+            FunctionArg::Expr(Expression::Literal(Literal::String("error".to_string())))
+        ]
+    })
+);
