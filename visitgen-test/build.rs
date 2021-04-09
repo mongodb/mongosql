@@ -1,8 +1,7 @@
 use visitgen::gen_visitor;
 
 fn main() {
-    lalrpop::process_root().unwrap();
+    gen_visitor("src/module/submodule/ast.rs");
 
-    gen_visitor("src/parser/ast.rs");
     println!("cargo:rerun-if-changed=build.rs");
 }

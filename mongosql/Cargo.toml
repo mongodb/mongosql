@@ -14,3 +14,4 @@ serde_json = "1"
 
 [build-dependencies]
 lalrpop = "0.19.4"
+visitgen = { path = "../visitgen" }

@@ -3,4 +3,6 @@
 members = [
   "mongosql-c",
   "mongosql",
+  "visitgen",
+  "visitgen-test",
 ]
