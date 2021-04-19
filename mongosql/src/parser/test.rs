@@ -133,6 +133,7 @@ validate_query_ast!(
                 alias: None
             })])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -149,6 +150,7 @@ validate_query_ast!(
                 alias: None
             })])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -165,6 +167,7 @@ validate_query_ast!(
                 alias: None
             })])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -181,6 +184,7 @@ validate_query_ast!(
                 alias: None
             })])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -197,6 +201,7 @@ validate_query_ast!(
                 alias: None
             })])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -213,6 +218,7 @@ validate_query_ast!(
                 alias: None
             })])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -229,6 +235,7 @@ validate_query_ast!(
                 alias: None
             })])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -263,6 +270,7 @@ validate_query_ast!(
                         }
                     )])
                 },
+                where_clause: None,
                 order_by_clause: None,
                 limit: None,
                 offset: None,
@@ -278,6 +286,7 @@ validate_query_ast!(
                         }
                     )])
                 },
+                where_clause: None,
                 order_by_clause: None,
                 limit: None,
                 offset: None,
@@ -292,6 +301,7 @@ validate_query_ast!(
                     alias: None
                 })])
             },
+            where_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None,
@@ -522,6 +532,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        where_clause: None,
         order_by_clause: Some(OrderByClause {
             sort_specs: vec![SortSpec {
                 key: SortKey::Simple(Identifier::Simple("a".to_string())),
@@ -553,6 +564,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
         offset: None,
@@ -567,6 +579,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
         offset: Some(24_u32),
@@ -581,6 +594,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        where_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
         offset: Some(24_u32),
@@ -814,6 +828,33 @@ validate_expression_ast!(
                 "str".to_string()
             )))
         ]
+    })
+);
+
+should_parse!(where_single_condition, true, "select * WHERE a >= 2");
+should_parse!(where_single_column_expr, true, "select * WHERE a");
+should_parse!(where_multiple_conditions, true, "select * WHERE a > 1 AND b > 1");
+should_parse!(where_case_expr, true, "select * WHERE CASE WHEN a = true THEN a ELSE false END");
+should_parse!(where_null,true,"select * WHERE NULL");
+
+validate_query_ast!(
+    where_ast,
+    "SELECT * WHERE a >= 2",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        where_clause: Some(
+            Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                op: BinaryOp::Gte,
+                right: Box::new(Expression::Literal(Literal::Integer(2))) }
+            ))
+        ),
+        order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
 

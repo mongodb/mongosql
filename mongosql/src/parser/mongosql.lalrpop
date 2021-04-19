@@ -16,11 +16,15 @@ SetQuery: SetQuery = {
 }
 
 SelectQuery: SelectQuery = {
-  <s:SelectClause> <o:OrderByClause?> <lo:LimitOffset?> => SelectQuery{select_clause:s, order_by_clause:o, limit:lo.unwrap_or((None,None)).0, offset:lo.unwrap_or((None,None)).1}
+  <s:SelectClause> <w:WhereClause?> <o:OrderByClause?> <lo:LimitOffset?> => SelectQuery{select_clause:s, where_clause:w,  order_by_clause:o, limit:lo.unwrap_or((None,None)).0, offset:lo.unwrap_or((None,None)).1}
 };
 
 SelectClause: SelectClause = {
   SELECT <q:SetQuantifier?> <b:SelectBody> => SelectClause{set_quantifier:q.unwrap_or(SetQuantifier::All), body:b},
+}
+
+WhereClause: Box<Expression> = {
+  WHERE <expr:Expression> => Box::new(expr),
 }
 
 OrderByClause: OrderByClause = {
@@ -504,6 +508,7 @@ match {
   r"(?i)values?" => VALUE,
   r"(?i)varchar" => VARCHAR,
   r"(?i)when" => WHEN,
+  r"(?i)where" => WHERE,
   r"(?i)year" => YEAR,
   r"[0-9]+" => INT,
   r#"'([^\x00']|'')*'"# => STRING,

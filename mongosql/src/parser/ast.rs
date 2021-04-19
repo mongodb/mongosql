@@ -7,6 +7,7 @@ pub enum Query {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SelectQuery {
     pub select_clause: SelectClause,
+    pub where_clause: Option<Box<Expression>>,
     pub order_by_clause: Option<OrderByClause>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
