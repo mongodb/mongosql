@@ -169,6 +169,11 @@ windows)
     GOROOT='c:\golang\go1.15'
     GOBINDIR='/cygdrive/c/golang/go1.15/bin'
     ;;
+ubi8)
+    PUSH_ARCH='x86_64-ubi8'
+    PUSH_NAME='linux'
+    MONGO_DISTRO='rhel80'
+    ;;
 *) # local
     echo "$VARIANT is unknown variant, is this a LOCAL run?"
     PUSH_ARCH="$(uname -m)"

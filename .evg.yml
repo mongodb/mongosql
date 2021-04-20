@@ -2334,6 +2334,13 @@ axes:
     variables:
       _variant: ubuntu1804-ppc
 
+  - id: ubi-8
+    display_name: UBI 8
+    run_on:
+      - ubi8
+    batchtime: 10080 # 1 week
+    variables:
+      _variant: ubi8
 
 - id: mongodb_version
   display_name: MongoDB Version
@@ -2446,6 +2453,7 @@ buildvariants:
           - rhel80
           - ubuntu2004-64
           - suse15-64
+          - ubi-8
       then:
         add_tasks: [ ".test !.config !.oneoff-task"]
 

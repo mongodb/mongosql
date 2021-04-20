@@ -48,7 +48,7 @@
 
       echo 'cloning mtools...'
       rm -rf mtools
-      git clone git@github.com:rueckstiess/mtools
+      git clone https://github.com/rueckstiess/mtools.git
       cd mtools
       # We should avoid checking out the master branch because it is a dev branch
       # that has occasionally had bugs committed. This commit has worked well for us.

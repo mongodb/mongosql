@@ -13,7 +13,7 @@ download_curator ()
         # clone the repository if it doesn't already exist
         if [ ! -d "curator" ]; then
             echo "cloning curator..."
-            git clone git@github.com:mongodb/curator
+            git clone https://github.com/mongodb/curator.git
         fi
         # then build the tool
         echo "building curator..."
