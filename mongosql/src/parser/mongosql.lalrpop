@@ -95,10 +95,15 @@ AliasedExpression: AliasedExpression = {
 
 pub Expression: Expression = {
   Tier1Expr => *<>,
+  ArrayExpr => Expression::Array(<>),
   BetweenExpr,
   CaseExpr => Expression::Case(<>),
   FunctionExpr => Expression::Function(<>),
 };
+
+ArrayExpr: Vec<Expression> = {
+  LEFT_BRACKET <Comma<Expression>> RIGHT_BRACKET,
+}
 
 BetweenExpr: Expression = {
   <e:Expression> BETWEEN <l:Tier3Expr> AND <r:Tier3Expr> => Expression::Between(BetweenExpr{expr:Box::new(e), min:l, max:r}),
@@ -419,10 +424,12 @@ match {
   "=" => EQ,
   ">" => GT,
   ">=" => GTE,
+  "[" => LEFT_BRACKET,
   "(" => LEFT_PAREN,
   "<" => LT,
   "<=" => LTE,
   "<>" => NEQ,
+  "]" => RIGHT_BRACKET,
   ")" => RIGHT_PAREN,
   "*" => STAR,
   "-" => SUB,

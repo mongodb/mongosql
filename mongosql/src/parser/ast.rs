@@ -75,6 +75,7 @@ pub enum Expression {
     Between(BetweenExpr),
     Case(CaseExpr),
     Function(FunctionExpr),
+    Array(Vec<Expression>),
     Identifier(Identifier),
     Literal(Literal),
 }

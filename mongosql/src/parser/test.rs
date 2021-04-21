@@ -695,6 +695,11 @@ validate_expression_ast!(
     })
 );
 
+// Array tests
+should_parse!(empty_array, true, "select []");
+should_parse!(homogeneous_array, true, "select [1, 2, 3]");
+should_parse!(heterogeneous_array, true, "select [1, 'a', true, -42]");
+
 // Parenthesized expressions tests
 should_parse!(parens_multiple_binary_ops, true, "SELECT ((a+b)-(d/c))*7");
 should_parse!(
@@ -731,6 +736,13 @@ should_parse!(extract_day, true, "select extract(day from a)");
 should_parse!(extract_hour, true, "select extract(hour from a)");
 should_parse!(extract_minute, true, "select extract(minute from a)");
 should_parse!(extract_second, true, "select extract(second from a)");
+should_parse!(slice_arr, true, "select slice([42, 43, 44])");
+should_parse!(slice_arr_length, true, "select slice([42, 43, 44], 1)");
+should_parse!(
+    slice_arr_start_length,
+    true,
+    "select slice([42, 43, 44], 0, 1)"
+);
 should_parse!(
     substring_from,
     true,
