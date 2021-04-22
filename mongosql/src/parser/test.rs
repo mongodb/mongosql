@@ -1,5 +1,6 @@
 use crate::parser::ast::*;
 use crate::parser::Parser;
+use linked_hash_map::LinkedHashMap;
 
 macro_rules! should_parse {
     ($func_name:ident, $should_parse:expr, $input:expr) => {
@@ -129,7 +130,7 @@ validate_query_ast!(
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
+                expression: Expression::Identifier("foo".to_string()),
                 alias: None
             })])
         },
@@ -146,7 +147,7 @@ validate_query_ast!(
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
+                expression: Expression::Identifier("foo".to_string()),
                 alias: None
             })])
         },
@@ -163,7 +164,7 @@ validate_query_ast!(
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(Identifier::Simple("foo".to_string())),
+                expression: Expression::Identifier("foo".to_string()),
                 alias: None
             })])
         },
@@ -180,7 +181,7 @@ validate_query_ast!(
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(Identifier::Simple("fo`o``".to_string())),
+                expression: Expression::Identifier("fo`o``".to_string()),
                 alias: None
             })])
         },
@@ -197,7 +198,7 @@ validate_query_ast!(
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(Identifier::Simple(r#"fo"o"""#.to_string())),
+                expression: Expression::Identifier(r#"fo"o"""#.to_string()),
                 alias: None
             })])
         },
@@ -214,7 +215,7 @@ validate_query_ast!(
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(Identifier::Simple(r#"fo""o"#.to_string())),
+                expression: Expression::Identifier(r#"fo""o"#.to_string()),
                 alias: None
             })])
         },
@@ -231,7 +232,7 @@ validate_query_ast!(
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(Identifier::Simple("fo``o".to_string())),
+                expression: Expression::Identifier("fo``o".to_string()),
                 alias: None
             })])
         },
@@ -265,7 +266,7 @@ validate_query_ast!(
                     set_quantifier: SetQuantifier::All,
                     body: SelectBody::Standard(vec![SelectExpression::Aliased(
                         AliasedExpression {
-                            expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                            expression: Expression::Identifier("a".to_string()),
                             alias: None
                         }
                     )])
@@ -281,7 +282,7 @@ validate_query_ast!(
                     set_quantifier: SetQuantifier::All,
                     body: SelectBody::Standard(vec![SelectExpression::Aliased(
                         AliasedExpression {
-                            expression: Expression::Identifier(Identifier::Simple("b".to_string())),
+                            expression: Expression::Identifier("b".to_string()),
                             alias: None
                         }
                     )])
@@ -297,7 +298,7 @@ validate_query_ast!(
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier(Identifier::Simple("c".to_string())),
+                    expression: Expression::Identifier("c".to_string()),
                     alias: None
                 })])
             },
@@ -319,6 +320,7 @@ should_parse!(binary_mul, true, "select a*b*c*d*e");
 should_parse!(binary_mul_add, true, "select a*b+c*d+e");
 should_parse!(binary_div_add, true, "select a/b+c/d+e");
 should_parse!(binary_div_mul, true, "select a/b*c");
+should_parse!(binary_num, true, "select 3+4-5/7*8");
 should_parse!(binary_lt, true, "select a<b<c<d<e");
 should_parse!(binary_lte, true, "select a<=b");
 should_parse!(binary_gt, true, "select a>b");
@@ -375,11 +377,11 @@ validate_expression_ast!(
     binary_sub_unary_neg_ast,
     "b--a",
     Expression::Binary(BinaryExpr {
-        left: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
+        left: Box::new(Expression::Identifier("b".to_string())),
         op: BinaryOp::Sub,
         right: Box::new(Expression::Unary(UnaryExpr {
             op: UnaryOp::Neg,
-            expr: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+            expr: Box::new(Expression::Identifier("a".to_string()))
         }))
     })
 );
@@ -389,12 +391,12 @@ validate_expression_ast!(
     "c*a+b",
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+            left: Box::new(Expression::Identifier("c".to_string())),
             op: BinaryOp::Mul,
-            right: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+            right: Box::new(Expression::Identifier("a".to_string()))
         })),
         op: BinaryOp::Add,
-        right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+        right: Box::new(Expression::Identifier("b".to_string()))
     })
 );
 
@@ -403,12 +405,12 @@ validate_expression_ast!(
     "a+b||c",
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            left: Box::new(Expression::Identifier("a".to_string())),
             op: BinaryOp::Add,
-            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+            right: Box::new(Expression::Identifier("b".to_string()))
         })),
         op: BinaryOp::Concat,
-        right: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+        right: Box::new(Expression::Identifier("c".to_string()))
     })
 );
 
@@ -416,12 +418,12 @@ validate_expression_ast!(
     binary_concat_compare_ast,
     "c>a||b",
     Expression::Binary(BinaryExpr {
-        left: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+        left: Box::new(Expression::Identifier("c".to_string())),
         op: BinaryOp::Gt,
         right: Box::new(Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            left: Box::new(Expression::Identifier("a".to_string())),
             op: BinaryOp::Concat,
-            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+            right: Box::new(Expression::Identifier("b".to_string()))
         }))
     })
 );
@@ -431,12 +433,12 @@ validate_expression_ast!(
     "a<b AND c",
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            left: Box::new(Expression::Identifier("a".to_string())),
             op: BinaryOp::Lt,
-            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+            right: Box::new(Expression::Identifier("b".to_string()))
         })),
         op: BinaryOp::And,
-        right: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+        right: Box::new(Expression::Identifier("c".to_string()))
     })
 );
 
@@ -445,12 +447,12 @@ validate_expression_ast!(
     "a AND b OR b",
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            left: Box::new(Expression::Identifier("a".to_string())),
             op: BinaryOp::And,
-            right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+            right: Box::new(Expression::Identifier("b".to_string()))
         })),
         op: BinaryOp::Or,
-        right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+        right: Box::new(Expression::Identifier("b".to_string()))
     })
 );
 
@@ -458,9 +460,9 @@ validate_expression_ast!(
     between_ast,
     "a between b and c",
     Expression::Between(BetweenExpr {
-        expr: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
-        min: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
-        max: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+        expr: Box::new(Expression::Identifier("a".to_string())),
+        min: Box::new(Expression::Identifier("b".to_string())),
+        max: Box::new(Expression::Identifier("c".to_string())),
     })
 );
 
@@ -470,9 +472,9 @@ validate_expression_ast!(
     Expression::Unary(UnaryExpr {
         op: UnaryOp::Not,
         expr: Box::new(Expression::Between(BetweenExpr {
-            expr: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
-            min: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
-            max: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+            expr: Box::new(Expression::Identifier("a".to_string())),
+            min: Box::new(Expression::Identifier("b".to_string())),
+            max: Box::new(Expression::Identifier("c".to_string())),
         }))
     })
 );
@@ -485,24 +487,22 @@ validate_expression_ast!(
         when_branch: vec![
             WhenBranch {
                 when: Box::new(Expression::Binary(BinaryExpr {
-                    left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                    left: Box::new(Expression::Identifier("a".to_string())),
                     op: BinaryOp::Eq,
-                    right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+                    right: Box::new(Expression::Identifier("b".to_string()))
                 })),
-                then: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+                then: Box::new(Expression::Identifier("a".to_string()))
             },
             WhenBranch {
                 when: Box::new(Expression::Binary(BinaryExpr {
-                    left: Box::new(Expression::Identifier(Identifier::Simple("c".to_string()))),
+                    left: Box::new(Expression::Identifier("c".to_string())),
                     op: BinaryOp::Eq,
-                    right: Box::new(Expression::Identifier(Identifier::Simple("d".to_string())))
+                    right: Box::new(Expression::Identifier("d".to_string()))
                 })),
-                then: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+                then: Box::new(Expression::Identifier("c".to_string()))
             }
         ],
-        else_branch: Some(Box::new(Expression::Identifier(Identifier::Simple(
-            "e".to_string()
-        ))))
+        else_branch: Some(Box::new(Expression::Identifier("e".to_string())))
     })
 );
 
@@ -510,20 +510,16 @@ validate_expression_ast!(
     case_multiple_exprs_ast,
     "case a when a=b then a else c end",
     Expression::Case(CaseExpr {
-        expr: Some(Box::new(Expression::Identifier(Identifier::Simple(
-            "a".to_string()
-        )))),
+        expr: Some(Box::new(Expression::Identifier("a".to_string()))),
         when_branch: vec![WhenBranch {
             when: Box::new(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Eq,
-                right: Box::new(Expression::Identifier(Identifier::Simple("b".to_string())))
+                right: Box::new(Expression::Identifier("b".to_string()))
             })),
-            then: Box::new(Expression::Identifier(Identifier::Simple("a".to_string())))
+            then: Box::new(Expression::Identifier("a".to_string()))
         }],
-        else_branch: Some(Box::new(Expression::Identifier(Identifier::Simple(
-            "c".to_string()
-        ))))
+        else_branch: Some(Box::new(Expression::Identifier("c".to_string())))
     })
 );
 
@@ -555,7 +551,7 @@ validate_query_ast!(
         where_clause: None,
         order_by_clause: Some(OrderByClause {
             sort_specs: vec![SortSpec {
-                key: SortKey::Simple(Identifier::Simple("a".to_string())),
+                key: SortKey::Simple("a".to_string()),
                 direction: SortDirection::Asc
             }]
         }),
@@ -819,15 +815,15 @@ validate_expression_ast!(
         function: FunctionName("POSITION".to_string()),
         args: vec![
             FunctionArg::Expr(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Add,
                 right: Box::new(Expression::Binary(BinaryExpr {
-                    left: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
+                    left: Box::new(Expression::Identifier("b".to_string())),
                     op: BinaryOp::Mul,
-                    right: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+                    right: Box::new(Expression::Identifier("c".to_string()))
                 }))
             })),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("d".to_string())))
+            FunctionArg::Expr(Expression::Identifier("d".to_string()))
         ]
     })
 );
@@ -838,7 +834,7 @@ validate_expression_ast!(
         function: FunctionName("EXTRACT".to_string()),
         args: vec![
             FunctionArg::Extract(ExtractSpec::Year),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("a".to_string())))
+            FunctionArg::Expr(Expression::Identifier("a".to_string()))
         ]
     })
 );
@@ -849,7 +845,7 @@ validate_expression_ast!(
         function: FunctionName("FOLD".to_string()),
         args: vec![
             FunctionArg::Fold(Casing::Upper),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("a".to_string())))
+            FunctionArg::Expr(Expression::Identifier("a".to_string()))
         ]
     })
 );
@@ -860,12 +856,8 @@ validate_expression_ast!(
         function: FunctionName("TRIM".to_string()),
         args: vec![
             FunctionArg::Trim(TrimSpec::Both),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
-                "substr".to_string()
-            ))),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
-                "str".to_string()
-            )))
+            FunctionArg::Expr(Expression::Identifier("substr".to_string())),
+            FunctionArg::Expr(Expression::Identifier("str".to_string()))
         ]
     })
 );
@@ -876,10 +868,8 @@ validate_expression_ast!(
         function: FunctionName("TRIM".to_string()),
         args: vec![
             FunctionArg::Trim(TrimSpec::Leading),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
-                "str".to_string()
-            )))
+            FunctionArg::Expr(Expression::Identifier(" ".to_string())),
+            FunctionArg::Expr(Expression::Identifier("str".to_string()))
         ]
     })
 );
@@ -890,13 +880,12 @@ validate_expression_ast!(
         function: FunctionName("TRIM".to_string()),
         args: vec![
             FunctionArg::Trim(TrimSpec::Both),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))),
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple(
-                "str".to_string()
-            )))
+            FunctionArg::Expr(Expression::Identifier(" ".to_string())),
+            FunctionArg::Expr(Expression::Identifier("str".to_string()))
         ]
     })
 );
+
 should_parse!(
     scalar_function_binary_op,
     true,
@@ -926,7 +915,7 @@ validate_query_ast!(
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
         where_clause: Some(Box::new(Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            left: Box::new(Expression::Identifier("a".to_string())),
             op: BinaryOp::Gte,
             right: Box::new(Expression::Literal(Literal::Integer(2)))
         }))),
@@ -1079,7 +1068,7 @@ validate_expression_ast!(
     Expression::Function(FunctionExpr {
         function: FunctionName("CAST".to_string()),
         args: vec![
-            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("v".to_string()))),
+            FunctionArg::Expr(Expression::Identifier("v".to_string())),
             FunctionArg::Cast(Type::Decimal128(Some(1))),
             FunctionArg::Expr(Expression::Literal(Literal::String("null".to_string()))),
             FunctionArg::Expr(Expression::Literal(Literal::String("error".to_string())))
@@ -1090,12 +1079,12 @@ validate_expression_ast!(
     cast_precedence_binary,
     "a * b::int",
     Expression::Binary(BinaryExpr {
-        left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+        left: Box::new(Expression::Identifier("a".to_string())),
         op: BinaryOp::Mul,
         right: Box::new(Expression::Function(FunctionExpr {
             function: FunctionName("CAST".to_string()),
             args: vec![
-                FunctionArg::Expr(Expression::Identifier(Identifier::Simple("b".to_string()))),
+                FunctionArg::Expr(Expression::Identifier("b".to_string())),
                 FunctionArg::Cast(Type::Int32)
             ]
         }))
@@ -1109,7 +1098,7 @@ validate_expression_ast!(
         expr: Box::new(Expression::Function(FunctionExpr {
             function: FunctionName("CAST".to_string()),
             args: vec![
-                FunctionArg::Expr(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                FunctionArg::Expr(Expression::Identifier("a".to_string())),
                 FunctionArg::Cast(Type::Boolean)
             ]
         }))
@@ -1132,14 +1121,14 @@ validate_expression_ast!(
     some_subquery,
     "x <> SOME (SELECT a)",
     Expression::SubqueryComparison(SubqueryComparisonExpr {
-        expr: Box::new(Expression::Identifier(Identifier::Simple("x".to_string()))),
+        expr: Box::new(Expression::Identifier("x".to_string())),
         op: BinaryOp::Neq,
         quantifier: SubqueryQuantifier::Any,
         subquery: Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                    expression: Expression::Identifier("a".to_string()),
                     alias: None
                 })])
             },
@@ -1155,13 +1144,13 @@ validate_expression_ast!(
     in_subquery,
     "x IN (SELECT a)",
     Expression::Binary(BinaryExpr {
-        left: Box::new(Expression::Identifier(Identifier::Simple("x".to_string()))),
+        left: Box::new(Expression::Identifier("x".to_string())),
         op: BinaryOp::In,
         right: Box::new(Expression::Subquery(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                    expression: Expression::Identifier("a".to_string()),
                     alias: None
                 })])
             },
@@ -1177,13 +1166,13 @@ validate_expression_ast!(
     not_in_subquery,
     "x NOT IN (SELECT a)",
     Expression::Binary(BinaryExpr {
-        left: Box::new(Expression::Identifier(Identifier::Simple("x".to_string()))),
+        left: Box::new(Expression::Identifier("x".to_string())),
         op: BinaryOp::NotIn,
         right: Box::new(Expression::Subquery(Box::new(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                    expression: Expression::Identifier("a".to_string()),
                     alias: None
                 })])
             },
@@ -1192,5 +1181,92 @@ validate_expression_ast!(
             limit: None,
             offset: None
         })))
+    })
+);
+
+// Document and field-access expression tests
+macro_rules! map(
+  { $($key:expr => $value:expr),+ } => {
+    {
+      let mut m = LinkedHashMap::new();
+      $(
+        m.insert($key, $value);
+      )+
+      m
+    }
+  };
+);
+
+should_parse!(empty_doc_literal, true, "select {}");
+should_parse!(doc_literal, true, "select {'a':1, 'b':2}");
+should_parse!(doc_mixed_field_binary_op, true, "select {'a':3+4}");
+should_parse!(doc_field_access_bracket, true, "select doc['a']");
+should_parse!(doc_literal_field_access_dot, true, "select {'a': 1}.a");
+should_parse!(
+    doc_literal_field_access_multi_level_dot,
+    true,
+    "select {'a': {'b': {'c': 100}}}.a.b.c"
+);
+should_parse!(
+    doc_literal_field_dot_star_field,
+    true,
+    "select {'a': {'*': 100, 'b': 10, 'c': 1}}.a.`*`"
+);
+should_parse!(
+    doc_literal_field_access_bracket,
+    true,
+    "select {'a': 1, 'b': 2}['a']"
+);
+should_parse!(
+    doc_literal_field_access_bracket_one_level,
+    true,
+    "select a['b']"
+);
+should_parse!(
+    doc_literal_field_access_bracket_multi_level,
+    true,
+    "select a['b']['c']"
+);
+should_parse!(
+    doc_literal_field_bracket_star_field,
+    true,
+    "select {'a': {'*': 100, 'b': 10, 'c': 1}}['a']['*']"
+);
+
+should_parse!(doc_literal_non_string_keys, false, "select {1:1, 2:2}");
+should_parse!(non_doc_field_access, false, "select 1.a");
+
+validate_expression_ast!(
+    doc_literal_field_access_ast,
+    "{'a': {'b': {'c': 100}}}.a.b.c",
+    Expression::Subpath(SubpathExpr {
+        expr: Box::new(Expression::Subpath(SubpathExpr {
+            expr: Box::new(Expression::Subpath(SubpathExpr {
+                expr: Box::new(Expression::Document(
+                    map! {"a".to_string() => Expression::Document(
+                        map!{"b".to_string() => Expression::Document(
+                            map!{"c".to_string() => Expression::Literal(Literal::Integer(100))}
+                        )}
+                    )}
+                )),
+                subpath: "a".to_string()
+            })),
+            subpath: "b".to_string()
+        })),
+        subpath: "c".to_string()
+    })
+);
+validate_expression_ast!(
+    doc_mixed_field_access,
+    "a.b['c'].d",
+    Expression::Subpath(SubpathExpr {
+        expr: Box::new(Expression::Access(AccessExpr {
+            expr: Box::new(Expression::Subpath(SubpathExpr {
+                expr: Box::new(Expression::Identifier("a".to_string())),
+                subpath: "b".to_string()
+            })),
+            subfield: Box::new(Expression::Literal(Literal::String("c".to_string()))),
+        })),
+        subpath: "d".to_string()
     })
 );

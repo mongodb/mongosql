@@ -1,3 +1,5 @@
+use linked_hash_map::LinkedHashMap;
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum Query {
     Select(SelectQuery),
@@ -79,7 +81,10 @@ pub enum Expression {
     Subquery(Box<SelectQuery>),
     Exists(Box<SelectQuery>),
     SubqueryComparison(SubqueryComparisonExpr),
-    Identifier(Identifier),
+    Document(LinkedHashMap<String, Expression>),
+    Access(AccessExpr),
+    Subpath(SubpathExpr),
+    Identifier(String),
     Literal(Literal),
     Tuple(Vec<Expression>),
 }
@@ -175,9 +180,15 @@ pub enum TrimSpec {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum Identifier {
-    Simple(String),
-    Compound(Vec<String>),
+pub struct AccessExpr {
+    pub expr: Box<Expression>,
+    pub subfield: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SubpathExpr {
+    pub expr: Box<Expression>,
+    pub subpath: String,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -219,7 +230,7 @@ pub struct SortSpec {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum SortKey {
-    Simple(Identifier),
+    Simple(String),
     Positional(u32),
 }
 

@@ -85,12 +85,12 @@ SelectExpression: SelectExpression = {
   AliasedExpression => SelectExpression::Aliased(<>),
 };
 
-SubstarExpression: SubstarExpression = {
-  <i:SimpleIdentifier> DOT STAR => SubstarExpression{datasource: i}
+AliasedExpression: AliasedExpression = {
+  <e:Expression> <a:(AS? <Identifier>)?> => AliasedExpression{expression:e, alias:a}
 };
 
-AliasedExpression: AliasedExpression = {
-  <e:Expression> <s:(AS? <SimpleIdentifier>)?> => AliasedExpression{expression:e, alias:s}
+SubstarExpression: SubstarExpression = {
+  <i:Identifier> DOT_STAR => SubstarExpression{datasource: i}
 };
 
 pub Expression: Expression = {
@@ -202,30 +202,28 @@ TrimSpec: TrimSpec = {
 }
 
 Trim: FunctionExpr = {
-  TRIM LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))), FunctionArg::Expr(e)]},
-  TRIM LEFT_PAREN <s:TrimSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(Expression::Identifier(Identifier::Simple(" ".to_string()))), FunctionArg::Expr(e)]},
+  TRIM LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(Expression::Identifier(" ".to_string())), FunctionArg::Expr(e)]},
+  TRIM LEFT_PAREN <s:TrimSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(Expression::Identifier(" ".to_string())), FunctionArg::Expr(e)]},
   TRIM LEFT_PAREN <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(substr), FunctionArg::Expr(e)]},
   TRIM LEFT_PAREN <s:TrimSpec> <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(substr), FunctionArg::Expr(e)]},
 }
 
-Identifier: Identifier = {
-  SimpleIdentifier => Identifier::Simple(<>),
-  CompoundIdentifier => Identifier::Compound(<>),
-};
+DocumentExpr: Expression = {
+  LEFT_CURLY_BRACE <l:Comma<(<String> COLON <Expression>)>> RIGHT_CURLY_BRACE => Expression::Document(l.into_iter().collect())
+}
 
-SimpleIdentifier: String = {
+// This production uses Tier10Expr instead of Expression to avoid shift-reduce conflicts
+// with other Expressions. We're specifically using Tier10Expr because the LHS cannot be
+// a Binary or Unary expr.
+AccessExpr: AccessExpr = {
+  <e:Tier10Expr> LEFT_BRACKET <s:Expression> RIGHT_BRACKET => AccessExpr{expr:e, subfield:Box::new(s)},
+}
+
+Identifier: String = {
   ID => <>.to_string(),
   DELIMITED_IDENT_QUOTE => process_delimited_ident(<>),
   DELIMITED_IDENT_BACKTICK => process_delimited_ident(<>),
-}
-
-CompoundIdentifier: Vec<String> = {
-  <s1:SimpleIdentifier> <s2:(DOT <SimpleIdentifier>)+> => {
-    let mut ids = vec![s1];
-    ids.extend(s2);
-    ids
-  }
-}
+};
 
 Tuple: Expression = {
   LEFT_PAREN <e:Expression> COMMA <l:Comma<Expression>> RIGHT_PAREN => {
@@ -243,7 +241,7 @@ BinaryTier<Op,NextTier>: Box<Expression> = {
 UnaryTier<Op,NextTier>: Box<Expression> = {
   <op:Op> <expr:UnaryTier<Op, NextTier>> => Box::new(Expression::Unary(UnaryExpr{<>})),
   NextTier
-}
+};
 
 // ComparisonTier parses (1) binary expressions that include a comparison operator and
 // (2) subquery comparison expressions. We need to declare an order of precedence for
@@ -270,6 +268,13 @@ CastTier<Expr, NextTier>: Box<Expression> = {
   NextTier,
 };
 
+// SubpathExpr needs to be defined via the tiering structure in order to avoid shift-reduce conflicts
+// with other Expressions.
+SubpathTier<Expr, NextTier>: Box<Expression> = {
+  <expr:SubpathTier<Expr, NextTier>> DOT <subpath:Identifier> => Box::new(Expression::Subpath(SubpathExpr{<>})),
+  NextTier
+};
+
 Tier1Expr = BetweenTier<Expression, Tier2Expr>;
 Tier2Expr = BinaryTier<InOp, Tier3Expr>;
 Tier3Expr = BinaryTier<OrOp, Tier4Expr>;
@@ -279,16 +284,19 @@ Tier6Expr = BinaryTier<ConcatOp, Tier7Expr>;
 Tier7Expr = BinaryTier<AddOp, Tier8Expr>;
 Tier8Expr = BinaryTier<MulOp, Tier9Expr>;
 Tier9Expr = UnaryTier<UnaryOp, Tier10Expr>;
-Tier10Expr = CastTier<Expression, BottomExpr>;
+Tier10Expr = CastTier<Expression, Tier11Expr>;
+Tier11Expr = SubpathTier<Expression, BottomExpr>;
 
 BottomExpr: Box<Expression> = {
+  AccessExpr => Box::new(Expression::Access(<>)),
   CaseExpr => Box::new(Expression::Case(<>)),
+  DocumentExpr => Box::new(<>),
   ExistsExpr => Box::new(<>),
   FunctionExpr => Box::new(Expression::Function(<>)),
   Identifier => Box::new(Expression::Identifier(<>)),
   Literal => Box::new(Expression::Literal(<>)),
-  Tuple => Box::new(<>),
   SubqueryExpr => Box::new(Expression::Subquery(<>)),
+  Tuple => Box::new(<>),
   LEFT_PAREN <e:Expression> RIGHT_PAREN => Box::new(<>),
 };
 
@@ -469,20 +477,24 @@ Comma<T>: Vec<T> = {
 match {
   r"(?i)select" => SELECT,
   "+" => ADD,
+  ":" => COLON,
   "," => COMMA,
   "||" => CONCAT,
   "/" => DIV,
   "." => DOT,
+  ".*" => DOT_STAR,
   "::" => DOUBLE_COLON,
   "=" => EQ,
   ">" => GT,
   ">=" => GTE,
   "[" => LEFT_BRACKET,
+  "{" => LEFT_CURLY_BRACE,
   "(" => LEFT_PAREN,
   "<" => LT,
   "<=" => LTE,
   "<>" => NEQ,
   "]" => RIGHT_BRACKET,
+  "}" => RIGHT_CURLY_BRACE,
   ")" => RIGHT_PAREN,
   "*" => STAR,
   "-" => SUB,
@@ -580,8 +592,10 @@ match {
   r"[A-Za-z_][A-Za-z0-9_]*" => ID,
   r#""([^\x00"]|"")*""# => DELIMITED_IDENT_QUOTE,
   r"`([^\x00`]|``)*`" => DELIMITED_IDENT_BACKTICK,
-  r"([0-9]*\.[0-9]+|[0-9]+(\.)?)([Ee]?[\+\-]?[0-9]+)?" => DOUBLE,
+  r"([0-9]*\.[0-9]+|[0-9]+(\.)?)([Ee](\+|\-)?[0-9]+)?([0-9]+)?" => DOUBLE,
 } else {
-  // NUM_PREFIXED_IDENT conflicts with the keywords in the match block
+  // NUM_PREFIXED_IDENT conflicts with the keywords in the match block, and NUM_PREFIXED_COMPOUND_IDENT
+  // conflicts with DOUBLE in the else block.
   r"[0-9]*[A-Za-z_][A-Za-z0-9_]*" => NUM_PREFIXED_IDENT,
+  r"[0-9]+\.[A-Za-z][A-Za-z0-9_]*" => NUM_PREFIXED_COMPOUND_IDENT,
 }
