@@ -58,6 +58,9 @@ check-races:
 check-yaml:
 	$(ENV) testdata/bin/check-yamllint.sh
 
+evergreen-validate:
+	$(ENV) testdata/bin/evergreen-validate.sh
+
 clean:
 	$(ENV) testdata/bin/reset-testing-state.sh
 
