@@ -332,6 +332,11 @@ should_parse!(binary_compare_and_add, true, "select b<a+c and b>d+e");
 should_parse!(binary_compare_or_mul, true, "select b<a*c or b>d*e");
 should_parse!(binary_lt_and_neq, true, "select a<b and c<>e");
 should_parse!(between, true, "select a BETWEEN b AND c");
+should_parse!(
+    binary_between,
+    true,
+    "SELECT 1 between 0 and 3 and 2 between 1 and 3"
+);
 should_parse!(case, true, "select CASE WHEN a=b THEN a ELSE c END");
 should_parse!(
     case_multiple_when_clauses,
@@ -343,8 +348,23 @@ should_parse!(
     true,
     "select CASE a WHEN a <> b THEN a WHEN c and d THEN c ELSE e END"
 );
+should_parse!(
+    binary_case,
+    true,
+    "select CASE WHEN a=b THEN a ELSE c END + CASE WHEN c=d THEN c ELSE e END"
+);
+should_parse!(
+    case_between,
+    true,
+    "select CASE when a BETWEEN b and c THEN a ELSE b END"
+);
 
 should_parse!(between_invalid_binary_op, false, "select a BETWEEN b + c");
+should_parse!(
+    not_between_invalid_binary_op,
+    false,
+    "select a NOT BETWEEN b / c"
+);
 should_parse!(
     case_non_bool_conditions,
     false,
@@ -716,6 +736,19 @@ should_parse!(null_if, true, "select nullif(a, b)");
 should_parse!(coalesce, true, "select coalesce(a, b, c, d)");
 should_parse!(size, true, "select size(a)");
 should_parse!(position, true, "select position('b' IN 'abc')");
+should_parse!(position_binary_mul, true, "select position(1*2 IN 2)");
+should_parse!(position_unary_neg, true, "select position(-2 IN -2)");
+should_parse!(
+    position_between_parens,
+    true,
+    "select position((b BETWEEN c AND c) IN true)"
+);
+should_parse!(position_binary_or, true, "select position(a OR b IN true)");
+should_parse!(
+    position_binary_compare,
+    true,
+    "select position(true IN a < b)"
+);
 should_parse!(char_length, true, "select char_length('foo')");
 should_parse!(character_length, true, "select character_length('bar')");
 should_parse!(octet_length, true, "select octet_length(a)");
@@ -776,6 +809,28 @@ should_parse!(
     "select brand_new_func(a, b, c)"
 );
 should_parse!(nested_scalar_func, true, "select nullif(coalesce(a, b), c)");
+
+should_parse!(position_invalid_binary_op, false, "select position(x OR y)");
+
+validate_expression_ast!(
+    position_ast,
+    "position((a+b*c) IN d)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("POSITION".to_string()),
+        args: vec![
+            FunctionArg::Expr(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                op: BinaryOp::Add,
+                right: Box::new(Expression::Binary(BinaryExpr {
+                    left: Box::new(Expression::Identifier(Identifier::Simple("b".to_string()))),
+                    op: BinaryOp::Mul,
+                    right: Box::new(Expression::Identifier(Identifier::Simple("c".to_string())))
+                }))
+            })),
+            FunctionArg::Expr(Expression::Identifier(Identifier::Simple("d".to_string())))
+        ]
+    })
+);
 validate_expression_ast!(
     extract_ast,
     "extract(year from a)",
@@ -842,12 +897,25 @@ validate_expression_ast!(
         ]
     })
 );
+should_parse!(
+    scalar_function_binary_op,
+    true,
+    "select char_length('foo') + 5"
+);
 
 should_parse!(where_single_condition, true, "select * WHERE a >= 2");
 should_parse!(where_single_column_expr, true, "select * WHERE a");
-should_parse!(where_multiple_conditions, true, "select * WHERE a > 1 AND b > 1");
-should_parse!(where_case_expr, true, "select * WHERE CASE WHEN a = true THEN a ELSE false END");
-should_parse!(where_null,true,"select * WHERE NULL");
+should_parse!(
+    where_multiple_conditions,
+    true,
+    "select * WHERE a > 1 AND b > 1"
+);
+should_parse!(
+    where_case_expr,
+    true,
+    "select * WHERE CASE WHEN a = true THEN a ELSE false END"
+);
+should_parse!(where_null, true, "select * WHERE NULL");
 
 validate_query_ast!(
     where_ast,
@@ -857,13 +925,11 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
-        where_clause: Some(
-            Box::new(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
-                op: BinaryOp::Gte,
-                right: Box::new(Expression::Literal(Literal::Integer(2))) }
-            ))
-        ),
+        where_clause: Some(Box::new(Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+            op: BinaryOp::Gte,
+            right: Box::new(Expression::Literal(Literal::Integer(2)))
+        }))),
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1018,5 +1084,113 @@ validate_expression_ast!(
             FunctionArg::Expr(Expression::Literal(Literal::String("null".to_string()))),
             FunctionArg::Expr(Expression::Literal(Literal::String("error".to_string())))
         ]
+    })
+);
+validate_expression_ast!(
+    cast_precedence_binary,
+    "a * b::int",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Identifier(Identifier::Simple("a".to_string()))),
+        op: BinaryOp::Mul,
+        right: Box::new(Expression::Function(FunctionExpr {
+            function: FunctionName("CAST".to_string()),
+            args: vec![
+                FunctionArg::Expr(Expression::Identifier(Identifier::Simple("b".to_string()))),
+                FunctionArg::Cast(Type::Int32)
+            ]
+        }))
+    })
+);
+validate_expression_ast!(
+    cast_precedence_unary,
+    "NOT a::bool",
+    Expression::Unary(UnaryExpr {
+        op: UnaryOp::Not,
+        expr: Box::new(Expression::Function(FunctionExpr {
+            function: FunctionName("CAST".to_string()),
+            args: vec![
+                FunctionArg::Expr(Expression::Identifier(Identifier::Simple("a".to_string()))),
+                FunctionArg::Cast(Type::Boolean)
+            ]
+        }))
+    })
+);
+
+// Subquery tests
+should_parse!(simple_subquery, true, "SELECT VALUE (SELECT a)");
+should_parse!(multiple_nested_subqueries, true, "SELECT (SELECT a)");
+should_parse!(exists_subquery, true, "SELECT EXISTS (SELECT a)");
+should_parse!(not_exists_subquery, true, "SELECT NOT EXISTS (SELECT a)");
+should_parse!(any_subquery, true, "SELECT x <> ANY (SELECT a)");
+should_parse!(all_subquery, true, "SELECT x = ALL (SELECT a)");
+should_parse!(in_tuple_subquery, true, "SELECT X IN (A, B, C)");
+should_parse!(not_in_tuple_subquery, true, "SELECT X NOT IN (A, B, C)");
+
+should_parse!(empty_tuple, false, "SELECT X NOT IN ()");
+
+validate_expression_ast!(
+    some_subquery,
+    "x <> SOME (SELECT a)",
+    Expression::SubqueryComparison(SubqueryComparisonExpr {
+        expr: Box::new(Expression::Identifier(Identifier::Simple("x".to_string()))),
+        op: BinaryOp::Neq,
+        quantifier: SubqueryQuantifier::Any,
+        subquery: Box::new(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                    expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                    alias: None
+                })])
+            },
+            where_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None
+        })
+    })
+);
+
+validate_expression_ast!(
+    in_subquery,
+    "x IN (SELECT a)",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Identifier(Identifier::Simple("x".to_string()))),
+        op: BinaryOp::In,
+        right: Box::new(Expression::Subquery(Box::new(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                    expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                    alias: None
+                })])
+            },
+            where_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None
+        })))
+    })
+);
+
+validate_expression_ast!(
+    not_in_subquery,
+    "x NOT IN (SELECT a)",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Identifier(Identifier::Simple("x".to_string()))),
+        op: BinaryOp::NotIn,
+        right: Box::new(Expression::Subquery(Box::new(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
+                    expression: Expression::Identifier(Identifier::Simple("a".to_string())),
+                    alias: None
+                })])
+            },
+            where_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None
+        })))
     })
 );

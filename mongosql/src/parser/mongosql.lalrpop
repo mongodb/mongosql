@@ -96,19 +96,11 @@ AliasedExpression: AliasedExpression = {
 pub Expression: Expression = {
   Tier1Expr => *<>,
   ArrayExpr => Expression::Array(<>),
-  BetweenExpr,
-  CaseExpr => Expression::Case(<>),
-  FunctionExpr => Expression::Function(<>),
 };
 
 ArrayExpr: Vec<Expression> = {
   LEFT_BRACKET <Comma<Expression>> RIGHT_BRACKET,
-}
-
-BetweenExpr: Expression = {
-  <e:Expression> BETWEEN <l:Tier3Expr> AND <r:Tier3Expr> => Expression::Between(BetweenExpr{expr:Box::new(e), min:l, max:r}),
-  <e:Expression> <n:NotOp> BETWEEN <l:Tier3Expr> AND <r:Tier3Expr>  => Expression::Unary(UnaryExpr{op:n, expr:Box::new(Expression::Between(BetweenExpr{expr:Box::new(e), min:l, max:r}))}),
-}
+};
 
 CaseExpr: CaseExpr = {
   CASE <w:WhenBranch+> <e:ElseBranch?> END => CaseExpr{expr:None, when_branch:w, else_branch:e},
@@ -116,11 +108,25 @@ CaseExpr: CaseExpr = {
 }
 
 WhenBranch: WhenBranch = {
-  WHEN <e1:Tier4Expr> <o:BoolOp> <e2:Tier4Expr> THEN <e3:Expression> => WhenBranch{when:Box::new(Expression::Binary(BinaryExpr{left:e1, op:o, right:e2})), then:Box::new(e3)},
+  WHEN <e1:Expression> THEN <e2:Expression> => WhenBranch{when:Box::new(e1), then:Box::new(e2)},
 }
 
 ElseBranch: Box<Expression> = {
   ELSE <e:Expression> => Box::new(e),
+}
+
+SubqueryQuantifier: SubqueryQuantifier = {
+  ANY => SubqueryQuantifier::Any,
+  SOME => SubqueryQuantifier::Any,
+  ALL => SubqueryQuantifier::All,
+}
+
+SubqueryExpr: Box<SelectQuery> = {
+  LEFT_PAREN <s:SelectQuery> RIGHT_PAREN => Box::new(s),
+}
+
+ExistsExpr: Expression = {
+  EXISTS <s:SubqueryExpr> => Expression::Exists(s)
 }
 
 FunctionExpr: FunctionExpr = {
@@ -135,7 +141,6 @@ FunctionExpr: FunctionExpr = {
 }
 
 Cast: FunctionExpr = {
-  <e:Expression> DOUBLE_COLON <t:Type> => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(e), FunctionArg::Cast(t)]},
   CAST LEFT_PAREN <ex:Expression> AS <t:Type> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t)]},
   CAST LEFT_PAREN <ex:Expression> AS <t:Type> <n:(COMMA <Expression> ON NULL)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(n)]},
   CAST LEFT_PAREN <ex:Expression> AS <t:Type> <e:(COMMA <Expression> ON ERROR)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(e)]},
@@ -173,8 +178,10 @@ Fold: FunctionExpr = {
   <c:Casing> LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("FOLD".to_string()), args:vec![FunctionArg::Fold(c), FunctionArg::Expr(e)]},
 }
 
+// This production uses `Tier2Expr` instead of `Expression IN Expression` to avoid
+// shift-reduce conflicts with IN predicate subqueries.
 Position: FunctionExpr = {
-  POSITION LEFT_PAREN <e1:Expression> IN <e2:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("POSITION".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)]},
+  POSITION LEFT_PAREN <e:Tier2Expr> RIGHT_PAREN =>? parse_position_func(*e),
 }
 
 Substring: FunctionExpr = {
@@ -220,6 +227,14 @@ CompoundIdentifier: Vec<String> = {
   }
 }
 
+Tuple: Expression = {
+  LEFT_PAREN <e:Expression> COMMA <l:Comma<Expression>> RIGHT_PAREN => {
+    let mut e = vec![e];
+    e.extend(l);
+    Expression::Tuple(e)
+  }
+}
+
 BinaryTier<Op,NextTier>: Box<Expression> = {
   <left:BinaryTier<Op,NextTier>> <op:Op> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{<>})),
   NextTier
@@ -230,19 +245,57 @@ UnaryTier<Op,NextTier>: Box<Expression> = {
   NextTier
 }
 
-Tier1Expr = BinaryTier<OrOp, Tier2Expr>;
-Tier2Expr = BinaryTier<AndOp, Tier3Expr>;
-Tier3Expr = BinaryTier<CompareOp, Tier4Expr>;
-Tier4Expr = BinaryTier<ConcatOp, Tier5Expr>;
-Tier5Expr = BinaryTier<AddOp, Tier6Expr>;
-Tier6Expr = BinaryTier<MulOp, Tier7Expr>;
-Tier7Expr = UnaryTier<UnaryOp, BottomExpr>;
+// ComparisonTier parses (1) binary expressions that include a comparison operator and
+// (2) subquery comparison expressions. We need to declare an order of precedence for
+// these expressions to avoid shift-reduce conflicts with respect to CompareOps.
+ComparisonTier<Expr, Op, NextTier>: Box<Expression> = {
+  <left:ComparisonTier<Expr, Op,NextTier>> <op:Op> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{<>})),
+  <expr:ComparisonTier<Expr, Op, NextTier>> <op:Op> <quantifier:SubqueryQuantifier> <subquery:SubqueryExpr> => Box::new(Expression::SubqueryComparison(SubqueryComparisonExpr{<>})),
+  NextTier
+};
+
+// BetweenExpr needs to be defined via the tiering structure in order to avoid shift-reduce conflicts
+// with other Expressions.
+BetweenTier<Expr, NextTier>: Box<Expression> = {
+  <e1:BetweenTier<Expr, NextTier>> BETWEEN <e2:NextTier> =>? parse_between_expr(e1, *e2, false),
+  <e1:BetweenTier<Expr, NextTier>> <n:NotOp> BETWEEN <e2:NextTier> =>? parse_between_expr(e1, *e2, true),
+  NextTier,
+}
+
+// CastTier parses type conversion expressions that use the shorthand `::` notation. This
+// needs to be defined via the tiering structure in order to avoid shift-reduce conflicts
+// with other Expressions.
+CastTier<Expr, NextTier>: Box<Expression> = {
+  <e:CastTier<Expr, NextTier>> DOUBLE_COLON <t:Type> => Box::new(Expression::Function(FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(*e), FunctionArg::Cast(t)]})),
+  NextTier,
+};
+
+Tier1Expr = BetweenTier<Expression, Tier2Expr>;
+Tier2Expr = BinaryTier<InOp, Tier3Expr>;
+Tier3Expr = BinaryTier<OrOp, Tier4Expr>;
+Tier4Expr = BinaryTier<AndOp, Tier5Expr>;
+Tier5Expr = ComparisonTier<Expression, CompareOp, Tier6Expr>;
+Tier6Expr = BinaryTier<ConcatOp, Tier7Expr>;
+Tier7Expr = BinaryTier<AddOp, Tier8Expr>;
+Tier8Expr = BinaryTier<MulOp, Tier9Expr>;
+Tier9Expr = UnaryTier<UnaryOp, Tier10Expr>;
+Tier10Expr = CastTier<Expression, BottomExpr>;
 
 BottomExpr: Box<Expression> = {
+  CaseExpr => Box::new(Expression::Case(<>)),
+  ExistsExpr => Box::new(<>),
+  FunctionExpr => Box::new(Expression::Function(<>)),
   Identifier => Box::new(Expression::Identifier(<>)),
   Literal => Box::new(Expression::Literal(<>)),
-  LEFT_PAREN <e:Expression> RIGHT_PAREN => Box::new(e),
+  Tuple => Box::new(<>),
+  SubqueryExpr => Box::new(Expression::Subquery(<>)),
+  LEFT_PAREN <e:Expression> RIGHT_PAREN => Box::new(<>),
 };
+
+InOp: BinaryOp = {
+  IN => BinaryOp::In,
+  NOT_IN => BinaryOp::NotIn,
+}
 
 OrOp: BinaryOp = {
   OR => BinaryOp::Or,
@@ -259,7 +312,7 @@ CompareOp: BinaryOp = {
   GTE => BinaryOp::Gte,
   LT  => BinaryOp::Lt,
   GT  => BinaryOp::Gt,
-};
+}
 
 BoolOp: BinaryOp = {
   OrOp,
@@ -416,11 +469,11 @@ Comma<T>: Vec<T> = {
 match {
   r"(?i)select" => SELECT,
   "+" => ADD,
-  "::" => DOUBLE_COLON,
   "," => COMMA,
   "||" => CONCAT,
   "/" => DIV,
   "." => DOT,
+  "::" => DOUBLE_COLON,
   "=" => EQ,
   ">" => GT,
   ">=" => GTE,
@@ -435,6 +488,7 @@ match {
   "-" => SUB,
   r"(?i)all" => ALL,
   r"(?i)and" => AND,
+  r"(?i)any" => ANY,
   r"(?i)array" => ARRAY,
   r"(?i)as" => AS,
   r"(?i)asc" => ASC,
@@ -465,6 +519,7 @@ match {
   r"(?i)else" => ELSE,
   r"(?i)end" => END,
   r"(?i)error" => ERROR,
+  r"(?i)exists" => EXISTS,
   r"(?i)extract" => EXTRACT,
   r"(?i)false" => FALSE,
   r"(?i)float" => FLOAT,
@@ -486,6 +541,7 @@ match {
   r"(?i)missing" => MISSING,
   r"(?i)month" => MONTH,
   r"(?i)not" => NOT,
+  r"(?i)not\s+in" => NOT_IN,
   r"(?i)null" => NULL,
   r"(?i)numeric" => NUMERIC,
   r"(?i)objectid" => OBJECTID,
@@ -499,6 +555,7 @@ match {
   r"(?i)regex" => REGEX,
   r"(?i)second" => SECOND,
   r"(?i)smallint" => SMALLINT,
+  r"(?i)some" => SOME,
   r"(?i)string" => STRING_TYPE,
   r"(?i)substring" => SUBSTRING,
   r"(?i)symbol" => SYMBOL,

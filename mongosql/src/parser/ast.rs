@@ -76,8 +76,12 @@ pub enum Expression {
     Case(CaseExpr),
     Function(FunctionExpr),
     Array(Vec<Expression>),
+    Subquery(Box<SelectQuery>),
+    Exists(Box<SelectQuery>),
+    SubqueryComparison(SubqueryComparisonExpr),
     Identifier(Identifier),
     Literal(Literal),
+    Tuple(Vec<Expression>),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -111,6 +115,20 @@ pub struct CaseExpr {
 pub struct WhenBranch {
     pub when: Box<Expression>,
     pub then: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum SubqueryQuantifier {
+    All,
+    Any,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SubqueryComparisonExpr {
+    pub expr: Box<Expression>,
+    pub op: BinaryOp,
+    pub quantifier: SubqueryQuantifier,
+    pub subquery: Box<SelectQuery>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -178,10 +196,12 @@ pub enum BinaryOp {
     Eq,
     Gt,
     Gte,
+    In,
     Lt,
     Lte,
     Mul,
     Neq,
+    NotIn,
     Or,
     Sub,
 }

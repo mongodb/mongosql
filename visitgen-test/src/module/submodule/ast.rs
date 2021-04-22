@@ -1,6 +1,4 @@
-use std::{
-    collections::{BTreeMap, HashMap},
-};
+use std::collections::{BTreeMap, HashMap};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Atom {
