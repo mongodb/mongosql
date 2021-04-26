@@ -85,8 +85,11 @@ pub enum Expression {
     Access(AccessExpr),
     Subpath(SubpathExpr),
     Identifier(String),
+    Is(IsExpr),
+    Like(LikeExpr),
     Literal(Literal),
     Tuple(Vec<Expression>),
+    TypeAssertion(TypeAssertionExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -189,6 +192,31 @@ pub struct AccessExpr {
 pub struct SubpathExpr {
     pub expr: Box<Expression>,
     pub subpath: String,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum TypeOrMissing {
+    Type(Type),
+    Missing,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct IsExpr {
+    pub expr: Box<Expression>,
+    pub target_type: TypeOrMissing,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct LikeExpr {
+    pub expr: Box<Expression>,
+    pub pattern: Box<Expression>,
+    pub escape: Option<String>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct TypeAssertionExpr {
+    pub expr: Box<Expression>,
+    pub target_type: Type,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]

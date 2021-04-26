@@ -95,7 +95,6 @@ SubstarExpression: SubstarExpression = {
 
 pub Expression: Expression = {
   Tier1Expr => *<>,
-  ArrayExpr => Expression::Array(<>),
 };
 
 ArrayExpr: Vec<Expression> = {
@@ -178,10 +177,10 @@ Fold: FunctionExpr = {
   <c:Casing> LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("FOLD".to_string()), args:vec![FunctionArg::Fold(c), FunctionArg::Expr(e)]},
 }
 
-// This production uses `Tier2Expr` instead of `Expression IN Expression` to avoid
+// This production uses `Tier4Expr` instead of `Expression IN Expression` to avoid
 // shift-reduce conflicts with IN predicate subqueries.
 Position: FunctionExpr = {
-  POSITION LEFT_PAREN <e:Tier2Expr> RIGHT_PAREN =>? parse_position_func(*e),
+  POSITION LEFT_PAREN <e:Tier4Expr> RIGHT_PAREN =>? parse_position_func(*e),
 }
 
 Substring: FunctionExpr = {
@@ -212,11 +211,11 @@ DocumentExpr: Expression = {
   LEFT_CURLY_BRACE <l:Comma<(<String> COLON <Expression>)>> RIGHT_CURLY_BRACE => Expression::Document(l.into_iter().collect())
 }
 
-// This production uses Tier10Expr instead of Expression to avoid shift-reduce conflicts
-// with other Expressions. We're specifically using Tier10Expr because the LHS cannot be
+// This production uses Tier12Expr instead of Expression to avoid shift-reduce conflicts
+// with other Expressions. We're specifically using Tier12Expr because the LHS cannot be
 // a Binary or Unary expr.
 AccessExpr: AccessExpr = {
-  <e:Tier10Expr> LEFT_BRACKET <s:Expression> RIGHT_BRACKET => AccessExpr{expr:e, subfield:Box::new(s)},
+  <e:Tier12Expr> LEFT_BRACKET <s:Expression> RIGHT_BRACKET => AccessExpr{expr:e, subfield:Box::new(s)},
 }
 
 Identifier: String = {
@@ -245,50 +244,66 @@ UnaryTier<Op,NextTier>: Box<Expression> = {
 
 // ComparisonTier parses (1) binary expressions that include a comparison operator and
 // (2) subquery comparison expressions. We need to declare an order of precedence for
-// these expressions to avoid shift-reduce conflicts with respect to CompareOps.
+// these expressions to avoid shift-reduce conflicts with CompareOps.
 ComparisonTier<Expr, Op, NextTier>: Box<Expression> = {
   <left:ComparisonTier<Expr, Op,NextTier>> <op:Op> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{<>})),
   <expr:ComparisonTier<Expr, Op, NextTier>> <op:Op> <quantifier:SubqueryQuantifier> <subquery:SubqueryExpr> => Box::new(Expression::SubqueryComparison(SubqueryComparisonExpr{<>})),
   NextTier
 };
 
-// BetweenExpr needs to be defined via the tiering structure in order to avoid shift-reduce conflicts
-// with other Expressions.
+// The following tiers were created in order to avoid shift-reduce conflicts with productions
+// that start with <Expression>.
+
+// TypeTier parses (1) type conversion expressions that use the shorthand `::` notation and
+// (2) type assertion expressions.
+TypeTier<Expr, NextTier>: Box<Expression> = {
+  <e:TypeTier<Expr, NextTier>> DOUBLE_COLON <t:Type> => Box::new(Expression::Function(FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(*e), FunctionArg::Cast(t)]})),
+  <e:TypeTier<Expr, NextTier>> TYPE_ASSERTION <t:Type> => Box::new(Expression::TypeAssertion(TypeAssertionExpr{expr:e, target_type:t})),
+  NextTier,
+};
+
 BetweenTier<Expr, NextTier>: Box<Expression> = {
   <e1:BetweenTier<Expr, NextTier>> BETWEEN <e2:NextTier> =>? parse_between_expr(e1, *e2, false),
   <e1:BetweenTier<Expr, NextTier>> <n:NotOp> BETWEEN <e2:NextTier> =>? parse_between_expr(e1, *e2, true),
   NextTier,
 }
 
-// CastTier parses type conversion expressions that use the shorthand `::` notation. This
-// needs to be defined via the tiering structure in order to avoid shift-reduce conflicts
-// with other Expressions.
-CastTier<Expr, NextTier>: Box<Expression> = {
-  <e:CastTier<Expr, NextTier>> DOUBLE_COLON <t:Type> => Box::new(Expression::Function(FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(*e), FunctionArg::Cast(t)]})),
-  NextTier,
-};
-
-// SubpathExpr needs to be defined via the tiering structure in order to avoid shift-reduce conflicts
-// with other Expressions.
 SubpathTier<Expr, NextTier>: Box<Expression> = {
   <expr:SubpathTier<Expr, NextTier>> DOT <subpath:Identifier> => Box::new(Expression::Subpath(SubpathExpr{<>})),
   NextTier
 };
 
-Tier1Expr = BetweenTier<Expression, Tier2Expr>;
-Tier2Expr = BinaryTier<InOp, Tier3Expr>;
-Tier3Expr = BinaryTier<OrOp, Tier4Expr>;
-Tier4Expr = BinaryTier<AndOp, Tier5Expr>;
-Tier5Expr = ComparisonTier<Expression, CompareOp, Tier6Expr>;
-Tier6Expr = BinaryTier<ConcatOp, Tier7Expr>;
-Tier7Expr = BinaryTier<AddOp, Tier8Expr>;
-Tier8Expr = BinaryTier<MulOp, Tier9Expr>;
-Tier9Expr = UnaryTier<UnaryOp, Tier10Expr>;
-Tier10Expr = CastTier<Expression, Tier11Expr>;
-Tier11Expr = SubpathTier<Expression, BottomExpr>;
+IsTier<Expression,NextTier>: Box<Expression> = {
+  <e:IsTier<Expression,NextTier>> IS <t:Type> => Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Type(t)})),
+  <e:IsTier<Expression,NextTier>> IS NOT <t:Type> => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Type(t)}))})),
+  <e:IsTier<Expression,NextTier>> IS MISSING => Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Missing})),
+  <e:IsTier<Expression,NextTier>> IS NOT MISSING => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Missing}))})),
+  NextTier
+}
+
+LikeTier<Expr, NextTier>: Box<Expression> = {
+  <e1:LikeTier<Expr, NextTier>> LIKE <e2:NextTier> <s:(ESCAPE <String>)?> => Box::new(Expression::Like(LikeExpr{expr:e1, pattern:e2, escape:s})),
+  <e1:LikeTier<Expr, NextTier>> NOT_LIKE <e2:NextTier> <s:(ESCAPE <String>)?> => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Like(LikeExpr{expr:e1, pattern:e2, escape:s}))})),
+  NextTier,
+}
+
+Tier1Expr = LikeTier<Expression, Tier2Expr>;
+Tier2Expr = IsTier<Expression, Tier3Expr>;
+Tier3Expr = BetweenTier<Expression, Tier4Expr>;
+Tier4Expr = BinaryTier<InOp, Tier5Expr>;
+Tier5Expr = BinaryTier<OrOp, Tier6Expr>;
+Tier6Expr = BinaryTier<AndOp, Tier7Expr>;
+Tier7Expr = ComparisonTier<Expression, CompareOp, Tier8Expr>;
+Tier8Expr = BinaryTier<ConcatOp, Tier9Expr>;
+Tier9Expr = BinaryTier<AddOp, Tier10Expr>;
+Tier10Expr = BinaryTier<MulOp, Tier11Expr>;
+Tier11Expr = UnaryTier<UnaryOp, Tier12Expr>;
+Tier12Expr = TypeTier<Expression, Tier13Expr>;
+Tier13Expr = SubpathTier<Expression, BottomExpr>;
 
 BottomExpr: Box<Expression> = {
   AccessExpr => Box::new(Expression::Access(<>)),
+  ArrayExpr => Box::new(Expression::Array(<>)),
   CaseExpr => Box::new(Expression::Case(<>)),
   DocumentExpr => Box::new(<>),
   ExistsExpr => Box::new(<>),
@@ -498,6 +513,7 @@ match {
   ")" => RIGHT_PAREN,
   "*" => STAR,
   "-" => SUB,
+  "::!" => TYPE_ASSERTION,
   r"(?i)all" => ALL,
   r"(?i)and" => AND,
   r"(?i)any" => ANY,
@@ -531,6 +547,7 @@ match {
   r"(?i)else" => ELSE,
   r"(?i)end" => END,
   r"(?i)error" => ERROR,
+  r"(?i)escape" => ESCAPE,
   r"(?i)exists" => EXISTS,
   r"(?i)extract" => EXTRACT,
   r"(?i)false" => FALSE,
@@ -541,9 +558,11 @@ match {
   r"(?i)in" => IN,
   r"(?i)int" => INT_TYPE,
   r"(?i)integer" => INTEGER,
+  r"(?i)is" => IS,
   r"(?i)javascript" => JAVASCRIPT,
   r"(?i)javascriptwithscope" => JAVASCRIPT_WITH_SCOPE,
   r"(?i)leading" => LEADING,
+  r"(?i)like" => LIKE,
   r"(?i)limit" => LIMIT,
   r"(?i)long" => LONG,
   r"(?i)lower" => LOWER,
@@ -554,6 +573,7 @@ match {
   r"(?i)month" => MONTH,
   r"(?i)not" => NOT,
   r"(?i)not\s+in" => NOT_IN,
+  r"(?i)not\s+like" => NOT_LIKE,
   r"(?i)null" => NULL,
   r"(?i)numeric" => NUMERIC,
   r"(?i)objectid" => OBJECTID,

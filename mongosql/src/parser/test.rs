@@ -360,6 +360,33 @@ should_parse!(
     true,
     "select CASE when a BETWEEN b and c THEN a ELSE b END"
 );
+should_parse!(is_type, true, "select a IS STRING");
+should_parse!(is_not_type, true, "select a-8 IS NOT DECIMAL(1)");
+should_parse!(is_missing, true, "select a IS MISSING");
+should_parse!(is_not_missing, true, "select (a+b) IS NOT MISSING");
+should_parse!(like, true, "select col1 LIKE 'A%'");
+should_parse!(
+    not_like_multiple_spaces,
+    true,
+    "select col1 NOT   LIKE '[a-z][a-z]'"
+);
+should_parse!(like_escape, true, "select col1 LIKE '%a!% b' ESCAPE '!'");
+should_parse!(
+    not_like_escape,
+    true,
+    "select col1 NOT LIKE '%a!% b' ESCAPE '!'"
+);
+should_parse!(where_is, true, "select * where a IS NULL");
+should_parse!(where_like, true, "select * where col1 LIKE 'A%'");
+
+validate_expression_ast!(
+    is_missing_ast,
+    "a IS MISSING",
+    Expression::Is(IsExpr {
+        expr: Box::new(Expression::Identifier("a".to_string())),
+        target_type: TypeOrMissing::Missing,
+    })
+);
 
 should_parse!(between_invalid_binary_op, false, "select a BETWEEN b + c");
 should_parse!(
@@ -715,6 +742,7 @@ validate_expression_ast!(
 should_parse!(empty_array, true, "select []");
 should_parse!(homogeneous_array, true, "select [1, 2, 3]");
 should_parse!(heterogeneous_array, true, "select [1, 'a', true, -42]");
+should_parse!(array_indexing, true, "select [1, 2, 3][0]");
 
 // Parenthesized expressions tests
 should_parse!(parens_multiple_binary_ops, true, "SELECT ((a+b)-(d/c))*7");
@@ -925,7 +953,7 @@ validate_query_ast!(
     })
 );
 
-// Type conversion tests
+// Type conversion and assertion tests
 should_parse!(cast_to_double, true, "select CAST(v AS DOUBLE)");
 should_parse!(
     cast_to_double_precision,
@@ -1060,6 +1088,12 @@ should_parse!(
     cast_on_null_on_error,
     true,
     "select CAST(v AS INT, 'null' ON NULL, 'error' ON ERROR)"
+);
+should_parse!(type_assert, true, "select a::!STRING");
+should_parse!(
+    type_assert_in_func,
+    true,
+    "select SUBSTRING(foo::!STRING, 1, 1)"
 );
 
 validate_expression_ast!(
