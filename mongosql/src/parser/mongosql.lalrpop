@@ -6,6 +6,10 @@ use std::convert::TryFrom;
 
 grammar;
 
+extern {
+    type Error = String;
+}
+
 pub Query: Query = {
   SetQuery => Query::Set(<>),
   SelectQuery => Query::Select(<>),
@@ -16,15 +20,70 @@ SetQuery: SetQuery = {
 }
 
 SelectQuery: SelectQuery = {
-  <s:SelectClause> <w:WhereClause?> <o:OrderByClause?> <lo:LimitOffset?> => SelectQuery{select_clause:s, where_clause:w,  order_by_clause:o, limit:lo.unwrap_or((None,None)).0, offset:lo.unwrap_or((None,None)).1}
+    <s:SelectClause>
+    <f:FromClause?>
+    <w:WhereClause?>
+    <o:OrderByClause?>
+    <lo:LimitOffset?> =>
+        SelectQuery{
+            select_clause: s,
+            from_clause: f,
+            where_clause: w,
+            order_by_clause: o,
+            limit: lo.unwrap_or((None,None)).0,
+            offset: lo.unwrap_or((None,None)).1
+        }
 };
 
 SelectClause: SelectClause = {
   SELECT <q:SetQuantifier?> <b:SelectBody> => SelectClause{set_quantifier:q.unwrap_or(SetQuantifier::All), body:b},
 }
 
-WhereClause: Box<Expression> = {
-  WHERE <expr:Expression> => Box::new(expr),
+FromClause: Datasource = {
+    FROM <Datasource>,
+}
+
+SimpleDatasource: Datasource = {
+    <ae: AliasedExpr> =>? parse_simple_datasource(ae)
+}
+
+JoinDatasource: Datasource = {
+    <d:Datasource> COMMA <sd:SimpleDatasource> => {
+        Datasource::Join(
+            JoinSource {
+                join_type: JoinType::Cross,
+                left: Box::new(d),
+                right: Box::new(sd),
+                condition: None,
+            }
+        )
+    },
+    <d:Datasource> <jt:JoinType> JOIN <sd:SimpleDatasource> <c:(ON <Expression>)?> => {
+        Datasource::Join(
+            JoinSource {
+                join_type: jt,
+                left: Box::new(d),
+                right: Box::new(sd),
+                condition: c,
+            }
+        )
+    },
+}
+
+Datasource: Datasource = {
+    <SimpleDatasource>,
+    <JoinDatasource>,
+}
+
+JoinType: JoinType = {
+    LEFT OUTER? => JoinType::Left,
+    RIGHT OUTER? => JoinType::Right,
+    INNER => JoinType::Inner,
+    CROSS? => JoinType::Cross,
+}
+
+WhereClause: Expression = {
+  WHERE <Expression>,
 }
 
 OrderByClause: OrderByClause = {
@@ -76,21 +135,21 @@ SelectBody: SelectBody = {
 
 SelectValuesExpression: SelectValuesExpression = {
   Expression => SelectValuesExpression::Expression(<>),
-  SubstarExpression => SelectValuesExpression::Substar(<>),
+  SubstarExpr => SelectValuesExpression::Substar(<>),
 }
 
 SelectExpression: SelectExpression = {
   STAR => SelectExpression::Star,
-  SubstarExpression => SelectExpression::Substar(<>),
-  AliasedExpression => SelectExpression::Aliased(<>),
+  SubstarExpr => SelectExpression::Substar(<>),
+  AliasedExpr => SelectExpression::Aliased(<>),
 };
 
-AliasedExpression: AliasedExpression = {
-  <e:Expression> <a:(AS? <Identifier>)?> => AliasedExpression{expression:e, alias:a}
+AliasedExpr: AliasedExpr = {
+  <e:Expression> <a:(AS? <Identifier>)?> => AliasedExpr{expr:e, alias:a}
 };
 
-SubstarExpression: SubstarExpression = {
-  <i:Identifier> DOT_STAR => SubstarExpression{datasource: i}
+SubstarExpr: SubstarExpr = {
+  <i:Identifier> DOT_STAR => SubstarExpr{datasource: i}
 };
 
 pub Expression: Expression = {
@@ -120,8 +179,8 @@ SubqueryQuantifier: SubqueryQuantifier = {
   ALL => SubqueryQuantifier::All,
 }
 
-SubqueryExpr: Box<SelectQuery> = {
-  LEFT_PAREN <s:SelectQuery> RIGHT_PAREN => Box::new(s),
+SubqueryExpr: Box<Query> = {
+  LEFT_PAREN <s:Query> RIGHT_PAREN => Box::new(s),
 }
 
 ExistsExpr: Expression = {
@@ -392,13 +451,15 @@ Integer: Literal = {
       } else {
         Literal::Long(long)
       }
-    }).or(Err(ParseError::from("failed to parse integer")))
+    }).or(Err(ParseError::from("failed to parse integer".to_string())))
   }
 }
 
 Double: Literal = {
   DOUBLE =>? {
-     let d: Result<f64, ParseError<usize, Token, &str>> = f64::from_str(<>).map_err(|_| ParseError::from("failed to convert number to f64"));
+     let d: Result<f64, ParseError<usize, Token, String>> =
+       f64::from_str(<>)
+           .map_err(|_| ParseError::from("failed to convert number to f64".to_string()));
      match d {
        Ok(x) => Ok(Literal::Double(x)),
        Err(x) => Err(x)
@@ -408,7 +469,9 @@ Double: Literal = {
 
 Unsigned32: u32 = {
   INT =>? {
-    let u: Result<u32, ParseError<usize, Token, &str>> = u32::from_str(<>).map_err(|_| ParseError::from("failed to convert number to u32"));
+    let u: Result<u32, ParseError<usize, Token, String>> =
+      u32::from_str(<>)
+          .map_err(|_| ParseError::from("failed to convert number to u32".to_string()));
     match u {
       Ok(x) => Ok(x),
       Err(x) => Err(x)
@@ -535,6 +598,7 @@ match {
   r"(?i)character" => CHARACTER,
   r"(?i)char varying" => CHAR_VARYING,
   r"(?i)character varying" => CHARACTER_VARYING,
+  r"(?i)cross" => CROSS,
   r"(?i)current_timestamp" => CURRENT_TIMESTAMP,
   r"(?i)day" => DAY,
   r"(?i)dbpointer" => DBPOINTER,
@@ -556,13 +620,16 @@ match {
   r"(?i)from" => FROM,
   r"(?i)hour" => HOUR,
   r"(?i)in" => IN,
+  r"(?i)inner" => INNER,
   r"(?i)int" => INT_TYPE,
   r"(?i)integer" => INTEGER,
   r"(?i)is" => IS,
   r"(?i)javascript" => JAVASCRIPT,
   r"(?i)javascriptwithscope" => JAVASCRIPT_WITH_SCOPE,
+  r"(?i)join" => JOIN,
   r"(?i)leading" => LEADING,
   r"(?i)like" => LIKE,
+  r"(?i)left" => LEFT,
   r"(?i)limit" => LIMIT,
   r"(?i)long" => LONG,
   r"(?i)lower" => LOWER,
@@ -581,10 +648,12 @@ match {
   r"(?i)on" => ON,
   r"(?i)or" => OR,
   r"(?i)order" => ORDER,
+  r"(?i)outer" => OUTER,
   r"(?i)position" => POSITION,
   r"(?i)precision" => PRECISION,
   r"(?i)real" => REAL,
   r"(?i)regex" => REGEX,
+  r"(?i)right" => RIGHT,
   r"(?i)second" => SECOND,
   r"(?i)smallint" => SMALLINT,
   r"(?i)some" => SOME,

@@ -162,8 +162,24 @@ fn gen_walk_visit_type(type_set: &HashSet<String>, ty: &Type, field_name: &str) 
     } else {
         match type_name.as_str() {
             "Box" => gen_walk_visit_box(type_set, field_name, generic_args),
-            "BTreeMap" => gen_walk_visit_map(type_set, field_name, generic_args, "BTreeMap"),
-            "HashMap" => gen_walk_visit_map(type_set, field_name, generic_args, "HashMap"),
+            "BTreeMap" => gen_walk_visit_map(
+                type_set,
+                field_name,
+                generic_args,
+                "std::collections::BTreeMap",
+            ),
+            "HashMap" => gen_walk_visit_map(
+                type_set,
+                field_name,
+                generic_args,
+                "std::collections::HashMap",
+            ),
+            "LinkedHashMap" => gen_walk_visit_map(
+                type_set,
+                field_name,
+                generic_args,
+                "linked_hash_map::LinkedHashMap",
+            ),
             "Option" => gen_walk_visit_option(type_set, field_name, generic_args),
             "Vec" => gen_walk_visit_vec(type_set, field_name, generic_args),
             // We just move this type as is, we don't have a way to visit it
@@ -218,16 +234,29 @@ fn gen_walk_visit_map(
         let key_type = get_generic_type(key_generic);
         if value_special {
             let value_type = get_generic_type(value_generic);
-            format!("{}.into_iter().map(|(map_k, map_v)| ({}, {})).collect::<std::collections::{}<_,_>>()",
-                field_name, gen_walk_visit_type(type_set, &key_type, "map_k"), gen_walk_visit_type(type_set, &value_type, "map_v"), map_type_name)
+            format!(
+                "{}.into_iter().map(|(map_k, map_v)| ({}, {})).collect::<{}<_,_>>()",
+                field_name,
+                gen_walk_visit_type(type_set, &key_type, "map_k"),
+                gen_walk_visit_type(type_set, &value_type, "map_v"),
+                map_type_name
+            )
         } else {
-            format!("{}.into_iter().map(|(map_k, map_v)| ({}, map_v)).collect::<std::collections::{}<_,_>>()",
-                field_name, gen_walk_visit_type(type_set, &key_type, "map_k"), map_type_name)
+            format!(
+                "{}.into_iter().map(|(map_k, map_v)| ({}, map_v)).collect::<{}<_,_>>()",
+                field_name,
+                gen_walk_visit_type(type_set, &key_type, "map_k"),
+                map_type_name
+            )
         }
     } else if value_special {
         let value_type = get_generic_type(value_generic);
-        format!("{}.into_iter().map(|(map_k, map_v)| (map_k, {})).collect::<std::collections::{}<_,_>>()",
-                field_name, gen_walk_visit_type(type_set, &value_type, "map_v"), map_type_name)
+        format!(
+            "{}.into_iter().map(|(map_k, map_v)| (map_k, {})).collect::<{}<_,_>>()",
+            field_name,
+            gen_walk_visit_type(type_set, &value_type, "map_v"),
+            map_type_name
+        )
     } else {
         field_name.to_owned()
     }

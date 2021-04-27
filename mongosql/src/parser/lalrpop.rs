@@ -7,7 +7,7 @@ lalrpop_mod!(
     "/parser/mongosql.rs"
 );
 
-pub type ParseError<'t> = lalrpop_util::ParseError<usize, Token<'t>, &'static str>;
+pub type ParseError<'t> = lalrpop_util::ParseError<usize, Token<'t>, String>;
 
 pub struct Parser {
     query_parser: grammar::QueryParser,

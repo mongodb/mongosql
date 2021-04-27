@@ -1,5 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 
+use linked_hash_map::LinkedHashMap;
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Atom {
     pub name: String,
@@ -54,4 +56,9 @@ pub struct HashTree {
     pub branch_m2: HashMap<Box<Atom>, String>,
     pub branch_m3: HashMap<String, Box<Atom>>,
     pub branch_m4: HashMap<Box<Atom>, Box<Atom>>,
+
+    pub branch_l1: LinkedHashMap<String, String>,
+    pub branch_l2: LinkedHashMap<Box<Atom>, String>,
+    pub branch_l3: LinkedHashMap<String, Box<Atom>>,
+    pub branch_l4: LinkedHashMap<Box<Atom>, Box<Atom>>,
 }

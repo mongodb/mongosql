@@ -1,5 +1,7 @@
 use crate::module::submodule::{ast, visitor::Visitor};
 
+use linked_hash_map::LinkedHashMap;
+
 struct AtomVisitor {
     atom_names: Vec<String>,
 }
@@ -281,6 +283,44 @@ fn hash_tree_atom_visitor_test() {
             );
             m
         },
+
+        branch_l1: {
+            let mut m = LinkedHashMap::new();
+            m.insert("linked_hello1".to_string(), "linked_world1".to_string());
+            m
+        },
+        branch_l2: {
+            let mut m = LinkedHashMap::new();
+            m.insert(
+                Box::new(Atom {
+                    name: "linked_hello2".to_string(),
+                }),
+                "linked_world2".to_string(),
+            );
+            m
+        },
+        branch_l3: {
+            let mut m = LinkedHashMap::new();
+            m.insert(
+                "linked_hello3".to_string(),
+                Box::new(Atom {
+                    name: "linked_world3".to_string(),
+                }),
+            );
+            m
+        },
+        branch_l4: {
+            let mut m = LinkedHashMap::new();
+            m.insert(
+                Box::new(Atom {
+                    name: "linked_hello4".to_string(),
+                }),
+                Box::new(Atom {
+                    name: "linked_world4".to_string(),
+                }),
+            );
+            m
+        },
     };
 
     v.visit_hash_tree(e);
@@ -291,6 +331,10 @@ fn hash_tree_atom_visitor_test() {
             "world3".to_string(),
             "hello4".to_string(),
             "world4".to_string(),
+            "linked_hello2".to_string(),
+            "linked_world3".to_string(),
+            "linked_hello4".to_string(),
+            "linked_world4".to_string(),
         ],
         v.atom_names
     );

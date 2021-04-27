@@ -646,6 +646,7 @@ dependencies = [
 name = "visitgen-test"
 version = "0.1.0"
 dependencies = [
+ "linked-hash-map",
  "visitgen",
 ]
 

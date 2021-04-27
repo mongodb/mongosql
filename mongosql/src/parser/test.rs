@@ -17,6 +17,19 @@ macro_rules! should_parse {
     };
 }
 
+macro_rules! should_fail_to_parse_with_error {
+    ($func_name:ident, $expected_error:expr, $input:expr) => {
+        #[test]
+        fn $func_name() {
+            let res = Parser::new().parse_query($input);
+            match res {
+                Ok(_) => panic!("expected parse error, but parsing succeeded"),
+                Err(crate::result::Error::Parse(s)) => assert_eq!($expected_error.to_string(), s),
+            }
+        }
+    };
+}
+
 macro_rules! validate_query_ast {
     ($func_name:ident, $input:expr, $ast:expr) => {
         #[test]
@@ -129,11 +142,12 @@ validate_query_ast!(
     Query::Select(SelectQuery {
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier("foo".to_string()),
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
                 alias: None
             })])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: None,
@@ -146,11 +160,12 @@ validate_query_ast!(
     Query::Select(SelectQuery {
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier("foo".to_string()),
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
                 alias: None
             })])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: None,
@@ -163,11 +178,12 @@ validate_query_ast!(
     Query::Select(SelectQuery {
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier("foo".to_string()),
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
                 alias: None
             })])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: None,
@@ -180,11 +196,12 @@ validate_query_ast!(
     Query::Select(SelectQuery {
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier("fo`o``".to_string()),
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("fo`o``".to_string()),
                 alias: None
             })])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: None,
@@ -197,11 +214,12 @@ validate_query_ast!(
     Query::Select(SelectQuery {
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(r#"fo"o"""#.to_string()),
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier(r#"fo"o"""#.to_string()),
                 alias: None
             })])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: None,
@@ -214,11 +232,12 @@ validate_query_ast!(
     Query::Select(SelectQuery {
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier(r#"fo""o"#.to_string()),
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier(r#"fo""o"#.to_string()),
                 alias: None
             })])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: None,
@@ -231,11 +250,12 @@ validate_query_ast!(
     Query::Select(SelectQuery {
         select_clause: SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                expression: Expression::Identifier("fo``o".to_string()),
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("fo``o".to_string()),
                 alias: None
             })])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: None,
@@ -264,13 +284,12 @@ validate_query_ast!(
             left: Box::new(Query::Select(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Aliased(
-                        AliasedExpression {
-                            expression: Expression::Identifier("a".to_string()),
-                            alias: None
-                        }
-                    )])
+                    body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                        expr: Expression::Identifier("a".to_string()),
+                        alias: None
+                    })])
                 },
+                from_clause: None,
                 where_clause: None,
                 order_by_clause: None,
                 limit: None,
@@ -280,13 +299,12 @@ validate_query_ast!(
             right: Box::new(Query::Select(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Aliased(
-                        AliasedExpression {
-                            expression: Expression::Identifier("b".to_string()),
-                            alias: None
-                        }
-                    )])
+                    body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                        expr: Expression::Identifier("b".to_string()),
+                        alias: None
+                    })])
                 },
+                from_clause: None,
                 where_clause: None,
                 order_by_clause: None,
                 limit: None,
@@ -297,11 +315,12 @@ validate_query_ast!(
         right: Box::new(Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier("c".to_string()),
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                    expr: Expression::Identifier("c".to_string()),
                     alias: None
                 })])
             },
+            from_clause: None,
             where_clause: None,
             order_by_clause: None,
             limit: None,
@@ -575,6 +594,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: Some(OrderByClause {
             sort_specs: vec![SortSpec {
@@ -607,6 +627,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
@@ -622,6 +643,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
@@ -637,6 +659,7 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
+        from_clause: None,
         where_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
@@ -920,6 +943,371 @@ should_parse!(
     "select char_length('foo') + 5"
 );
 
+should_parse!(from_no_qualifier, true, "SELECT * FROM foo");
+should_parse!(from_qualifier, true, "SELECT * FROM bar.foo");
+should_parse!(from_no_qualifier_with_alias, true, "SELECT * FROM foo car");
+should_parse!(from_qualifier_with_alias, true, "SELECT * FROM bar.foo car");
+should_parse!(
+    from_no_qualifier_with_as_alias,
+    true,
+    "SELECT * FROM foo AS car"
+);
+should_parse!(
+    from_qualifier_with_as_alias,
+    true,
+    "SELECT * FROM bar.foo AS car"
+);
+should_parse!(
+    from_array_with_alias,
+    true,
+    "SELECT * FROM [{'a': 1}, {'b': 2}] arr"
+);
+should_parse!(
+    from_array_with_as_alias,
+    true,
+    "SELECT * FROM [{'a': 1}, {'b': 2}] AS arr"
+);
+
+should_parse!(
+    from_two_comma_join_second_alias,
+    true,
+    "SELECT * FROM foo, bar AS bar"
+);
+should_parse!(
+    from_two_comma_join_first_alias,
+    true,
+    "SELECT * FROM foo AS foo, bar"
+);
+should_parse!(
+    from_two_comma_join_both_alias,
+    true,
+    "SELECT * FROM foo AS foo, bar AS bar"
+);
+should_parse!(from_two_comma_join, true, "SELECT * FROM foo, bar");
+should_parse!(
+    from_three_comma_join,
+    true,
+    "SELECT * FROM foo, bar AS bar, car"
+);
+
+should_parse!(
+    from_two_inner_join_second_alias,
+    true,
+    "SELECT * FROM foo JOIN bar AS bar"
+);
+should_parse!(
+    from_two_inner_join_first_alias,
+    true,
+    "SELECT * FROM foo AS foo INNER JOIN bar"
+);
+should_parse!(
+    from_two_inner_join_both_alias,
+    true,
+    "SELECT * FROM foo AS foo INNER JOIN bar AS bar"
+);
+should_parse!(from_two_inner_join, true, "SELECT * FROM foo JOIN bar");
+
+should_parse!(
+    from_two_cross_join_second_alias,
+    true,
+    "SELECT * FROM foo CROSS JOIN bar AS bar"
+);
+should_parse!(
+    from_two_cross_join_first_alias,
+    true,
+    "SELECT * FROM foo AS foo CROSS JOIN bar"
+);
+should_parse!(
+    from_two_cross_join_both_alias,
+    true,
+    "SELECT * FROM foo AS foo CROSS JOIN bar AS bar"
+);
+should_parse!(
+    from_two_cross_join,
+    true,
+    "SELECT * FROM foo CROSS JOIN bar"
+);
+
+should_parse!(
+    from_two_left_join_second_alias,
+    true,
+    "SELECT * FROM foo LEFT JOIN bar AS bar"
+);
+should_parse!(
+    from_two_left_join_first_alias,
+    true,
+    "SELECT * FROM foo AS foo LEFT OUTER JOIN bar"
+);
+should_parse!(
+    from_two_left_join_both_alias,
+    true,
+    "SELECT * FROM foo AS foo LEFT OUTER JOIN bar AS bar"
+);
+should_parse!(from_two_left_join, true, "SELECT * FROM foo LEFT JOIN bar");
+
+should_parse!(
+    from_two_left_join_second_alias_with_on,
+    true,
+    "SELECT * FROM foo LEFT JOIN bar AS bar ON 1 = 2"
+);
+should_parse!(
+    from_two_left_join_first_alias_with_on,
+    true,
+    "SELECT * FROM foo AS foo LEFT OUTER JOIN bar ON 1 = 2"
+);
+should_parse!(
+    from_two_left_join_both_alias_with_on,
+    true,
+    "SELECT * FROM foo AS foo LEFT OUTER JOIN bar AS bar ON 1 = 2"
+);
+
+should_parse!(
+    from_three_inner_join_with_ons,
+    true,
+    "SELECT * FROM foo JOIN bar ON 1 = 2 JOIN car ON 3 = 4"
+);
+
+should_parse!(
+    from_two_right_join_second_alias,
+    true,
+    "SELECT * FROM foo RIGHT JOIN bar AS bar"
+);
+should_parse!(
+    from_two_right_join_first_alias,
+    true,
+    "SELECT * FROM foo AS foo RIGHT OUTER JOIN bar"
+);
+should_parse!(
+    from_two_right_join_both_alias,
+    true,
+    "SELECT * FROM foo AS foo RIGHT OUTER JOIN bar AS bar"
+);
+should_parse!(
+    from_two_right_join,
+    true,
+    "SELECT * FROM foo RIGHT JOIN bar"
+);
+
+should_parse!(
+    from_derived_with_alias,
+    true,
+    "SELECT * FROM (SELECT * FROM foo) bar"
+);
+should_parse!(
+    from_derived_with_as_alias,
+    true,
+    "SELECT * FROM (SELECT * FROM foo) AS bar"
+);
+should_parse!(
+    from_derived_must_have_alias,
+    false,
+    "SELECT * FROM (SELECT * FROM foo)"
+);
+
+validate_query_ast!(
+    from_comma_join_is_cross_join,
+    "SELECT * FROM foo, bar",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: Some(Datasource::Join(JoinSource {
+            join_type: JoinType::Cross,
+            left: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "foo".to_string(),
+                alias: None
+            })),
+            right: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "bar".to_string(),
+                alias: None
+            })),
+            condition: None
+        })),
+        where_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+validate_query_ast!(
+    from_cross_join_is_cross_join,
+    "SELECT * FROM foo CROSS JOIN bar",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: Some(Datasource::Join(JoinSource {
+            join_type: JoinType::Cross,
+            left: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "foo".to_string(),
+                alias: None
+            })),
+            right: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "bar".to_string(),
+                alias: None
+            })),
+            condition: None
+        })),
+        where_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+validate_query_ast!(
+    from_join_is_cross_join,
+    "SELECT * FROM foo JOIN bar",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: Some(Datasource::Join(JoinSource {
+            join_type: JoinType::Cross,
+            left: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "foo".to_string(),
+                alias: None
+            })),
+            right: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "bar".to_string(),
+                alias: None
+            })),
+            condition: None
+        })),
+        where_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+validate_query_ast!(
+    from_left_join_is_left_join,
+    "SELECT * FROM foo LEFT JOIN bar",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: Some(Datasource::Join(JoinSource {
+            join_type: JoinType::Left,
+            left: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "foo".to_string(),
+                alias: None
+            })),
+            right: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "bar".to_string(),
+                alias: None
+            })),
+            condition: None
+        })),
+        where_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+validate_query_ast!(
+    from_right_join_is_right_join,
+    "SELECT * FROM foo RIGHT JOIN bar",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: Some(Datasource::Join(JoinSource {
+            join_type: JoinType::Right,
+            left: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "foo".to_string(),
+                alias: None
+            })),
+            right: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "bar".to_string(),
+                alias: None
+            })),
+            condition: None
+        })),
+        where_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+validate_query_ast!(
+    from_join_is_left_associative,
+    "SELECT * FROM foo JOIN bar JOIN car",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: Some(Datasource::Join(JoinSource {
+            join_type: JoinType::Cross,
+            left: Box::new(Datasource::Join(JoinSource {
+                join_type: JoinType::Cross,
+                left: Box::new(Datasource::Collection(CollectionSource {
+                    database: None,
+                    collection: "foo".to_string(),
+                    alias: None,
+                })),
+                right: Box::new(Datasource::Collection(CollectionSource {
+                    database: None,
+                    collection: "bar".to_string(),
+                    alias: None,
+                })),
+                condition: None
+            })),
+            right: Box::new(Datasource::Collection(CollectionSource {
+                database: None,
+                collection: "car".to_string(),
+                alias: None
+            })),
+            condition: None
+        })),
+        where_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
+should_fail_to_parse_with_error!(
+    from_cannot_have_more_than_one_qualifier,
+    "collection data sources can only have database qualification, found: Subpath(SubpathExpr { expr: Subpath(SubpathExpr { expr: Identifier(\"car\"), subpath: \"bar\" }), subpath: \"foo\" })",
+    "SELECT * FROM car.bar.foo"
+);
+should_fail_to_parse_with_error!(
+    from_cannot_be_document,
+    "found unsupported expression used as datasource: Document({\"foo\": Binary(BinaryExpr { left: Literal(Integer(3)), op: Add, right: Literal(Integer(4)) })})",
+    "SELECT * FROM {'foo': 3+4}"
+);
+should_fail_to_parse_with_error!(
+    from_cannot_be_literal,
+    "found unsupported expression used as datasource: Literal(Integer(3))",
+    "SELECT * FROM 3"
+);
+should_fail_to_parse_with_error!(
+    from_cannot_be_binary_op,
+    "found unsupported expression used as datasource: Binary(BinaryExpr { left: Literal(Integer(3)), op: Add, right: Literal(Integer(4)) })",
+    "SELECT * FROM 3 + 4"
+);
+should_fail_to_parse_with_error!(
+    from_array_must_have_alias,
+    "array datasources must have aliases",
+    "SELECT * FROM [{'a': 1}]"
+);
+
 should_parse!(where_single_condition, true, "select * WHERE a >= 2");
 should_parse!(where_single_column_expr, true, "select * WHERE a");
 should_parse!(
@@ -942,11 +1330,12 @@ validate_query_ast!(
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Star])
         },
-        where_clause: Some(Box::new(Expression::Binary(BinaryExpr {
+        from_clause: None,
+        where_clause: Some(Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("a".to_string())),
             op: BinaryOp::Gte,
             right: Box::new(Expression::Literal(Literal::Integer(2)))
-        }))),
+        })),
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1158,19 +1547,20 @@ validate_expression_ast!(
         expr: Box::new(Expression::Identifier("x".to_string())),
         op: BinaryOp::Neq,
         quantifier: SubqueryQuantifier::Any,
-        subquery: Box::new(SelectQuery {
+        subquery: Box::new(Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier("a".to_string()),
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                    expr: Expression::Identifier("a".to_string()),
                     alias: None
                 })])
             },
+            from_clause: None,
             where_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None
-        })
+        }))
     })
 );
 
@@ -1180,19 +1570,20 @@ validate_expression_ast!(
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Identifier("x".to_string())),
         op: BinaryOp::In,
-        right: Box::new(Expression::Subquery(Box::new(SelectQuery {
+        right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier("a".to_string()),
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                    expr: Expression::Identifier("a".to_string()),
                     alias: None
                 })])
             },
+            from_clause: None,
             where_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None
-        })))
+        }))))
     })
 );
 
@@ -1202,19 +1593,20 @@ validate_expression_ast!(
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Identifier("x".to_string())),
         op: BinaryOp::NotIn,
-        right: Box::new(Expression::Subquery(Box::new(SelectQuery {
+        right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpression {
-                    expression: Expression::Identifier("a".to_string()),
+                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                    expr: Expression::Identifier("a".to_string()),
                     alias: None
                 })])
             },
+            from_clause: None,
             where_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None
-        })))
+        }))))
     })
 );
 

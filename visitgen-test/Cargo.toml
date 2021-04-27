@@ -4,5 +4,8 @@ version = "0.1.0"
 authors = ["Patrick Meredith <pmeredit@protonmail.com>"]
 edition = "2018"
 
+[dependencies]
+linked-hash-map = "0.5.4"
+
 [build-dependencies]
 visitgen = { path = "../visitgen" }

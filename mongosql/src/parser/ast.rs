@@ -9,7 +9,8 @@ pub enum Query {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SelectQuery {
     pub select_clause: SelectClause,
-    pub where_clause: Option<Box<Expression>>,
+    pub from_clause: Option<Datasource>,
+    pub where_clause: Option<Expression>,
     pub order_by_clause: Option<OrderByClause>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
@@ -49,25 +50,68 @@ pub enum SelectBody {
 #[derive(PartialEq, Debug, Clone)]
 pub enum SelectValuesExpression {
     Expression(Expression),
-    Substar(SubstarExpression),
+    Substar(SubstarExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum SelectExpression {
     Star,
-    Substar(SubstarExpression),
-    Aliased(AliasedExpression),
+    Substar(SubstarExpr),
+    Aliased(AliasedExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct SubstarExpression {
+pub struct SubstarExpr {
     pub datasource: String,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct AliasedExpression {
-    pub expression: Expression,
+pub enum Datasource {
+    Array(ArraySource),
+    Collection(CollectionSource),
+    Derived(DerivedSource),
+    Join(JoinSource),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ArraySource {
+    pub array: Vec<Expression>,
+    pub alias: String,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct CollectionSource {
+    pub database: Option<String>,
+    pub collection: String,
     pub alias: Option<String>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct DerivedSource {
+    pub query: Box<Query>,
+    pub alias: String,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct AliasedExpr {
+    pub expr: Expression,
+    pub alias: Option<String>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct JoinSource {
+    pub join_type: JoinType,
+    pub left: Box<Datasource>,
+    pub right: Box<Datasource>,
+    pub condition: Option<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum JoinType {
+    Left,
+    Right,
+    Cross,
+    Inner,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -78,8 +122,8 @@ pub enum Expression {
     Case(CaseExpr),
     Function(FunctionExpr),
     Array(Vec<Expression>),
-    Subquery(Box<SelectQuery>),
-    Exists(Box<SelectQuery>),
+    Subquery(Box<Query>),
+    Exists(Box<Query>),
     SubqueryComparison(SubqueryComparisonExpr),
     Document(LinkedHashMap<String, Expression>),
     Access(AccessExpr),
@@ -136,7 +180,7 @@ pub struct SubqueryComparisonExpr {
     pub expr: Box<Expression>,
     pub op: BinaryOp,
     pub quantifier: SubqueryQuantifier,
-    pub subquery: Box<SelectQuery>,
+    pub subquery: Box<Query>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
