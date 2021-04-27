@@ -30,7 +30,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestTranslate(t *testing.T) {
-	db, collection, pipelineBytes := mongosql.Translate("bar", "select")
+	db, collection, pipelineBytes := mongosql.Translate("bar", "select *")
 
 	if db != "bar" {
 		t.Fatalf("expected db to be 'bar', got '%s'", db)

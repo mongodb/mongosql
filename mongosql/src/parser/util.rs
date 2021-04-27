@@ -57,6 +57,7 @@ pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, ParseEr
                 Ok(FunctionExpr {
                     function: FunctionName("POSITION".to_string()),
                     args: vec![FunctionArg::Expr(*left), FunctionArg::Expr(*right)],
+                    set_quantifier: None,
                 })
             }
         }

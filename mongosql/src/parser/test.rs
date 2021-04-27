@@ -149,6 +149,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -167,6 +169,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -185,6 +189,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -203,6 +209,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -221,6 +229,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -239,6 +249,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -257,6 +269,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -291,6 +305,8 @@ validate_query_ast!(
                 },
                 from_clause: None,
                 where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
                 order_by_clause: None,
                 limit: None,
                 offset: None,
@@ -306,6 +322,8 @@ validate_query_ast!(
                 },
                 from_clause: None,
                 where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
                 order_by_clause: None,
                 limit: None,
                 offset: None,
@@ -322,6 +340,8 @@ validate_query_ast!(
             },
             from_clause: None,
             where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None,
@@ -569,6 +589,130 @@ validate_expression_ast!(
     })
 );
 
+// Group by tests
+should_parse!(group_by_simple, true, "select * group by a");
+should_parse!(group_by_compound, true, "select * group by a.b");
+should_parse!(group_by_alias, true, "select * group by a as b");
+should_parse!(
+    group_by_aggregate,
+    true,
+    "select * group by a aggregate sum(a)"
+);
+should_parse!(
+    group_by_aggregate_alias,
+    true,
+    "select * group by a aggregate sum(a) as b"
+);
+should_parse!(
+    group_by_aggregate_all,
+    true,
+    "select * group by a aggregate sum(all a)"
+);
+should_parse!(
+    group_by_aggregate_distinct,
+    true,
+    "select * group by a aggregate sum(distinct a)"
+);
+should_parse!(
+    group_by_aggregate_distinct_alias,
+    true,
+    "select * group by a aggregate sum(distinct a) as b"
+);
+should_parse!(
+    group_by_aggregate_distinct_all,
+    false,
+    "select * group by a aggregate sum(distinct all a)"
+);
+should_parse!(group_by_none, false, "select * group by");
+should_parse!(
+    group_by_aggregate_none,
+    false,
+    "select * group by a aggregate"
+);
+should_parse!(
+    group_by_aggregate_no_args,
+    true,
+    "select * group by a aggregate sum()"
+);
+
+validate_query_ast!(
+    group_by_aggregates_distinct_with_alias,
+    "select * group by a, b aggregate sum(distinct b) as c",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: Some(GroupByClause {
+            keys: vec![
+                AliasedExpr {
+                    expr: Expression::Identifier("a".to_string()),
+                    alias: None,
+                },
+                AliasedExpr {
+                    expr: Expression::Identifier("b".to_string()),
+                    alias: None,
+                }
+            ],
+            aggregations: vec![AliasedExpr {
+                expr: Expression::Function(FunctionExpr {
+                    function: FunctionName("sum".to_string()),
+                    args: vec![FunctionArg::Expr(Expression::Identifier("b".to_string()))],
+                    set_quantifier: Some(SetQuantifier::Distinct),
+                }),
+                alias: Some("c".to_string()),
+            }]
+        }),
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
+// Having tests
+should_parse!(having_simple, true, "select * having y");
+should_parse!(having_with_group_by, true, "select * group by a having y");
+should_parse!(
+    having_with_aggregations,
+    true,
+    "select * group by a having sum(a) > 0 "
+);
+
+validate_query_ast!(
+    having_aggregation_all_with_group_by,
+    "select * group by a having sum(distinct a) > 0",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: Some(GroupByClause {
+            keys: vec![AliasedExpr {
+                expr: Expression::Identifier("a".to_string()),
+                alias: None,
+            },],
+            aggregations: vec![]
+        }),
+        having_clause: Some(Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Function(FunctionExpr {
+                function: FunctionName("sum".to_string()),
+                args: vec![FunctionArg::Expr(Expression::Identifier("a".to_string()))],
+                set_quantifier: Some(SetQuantifier::Distinct),
+            })),
+            op: BinaryOp::Gt,
+            right: Box::new(Expression::Literal(Literal::Integer(0)))
+        })),
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
 // Order by tests
 should_parse!(order_by_simple, true, "select * order by a");
 should_parse!(order_by_asc, true, "select * order by a ASC");
@@ -596,6 +740,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: Some(OrderByClause {
             sort_specs: vec![SortSpec {
                 key: SortKey::Simple("a".to_string()),
@@ -629,6 +775,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
         offset: None,
@@ -645,6 +793,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
         offset: Some(24_u32),
@@ -661,6 +811,8 @@ validate_query_ast!(
         },
         from_clause: None,
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: Some(42_u32),
         offset: Some(24_u32),
@@ -865,7 +1017,7 @@ validate_expression_ast!(
     Expression::Function(FunctionExpr {
         function: FunctionName("POSITION".to_string()),
         args: vec![
-            FunctionArg::Expr(Expression::Binary(BinaryExpr {
+            FunctionArg::Expr(Expression::Tuple(vec![Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Add,
                 right: Box::new(Expression::Binary(BinaryExpr {
@@ -873,9 +1025,10 @@ validate_expression_ast!(
                     op: BinaryOp::Mul,
                     right: Box::new(Expression::Identifier("c".to_string()))
                 }))
-            })),
+            })])),
             FunctionArg::Expr(Expression::Identifier("d".to_string()))
-        ]
+        ],
+        set_quantifier: None,
     })
 );
 validate_expression_ast!(
@@ -886,7 +1039,8 @@ validate_expression_ast!(
         args: vec![
             FunctionArg::Extract(ExtractSpec::Year),
             FunctionArg::Expr(Expression::Identifier("a".to_string()))
-        ]
+        ],
+        set_quantifier: None,
     })
 );
 validate_expression_ast!(
@@ -897,7 +1051,8 @@ validate_expression_ast!(
         args: vec![
             FunctionArg::Fold(Casing::Upper),
             FunctionArg::Expr(Expression::Identifier("a".to_string()))
-        ]
+        ],
+        set_quantifier: None,
     })
 );
 validate_expression_ast!(
@@ -909,7 +1064,8 @@ validate_expression_ast!(
             FunctionArg::Trim(TrimSpec::Both),
             FunctionArg::Expr(Expression::Identifier("substr".to_string())),
             FunctionArg::Expr(Expression::Identifier("str".to_string()))
-        ]
+        ],
+        set_quantifier: None,
     })
 );
 validate_expression_ast!(
@@ -921,7 +1077,8 @@ validate_expression_ast!(
             FunctionArg::Trim(TrimSpec::Leading),
             FunctionArg::Expr(Expression::Identifier(" ".to_string())),
             FunctionArg::Expr(Expression::Identifier("str".to_string()))
-        ]
+        ],
+        set_quantifier: None,
     })
 );
 validate_expression_ast!(
@@ -933,7 +1090,8 @@ validate_expression_ast!(
             FunctionArg::Trim(TrimSpec::Both),
             FunctionArg::Expr(Expression::Identifier(" ".to_string())),
             FunctionArg::Expr(Expression::Identifier("str".to_string()))
-        ]
+        ],
+        set_quantifier: None,
     })
 );
 
@@ -1127,6 +1285,8 @@ validate_query_ast!(
             condition: None
         })),
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1155,6 +1315,8 @@ validate_query_ast!(
             condition: None
         })),
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1183,6 +1345,8 @@ validate_query_ast!(
             condition: None
         })),
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1211,6 +1375,8 @@ validate_query_ast!(
             condition: None
         })),
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1239,6 +1405,8 @@ validate_query_ast!(
             condition: None
         })),
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1276,6 +1444,8 @@ validate_query_ast!(
             condition: None
         })),
         where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1336,6 +1506,8 @@ validate_query_ast!(
             op: BinaryOp::Gte,
             right: Box::new(Expression::Literal(Literal::Integer(2)))
         })),
+        group_by_clause: None,
+        having_clause: None,
         order_by_clause: None,
         limit: None,
         offset: None,
@@ -1495,7 +1667,8 @@ validate_expression_ast!(
             FunctionArg::Cast(Type::Decimal128(Some(1))),
             FunctionArg::Expr(Expression::Literal(Literal::String("null".to_string()))),
             FunctionArg::Expr(Expression::Literal(Literal::String("error".to_string())))
-        ]
+        ],
+        set_quantifier: None,
     })
 );
 validate_expression_ast!(
@@ -1509,7 +1682,8 @@ validate_expression_ast!(
             args: vec![
                 FunctionArg::Expr(Expression::Identifier("b".to_string())),
                 FunctionArg::Cast(Type::Int32)
-            ]
+            ],
+            set_quantifier: None,
         }))
     })
 );
@@ -1523,7 +1697,8 @@ validate_expression_ast!(
             args: vec![
                 FunctionArg::Expr(Expression::Identifier("a".to_string())),
                 FunctionArg::Cast(Type::Boolean)
-            ]
+            ],
+            set_quantifier: None,
         }))
     })
 );
@@ -1538,7 +1713,10 @@ should_parse!(all_subquery, true, "SELECT x = ALL (SELECT a)");
 should_parse!(in_tuple_subquery, true, "SELECT X IN (A, B, C)");
 should_parse!(not_in_tuple_subquery, true, "SELECT X NOT IN (A, B, C)");
 
+should_parse!(in_test, true, "SELECT X NOT IN (1+2-3)");
+
 should_parse!(empty_tuple, false, "SELECT X NOT IN ()");
+should_parse!(tuple_with_dangling_comma, false, "SELECT X NOT IN (A,)");
 
 validate_expression_ast!(
     some_subquery,
@@ -1557,6 +1735,8 @@ validate_expression_ast!(
             },
             from_clause: None,
             where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None
@@ -1580,6 +1760,8 @@ validate_expression_ast!(
             },
             from_clause: None,
             where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None
@@ -1603,6 +1785,8 @@ validate_expression_ast!(
             },
             from_clause: None,
             where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
             order_by_clause: None,
             limit: None,
             offset: None

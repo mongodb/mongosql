@@ -11,6 +11,8 @@ pub struct SelectQuery {
     pub select_clause: SelectClause,
     pub from_clause: Option<Datasource>,
     pub where_clause: Option<Expression>,
+    pub group_by_clause: Option<GroupByClause>,
+    pub having_clause: Option<Expression>,
     pub order_by_clause: Option<OrderByClause>,
     pub limit: Option<u32>,
     pub offset: Option<u32>,
@@ -187,6 +189,7 @@ pub struct SubqueryComparisonExpr {
 pub struct FunctionExpr {
     pub function: FunctionName,
     pub args: Vec<FunctionArg>,
+    pub set_quantifier: Option<SetQuantifier>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -287,6 +290,12 @@ pub enum BinaryOp {
     NotIn,
     Or,
     Sub,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct GroupByClause {
+    pub keys: Vec<AliasedExpr>,
+    pub aggregations: Vec<AliasedExpr>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
