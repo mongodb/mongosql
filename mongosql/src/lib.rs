@@ -1,3 +1,4 @@
+mod ir;
 mod parser;
 mod result;
 use crate::parser::Parser;
