@@ -91,6 +91,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$sqlNot': ['$bar.foo']}}}
     result:
       - {'bar': {'a': false}}

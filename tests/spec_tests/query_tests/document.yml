@@ -83,6 +83,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a', 'b': '$bar.a.b'}}}
       - {'$sort': {'__bot._id': 1}}
     result:

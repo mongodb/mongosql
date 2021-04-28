@@ -81,7 +81,8 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 'f': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'f': '$foo'}}
     result:
      - {'f': {'_id': 0, 'a': 1, 'b': 1}}
      - {'f': {'_id': 1, 'a': 2, 'b': 2}}
@@ -93,6 +94,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a', 'b': '$foo.b'}}}
     result:
       - {'__bot': {'a': 1, 'b': 1}}
@@ -104,7 +106,8 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 'f': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'f': '$foo'}}
       - {'$project': {'_id': 0, 'f': '$f'}}
     result:
      - {'f': {'_id': 0, 'a': 1, 'b': 1}}
@@ -117,6 +120,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}, 'foo': '$foo'}}
     result:
       - {'__bot': {'a': 1}, 'foo': {'_id': 0, 'a': 1, 'b': 1}}

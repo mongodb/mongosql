@@ -32,6 +32,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'double']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': true}}
@@ -64,6 +65,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'string']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -96,6 +98,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'object']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -128,6 +131,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'array']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -160,6 +164,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'binData']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -192,6 +197,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'undefined']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -224,6 +230,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'objectId']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -256,6 +263,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'bool']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -288,6 +296,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'date']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -320,6 +329,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$or': [{'$eq': [{'$type': '$bar.v'}, 'null']}, {'$eq': [{'$type': '$bar.v'}, 'missing']}]}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -352,6 +362,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'missing']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -384,6 +395,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'regex']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -416,6 +428,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'dbPointer']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -448,6 +461,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'javascript']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -480,6 +494,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'symbol']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -512,6 +527,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'javascriptWithScope']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -544,6 +560,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'int']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -576,6 +593,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'timestamp']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -608,6 +626,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'long']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -640,6 +659,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'decimal']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -672,6 +692,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'minKey']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
@@ -704,6 +725,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'maxKey']}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}

@@ -74,6 +74,7 @@ tests:
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'unary': '$unary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'not_a': {"$sqlNot": "$unary.a"}}}}
     result:
       - {'__bot': {"a": true, "not_a": false } }
@@ -87,6 +88,7 @@ tests:
     translation_target_coll: binary
     translation:
       - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'binary': '$binary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a_and_b': {"$sqlAnd": ["$binary.a", "$binary.b"]}}}}
     result:
       - {'__bot': {"a": true, "b": true, "a_and_b": true } }
@@ -112,6 +114,7 @@ tests:
     translation_target_coll: binary
     translation:
       - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'binary': '$binary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a_or_b': {"$sqlOr": ["$$binary.a", "$$binary.b"]}}}}
     result:
       - {'__bot': {"a": true, "b": true, "a_or_b": true } }

@@ -11,6 +11,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$add': ['$bar.a', '$bar.b', '$bar.c']}}}}
     result:
       - {'__bot': {'n': {'$numberInt': '6'}}}
@@ -22,6 +23,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$subtract': [{'$subtract': ['$bar.a', '$bar.b']}, '$bar.c']}}}}
     result:
       - {'__bot': {'n': {'$numberInt': '-4'}}}
@@ -33,6 +35,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$multiply': ['$bar.a', '$bar.b', '$bar.c']}}}}
     result:
       - {'__bot': {'n': {'$numberInt': '6'}}}
@@ -44,6 +47,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$divide': {'dividend': {'$divide': {'dividend': '$bar.a', 'divisor': '$bar.b', 'onError': {'$literal': null}}}, 'divisor': '$bar.c', 'onError': {'$literal': null}}}}}}
     result:
       - {'__bot': {'n': {'$numberInt': '0'}}}

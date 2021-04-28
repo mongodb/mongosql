@@ -11,6 +11,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'s': {'$concat': ['$bar.a', '$bar.b', '$bar.c']}}}}
     result:
       - {'__bot': {'s': 'abc'}}

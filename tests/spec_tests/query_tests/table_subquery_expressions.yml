@@ -58,6 +58,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'eq',
                                                        'modifier': 'any',
@@ -68,6 +69,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -84,6 +86,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'eq',
                                                        'modifier': 'any',
@@ -94,6 +97,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -109,6 +113,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'ne',
                                                        'modifier': 'any',
@@ -119,6 +124,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -137,6 +143,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'ne',
                                                        'modifier': 'any',
@@ -147,6 +154,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -164,6 +172,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lt',
                                                        'modifier': 'any',
@@ -174,6 +183,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -190,6 +200,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lt',
                                                        'modifier': 'any',
@@ -200,6 +211,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -215,6 +227,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lte',
                                                        'modifier': 'any',
@@ -225,6 +238,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -242,6 +256,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lte',
                                                        'modifier': 'any',
@@ -252,6 +267,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -268,6 +284,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gt',
                                                        'modifier': 'any',
@@ -278,6 +295,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -294,6 +312,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gt',
                                                        'modifier': 'any',
@@ -304,6 +323,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -319,6 +339,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gte',
                                                        'modifier': 'any',
@@ -329,6 +350,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -346,6 +368,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gte',
                                                        'modifier': 'any',
@@ -356,6 +379,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -372,6 +396,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'eq',
                                                        'modifier': 'all',
@@ -382,6 +407,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -396,6 +422,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'eq',
                                                        'modifier': 'all',
@@ -406,6 +433,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -419,6 +447,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': '',
                                                        'modifier': 'all',
@@ -429,6 +458,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlEq': ['$target.a', {'$literal': 1}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -444,6 +474,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'ne',
                                                        'modifier': 'all',
@@ -454,6 +485,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -470,6 +502,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'ne',
                                                        'modifier': 'all',
@@ -480,6 +513,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -493,6 +527,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lt',
                                                        'modifier': 'all',
@@ -503,6 +538,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -518,6 +554,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lt',
                                                        'modifier': 'all',
@@ -528,6 +565,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -541,6 +579,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lte',
                                                        'modifier': 'all',
@@ -551,6 +590,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -567,6 +607,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'lte',
                                                        'modifier': 'all',
@@ -577,6 +618,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -590,6 +632,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gt',
                                                        'modifier': 'all',
@@ -600,6 +643,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -615,6 +659,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gt',
                                                        'modifier': 'all',
@@ -625,6 +670,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -638,6 +684,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gte',
                                                        'modifier': 'all',
@@ -648,6 +695,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
@@ -664,6 +712,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
                                                        'op': 'gte',
                                                        'modifier': 'all',
@@ -674,6 +723,7 @@ tests:
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
@@ -687,6 +737,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryComparison': {
                                                                                         'op': 'eq',
                                                                                         'modifier': 'any',
@@ -697,6 +748,7 @@ tests:
                                                                                                       'outputPath': ['__bot', 'a'],
                                                                                                       'pipeline': [
                                                                                                                     {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                                                    {'$project': {'_id': 0, 'target': '$target'}},
                                                                                                                     {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                                                       ]
                                                                                         }
@@ -716,6 +768,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryComparison': {
                                                                                         'op': 'eq',
                                                                                         'modifier': 'all',
@@ -726,6 +779,7 @@ tests:
                                                                                                       'outputPath': ['__bot', 'a'],
                                                                                                       'pipeline': [
                                                                                                                     {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                                                    {'$project': {'_id': 0, 'target': '$target'}},
                                                                                                                     {'$match': {'$expr': {'$sqlNot': [{'$or': [{'$eq': [{'$type': '$target.a'}, 'null']}, {'$eq': [{'$type': '$target.a'}, 'missing']}]}]}}},
                                                                                                                     {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                                                       ]
@@ -746,11 +800,13 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryExists': {
                                                    'collection': 'target',
                                                    'let': {'bar_v_0': '$bar.v'},
                                                    'pipeline': [
                                                                  {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                 {'$project': {'_id': 0, 'target': '$target'}},
                                                                  {'$match': {'$expr': {'$sqlEq': ['$$bar_v_0', '$target.a']}}}
                                                    ]
       }}}}
@@ -765,11 +821,13 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$sqlNot': {'$subqueryExists': {
                                                                'collection': 'target',
                                                                'let': {'bar_v_0': '$bar.v'},
                                                                'pipeline': [
                                                                              {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                             {'$project': {'_id': 0, 'target': '$target'}},
                                                                              {'$match': {'$expr': {'$sqlEq': ['$$bar_v_0', '$target.a']}}}
                                                                ]
       }}}}}
@@ -786,11 +844,13 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryExists': {
                                                                                     'collection': 'target',
                                                                                     'let': {'bar_v_0': '$bar.v'},
                                                                                     'pipeline': [
                                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
+                                                                                                  {'$project': {'_id': 0, 'target': '$target'}},
                                                                                                   {'$match': {'$expr': {'$sqlEq': ['$target.a', '$$bar_a_0']}}}
                                                                                     ]
       }}}}}

@@ -62,7 +62,8 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$sort': {'__bot.a': 1}}
     result:
@@ -77,6 +78,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
+      - {'$project': {'_id': 0, 'foo': "$foo"}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$sort': {'__bot.a': -1}}
     result:
@@ -91,6 +93,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
+      - {'$project': {'_id': 0, 'foo': "$foo"}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a', 'b': '$foo.b'}}}
       - {'$sort': {'__bot.a': 1, '__bot.b': 1}}
     result:
@@ -105,6 +108,7 @@ tests:
     translation_target_coll: nullAndMissing
     translation:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$sort': {'nullAndMissing.a': 1}}
     result:
       - {'nullAndMissing': {}}
@@ -118,6 +122,7 @@ tests:
     translation_target_coll: nullAndNonNull
     translation:
       - {'$project': {'_id': 0, 'nullAndNonNull': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nullAndNonNull': '$nullAndNonNull'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndNonNull.a'}}}
       - {'$sort': {'__bot.a': 1}}
     result:
@@ -137,6 +142,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$sort': {'bar.a': 1}}
     result:
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
@@ -151,6 +157,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$sort': {'bar.a': 1}}
     result:
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
@@ -164,6 +171,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'b': '$bar.b'}}}
       - {'$sort': {'__bot.b.c': 1}}
     result:
@@ -178,6 +186,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$sort': {'bar.b.c': 1}}
     result:
       - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}

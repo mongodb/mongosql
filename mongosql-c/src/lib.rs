@@ -22,7 +22,8 @@ pub extern "C" fn translate(
 ) -> *const raw::c_char {
     let current_db = from_extern_string(current_db).expect("current_db not valid UTF-8");
     let sql = from_extern_string(sql).expect("sql not valid UTF-8");
-    let res = mongosql::translate_sql_bson_base64(&current_db, &sql);
+    let res =
+        mongosql::translate_sql_bson_base64(&current_db, &sql).expect("query translation failed");
     to_raw_c_string(&res).expect("failed to convert base64 string to extern string")
 }
 

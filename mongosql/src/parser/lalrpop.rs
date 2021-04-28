@@ -1,5 +1,6 @@
-use crate::{ast, result::Result};
+use crate::ast;
 use lalrpop_util::{lalrpop_mod, lexer::Token};
+use thiserror::Error;
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -7,7 +8,21 @@ lalrpop_mod!(
     "/parser/mongosql.rs"
 );
 
-pub type ParseError<'t> = lalrpop_util::ParseError<usize, Token<'t>, String>;
+type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("{0}")]
+    Lalrpop(String),
+}
+
+pub type LalrpopError<'t> = lalrpop_util::ParseError<usize, Token<'t>, String>;
+
+impl From<LalrpopError<'_>> for Error {
+    fn from(e: LalrpopError<'_>) -> Self {
+        Error::Lalrpop(format!("{}", e))
+    }
+}
 
 pub struct Parser {
     query_parser: grammar::QueryParser,

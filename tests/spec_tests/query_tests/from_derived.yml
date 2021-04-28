@@ -43,6 +43,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo']}}}
     result:
       - {'derived': {'x': 11, 'y': 12}}

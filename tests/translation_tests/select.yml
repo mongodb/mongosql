@@ -15,18 +15,25 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$join': {
         'source': 'bar',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 't2': '$bar'}},
+        ],
       }}
       - {'$join': {
         'source': 'baz',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'baz': '$$ROOT'}},
+          {'$project': {'_id': 0, 't3': '$baz'}},
+        ],
       }}
       - {'$project': {'_id': 0, 't1': '$t1', 't2': '$t2', 't3': '$t3'}}
     result:
@@ -40,17 +47,24 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'$project': {'_id': 0, 't1': '$t1'}}
       - {'$join': {
         'source': 'bar',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 't2': '$bar'}},
+         ],
       }}
       - {'$join': {
         'source': 'baz',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'baz': '$$ROOT'}},
+          {'$project': {'_id': 0, 't3': '$baz'}},
+         ],
       }}
       - {'$project': {'_id': 0, 't1': '$t1', 't3': '$t3'}}
     result:
@@ -63,7 +77,8 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$project': {'_id': 0, '__bot': '$t1.b'}}
     result:
       - {'__bot': {'c': 2}}
@@ -75,18 +90,25 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$join': {
         'source': 'bar',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 't2': '$bar'}},
+        ],
       }}
       - {'$join': {
         'source': 'baz',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'baz': '$$ROOT'}},
+          {'$project': {'_id': 0, 't3': '$baz'}},
+        ],
       }}
       - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't1': '$t1', 't2': '$t2', 't3': '$t3'}}
     result:
@@ -99,18 +121,25 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$join': {
         'source': 'bar',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t2': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 't2': '$bar'}},
+        ],
       }}
       - {'$join': {
         'source': 'baz',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'t3': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'baz': '$$ROOT'}},
+          {'$project': {'_id': 0, 't3': '$baz'}},
+        ],
       }}
       - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't3': '$t3'}}
     result:

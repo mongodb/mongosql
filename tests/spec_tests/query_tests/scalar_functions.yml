@@ -232,7 +232,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: nullif
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nullif': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$nullif'}}
       - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$nullif': ['$c.v1', '$c.v2']}}}}
     result:
       - {'__bot': {'v1': 'a', 'v2': 'a', 'v': null}}
@@ -249,7 +250,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: twoArgCoalesce
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'twoArgCoalesce': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$twoArgCoalesce'}}
       - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$coalesce': ['$c.v1', '$c.v2']}}}}
     result:
       - {'__bot': {'v1': 123, 'v2': 456, 'v': 123}}
@@ -262,7 +264,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: multiArgCoalesce
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'multiArgCoalesce': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$multiArgCoalesce'}}
       - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v3': '$c.v3', 'v4': '$c.v4', 'v5': '$c.v5', 'v': {'$coalesce': ['$c.v1', '$c.v2', '$c.v3', '$c.v4', '$c.v5']}}}}
     result:
       - {'__bot': {'v1': 123, 'v2': null, 'v4': 789, 'v5': null, 'v': 123}}
@@ -276,7 +279,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: size
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'size': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$size'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$c.a', 's': {'$sqlSize': '$c.a'}}}}
     result:
       - {'__bot': {'a': [], 's': 0}}
@@ -291,7 +295,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: position
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'position': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$position'}}
       - {'$project': {'_id': 0, '__bot': {'s1': '$c.s1', 's2': '$c.s2', 'p': {'$sqlIndexOfCP': ['$c.s2', '$c.s1']}}}}
     result:
       - {'__bot': {'s1': '', 's2': 'abc', 'p': 0}}
@@ -311,7 +316,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: length
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'length': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$length'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenCP': '$c.s'}, 'comment': '$c.comment'}}}
     result:
       - {'__bot': {'s': '', 'len': 0}}
@@ -329,7 +335,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: length
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'length': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$length'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenBytes': '$c.s'}, 'comment': '$c.comment'}}}
     result:
       - {'__bot': {'s': '', 'len': 0}}
@@ -347,7 +354,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: length
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'length': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$length'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$multiply': [{'$sqlStrLenBytes': '$c.s'}, {'$literal': 8}]}, 'comment': '$c.comment'}}}
     result:
       - {'__bot': {'s': '', 'len': 0}}
@@ -425,7 +433,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'d': '$c.d', 'v': {'$year': '$c.d'}}}}
     result:
       - {'__bot': {'d': null, 'v': null}}
@@ -437,7 +446,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: substring
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'substring': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$substring'}}
       - {'$project': {'_id': 0, '__bot': {'str': '$c.str', 'start': '$c.start', 'length': '$c.length', 'substr': {'$sqlSubstrCP': ['$c.str', '$c.start', '$c.length']}}}}
     result:
       - {'__bot': {'str': '', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
@@ -463,7 +473,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: fold
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'fold': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$fold'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToUpper': '$c.s'}}}}
     result:
       - {'__bot': {'s': '', 'v': 'ABCD'}}
@@ -479,7 +490,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: fold
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'fold': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$fold'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToLower': '$c.s'}}}}
     result:
       - {'__bot': {'s': '', 'v': 'abcd'}}
@@ -495,7 +507,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: trim
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$trim'}}
       - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$trim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
     result:
       - {'__bot': {'substr': '', 'str': '', 'v': ''}}
@@ -516,7 +529,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: trim
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$trim'}}
       - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$ltrim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
     result:
       - {'__bot': {'substr': '', 'str': '', 'v': ''}}
@@ -537,7 +551,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: trim
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$trim'}}
       - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$rtrim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
     result:
       - {'__bot': {'substr': '', 'str': '', 'v': ''}}

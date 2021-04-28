@@ -49,11 +49,15 @@ tests:
     translation_target_coll: bar
     translation:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$join': {
           'source': 'coll',
           'joinType': 'inner',
           'let': {},
-          'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+          'pipeline': [
+            {'$project': {'_id': 0, 'coll': '$$ROOT'}},
+            {'$project': {'_id': 0, 'coll': '$coll'}},
+          ],
         }}
     result:
         - {'bar': {'_id': 0, 'foo': 1}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
@@ -66,11 +70,15 @@ tests:
     query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car"
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
         'source': 'coll',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
-        'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'coll': '$$ROOT'}},
+          {'$project': {'_id': 0, 'coll': '$coll'}},
+        ],
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}},
       }}
     result:
@@ -83,11 +91,15 @@ tests:
     translation_target_coll: bar2
     translation:
       - {'$project': {'_id': 0, 'bar2': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar2': '$bar2'}}
       - {'$join': {
         'source': 'bar',
         'joinType': 'left',
         'let': {'__bar2_foo': '$bar2.foo'},
-        'pipeline': [{'$project': {'bar': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 'bar': '$bar'}},
+        ],
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar2_foo', '$bar.foo']}}},
       }}
     result:
@@ -101,11 +113,15 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
         'source': 'bar2',
         'joinType': 'left',
         'let': {'__bar_foo': '$bar.foo'},
-        'pipeline': [{'$project': {'bar2': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
+          {'$project': {'_id': 0, 'bar2': '$bar2'}},
+        ],
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$bar2.foo']}}},
       }}
     result:
@@ -129,11 +145,15 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
         'source': 'bar2',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
-        'pipeline': [{'$project': {'bar2': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
+          {'$project': {'_id': 0, 'bar2': '$bar2'}},
+        ],
         'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': ['$$__bar_foo', {'$literal': 15}]}, '$bar2.baz']}}}
       }}
     result:
@@ -151,11 +171,15 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
         'source': 'coll',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
-        'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'coll': '$$ROOT'}},
+          {'$project': {'_id': 0, 'coll': '$coll'}},
+        ],
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}},
       }}
     result:
@@ -168,11 +192,15 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
         'source': 'coll',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
-        'pipeline': [{'$project': {'coll': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'coll': '$$ROOT'}},
+          {'$project': {'_id': 0, 'coll': '$coll'}},
+        ],
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}}
       }}
     result:
@@ -188,18 +216,25 @@ tests:
     translation_target_db: mydb
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'a': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'a': '$bar'}}
       - {'$join': {
         'source': 'bar',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'b': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 'b': '$bar'}},
+        ],
       }}
       - {'$join': {
         'source': 'bar',
         'joinType': 'left',
         'let': {'__a_foo': '$a.foo'},
-        'pipeline': [{'$project': {'c': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 'c': '$bar'}},
+        ],
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$__a_foo', '$c.foo']}}}
       }}
     result:

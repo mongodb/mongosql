@@ -64,8 +64,8 @@ pub enum SortSpecification {
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Collection {
-    db: String,
-    collection: String,
+    pub db: String,
+    pub collection: String,
 }
 
 #[allow(dead_code)]

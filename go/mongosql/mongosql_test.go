@@ -30,7 +30,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestTranslate(t *testing.T) {
-	db, collection, pipelineBytes := mongosql.Translate("bar", "select *")
+	db, collection, pipelineBytes := mongosql.Translate("bar", "select * from foo")
 
 	if db != "bar" {
 		t.Fatalf("expected db to be 'bar', got '%s'", db)
@@ -57,7 +57,7 @@ func TestTranslate(t *testing.T) {
 	expectedStage := bson.D{
 		{"$project", bson.D{
 			{"_id", int32(0)},
-			{"a", "$a"},
+			{"foo", "$$ROOT"},
 		}},
 	}
 	if !reflect.DeepEqual(expectedStage, pipeline[0]) {

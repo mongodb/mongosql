@@ -106,6 +106,7 @@ tests:
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'unary': '$unary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '+a': '$unary.a'}}}
     result:
       - {'__bot': {'a': {'$numberInt': '1'}, '+a': {'$numberInt': '1'}}}
@@ -126,6 +127,7 @@ tests:
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'unary': '$unary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '-a': {'$multiply': [{'$literal': -1}, '$unary.a']}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '1'}, '-a': {'$numberInt': '-1'}}}
@@ -146,6 +148,7 @@ tests:
     translation_target_coll: binary
     translation:
       - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'binary': '$binary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a+b': {'$add': ['$binary.a', '$binary.b']}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberInt': '8'}}}
@@ -192,6 +195,7 @@ tests:
     translation_target_coll: binary
     translation:
       - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'binary': '$binary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a-b': {'$subtract': ['$binary.a', '$binary.b']}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberInt': '4'}}}
@@ -238,6 +242,7 @@ tests:
     translation_target_coll: binary
     translation:
       - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'binary': '$binary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a*b': {'$multiply': ['$binary.a', '$binary.b']}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberInt': '12'}}}
@@ -284,6 +289,7 @@ tests:
     translation_target_coll: binary
     translation:
       - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'binary': '$binary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a/b': {'$divide': {'dividend': '$binary.a', 'divisor': '$binary.b', 'onError': {'$literal': null}}}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberInt': '3'}}}
@@ -330,6 +336,7 @@ tests:
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'unary': '$unary'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'n': {'$divide': {'dividend': '$unary.a', 'divisor': {'$literal': 0}, 'onError': {'$literal': null}}}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '1'}, 'n': null}}
@@ -349,7 +356,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: i
     translation:
-      - {'$project': {'_id': 0, 'i': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'integer_division': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'i': '$integer_division'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$i.a', 'b': '$i.b', 'n': {'$divide': {'dividend': '$i.a', 'divisor': '$i.b', 'onError': {'$literal': null}}}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '5'}, 'b': {'$numberInt': '2'}, 'n': {'$numberInt': '2'}}}

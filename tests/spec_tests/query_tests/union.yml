@@ -16,7 +16,11 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$unionWith': {'coll': 'bar', 'pipeline': [{'$project': {'_id': 0, 'bar': '$$ROOT'}}]}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
+      - {'$unionWith': {'coll': 'bar', 'pipeline': [
+            {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+            {'$project': {'_id': 0, 'bar': '$bar'}},
+        ]}}
     result:
       - {'foo': {'_id': 0, 'a': 1}}
       - {'foo': {'_id': 1, 'a': 2}}
@@ -50,8 +54,13 @@ tests:
     translation_taget_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
-      - {'$unionWith': {'coll': 'foo', 'pipeline': [{'$project': {'_id': 0, 'foo': '$$ROOT'}}, {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}]}}
+      - {'$unionWith': {'coll': 'foo', 'pipeline': [
+          {'$project': {'_id': 0, 'foo': '$$ROOT'}},
+          {'$project': {'_id': 0, 'foo': '$foo'}},
+          {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}},
+        ]}}
     result:
       - {'__bot': {'a': 1}}
       - {'__bot': {'a': 1}}
@@ -77,6 +86,7 @@ tests:
     translation_target_collection: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$unionWith': {'pipeline': [{'$array': {'arr': [{'b': 1}, {'b': 2}]}}]}}
     result:

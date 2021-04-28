@@ -1,5 +1,5 @@
 use crate::ast::*;
-use crate::parser::Parser;
+use crate::parser::{Error, Parser};
 use linked_hash_map::LinkedHashMap;
 
 macro_rules! should_parse {
@@ -24,7 +24,7 @@ macro_rules! should_fail_to_parse_with_error {
             let res = Parser::new().parse_query($input);
             match res {
                 Ok(_) => panic!("expected parse error, but parsing succeeded"),
-                Err(crate::result::Error::Parse(s)) => assert_eq!($expected_error.to_string(), s),
+                Err(Error::Lalrpop(s)) => assert_eq!($expected_error.to_string(), s),
             }
         }
     };

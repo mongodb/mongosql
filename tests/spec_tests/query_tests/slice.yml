@@ -42,7 +42,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: no_start
     translation:
-      - {'$project': {'_id': 0, 'ns': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'no_start': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'ns': '$no_start'}}
       - {'$project': {'_id': 0, '__bot': {'arr': '$ns.arr', 'len': '$ns.len', 'slice': {'$sqlSlice': ['$ns.arr', '$ns.len']}}}}
     result:
       - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}}, 'slice': [3]}
@@ -61,7 +62,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: start
     translation:
-      - {'$project': {'_id': 0, 's': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'start': '$$ROOT'}}
+      - {'$project': {'_id': 0, 's': '$start'}}
       - {'$project': {'_id': 0, '__bot': {'arr': '$s.arr', 'len': '$s.len', 'start': '$s.start', 'slice': {'$sqlSlice': ['$s.arr', '$s.start', '$s.len']}}}}
     result:
       - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '-1'}, 'slice': []}}

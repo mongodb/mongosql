@@ -38,12 +38,16 @@ tests:
     translation_target_db: db
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 'foo1': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo1': '$foo'}}
       - {'$join': {
         'source': 'foo',
         'joinType': 'inner',
         'let': {},
-        'pipeline': [{'$project': {'foo2': '$$ROOT'}}],
+        'pipeline': [
+          {'$project': {'_id': 0, 'foo': '$$ROOT'}},
+          {'$project': {'_id': 0, 'foo2': '$foo'}},
+        ],
       }}
     result:
       - {"foo1": {'_id': 0, "a": 1, "b": 2}, "foo2": {'_id': 0, "a": 1, "b": 2}}
@@ -54,9 +58,14 @@ tests:
     translation_target_db: db
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 'alias': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'alias': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$alias.a', 'c': '$alias.b'}}}
-      - {'$unionWith': {'coll': 'foo', 'pipeline': [{'$project': {'_id': 0, 'alias': '$$ROOT'}}, {'$project': {'_id': 0, '__bot': {'a': '$alias.a', 'c': '$alias.b'}}}]}}
+      - {'$unionWith': {'coll': 'foo', 'pipeline': [
+          {'$project': {'_id': 0, 'foo': '$$ROOT'}},
+          {'$project': {'_id': 0, 'alias': '$foo'}},
+          {'$project': {'_id': 0, '__bot': {'a': '$alias.a', 'c': '$alias.b'}}},
+        ]}}
     result:
       - {'__bot': {'a': 1, 'c': 2}}
       - {'__bot': {'a': 1, 'c': 2}}

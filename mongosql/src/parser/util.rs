@@ -1,4 +1,4 @@
-use crate::{ast::*, parser::ParseError};
+use crate::{ast::*, parser::lalrpop::LalrpopError};
 use std::str::FromStr;
 
 /// process_delimited_ident removes the outer delimiters from an identifier and
@@ -19,11 +19,11 @@ pub(crate) fn parse_between_expr(
     e1: Box<Expression>,
     e2: Expression,
     not: bool,
-) -> Result<Box<Expression>, ParseError<'static>> {
+) -> Result<Box<Expression>, LalrpopError<'static>> {
     match e2 {
         Expression::Binary(BinaryExpr { left, op, right }) => {
             if op != BinaryOp::And {
-                Err(ParseError::from(
+                Err(LalrpopError::from(
                     "invalid BinaryOp in BetweenExpr".to_string(),
                 ))
             } else if not {
@@ -43,15 +43,17 @@ pub(crate) fn parse_between_expr(
                 })))
             }
         }
-        _ => Err(ParseError::from("failed to parse BetweenExpr".to_string())),
+        _ => Err(LalrpopError::from(
+            "failed to parse BetweenExpr".to_string(),
+        )),
     }
 }
 
-pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, ParseError<'static>> {
+pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, LalrpopError<'static>> {
     match e {
         Expression::Binary(BinaryExpr { left, op, right }) => {
             if op != BinaryOp::In {
-                Err(ParseError::from(
+                Err(LalrpopError::from(
                     "invalid BinaryOp in call to Position()".to_string(),
                 ))
             } else {
@@ -62,11 +64,11 @@ pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, ParseEr
                 })
             }
         }
-        _ => Err(ParseError::from("failed to parse Position()".to_string())),
+        _ => Err(LalrpopError::from("failed to parse Position()".to_string())),
     }
 }
 
-pub(crate) fn parse_sort_key(e: Expression) -> Result<SortKey, ParseError<'static>> {
+pub(crate) fn parse_sort_key(e: Expression) -> Result<SortKey, LalrpopError<'static>> {
     match e {
         Expression::Identifier(_) => Ok(SortKey::Simple(e)),
         Expression::Subpath(SubpathExpr {
@@ -74,20 +76,22 @@ pub(crate) fn parse_sort_key(e: Expression) -> Result<SortKey, ParseError<'stati
             subpath: _,
         }) => Ok(SortKey::Simple(e)),
         Expression::Literal(Literal::Integer(i)) => {
-            let u: Result<u32, ParseError> = u32::from_str(i.to_string().as_str())
-                .map_err(|_| ParseError::from("failed to convert number to u32".to_string()));
+            let u: Result<u32, LalrpopError> = u32::from_str(i.to_string().as_str())
+                .map_err(|_| LalrpopError::from("failed to convert number to u32".to_string()));
             match u {
                 Ok(x) => Ok(SortKey::Positional(x)),
                 Err(x) => Err(x),
             }
         }
-        _ => Err(ParseError::from(
+        _ => Err(LalrpopError::from(
             "failed to parse ORDER BY sort key".to_string(),
         )),
     }
 }
 
-pub(crate) fn parse_simple_datasource(ae: AliasedExpr) -> Result<Datasource, ParseError<'static>> {
+pub(crate) fn parse_simple_datasource(
+    ae: AliasedExpr,
+) -> Result<Datasource, LalrpopError<'static>> {
     match ae {
         AliasedExpr {
             expr: Expression::Identifier(collection),
@@ -104,7 +108,7 @@ pub(crate) fn parse_simple_datasource(ae: AliasedExpr) -> Result<Datasource, Par
         AliasedExpr {
             expr: Expression::Array(_),
             alias: None,
-        } => Err(ParseError::from(
+        } => Err(LalrpopError::from(
             "array datasources must have aliases".to_string(),
         )),
         AliasedExpr {
@@ -114,7 +118,7 @@ pub(crate) fn parse_simple_datasource(ae: AliasedExpr) -> Result<Datasource, Par
         AliasedExpr {
             expr: Expression::Subquery(_),
             alias: None,
-        } => Err(ParseError::from(
+        } => Err(LalrpopError::from(
             "derived query datasources must have aliases".to_string(),
         )),
         AliasedExpr {
@@ -132,11 +136,11 @@ pub(crate) fn parse_simple_datasource(ae: AliasedExpr) -> Result<Datasource, Par
         AliasedExpr {
             expr: Expression::Subpath(_),
             alias: _,
-        } => Err(ParseError::from(format!(
+        } => Err(LalrpopError::from(format!(
             "collection data sources can only have database qualification, found: {}",
             ae.expr,
         ))),
-        _ => Err(ParseError::from(format!(
+        _ => Err(LalrpopError::from(format!(
             "found unsupported expression used as datasource: {}",
             ae.expr,
         ))),

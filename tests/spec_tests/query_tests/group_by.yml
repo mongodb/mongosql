@@ -111,6 +111,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'n': null}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
@@ -123,6 +124,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'n': 1}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
@@ -135,6 +137,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'n': 'hello'}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
@@ -146,7 +149,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: nullAndMissing
       translations:
-        - {'$project': {'_id': 0, 'a': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'a': '$nullAndMissing'}}
         - {'$group': {'_id': {'n': '$a.n'}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
@@ -166,6 +170,10 @@ tests:
         - {'$project': {'_id': 0, 'a': '$$ROOT'}}
         - {'$group': {'_id': {'a': '$a.a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'a': '$poly'}}
+        - {'$group': {'_id': {'a': '$a.a.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
       result:
         -  {'__bot': {"a": {"$numberInt": "1"}}}
         -  {'__bot': {"a": {"$numberInt": "2"}}}
@@ -178,6 +186,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
         - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
@@ -187,12 +196,13 @@ tests:
         - {'__bot': {"a": {"$numberInt": "111"}} }
 
     - description: qualified top-level field reference keys can be referenced by unqualified name
-      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY bar.a"
+      query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY bar.a"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
         - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
@@ -202,12 +212,13 @@ tests:
         - {'__bot': {"a": {"$numberInt": "111"}} }
 
     - description: unqualified top-level field reference keys can be referenced by qualified name
-      query: "SELECT VALUE{'a': bar.a} FROM foo.bar GROUP BY a"
+      query: "SELECT VALUE{'a': bar.a} FROM foo.bar AS bar GROUP BY a"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
         - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
@@ -217,12 +228,13 @@ tests:
         - {'__bot': {"a": {"$numberInt": "111"}} }
 
     - description: unqualified top-level field reference keys can be referenced by unqualified name
-      query: "SELECT VALUE {'a': a} FROM foo.bar GROUP BY a"
+      query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY a"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'a': '$bar.a'}}}
         - {'$project': {'_id': 0, 'bar': {'a': '$__unaliasedKey1.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
@@ -241,7 +253,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'b': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'b': '$poly'}}
         - {'$group': {'_id': {'a': '$b.a.a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
       result:
@@ -254,6 +267,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'ad2': {'$divde': {'dividend': '$bar.a', 'divisor': {'$literal': 2}, 'onError': null}}}}}
         - {'$project': {'_id': 0, '__bot': {'ad2': '$_id.a'}}}
       result:
@@ -268,6 +282,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'n': null}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'suma': '$suma'}}}
       result:
@@ -292,6 +307,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'n': null}, 'dsuma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'dsuma': '$dsuma', 'suma': '$suma'}}}
       result:
@@ -304,6 +320,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'n': null}, 'dsuma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'countc': {'$sqlCount': {'var': '$bar.c', 'distinct': true}}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'dsuma': '$dsuma', 'countc': '$countc'}}}
       result:
@@ -316,6 +333,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'a': '$bar.a', 'b': '$bar.b'}, 'sumc': {$sqlSum: {'var': '$bar.c', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'sumc': '$sumc'}}}
       result:
@@ -330,6 +348,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$group': {'_id': {'a': '$bar.a', 'b': '$bar.b'}, 'sumc': {$sqlSum: {'var': '$bar.c', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'sumc': '$sumc'}}}
         - {'$match': { $and: [ {'$neq': ['$__bot.a', 1]}, {'$neq': ['$__bot.b', 4]}]}}
@@ -359,6 +378,7 @@ tests:
       translation_target_coll: bar
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$match': {'$expr': {'$sqlLt': ['$bar.a', {'$literal': 15}]}}}
         - {'$match': {'$expr': {'$sqlGt': ['$bar.a', {'$literal': 5}]}}}
       result:
@@ -371,6 +391,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$poly'}}
         - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
@@ -388,6 +409,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$poly'}}
         - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
@@ -409,6 +431,7 @@ tests:
       translation_target_coll: numerics
       translations:
         - {'$project': {'_id': 0, 'numerics': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'numerics': '$numerics'}}
         - {'$sort': {'numerics._id': 1}}
         - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
         - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numerics.a'}}}
@@ -418,12 +441,13 @@ tests:
         - {'__bot': {'gset': [{ '$numberDecimal': '3' }]}}
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
-      query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics ORDER BY _id DESC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id DESC) AS `numeric` GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: numerics
       translations:
         - {'$project': {'_id': 0, 'numerics': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'numerics': '$numerics'}}
         - {'$sort': {'numerics._id': -1}}
         - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
         - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numerics.a'}}}
@@ -447,6 +471,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$poly'}}
         - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
@@ -463,7 +488,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': 'poly'}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gavg': {'$sqlAvg': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gavg': '$gavg'}}}
       result:
@@ -498,7 +524,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$poly'}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gcount': {'$sqlCount': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gcount': '$gcount'}}}
       result:
@@ -525,7 +552,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$poly'}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gcounta': {'$sqlCount': {'var': '$arr.a', 'distinct': false}, 'gcountn': {'$sqlCount': {'var': null, 'distinct': false}}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gcounta': '$gcounta', 'gcountn': '$gcountn'}}}
       result:
@@ -557,6 +585,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$poly'}}
         - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
@@ -591,6 +620,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$poly'}}
         - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
@@ -624,7 +654,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$bar'}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gmax': {'$max': '$bar.b'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmax': '$gmax'}}}
       result:
@@ -647,6 +678,7 @@ tests:
       translation_target_coll: poly2
       translations:
         - {'$project': {'_id': 0, 'poly2': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly2': '$poly2'}}
         - {'$project': {'_id': 0, '__bot': {'_id': '$poly2._id', 'a': '$poly2.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
@@ -680,7 +712,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$bar'}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gmin': {'$min': '$arr.b'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmin': '$gmin'}}}
       result:
@@ -702,7 +735,8 @@ tests:
       translation_target_coll: poly
       current_db: foo
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$poly'}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'gstdp': {'$sqlStdDevPop': {'var': '$arr.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gstdp': '$gstdp'}}}
       result:
@@ -733,7 +767,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$poly'}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'gstds': {'$sqlStdDevSamp': {'var': '$arr.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gstds': '$gstds'}}}
       result:
@@ -764,7 +799,8 @@ tests:
       translation_target_db: foo
       translation_target_coll: poly
       translations:
-        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$poly'}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'gsum':  {'$sqlSum': {'var': '$arr.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gsum': '$gsum'}}}
       result:

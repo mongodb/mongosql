@@ -64,7 +64,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: employees
     translation:
-      - {'$project': {'_id': 0, 'emp': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'employees': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'emp': '$employees'}}
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp.name',
                                            'avg_salary': {'$subquery': {
@@ -88,7 +89,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:
-      - {'$project': {'_id': 0, 'emp': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'employees_w_schema': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'emp': '$employees_w_schema'}}
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp.name',
                                            'department_name': {'$subquery': {
@@ -96,7 +98,8 @@ tests:
                                                                               'let': {'emp_department_id_0': '$emp.department_id'},
                                                                               'outputPath': ['__bot', 'name'],
                                                                               'pipeline': [
-                                                                                            {'$project': {'_id': 0, 'dep': '$$ROOT'}},
+                                                                                            {'$project': {'_id': 0, 'department_w_schema': '$$ROOT'}},
+                                                                                            {'$project': {'_id': 0, 'dep': '$department_w_schema'}},
                                                                                             {'$match': {'$expr': {'$sqlEq': ['$dep._id', '$$emp_department_id_0']}}},
                                                                                             {'$project': {'_id': 0, '__bot': {'name': '$dep.name'}}},
                                                                                             {'$limit': 1}
@@ -125,7 +128,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: department
     translation:
-      - {'$project': {'_id': 0, 'dep': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'department': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'dep': '$department'}}
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$dep.name',
                                            'sub': {'$subquery': {
@@ -148,7 +152,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: employees
     translation:
-      - {'$project': {'_id': 0, 'emp': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'employees': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'emp': '$employees'}}
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp.name',
                                            'avg_salary': {'$subquery': {
@@ -156,7 +161,8 @@ tests:
                                                                          'let': {},
                                                                          'ouputPath': ['__bot', 'avg_salary'],
                                                                          'pipeline': [
-                                                                                       {'$project': {'_id': 0, 'emp': '$$ROOT'}},
+                                                                                       {'$project': {'_id': 0, 'employees': '$$ROOT'}},
+                                                                                       {'$project': {'_id': 0, 'emp': '$employees'}},
                                                                                        {'$group': {'_id': {'_': null}, 'avg_salary': {'$sqlAvg': {'var': '$emp.salary', 'distinct': false}}}},
                                                                                        {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'avg_salary': '$avg_salary'}}},
                                                                                        {'$project': {'_id': 0, '__bot': {'avg_salary': '$__bot.avg_salary'}}}
@@ -175,7 +181,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:
-      - {'$project': {'_id': 0, 'emp1': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'employees_w_schema': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'emp1': '$employees_w_schema'}}
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp1.name',
                                            'department_name': {'$subquery': {
@@ -183,13 +190,15 @@ tests:
                                                                               'let': {'emp1__id_0': '$emp1._id'},
                                                                               'outputPath': ['__bot', 'name'],
                                                                               'pipeline': [
-                                                                                            {'$project': {'_id': 0, 'dep': '$$ROOT'}},
+                                                                                            {'$project': {'_id': 0, 'department_w_schema': '$$ROOT'}},
+                                                                                            {'$project': {'_id': 0, 'dep': '$department_w_schema'}},
                                                                                             {'$match': {'$expr': {'$sqlEq': ['$dep._id', {'$subquery': {
                                                                                                                                                          'collection': 'employees_w_schema',
                                                                                                                                                          'let': {},
                                                                                                                                                          'outputPath': ['__bot', 'department_id'],
                                                                                                                                                          'pipeline': [
-                                                                                                                                                                       {'$project': {'_id': 0, 'emp2': '$$ROOT'}},
+                                                                                                                                                                       {'$project': {'_id': 0, 'employees_w_schema': '$$ROOT'}},
+                                                                                                                                                                       {'$project': {'_id': 0, 'emp2': '$employees_w_schema'}},
                                                                                                                                                                        {'$match': {'$expr': {'$sqlEq': ['$emp2._id', '$$emp1__id_0']}}},
                                                                                                                                                                        {'$project': {'_id': 0, '__bot': {'department_id': '$emp2.department_id'}}},
                                                                                                                                                                        {'$limit': 1}

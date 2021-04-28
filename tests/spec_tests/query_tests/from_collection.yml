@@ -14,6 +14,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
     result:
       - {'foo': {'_id': 0, 'a': 1}}
 
@@ -24,6 +25,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
     result:
       - {'foo': {'_id': 0, 'a': 1}}
 
@@ -34,6 +36,7 @@ tests:
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
     result:
       - {'foo': {'_id': 0, 'b': 1}}
 

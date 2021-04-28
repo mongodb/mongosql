@@ -122,7 +122,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: concat
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'concat': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'c': '$concat'}}
       - {'$project': {'_id': 0, '__bot': {'s1': '$c.s1', 's2': '$c.s2', 's': {'$concat': ['$c.s1', '$c.s2']}}}}
     result:
       - {'__bot': {'s1': 'ab', 's2': 'c', 's': 'abc'}}
@@ -148,7 +149,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
-      - {'$project': {'_id': 0, 'n': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'n': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$n.s', 'p': '$n.p', 'r': {'$like': {'input': '$n.s', 'pattern': '$n.p'}}}}}
     result:
       - {'__bot': {'s': null, 'p': 'abc', 'r': null}}
@@ -162,7 +164,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: like
     translation:
-      - {'$project': {'_id': 0, 'l': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'like': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'l': '$like'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$l.s', 'p': '$l.p', 'r': {'$like': {'input': '$l.s', 'pattern': '$l.p'}}}}}
     result:
       - {'__bot': {'s': 'abc', 'p': 'abc', 'r': true}}
@@ -180,7 +183,8 @@ tests:
     translation_target_db: foo
     translation_target_coll: escape
     translation:
-      - {'$project': {'_id': 0, 'e': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'escape': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'e': '$escape'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$e.s', 'p': '$e.p', 'r': {'$like': {'input': '$e.s', 'pattern': '$e.p', 'escape': {'$literal': '$'}}}}}}
     result:
       - {'__bot': {'s': 'abc', 'p': 'abc', 'r': true}}
