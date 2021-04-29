@@ -86,6 +86,15 @@
          "target": "rhel67"
       },
       {
+         "arch": "aarch64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL82-ARM64"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel82"
+      },
+      {
          "arch": "x86_64",
          "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~RHEL70"

@@ -85,6 +85,11 @@ rhel81-ppc)
     PUSH_ARCH='ppc64le-rhel81'
     PUSH_NAME='linux'
     ;;
+rhel82-arm64)
+    PUSH_ARCH='arm64-rhel82'
+    PUSH_NAME='linux'
+    MONGO_ARCH='aarch64'
+    ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'
     PUSH_NAME='linux'
