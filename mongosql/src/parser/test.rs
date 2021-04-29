@@ -1,4 +1,4 @@
-use crate::parser::ast::*;
+use crate::ast::*;
 use crate::parser::Parser;
 use linked_hash_map::LinkedHashMap;
 
@@ -599,6 +599,11 @@ should_parse!(
     "select * group by a aggregate sum(a)"
 );
 should_parse!(
+    group_by_aggregate_count_star,
+    true,
+    "select * group by a aggregate count(*)"
+);
+should_parse!(
     group_by_aggregate_alias,
     true,
     "select * group by a aggregate sum(a) as b"
@@ -658,7 +663,7 @@ validate_query_ast!(
             ],
             aggregations: vec![AliasedExpr {
                 expr: Expression::Function(FunctionExpr {
-                    function: FunctionName("sum".to_string()),
+                    function: FunctionName("SUM".to_string()),
                     args: vec![FunctionArg::Expr(Expression::Identifier("b".to_string()))],
                     set_quantifier: Some(SetQuantifier::Distinct),
                 }),
@@ -700,7 +705,7 @@ validate_query_ast!(
         }),
         having_clause: Some(Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Function(FunctionExpr {
-                function: FunctionName("sum".to_string()),
+                function: FunctionName("SUM".to_string()),
                 args: vec![FunctionArg::Expr(Expression::Identifier("a".to_string()))],
                 set_quantifier: Some(SetQuantifier::Distinct),
             })),
@@ -1044,18 +1049,6 @@ validate_expression_ast!(
     })
 );
 validate_expression_ast!(
-    fold_ast,
-    "upper(a)",
-    Expression::Function(FunctionExpr {
-        function: FunctionName("FOLD".to_string()),
-        args: vec![
-            FunctionArg::Fold(Casing::Upper),
-            FunctionArg::Expr(Expression::Identifier("a".to_string()))
-        ],
-        set_quantifier: None,
-    })
-);
-validate_expression_ast!(
     trim_default_spec,
     "trim(substr FROM str)",
     Expression::Function(FunctionExpr {
@@ -1091,6 +1084,15 @@ validate_expression_ast!(
             FunctionArg::Expr(Expression::Identifier(" ".to_string())),
             FunctionArg::Expr(Expression::Identifier("str".to_string()))
         ],
+        set_quantifier: None,
+    })
+);
+validate_expression_ast!(
+    fold_ast,
+    "upper(a)",
+    Expression::Function(FunctionExpr {
+        function: FunctionName("UPPER".to_string()),
+        args: vec![FunctionArg::Expr(Expression::Identifier("a".to_string()))],
         set_quantifier: None,
     })
 );
@@ -1454,22 +1456,22 @@ validate_query_ast!(
 
 should_fail_to_parse_with_error!(
     from_cannot_have_more_than_one_qualifier,
-    "collection data sources can only have database qualification, found: Subpath(SubpathExpr { expr: Subpath(SubpathExpr { expr: Identifier(\"car\"), subpath: \"bar\" }), subpath: \"foo\" })",
+    "collection data sources can only have database qualification, found: car.bar.foo",
     "SELECT * FROM car.bar.foo"
 );
 should_fail_to_parse_with_error!(
     from_cannot_be_document,
-    "found unsupported expression used as datasource: Document({\"foo\": Binary(BinaryExpr { left: Literal(Integer(3)), op: Add, right: Literal(Integer(4)) })})",
+    "found unsupported expression used as datasource: {'foo': 3 + 4}",
     "SELECT * FROM {'foo': 3+4}"
 );
 should_fail_to_parse_with_error!(
     from_cannot_be_literal,
-    "found unsupported expression used as datasource: Literal(Integer(3))",
+    "found unsupported expression used as datasource: 3",
     "SELECT * FROM 3"
 );
 should_fail_to_parse_with_error!(
     from_cannot_be_binary_op,
-    "found unsupported expression used as datasource: Binary(BinaryExpr { left: Literal(Integer(3)), op: Add, right: Literal(Integer(4)) })",
+    "found unsupported expression used as datasource: 3 + 4",
     "SELECT * FROM 3 + 4"
 );
 should_fail_to_parse_with_error!(
@@ -1660,15 +1662,15 @@ should_parse!(
 validate_expression_ast!(
     cast_to_decimal_ast,
     "CAST(v AS DECIMAL(1), 'null' ON NULL, 'error' ON ERROR)",
-    Expression::Function(FunctionExpr {
-        function: FunctionName("CAST".to_string()),
-        args: vec![
-            FunctionArg::Expr(Expression::Identifier("v".to_string())),
-            FunctionArg::Cast(Type::Decimal128(Some(1))),
-            FunctionArg::Expr(Expression::Literal(Literal::String("null".to_string()))),
-            FunctionArg::Expr(Expression::Literal(Literal::String("error".to_string())))
-        ],
-        set_quantifier: None,
+    Expression::Cast(CastExpr {
+        expr: Box::new(Expression::Identifier("v".to_string())),
+        to: Type::Decimal128(Some(1)),
+        on_null: Some(Box::new(Expression::Literal(Literal::String(
+            "null".to_string()
+        )))),
+        on_error: Some(Box::new(Expression::Literal(Literal::String(
+            "error".to_string()
+        )))),
     })
 );
 validate_expression_ast!(
@@ -1677,13 +1679,11 @@ validate_expression_ast!(
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Identifier("a".to_string())),
         op: BinaryOp::Mul,
-        right: Box::new(Expression::Function(FunctionExpr {
-            function: FunctionName("CAST".to_string()),
-            args: vec![
-                FunctionArg::Expr(Expression::Identifier("b".to_string())),
-                FunctionArg::Cast(Type::Int32)
-            ],
-            set_quantifier: None,
+        right: Box::new(Expression::Cast(CastExpr {
+            expr: Box::new(Expression::Identifier("b".to_string())),
+            to: Type::Int32,
+            on_null: None,
+            on_error: None,
         }))
     })
 );
@@ -1692,13 +1692,11 @@ validate_expression_ast!(
     "NOT a::bool",
     Expression::Unary(UnaryExpr {
         op: UnaryOp::Not,
-        expr: Box::new(Expression::Function(FunctionExpr {
-            function: FunctionName("CAST".to_string()),
-            args: vec![
-                FunctionArg::Expr(Expression::Identifier("a".to_string())),
-                FunctionArg::Cast(Type::Boolean)
-            ],
-            set_quantifier: None,
+        expr: Box::new(Expression::Cast(CastExpr {
+            expr: Box::new(Expression::Identifier("a".to_string())),
+            to: Type::Boolean,
+            on_null: None,
+            on_error: None,
         }))
     })
 );

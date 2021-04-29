@@ -1,4 +1,4 @@
-use crate::{parser::ast, result::Result};
+use crate::{ast, result::Result};
 use lalrpop_util::{lalrpop_mod, lexer::Token};
 
 lalrpop_mod!(

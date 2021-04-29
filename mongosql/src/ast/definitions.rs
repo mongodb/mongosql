@@ -123,6 +123,7 @@ pub enum Expression {
     Between(BetweenExpr),
     Case(CaseExpr),
     Function(FunctionExpr),
+    Cast(CastExpr),
     Array(Vec<Expression>),
     Subquery(Box<Query>),
     Exists(Box<Query>),
@@ -136,6 +137,14 @@ pub enum Expression {
     Literal(Literal),
     Tuple(Vec<Expression>),
     TypeAssertion(TypeAssertionExpr),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct CastExpr {
+    pub expr: Box<Expression>,
+    pub to: Type,
+    pub on_null: Option<Box<Expression>>,
+    pub on_error: Option<Box<Expression>>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -197,11 +206,10 @@ pub struct FunctionName(pub String);
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum FunctionArg {
+    Star,
     Expr(Expression),
     Extract(ExtractSpec),
-    Fold(Casing),
     Trim(TrimSpec),
-    Cast(Type),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -214,12 +222,6 @@ pub enum ExtractSpec {
     Hour,
     Minute,
     Second,
-}
-
-#[derive(PartialEq, Debug, Clone, Copy)]
-pub enum Casing {
-    Upper,
-    Lower,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]

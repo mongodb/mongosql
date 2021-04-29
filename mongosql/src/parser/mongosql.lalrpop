@@ -1,4 +1,4 @@
-use crate::parser::ast::*;
+use crate::ast::*;
 use crate::parser::util::*;
 use lalrpop_util::ParseError;
 use std::str::FromStr;
@@ -200,21 +200,40 @@ ExistsExpr: Expression = {
 }
 
 FunctionExpr: FunctionExpr = {
-  <i:ID> LEFT_PAREN <q:SetQuantifier?> <e:CommaStar<Expression>> RIGHT_PAREN => FunctionExpr{function:FunctionName(i.to_string()), args:e.iter().map(|x| FunctionArg::Expr(x.clone())).collect(), set_quantifier:q},
-  Cast,
-  CurrentTimestamp,
-  Extract,
-  Fold,
-  Position,
-  Substring,
-  Trim,
+    <i:ID> LEFT_PAREN <q:SetQuantifier?> <e:CommaStar<Expression>> RIGHT_PAREN =>
+        FunctionExpr {
+            function:FunctionName(i.to_string().to_uppercase()),
+            args:e.iter().map(|x| FunctionArg::Expr(x.clone())).collect(),
+            set_quantifier:q
+        },
+    <i:ID> LEFT_PAREN <q:SetQuantifier?> STAR RIGHT_PAREN =>
+        FunctionExpr {
+            function:FunctionName(i.to_string().to_uppercase()),
+            args: vec![FunctionArg::Star],
+            set_quantifier:q
+        },
+    CurrentTimestamp,
+    Extract,
+    Position,
+    Substring,
+    Trim,
 }
 
-Cast: FunctionExpr = {
-  CAST LEFT_PAREN <ex:Expression> AS <t:Type> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t)], set_quantifier:None},
-  CAST LEFT_PAREN <ex:Expression> AS <t:Type> <n:(COMMA <Expression> ON NULL)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(n)], set_quantifier:None},
-  CAST LEFT_PAREN <ex:Expression> AS <t:Type> <e:(COMMA <Expression> ON ERROR)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(e)], set_quantifier:None},
-  CAST LEFT_PAREN <ex:Expression> AS <t:Type> <n:(COMMA <Expression> ON NULL)> <e:(COMMA <Expression> ON ERROR)> RIGHT_PAREN => FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(ex), FunctionArg::Cast(t), FunctionArg::Expr(n), FunctionArg::Expr(e)], set_quantifier:None},
+CastExpr: CastExpr = {
+    CAST LEFT_PAREN <ex:Expression> AS <t:Type> RIGHT_PAREN =>
+        CastExpr {expr: Box::new(ex), to: t, on_null: None, on_error: None},
+    CAST LEFT_PAREN <ex:Expression> AS <t:Type> <n:(COMMA <Expression> ON NULL)> RIGHT_PAREN =>
+        CastExpr {expr: Box::new(ex), to: t, on_null: Some(Box::new(n)), on_error: None},
+    CAST LEFT_PAREN <ex:Expression> AS <t:Type> <e:(COMMA <Expression> ON ERROR)> RIGHT_PAREN =>
+        CastExpr {expr: Box::new(ex), to: t, on_null: None, on_error: Some(Box::new(e))},
+    CAST LEFT_PAREN <ex:Expression> AS <t:Type>
+        <n:(COMMA <Expression> ON NULL)>
+        <e:(COMMA <Expression> ON ERROR)> RIGHT_PAREN =>
+            CastExpr {
+                expr: Box::new(ex), to: t,
+                on_null: Some(Box::new(n)),
+                on_error: Some(Box::new(e))
+            },
 }
 
 CurrentTimestamp: FunctionExpr = {
@@ -237,15 +256,6 @@ ExtractSpec: ExtractSpec = {
 
 Extract: FunctionExpr = {
   EXTRACT LEFT_PAREN <f:ExtractSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("EXTRACT".to_string()), args:vec![FunctionArg::Extract(f), FunctionArg::Expr(e)], set_quantifier:None},
-}
-
-Casing: Casing = {
-  UPPER => Casing::Upper,
-  LOWER => Casing::Lower,
-}
-
-Fold: FunctionExpr = {
-  <c:Casing> LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("FOLD".to_string()), args:vec![FunctionArg::Fold(c), FunctionArg::Expr(e)], set_quantifier:None},
 }
 
 // This production uses `Tier4Expr` instead of `Expression IN Expression` to avoid
@@ -328,9 +338,16 @@ ComparisonTier<Expr, Op, NextTier>: Box<Expression> = {
 // TypeTier parses (1) type conversion expressions that use the shorthand `::` notation and
 // (2) type assertion expressions.
 TypeTier<Expr, NextTier>: Box<Expression> = {
-  <e:TypeTier<Expr, NextTier>> DOUBLE_COLON <t:Type> => Box::new(Expression::Function(FunctionExpr{function:FunctionName("CAST".to_string()), args:vec![FunctionArg::Expr(*e), FunctionArg::Cast(t)], set_quantifier:None})),
-  <e:TypeTier<Expr, NextTier>> TYPE_ASSERTION <t:Type> => Box::new(Expression::TypeAssertion(TypeAssertionExpr{expr:e, target_type:t})),
-  NextTier,
+    <e:TypeTier<Expr, NextTier>> DOUBLE_COLON <t:Type> =>
+        Box::new(Expression::Cast(CastExpr {
+            expr: e,
+            to: t,
+            on_null: None,
+            on_error: None,
+        })),
+    <e:TypeTier<Expr, NextTier>> TYPE_ASSERTION <t:Type> =>
+        Box::new(Expression::TypeAssertion(TypeAssertionExpr{expr:e, target_type:t})),
+    NextTier,
 };
 
 BetweenTier<Expr, NextTier>: Box<Expression> = {
@@ -376,6 +393,7 @@ BottomExpr: Box<Expression> = {
   AccessExpr => Box::new(Expression::Access(<>)),
   ArrayExpr => Box::new(Expression::Array(<>)),
   CaseExpr => Box::new(Expression::Case(<>)),
+  CastExpr => Box::new(Expression::Cast(<>)),
   DocumentExpr => Box::new(<>),
   ExistsExpr => Box::new(<>),
   FunctionExpr => Box::new(Expression::Function(<>)),
@@ -591,7 +609,7 @@ match {
   "(" => LEFT_PAREN,
   "<" => LT,
   "<=" => LTE,
-  "<>" => NEQ,
+  r"(<>)|(!=)" => NEQ,
   "]" => RIGHT_BRACKET,
   "}" => RIGHT_CURLY_BRACE,
   ")" => RIGHT_PAREN,
@@ -656,7 +674,6 @@ match {
   r"(?i)left" => LEFT,
   r"(?i)limit" => LIMIT,
   r"(?i)long" => LONG,
-  r"(?i)lower" => LOWER,
   r"(?i)maxkey" => MAXKEY,
   r"(?i)minkey" => MINKEY,
   r"(?i)minute" => MINUTE,
@@ -693,7 +710,6 @@ match {
   r"(?i)true" => TRUE,
   r"(?i)undefined" => UNDEFINED,
   r"(?i)union" => UNION,
-  r"(?i)upper" => UPPER,
   r"(?i)values?" => VALUE,
   r"(?i)varchar" => VARCHAR,
   r"(?i)when" => WHEN,

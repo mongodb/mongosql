@@ -1,4 +1,4 @@
-use crate::parser::{ast::*, ParseError};
+use crate::{ast::*, parser::ParseError};
 
 // process_delimited_ident removes the outer delimiters from an identifier and
 // processes any escaped delimiters.
@@ -111,11 +111,11 @@ pub(crate) fn parse_simple_datasource(ae: AliasedExpr) -> Result<Datasource, Par
             expr: Expression::Subpath(_),
             alias: _,
         } => Err(ParseError::from(format!(
-            "collection data sources can only have database qualification, found: {:?}",
+            "collection data sources can only have database qualification, found: {}",
             ae.expr,
         ))),
         _ => Err(ParseError::from(format!(
-            "found unsupported expression used as datasource: {:?}",
+            "found unsupported expression used as datasource: {}",
             ae.expr,
         ))),
     }

@@ -31,7 +31,8 @@ pub(crate) fn collect_types(file_name: &str) -> Vec<EnumOrStruct> {
     let mut src = String::new();
     file.read_to_string(&mut src).expect("unable to read file");
 
-    let syntax: File = parse_file(&src).expect("unable to parse file");
+    let syntax: File =
+        parse_file(&src).unwrap_or_else(|_| panic!("unable to parse file: {}", file_name));
 
     struct TypeVisitor {
         types: Vec<EnumOrStruct>,
