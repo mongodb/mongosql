@@ -34,6 +34,7 @@ impl From<codegen::MqlTranslation> for Translation {
 pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
     let p = Parser::new();
     let _ast = p.parse_query(sql)?;
+    let _ast = ast::rewrites::rewrite_query(_ast)?;
 
     let plan = ir::Stage::Collection(ir::Collection {
         db: current_db.to_string(),

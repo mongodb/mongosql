@@ -1,4 +1,4 @@
-use crate::ast::rewrites::InTupleRewritePass;
+use crate::ast::rewrites::{ImplicitFromRewritePass, InTupleRewritePass};
 
 macro_rules! test_rewrite {
     ($func_name:ident, $passes:expr, $input:expr, $expected:expr) => {
@@ -21,6 +21,29 @@ macro_rules! test_rewrite {
             assert_eq!(actual, expected.to_string());
         }
     };
+}
+
+mod implicit_from {
+    use super::*;
+
+    test_rewrite!(
+        simple_select_star,
+        vec![ImplicitFromRewritePass],
+        "SELECT *",
+        "SELECT * FROM [{}] AS _dual"
+    );
+    test_rewrite!(
+        explicit_from_unmodified,
+        vec![ImplicitFromRewritePass],
+        "SELECT * FROM foo",
+        "SELECT * FROM foo"
+    );
+    test_rewrite!(
+        rewrite_in_subquery,
+        vec![ImplicitFromRewritePass],
+        "SELECT * FROM (SELECT *) sub",
+        "SELECT * FROM (SELECT * FROM [{}] AS _dual) AS sub"
+    );
 }
 
 mod in_tuple {
