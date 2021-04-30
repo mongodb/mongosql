@@ -6,6 +6,7 @@ tests:
 
   - description: Columns in USING must have constrained types for equality to work
     query: "SELECT * FROM foo JOIN bar USING arg"
+    skip_reason: "DROP support for USING Clause initially"
     valid_types:
       - { "arg": ["STRING", "NULL", "MISSING"] }
       - { "arg": ["BINDATA", "NULL", "MISSING"] }
