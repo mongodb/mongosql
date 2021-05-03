@@ -1,4 +1,4 @@
-mod binding_tuple;
+pub mod binding_tuple;
 use crate::ir::binding_tuple::{BindingTuple, Key};
 use linked_hash_map::LinkedHashMap;
 

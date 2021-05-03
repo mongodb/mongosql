@@ -1,7 +1,9 @@
 mod ast;
 mod ir;
+mod json_schema;
 mod parser;
 mod result;
+mod schema;
 use crate::parser::Parser;
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
