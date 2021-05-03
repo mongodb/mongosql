@@ -11,7 +11,8 @@ catalog_environment:
       - {'_id': 7, 'type': 'boolean', 'v': true}
       - {'_id': 8, 'type': 'date', 'v': {'$date': {'$numberLong': '253402300799999'}}}
       - {'_id': 9, 'type': 'null', 'v': null}
-      - {'_id': 10, 'type': 'missing'}',' {'_id': 11, 'type': 'regex', 'v': {'$regularExpression': {'pattern': 'foo*', 'options': 'ix'}}}
+      - {'_id': 10, 'type': 'missing'}
+      - {'_id': 11, 'type': 'regex', 'v': {'$regularExpression': {'pattern': 'foo*', 'options': 'ix'}}}
       - {'_id': 12, 'type': 'dbPointer', 'v': {'$dbPointer': {'$ref': 'foo', '$id': {'$oid': '57e193d7a9cc81b4027498b5'}}}}
       - {'_id': 13, 'type': 'javascript', 'v': {'$code': 'function() {}'}}
       - {'_id': 14, 'type': 'symbol', 'v': {'$symbol': 'symbol'}}

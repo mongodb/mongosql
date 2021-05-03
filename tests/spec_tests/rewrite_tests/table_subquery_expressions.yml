@@ -1,4 +1,4 @@
-test:
+tests:
 - description: IN expression with subquery on rhs rewritten to subquery comparison
   query: "SELECT * FROM table1 WHERE col1 IN (SELECT col1 FROM table2)"
   result: "SELECT * FROM table1 WHERE col1 = ANY(SELECT col1 FROM table2)"

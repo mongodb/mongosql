@@ -1,7 +1,8 @@
 use crate::{ast::*, parser::ParseError};
+use std::str::FromStr;
 
-// process_delimited_ident removes the outer delimiters from an identifier and
-// processes any escaped delimiters.
+/// process_delimited_ident removes the outer delimiters from an identifier and
+/// processes any escaped delimiters.
 pub(crate) fn process_delimited_ident(value: &str) -> String {
     let delimiter = value.chars().next().unwrap_or_default();
     let trimmed_value = value[1..value.len() - 1].to_string();
@@ -62,6 +63,27 @@ pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, ParseEr
             }
         }
         _ => Err(ParseError::from("failed to parse Position()".to_string())),
+    }
+}
+
+pub(crate) fn parse_sort_key(e: Expression) -> Result<SortKey, ParseError<'static>> {
+    match e {
+        Expression::Identifier(_) => Ok(SortKey::Simple(e)),
+        Expression::Subpath(SubpathExpr {
+            expr: _,
+            subpath: _,
+        }) => Ok(SortKey::Simple(e)),
+        Expression::Literal(Literal::Integer(i)) => {
+            let u: Result<u32, ParseError> = u32::from_str(i.to_string().as_str())
+                .map_err(|_| ParseError::from("failed to convert number to u32".to_string()));
+            match u {
+                Ok(x) => Ok(SortKey::Positional(x)),
+                Err(x) => Err(x),
+            }
+        }
+        _ => Err(ParseError::from(
+            "failed to parse ORDER BY sort key".to_string(),
+        )),
     }
 }
 

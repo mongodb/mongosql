@@ -313,7 +313,7 @@ pub struct SortSpec {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum SortKey {
-    Simple(String),
+    Simple(Expression),
     Positional(u32),
 }
 
@@ -340,9 +340,9 @@ pub enum Type {
     Boolean,
     Datetime,
     DbPointer,
-    Decimal128(Option<u32>),
+    Decimal128,
     Document,
-    Double(Option<u32>),
+    Double,
     Int32,
     Int64,
     Javascript,
@@ -352,7 +352,7 @@ pub enum Type {
     Null,
     ObjectId,
     RegularExpression,
-    String(Option<u32>),
+    String,
     Symbol,
     Timestamp,
     Undefined,

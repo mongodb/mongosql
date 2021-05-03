@@ -48,7 +48,7 @@ tests:
     result: "SELECT VALUES t.*, a.* FROM t"
 
   - description: rewrite sub-star expression and other expressions to SELECT VALUES
-    query: "SELECT a AS a, t.*, FROM t"
+    query: "SELECT a AS a, t.* FROM t"
     result: "SELECT VALUES {'a': a}, t.* FROM t"
 
   - description: rewrite VALUE to VALUES with multiple expressions

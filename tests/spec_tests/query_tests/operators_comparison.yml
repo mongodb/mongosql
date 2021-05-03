@@ -284,7 +284,7 @@ schema_environment:
   }
 
 tests:
-  - description: correctness test for < for numeric types
+  - description: correctness test for lt for numeric types
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM numbers AS numbers"
     translation_target_db: foo
     translation_target_coll: numbers
@@ -300,7 +300,7 @@ tests:
       - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } } 
       - {'__bot': { "b": { "$numberLong": "3" }, "c": null } } 
 
-  - description: correctness test for <= for numeric types
+  - description: correctness test for lte for numeric types
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM numbers AS numbers"
     translation_target_db: foo
     translation_target_coll: numbers
@@ -316,7 +316,7 @@ tests:
       - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } } 
       - {'__bot': { "b": { "$numberLong": "3" }, "c": null } } 
 
-  - description: correctness test for <> for numeric types
+  - description: correctness test for neq for numeric types
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM numbers AS numbers"
     translation_target_db: foo
     translation_target_coll: numbers
@@ -332,7 +332,7 @@ tests:
       - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } } 
       - {'__bot': { "b": { "$numberLong": "3" }, "c": null } } 
 
-  - description: correctness test for = for numeric types
+  - description: correctness test for eq for numeric types
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM numbers AS numbers"
     translation_target_db: foo
     translation_target_coll: numbers
@@ -348,7 +348,7 @@ tests:
       - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } } 
       - {'__bot': { "b": { "$numberLong": "3" }, "c": null } } 
 
-  - description: correctness test for > for numeric types
+  - description: correctness test for gt for numeric types
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM numbers AS numbers"
     translation_target_db: foo
     translation_target_coll: numbers
@@ -364,7 +364,7 @@ tests:
       - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } } 
       - {'__bot': { "b": { "$numberLong": "3" }, "c": null } } 
 
-  - description: correctness test for >= for numeric types
+  - description: correctness test for gte for numeric types
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM numbers AS numbers"
     translation_target_db: foo
     translation_target_coll: numbers
@@ -380,7 +380,7 @@ tests:
       - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } } 
       - {'__bot': { "b": { "$numberLong": "3" }, "c": null } } 
 
-  - description: correctness test for < for strings
+  - description: correctness test for lt for strings
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM strings AS strings"
     translation_target_db: foo
     translation_target_coll: strings
@@ -396,7 +396,7 @@ tests:
       - {'__bot': { "a": "abc", "c": null } } 
       - {'__bot': { "b": "", "c": null } } 
 
-  - description: correctness test for <= for strings
+  - description: correctness test for lte for strings
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM strings AS strings"
     translation_target_db: foo
     translation_target_coll: strings
@@ -412,7 +412,7 @@ tests:
       - {'__bot': { "a": "abc", "c": null } } 
       - {'__bot': { "b": "", "c": null } } 
 
-  - description: correctness test for <> for strings
+  - description: correctness test for neq for strings
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM strings AS strings"
     translation_target_db: foo
     translation_target_coll: strings
@@ -428,7 +428,7 @@ tests:
       - {'__bot': { "a": "abc", "c": null } } 
       - {'__bot': { "b": "", "c": null } } 
 
-  - description: correctness test for = for strings
+  - description: correctness test for eq for strings
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM strings AS strings"
     translation_target_db: foo
     translation_target_coll: strings
@@ -444,7 +444,7 @@ tests:
       - {'__bot': { "a": "abc", "c": null } } 
       - {'__bot': { "b": "", "c": null } } 
 
-  - description: correctness test for > for strings
+  - description: correctness test for gt for strings
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM strings AS strings"
     translation_target_db: foo
     translation_target_coll: strings
@@ -460,7 +460,7 @@ tests:
       - {'__bot': { "a": "abc", "c": null } } 
       - {'__bot': { "b": "", "c": null } } 
 
-  - description: correctness test for >= for strings
+  - description: correctness test for gte for strings
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM strings AS strings"
     translation_target_db: foo
     translation_target_coll: strings
@@ -476,7 +476,7 @@ tests:
       - {'__bot': { "a": "abc", "c": null } }
       - {'__bot': { "b": "", "c": null } }
 
-  - description: correctness test for < for bools
+  - description: correctness test for lt for bools
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM bools AS bools"
     translation_target_db: foo
     translation_target_coll: bools
@@ -492,7 +492,7 @@ tests:
       - {'__bot': { "a": false, "c": null } }
       - {'__bot': { "b": true, "c": null } }
 
-  - description: correctness test for <= for bools
+  - description: correctness test for lte for bools
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM bools AS bools"
     translation_target_db: foo
     translation_target_coll: bools
@@ -508,7 +508,7 @@ tests:
       - {'__bot': { "a": false, "c": null } }
       - {'__bot': { "b": true, "c": null } }
 
-  - description: correctness test for <> for bools
+  - description: correctness test for neq for bools
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM bools AS bools"
     translation_target_db: foo
     translation_target_coll: bools
@@ -524,7 +524,7 @@ tests:
       - {'__bot': { "a": false, "c": null } }
       - {'__bot': { "b": true, "c": null } }
 
-  - description: correctness test for = for bools
+  - description: correctness test for eq for bools
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM bools AS bools"
     translation_target_db: foo
     translation_target_coll: bools
@@ -540,7 +540,7 @@ tests:
       - {'__bot': { "a": false, "c": null } }
       - {'__bot': { "b": true, "c": null } }
 
-  - description: correctness test for > for bools
+  - description: correctness test for gt for bools
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM bools AS bools"
     translation_target_db: foo
     translation_target_coll: bools
@@ -556,7 +556,7 @@ tests:
       - {'__bot': { "a": false, "c": null } }
       - {'__bot': { "b": true, "c": null } }
 
-  - description: correctness test for >= for bools
+  - description: correctness test for gte for bools
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM bools AS bools"
     translation_target_db: foo
     translation_target_coll: bools
@@ -572,7 +572,7 @@ tests:
       - {'__bot': { "a": false, "c": null } }
       - {'__bot': { "b": true, "c": null } }
 
-  - description: correctness test for < for dates
+  - description: correctness test for lt for dates
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM dates AS dates"
     translation_target_db: foo
     translation_target_coll: dates
@@ -580,15 +580,15 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlLt": [ "$dates.a", "$dates.b" ]}}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
-  - description: correctness test for <= for dates
+  - description: correctness test for lte for dates
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM dates AS dates"
     translation_target_db: foo
     translation_target_coll: dates
@@ -596,15 +596,15 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlLte": [ "$dates.a", "$dates.b" ]}}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
-  - description: correctness test for <> for dates
+  - description: correctness test for neq for dates
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM dates AS dates"
     translation_target_db: foo
     translation_target_coll: dates
@@ -612,15 +612,15 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlNeq": [ "$dates.a", "$dates.b" ]}}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
-  - description: correctness test for = for dates
+  - description: correctness test for eq for dates
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM dates AS dates"
     translation_target_db: foo
     translation_target_coll: dates
@@ -628,15 +628,15 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlEq": [ "$dates.a", "$dates.b" ]}}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
-  - description: correctness test for > for dates
+  - description: correctness test for gt for dates
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM dates AS dates"
     translation_target_db: foo
     translation_target_coll: dates
@@ -644,15 +644,15 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlGt": [ "$dates.a", "$dates.b" ]}}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
-  - description: correctness test for >= for dates
+  - description: correctness test for gte for dates
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM dates AS dates"
     translation_target_db: foo
     translation_target_coll: dates
@@ -660,16 +660,16 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlGte": [ "$dates.a", "$dates.b" ]}}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402399999999" }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300799999" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": { "$date": { "$numberLong": "253402300000000" }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
 
-  - description: correctness test for < for null and missing
+  - description: correctness test for lt for null and missing
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM nullAndMissing AS nullAndMissing"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
@@ -682,7 +682,7 @@ tests:
       - {'__bot': { "b": null, "c": null } }
       - {'__bot': { "c": null } }
 
-  - description: correctness test for <= for null and missing
+  - description: correctness test for lte for null and missing
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM nullAndMissing AS nullAndMissing"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
@@ -695,7 +695,7 @@ tests:
       - {'__bot': { "b": null, "c": null } }
       - {'__bot': { "c": null } }
 
-  - description: correctness test for <> for null and missing
+  - description: correctness test for neq for null and missing
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM nullAndMissing AS nullAndMissing"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
@@ -708,7 +708,7 @@ tests:
       - {'__bot': { "b": null, "c": null } }
       - {'__bot': { "c": null } }
 
-  - description: correctness test for = for null and missing
+  - description: correctness test for eq for null and missing
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM nullAndMissing AS nullAndMissing"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
@@ -721,7 +721,7 @@ tests:
       - {'__bot': { "b": null, "c": null } }
       - {'__bot': { "c": null } }
 
-  - description: correctness test for > for null and missing
+  - description: correctness test for gt for null and missing
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM nullAndMissing AS nullAndMissing"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
@@ -734,7 +734,7 @@ tests:
       - {'__bot': { "b": null, "c": null } }
       - {'__bot': { "c": null } }
 
-  - description: correctness test for >= for null and missing
+  - description: correctness test for gte for null and missing
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM nullAndMissing AS nullAndMissing"
     translation_target_db: foo
     translation_target_coll: nullAndMissing

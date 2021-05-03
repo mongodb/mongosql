@@ -364,7 +364,8 @@ should_parse!(binary_lt, true, "select a<b<c<d<e");
 should_parse!(binary_lte, true, "select a<=b");
 should_parse!(binary_gt, true, "select a>b");
 should_parse!(binary_gte, true, "select a>=b");
-should_parse!(binary_neq, true, "select a<>b");
+should_parse!(binary_neq_1, true, "select a!=b");
+should_parse!(binary_neq_2, true, "select a<>b");
 should_parse!(binary_eq, true, "select a=b");
 should_parse!(binary_string_concat, true, "select a || b");
 should_parse!(binary_or, true, "select a OR b");
@@ -719,7 +720,8 @@ validate_query_ast!(
 );
 
 // Order by tests
-should_parse!(order_by_simple, true, "select * order by a");
+should_parse!(order_by_simple_ident, true, "select * order by a");
+should_parse!(order_by_compound_ident, true, "select * order by a.b");
 should_parse!(order_by_asc, true, "select * order by a ASC");
 should_parse!(order_by_desc, true, "select * order by a DESC");
 should_parse!(order_by_multiple, true, "select a, b, c order by a, b");
@@ -749,7 +751,7 @@ validate_query_ast!(
         having_clause: None,
         order_by_clause: Some(OrderByClause {
             sort_specs: vec![SortSpec {
-                key: SortKey::Simple("a".to_string()),
+                key: SortKey::Simple(Expression::Identifier("a".to_string())),
                 direction: SortDirection::Asc
             }]
         }),
@@ -1664,7 +1666,7 @@ validate_expression_ast!(
     "CAST(v AS DECIMAL(1), 'null' ON NULL, 'error' ON ERROR)",
     Expression::Cast(CastExpr {
         expr: Box::new(Expression::Identifier("v".to_string())),
-        to: Type::Decimal128(Some(1)),
+        to: Type::Decimal128,
         on_null: Some(Box::new(Expression::Literal(Literal::String(
             "null".to_string()
         )))),

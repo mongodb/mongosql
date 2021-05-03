@@ -109,12 +109,12 @@ tests:
       - {'__bot': {'name': 'c', 'department_name': 'd1'}}
       - {'__bot': {'name': 'd', 'department_name': 'd2'}}
 
-  - descripton: scalar subquery fails if it cannot prove that it statically returns a single row
+  - description: scalar subquery fails if it cannot prove that it statically returns a single row
     current_db: foo
     query: "SELECT VALUE {'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id)} FROM employees_w_schema AS emp"
     error: "Scalar subquery must be statically proved to return only one value"
 
-  - descripton: scalar subquery fails if it cannot prove that it statically returns a single column
+  - description: scalar subquery fails if it cannot prove that it statically returns a single column
     current_db: foo
     query: "SELECT VALUE {'department_name': (SELECT * FROM department_w_schema AS dep WHERE dep.id = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
     error: "Scalar subquery must be statically proved to return only one value"

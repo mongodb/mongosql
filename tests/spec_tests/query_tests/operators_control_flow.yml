@@ -52,6 +52,7 @@ tests:
 
   - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
+    translation:
       - {'$array': {'arr': [{'a': 2, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
         'vars': {'target': { $literal: 1 }},
@@ -82,7 +83,7 @@ tests:
             ],
             "default": 'none'
           }}}}}}}
-        result:
+    result:
       - {'__bot': { "r": "a" } }
 
   - description: Simple CASE expression - Static type mismatch for case operand and when operand

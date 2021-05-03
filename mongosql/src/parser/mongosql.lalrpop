@@ -107,8 +107,7 @@ SortSpec: SortSpec = {
 }
 
 SortKey: SortKey = {
-  Identifier => SortKey::Simple(<>),
-  Unsigned32 => SortKey::Positional(<>),
+  Tier13Expr =>? parse_sort_key(*<>),
 }
 
 SortDirection: SortDirection = {
@@ -539,24 +538,24 @@ Int32Type: Type = {
 }
 
 Decimal128Type: Type = {
-  DECIMAL <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Decimal128(<>),
-  DEC <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Decimal128(<>),
-  NUMERIC <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Decimal128(<>),
+  DECIMAL (LEFT_PAREN Unsigned32 (COMMA Unsigned32)? RIGHT_PAREN)? => Type::Decimal128,
+  DEC (LEFT_PAREN Unsigned32 (COMMA Unsigned32)? RIGHT_PAREN)? => Type::Decimal128,
+  NUMERIC (LEFT_PAREN Unsigned32 (COMMA Unsigned32)? RIGHT_PAREN)? => Type::Decimal128,
 }
 
 DoubleType: Type = {
-  DOUBLE_TYPE PRECISION? => Type::Double(None),
-  REAL => Type::Double(None),
-  FLOAT <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::Double(<>),
+  DOUBLE_TYPE PRECISION? => Type::Double,
+  REAL => Type::Double,
+  FLOAT (LEFT_PAREN Unsigned32 RIGHT_PAREN)? => Type::Double,
 }
 
 StringType: Type = {
-  STRING_TYPE => Type::String(None),
-  VARCHAR <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
-  CHAR <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
-  CHARACTER <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
-  CHAR_VARYING <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
-  CHARACTER_VARYING <i:(LEFT_PAREN <Unsigned32> RIGHT_PAREN)?> => Type::String(<>),
+  STRING_TYPE => Type::String,
+  VARCHAR (LEFT_PAREN Unsigned32 RIGHT_PAREN)? => Type::String,
+  CHAR (LEFT_PAREN Unsigned32 RIGHT_PAREN)? => Type::String,
+  CHARACTER (LEFT_PAREN Unsigned32 RIGHT_PAREN)? => Type::String,
+  CHAR_VARYING (LEFT_PAREN Unsigned32 RIGHT_PAREN)? => Type::String,
+  CHARACTER_VARYING (LEFT_PAREN Unsigned32 RIGHT_PAREN)? => Type::String,
 }
 
 BooleanType: Type = {

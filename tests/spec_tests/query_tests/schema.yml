@@ -14,7 +14,7 @@ tests:
     result:
       - {'a': 1}
 
-  - description: a user db called INFORMATION_SCHEMA should require no special handling
+  - description: a user db called all caps INFORMATION_SCHEMA should require no special handling
     query: "SELECT * FROM INFORMATION_SCHEMA.mytbl"
     result:
       - {'a': 1}

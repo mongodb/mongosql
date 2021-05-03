@@ -42,14 +42,14 @@ tests:
         - {'e': 142}
         - {}
 
-  - description: Scalar vs missing field ref: the field ref is upgraded to NULL because of +
+  - description: Scalar vs missing field ref- the field ref is upgraded to NULL because of plus sign
     current_db: 'foo'
     query: "SELECT a, c.e, a + c.e FROM bar"
     result:
         - {'a': 42, 'e': 142, '_3': 184}
         - {'a': 52, '_3': null}
 
-  - description: MISSING upgraded to NULL due to +
+  - description: MISSING upgraded to NULL due to plus sign
     current_db: 'foo'
     query: "SELECT b, c.e, b + c.e FROM bar"
     result:

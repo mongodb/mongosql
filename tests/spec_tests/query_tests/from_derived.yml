@@ -7,7 +7,7 @@ catalog_environment:
 
 tests:
   - description: both unqualified and qualified references to derived table datasource fields are allowed
-    query: "SELECT VALUE {'apo': apo, 'bpt': derived.bpt} FROM (SELECT VALUE {'apo': a + 1, 'bpt': b + 2} FROM [{a: 1, b: 1}] AS arr) AS derived"
+    query: "SELECT VALUE {'apo': apo, 'bpt': derived.bpt} FROM (SELECT VALUE {'apo': a + 1, 'bpt': b + 2} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
     translation:
       - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'apo': {'$add': ['$arr.a', {'$literal': 1}]}, 'bpt': {'$add': ['$arr.b', {'$literal': 2}]}}}}

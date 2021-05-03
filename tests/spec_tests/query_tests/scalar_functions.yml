@@ -287,7 +287,7 @@ tests:
 
   - description: POSITION correctness tests
     current_db: foo
-    query: "SELECT VALUE {'s1': s1, 's2': s2, 'p': POSITION(s1 IN s2)} FROM position AS c"
+    query: "SELECT VALUE {'s1': s1, 's2': s2, 'p': POSITION(s1 IN s2)} FROM `position` AS c"
     translation_target_db: foo
     translation_target_coll: position
     translation:
@@ -312,7 +312,7 @@ tests:
     translation_target_coll: length
     translation:
       - {'$project': {'_id': 0, 'c': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenCP': '$c.s'}, 'comment': '$c.comment'}}
+      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenCP': '$c.s'}, 'comment': '$c.comment'}}}
     result:
       - {'__bot': {'s': '', 'len': 0}}
       - {'__bot': {'s': 'a', 'len': 1}}
@@ -330,7 +330,7 @@ tests:
     translation_target_coll: length
     translation:
       - {'$project': {'_id': 0, 'c': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenBytes': '$c.s'}, 'comment': '$c.comment'}}
+      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenBytes': '$c.s'}, 'comment': '$c.comment'}}}
     result:
       - {'__bot': {'s': '', 'len': 0}}
       - {'__bot': {'s': 'a', 'len': 1}}
@@ -348,7 +348,7 @@ tests:
     translation_target_coll: length
     translation:
       - {'$project': {'_id': 0, 'c': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$multiply': [{'$sqlStrLenBytes': '$c.s'}, {'$literal': 8}]}, 'comment': '$c.comment'}}
+      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$multiply': [{'$sqlStrLenBytes': '$c.s'}, {'$literal': 8}]}, 'comment': '$c.comment'}}}
     result:
       - {'__bot': {'s': '', 'len': 0}}
       - {'__bot': {'s': 'a', 'len': 8}}
@@ -425,7 +425,7 @@ tests:
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
-      - {'$project': {'_id': 0, 'c': '$$ROOT'}
+      - {'$project': {'_id': 0, 'c': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'d': '$c.d', 'v': {'$year': '$c.d'}}}}
     result:
       - {'__bot': {'d': null, 'v': null}}
@@ -433,7 +433,7 @@ tests:
 
   - description: SUBSTRING(str FROM start FOR length) correctness test
     current_db: foo
-    query: "SELECT VALUE {'str': str, 'start': start, 'length': length, 'substr': SUBSTRING(str FROM start FOR length)} FROM substring AS c"
+    query: "SELECT VALUE {'str': str, 'start': start, 'length': length, 'substr': SUBSTRING(str FROM start FOR length)} FROM `substring` AS c"
     translation_target_db: foo
     translation_target_coll: substring
     translation:
@@ -459,7 +459,7 @@ tests:
 
   - description: UPPER correctness test
     current_db: foo
-    query: "SELECT VALUE {'s': s, 'v': UPPER(s)} FROM fold AS c"
+    query: "SELECT VALUE {'s': s, 'v': UPPER(s)} FROM `fold` AS c"
     translation_target_db: foo
     translation_target_coll: fold
     translation:
@@ -475,7 +475,7 @@ tests:
 
   - description: LOWER correctness test
     current_db: foo
-    query: "SELECT VALUE {'s': s, 'v': LOWER(s)} FROM fold AS c"
+    query: "SELECT VALUE {'s': s, 'v': LOWER(s)} FROM `fold` AS c"
     translation_target_db: foo
     translation_target_coll: fold
     translation:
@@ -491,7 +491,7 @@ tests:
 
   - description: TRIM(BOTH substr FROM str) correctness test
     current_db: foo
-    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(BOTH substr FROM str)} FROM trim AS c"
+    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(BOTH substr FROM str)} FROM `trim` AS c"
     translation_target_db: foo
     translation_target_coll: trim
     translation:
@@ -512,7 +512,7 @@ tests:
 
   - description: TRIM(LEADING substr FROM str) correctness test
     current_db: foo
-    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(LEADING substr FROM str)} FROM trim AS c"
+    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(LEADING substr FROM str)} FROM `trim` AS c"
     translation_target_db: foo
     translation_target_coll: trim
     translation:
@@ -533,7 +533,7 @@ tests:
 
   - description: TRIM(TRAILING substr FROM str) correctness test
     current_db: foo
-    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(TRAILING substr FROM str)} FROM trim AS c"
+    query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(TRAILING substr FROM str)} FROM `trim` AS c"
     translation_target_db: foo
     translation_target_coll: trim
     translation:
@@ -558,9 +558,9 @@ tests:
     translation_target_db: foo
     translation:
       - {'$array': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlGt': ['$$NOW', {'$convert': {'input': '2021-01-08T12:00:00Z', 'to': 'date', 'onNull': null, 'onError': null}}]}}}}}}
-      result:
-        - {'__bot': {'v': true}}
+      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlGt': ['$$NOW', {'$convert': {'input': '2021-01-08T12:00:00Z', 'to': 'date', 'onNull': null, 'onError': null}}]}}}}
+    result:
+      - {'__bot': {'v': true}}
 
   - description: Multiple CURRENT_TIMESTAMPs are equal across a query
     current_db: foo
@@ -568,6 +568,6 @@ tests:
     translation_target_db: foo
     translation:
       - {'$array': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlEq': ['$$NOW', '$$NOW']}}}}}}
+      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlEq': ['$$NOW', '$$NOW']}}}}
     result:
       - {'__bot': {'v': true}}

@@ -200,7 +200,7 @@ tests:
     query: "SELECT VALUE{'bar': (SELECT q.bar FROM schema_foo AS q)} FROM schema_coll AS q"
     error: "datasource 'q' does not contain field 'bar'"
 
-  - description: with an unqualified reference, CANNOT contain sub + MUST contain outer query, the datasource resolves to the outer query
+  - description: with an unqualified reference, CANNOT contain sub and MUST contain outer query, the datasource resolves to the outer query
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q limit 1)} FROM schema_coll AS q"
     result:
@@ -208,7 +208,7 @@ tests:
       - {'bar': -11}
       - {'bar': 211}
 
-  - description: with an unqualified reference, CANNOT contain sub + MAY contain outer query, the datasource is resolved to the outer query
+  - description: with an unqualified reference, CANNOT contain sub and MAY contain outer query, the datasource is resolved to the outer query
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q limit 1)} FROM coll AS q"
     result:
@@ -216,22 +216,22 @@ tests:
       - {'bar': -11}
       - {'bar': 211}
 
-  - description: with an unqualified reference and CANNOT contain sub + CANNOT contain outer query, the datasource cannot be found
+  - description: with an unqualified reference and CANNOT contain sub and CANNOT contain outer query, the datasource cannot be found
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT x FROM schema_coll AS q limit 1)} FROM schema_foo AS q"
     error: "reference 'x' does not exist in any in scope datasource: 'schema_coll', 'schema_foo'"
 
-  - description: with an unqualified reference and MAY contain sub + MAY contain outer query, the datasource is ambiguous
+  - description: with an unqualified reference and MAY contain sub and MAY contain outer query, the datasource is ambiguous
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM coll AS q"
     error: "ambiguous reference 'bar' MAY exist in datasource 'baz' or datasource 'coll'"
 
-  - description: with an unqualified reference and MAY contain sub + MUST contain outer query, the datasource is ambiguous
+  - description: with an unqualified reference and MAY contain sub and MUST contain outer query, the datasource is ambiguous
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM schema_coll AS q"
     error: "ambiguous reference 'bar' MAY exist in datasource 'baz', but MUST exist in datasource 'schema_coll'"
 
-  - description: with an unqualified reference and MAY contain sub + CANNOT contain outer query, the datasource that MAY contain the field is chosen
+  - description: with an unqualified reference and MAY contain sub and CANNOT contain outer query, the datasource that MAY contain the field is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM schema_foo AS q"
     result:
@@ -239,18 +239,20 @@ tests:
       - {}
       - {}
 
-  - description: with an unqualified reference and MUST contain sub + MUST contain outer query, the highest scope number is chosen
+  - description: with an unqualified reference and MUST contain sub and MUST contain outer query, the highest scope number is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM schema_coll AS q"
+    result:
       - {'bar': 11}
 
-  - description: with an unqualified reference and MUST contain sub + MAY contain outer query, the datasource that resolves to the inner query
+  - description: with an unqualified reference and MUST contain sub and MAY contain outer query, the datasource that resolves to the inner query
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM coll AS q"
+    result:
       - {'bar': 11}
 
 
-  - description: with an unqualified reference and MUST contain sub + CANNOT contain outer query, the datasource that MUST contain the field is chosen
+  - description: with an unqualified reference and MUST contain sub and CANNOT contain outer query, the datasource that MUST contain the field is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM schema_foo AS q"
     result:

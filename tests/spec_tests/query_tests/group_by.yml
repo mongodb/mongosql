@@ -43,55 +43,56 @@ catalog_environment:
       - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '3'}}
 
 schema_environment:
-    {
-        'foo': {
-            'numerics': {
-                '$jsonSchema': {
-                    'bsonType': 'object',
-                    'required': ['_id', 'a'],
-                    'properties': {
-                        '_id': {'bsonType': 'int'},
-                        'a': {
-                            'anyOf':
-                             [
-                                {'bsonType': 'int'},
-                                {'bsonType': 'double'},
-                                {'bsonType': 'decimal128'}
-                            ]
-                        }
-                    }
-                },
-                'bar': {
-                  '$jsonSchema': {
-                    'bsonType': 'object',
-                    'required': ['_id', 'a', 'b', 'c'],
-                    'properties': {
-                      '_id': {'bsonType': 'int'},
-                      'a': {'bsonType': 'int'},
-                      'b': {'bsonType': 'int'},
-                      'c': {'bsonType': 'int'},
-                    }
-                  }
-            },
-            'nullAndMissing': {
-                '$jsonSchema': {
-                    'bsonType': 'object',
-                    'required': ['_id', 'n'],
-                    'properties': {
-                        '_id': {'bsonType': 'int'},
-                        'n': {
-                            'anyOf':
-                             [
-                                {'bsonType': 'int'},
-                                {'bsonType': 'null'}
-                            ]
-                        }
-                    }
-                }
-
+  {
+    'foo': {
+      'numerics': {
+        '$jsonSchema': {
+          'bsonType': 'object',
+          'required': [ '_id', 'a' ],
+          'properties': {
+            '_id': { 'bsonType': 'int' },
+            'a': {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'double' },
+                  { 'bsonType': 'decimal128' }
+                ]
             }
+          }
+        },
+        'bar': {
+          '$jsonSchema': {
+            'bsonType': 'object',
+            'required': [ '_id', 'a', 'b', 'c' ],
+            'properties': {
+              '_id': { 'bsonType': 'int' },
+              'a': { 'bsonType': 'int' },
+              'b': { 'bsonType': 'int' },
+              'c': { 'bsonType': 'int' },
+            }
+          }
+        },
+        'nullAndMissing': {
+          '$jsonSchema': {
+            'bsonType': 'object',
+            'required': [ '_id', 'n' ],
+            'properties': {
+              '_id': { 'bsonType': 'int' },
+              'n': {
+                'anyOf':
+                  [
+                    { 'bsonType': 'int' },
+                    { 'bsonType': 'null' }
+                  ]
+              }
+            }
+          }
+
         }
+      }
     }
+  }
 
 tests:
     - description: GROUP BY with empty input outputs empty
@@ -100,7 +101,7 @@ tests:
       translation:
         - {'$array': {'arr': []}}
         - {'$group': {'_id': {'n': null}}}
-        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result: []
 
     - description: GROUP BY NULL creates only one group
@@ -111,7 +112,7 @@ tests:
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$group': {'_id': {'n': null}}}
-        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
         - {'__bot': {"n": null}}
 
@@ -123,11 +124,11 @@ tests:
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$group': {'_id': {'n': 1}}}
-        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
         - {'__bot': {"n": {"$numberInt": "1"}}}
 
-    - description: GROUP BY 'hello' creates only one group
+    - description: GROUP BY hello creates only one group
       query: "SELECT * FROM foo.bar AS bar GROUP BY 'hello' AS n"
       current_db: foo
       translation_target_db: foo
@@ -135,9 +136,9 @@ tests:
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$group': {'_id': {'n': 'hello'}}}
-        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
-        - {'__bot': {"n": "hello"}
+        - {'__bot': {"n": "hello"}}
 
     - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
       query: "SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n"
@@ -147,10 +148,10 @@ tests:
       translations:
         - {'$project': {'_id': 0, 'a': '$$ROOT'}}
         - {'$group': {'_id': {'n': '$a.n'}}}
-        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result:
-        - {'__bot': {"n": null}
-        - {'__bot': {"n": {"$numberInt": "1"}}
+        - {'__bot': {"n": null}}
+        - {'__bot': {"n": {"$numberInt": "1"}}}
 
     - description: group keys must be mutually comparable types
       query: "SELECT * FROM foo.poly AS a GROUP BY {'out': a.a} AS doc"
@@ -163,11 +164,11 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'a': '$$ROOT'}}
-        - {'$group': {'_id': {'a': '$a.a.a'}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}
+        - {'$group': {'_id': {'a': '$a.a.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
       result:
-        -  {'__bot': {"a": {"$numberInt": "1"}}
-        -  {'__bot': {"a": {"$numberInt": "2"}}
+        -  {'__bot': {"a": {"$numberInt": "1"}}}
+        -  {'__bot': {"a": {"$numberInt": "2"}}}
         -  {'__bot': {"a": null}}
 
     - description: qualified top-level field reference keys can be referenced by qualified name
@@ -179,7 +180,7 @@ tests:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
         - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
       result:
         - {'__bot': {"a": {"$numberInt": "1"}} }
         - {'__bot': {"a": {"$numberInt": "11"}} }
@@ -194,7 +195,7 @@ tests:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
         - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
       result:
         - {'__bot': {"a": {"$numberInt": "1"}} }
         - {'__bot': {"a": {"$numberInt": "11"}} }
@@ -209,7 +210,7 @@ tests:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$group': {'_id': {'__unaliasedKey1': '$bar.a'}}}
         - {'$project': {'_id': 0, 'bar': {'a': '$_id.__unaliasedKey1'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
       result:
         - {'__bot': {"a": {"$numberInt": "1"}} }
         - {'__bot': {"a": {"$numberInt": "11"}} }
@@ -223,8 +224,8 @@ tests:
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$group': {'_id': {'a': '$bar.a'}}}
-        - {'$project': {'_id': 0, 'bar': {'a': '$__unaliasedKey1.a'}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}
+        - {'$project': {'_id': 0, 'bar': {'a': '$__unaliasedKey1.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$bar.a'}}}
       result:
         - {'__bot': {"a": {"$numberInt": "1"}} }
         - {'__bot': {"a": {"$numberInt": "11"}} }
@@ -242,7 +243,7 @@ tests:
       translations:
         - {'$project': {'_id': 0, 'b': '$$ROOT'}}
         - {'$group': {'_id': {'a': '$b.a.a.a'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
       result:
         -  {'__bot': {'a': null}}
 
@@ -253,7 +254,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-        - {'$group': {'_id': {'ad2': {'$divde': {'dividend': '$bar.a', 'divisor': {'$literal': 2}, 'onError': null}}}}
+        - {'$group': {'_id': {'ad2': {'$divde': {'dividend': '$bar.a', 'divisor': {'$literal': 2}, 'onError': null}}}}}
         - {'$project': {'_id': 0, '__bot': {'ad2': '$_id.a'}}}
       result:
         - {'__bot': {"ad2": {"$numberInt": "0"}} }
@@ -380,29 +381,29 @@ tests:
         - {'__bot': {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}, {"$numberInt": "2"}]} }
         - {'__bot': {"a": null, "garr": [null, null, null]} }
 
-      - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-        query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
-        current_db: foo
-        translation_target_db: foo
-        translation_target_coll: poly
-        translations:
-          - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-          - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
-          - {'$sort': {'__bot._id': 1}}
-          - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
-          - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$addToSet': '$arr.a.a'}}}
-          - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'garr': '$garr'}}}
-        result:
-          - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
-          - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}]}
-          - {"a": null, "garr": []}
+    - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
+      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: poly
+      translations:
+        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$sort': {'__bot._id': 1}}
+        - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$addToSet': '$arr.a.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'garr': '$garr'}}}
+      result:
+        - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
+        - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}]}
+        - {"a": null, "garr": []}
 
-    - description: ADD_TO_ARRAY(*) is currently an error
+    - description: ADD_TO_ARRAY star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
       error: "* is not an allowed argument to ADD_TO_ARRAY"
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
-      query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: numerics
@@ -410,14 +411,14 @@ tests:
         - {'$project': {'_id': 0, 'numerics': '$$ROOT'}}
         - {'$sort': {'numerics._id': 1}}
         - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
-        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
+        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numerics.a'}}}
         - {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
       result:
         - {'__bot': {'gset': [{ '$numberDecimal': '3' }]}}
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
-      query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics ORDER BY _id DSC) AS numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics ORDER BY _id DESC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: numerics
@@ -425,13 +426,13 @@ tests:
         - {'$project': {'_id': 0, 'numerics': '$$ROOT'}}
         - {'$sort': {'numerics._id': -1}}
         - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
-        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numeric.a'}}}
+        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numerics.a'}}}
         - {'$project': {'_id': 0, '__bot': {'_': '_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
       result:
         - {'__bot': {"gset": [{ "$numberInt": "3" }]}}
 
-    - description: ADD_TO_SET(*) is currently an error
+    - description: ADD_TO_SET star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE ADD_TO_SET(*) AS gset"
       error: "* is not an allowed argument to ADD_TO_SET"
 
@@ -483,7 +484,7 @@ tests:
             "gavg": {"$numberInt": "4"}
           }}
 
-    - description: AVG(*) is currently an error
+    - description: AVG star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(*) AS gavg"
       error: "* is not an allowed argument to AVG"
 
@@ -525,7 +526,7 @@ tests:
       translation_target_coll: poly
       translations:
         - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-        - {'$group': {'_id': {'a': '$arr.a'}, 'gcounta': {'$sqlCount': {'var': '$arr.a', 'distinct': false}, 'gcountn': {'$sqlCount': {'var': null, 'distinct': false}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gcounta': {'$sqlCount': {'var': '$arr.a', 'distinct': false}, 'gcountn': {'$sqlCount': {'var': null, 'distinct': false}}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gcounta': '$gcounta', 'gcountn': '$gcountn'}}}
       result:
         - {'__bot': {
@@ -579,7 +580,7 @@ tests:
             "gfirst": {"$numberInt": "4"}
           }}
 
-    - description: FIRST(*) is currently an error
+    - description: FIRST star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE FIRST(*) AS gfirst"
       error: "* is not an allowed argument to FIRST"
 
@@ -613,7 +614,7 @@ tests:
             "glast": {"$numberInt": "4"}
           }}
 
-    - description: LAST(*) is currently an error
+    - description: LAST star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE LAST(*) AS glast"
       error: "* is not an allowed argument to LAST"
 
@@ -631,7 +632,7 @@ tests:
         -  {'__bot': {'a': {'$numberInt': '11'}, 'gmax': {'$numberInt': '22'}}}
         -  {'__bot': {'a': {'$numberInt': '111'}, 'gmax': {'$numberInt': '142'}}}
 
-    - description: MAX(*) is currently an error
+    - description: MAX star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MAX(*) AS gmax"
       error: "* is not an allowed argument to MAX"
 
@@ -640,7 +641,7 @@ tests:
       error: "Argument to MAX must have statically mutually comparable type"
 
     - description: MERGE_DOCUMENTS correctness test
-      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::!INT AS a MERGE_DOCUMENTS(a::!DOCUMENT) AS gmerge"
+      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::!INT AS a, MERGE_DOCUMENTS(a::!DOCUMENT) AS gmerge"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly2
@@ -665,7 +666,7 @@ tests:
             "gmerge": {"c": {"$numberInt": "1"}}
           }}
 
-    - description: MERGE_DOCUMENTS(*) is currently an error
+    - description: MERGE_DOCUMENTS star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
       error: "* is not an allowed argument to MERGE_DOCUMENTS"
 
@@ -687,7 +688,7 @@ tests:
         - {'__bot': {'a': {'$numberInt': '1'}, 'gmax': {'$numberInt': '22'}}}
         - {'__bot': {'a': {'$numberInt': '1'}, 'gmax': {'$numberInt': '142'}}}
 
-    - description: MIN(*) is currently an error
+    - description: MIN star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MIN(*) AS gmin"
       error: "* is not an allowed argument to MIN"
 
@@ -718,7 +719,7 @@ tests:
             "gstdp": {"$numberDouble": "0.4714045207910316"}
           }}
 
-    - description: STDDEV_POP(*) is currently an error
+    - description: STDDEV_POP star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_POP(*) AS gstdp"
       error: "* is not an allowed argument to STDDEV_POP"
 
@@ -749,7 +750,7 @@ tests:
             "gstds": {"$numberDouble": "0.4714045207910316"}
           }}
 
-    - description: STDDEV_SAMP(*) is currently an error
+    - description: STDDEV_SAMP star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
       error: "* is not an allowed argument to STDDEV_SAMP"
 
@@ -780,7 +781,7 @@ tests:
             "gsum": {"$numberInt": "10"}
           }}
 
-    - description: SUM(*) is currently an error
+    - description: SUM star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(*) AS gsum"
       error: "* is not an allowed argument to SUM"
 

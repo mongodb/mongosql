@@ -1,10 +1,10 @@
 catalog_environment:
   foo:
     bar:
-      - {'_id': 1, 'a': {'b': 1}},
-      - {'_id': 2, 'a': {'b': 2}},
-      - {'_id': 3, 'a': 3},
-      - {'_id': 4, 'a': null},
+      - {'_id': 1, 'a': {'b': 1}}
+      - {'_id': 2, 'a': {'b': 2}}
+      - {'_id': 3, 'a': 3}
+      - {'_id': 4, 'a': null}
       - {'_id': 5}
 
 tests:
@@ -92,7 +92,7 @@ tests:
       - {'__bot': {'_id': 4, 'a': null}}
       - {'__bot': {'_id': 5}}
 
-  - description: Dot notation SELECT field called *
+  - description: Dot notation SELECT field called star
     query: "SELECT VALUE {'*': a.`*`} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
     translation:
       - {'$array': {'arr': [{'a': {'*': 100, 'b': 10, 'c': 1}}]}}
@@ -128,7 +128,7 @@ tests:
     query: "SELECT 1['a']"
     error: "error: cannot use field access on non-document types"
 
-  - description: Bracket notation SELECT field called *
+  - description: Bracket notation SELECT field called star
     query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
     translation:
       - {'$array': {'arr': [{'a': {'*': 100, 'b': 10, 'c': 1}}]}}

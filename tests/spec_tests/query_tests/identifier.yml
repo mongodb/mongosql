@@ -57,10 +57,11 @@ tests:
     translation:
       - {'$array': {'arr': [{'αβγ': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'αβγ': '$arr.αβγ'}}}
+    skip_reason: "SQL-262: Allow non-ASCII characters in identifiers"
     result:
       - {'__bot': {'αβγ': 1}}
 
-  - description: Compound identifier with > 3 parts
+  - description: Compound identifier with more than 3 parts
     query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
     translation:
       - {'$array': {'arr': [{'a': {'b': {'c': {'d': 1}}}}]}}

@@ -58,7 +58,7 @@ schema_environment:
                 { "bsonType": "string" },
                 { "bsonType": "null" }
               ]
-            }
+            },
             "p": {
               "anyOf": [
                 { "bsonType": "string" },
@@ -80,7 +80,7 @@ schema_environment:
                 { "bsonType": "string" },
                 { "bsonType": "null" }
               ]
-            }
+            },
             "p": {
               "anyOf": [
                 { "bsonType": "string" },
@@ -102,7 +102,7 @@ schema_environment:
                 { "bsonType": "string" },
                 { "bsonType": "null" }
               ]
-            }
+            },
             "p": {
               "anyOf": [
                 { "bsonType": "string" },
@@ -139,7 +139,7 @@ tests:
 
   - description: LIKE ESCAPE value cannot be non-literal
     current_db: foo
-    query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE s} FROM like AS like"
+    query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE s} FROM `like` AS `like`"
     error: "error: ESCAPE value must be literal"
 
   - description: LIKE operator - NULL or MISSING arguments result in NULL
@@ -158,7 +158,7 @@ tests:
 
   - description: LIKE operator with no ESCAPE correctness tests
     current_db: foo
-    query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM like AS l"
+    query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM `like` AS l"
     translation_target_db: foo
     translation_target_coll: like
     translation:
@@ -176,7 +176,7 @@ tests:
 
   - description: LIKE operator with ESCAPE correctness tests
     current_db: foo
-    query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p ESCAPE '$'} FROM escape AS e"
+    query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p ESCAPE '$'} FROM `escape` AS e"
     translation_target_db: foo
     translation_target_coll: escape
     translation:

@@ -7,7 +7,7 @@ tests:
     query: "SELECT 1 NOT BETWEEN 2 AND 3"
     result: "SELECT VALUE { '_1': NOT (1 BETWEEN 2 AND 3) } FROM [{}] AS _dual"
 
-  - description: Rewrite != to <>
+  - description: Rewrite neq
     query: "SELECT 1 != 2"
     result: "SELECT { '_1': 1 <> 2 } FROM [{}] AS _dual"
 

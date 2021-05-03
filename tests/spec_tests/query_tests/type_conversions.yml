@@ -29,7 +29,7 @@ catalog_environment:
       - {'_id': 0, 'v': {}}
       - {'_id': 1, 'v': {'a': 1, 'b': 2}}
     arrays:
-      - {'_id': 0, 'v': []},
+      - {'_id': 0, 'v': []}
       - {'_id': 1, 'v': [1, 2, 3]}
     objectIDs:
       - {'_id': 0, 'v': {'$oid': '5ab9c3da31c2ab715d421285'}}
@@ -1291,11 +1291,11 @@ tests:
       - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asObjectIDDefault': {'$convert': {'input': '$longs.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$longs.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - {'__bot': {'v': {'$numberLong': '0'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '1'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '-2'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '2147483648'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '-2147483649'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast DECIMAL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
@@ -1306,13 +1306,13 @@ tests:
       - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asObjectIDDefault': {'$convert': {'input': '$decimals.v', 'to': 'objectid', 'onNull': null, 'onError': null}}, 'asObjectIDOnError': {'$convert': {'input': '$decimals.v', 'to': 'objectid', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - {'__bot': {'v': {'$numberDecimal': '0'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '1.9'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-2.4'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'},, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asObjectIDDefault': null, 'asObjectIDOnError': 'null'}}
 
   - description: Cast invalid source types to OBJECTID
     current_db: foo
@@ -1651,11 +1651,11 @@ tests:
       - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$longs.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$longs.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - {'__bot': {'v': {'$numberLong': '0'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '1'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '-2'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '2147483648'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '-2147483649'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast DECIMAL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
@@ -1666,13 +1666,13 @@ tests:
       - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asDocumentDefault': {'$sqlConvert': {'input': '$decimals.v', 'to': 'object', 'onNull': null, 'onError': null}}, 'asDocumentOnError': {'$sqlConvert': {'input': '$decimals.v', 'to': 'object', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - {'__bot': {'v': {'$numberDecimal': '0'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '1.9'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-2.4'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'},, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asDocumentDefault': null, 'asDocumentOnError': 'null'}}
 
   - description: Cast invalid source types to DOCUMENT
     current_db: foo
@@ -1816,7 +1816,7 @@ tests:
     translation_target_coll: ints
     translation:
       - {'$project': {'_id': 0, 'ints': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', ''asArrayDefault': {'$sqlConvert': {'input': '$ints.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$ints.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
+      - {'$project': {'_id': 0, '__bot': {'v': '$ints.v', asArrayDefault': {'$sqlConvert': {'input': '$ints.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$ints.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
       - {'__bot': {'v': {'$numberInt': '0'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
       - {'__bot': {'v': {'$numberInt': '1'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
@@ -1831,11 +1831,11 @@ tests:
       - {'$project': {'_id': 0, 'longs': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$longs.v', 'asArrayDefault': {'$sqlConvert': {'input': '$longs.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$longs.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - {'__bot': {'v': {'$numberLong': '0'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '1'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '-2'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '2147483648'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberLong': '-2147483649'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '0'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '1'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '2147483648'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberLong': '-2147483649'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast DECIMAL to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
@@ -1846,13 +1846,13 @@ tests:
       - {'$project': {'_id': 0, 'decimals': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$decimals.v', 'asArrayDefault': {'$sqlConvert': {'input': '$decimals.v', 'to': 'array', 'onNull': null, 'onError': null}}, 'asArrayOnError': {'$sqlConvert': {'input': '$decimals.v', 'to': 'array', 'onNull': null, 'onError': {'$literal': 'null'}}}}}}
     result:
-      - {'__bot': {'v': {'$numberDecimal': '0'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '1.9'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-2.4'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
-      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'},, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '0'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '1.9'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2.4'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '2147483648.4'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-2147483649.4'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '9223372036854775808.8'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
+      - {'__bot': {'v': {'$numberDecimal': '-9223372036854775809.8'}, 'asArrayDefault': null, 'asArrayOnError': 'null'}}
 
   - description: Cast invalid source types to ARRAY
     current_db: foo

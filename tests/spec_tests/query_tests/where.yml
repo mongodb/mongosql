@@ -23,7 +23,7 @@ schema_environment:
             "bar": {
                 "$jsonSchema": {
                     "bsonType": "object",
-                    "required": ["foo"]
+                    "required": ["foo"],
                     "properties": {
                         "foo": {"bsonType": "boolean"}
                     }
@@ -91,7 +91,7 @@ tests:
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$match': {'$expr': {'$sqlNot': ['$bar.foo']}}
+      - {'$match': {'$expr': {'$sqlNot': ['$bar.foo']}}}
     result:
       - {'bar': {'a': false}}
 

@@ -54,7 +54,7 @@ tests:
     query: "SELECT * FROM bar ORDER BY a OFFSET 1.1"
     error: "OFFSET must be an integer number"
 
-  - description: Select with limit + offset
+  - description: Select with limit and offset
     current_db: foo
     query: "SELECT * FROM bar AS bar ORDER BY a LIMIT 1 OFFSET 1"
     translation_target_db: foo
@@ -120,7 +120,7 @@ tests:
       - {'bar': {'a': 2}}
       - {'bar': {'a': 3}}
 
-  - description: Limit + offset in subquery
+  - description: Limit and offset in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1 OFFSET 1)"
     translation_target_db: foo
@@ -139,7 +139,7 @@ tests:
                                                                                    {'$project': {'_id': 0, 'baz': '$$ROOT'}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$baz.a'}}},
                                                                                    {'$sort': {'__bot.a': 1}},
-                                                                                   {'$skip': 1}
+                                                                                   {'$skip': 1},
                                                                                    {'$limit': 1},
                                                                      ]
                                                        }
