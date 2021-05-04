@@ -38,6 +38,7 @@ functions:
 
           export GOPATH="$HOME/go"
           export GOROOT=/opt/golang/go1.15
+          export GOPRIVATE=github.com/10gen/*
           export GOCACHE="$HOME/gocache"
           mkdir -p "$GOCACHE"
           if [ "Windows_NT" = "$OS" ]; then
@@ -55,7 +56,9 @@ functions:
             export CARGO_NET_GIT_FETCH_WITH_CLI="$CARGO_NET_GIT_FETCH_WITH_CLI"
             export GOPATH="$GOPATH"
             export GOROOT="$GOROOT"
+            export GOPRIVATE="$GOPRIVATE"
             export GOCACHE="$GOCACHE"
+            git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
           EOT
     - command: expansions.update
       params:

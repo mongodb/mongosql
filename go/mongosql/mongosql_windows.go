@@ -5,6 +5,7 @@ import (
 	"syscall"
 	"unsafe"
 
+	"github.com/10gen/mongosql-rs/go/internal/desugarer"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -12,7 +13,7 @@ var versionProc *syscall.LazyProc
 var deleteStringProc *syscall.LazyProc
 var translateProc *syscall.LazyProc
 
-func init () {
+func init() {
 	dll := syscall.NewLazyDLL("mongosql.dll")
 	versionProc = dll.NewProc("version")
 	deleteStringProc = dll.NewProc("delete_string")
@@ -34,7 +35,7 @@ func uintptrToString(u uintptr) string {
 			break
 		}
 		bs = append(bs, b)
-		p = unsafe.Pointer(uintptr(p) +  1)
+		p = unsafe.Pointer(uintptr(p) + 1)
 	}
 	return string(bs)
 }
@@ -97,6 +98,11 @@ func Translate(db, sql string) (queryDB string, queryCollection string, pipeline
 	}
 	if typ.String() != "array" {
 		panic("didn't marshal to array")
+	}
+
+	pipelineBytes, err = desugarer.Desugar(pipelineBytes)
+	if err != nil {
+		panic(err)
 	}
 
 	return translation.Db, translation.Collection, pipelineBytes
