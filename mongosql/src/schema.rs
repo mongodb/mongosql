@@ -6,9 +6,19 @@ pub type SchemaEnvironment = BindingTuple<Schema>;
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct ResultSet {
-    schema: SchemaEnvironment,
-    min_size: Option<u64>,
-    max_size: Option<u64>,
+    pub schema: SchemaEnvironment,
+    pub min_size: Option<u64>,
+    pub max_size: Option<u64>,
+}
+
+impl Default for ResultSet {
+    fn default() -> Self {
+        Self {
+            schema: SchemaEnvironment::default(),
+            min_size: None,
+            max_size: None,
+        }
+    }
 }
 
 #[allow(dead_code)]
