@@ -4,19 +4,19 @@ macro_rules! test_schema {
             $func_name,
             $expected,
             $input,
-            crate::schema::ResultSet::default(),
+            crate::schema::SchemaEnvironment::default(),
         );
     };
-    ($func_name:ident, $expected:expr, $input:expr, $resultset:expr,) => {
+    ($func_name:ident, $expected:expr, $input:expr, $schema_env:expr,) => {
         #[test]
         fn $func_name() {
             use crate::ir::schema::SchemaInferenceState;
 
             let expected = $expected;
             let input = $input;
-            let state_rs = $resultset;
+            let schema_env = $schema_env;
 
-            let state = SchemaInferenceState::from(&state_rs);
+            let state = SchemaInferenceState::from(&schema_env);
             let actual = input.schema(&state);
 
             assert_eq!(actual, expected);
@@ -70,10 +70,6 @@ mod schema {
         reference_exists_in_schema_env,
         Ok(Schema::Atomic(Atomic::Null)),
         Expression::Reference(("a", 0u16).into()),
-        ResultSet {
-            schema: hash_map! {("a", 0u16).into() => Schema::Atomic(Atomic::Null),},
-            min_size: None,
-            max_size: None,
-        },
+        hash_map! {("a", 0u16).into() => Schema::Atomic(Atomic::Null),},
     );
 }

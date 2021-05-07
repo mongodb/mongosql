@@ -1,5 +1,5 @@
 pub mod binding_tuple;
-mod schema;
+pub mod schema;
 #[cfg(test)]
 mod test;
 

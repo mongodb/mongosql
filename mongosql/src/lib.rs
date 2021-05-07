@@ -1,10 +1,11 @@
+mod algebrizer;
 mod ast;
 mod codegen;
 mod ir;
 mod parser;
 mod result;
 mod schema;
-use crate::{parser::Parser, result::Result};
+use crate::{algebrizer::Algebrizer, parser::Parser, result::Result};
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -28,15 +29,16 @@ impl From<codegen::MqlTranslation> for Translation {
 /// specified db. Currently a stub implementation that returns a
 /// hard-coded result.
 pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
+    // parse the query and apply syntactic rewrites
     let p = Parser::new();
-    let _ast = p.parse_query(sql)?;
-    let _ast = ast::rewrites::rewrite_query(_ast)?;
+    let ast = p.parse_query(sql)?;
+    let ast = ast::rewrites::rewrite_query(ast)?;
 
-    let plan = ir::Stage::Collection(ir::Collection {
-        db: current_db.to_string(),
-        collection: "foo".to_string(),
-    });
+    // construct the algebrizer and use it to build an ir plan
+    let algebrizer = Algebrizer::new(current_db.to_string());
+    let plan = algebrizer.algebrize_query(ast)?;
 
+    // generate mql from the ir plan
     let translation = codegen::generate_mql(current_db.to_string(), plan)?;
     Ok(translation.into())
 }
