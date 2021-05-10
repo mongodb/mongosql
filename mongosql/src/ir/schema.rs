@@ -1,7 +1,9 @@
 use crate::{
     ir::*,
-    schema::{Atomic, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT},
+    schema::{Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT},
 };
+use linked_hash_map::LinkedHashMap;
+use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
 
 #[allow(dead_code)]
@@ -113,8 +115,8 @@ impl Expression {
                 .get(key)
                 .cloned()
                 .ok_or_else(|| Error::DatasourceNotFoundInSchemaEnv(key.clone())),
-            Expression::Array(_) => unimplemented!(),
-            Expression::Document(_) => unimplemented!(),
+            Expression::Array(a) => Expression::array_schema(a, state),
+            Expression::Document(d) => Expression::document_schema(d, state),
             Expression::FieldAccess(FieldAccess { expr, field }) => {
                 let accessee_schema = expr.schema(state)?;
                 if accessee_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
@@ -134,6 +136,48 @@ impl Expression {
             Expression::SubqueryComparison(_) => unimplemented!(),
             Expression::Exists(_) => unimplemented!(),
         }
+    }
+
+    /// For array literals, we return Array(Any) for an empty array. For other arrays
+    /// we return Array(OneOf(S1...SN)), for Schemata S1...SN inferred from the element
+    /// Expressions of the array literal.
+    fn array_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let types = a
+            .iter()
+            .map(|x| x.schema(state))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(Schema::Array(Box::new(if types.is_empty() {
+            Schema::Any
+        } else {
+            Schema::OneOf(types)
+        })))
+    }
+
+    /// For document literals, we infer the most restrictive schema possible. This means
+    /// that additional_properties are not allowed.
+    fn document_schema(
+        d: &LinkedHashMap<String, Expression>,
+        state: &SchemaInferenceState,
+    ) -> Result<Schema, Error> {
+        let (mut keys, mut required) = (BTreeMap::new(), BTreeSet::new());
+        for (key, e) in d.iter() {
+            let key_schema = e.schema(state)?;
+            match key_schema.satisfies(&Schema::Missing) {
+                Satisfaction::Not => {
+                    required.insert(key.clone());
+                    keys.insert(key.clone(), key_schema);
+                }
+                Satisfaction::May => {
+                    keys.insert(key.clone(), key_schema);
+                }
+                Satisfaction::Must => (),
+            }
+        }
+        Ok(Schema::Document(Document {
+            keys,
+            required,
+            additional_properties: false,
+        }))
     }
 }
 

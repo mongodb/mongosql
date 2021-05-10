@@ -1,3 +1,15 @@
+macro_rules! linked_hash_map(
+    { $($key:expr => $value:expr),+ $(,)?} => {
+        {
+            let mut m = ::linked_hash_map::LinkedHashMap::new();
+            $(
+                m.insert($key, $value);
+            )+
+            m
+        }
+     };
+);
+
 macro_rules! test_schema {
     ($func_name:ident, $expected:expr, $input:expr,) => {
         test_schema!(
@@ -19,7 +31,7 @@ macro_rules! test_schema {
             let state = SchemaInferenceState::from(&schema_env);
             let actual = input.schema(&state);
 
-            assert_eq!(actual, expected);
+            assert_eq!(expected, actual);
         }
     };
 }
@@ -71,6 +83,106 @@ mod schema {
         Ok(Schema::Atomic(Atomic::Null)),
         Expression::Reference(("a", 0u16).into()),
         hash_map! {("a", 0u16).into() => Schema::Atomic(Atomic::Null),},
+    );
+
+    // Array Literals
+    test_schema!(
+        array_literal_empty,
+        Ok(Schema::Array(Box::new(Schema::Any))),
+        Expression::Array(vec![]),
+    );
+    test_schema!(
+        array_literal_null,
+        Ok(Schema::Array(Box::new(Schema::OneOf(vec![
+            Schema::Atomic(Atomic::Null)
+        ])))),
+        Expression::Array(vec![Expression::Literal(Literal::Null)]),
+    );
+    test_schema!(
+        array_literal_two_nulls,
+        Ok(Schema::Array(Box::new(Schema::OneOf(vec![
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Null),
+        ])))),
+        Expression::Array(vec![
+            Expression::Literal(Literal::Null),
+            Expression::Literal(Literal::Null)
+        ]),
+    );
+    test_schema!(
+        array_literal_null_or_string,
+        Ok(Schema::Array(Box::new(Schema::OneOf(vec![
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::String),
+        ])))),
+        Expression::Array(vec![
+            Expression::Literal(Literal::Null),
+            Expression::Literal(Literal::String("hello".to_string())),
+            Expression::Literal(Literal::Null),
+            Expression::Literal(Literal::String("world".to_string())),
+        ]),
+    );
+
+    // Document Literal
+    test_schema!(
+        document_literal_empty,
+        Ok(Schema::Document(Document {
+            keys: b_tree_map! {},
+            required: b_tree_set! {},
+            additional_properties: false,
+        })),
+        Expression::Document(::linked_hash_map::LinkedHashMap::new()),
+    );
+    test_schema!(
+        document_literal_all_required,
+        Ok(Schema::Document(Document {
+            keys: b_tree_map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Null),
+                "d".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            required: b_tree_set! {
+                "a".to_string(),
+                "b".to_string(),
+                "c".to_string(),
+                "d".to_string(),
+            },
+            additional_properties: false,
+        })),
+        Expression::Document(linked_hash_map! {
+            "a".to_string() => Expression::Literal(Literal::String("Hello".to_string())),
+            "b".to_string() => Expression::Literal(Literal::String("World".to_string())),
+            "c".to_string() => Expression::Literal(Literal::Null),
+            "d".to_string() => Expression::Literal(Literal::Long(42)),
+        }),
+    );
+    test_schema!(
+        document_literal_some_keys_may_or_must_satisfy_missing,
+        Ok(Schema::Document(Document {
+            keys: b_tree_map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Null),
+                "d".to_string() => Schema::OneOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
+            },
+            required: b_tree_set! {
+                "a".to_string(),
+                "c".to_string(),
+            },
+            additional_properties: false,
+        })),
+        Expression::Document(linked_hash_map! {
+            "a".to_string() => Expression::Literal(Literal::String("Hello".to_string())),
+            "b".to_string() => Expression::Reference(("b", 0u16).into()),
+            "c".to_string() => Expression::Literal(Literal::Null),
+            "d".to_string() => Expression::Reference(("a", 0u16).into()),
+        }),
+        hash_map! {
+            ("a", 0u16).into() => Schema::OneOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
+            ("b", 0u16).into() => Schema::Missing,
+        },
     );
 
     // FieldAccess

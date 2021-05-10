@@ -85,24 +85,24 @@ pub enum Satisfaction {
 
 #[allow(dead_code, unused_variables)]
 impl Schema {
-    // schema_predicate_meet applies a schema_predicate to all passed Schemata,
-    // and takes the meet of the Satisfaction lattice defined as:
-    //
-    // Must  Not
-    //    \ /
-    //    May
-    //
-    // Thus returning:
-    //
-    // Must if the predicate returns Must for all Schemata.
-    // Not if the predicate returns Not for all Schemata.
-    // May if the predcate is not Must or Not for all Schemata.
-    //
-    // If looked at as a binary operator we get:
-    // meet(X, Y) = May
-    // meet(X, X) = X
-    // where X != Y; X, Y in {May, Must, Not}
-    //
+    /// schema_predicate_meet applies a schema_predicate to all passed Schemata,
+    /// and takes the meet of the Satisfaction lattice defined as:
+    ///
+    /// Must  Not
+    ///    \ /
+    ///    May
+    ///
+    /// Thus returning:
+    ///
+    /// Must if the predicate returns Must for all Schemata.
+    /// Not if the predicate returns Not for all Schemata.
+    /// May if the predcate is not Must or Not for all Schemata.
+    ///
+    /// If looked at as a binary operator we get:
+    /// meet(X, Y) = May
+    /// meet(X, X) = X
+    /// where X != Y; X, Y in {May, Must, Not}
+    ///
     fn schema_predicate_meet(
         vs: &[Schema],
         predicate: &dyn Fn(&Schema) -> Satisfaction,
@@ -119,7 +119,7 @@ impl Schema {
             .unwrap_or(Satisfaction::May)
     }
 
-    // satisfies AnyOf the passed set of Schemata.
+    /// satisfies AnyOf the passed set of Schemata.
     fn satisfies_any_of(&self, vs: &[Schema]) -> Satisfaction {
         use Satisfaction::*;
         let mut ret = Not;
@@ -133,7 +133,7 @@ impl Schema {
         ret
     }
 
-    // satisfies exactly OneOf the passed set of Schemata.
+    /// satisfies exactly OneOf the passed set of Schemata.
     fn satisfies_one_of(&self, vs: &[Schema]) -> Satisfaction {
         use Satisfaction::*;
         let mut ret = Not;
@@ -153,8 +153,13 @@ impl Schema {
         ret
     }
 
-    // Returns if all the possible values satisfying the self Schema also satisfy the argument
-    // other Schema.
+    /// Returns if all the possible values satisfying the self Schema also satisfy the argument
+    /// other Schema.
+    ///
+    /// returns:
+    /// Must: any value that satisfies the self Schema Must satisfy other
+    /// May: any value that satisfies the self Schema May or May Not satisfy other
+    /// Not: any value that satisfies the self Schema must Not satisfy the other
     pub fn satisfies(&self, other: &Schema) -> Satisfaction {
         use Satisfaction::*;
         use Schema::*;
@@ -162,7 +167,6 @@ impl Schema {
             // other is Any | Missing
             (_, Any) => Must,
             (Missing, Missing) => Must,
-            (_, Missing) => Not,
 
             // self is Any | Missing
             (Any, _) => May,
@@ -190,7 +194,7 @@ impl Schema {
         }
     }
 
-    // returns if this Schema Must, May, or must Not contain the passed field.
+    /// returns if this Schema Must, May, or must Not contain the passed field.
     pub fn contains_field(&self, field: &str) -> Satisfaction {
         self.satisfies(&Schema::Document(Document {
             keys: b_tree_map! {
