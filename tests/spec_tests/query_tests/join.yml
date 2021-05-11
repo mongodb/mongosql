@@ -8,6 +8,9 @@ catalog_environment:
       - { '_id': 1, 'foo': 43 }
     'coll':
       - { '_id': 0, 'bar': 53, 'car': 42 }
+  'db2':
+    'foo':
+      - { '_id': 0, 'x': 1 }
 
 schema_environment:
   {
@@ -51,7 +54,7 @@ tests:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$join': {
-          'source': 'coll',
+          'collection': 'coll',
           'joinType': 'inner',
           'let': {},
           'pipeline': [
@@ -72,7 +75,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
-        'source': 'coll',
+        'collection': 'coll',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
         'pipeline': [
@@ -93,7 +96,7 @@ tests:
       - {'$project': {'_id': 0, 'bar2': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar2': '$bar2'}}
       - {'$join': {
-        'source': 'bar',
+        'collection': 'bar',
         'joinType': 'left',
         'let': {'__bar2_foo': '$bar2.foo'},
         'pipeline': [
@@ -115,7 +118,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
-        'source': 'bar2',
+        'collection': 'bar2',
         'joinType': 'left',
         'let': {'__bar_foo': '$bar.foo'},
         'pipeline': [
@@ -147,7 +150,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
-        'source': 'bar2',
+        'collection': 'bar2',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
         'pipeline': [
@@ -173,7 +176,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
-        'source': 'coll',
+        'collection': 'coll',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
         'pipeline': [
@@ -194,7 +197,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$join': {
-        'source': 'coll',
+        'collection': 'coll',
         'joinType': 'inner',
         'let': {'__bar_foo': '$bar.foo'},
         'pipeline': [
@@ -219,7 +222,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'a': '$bar'}}
       - {'$join': {
-        'source': 'bar',
+        'collection': 'bar',
         'joinType': 'inner',
         'let': {},
         'pipeline': [
@@ -228,7 +231,7 @@ tests:
         ],
       }}
       - {'$join': {
-        'source': 'bar',
+        'collection': 'bar',
         'joinType': 'left',
         'let': {'__a_foo': '$a.foo'},
         'pipeline': [
@@ -251,3 +254,24 @@ tests:
     current_db: mydb
     query: "SELECT * FROM coll CROSS JOIN coll"
     error: "Aliases in FROM CLAUSE must be unique, found 2 instances of `coll`"
+
+  - description: cross database join correctness test
+    current_db: mydb
+    query: "SELECT * FROM coll AS coll CROSS JOIN db2.foo AS foo"
+    translation_target_db: mydb
+    translation_target_coll: coll
+    translation:
+      - {'$project': {'_id': 0, 'coll': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'coll': '$coll'}}
+      - {'$join': {
+                    'database': 'db2',
+                    'collection': 'foo',
+                    'joinType': 'inner',
+                    'let': {},
+                    'pipeline': [
+                      {'$project': {'_id': 0, 'foo': '$$ROOT'}},
+                      {'$project': {'_id': 0, 'foo': 'foo'}}
+                    ]
+      }}
+    result:
+      - {'coll': {'_id': 0, 'bar': 53, 'car': 42}, 'foo': {'_id': 0, 'x': 1}}

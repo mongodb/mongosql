@@ -12,7 +12,7 @@ import (
 
 type TestCase struct {
 	Name     string
-	Options  bsoncore.Document
+	Skip     *string
 	Input    bsoncore.Array
 	Expected bsoncore.Array
 }
@@ -24,11 +24,11 @@ func LoadTestCases(fileName string) []TestCase {
 	testCases := make([]TestCase, len(docs))
 	for i, doc := range docs {
 		testCases[i].Name = doc.Lookup("name").StringValue()
-		options, ok := doc.Lookup("options").DocumentOK()
-		if !ok {
-			testCases[i].Options = nil
+		skip, ok := doc.Lookup("skip").StringValueOK()
+		if ok {
+			testCases[i].Skip = &skip
 		} else {
-			testCases[i].Options = options
+			testCases[i].Skip = nil
 		}
 		// GODRIVER-1930 (both lines).
 		testCases[i].Input = bsoncore.Array(doc.Lookup("input").Array())

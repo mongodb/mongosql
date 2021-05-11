@@ -17,6 +17,11 @@ func TestDesugar(t *testing.T) {
 		desugarer optimizer.Optimization
 	}{
 		{
+			name:      "desugarJoins",
+			file:      "desugar_joins.json",
+			desugarer: desugarJoins,
+		},
+		{
 			name:      "desugarUnsupportedOperators",
 			file:      "desugar_unsupported_operators.json",
 			desugarer: desugarUnsupportedOperators,
@@ -29,6 +34,9 @@ func TestDesugar(t *testing.T) {
 
 			for _, tc := range testCases {
 				t.Run(tc.Name, func(t *testing.T) {
+					if tc.Skip != nil {
+						t.Skip(*tc.Skip)
+					}
 					in, err := parser.ParsePipeline(tc.Input)
 					if err != nil {
 						t.Fatalf("Failed to parse input pipeline: %v", err)

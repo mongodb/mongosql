@@ -1,0 +1,578 @@
+[
+  {
+    "name": "nothing to desugar",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar inner join",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "pipeline": []
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar left join",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "left",
+          "pipeline": []
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": true
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar join with db specified",
+    "input": [
+      {
+        "$join": {
+          "database": "db",
+          "collection": "bar",
+          "joinType": "inner",
+          "pipeline": []
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": {
+            "db": "db",
+            "coll": "bar"
+          },
+          "pipeline": [],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar join with no collection and non-empty pipeline",
+    "skip": "SQL-294",
+    "input": [
+      {
+        "$join": {
+          "joinType": "inner",
+          "pipeline": [
+            {
+              "$array": {
+                "arr": [
+                  {
+                    "a": 1
+                  },
+                  {
+                    "a": 2
+                  },
+                  {
+                    "a": 3
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "",
+          "pipeline": [
+            {
+              "$array": {
+                "arr": [
+                  {
+                    "a": 1
+                  },
+                  {
+                    "a": 2
+                  },
+                  {
+                    "a": 3
+                  }
+                ]
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar join non-empty let and match",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "let": {
+            "x": "$x"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "x": 1
+              }
+            }
+          ],
+          "condition": {
+            "$match": {
+              "$expr": {
+                "$sqlEq": [
+                  "$$x",
+                  "$x"
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "x": "$x"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "x": 1
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$sqlEq": [
+                    "$$x",
+                    "$x"
+                  ]
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar when join is not first in pipeline",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      },
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "let": {
+            "x": "$x"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "x": 1
+              }
+            }
+          ],
+          "condition": {
+            "$match": {
+              "$expr": {
+                "$sqlEq": [
+                  "$$x",
+                  "$x"
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      },
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "x": "$x"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "x": 1
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$sqlEq": [
+                    "$$x",
+                    "$x"
+                  ]
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar multiple joins",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      },
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "let": {
+            "x": "$x"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "x": 1
+              }
+            }
+          ],
+          "condition": {
+            "$match": {
+              "$expr": {
+                "$sqlEq": [
+                  "$$x",
+                  "$x"
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "$join": {
+          "collection": "baz",
+          "joinType": "inner",
+          "let": {
+            "y": "$y"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "y": 1
+              }
+            }
+          ],
+          "condition": {
+            "$match": {
+              "$expr": {
+                "$sqlEq": [
+                  "$$y",
+                  "$y"
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      },
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "x": "$x"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "x": 1
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$sqlEq": [
+                    "$$x",
+                    "$x"
+                  ]
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      },
+      {
+        "$lookup": {
+          "from": "baz",
+          "let": {
+            "y": "$y"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "y": 1
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$sqlEq": [
+                    "$$y",
+                    "$y"
+                  ]
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  }
+]
