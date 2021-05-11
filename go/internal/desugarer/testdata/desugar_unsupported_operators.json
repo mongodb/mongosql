@@ -1,0 +1,155 @@
+[
+  {
+    "name": "nothing to desugar",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlBetween",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlBetween": [
+              "$x",
+              1,
+              10
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlBetween_input": "$x"
+              },
+              "in": {
+                "$sqlAnd": [
+                  {
+                    "$sqlGte": [
+                      "$$desugared_sqlBetween_input",
+                      1
+                    ]
+                  },
+                  {
+                    "$sqlLte": [
+                      "$$desugared_sqlBetween_input",
+                      10
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar nested $sqlBetween",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlBetween": [
+              "$x",
+              1,
+              {
+                "$cond": [
+                  {
+                    "$sqlBetween": [
+                      "$y",
+                      50,
+                      100
+                    ]
+                  },
+                  100,
+                  10
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlBetween_input": "$x"
+              },
+              "in": {
+                "$sqlAnd": [
+                  {
+                    "$sqlGte": [
+                      "$$desugared_sqlBetween_input",
+                      1
+                    ]
+                  },
+                  {
+                    "$sqlLte": [
+                      "$$desugared_sqlBetween_input",
+                      {
+                        "$cond": [
+                          {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlBetween_input": "$y"
+                              },
+                              "in": {
+                                "$sqlAnd": [
+                                  {
+                                    "$sqlGte": [
+                                      "$$desugared_sqlBetween_input",
+                                      50
+                                    ]
+                                  },
+                                  {
+                                    "$sqlLte": [
+                                      "$$desugared_sqlBetween_input",
+                                      100
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          100,
+                          10
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+]

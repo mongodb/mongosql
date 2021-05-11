@@ -220,11 +220,11 @@ functions:
       type: test
       params:
         shell: bash
-        working_dir: mongosql-rs/go/mongosql
+        working_dir: mongosql-rs/go
         script: |
           ${prepare_shell}
-          export LIBRARY_PATH="$(cd ../.. && pwd)"
-          go test -v | tee go-test-results.txt
+          export LIBRARY_PATH="$(cd .. && pwd)"
+          go test -v ./... | tee go-test-results.txt
 
   "run rust tests":
     - command: shell.exec
@@ -262,7 +262,7 @@ functions:
     - command: gotest.parse_files
       params:
         files:
-          - mongosql-rs/go/mongosql/go-test-results.txt
+          - mongosql-rs/go/go-test-results.txt
 
 pre:
   - func: "fetch source"
