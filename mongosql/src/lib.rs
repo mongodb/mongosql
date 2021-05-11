@@ -4,10 +4,7 @@ mod ir;
 mod parser;
 mod result;
 mod schema;
-use crate::{
-    parser::Parser,
-    result::{Error, Result},
-};
+use crate::{parser::Parser, result::Result};
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -42,22 +39,4 @@ pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
 
     let translation = codegen::generate_mql(current_db.to_string(), plan)?;
     Ok(translation.into())
-}
-
-/// A variant of translate_sql that encodes the resulting Translation
-/// as BSON and then base64-encodes it.
-pub fn translate_sql_bson_base64(current_db: &str, sql: &str) -> Result<String> {
-    let translation = translate_sql(current_db, sql)?;
-    let translation = bson::doc! {
-        "target_db": translation.target_db,
-        "target_collection": translation.target_collection.map_or(bson::Bson::Null, |c| c.into()),
-        "pipeline": translation.pipeline,
-    };
-
-    let mut buf = Vec::new();
-    translation
-        .to_writer(&mut buf)
-        .map_err(|e| Error::SerializeBsonBase64(e.to_string()))?;
-
-    Ok(base64::encode(buf))
 }

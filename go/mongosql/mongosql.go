@@ -1,0 +1,88 @@
+package mongosql
+
+import (
+	"encoding/base64"
+	"fmt"
+
+	"github.com/10gen/mongosql-rs/go/internal/desugarer"
+	"go.mongodb.org/mongo-driver/bson"
+)
+
+// Version returns the version of the underlying c translation
+// library. The consumer of this library should ensure that the
+// version of the the go library matches that of the c library.
+func Version() string {
+	return version()
+}
+
+// TranslationArgs contains the arguments that
+type TranslationArgs struct {
+	// db represents the current database in which the sql query was run
+	DB string
+	// sql is a string containing the sql query
+	SQL string
+}
+
+// Translation represents the result of translating a sql query to
+// MQL. The fields of this struct can be used to construct an
+// aggregate command equivalent to a SQL query.
+type Translation struct {
+	// TargetDB is the MongoDB database against which the aggregate
+	// command should run
+	TargetDB string
+	// TargetCollection is the collection to be specified in the
+	// aggregate command, or nil if an "aggregate: 1" style aggregate
+	// command should be used
+	TargetCollection *string
+	// Pipeline is the array representing the aggregation pipeline
+	// serialized to BSON
+	Pipeline []byte
+}
+
+// Translate accepts TranslationArgs, returning a Translation and an
+// error if the translation failed. If the returned error is non-nil,
+// the returned Translation should be disregarded.
+func Translate(args TranslationArgs) (Translation, error) {
+	base64TranslationResult := callTranslate(args)
+
+	translationResult := struct {
+		Db         string   `bson:"target_db"`
+		Collection *string  `bson:"target_collection"`
+		Pipeline   []bson.M `bson:"pipeline"`
+		Error      *string  `bson:"error"`
+	}{}
+
+	translationBytes, err := base64.StdEncoding.DecodeString(base64TranslationResult)
+	if err != nil {
+		panic(err)
+	}
+
+	err = bson.Unmarshal(translationBytes, &translationResult)
+	if err != nil {
+		return Translation{}, fmt.Errorf("failed to unmarshal translation result BSON into struct: %w", err)
+	}
+
+	if translationResult.Error != nil {
+		return Translation{}, fmt.Errorf(*translationResult.Error)
+	}
+
+	typ, pipelineBytes, err := bson.MarshalValue(translationResult.Pipeline)
+	if err != nil {
+		return Translation{}, fmt.Errorf("failed to marshal pipeline to bytes: %w", err)
+	}
+	if typ.String() != "array" {
+		// this should never occur, but is here as a sanity check
+		panic("didn't marshal to array")
+	}
+
+	pipelineBytes, err = desugarer.Desugar(pipelineBytes)
+	if err != nil {
+		return Translation{}, fmt.Errorf("failed to desugar pipeline: %w", err)
+	}
+
+	return Translation{
+		TargetDB:         translationResult.Db,
+		TargetCollection: translationResult.Collection,
+		Pipeline:         pipelineBytes,
+	}, nil
+}

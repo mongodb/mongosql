@@ -11,6 +11,4 @@ pub enum Error {
     Rewrite(#[from] ast::rewrites::Error),
     #[error("codegen error: {0}")]
     Codegen(#[from] codegen::Error),
-    #[error("failed to serialize bson to base64: {0}")]
-    SerializeBsonBase64(String),
 }

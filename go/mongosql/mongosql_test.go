@@ -30,22 +30,28 @@ func TestVersion(t *testing.T) {
 }
 
 func TestTranslate(t *testing.T) {
-	db, collection, pipelineBytes := mongosql.Translate("bar", "select * from foo")
-
-	if db != "bar" {
-		t.Fatalf("expected db to be 'bar', got '%s'", db)
+	translation, err := mongosql.Translate(mongosql.TranslationArgs{
+		DB:  "bar",
+		SQL: "select * from foo",
+	})
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
 
-	if collection != "foo" {
-		t.Fatalf("expected collection to be 'foo', got '%s'", collection)
+	if translation.TargetDB != "bar" {
+		t.Fatalf("expected targetDB to be 'bar', got '%s'", translation.TargetDB)
+	}
+
+	if *translation.TargetCollection != "foo" {
+		t.Fatalf("expected targetCollection to be 'foo', got '%s'", *translation.TargetCollection)
 	}
 
 	var pipeline []bson.D
 	val := bson.RawValue{
 		Type:  bsontype.Array,
-		Value: pipelineBytes,
+		Value: translation.Pipeline,
 	}
-	err := val.Unmarshal(&pipeline)
+	err = val.Unmarshal(&pipeline)
 	if err != nil {
 		t.Fatalf("expected pipeline to unmarshal into []bson.D, but failed: %s", err)
 	}
@@ -62,5 +68,20 @@ func TestTranslate(t *testing.T) {
 	}
 	if !reflect.DeepEqual(expectedStage, pipeline[0]) {
 		t.Fatalf("expected stages to be equal, but they weren't:\n%s\nand\n%s", expectedStage, pipeline[0])
+	}
+}
+
+func TestTranslateError(t *testing.T) {
+	_, err := mongosql.Translate(mongosql.TranslationArgs{
+		DB:  "bar",
+		SQL: "notavalidquery",
+	})
+
+	if err == nil {
+		t.Fatalf("expected error to be non-nil, but it was nil")
+	}
+
+	if !strings.Contains(err.Error(), "parse error: Unrecognized token `notavalidquery`") {
+		t.Fatalf("error message did not contain expected text: %q", err.Error())
 	}
 }

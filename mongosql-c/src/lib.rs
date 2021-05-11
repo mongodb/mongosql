@@ -20,11 +20,57 @@ pub extern "C" fn translate(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
 ) -> *const raw::c_char {
-    let current_db = from_extern_string(current_db).expect("current_db not valid UTF-8");
-    let sql = from_extern_string(sql).expect("sql not valid UTF-8");
-    let res =
-        mongosql::translate_sql_bson_base64(&current_db, &sql).expect("query translation failed");
-    to_raw_c_string(&res).expect("failed to convert base64 string to extern string")
+    let payload = match translate_sql_bson_base64(current_db, sql) {
+        Ok(translation) => translation_success_payload(translation),
+        Err(msg) => translation_failure_payload(msg),
+    };
+    to_raw_c_string(&payload).expect("failed to convert base64 string to extern string")
+}
+
+/// A helper function that encapsulates all the fallible parts of
+/// translation whose errors can be returned in the FFI payload.
+fn translate_sql_bson_base64(
+    current_db: *const libc::c_char,
+    sql: *const libc::c_char,
+) -> Result<mongosql::Translation, String> {
+    let current_db =
+        from_extern_string(current_db).map_err(|_| "current_db not valid UTF-8".to_string())?;
+    let sql =
+        from_extern_string(sql).map_err(|_| "sql query string not valid UTF-8".to_string())?;
+    mongosql::translate_sql(&current_db, &sql).map_err(|e| format!("{}", e))
+}
+
+/// Returns a base64-encoded BSON document representing the payload
+/// returned for a successful translation.
+fn translation_success_payload(t: mongosql::Translation) -> String {
+    let translation = bson::doc! {
+        "target_db": t.target_db,
+        "target_collection": t.target_collection.map_or(bson::Bson::Null, |c| c.into()),
+        "pipeline": t.pipeline,
+    };
+
+    let mut buf = Vec::new();
+    translation
+        .to_writer(&mut buf)
+        .expect("serializing bson to bytes failed");
+
+    base64::encode(buf)
+}
+
+/// Returns a base64-encoded BSON document representing the payload
+/// returned for an unsuccessful translation with the provided error
+/// message.
+fn translation_failure_payload(error: String) -> String {
+    let translation = bson::doc! {
+        "error": error,
+    };
+
+    let mut buf = Vec::new();
+    translation
+        .to_writer(&mut buf)
+        .expect("serializing bson to bytes failed");
+
+    base64::encode(buf)
 }
 
 /// # Safety

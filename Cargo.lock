@@ -335,7 +335,6 @@ checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 name = "mongosql"
 version = "0.1.0"
 dependencies = [
- "base64 0.13.0",
  "bson",
  "common_macros",
  "lalrpop",
@@ -353,6 +352,8 @@ dependencies = [
 name = "mongosql-c"
 version = "0.1.0"
 dependencies = [
+ "base64 0.13.0",
+ "bson",
  "libc",
  "mongosql",
 ]
