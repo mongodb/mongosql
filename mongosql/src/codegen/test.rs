@@ -1,4 +1,4 @@
-macro_rules! test_codegen {
+macro_rules! test_codegen_plan {
     (
 		$func_name:ident,
 		$current_db:expr,
@@ -46,10 +46,49 @@ macro_rules! test_codegen {
     };
 }
 
+macro_rules! test_codegen_expr {
+    ($func_name:ident, $current_db:expr, $mapping_registry:expr, $expected:expr, $input:expr,) => {
+        #[test]
+        fn $func_name() {
+            use crate::codegen::mql::MqlCodeGenerator;
+            let current_database = $current_db.to_string();
+            let mapping_registry = $mapping_registry;
+            let expected = $expected;
+            let input = $input;
+
+            let gen = MqlCodeGenerator {
+                current_database,
+                mapping_registry,
+            };
+            assert_eq!(expected, gen.codegen_expression(input));
+        }
+    };
+
+    ($func_name:ident, $expected:expr, $input:expr,) => {
+        test_codegen_expr!(
+            $func_name,
+            "dbnameunused",
+            crate::codegen::mql::MappingRegistry::default(),
+            $expected,
+            $input,
+        );
+    };
+
+    ($func_name:ident, $mapping_registry:expr, $expected:expr, $input:expr,) => {
+        test_codegen_expr!(
+            $func_name,
+            "dbnameunused",
+            $mapping_registry,
+            $expected,
+            $input,
+        );
+    };
+}
+
 mod collection {
     use crate::ir::*;
 
-    test_codegen!(
+    test_codegen_plan!(
         simple,
         "mydb",
         Ok({
@@ -69,7 +108,7 @@ mod collection {
 mod limit_offset {
     use crate::ir::*;
 
-    test_codegen!(
+    test_codegen_plan!(
         limit_simple,
         "mydb",
         Ok({
@@ -89,7 +128,7 @@ mod limit_offset {
         }),
     );
 
-    test_codegen!(
+    test_codegen_plan!(
         offset_simple,
         "mydb",
         Ok({
@@ -107,5 +146,47 @@ mod limit_offset {
                 collection: "col".to_string(),
             }).into(),
         }),
+    );
+}
+
+mod literal {
+    use crate::ir::{Expression::*, Literal::*};
+    use bson::{bson, Bson};
+
+    test_codegen_expr!(null, Ok(bson!({ "$literal": Bson::Null })), Literal(Null),);
+    test_codegen_expr!(bool, Ok(bson!({"$literal": true})), Literal(Boolean(true)),);
+    test_codegen_expr!(
+        string,
+        Ok(bson!({"$literal": "abc"})),
+        Literal(String("abc".into())),
+    );
+    test_codegen_expr!(int, Ok(bson!({"$literal": 5_i32})), Literal(Integer(5)),);
+    test_codegen_expr!(long, Ok(bson!({"$literal": 6_i64})), Literal(Long(6)),);
+    test_codegen_expr!(double, Ok(bson!({"$literal": 7.0})), Literal(Double(7.0)),);
+}
+
+mod reference {
+    use crate::{
+        codegen::{mql::MappingRegistry, Error},
+        ir::Expression::*,
+    };
+    use bson::Bson;
+
+    test_codegen_expr!(
+        not_found,
+        MappingRegistry::default(),
+        Err(Error::ReferenceNotFound(("f", 0u16).into())),
+        Reference(("f", 0u16).into()),
+    );
+
+    test_codegen_expr!(
+        found,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(Bson::String("$f".into())),
+        Reference(("f", 0u16).into()),
     );
 }

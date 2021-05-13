@@ -10,13 +10,16 @@ mod test;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Error)]
-pub enum Error {}
+#[derive(Debug, Error, PartialEq)]
+pub enum Error {
+    #[error("binding tuple key {0:?} not found in mapping registry")]
+    ReferenceNotFound(ir::binding_tuple::Key),
+}
 
 pub fn generate_mql(current_database: String, plan: ir::Stage) -> Result<MqlTranslation> {
     let cg = MqlCodeGenerator {
         current_database,
-        correlated_mapping_registry: MappingRegistry::new(),
+        mapping_registry: MappingRegistry::new(),
     };
     cg.codegen_stage(plan)
 }
