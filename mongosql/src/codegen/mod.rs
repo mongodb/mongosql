@@ -14,6 +14,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("binding tuple key {0:?} not found in mapping registry")]
     ReferenceNotFound(ir::binding_tuple::Key),
+    #[error("document keys may not begin with $")]
+    DollarPrefixedDocumentKey,
 }
 
 pub fn generate_mql(current_database: String, plan: ir::Stage) -> Result<MqlTranslation> {

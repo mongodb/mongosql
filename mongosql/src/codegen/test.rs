@@ -190,3 +190,59 @@ mod reference {
         Reference(("f", 0u16).into()),
     );
 }
+
+mod array {
+    use crate::ir::{Expression::*, Literal};
+    use bson::bson;
+
+    test_codegen_expr!(empty, Ok(bson!([])), Array(vec![]),);
+    test_codegen_expr!(
+        non_empty,
+        Ok(bson!([{"$literal": "abc"}])),
+        Array(vec![Literal(Literal::String("abc".into()))]),
+    );
+    test_codegen_expr!(
+        nested,
+        Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
+        Array(vec![
+            Literal(Literal::Null),
+            Array(vec![Literal(Literal::Null)])
+        ]),
+    );
+}
+
+mod document {
+    use crate::{
+        codegen::Error,
+        ir::{Expression::*, Literal},
+        map,
+    };
+    use bson::bson;
+
+    test_codegen_expr!(empty, Ok(bson!({"$literal": {}})), Document(map! {}),);
+    test_codegen_expr!(
+        non_empty,
+        Ok(bson!({"foo": {"$literal": 1}})),
+        Document(map! {"foo".to_string() => Literal(Literal::Integer(1)),}),
+    );
+    test_codegen_expr!(
+        nested,
+        Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
+        Document(map! {
+            "foo".to_string() => Literal(Literal::Integer(1)),
+            "bar".to_string() => Document(map!{
+                "baz".to_string() => Literal(Literal::Integer(2))
+            }),
+        }),
+    );
+    test_codegen_expr!(
+        dollar_prefixed_key_disallowed,
+        Err(Error::DollarPrefixedDocumentKey),
+        Document(map! {"$foo".to_string() => Literal(Literal::Integer(1)),}),
+    );
+    test_codegen_expr!(
+        key_containing_dot_allowed,
+        Ok(bson!({"foo.bar": {"$literal": 1}})),
+        Document(map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}),
+    );
+}

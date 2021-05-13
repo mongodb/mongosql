@@ -5,6 +5,7 @@ mod ir;
 mod parser;
 mod result;
 mod schema;
+mod util;
 use crate::{algebrizer::Algebrizer, parser::Parser, result::Result};
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.

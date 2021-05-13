@@ -107,9 +107,28 @@ impl MqlCodeGenerator {
                 .0
                 .get(&key)
                 .ok_or(Error::ReferenceNotFound(key))
-                .map(|s| bson::Bson::String(format!("${}", s))),
-            Array(_) => unimplemented!(),
-            Document(_) => unimplemented!(),
+                .map(|s| Bson::String(format!("${}", s))),
+            Array(exprs) => Ok(Bson::Array(
+                exprs
+                    .into_iter()
+                    .map(|e| self.codegen_expression(e))
+                    .collect::<Result<Vec<Bson>>>()?,
+            )),
+            Document(map) => Ok(Bson::Document({
+                if map.is_empty() {
+                    bson::doc! {"$literal": {}}
+                } else {
+                    map.into_iter()
+                        .map(|(k, v)| {
+                            if k.starts_with('$') {
+                                Err(Error::DollarPrefixedDocumentKey)
+                            } else {
+                                Ok((k, self.codegen_expression(v)?))
+                            }
+                        })
+                        .collect::<Result<bson::Document>>()?
+                }
+            })),
             Function(_) => unimplemented!(),
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),
