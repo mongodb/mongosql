@@ -23,7 +23,6 @@ import (
 
 const (
 	testMongoVersion4 = "4.0.0"
-	testMongoVersion3 = "3.0.0"
 	testDBName        = "test"
 	testSchema        = "../testdata/resources/schema/mongosql.drdl"
 	testFormat        = "none"
@@ -51,15 +50,6 @@ func TestTranslateSQLQuery(t *testing.T) {
 			format:       testFormat,
 			expectedError: `fatal error executing sql "explain drop table foo.t": ERROR 1064 (42000): ` +
 				`parse sql 'explain drop table foo.t' error: unexpected DROP at position 14 near drop`,
-		},
-		{
-			desc:          "query that can't be pushed down (char_length with version < 3.4)",
-			query:         "select char_length(foo.a) from foo",
-			dbName:        testDBName,
-			mongoVersion:  testMongoVersion3,
-			schema:        testSchema,
-			format:        testFormat,
-			expectedError: "query not fully pushed down; run with --explain for more details",
 		},
 		{
 			desc:          "query that can't be pushed down (cross join with local db different from foreign db)",
@@ -205,28 +195,6 @@ func TestTranslateSQLQuery(t *testing.T) {
 			format:             "multiline",
 			explain:            true,
 			expectedOutput:     "[\n\t{\n\t\t\"ID\": 1,\n\t\t\"StageType\": \"MongoSourceStage\",\n\t\t\"Columns\": \"[{name: test.foo.'a', type: 'float'}]\",\n\t\t\"Sources\": null,\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": null\n\t}\n]",
-			expectedCollection: "foo",
-		},
-		{
-			desc:               "explain flag, no formatting, not fully pushed down",
-			query:              "select adddate(a, 1) from foo",
-			dbName:             testDBName,
-			mongoVersion:       testMongoVersion3,
-			schema:             testSchema,
-			format:             testFormat,
-			explain:            true,
-			expectedOutput:     `[{"ID":1,"StageType":"ProjectStage","Columns":"[{name: 'adddate(a, 1, day)', type: 'timestamp'}]","Sources":[2],"Database":{},"Tables":{},"Aliases":{},"Collections":{},"Pipeline":{},"PipelineExplain":{},"PushdownFailures":[{"name":"SQLConvertExpr","reason":"cannot push down mongosql-mode conversions to MongoDB < 4.0"}]},{"ID":2,"StageType":"MongoSourceStage","Columns":"[{name: test.foo.'a', type: 'float'}]","Sources":null,"Database":{},"Tables":{},"Aliases":{},"Collections":{},"Pipeline":{},"PipelineExplain":{},"PushdownFailures":null}]`,
-			expectedCollection: "foo",
-		},
-		{
-			desc:               "explain flag, with formatting, not fully pushed down",
-			query:              "select adddate(a, 1) from foo",
-			dbName:             testDBName,
-			mongoVersion:       testMongoVersion3,
-			schema:             testSchema,
-			format:             "multiline",
-			explain:            true,
-			expectedOutput:     "[\n\t{\n\t\t\"ID\": 1,\n\t\t\"StageType\": \"ProjectStage\",\n\t\t\"Columns\": \"[{name: 'adddate(a, 1, day)', type: 'timestamp'}]\",\n\t\t\"Sources\": [\n\t\t\t2\n\t\t],\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": [\n\t\t\t{\n\t\t\t\t\"name\": \"SQLConvertExpr\",\n\t\t\t\t\"reason\": \"cannot push down mongosql-mode conversions to MongoDB < 4.0\"\n\t\t\t}\n\t\t]\n\t},\n\t{\n\t\t\"ID\": 2,\n\t\t\"StageType\": \"MongoSourceStage\",\n\t\t\"Columns\": \"[{name: test.foo.'a', type: 'float'}]\",\n\t\t\"Sources\": null,\n\t\t\"Database\": {},\n\t\t\"Tables\": {},\n\t\t\"Aliases\": {},\n\t\t\"Collections\": {},\n\t\t\"Pipeline\": {},\n\t\t\"PipelineExplain\": {},\n\t\t\"PushdownFailures\": null\n\t}\n]",
 			expectedCollection: "foo",
 		},
 		{
@@ -886,7 +854,6 @@ func TestGetVariables(t *testing.T) {
 		tcases := []struct {
 			mdbVersion string
 		}{
-			{"3.2.1"},
 			{"3.6.0"},
 			{"4.0.2"},
 		}

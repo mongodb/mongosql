@@ -543,13 +543,6 @@ func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (ast.E
 }
 
 func (t *PushdownTranslator) translateDecimal(cons values.SQLValue, exprName string) (*ast.Constant, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			exprName,
-			"cannot translate SQLValue to decimal on MongoDB < 3.4",
-		)
-	}
-
 	d, err := cons.BSONValue()
 	if err != nil {
 		return nil, newPushdownFailure(exprName, "cannot translate SQLValue to decimal", fmt.Sprintf("%v", err))

@@ -983,13 +983,6 @@ func (xor *SQLXorExpr) FoldConstants(cfg *OptimizerConfig) (SQLExpr, error) {
 // be used in an aggregation pipeline. If SQLXorExpr cannot be translated,
 // it will return nil and error.
 func (xor *SQLXorExpr) ToAggregationLanguage(t *PushdownTranslator) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLXorExpr",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	args, err := t.translateArgs(xor.children)
 	if err != nil {
 		return nil, err

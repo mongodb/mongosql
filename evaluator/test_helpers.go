@@ -170,7 +170,7 @@ func GetCatalog(schema *schema.Schema, variables *variable.Container, info *mong
 // all privileges to the specified privileges.
 func GetMongoDBInfo(versionArray []uint8, sch *schema.Schema, privileges mongodb.Privilege) *mongodb.Info {
 	if len(versionArray) == 0 {
-		versionArray = []uint8{3, 4, 0}
+		versionArray = []uint8{3, 6, 0}
 	}
 
 	versionString := ""

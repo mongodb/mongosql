@@ -307,58 +307,6 @@ func (v *pushdownVisitor) addTableNamesInScope(databaseName string, tableNames .
 	}
 }
 
-// buildAddFieldsOrProject will build an addField if the server version is > 3.4.0, if it is less,
-// it will build a project with everything not in the passed in body projected as 1, it will also
-// skip any paths prefixed by a string in prefixesToSkip (mainly for avoiding conflicts).
-func (v *pushdownVisitor) buildAddFieldsOrProject(body []*ast.AddFieldsItem, prefixesToSkip []string, mrs ...*mappingRegistry) ast.Stage {
-	if procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
-		return ast.NewAddFieldsStage(body...)
-	}
-	// Make sure any prefix ends with '.'
-	for i, prefix := range prefixesToSkip {
-		if prefixesToSkip[len(prefixesToSkip)-1] != "." {
-			prefixesToSkip[i] = prefix + "."
-		}
-	}
-
-	// To keep track of the assigned fields in the body.
-	projectedFields := map[string]struct{}{}
-
-	// Copy the ast.AddFieldsItems into ast.ProjectItems.
-	projectItems := make([]ast.ProjectItem, len(body))
-	for i, afi := range body {
-		projectItems[i] = ast.NewAssignProjectItem(afi.Name, afi.Expr)
-		projectedFields[afi.Name] = struct{}{}
-	}
-
-	// We now need to make sure we project all the existing columns from all mapping registries.
-	for _, mr := range mrs {
-	TOP:
-		for _, c := range mr.columns {
-			fieldName, ok := mr.lookupFieldName(c.Database, c.Table, c.Name)
-			if !ok {
-				panic(fmt.Sprintf("cannot find referenced join column %#v in local lookup in"+
-					" buildAddFieldsOrProject", c))
-			}
-			// Do not overwrite things already in the projectBody, and do not add paths
-			// prefixed by our asField, because we will get conflicts.
-			if _, ok := projectedFields[fieldName]; !ok {
-				// Again, only keep if there isn't a prefix conflict.
-				for _, prefix := range prefixesToSkip {
-					if strings.HasPrefix(fieldName, prefix) {
-						continue TOP
-					}
-				}
-
-				projectItems = append(projectItems, ast.NewIncludeProjectItem(astutil.FieldRefFromFieldName(fieldName)))
-				projectedFields[fieldName] = struct{}{}
-			}
-		}
-	}
-
-	return ast.NewProjectStage(projectItems...)
-}
-
 func (v *pushdownVisitor) visit(n Node) (Node, error) {
 	originalN := n
 	// first do some analysis.
@@ -802,7 +750,7 @@ func (v *pushdownVisitor) visitFilter(filter *FilterStage) (PlanStage, error) {
 					ast.NewAddFieldsItem(fieldName, predicate),
 				}
 
-				predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, ms.mappingRegistry)
+				predicateEvaluationStage := ast.NewAddFieldsStage(stageBody...)
 				pipeline.Stages = append(pipeline.Stages, t.subqueryLookupStages...)
 				pipeline.Stages = append(pipeline.Stages,
 					predicateEvaluationStage,
@@ -1142,12 +1090,6 @@ func (v *groupByAggregateTranslator) visit(n Node) (Node, error) {
 			// Group_concat aggregation expressions are always two-step aggregations, regardless of
 			// whether they are distinct. In the $group stage, we construct the list of entries to
 			// the result string. In the $project stage, we concatenate these entries together.
-
-			// $reduce was introduced in Mongo 3.4, so we cannot push down the query if
-			// the user is using an earlier Mongo version.
-			if isGroupConcat && !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
-				return nil, newPushdownFailure(typedN.Name(), "cannot push down group_concat for versions < 3.4")
-			}
 
 			v.requiresTwoSteps = true
 
@@ -1525,7 +1467,7 @@ func (v *pushdownVisitor) buildRemainingPredicateForLeftJoin(
 		)
 
 	}
-	projection := v.buildAddFieldsOrProject(projectBody, []string{asField}, combinedMappingRegistry)
+	projection := ast.NewAddFieldsStage(projectBody...)
 	return projection, match, nil
 }
 
@@ -2380,8 +2322,7 @@ func (v *pushdownVisitor) optimizeSelfJoinPipeline(local, foreign *MongoSourceSt
 				}
 			}
 		}
-		addFields := v.buildAddFieldsOrProject(addFieldsBody, []string{}, local.mappingRegistry,
-			foreign.mappingRegistry)
+		addFields := ast.NewAddFieldsStage(addFieldsBody...)
 		pipeline.stages = astutil.InsertPipelineStageAt(pipeline.stages, addFields, insertionPoint)
 	}
 
@@ -3430,7 +3371,7 @@ func (v *pushdownVisitor) generateForeignUnwindPipeline(join *JoinStage, newMapp
 
 		fieldName := v.uniqueFieldName(projectPredicateFieldName, newMappingRegistry)
 		stageBody := []*ast.AddFieldsItem{ast.NewAddFieldsItem(fieldName, filter)}
-		predicateEvaluationStage := v.buildAddFieldsOrProject(stageBody, []string{}, newMappingRegistry)
+		predicateEvaluationStage := ast.NewAddFieldsStage(stageBody...)
 		stages = append(stages, predicateEvaluationStage)
 
 		var match ast.Expr = ast.NewBinary(bsonutil.OpEq, astutil.FieldRefFromFieldName(fieldName), astutil.TrueLiteral)

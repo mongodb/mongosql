@@ -41,7 +41,6 @@ var (
 type UnionStage struct {
 	left, right PlanStage
 	kind        UnionKind
-	is32        bool
 }
 
 // Children returns a slice of all the Node children of the Node.
@@ -149,10 +148,6 @@ type FastUnionDistinctIter struct {
 	// memory usage.
 	stageMonitor memory.Monitor
 }
-
-// FastUnionDistinctIter32 returns BSON documents from the UNION ALL of two
-// DocIters when using server version < 3.4.0.
-type FastUnionDistinctIter32 FastUnionDistinctIter
 
 // UnionIter returns rows from the union of two source iterators.
 type UnionIter struct {
@@ -264,13 +259,6 @@ func (union *UnionStage) FastOpen(ctx context.Context, cfg *ExecutionConfig, st 
 		if err != nil {
 			return nil, err
 		}
-		if union.is32 {
-			return &FastUnionDistinctIter32{
-				FastUnionAllIter: *iter,
-				distinct:         make(map[mathutil.Uint128]struct{}),
-				stageMonitor:     stageMonitor,
-			}, nil
-		}
 		return &FastUnionDistinctIter{
 			FastUnionAllIter: *iter,
 			distinct:         make(map[mathutil.Uint128]struct{}),
@@ -375,66 +363,12 @@ func (iter *FastUnionDistinctIter) computeHash(datum *bson.Raw) (mathutil.Uint12
 	return hash, nil
 }
 
-// computeHash computes and FNV-1a (plus prime) hash for a bson.RawD on server versions < 3.4.0.
-func (iter *FastUnionDistinctIter32) computeHash(datum *bson.Raw) (mathutil.Uint128, error) {
-	vs, err := datum.Elements()
-	if err != nil {
-		return mathutil.Uint128{}, err
-	}
-	columnInfo := iter.GetColumnInfo()
-	lenColumnInfo := len(columnInfo)
-	fieldMap := make(map[string]bson.RawValue, lenColumnInfo)
-	// Set the value for all columns to null so we can avoid
-	// a branch in the loop below.
-	for _, info := range columnInfo {
-		fieldMap[info.Field] = nullField
-	}
-	// We can't rely on field ordering in 3.2.
-	for _, v := range vs {
-		fieldMap[v.Key()] = v.Value()
-	}
-	hash := hashSeed
-	for _, info := range columnInfo {
-		value := fieldMap[info.Field]
-		hash = addValueToHash(hash, value)
-	}
-	return hash, nil
-}
-
 // Next populates the provided Row with this iterator's next available row.
 // If the iterator has been exhausted or has encountered an error, Next will
 // return false, and the value of the provided Row should not be used. This
 // is the only method that differs for Distinct Union, in that we check for
 // duplicates.
 func (iter *FastUnionDistinctIter) Next(ctx context.Context, doc *bson.Raw) bool {
-	for {
-		if !iter.FastUnionAllIter.Next(ctx, doc) {
-			return false
-		}
-		hash, err := iter.computeHash(doc)
-		if err != nil {
-			return false
-		}
-		if _, ok := iter.distinct[hash]; !ok {
-			iter.distinct[hash] = struct{}{}
-			// each mathutil.Uint128 in the map is 16 bytes.
-			err := iter.stageMonitor.Acquire(16)
-			if err != nil {
-				iter.errChan <- err
-				return false
-			}
-			return true
-		}
-	}
-}
-
-// Next populates the provided Row with this iterator's next available row.
-// If the iterator has been exhausted or has encountered an error, Next will
-// return false, and the value of the provided Row should not be used. This
-// is the only method that differs for Distinct Union, in that we check for
-// duplicates. This version is used for MongoDB Version 3.2. Unfortunately, we need
-// to have duplicated code for the correct computeHash to be called.
-func (iter *FastUnionDistinctIter32) Next(ctx context.Context, doc *bson.Raw) bool {
 	for {
 		if !iter.FastUnionAllIter.Next(ctx, doc) {
 			return false

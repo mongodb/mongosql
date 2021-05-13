@@ -63,13 +63,7 @@ test-kill-queries-admin-user: KILLING_USER := "2"
 test-kill-queries-admin-user: PROCS := 1
 test-kill-queries-admin-user: test-kill-queries-admin
 
-# Test killing queries in 3.2, 3.4, 3.6, 4.0, and latest
-test-kill-queries-3.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.2
-test-kill-queries-3.2: test-kill-queries
-
-test-kill-queries-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.4
-test-kill-queries-3.4: test-kill-queries
-
+# Test killing queries in 3.6, 4.0, and latest
 test-kill-queries-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.6
 test-kill-queries-3.6: test-kill-queries
 
@@ -121,4 +115,3 @@ _test-kill-continue:
 	$(ENV) QUERY="select count(a._id) from tableau.flights201406 as a inner join tableau.attendees as b on a.origin_airport_code = b.airport_code" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_RESULT="13050155" KILL_CONN="true" EXPECTED_KILL_CODE=$(EXPECTED_KILL_CODE) SWAP_USERS=$(SWAP_USERS) KILLING_USER=$(KILLING_USER) EXPECTED_CODE=$(EXPECTED_CODE) DO_NOT_KILL=$(DO_NOT_KILL) testdata/bin/test-kill-query.sh
 	$(ENV) QUERY="select count(a._id) from tableau.flights201406 as a inner join tableau.attendees as b on a.origin_airport_code = b.airport_code order by b.airport_code" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_RESULT="13050155" KILL_CONN="false" EXPECTED_KILL_CODE=$(EXPECTED_KILL_CODE) SWAP_USERS=$(SWAP_USERS) KILLING_USER=$(KILLING_USER) EXPECTED_CODE=$(EXPECTED_CODE) DO_NOT_KILL=$(DO_NOT_KILL) testdata/bin/test-kill-query.sh
 	$(ENV) QUERY="select count(a._id) from tableau.flights201406 as a inner join tableau.attendees as b on a.origin_airport_code = b.airport_code order by b.airport_code" PROCS="$(PROCS)" ITERATIONS="$(ITERATIONS)" EXPECTED_RESULT="13050155" KILL_CONN="true" EXPECTED_KILL_CODE=$(EXPECTED_KILL_CODE) SWAP_USERS=$(SWAP_USERS) KILLING_USER=$(KILLING_USER) EXPECTED_CODE=$(EXPECTED_CODE) DO_NOT_KILL=$(DO_NOT_KILL) testdata/bin/test-kill-query.sh
-

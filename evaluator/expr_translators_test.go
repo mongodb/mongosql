@@ -560,8 +560,6 @@ func TestTranslate(t *testing.T) {
 
 	// define the MongoDB versions for which we want to test translation
 	versions := [][]uint8{
-		{3, 2, 0},
-		{3, 4, 0},
 		{3, 6, 0},
 		{4, 0, 0},
 		{4, 2, 0},

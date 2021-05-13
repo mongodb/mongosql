@@ -91,17 +91,8 @@
       mlaunch_storage_args='--storageEngine inMemory'
     fi
 
-    # we run mongod with compression enabled when possible
-    if [ "$MONGODB_VERSION" == '3.2' ]; then
-      # 3.2 does not support the --networkMessageCompressors flag
-      mlaunch_compression_args=""
-    elif [ "$MONGODB_VERSION" == '3.4' ]; then
-      # 3.4 does not support zlib
-      mlaunch_compression_args="--networkMessageCompressors snappy"
-    else
-      # >= 3.6 support zlib,snappy
-      mlaunch_compression_args="--networkMessageCompressors zlib,snappy"
-    fi
+    # >= 3.6 support zlib,snappy
+    mlaunch_compression_args="--networkMessageCompressors zlib,snappy"
 
     mlaunch_args=''
     mlaunch_args="$mlaunch_args --verbose"

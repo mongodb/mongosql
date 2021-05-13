@@ -17,7 +17,6 @@ import (
 	"github.com/10gen/sqlproxy/evaluator/variable"
 	"github.com/10gen/sqlproxy/internal/mysqlerrors"
 	"github.com/10gen/sqlproxy/internal/option"
-	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/internal/strutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/parser"
@@ -208,11 +207,6 @@ func (a *algebrizer) newMongoSourceOrDualStage() (PlanStage, error) {
 
 	// Don't try to push down the dual stage if it is a top-level dual stage
 	if a.isTopLevel {
-		return NewDualStage(), nil
-	}
-
-	// NewMongoSourceDualStage requires $collStats to work, which was only added in 3.4.
-	if !a.versionAtLeast(3, 4, 0) {
 		return NewDualStage(), nil
 	}
 
@@ -2238,15 +2232,7 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 	case parser.NumVal:
 		exprString := parser.String(expr)
 
-		useFloats := !a.versionAtLeast(3, 3, 15)
-
-		// http://dev.mysql.com/doc/refman/5.7/en/precision-math-numbers.html
-		// Because MongoDB 3.2 does not support decimals, we are going
-		// to override any decimal literal and parse it as a float when
-		// connected to < MongoDB 3.4 AND the user hasn't informed us
-		// that we should force the use of decimals against 3.2.
-		if strings.ContainsAny(exprString, "Ee") ||
-			(useFloats && strings.Contains(exprString, ".")) {
+		if strings.ContainsAny(exprString, "Ee") {
 			f, err := strconv.ParseFloat(exprString, 64)
 			if err != nil {
 				return nil,
@@ -2276,17 +2262,6 @@ func (a *algebrizer) translateExpr(expr parser.Expr) (SQLExpr, error) {
 		// next try to parse as uint64
 		if i, err := strconv.ParseUint(exprString, 10, 64); err == nil {
 			return NewSQLValueExpr(values.NewSQLUint64(a.valueKind(), i)), nil
-		}
-
-		if useFloats {
-			f, err := strconv.ParseFloat(exprString, 64)
-			if err != nil {
-				return nil,
-					mysqlerrors.Defaultf(mysqlerrors.ErIllegalValueForType,
-						"integer",
-						exprString)
-			}
-			return NewSQLValueExpr(values.NewSQLFloat(a.valueKind(), f)), nil
 		}
 
 		i, err := decimal.NewFromString(exprString)
@@ -2743,10 +2718,6 @@ func (a *algebrizer) translateVariableExpr(c *parser.ColName) (*SQLVariableExpr,
 	}
 
 	return NewSQLVariableExpr(name, kind, scope, value), nil
-}
-
-func (a *algebrizer) versionAtLeast(major, minor, patch uint8) bool {
-	return procutil.VersionAtLeast(a.cfg.version, []uint8{major, minor, patch})
 }
 
 // aggFuncColumnDecorrelator is used to traverse a SQLAggFunctionExpr and

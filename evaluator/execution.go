@@ -294,11 +294,8 @@ func (st *ExecutionState) WithRows(rows ...*results.Row) *ExecutionState {
 // this query, e.g., fullPushdownOnly is set and this query is not pushedDown.
 func CheckPlanExecution(ctx context.Context, cfg *ExecutionConfig, plan PlanStage) (PlanStage, error) {
 
-	// If possible, return a fast iterator for this plan.
-	mongodb32 := procutil.VersionExactly(cfg.mongoDBVersion, []uint8{3, 2})
-	fastPlan, ok := getFastPlanStage(plan, mongodb32, false)
+	fastPlan, ok := getFastPlanStage(plan, false)
 	if ok {
-
 		cfg.lg.Debugf(log.Admin,
 			"executing query plan with fast iterator: \n%v",
 			PrettyPrintPlan(fastPlan),
@@ -331,9 +328,7 @@ func CheckPlanExecution(ctx context.Context, cfg *ExecutionConfig, plan PlanStag
 // the Plan, in which case all UnionDisticts should be replaced with UnionAll
 // in order to improve performance: there is no reason to remove duplicates
 // twice.
-//
-// is32 is true if the server versions is 3.2.x.
-func getFastPlanStage(plan PlanStage, is32 bool, underDistinct bool) (FastPlanStage, bool) {
+func getFastPlanStage(plan PlanStage, underDistinct bool) (FastPlanStage, bool) {
 	if fastPlan, ok := plan.(*MongoSourceStage); ok {
 		return fastPlan, true
 	} else if projectPlan, ok := plan.(*ProjectStage); ok {
@@ -343,12 +338,10 @@ func getFastPlanStage(plan PlanStage, is32 bool, underDistinct bool) (FastPlanSt
 				// tells us the GroupByStage is just being used for uniqueness.
 				// A GroupByStage above a UnionAll could have other uses.
 				if unionPlan.kind == UnionDistinct {
-					if left, ok := getFastPlanStage(unionPlan.left, is32, true); ok {
-						if right, ok := getFastPlanStage(unionPlan.right, is32, true); ok {
+					if left, ok := getFastPlanStage(unionPlan.left, true); ok {
+						if right, ok := getFastPlanStage(unionPlan.right, true); ok {
 							unionType := UnionDistinct
-							localIs32 := is32
 							if underDistinct {
-								localIs32 = false
 								unionType = UnionAll
 							}
 							// Note that we remove the project stages, which means
@@ -357,7 +350,6 @@ func getFastPlanStage(plan PlanStage, is32 bool, underDistinct bool) (FastPlanSt
 							// FastPlanStage. If we modified the plan in place,
 							// such a situation would result in an unusable plan.
 							ret := NewUnionStage(unionType, left, right)
-							ret.is32 = localIs32
 							return ret, true
 						}
 					}
@@ -370,8 +362,8 @@ func getFastPlanStage(plan PlanStage, is32 bool, underDistinct bool) (FastPlanSt
 			if unionPlan.kind != UnionAll {
 				return nil, false
 			}
-			if left, ok := getFastPlanStage(unionPlan.left, is32, underDistinct); ok {
-				if right, ok := getFastPlanStage(unionPlan.right, is32, underDistinct); ok {
+			if left, ok := getFastPlanStage(unionPlan.left, underDistinct); ok {
+				if right, ok := getFastPlanStage(unionPlan.right, underDistinct); ok {
 					return NewUnionStage(UnionAll, left, right), true
 				}
 			}

@@ -246,13 +246,6 @@ test-sample-ssl-failure: test-sample-connect-failure
 test-sample-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth,sqlproxy/auth/enabled,sqlproxy/auth/admin-creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-sample-auth: test-basic-sample
 
-# when there's an auth problem in MongoDB versions 3.2, 3.4 and 3.6, sqlproxy should give a schema-unavailable error to clients
-test-sample-auth-failure-3.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth,mongo/version/3.2
-test-sample-auth-failure-3.2: test-schema-unavailable
-
-test-sample-auth-failure-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth,mongo/version/3.4
-test-sample-auth-failure-3.4: test-schema-unavailable
-
 test-sample-auth-failure-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth,mongo/version/3.6
 test-sample-auth-failure-3.6: test-schema-unavailable
 

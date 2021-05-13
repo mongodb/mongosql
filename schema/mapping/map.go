@@ -11,7 +11,6 @@ import (
 	"github.com/10gen/sqlproxy/internal/bsonutil"
 	"github.com/10gen/sqlproxy/internal/config"
 	"github.com/10gen/sqlproxy/internal/option"
-	"github.com/10gen/sqlproxy/internal/procutil"
 	"github.com/10gen/sqlproxy/log"
 	"github.com/10gen/sqlproxy/mongodb"
 	"github.com/10gen/sqlproxy/schema"
@@ -205,7 +204,6 @@ func Map(cfg SchemaMappingConfig) error {
 
 	mongoNames := make(map[string]string)
 	mongoNamePrefixes := make(map[string]string)
-	seenFields := make([]string, 0)
 	uniqueColumns := make(map[string]struct{})
 	uniqueFields := make(map[string]struct{})
 	currentNumCollectionTables := int64(1)
@@ -216,10 +214,8 @@ func Map(cfg SchemaMappingConfig) error {
 		cfg.Database,
 		t,
 		cfg.UUIDSubtype3Encoding,
-		procutil.VersionAtLeast(cfg.Version, []uint8{3, 4, 0}),
 		mongoNames,
 		mongoNamePrefixes,
-		seenFields,
 		uniqueColumns,
 		uniqueFields,
 		GetHeuristic(cfg.mode),
@@ -315,11 +311,6 @@ type mappingContext struct {
 	// all paths.
 	numTotalTables *int64
 
-	// isAtLeastVersion34 is true if the MongoDB server version is >= 3.4.0.
-	// This, in particular, means the server has the $type expression and
-	// $addFields pipeline stage.
-	isAtLeastVersion34 bool
-
 	// mongoNames is a mapping from sqlColumn name to underlying mongo
 	// field name, for fields that have been directly remapped, versus
 	// prefixes having been renamed, which is covered below.
@@ -329,13 +320,6 @@ type mappingContext struct {
 	// underlying mongo field name prefixes. This allows us to recover the
 	// proper mongo name when we have a conflict above more deeply nested fields.
 	mongoNamePrefixes map[string]string
-
-	// seenFields is a slice of fieldNames in the order they are traversed (depth first,
-	// left to right). This order guarantees us that a path prefix will always exist
-	// before the extension of that prefix, meaning that we can check for
-	// prefix collisions in projects without sorting (only needed for server
-	// version 3.2 where we are forced to use $project).
-	seenFields []string
 
 	// uniqueColumns is the unique set of columns for a table so that we do
 	// not map a column twice, which can happen with nested arrays.
@@ -373,9 +357,7 @@ func newMappingContext(
 	db *schema.Database,
 	table *schema.Table,
 	uuidSubtype3Encoding string,
-	isAtLeastVersion34 bool,
 	mongoNames, mongoNamePrefixes map[string]string,
-	seenFields []string,
 	uniqueColumns, uniqueFields map[string]struct{},
 	heuristic SchemataHeuristic,
 	path string,
@@ -391,10 +373,8 @@ func newMappingContext(
 		db:                        db,
 		table:                     table,
 		uuidSubtype3Encoding:      uuidSubtype3Encoding,
-		isAtLeastVersion34:        isAtLeastVersion34,
 		mongoNames:                mongoNames,
 		mongoNamePrefixes:         mongoNamePrefixes,
-		seenFields:                seenFields,
 		uniqueColumns:             uniqueColumns,
 		uniqueFields:              uniqueFields,
 		heuristic:                 heuristic,
@@ -409,41 +389,6 @@ func newMappingContext(
 		maxNumGlobalTables:        maxNumGlobalTables,
 		isCaseSensitive:           isCaseSensitive,
 	}
-}
-
-// addTransitiveProjects adds all the necessary field preservations from previous
-// projects. This is only necessary in MongoDB 3.2 where there is no access
-// to $addFields.
-func (ctx *mappingContext) addTransitiveProjections(projectedFields map[string]struct{},
-	projectBody bson.D) bson.D {
-OUTER:
-	// seenFields are already sorted in a partial order of lowest
-	// depth to greatest because they are constructed in dfs order,
-	// this makes prefix checking linear.
-	for i := len(ctx.seenFields) - 1; i >= 0; i-- {
-		field := ctx.seenFields[i]
-		// The field may have been renamed after it was added to seenFields.
-		// This may result in use checking the same field twice, but is cheaper
-		// than the book keeping necessary to avoid that, since it will be immediately
-		// seen in the projectedFields map.
-		if renamedField, ok := ctx.mongoNames[field]; ok {
-			field = renamedField
-		} else if renamedField, ok := ctx.mongoNamePrefixes[field]; ok {
-			field = renamedField
-		}
-		// Only check if this is a prefix of already projected fields if we are not
-		// already projecting this field.
-		if _, ok := projectedFields[field]; !ok {
-			for projectedField := range projectedFields {
-				if bsonutil.IsPrefix(projectedField, field) {
-					continue OUTER
-				}
-			}
-			projectBody = append(projectBody, bsonutil.NewDocElem(field, true))
-			projectedFields[field] = struct{}{}
-		}
-	}
-	return projectBody
 }
 
 // getUniqueFieldName gets a unique flattened field name for a field that
@@ -471,9 +416,6 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 	namedSchemas = []namedSchema{}
 	projectBody := bsonutil.NewD()
 
-	// projectedFields keeps track of already projectedFields so that
-	// we do not project a field twice.
-	projectedFields := make(map[string]struct{})
 	for _, prop := range props {
 		dottedCtx := ctx.withSubpath(prop)
 		mongoRenamedPrefixPath := dottedCtx.path
@@ -512,9 +454,6 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 						bsonutil.WrapInBinOp(bsonutil.OpGt, previousField, nil),
 					)),
 				)
-				// Add to projectedFields so that we do not project the same field
-				// twice on MongoDB server 3.2.
-				projectedFields[mongoRenamedPrefixPath] = struct{}{}
 			}
 			continue
 		}
@@ -525,7 +464,6 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 		// Add non-Object to $project.
 		projectBody = append(projectBody, bsonutil.NewDocElem(mongoRenamedPrefixPath,
 			ctx.buildIfNotObject("$"+mongoRenamedPrefixPath)))
-		projectedFields[mongoRenamedPrefixPath] = struct{}{}
 		objectSchema := s[1]
 		for name := range objectSchema.Properties {
 			preimage := mongoRenamedPrefixPath + "." + name
@@ -535,20 +473,12 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 			ctx.mongoNamePrefixes[colName] = image
 			projectBody = append(projectBody, bsonutil.NewDocElem(image,
 				ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)))
-			ctx.seenFields = append(ctx.seenFields, image)
-			projectedFields[image] = struct{}{}
 		}
 	}
 	if len(projectBody) == 0 {
 		return nil, namedSchemas
 	}
-	if ctx.isAtLeastVersion34 {
-		project = bsonutil.NewD(bsonutil.NewDocElem("$addFields", projectBody))
-		return project, namedSchemas
-	}
-
-	projectBody = ctx.addTransitiveProjections(projectedFields, projectBody)
-	project = bsonutil.NewD(bsonutil.NewDocElem("$project", projectBody))
+	project = bsonutil.NewD(bsonutil.NewDocElem("$addFields", projectBody))
 	return project, namedSchemas
 }
 
@@ -560,27 +490,15 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 // rather than one per property, and that we have to be careful to treat
 // the $unwind index that comes from arrays, which is passed as the indexName
 // argument.
-func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata,
-	indexName string) (project bson.D, schemas []*mongo.Schema) {
-
+func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata) (project bson.D, schemas []*mongo.Schema) {
 	project = bson.D(nil)
 	schemas = ctx.getDominantSchemas(items)
 	if len(schemas) == 1 {
 		return project, schemas
 	}
 	ctx.hasConflict = true
-	// projectedFields keeps track of already projectedFields so that
-	// we do not project a field twice.
-	projectedFields := make(map[string]struct{})
-	var projectBody bson.D
-	if ctx.isAtLeastVersion34 {
-		projectBody = bsonutil.NewD()
-	} else {
-		// If we have to use $project instead of $addFields, make
-		// sure not to drop the indexName.
-		projectBody = bsonutil.NewD(bsonutil.NewDocElem(indexName, true))
-		projectedFields[indexName] = struct{}{}
-	}
+	var projectBody = bsonutil.NewD()
+
 	// Add nonObject to project.
 	mongoRenamedPrefixPath := ctx.path
 	if renamedPath, ok := ctx.mongoNames[mongoRenamedPrefixPath]; ok {
@@ -588,7 +506,6 @@ func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata,
 	}
 	projectBody = append(projectBody, bsonutil.NewDocElem(mongoRenamedPrefixPath,
 		ctx.buildIfNotObject("$"+mongoRenamedPrefixPath)))
-	projectedFields[mongoRenamedPrefixPath] = struct{}{}
 	objectSchema := schemas[1]
 	for name := range objectSchema.Properties {
 		preimage := mongoRenamedPrefixPath + "." + name
@@ -598,16 +515,8 @@ func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata,
 		ctx.mongoNamePrefixes[colName] = image
 		projectBody = append(projectBody, bsonutil.NewDocElem(image,
 			ctx.buildIfObject("$"+mongoRenamedPrefixPath, "$"+preimage)))
-		ctx.seenFields = append(ctx.seenFields, image)
-		projectedFields[image] = struct{}{}
 	}
-	if ctx.isAtLeastVersion34 {
-		project = bsonutil.NewD(bsonutil.NewDocElem("$addFields", projectBody))
-		return project, schemas
-	}
-
-	projectBody = ctx.addTransitiveProjections(projectedFields, projectBody)
-	project = bsonutil.NewD(bsonutil.NewDocElem("$project", projectBody))
+	project = bsonutil.NewD(bsonutil.NewDocElem("$addFields", projectBody))
 	return project, schemas
 }
 
@@ -665,7 +574,6 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 	// Add every property of this object to ctx.seenFields.
 	for _, prop := range props {
 		subPath := ctx.withSubpath(prop).path
-		ctx.seenFields = append(ctx.seenFields, subPath)
 		ctx.uniqueFields[subPath] = struct{}{}
 	}
 
@@ -725,48 +633,18 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 }
 
 func (ctx *mappingContext) buildIfNotObject(v interface{}) interface{} {
-	if ctx.isAtLeastVersion34 {
-		return bsonutil.WrapInCond(
-			nil, v, bsonutil.WrapInBinOp(bsonutil.OpEq, bsonutil.WrapInType(v), "object"))
-	}
-	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
-	// is an object or not.
-	cond := bsonutil.WrapInBinOp(bsonutil.OpOr,
-		bsonutil.WrapInBinOp(bsonutil.OpLt, v, bsonutil.NewD()),
-		bsonutil.WrapInBinOp(bsonutil.OpGte, v, bsonutil.NewArray()),
-	)
-	return bsonutil.WrapInCond(v, nil, cond)
+	return bsonutil.WrapInCond(
+		nil, v, bsonutil.WrapInBinOp(bsonutil.OpEq, bsonutil.WrapInType(v), "object"))
 }
 
 func (ctx *mappingContext) buildIfObject(v interface{}, subV interface{}) interface{} {
-	if ctx.isAtLeastVersion34 {
-		return bsonutil.WrapInCond(
-			subV, nil, bsonutil.WrapInBinOp(bsonutil.OpEq, bsonutil.WrapInType(v), "object"))
-	}
-	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
-	// is an object or not.
-	cond := bsonutil.WrapInBinOp(bsonutil.OpAnd,
-		bsonutil.WrapInBinOp(bsonutil.OpGte, v, bsonutil.NewD()),
-		bsonutil.WrapInBinOp(bsonutil.OpLt, v, bsonutil.NewArray()),
-	)
-	return bsonutil.WrapInCond(subV, nil, cond)
+	return bsonutil.WrapInCond(
+		subV, nil, bsonutil.WrapInBinOp(bsonutil.OpEq, bsonutil.WrapInType(v), "object"))
 }
 
 func (ctx *mappingContext) buildIfNotArray(v interface{}) interface{} {
-
-	if ctx.isAtLeastVersion34 {
-		return bsonutil.WrapInCond(
-			v, nil, bsonutil.WrapInBinOp(bsonutil.OpNeq, bsonutil.WrapInType(v), "array"))
-	}
-	// $type does not exist in MongoDB 3.2, use type bracketing to figure out if this
-	// is an object or not.
-	cond := bsonutil.WrapInBinOp(bsonutil.OpOr,
-		bsonutil.WrapInBinOp(bsonutil.OpLt, v, bsonutil.NewArray()),
-		// We would really like to use bson.Binary here instead of false,
-		// but the go driver doesn't support bson.Binary on MongoDB server 3.2.
-		bsonutil.WrapInBinOp(bsonutil.OpGte, v, false),
-	)
-	return bsonutil.WrapInCond(v, nil, cond)
+	return bsonutil.WrapInCond(
+		v, nil, bsonutil.WrapInBinOp(bsonutil.OpNeq, bsonutil.WrapInType(v), "array"))
 }
 
 // mapArraySchema maps the provided array schema into a mappingContext.
@@ -778,13 +656,12 @@ func (ctx *mappingContext) mapArraySchema(js *mongo.Schema) error {
 	}
 
 	// Get the dominant schemas and a project, if necessary.
-	project, itemSchemas := ctx.getProjectAndSchemaForItems(js.Items, indexName)
+	project, itemSchemas := ctx.getProjectAndSchemaForItems(js.Items)
 
 	// Don't map null arrays unless there is an object conflict on this field.
 	if len(itemSchemas) == 1 && mongo.IsUnmappableType(itemSchemas[0].BSONType) {
 		return nil
 	}
-	ctx.seenFields = append(ctx.seenFields, indexName)
 
 	// create the array index column and add it to the current table
 	col := schema.NewColumn(indexName, schema.SQLInt, indexName, schema.MongoInt, true, option.NoneString())
@@ -988,8 +865,6 @@ func (ctx *mappingContext) arrayContext(subpath string) (*mappingContext, error)
 	for col, field := range ctx.mongoNamePrefixes {
 		newCtx.mongoNamePrefixes[col] = field
 	}
-	newCtx.seenFields = make([]string, len(ctx.seenFields))
-	copy(newCtx.seenFields, ctx.seenFields)
 	newCtx.uniqueColumns = make(map[string]struct{}, len(ctx.uniqueColumns))
 	for field := range ctx.uniqueColumns {
 		newCtx.uniqueColumns[field] = struct{}{}
@@ -1064,10 +939,8 @@ func (ctx *mappingContext) copy() *mappingContext {
 		ctx.db,
 		ctx.table,
 		ctx.uuidSubtype3Encoding,
-		ctx.isAtLeastVersion34,
 		ctx.mongoNames,
 		ctx.mongoNamePrefixes,
-		ctx.seenFields,
 		ctx.uniqueColumns,
 		ctx.uniqueFields,
 		ctx.heuristic,

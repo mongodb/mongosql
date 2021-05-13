@@ -414,9 +414,9 @@ func (c *conn) handshake(ctx context.Context) error {
 			c.mongoDBInfo.CompatibleVersion)
 	}
 
-	if !c.mongoDBInfo.VersionAtLeast(3, 2) {
+	if !c.mongoDBInfo.VersionAtLeast(3, 6) {
 		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
-			"MongoDB version is %v but version >= 3.2 required",
+			"MongoDB version is %v but version >= 3.6 required",
 			c.mongoDBInfo.Version)
 		c.writeError(err)
 		return err

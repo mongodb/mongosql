@@ -150,99 +150,6 @@ func TestOptimizePartialPushdown(t *testing.T) {
 			},
 		},
 		{
-			name:     "inner_joins_subqueries_nested",
-			versions: []string{"3.2", "3.4"},
-			sql: "select * from (select foo.a from bar join (select foo.a from foo) foo on" +
-				" foo.a=bar.b) x join (select g.a from bar join (select foo.a from foo) g on " +
-				"g.a=bar.a) y on x.a=y.a",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewMatchStage(
-						ast.NewBinary(bsonutil.OpNeq,
-							ast.NewFieldRef("a", nil),
-							astutil.NullLiteral,
-						),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-					ast.NewLookupStage("bar", ast.NewFieldRef("test_DOT_foo_DOT_a", nil), "b", "__joined_bar",
-						nil, nil,
-					),
-					ast.NewUnwindStage(
-						ast.NewFieldRef("__joined_bar", nil),
-						"", false,
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_x_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
-					),
-				),
-				// another pipeline
-				ast.NewPipeline(
-					ast.NewMatchStage(
-						ast.NewBinary(bsonutil.OpNeq,
-							ast.NewFieldRef("a", nil),
-							astutil.NullLiteral,
-						),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-					ast.NewLookupStage("bar", ast.NewFieldRef("test_DOT_foo_DOT_a", nil), "a", "__joined_bar",
-						nil, nil,
-					),
-					ast.NewUnwindStage(
-						ast.NewFieldRef("__joined_bar", nil),
-						"", false,
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_y_DOT_a", ast.NewFieldRef("test_DOT_foo_DOT_a", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "left_join_inner_join_subqueries_nested",
-			versions: []string{"3.2", "3.4"},
-			sql: "select * from foo f left join (select b.b from foo f join (select * from " +
-				"bar) b on f.a=b.a)  b on f.a=b.b",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_f_DOT__id", ast.NewFieldRef("_id", nil)),
-						ast.NewAssignProjectItem("test_DOT_f_DOT_a", ast.NewFieldRef("a", nil)),
-						ast.NewAssignProjectItem("test_DOT_f_DOT_b", ast.NewFieldRef("b", nil)),
-						ast.NewAssignProjectItem("test_DOT_f_DOT_c", ast.NewFieldRef("c", nil)),
-						ast.NewAssignProjectItem("test_DOT_f_DOT_e", astutil.FieldRefFromFieldName("d.e")),
-						ast.NewAssignProjectItem("test_DOT_f_DOT_f", astutil.FieldRefFromFieldName("d.f")),
-						ast.NewAssignProjectItem("test_DOT_f_DOT_g", ast.NewFieldRef("g", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewMatchStage(
-						ast.NewBinary(bsonutil.OpNeq,
-							ast.NewFieldRef("a", nil),
-							astutil.NullLiteral,
-						),
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_b", ast.NewFieldRef("b", nil)),
-					),
-					ast.NewLookupStage("foo", ast.NewFieldRef("test_DOT_bar_DOT_a", nil), "a", "__joined_f",
-						nil, nil,
-					),
-					ast.NewUnwindStage(
-						ast.NewFieldRef("__joined_f", nil),
-						"", false,
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_b_DOT_b", ast.NewFieldRef("test_DOT_bar_DOT_b", nil)),
-					),
-				),
-			}},
-
-		{
 			name: "join_nested_array_tables_0",
 			sql: "select * from foo f join merge m1 on f._id=m1._id join (select * from foo) g" +
 				" on g.a=f.a join merge_d_a m2 on m2._id=m1._id and m2._id=g.a",
@@ -292,185 +199,9 @@ func TestOptimizePartialPushdown(t *testing.T) {
 				),
 			},
 		},
-		{
-			name:     "join_subqueries_where_limit",
-			versions: []string{"3.2", "3.4"},
-			sql: "select f.a from foo f join (select bar.a from bar) b on f.a=b.a join " +
-				"(select foo.a from foo where foo.a > 4 limit 1) c on b.a=c.a and f.a=c.a and " +
-				"f.b=b.a",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewMatchStage(
-						ast.NewBinary(bsonutil.OpGt,
-							ast.NewFieldRef("a", nil),
-							astutil.Int64Constant(4),
-						),
-					),
-					ast.NewLimitStage(1),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_c_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_b_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_f_DOT_a", ast.NewFieldRef("a", nil)),
-						ast.NewAssignProjectItem("test_DOT_f_DOT_b", ast.NewFieldRef("b", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "right_non_equijoin",
-			versions: []string{"3.2", "3.4"},
-			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "self_join_0",
-			versions: []string{"3.2", "3.4"},
-			sql:      "select * from merge r left join merge_d_a a on r._id=a._id",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_r_DOT__id", ast.NewFieldRef("_id", nil)),
-						ast.NewAssignProjectItem("test_DOT_r_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewUnwindStage(ast.NewFieldRef("d", nil), "d_idx", false),
-					ast.NewUnwindStage(
-						ast.NewFieldRef("a", ast.NewFieldRef("d", nil)),
-						"d.a_idx", false,
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_a_DOT__id", ast.NewFieldRef("_id", nil)),
-						ast.NewAssignProjectItem("test_DOT_a_DOT_d_DOT_a", astutil.FieldRefFromFieldName("d.a")),
-						ast.NewAssignProjectItem("test_DOT_a_DOT_d_DOT_a_idx", astutil.FieldRefFromFieldName("d.a_idx")),
-						ast.NewAssignProjectItem("test_DOT_a_DOT_d_idx", ast.NewFieldRef("d_idx", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "self_join_4",
-			versions: []string{"3.4"},
-			sql: "select b._id, c._id from merge r left join merge_b b on r._id=b._id inner" +
-				" join merge_c c on r._id=c._id left join merge_d_a a on r._id=a._id",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewUnwindStage(ast.NewFieldRef("b", nil), "", true),
-					ast.NewUnwindStage(ast.NewFieldRef("c", nil), "", false),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_b_DOT__id", astutil.WrapInCond(
-							astutil.NullLiteral,
-							ast.NewFieldRef("_id", nil),
-							ast.NewBinary(bsonutil.OpLte, ast.NewFieldRef("b", nil), astutil.NullLiteral),
-							ast.NewBinary(bsonutil.OpEq, ast.NewFieldRef("b", nil), ast.NewArray()),
-						)),
-						ast.NewAssignProjectItem("test_DOT_c_DOT__id", ast.NewFieldRef("_id", nil)),
-						ast.NewAssignProjectItem("test_DOT_r_DOT__id", ast.NewFieldRef("_id", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewUnwindStage(ast.NewFieldRef("d", nil), "", false),
-					ast.NewUnwindStage(ast.NewFieldRef("a", ast.NewFieldRef("d", nil)),
-						"", false,
-					),
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_a_DOT__id", ast.NewFieldRef("_id", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "non_equijoin_0",
-			versions: []string{"3.2", "3.4"},
-			sql:      "select foo.a from foo inner join bar on foo.a < bar.a",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "non_equijoin_2",
-			versions: []string{"3.2", "3.4"},
-			sql:      "select foo.a from foo, bar where foo.a < bar.a",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "non_equijoin_3",
-			versions: []string{"3.2", "3.4"},
-			sql:      "select foo.a from foo left join bar on foo.a < bar.a",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-			},
-		},
-		{
-			name:     "non_equijoin_4",
-			versions: []string{"3.2", "3.4"},
-			sql:      "select foo.a from foo right join bar on foo.a < bar.a",
-			expected: []*ast.Pipeline{
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_foo_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-				ast.NewPipeline(
-					ast.NewProjectStage(
-						ast.NewAssignProjectItem("test_DOT_bar_DOT_a", ast.NewFieldRef("a", nil)),
-					),
-				),
-			},
-		},
 	}
 
 	versionByStr := map[string][]uint8{
-		"3.2": {3, 2, 0},
-		"3.4": {3, 4, 0},
 		"3.6": {3, 6, 0},
 	}
 
@@ -478,7 +209,7 @@ func TestOptimizePartialPushdown(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			versions := test.versions
 			if len(versions) == 0 {
-				versions = []string{"3.2", "3.4", "3.6"}
+				versions = []string{"3.6"}
 			}
 
 			for _, version := range versions {
@@ -775,7 +506,7 @@ func TestPushdownSharding(t *testing.T) {
 
 				req.NoError(err)
 
-				version := []uint8{3, 4, 0}
+				version := []uint8{3, 6, 0}
 
 				eCfg := createExecutionCfg("test_db", 0, version, MySQLValueKind)
 				oCfg := createOptimizerCfg(collation.Default, eCfg)
@@ -947,42 +678,14 @@ func TestPushdownSharding(t *testing.T) {
 			expected: []*ast.Pipeline{
 				ast.NewPipeline(
 					ast.NewMatchStage(
-						ast.NewBinary(ast.NotEquals,
-							ast.NewFieldRef("a", nil),
-							astutil.NullConstant(),
-						),
+						ast.NewBinary(ast.And, ast.NewAggExpr(ast.NewBinary(ast.GreaterThan, astutil.FieldRefFromFieldName("d.f"), astutil.NullLiteral)),
+							ast.NewBinary(ast.NotEquals, ast.NewFieldRef("a", nil), astutil.NullLiteral)),
 					),
 					ast.NewLookupStage("bar", ast.NewFieldRef("a", nil), "a", "__joined_bar", nil, nil),
 					ast.NewUnwindStage(ast.NewFieldRef("__joined_bar", nil), "", false),
-					ast.NewAddFieldsStage(
-						ast.NewAddFieldsItem("__predicate", ast.NewLet(
-							[]*ast.LetVariable{ast.NewLetVariable("predicate",
-								astutil.WrapInNullCheckedCond(
-									astutil.NullConstant(),
-									ast.NewBinary(bsonutil.OpEq,
-										astutil.FieldRefFromFieldName("__joined_bar.a"),
-										astutil.FieldRefFromFieldName("d.f"),
-									),
-									astutil.FieldRefFromFieldName("__joined_bar.a"),
-									astutil.FieldRefFromFieldName("d.f"),
-								),
-							)},
-							astutil.WrapInBinOp(ast.And,
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.BooleanConstant(false)),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.Int32Constant(0)),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("-0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("0.0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.StringConstant("-0.0")),
-								ast.NewBinary(bsonutil.OpNeq, ast.NewVariableRef("predicate"), astutil.NullConstant()),
-							),
-						)),
-					),
 					ast.NewMatchStage(
-						ast.NewBinary(bsonutil.OpEq,
-							ast.NewFieldRef("__predicate", nil),
-							astutil.BooleanConstant(true),
-						),
+						ast.NewAggExpr(ast.NewBinary(ast.And, ast.NewBinary(ast.GreaterThan, astutil.FieldRefFromFieldName("__joined_bar.a"), astutil.NullLiteral),
+							ast.NewBinary(ast.Equals, ast.NewFieldRef("__joined_bar.a", nil), astutil.FieldRefFromFieldName("d.f")))),
 					),
 					ast.NewProjectStage(
 						ast.NewAssignProjectItem("test_DOT_bar_DOT__id", astutil.FieldRefFromFieldName("__joined_bar._id")),

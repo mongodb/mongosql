@@ -275,7 +275,6 @@ func buildProjectBodyForMongoSource(
 	fields []string,
 	fieldNamesSet map[string]struct{},
 	columns results.Columns,
-	isAtLeast34 bool,
 ) ([]*ast.AddFieldsItem, []string, bool) {
 	// getUniqueFieldName will be used when creating $project/$addFields
 	// body names for embedded documents.
@@ -294,11 +293,7 @@ func buildProjectBodyForMongoSource(
 	for i, mappedFieldName := range fields {
 		fieldIsEmbedded := strings.Contains(mappedFieldName, ".")
 		hasEmbeddedDocs = hasEmbeddedDocs || fieldIsEmbedded
-		// If the field is embedded, it needs to be added to the $addFields body,
-		// or if the server version < 3.4, we need to add it because all fields
-		// must be project, however, the $project will only be added if at least
-		// one embedded field is found, this just allows us to accomplish this
-		// within one loop.
+		// If the field is embedded, it needs to be added to the $addFields body.
 		if fieldIsEmbedded {
 			flattenedFieldName := getUniqueFieldName(sanitizeFieldName(mappedFieldName))
 			// Now we overwrite the previous non-flattened name.
@@ -312,13 +307,6 @@ func buildProjectBodyForMongoSource(
 					flattenedFieldName,
 					getProjectedFieldName(mappedFieldName, columns[i].ColumnType.EvalType),
 				),
-			)
-		} else if !isAtLeast34 {
-			// We have to add this column if !asAtLeast34 or we will drop fields.
-			// Note that even though we are building the projectBody, it will not
-			// actually be added to the pipeline unless hasEmbeddedDocs is true.
-			projectBody = append(projectBody,
-				ast.NewAddFieldsItem(mappedFieldName, astutil.TrueLiteral),
 			)
 		}
 	}
@@ -337,11 +325,6 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 	// to keep simple queries simple. In the case of $addFields, only the embedded fields
 	// are touched, in a $project we must make sure to keep all the normal fields as well.
 
-	// $addFields was introduced in 3.4, only used $addFields if >= 3.4.
-	isAtLeast34 := false
-	if procutil.VersionAtLeast(cfg.mongoDBVersion, []uint8{3, 4, 0}) {
-		isAtLeast34 = true
-	}
 	fields := make([]string, len(columns))
 	fieldNamesSet := make(map[string]struct{}, len(columns))
 	// first collect all the fieldNames
@@ -363,23 +346,13 @@ func (ms *MongoSourceStage) Open(ctx context.Context, cfg *ExecutionConfig, st *
 
 	// Now we potentially build a $project/$addFields.
 	projectBody, fields, hasEmbeddedDocs := buildProjectBodyForMongoSource(fields,
-		fieldNamesSet, columns, isAtLeast34)
+		fieldNamesSet, columns)
 	// If the there are embedded documents we will add a project to flatten them,
 	// otherwise we will not change the pipeline.
 	if hasEmbeddedDocs {
-		if isAtLeast34 {
-			ms.pipeline.Stages = append(ms.pipeline.Stages,
-				ast.NewAddFieldsStage(projectBody...),
-			)
-		} else {
-			projectItems := make([]ast.ProjectItem, len(projectBody))
-			for i, afi := range projectBody {
-				projectItems[i] = ast.NewAssignProjectItem(afi.Name, afi.Expr)
-			}
-			ms.pipeline.Stages = append(ms.pipeline.Stages,
-				ast.NewProjectStage(projectItems...),
-			)
-		}
+		ms.pipeline.Stages = append(ms.pipeline.Stages,
+			ast.NewAddFieldsStage(projectBody...),
+		)
 	}
 
 	cursor, err := ms.getAggregationCursor(ctx, cfg)

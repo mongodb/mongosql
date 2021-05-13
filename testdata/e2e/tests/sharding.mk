@@ -1,10 +1,4 @@
 # testing joins against sharded environments
-test-join-sharded-collection-3.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.2
-test-join-sharded-collection-3.2: test-join-on-sharded-collection
-
-test-join-sharded-collection-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.4
-test-join-sharded-collection-3.4: test-join-on-sharded-collection
-
 test-join-sharded-collection-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.6
 test-join-sharded-collection-3.6: test-join-on-sharded-collection
 
@@ -16,9 +10,6 @@ test-join-sharded-collection-4.2: test-join-on-sharded-collection
 
 test-join-sharded-collection-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster
 test-join-sharded-collection-latest: test-join-on-sharded-collection
-
-test-join-sharded-view-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.4
-test-join-sharded-view-3.4: test-join-on-sharded-view
 
 test-join-sharded-view-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.6
 test-join-sharded-view-3.6: test-join-on-sharded-view
@@ -56,12 +47,6 @@ _test-join-against-sharded-view: EXPECTED := 3
 _test-join-against-sharded-view: _test-mysql-query
 
 # testing counts against sharded environments
-test-count-on-sharded-collection-3.2: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.2
-test-count-on-sharded-collection-3.2: test-count-on-sharded-collection
-
-test-count-on-sharded-collection-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.4
-test-count-on-sharded-collection-3.4: test-count-on-sharded-collection
-
 test-count-on-sharded-collection-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.6
 test-count-on-sharded-collection-3.6: test-count-on-sharded-collection
 
@@ -74,9 +59,6 @@ test-count-on-sharded-collection-4.2: test-count-on-sharded-collection
 test-count-on-sharded-collection-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster
 test-count-on-sharded-collection-latest: test-count-on-sharded-collection
 
-test-count-on-sharded-view-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.4
-test-count-on-sharded-view-3.4: test-count-on-sharded-view
-
 test-count-on-sharded-view-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.6
 test-count-on-sharded-view-3.6: test-count-on-sharded-view
 
@@ -88,9 +70,6 @@ test-count-on-sharded-view-4.2: test-count-on-sharded-view
 
 test-count-on-sharded-view-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster
 test-count-on-sharded-view-latest: test-count-on-sharded-view
-
-test-count-on-sharded-view-on-view-3.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.4
-test-count-on-sharded-view-on-view-3.4: test-count-on-sharded-view-on-view
 
 test-count-on-sharded-view-on-view-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/topology/sharded-cluster,mongo/version/3.6
 test-count-on-sharded-view-on-view-3.6: test-count-on-sharded-view-on-view

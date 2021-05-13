@@ -3,7 +3,6 @@ package evaluator_test
 import (
 	"context"
 	"fmt"
-	"strconv"
 	"testing"
 	"time"
 
@@ -4226,25 +4225,6 @@ func TestAlgebrizeExpr(t *testing.T) {
 	}
 
 	runTestsAsSubtest("Algebrize Expressions", exprTests)
-
-	// 3.2.0 Tests
-	fl, _ := strconv.ParseFloat("1000000000000000000000000000000000000", 64)
-	threeTwoTests := []test{
-		{
-			"30.2",
-			evaluator.NewSQLValueExpr(values.NewSQLFloat(valKind, 30.2)),
-			[]uint8{3, 2, 0},
-		}, {
-			"-30.2",
-			evaluator.NewSQLValueExpr(values.NewSQLFloat(valKind, -30.2)),
-			[]uint8{3, 2, 0},
-		}, {
-			"1000000000000000000000000000000000000",
-			evaluator.NewSQLValueExpr(values.NewSQLFloat(valKind, fl)),
-			[]uint8{3, 2, 0},
-		},
-	}
-	runTestsAsSubtest("Algebrize 3.2 Expressions", threeTwoTests)
 
 	// Variable Tests
 	varGlobal := evaluator.NewSQLVariableExpr("sql_auto_is_null",

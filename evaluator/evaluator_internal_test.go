@@ -46,12 +46,10 @@ func TestGetFastPlanStageTest(t *testing.T) {
 	}
 
 	// testGetFastPlan is a test helper function for testing getFastPlanStage. The
-	// parameter successful is true when we expect getFastPlanStage to succeed, is32
-	// tells us if we are testing on MongoDB version 3.2 or not, a distinction that
-	// matters for UnionDistinct unions.
-	testGetFastPlan := func(t *testing.T, actual, expected PlanStage, successful, is32 bool) {
+	// parameter successful is true when we expect getFastPlanStage to succeed.
+	testGetFastPlan := func(t *testing.T, actual, expected PlanStage, successful bool) {
 		req := require.New(t)
-		actual, ok := getFastPlanStage(actual, is32, false)
+		actual, ok := getFastPlanStage(actual, false)
 		if successful {
 			// This first part of the test is actually testing that the expected
 			// plan is correct before we compare the actual plan to the expected plan.
@@ -70,22 +68,15 @@ func TestGetFastPlanStageTest(t *testing.T) {
 		t *testing.T,
 		subTestName string,
 		tests []fastPlanTest,
-		successful,
-		is32 bool) {
+		successful bool) {
 		t.Run(subTestName, func(t *testing.T) {
 			req := require.New(t)
 			for _, test := range tests {
-				// On successful tests, the expected Plan should have is32 set
-				// to the passed value, if the kind is UnionDistinct. This keeps
-				// us from having to rewrite the tests for MongoDB version 3.2.
 				if successful {
-					up, ok := test.expected.(*UnionStage)
+					_, ok := test.expected.(*UnionStage)
 					req.True(ok, "expected must be a UnionStage")
-					if up.kind == UnionDistinct {
-						up.is32 = is32
-					}
 				}
-				testGetFastPlan(t, test.input, test.expected, successful, is32)
+				testGetFastPlan(t, test.input, test.expected, successful)
 			}
 		})
 	}
@@ -99,7 +90,6 @@ func TestGetFastPlanStageTest(t *testing.T) {
 		tableType:  "view",
 	}
 
-	// First successfully fastPlan optimizable tests on server version > 3.2
 	successfulUnionAllTests := []fastPlanTest{
 		{
 			// Optimizable two-way Union All.
@@ -184,11 +174,7 @@ func TestGetFastPlanStageTest(t *testing.T) {
 
 	// First run the tests with the MongoDB version 3.4+.
 	runTests(t, "MongoDB 3.4+ Successful Union All getFastPlan tests",
-		successfulUnionAllTests, true, false)
-
-	// Now rerun the tests with MongoDB version 3.2.
-	runTests(t, "MongoDB 3.2 Successful Union All getFastPlan tests",
-		successfulUnionAllTests, true, true)
+		successfulUnionAllTests, true)
 
 	successfulUnionDistinctTests := []fastPlanTest{
 		{
@@ -288,11 +274,7 @@ func TestGetFastPlanStageTest(t *testing.T) {
 
 	// Run Union Distinct tests in MongoDB version 3.4+.
 	runTests(t, "MongoDB 3.4+ Successful Union Distinct getFastPlan tests",
-		successfulUnionDistinctTests, true, false)
-
-	// Run the Union Distinct tests with MongoDB version 3.2.
-	runTests(t, "MongoDB 3.2 Successful Union Distinct getFastPlan tests",
-		successfulUnionDistinctTests, true, true)
+		successfulUnionDistinctTests, true)
 
 	// Next is not optimizable plans.
 	notOptimizableTests := []fastPlanTest{
@@ -320,7 +302,7 @@ func TestGetFastPlanStageTest(t *testing.T) {
 
 	// Run notOptimizable tests, these should return nil.
 	runTests(t, "Not Optimizable getFastPlan tests",
-		notOptimizableTests, false, false)
+		notOptimizableTests, false)
 }
 
 // TestEnsureFastPlanProjectInvariant tests the
@@ -340,7 +322,7 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 
 	// Check to make sure id:0 is added to the final $project of
 	// a mongoSourceStage.
-	fastPlan, ok := getFastPlanStage(mongoSourceStage, false, false)
+	fastPlan, ok := getFastPlanStage(mongoSourceStage, false)
 	req.NotNil(fastPlan)
 	req.True(ok)
 	ensureFastPlanProjectInvariant(fastPlan)
@@ -379,7 +361,7 @@ func TestEnsureFastPlanProjectInvariant(t *testing.T) {
 
 	// Check to make sure id:0 is added to the final $project of
 	// a both mongoSourceStages in a Union.
-	fastPlan, ok = getFastPlanStage(optimizableUnion, false, false)
+	fastPlan, ok = getFastPlanStage(optimizableUnion, false)
 	req.NotNil(fastPlan)
 	req.True(ok)
 	ensureFastPlanProjectInvariant(fastPlan)
@@ -418,7 +400,6 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 	type test struct {
 		inputFields         []string
 		inputEvalType       types.EvalType
-		inputIs34           bool
 		expectedFields      []string
 		expectedBody        []*ast.AddFieldsItem
 		expectedHasEmbedded bool
@@ -435,8 +416,7 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 				}
 			}
 			projectBody, fields, hasEmbedded := buildProjectBodyForMongoSource(
-				testCase.inputFields, mkFieldSet(testCase.inputFields), fakeColumns,
-				testCase.inputIs34)
+				testCase.inputFields, mkFieldSet(testCase.inputFields), fakeColumns)
 			req.Equal(testCase.expectedFields, fields)
 			req.Equal(testCase.expectedHasEmbedded, hasEmbedded)
 			if hasEmbedded {
@@ -452,11 +432,6 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 	expectedConflictedEmbeddedFields := []string{"a_DOT_b", "a_DOT_c", "a_DOT_c0",
 		"a_DOT_b0", "a_DOT_c1", "b"}
 
-	// buildProjectBodryForMongoSource overwrites its input, so we need to redeclare these
-	// two inputs.
-	noConflictEmbeddedFields32 := []string{"a", "b", "c.a", "c.d"}
-	conflictedEmbeddedFields32 := []string{"a_DOT_b", "a_DOT_c", "a_DOT_c0", "a.b", "a.c", "b"}
-
 	noConflictEmbeddedFieldsArr := []string{"a", "b", "c.a.1", "c.d"}
 	expectedNoConflictEmbeddedFieldsArr := []string{"a", "b", "c_DOT_a_DOT_1", "c_DOT_d"}
 	conflictedEmbeddedFieldsArr := []string{"a_DOT_b", "a_DOT_c.1", "a_DOT_c0",
@@ -468,14 +443,12 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 		// tests for 3.4+ which should generate addFields bodies
 		{inputFields: nonEmbeddedFields,
 			inputEvalType:       types.EvalInt64,
-			inputIs34:           true,
 			expectedFields:      nonEmbeddedFields,
 			expectedBody:        []*ast.AddFieldsItem{},
 			expectedHasEmbedded: false},
 
 		{inputFields: noConflictEmbeddedFields,
 			inputEvalType:  types.EvalInt64,
-			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFields,
 			expectedBody: []*ast.AddFieldsItem{
 				ast.NewAddFieldsItem("c_DOT_a", astutil.FieldRefFromFieldName("c.a")),
@@ -485,45 +458,10 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 
 		{inputFields: conflictedEmbeddedFields,
 			inputEvalType:  types.EvalInt64,
-			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFields,
 			expectedBody: []*ast.AddFieldsItem{
 				ast.NewAddFieldsItem("a_DOT_b0", astutil.FieldRefFromFieldName("a.b")),
 				ast.NewAddFieldsItem("a_DOT_c1", astutil.FieldRefFromFieldName("a.c")),
-			},
-			expectedHasEmbedded: true},
-
-		//tests for pre-3.4+ which should generate project bodies
-		{inputFields: nonEmbeddedFields,
-			inputEvalType:       types.EvalInt64,
-			inputIs34:           false,
-			expectedFields:      nonEmbeddedFields,
-			expectedBody:        []*ast.AddFieldsItem{},
-			expectedHasEmbedded: false},
-
-		{inputFields: noConflictEmbeddedFields32,
-			inputEvalType:  types.EvalInt64,
-			inputIs34:      false,
-			expectedFields: expectedNoConflictEmbeddedFields,
-			expectedBody: []*ast.AddFieldsItem{
-				ast.NewAddFieldsItem("a", astutil.TrueLiteral),
-				ast.NewAddFieldsItem("b", astutil.TrueLiteral),
-				ast.NewAddFieldsItem("c_DOT_a", astutil.FieldRefFromFieldName("c.a")),
-				ast.NewAddFieldsItem("c_DOT_d", astutil.FieldRefFromFieldName("c.d")),
-			},
-			expectedHasEmbedded: true},
-
-		{inputFields: conflictedEmbeddedFields32,
-			inputEvalType:  types.EvalInt64,
-			inputIs34:      false,
-			expectedFields: expectedConflictedEmbeddedFields,
-			expectedBody: []*ast.AddFieldsItem{
-				ast.NewAddFieldsItem("a_DOT_b", astutil.TrueLiteral),
-				ast.NewAddFieldsItem("a_DOT_c", astutil.TrueLiteral),
-				ast.NewAddFieldsItem("a_DOT_c0", astutil.TrueLiteral),
-				ast.NewAddFieldsItem("a_DOT_b0", astutil.FieldRefFromFieldName("a.b")),
-				ast.NewAddFieldsItem("a_DOT_c1", astutil.FieldRefFromFieldName("a.c")),
-				ast.NewAddFieldsItem("b", astutil.TrueLiteral),
 			},
 			expectedHasEmbedded: true},
 
@@ -531,7 +469,6 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 		// with EvalArrNumeric type for some of the fields.
 		{inputFields: noConflictEmbeddedFieldsArr,
 			inputEvalType:  types.EvalArrNumeric,
-			inputIs34:      true,
 			expectedFields: expectedNoConflictEmbeddedFieldsArr,
 			expectedBody: []*ast.AddFieldsItem{
 				ast.NewAddFieldsItem("c_DOT_a_DOT_1", astutil.WrapInOp(bsonutil.OpArrElemAt,
@@ -544,7 +481,6 @@ func TestBuildProjectBodyForMongoSource(t *testing.T) {
 
 		{inputFields: conflictedEmbeddedFieldsArr,
 			inputEvalType:  types.EvalArrNumeric,
-			inputIs34:      true,
 			expectedFields: expectedConflictedEmbeddedFieldsArr,
 			expectedBody: []*ast.AddFieldsItem{
 				ast.NewAddFieldsItem("a_DOT_c_DOT_1", astutil.WrapInOp(bsonutil.OpArrElemAt,

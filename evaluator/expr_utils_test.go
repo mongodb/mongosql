@@ -24,7 +24,7 @@ func TestGetMongoDBInfo(t *testing.T) {
 	req.Equal(info.Version, "3.5.6")
 
 	info = GetMongoDBInfo(nil, sch, privileges)
-	req.Equal(info.Version, "3.4.0")
+	req.Equal(info.Version, "3.6.0")
 }
 
 func TestIsFullyPushedDown(t *testing.T) {

@@ -557,63 +557,6 @@ func (c *conn) fastSendPackets(ctx context.Context, packetChan chan []byte, fast
 	close(packetChan)
 }
 
-// fastSendPackets32 is used to produce packets from Documents returned from the
-// passed fastIter. The results are returned as a []byte across the packetChan
-// channel. The Documents returned by the fastIter do not have a guaranteed
-// field order.
-func (c *conn) fastSendPackets32(ctx context.Context, packetChan chan []byte, fastIter results.DocIter) {
-	valueKind := evaluator.GetSQLValueKind(c.variables)
-	charSet := c.variables.GetCharset(variable.CharacterSetResults)
-	mongoDBVarcharLength := int(c.variables.GetUint64(variable.MongoDBMaxVarcharLength))
-
-	doc := &bson.Raw{}
-	columnInfo := fastIter.GetColumnInfo()
-	lenColumnInfo := len(columnInfo)
-	// We will use one nullField value to represent all NULLs that will result
-	// from missing fields.
-	nullField := &bson.RawValue{Type: bson.TypeNull, Value: []byte{}}
-	fieldMap := make(map[string]*bson.RawValue, lenColumnInfo)
-	// Set the value for all columns to null so we can avoid
-	// a branch in the forloop below.
-	for _, info := range columnInfo {
-		fieldMap[info.Field] = nullField
-	}
-	for ctx.Err() == nil && fastIter.Next(ctx, doc) {
-		columnInfo = fastIter.GetColumnInfo()
-		packet := []byte{0, 0, 0, 0}
-		vs, err := doc.Elements()
-		if err != nil {
-			close(packetChan)
-			panic(err)
-		}
-		// We can't rely on field ordering in 3.2.
-		for _, v := range vs {
-			value := v.Value()
-			fieldMap[v.Key()] = &value
-		}
-		for _, info := range columnInfo {
-			value := fieldMap[info.Field]
-			df := newDataFormatter(info.Field, info.Type,
-				types.EvalType(value.Type), info.UUIDSubtype,
-				charSet, mongoDBVarcharLength, value.Value)
-			b, err := fastFormat(df, valueKind)
-			if err != nil {
-				close(packetChan)
-				panic(err)
-			}
-			packet = append(packet, b...)
-			// reset the fields to the nullField for the next iteration.
-			fieldMap[info.Field] = nullField
-		}
-		packetChan <- packet
-	}
-	if ctx.Err() != nil {
-		_ = fastIter.Close()
-	}
-	close(packetChan)
-
-}
-
 // streamRowResultset implements COM_QUERY response.
 // More at https://dev.mysql.com/doc/internals/en/com-query-response.html
 //
@@ -667,13 +610,7 @@ func (c *conn) streamDocResultset(ctx context.Context, columns []*results.Column
 		}
 	}
 
-	var asyncPacketSender func()
-	if c.mongoDBInfo.VersionAtLeast(3, 4, 0) {
-		asyncPacketSender = func() { c.fastSendPackets(ctx, packetChan, docIter) }
-	} else {
-		// For server < 3.4, we cannot rely on document field ordering.
-		asyncPacketSender = func() { c.fastSendPackets32(ctx, packetChan, docIter) }
-	}
+	var asyncPacketSender = func() { c.fastSendPackets(ctx, packetChan, docIter) }
 
 	procutil.PanicSafeGo(asyncPacketSender, errorHandler)
 	return c.streamRows(ctx, packetChan, errChan, columns, docIter)

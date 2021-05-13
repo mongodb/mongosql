@@ -268,13 +268,6 @@ func (f *baseScalarFunctionExpr) ceilToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) charToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(char)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	// char is not pushed down for more than 1 arg, because there is currently no way
 	// to convert multi-byte characters like ⾀ (which is 226, 190, 128).
 	if len(exprs) != 1 {
@@ -376,12 +369,6 @@ func (f *baseScalarFunctionExpr) charToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) characterLengthToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(characterLength)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertExactArgCount(exprs, 1)
 
 	return wrapSingleArgFuncWithNullCheck(bsonutil.OpStrlenCP, exprs[0], t)
@@ -424,13 +411,6 @@ func (f *baseScalarFunctionExpr) concatWsToAggregationLanguage(t *PushdownTransl
 }
 
 func (f *baseScalarFunctionExpr) convToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(conv)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
@@ -1773,13 +1753,6 @@ func (f *baseScalarFunctionExpr) hourToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) insertToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(insert)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 4)
 
 	args, err := t.translateArgs(exprs)
@@ -1828,13 +1801,6 @@ func (f *baseScalarFunctionExpr) insertToAggregationLanguage(t *PushdownTranslat
 }
 
 func (f *baseScalarFunctionExpr) instrToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(instr)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 2)
 
 	args, err := t.translateArgs(exprs)
@@ -1971,12 +1937,6 @@ func (f *baseScalarFunctionExpr) leastToAggregationLanguage(t *PushdownTranslato
 }
 
 func (f *baseScalarFunctionExpr) leftToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(left)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertExactArgCount(exprs, 2)
 
 	args, err := t.translateArgs(exprs)
@@ -1998,24 +1958,12 @@ func (f *baseScalarFunctionExpr) leftToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) lengthToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(length)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertExactArgCount(exprs, 1)
 
 	return wrapSingleArgFuncWithNullCheck(bsonutil.OpStrLenBytes, exprs[0], t)
 }
 
 func (f *baseScalarFunctionExpr) locateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(locate)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertEitherArgCount(exprs, 2, 3)
 
 	args, err := t.translateArgs(exprs)
@@ -2109,12 +2057,6 @@ func (f *baseScalarFunctionExpr) lpadToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) ltrimToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(ltrim)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertExactArgCount(exprs, 1)
 
 	args, err := t.translateArgs(exprs)
@@ -2309,13 +2251,6 @@ func (f *baseScalarFunctionExpr) monthToAggregationLanguage(t *PushdownTranslato
 }
 
 func (f *baseScalarFunctionExpr) padToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr, isLeftPad bool) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(pad)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 3)
 
 	args, err := t.translateArgs(exprs)
@@ -2464,13 +2399,6 @@ func (f *baseScalarFunctionExpr) radiansToAggregationLanguage(t *PushdownTransla
 }
 
 func (f *baseScalarFunctionExpr) repeatToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(repeat)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 2)
 
 	args, err := t.translateArgs(exprs)
@@ -2498,13 +2426,6 @@ func (f *baseScalarFunctionExpr) repeatToAggregationLanguage(t *PushdownTranslat
 }
 
 func (f *baseScalarFunctionExpr) replaceToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(replace)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 3)
 
 	args, err := t.translateArgs(exprs)
@@ -2530,13 +2451,6 @@ func (f *baseScalarFunctionExpr) replaceToAggregationLanguage(t *PushdownTransla
 }
 
 func (f *baseScalarFunctionExpr) reverseToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(reverse)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 1)
 
 	args, err := t.translateArgs(exprs)
@@ -2568,12 +2482,6 @@ func (f *baseScalarFunctionExpr) reverseToAggregationLanguage(t *PushdownTransla
 }
 
 func (f *baseScalarFunctionExpr) rightToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(right)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertExactArgCount(exprs, 2)
 
 	args, err := t.translateArgs(exprs)
@@ -2626,12 +2534,6 @@ func (f *baseScalarFunctionExpr) rpadToAggregationLanguage(t *PushdownTranslator
 }
 
 func (f *baseScalarFunctionExpr) rtrimToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(rtrim)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertExactArgCount(exprs, 1)
 
 	args, err := t.translateArgs(exprs)
@@ -2768,13 +2670,6 @@ func (f *baseScalarFunctionExpr) sinToAggregationLanguage(t *PushdownTranslator,
 }
 
 func (f *baseScalarFunctionExpr) spaceToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(space)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 1)
 
 	args, err := t.translateArgs(exprs)
@@ -2924,13 +2819,6 @@ func (f *baseScalarFunctionExpr) strToDateToAggregationLanguage(t *PushdownTrans
 }
 
 func (f *baseScalarFunctionExpr) substringIndexToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(substringIndex)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
-
 	assertExactArgCount(exprs, 3)
 
 	args, err := t.translateArgs(exprs)
@@ -2964,12 +2852,6 @@ func (f *baseScalarFunctionExpr) substringIndexToAggregationLanguage(t *Pushdown
 }
 
 func (f *baseScalarFunctionExpr) substringToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(substring)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	assertEitherArgCount(exprs, 2, 3)
 
 	args, err := t.translateArgs(exprs)
@@ -3535,12 +3417,6 @@ func (f *baseScalarFunctionExpr) timeToSecToAggregationLanguage(t *PushdownTrans
 }
 
 func (f *baseScalarFunctionExpr) trimToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 4, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(trim)",
-			"cannot push down to MongoDB < 3.4",
-		)
-	}
 	if len(exprs) != 1 {
 		return nil, newPushdownFailure(
 			"SQLScalarFunctionExpr(trim)",

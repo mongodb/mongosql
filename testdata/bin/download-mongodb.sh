@@ -26,10 +26,6 @@ set_mongodb_binaries ()
    # get the distro and arch values from the PUSH_ARCH environment variable.
    distro=${MONGO_DISTRO:-$(echo $PUSH_ARCH | cut -d'-' -f2)}
    arch=${MONGO_ARCH:-$(echo $PUSH_ARCH | cut -d'-' -f1)}
-   if [ "$distro" = "ubuntu1604" ] && [ "$mongodb_version" = "3.2" ]; then
-       # Support for Ubuntu 16.04 was not added until r3.3.7. Use the generic linux build instead.
-       distro="linux_x86_64"
-   fi
 
    edition="enterprise"
 
