@@ -34,7 +34,14 @@ pub struct MqlTranslation {
     pub database: String,
     pub collection: Option<String>,
     pub mapping_registry: MappingRegistry,
-    pub bson: bson::Bson,
+    pub pipeline: Vec<bson::Document>,
+}
+
+impl MqlTranslation {
+    fn with_additional_stage(mut self, stage: bson::Document) -> Self {
+        self.pipeline.push(stage);
+        self
+    }
 }
 
 pub struct MqlCodeGenerator {
@@ -49,14 +56,18 @@ impl MqlCodeGenerator {
             Filter(_) => unimplemented!(),
             Project(_) => unimplemented!(),
             Group(_) => unimplemented!(),
-            Limit(_) => unimplemented!(),
-            Offset(_) => unimplemented!(),
+            Limit(l) => Ok(self
+                .codegen_stage(*l.source)?
+                .with_additional_stage(bson::doc! {"$limit": l.limit})),
+            Offset(o) => Ok(self
+                .codegen_stage(*o.source)?
+                .with_additional_stage(bson::doc! {"$skip": o.offset})),
             Sort(_) => unimplemented!(),
             Collection(c) => Ok(MqlTranslation {
                 database: c.db,
                 collection: Some(c.collection.clone()),
                 mapping_registry: mappings! { (&c.collection, 0u16).into() => &c.collection },
-                bson: bson::bson!([{"$project": {"_id": 0, &c.collection: "$$ROOT"}}]),
+                pipeline: vec![bson::doc! {"$project": {"_id": 0, &c.collection: "$$ROOT"}}],
             }),
             Array(_) => unimplemented!(),
             Join(_) => unimplemented!(),

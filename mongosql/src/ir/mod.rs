@@ -12,8 +12,8 @@ pub enum Stage {
     Filter(Filter),
     Project(Project),
     Group(Group),
-    Limit(u64),
-    Offset(u64),
+    Limit(Limit),
+    Offset(Offset),
     Sort(Vec<SortSpecification>),
     Collection(Collection),
     Array(Vec<Expression>),
@@ -41,6 +41,20 @@ pub struct Group {
     source: Box<Stage>,
     keys: Vec<Aliased<Expression>>,
     aggregates: Vec<Aliased<AggregationFunction>>,
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone)]
+pub struct Limit {
+    pub source: Box<Stage>,
+    pub limit: u64,
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone)]
+pub struct Offset {
+    pub source: Box<Stage>,
+    pub offset: u64,
 }
 
 #[allow(dead_code)]

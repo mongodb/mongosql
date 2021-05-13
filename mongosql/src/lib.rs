@@ -17,10 +17,12 @@ pub struct Translation {
 
 impl From<codegen::MqlTranslation> for Translation {
     fn from(t: codegen::MqlTranslation) -> Self {
+        let pipeline =
+            bson::Bson::Array(t.pipeline.into_iter().map(bson::Bson::Document).collect());
         Self {
             target_db: t.database,
             target_collection: t.collection,
-            pipeline: t.bson,
+            pipeline,
         }
     }
 }

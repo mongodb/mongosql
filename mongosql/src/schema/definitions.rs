@@ -48,7 +48,7 @@ pub enum Atomic {
     Date,
     Null,
     Regex,
-    DBPointer,
+    DbPointer,
     Javascript,
     Symbol,
     JavascriptWithScope,
