@@ -151,5 +151,76 @@
         }
       }
     ]
+  },
+  {
+    "name": "desugar $sqlSlice with no start argument",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlSlice": [
+              "$arr",
+              "$len"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$slice": [
+              "$arr",
+              "$len"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlSlice with start argument",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlSlice": [
+              "$arr",
+              "$start",
+              "$len"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$cond": [
+              {
+                "$lte": [
+                  "$start",
+                  0
+                ]
+              },
+              null,
+              {
+                "$slice": [
+                  "$arr",
+                  "$start",
+                  "$len"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
   }
 ]

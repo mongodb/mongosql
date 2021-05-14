@@ -1,11 +1,14 @@
 package desugarer
 
-import "github.com/10gen/mongoast/ast"
+import (
+	"github.com/10gen/mongoast/ast"
+)
 
 type functionDesugarer func(*ast.Function) ast.Expr
 
 var functionDesugarers = map[string]functionDesugarer{
 	"$sqlBetween": desugarSQLBetween,
+	"$sqlSlice":   desugarSQLSlice,
 }
 
 // desugarUnsupportedOperators desugars any new operators ($sqlBetween,
@@ -45,4 +48,19 @@ func desugarSQLBetween(f *ast.Function) ast.Expr {
 			)),
 		)),
 	)
+}
+
+func desugarSQLSlice(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	var expr ast.Expr = ast.NewFunction("$slice", args)
+	if len(args.Elements) == 3 {
+		expr = ast.NewConditional(
+			ast.NewBinary(ast.LessThanOrEquals, args.Elements[1], zeroLiteral),
+			nullLiteral,
+			expr,
+		)
+	}
+
+	return expr
 }
