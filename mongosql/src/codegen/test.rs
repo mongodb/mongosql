@@ -119,6 +119,29 @@ mod array_stage {
     );
 }
 
+mod filter {
+    use crate::ir::*;
+
+    test_codegen_plan!(
+        simple,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": []}},
+                bson::doc!{"$match": {"$expr": {"$literal": true}}},
+            ],
+        }),
+        Stage::Filter(Filter {
+            condition: Expression::Literal(Literal::Boolean(true)),
+            source: Stage::Array(Array {
+                exprs: vec![],
+                alias: "arr".to_string(),
+            }).into(),
+        }),
+    );
+}
+
 mod limit_offset {
     use crate::ir::*;
 

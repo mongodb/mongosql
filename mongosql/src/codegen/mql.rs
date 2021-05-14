@@ -62,15 +62,17 @@ impl MqlCodeGenerator {
         use bson::{doc, Bson};
         use ir::Stage::*;
         match stage {
-            Filter(_) => unimplemented!(),
+            Filter(f) => Ok(self.codegen_stage(*f.source)?.with_additional_stage(
+                doc! {"$match": {"$expr": self.codegen_expression(f.condition)?}},
+            )),
             Project(_) => unimplemented!(),
             Group(_) => unimplemented!(),
             Limit(l) => Ok(self
                 .codegen_stage(*l.source)?
-                .with_additional_stage(bson::doc! {"$limit": l.limit})),
+                .with_additional_stage(doc! {"$limit": l.limit})),
             Offset(o) => Ok(self
                 .codegen_stage(*o.source)?
-                .with_additional_stage(bson::doc! {"$skip": o.offset})),
+                .with_additional_stage(doc! {"$skip": o.offset})),
             Sort(_) => unimplemented!(),
             Collection(c) => Ok(MqlTranslation {
                 database: Some(c.db),
