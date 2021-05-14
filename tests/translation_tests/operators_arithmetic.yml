@@ -48,6 +48,6 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'n': {'$divide': {'dividend': {'$divide': {'dividend': '$bar.a', 'divisor': '$bar.b', 'onError': {'$literal': null}}}, 'divisor': '$bar.c', 'onError': {'$literal': null}}}}}}
+      - {'$project': {'_id': 0, '__bot': {'n': {'$sqlDivide': {'dividend': {'$sqlDivide': {'dividend': '$bar.a', 'divisor': '$bar.b', 'onError': {'$literal': null}}}, 'divisor': '$bar.c', 'onError': {'$literal': null}}}}}}
     result:
       - {'__bot': {'n': {'$numberInt': '0'}}}

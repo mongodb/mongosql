@@ -222,5 +222,87 @@
         }
       }
     ]
+  },
+  {
+    "name": "desugar $sqlDivide",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlDivide": {
+              "dividend": "$a",
+              "divisor": "$b",
+              "onError": null
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$cond": [
+              {
+                "$eq": [
+                  "$b",
+                  0
+                ]
+              },
+              null,
+              {
+                "$divide": [
+                  "$a",
+                  "$b"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlDivide non-null onError",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlDivide": {
+              "dividend": "$a",
+              "divisor": "$b",
+              "onError": "err"
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$cond": [
+              {
+                "$eq": [
+                  "$b",
+                  0
+                ]
+              },
+              "err",
+              {
+                "$divide": [
+                  "$a",
+                  "$b"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
   }
 ]

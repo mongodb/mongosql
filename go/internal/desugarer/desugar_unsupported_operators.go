@@ -9,6 +9,7 @@ type functionDesugarer func(*ast.Function) ast.Expr
 var functionDesugarers = map[string]functionDesugarer{
 	"$sqlBetween": desugarSQLBetween,
 	"$sqlSlice":   desugarSQLSlice,
+	"$sqlDivide":  desugarSQLDivide,
 }
 
 // desugarUnsupportedOperators desugars any new operators ($sqlBetween,
@@ -63,4 +64,18 @@ func desugarSQLSlice(f *ast.Function) ast.Expr {
 	}
 
 	return expr
+}
+
+func desugarSQLDivide(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Document).FieldsMap()
+
+	dividend := args["dividend"]
+	divisor := args["divisor"]
+	onError := args["onError"]
+
+	return ast.NewConditional(
+		ast.NewBinary(ast.Equals, divisor, zeroLiteral),
+		onError,
+		ast.NewBinary(ast.Divide, dividend, divisor),
+	)
 }
