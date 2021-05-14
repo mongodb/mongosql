@@ -1,7 +1,6 @@
 macro_rules! test_codegen_plan {
     (
 		$func_name:ident,
-		$current_db:expr,
 		Ok({
 			database: $expected_db:expr,
 			collection: $expected_collection:expr,
@@ -13,7 +12,6 @@ macro_rules! test_codegen_plan {
         fn $func_name() {
             use crate::codegen::{generate_mql, MqlTranslation};
 
-            let current_db = $current_db.to_string();
             let input = $input;
             let expected_db = $expected_db;
             let expected_collection = $expected_collection;
@@ -24,7 +22,7 @@ macro_rules! test_codegen_plan {
                 collection: col,
                 mapping_registry: _,
                 pipeline: pipeline,
-            } = generate_mql(current_db, input).expect("codegen failed");
+            } = generate_mql(input).expect("codegen failed");
 
             assert_eq!(expected_db, db);
             assert_eq!(expected_collection, col);
@@ -32,34 +30,29 @@ macro_rules! test_codegen_plan {
         }
     };
 
-    ($func_name:ident, $current_db:expr, Err($expected_err:expr), $input:expr,) => {
+    ($func_name:ident, Err($expected_err:expr), $input:expr,) => {
         #[test]
         fn $func_name() {
             use crate::codegen::generate_mql;
 
-            let current_db = $current_db.to_string();
             let input = $input;
             let expected = Err($expected_err);
 
-            assert_eq!(expected, generate_mql(current_db, input));
+            assert_eq!(expected, generate_mql(input));
         }
     };
 }
 
 macro_rules! test_codegen_expr {
-    ($func_name:ident, $current_db:expr, $mapping_registry:expr, $expected:expr, $input:expr,) => {
+    ($func_name:ident, $mapping_registry:expr, $expected:expr, $input:expr,) => {
         #[test]
         fn $func_name() {
             use crate::codegen::mql::MqlCodeGenerator;
-            let current_database = $current_db.to_string();
             let mapping_registry = $mapping_registry;
             let expected = $expected;
             let input = $input;
 
-            let gen = MqlCodeGenerator {
-                current_database,
-                mapping_registry,
-            };
+            let gen = MqlCodeGenerator { mapping_registry };
             assert_eq!(expected, gen.codegen_expression(input));
         }
     };
@@ -67,18 +60,7 @@ macro_rules! test_codegen_expr {
     ($func_name:ident, $expected:expr, $input:expr,) => {
         test_codegen_expr!(
             $func_name,
-            "dbnameunused",
             crate::codegen::mql::MappingRegistry::default(),
-            $expected,
-            $input,
-        );
-    };
-
-    ($func_name:ident, $mapping_registry:expr, $expected:expr, $input:expr,) => {
-        test_codegen_expr!(
-            $func_name,
-            "dbnameunused",
-            $mapping_registry,
             $expected,
             $input,
         );
@@ -90,9 +72,8 @@ mod collection {
 
     test_codegen_plan!(
         simple,
-        "mydb",
         Ok({
-            database: "mydb".to_string(),
+            database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
@@ -105,14 +86,46 @@ mod collection {
     );
 }
 
+mod array_stage {
+    use crate::ir::*;
+
+    test_codegen_plan!(
+        empty,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": []}},
+            ],
+        }),
+        Stage::Array(Array {
+            exprs: vec![],
+            alias: "arr".to_string(),
+        }),
+    );
+    test_codegen_plan!(
+        non_empty,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": [{"$literal": false}]}},
+            ],
+        }),
+        Stage::Array(Array {
+            exprs: vec![Expression::Literal(Literal::Boolean(false))],
+            alias: "arr".to_string(),
+        }),
+    );
+}
+
 mod limit_offset {
     use crate::ir::*;
 
     test_codegen_plan!(
         limit_simple,
-        "mydb",
         Ok({
-            database: "mydb".to_string(),
+            database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
@@ -130,9 +143,8 @@ mod limit_offset {
 
     test_codegen_plan!(
         offset_simple,
-        "mydb",
         Ok({
-            database: "mydb".to_string(),
+            database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},

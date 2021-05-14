@@ -44,7 +44,7 @@ fn translate_sql_bson_base64(
 /// returned for a successful translation.
 fn translation_success_payload(t: mongosql::Translation) -> String {
     let translation = bson::doc! {
-        "target_db": t.target_db,
+        "target_db": t.target_db.map_or(bson::Bson::Null, |c| c.into()),
         "target_collection": t.target_collection.map_or(bson::Bson::Null, |c| c.into()),
         "pipeline": t.pipeline,
     };

@@ -18,9 +18,8 @@ pub enum Error {
     DollarPrefixedDocumentKey,
 }
 
-pub fn generate_mql(current_database: String, plan: ir::Stage) -> Result<MqlTranslation> {
+pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {
     let cg = MqlCodeGenerator {
-        current_database,
         mapping_registry: MappingRegistry::new(),
     };
     cg.codegen_stage(plan)

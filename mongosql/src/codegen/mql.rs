@@ -35,7 +35,7 @@ macro_rules! mappings {
 }
 
 pub struct MqlTranslation {
-    pub database: String,
+    pub database: Option<String>,
     pub collection: Option<String>,
     pub mapping_registry: MappingRegistry,
     pub pipeline: Vec<bson::Document>,
@@ -49,7 +49,6 @@ impl MqlTranslation {
 }
 
 pub struct MqlCodeGenerator {
-    pub current_database: String,
     pub mapping_registry: MappingRegistry,
 }
 
@@ -60,6 +59,7 @@ impl MqlCodeGenerator {
     /// Mappings for the current scope will be obtained by calling
     /// `codegen_stage` on source stages.
     pub fn codegen_stage(&self, stage: ir::Stage) -> Result<MqlTranslation> {
+        use bson::{doc, Bson};
         use ir::Stage::*;
         match stage {
             Filter(_) => unimplemented!(),
@@ -73,12 +73,25 @@ impl MqlCodeGenerator {
                 .with_additional_stage(bson::doc! {"$skip": o.offset})),
             Sort(_) => unimplemented!(),
             Collection(c) => Ok(MqlTranslation {
-                database: c.db,
+                database: Some(c.db),
                 collection: Some(c.collection.clone()),
                 mapping_registry: mappings! { (&c.collection, 0u16).into() => &c.collection },
-                pipeline: vec![bson::doc! {"$project": {"_id": 0, &c.collection: "$$ROOT"}}],
+                pipeline: vec![doc! {"$project": {"_id": 0, &c.collection: "$$ROOT"}}],
             }),
-            Array(_) => unimplemented!(),
+            Array(arr) => {
+                let mapping_registry = mappings! {(&arr.alias, 0u16).into() => &arr.alias};
+                let docs = arr
+                    .exprs
+                    .into_iter()
+                    .map(|e| self.codegen_expression(e))
+                    .collect::<Result<Vec<Bson>>>()?;
+                Ok(MqlTranslation {
+                    database: None,
+                    collection: None,
+                    mapping_registry,
+                    pipeline: vec![doc! {"$array": {arr.alias: Bson::Array(docs)}}],
+                })
+            }
             Join(_) => unimplemented!(),
             Set(_) => unimplemented!(),
         }

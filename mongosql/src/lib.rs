@@ -11,7 +11,7 @@ use crate::{algebrizer::Algebrizer, parser::Parser, result::Result};
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
 pub struct Translation {
-    pub target_db: String,
+    pub target_db: Option<String>,
     pub target_collection: Option<String>,
     pub pipeline: bson::Bson,
 }
@@ -42,6 +42,6 @@ pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
     let plan = algebrizer.algebrize_query(ast)?;
 
     // generate mql from the ir plan
-    let translation = codegen::generate_mql(current_db.to_string(), plan)?;
+    let translation = codegen::generate_mql(plan)?;
     Ok(translation.into())
 }

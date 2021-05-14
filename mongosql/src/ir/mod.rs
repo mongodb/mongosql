@@ -16,7 +16,7 @@ pub enum Stage {
     Offset(Offset),
     Sort(Vec<SortSpecification>),
     Collection(Collection),
-    Array(Vec<Expression>),
+    Array(Array),
     Join(Join),
     Set(Set),
 }
@@ -84,6 +84,13 @@ pub enum SortSpecification {
 pub struct Collection {
     pub db: String,
     pub collection: String,
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone)]
+pub struct Array {
+    pub exprs: Vec<Expression>,
+    pub alias: String,
 }
 
 #[allow(dead_code)]
