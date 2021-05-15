@@ -339,6 +339,7 @@ dependencies = [
  "common_macros",
  "lalrpop",
  "lalrpop-util",
+ "lazy_static",
  "linked-hash-map",
  "regex",
  "serde",

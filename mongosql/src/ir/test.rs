@@ -29,7 +29,7 @@ mod schema {
         ir::{schema::*, *},
         schema::*,
     };
-    use common_macros::hash_map;
+    use common_macros::{b_tree_map, b_tree_set, hash_map};
 
     test_schema!(
         literal_null,
@@ -71,5 +71,180 @@ mod schema {
         Ok(Schema::Atomic(Atomic::Null)),
         Expression::Reference(("a", 0u16).into()),
         hash_map! {("a", 0u16).into() => Schema::Atomic(Atomic::Null),},
+    );
+
+    // FieldAccess
+    test_schema!(
+        field_access_accessee_cannot_be_document,
+        Err(Error::SchemaChecking(
+            "FieldAccess",
+            Schema::Atomic(Atomic::Long),
+            crate::schema::ANY_DOCUMENT.clone(),
+        )),
+        Expression::FieldAccess(FieldAccess {
+            expr: Box::new(Expression::Literal(Literal::Long(1))),
+            field: "foo".to_string(),
+        }),
+    );
+    test_schema!(
+        field_access_field_must_not_exist_not_in_document,
+        Err(Error::AccessMissingField("foo".to_string())),
+        Expression::FieldAccess(FieldAccess {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            field: "foo".to_string(),
+        }),
+        hash_map! {("bar", 0u16).into() => Schema::Document(
+            Document {
+                keys: b_tree_map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
+                required: b_tree_set!{"foof".to_string()},
+                additional_properties: false,
+            }
+        ),},
+    );
+    test_schema!(
+        field_access_field_may_exist,
+        Ok(Schema::Any),
+        Expression::FieldAccess(FieldAccess {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            field: "foo".to_string(),
+        }),
+        hash_map! {("bar", 0u16).into() => Schema::Document(
+            Document {
+                keys: b_tree_map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
+                required: b_tree_set!{"foof".to_string()},
+                additional_properties: true,
+            }
+        ),},
+    );
+    test_schema!(
+        field_access_field_must_exist,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::FieldAccess(FieldAccess {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            field: "foo".to_string(),
+        }),
+        hash_map! {("bar", 0u16).into() => Schema::Document(
+            Document {
+                keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                required: b_tree_set!{"foo".to_string()},
+                additional_properties: false,
+            }
+        ),},
+    );
+    test_schema!(
+        field_access_field_must_one_of,
+        Ok(Schema::AnyOf(
+            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Int)}
+        )),
+        Expression::FieldAccess(FieldAccess {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            field: "foo".to_string(),
+        }),
+        hash_map! {("bar", 0u16).into() =>
+            Schema::OneOf(vec!{
+            Schema::Document(
+                Document {
+                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                    required: b_tree_set!{"foo".to_string()},
+                    additional_properties: false,
+                }
+            ),
+            Schema::Document(
+                Document {
+                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    required: b_tree_set!{"foo".to_string()},
+                    additional_properties: false,
+                }
+            ),
+        })},
+    );
+    test_schema!(
+        field_access_field_must_any_of_with_missing,
+        Ok(Schema::AnyOf(
+            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Int), Schema::Missing}
+        )),
+        Expression::FieldAccess(FieldAccess {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            field: "foo".to_string(),
+        }),
+        hash_map! {("bar", 0u16).into() =>
+            Schema::AnyOf(vec!{
+            Schema::Document(
+                Document {
+                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                    required: b_tree_set!{"foo".to_string()},
+                    additional_properties: false,
+                }
+            ),
+            Schema::Document(
+                Document {
+                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    required: b_tree_set!{"foo".to_string()},
+                    additional_properties: false,
+                }
+            ),
+            Schema::Atomic(Atomic::Int),
+        })},
+    );
+
+    // ComputedFieldAccess Function
+    test_schema!(
+        computed_field_access_requires_two_args,
+        Err(Error::IncorrectArgumentCount("ComputedFieldAccess", 2, 3)),
+        Expression::Function(FunctionApplication {
+            function: Function::ComputedFieldAccess,
+            args: vec![
+                Expression::Literal(Literal::Long(1)),
+                Expression::Literal(Literal::Long(2)),
+                Expression::Literal(Literal::Long(3))
+            ],
+        }),
+    );
+    test_schema!(
+        computed_field_access_first_arg_must_not_be_document,
+        Err(Error::SchemaChecking(
+            "ComputedFieldAccess",
+            Schema::Atomic(Atomic::Long),
+            crate::schema::ANY_DOCUMENT.clone(),
+        )),
+        Expression::Function(FunctionApplication {
+            function: Function::ComputedFieldAccess,
+            args: vec![
+                Expression::Literal(Literal::Long(1)),
+                Expression::Literal(Literal::Long(2)),
+            ],
+        }),
+    );
+    test_schema!(
+        computed_field_access_second_arg_must_not_be_string,
+        Err(Error::SchemaChecking(
+            "ComputedFieldAccess",
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::String),
+        )),
+        Expression::Function(FunctionApplication {
+            function: Function::ComputedFieldAccess,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Long(42)),
+            ],
+        }),
+        hash_map! {("bar", 0u16).into() =>
+            Schema::OneOf(vec!{
+            Schema::Document(
+                Document {
+                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                    required: b_tree_set!{"foo".to_string()},
+                    additional_properties: false,
+                }
+            ),
+            Schema::Document(
+                Document {
+                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    required: b_tree_set!{"foo".to_string()},
+                    additional_properties: false,
+                }
+            ),
+        })},
     );
 }

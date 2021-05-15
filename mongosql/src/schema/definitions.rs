@@ -1,5 +1,6 @@
 use crate::ir::binding_tuple::BindingTuple;
 use common_macros::{b_tree_map, b_tree_set};
+use lazy_static::lazy_static;
 use std::collections::{BTreeMap, BTreeSet};
 
 pub type SchemaEnvironment = BindingTuple<Schema>;
@@ -28,8 +29,8 @@ pub enum Schema {
     Any,
     Missing,
     Atomic(Atomic),
-    OneOf(BTreeSet<Schema>),
-    AnyOf(BTreeSet<Schema>),
+    OneOf(Vec<Schema>),
+    AnyOf(Vec<Schema>),
     Array(Box<Schema>),
     Document(Document),
 }
@@ -65,6 +66,15 @@ pub struct Document {
     pub additional_properties: bool,
 }
 
+lazy_static! {
+    pub static ref ANY_DOCUMENT: Schema = Schema::Document(Document {
+        keys: BTreeMap::new(),
+        required: BTreeSet::new(),
+        additional_properties: true
+    });
+    pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
+}
+
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Satisfaction {
@@ -94,7 +104,7 @@ impl Schema {
     // where X != Y; X, Y in {May, Must, Not}
     //
     fn schema_predicate_meet(
-        vs: &BTreeSet<Schema>,
+        vs: &[Schema],
         predicate: &dyn Fn(&Schema) -> Satisfaction,
     ) -> Satisfaction {
         vs.iter()
@@ -110,7 +120,7 @@ impl Schema {
     }
 
     // satisfies AnyOf the passed set of Schemata.
-    fn satisfies_any_of(&self, vs: &BTreeSet<Schema>) -> Satisfaction {
+    fn satisfies_any_of(&self, vs: &[Schema]) -> Satisfaction {
         use Satisfaction::*;
         let mut ret = Not;
         for s in vs.iter() {
@@ -124,7 +134,7 @@ impl Schema {
     }
 
     // satisfies exactly OneOf the passed set of Schemata.
-    fn satisfies_one_of(&self, vs: &BTreeSet<Schema>) -> Satisfaction {
+    fn satisfies_one_of(&self, vs: &[Schema]) -> Satisfaction {
         use Satisfaction::*;
         let mut ret = Not;
         for s in vs.iter() {

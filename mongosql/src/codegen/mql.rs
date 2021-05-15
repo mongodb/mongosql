@@ -142,6 +142,7 @@ impl MqlCodeGenerator {
                         .collect::<Result<bson::Document>>()?
                 }
             })),
+            FieldAccess(_) => unimplemented!(),
             Function(_) => unimplemented!(),
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),

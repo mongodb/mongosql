@@ -45,13 +45,13 @@ test_satisfies!(
     satisfies_missing_must_not_satisfy_any_of,
     Not,
     Missing,
-    AnyOf(b_tree_set![Atomic(String), Atomic(Int)])
+    AnyOf(vec![Atomic(String), Atomic(Int)])
 );
 test_satisfies!(
     satisfies_missing_must_not_satisfy_one_of,
     Not,
     Missing,
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)])
+    OneOf(vec![Atomic(String), Atomic(Int)])
 );
 test_satisfies!(satisfies_atomic_must_satisfy_any, Must, Atomic(String), Any);
 test_satisfies!(satisfies_any_may_satisfy_atomic, May, Any, Atomic(String));
@@ -70,69 +70,69 @@ test_satisfies!(
 test_satisfies!(
     satisfies_any_of_must_satisfy_any,
     Must,
-    AnyOf(b_tree_set![Atomic(String), Atomic(Int)]),
+    AnyOf(vec![Atomic(String), Atomic(Int)]),
     Any,
 );
 
 test_satisfies!(
     satisfies_one_of_must_satisfy_one_of_when_equal,
     Must,
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
 );
 test_satisfies!(
     satisfies_one_of_may_satisfy_one_of_when_unequal,
     May,
-    OneOf(b_tree_set![Atomic(Double), Atomic(Int)]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(Double), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
 );
 test_satisfies!(
     satisfies_one_of_may_satisfy_one_of_when_self_has_missing,
     May,
-    OneOf(b_tree_set![Atomic(String), Missing]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Missing]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
 );
 test_satisfies!(
     satisfies_one_of_must_satisfy_one_of_when_other_has_missing,
     Must,
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int), Missing]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Int), Missing]),
 );
 test_satisfies!(
     satisfies_one_of_must_not_satisfy_when_one_of_contains_any,
     Not,
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int), Any]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Int), Any]),
 );
 test_satisfies!(
     satisfies_any_of_must_satisfy_when_any_of_contains_any,
     Must,
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
-    AnyOf(b_tree_set![Atomic(String), Atomic(Int), Any]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
+    AnyOf(vec![Atomic(String), Atomic(Int), Any]),
 );
 test_satisfies!(
     satisfies_one_of_must_may_satisfy_one_of_when_self_has_any,
     May,
-    OneOf(b_tree_set![Atomic(String), Any]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Any]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
 );
 test_satisfies!(
     satisfies_one_of_must_satisfy_subset_one_of,
     Must,
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int), Atomic(Double)]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Int), Atomic(Double)]),
 );
 test_satisfies!(
     satisfies_one_of_may_satisfy_proper_superset_one_of,
     May,
-    OneOf(b_tree_set![Atomic(String), Atomic(Int), Atomic(Double)]),
-    OneOf(b_tree_set![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Int), Atomic(Double)]),
+    OneOf(vec![Atomic(String), Atomic(Int)]),
 );
 test_satisfies!(
     satisfies_array_of_string_must_satisfy_one_of_array_of_int_or_array_of_string,
     Must,
     Array(Box::new(Atomic(String))),
-    OneOf(b_tree_set![
+    OneOf(vec![
         Array(Box::new(Atomic(String))),
         Array(Box::new(Atomic(Int)))
     ]),
@@ -140,8 +140,8 @@ test_satisfies!(
 test_satisfies!(
     satisfies_array_of_string_or_int_may_satisfy_one_of_array_of_int_or_array_of_string,
     May,
-    Array(Box::new(OneOf(b_tree_set![Atomic(String), Atomic(Int),]))),
-    OneOf(b_tree_set![
+    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Int),]))),
+    OneOf(vec![
         Array(Box::new(Atomic(String))),
         Array(Box::new(Atomic(Int)))
     ]),
@@ -149,8 +149,8 @@ test_satisfies!(
 test_satisfies!(
     satisfies_array_of_string_or_int_must_satisfy_array_of_string_or_int,
     Must,
-    Array(Box::new(OneOf(b_tree_set![Atomic(String), Atomic(Int),]))),
-    Array(Box::new(OneOf(b_tree_set![Atomic(String), Atomic(Int),]))),
+    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Int),]))),
+    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Int),]))),
 );
 test_satisfies!(
     satisfies_document_must_satify_same_document,
@@ -321,7 +321,7 @@ test_satisfies!(
         required: b_tree_set!["a".to_string()],
         additional_properties: false,
     }),
-    OneOf(b_tree_set![
+    OneOf(vec![
         Document(Document {
             keys: b_tree_map![
                 "a".to_string() => Any,
@@ -350,7 +350,7 @@ test_satisfies!(
         required: b_tree_set!["a".to_string()],
         additional_properties: false,
     }),
-    AnyOf(b_tree_set![
+    AnyOf(vec![
         Document(Document {
             keys: b_tree_map![
                 "a".to_string() => Any,
@@ -379,7 +379,7 @@ test_satisfies!(
         required: b_tree_set!["a".to_string()],
         additional_properties: false,
     }),
-    OneOf(b_tree_set![
+    OneOf(vec![
         Document(Document {
             keys: b_tree_map![
                 "a".to_string() => Any,
@@ -427,7 +427,7 @@ test_satisfies!(
     satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_one_of_array,
     May,
     Array(Box::new(Any)),
-    OneOf(b_tree_set![
+    OneOf(vec![
         Array(Box::new(Atomic(Int))),
         Array(Box::new(Atomic(String))),
     ]),
@@ -436,7 +436,7 @@ test_satisfies!(
     satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_array_one_of,
     May,
     Array(Box::new(Any)),
-    Array(Box::new(OneOf(b_tree_set![Atomic(Int), Atomic(Double),]),)),
+    Array(Box::new(OneOf(vec![Atomic(Int), Atomic(Double),]),)),
 );
 test_satisfies!(
     satisfies_array_of_missing_does_not_satisfy_array_of_atomic,
@@ -523,7 +523,7 @@ test_contains_field!(
 test_contains_field!(
     contains_field_one_of_document_and_atomic_may_not_contain_field,
     Not,
-    OneOf(b_tree_set![
+    OneOf(vec![
         Document(Document {
             keys: b_tree_map![
                 "a".to_string() => Any,
@@ -539,7 +539,7 @@ test_contains_field!(
 test_contains_field!(
     contains_field_one_of_document_and_atomic_may_contain_field,
     May,
-    OneOf(b_tree_set![
+    OneOf(vec![
         Document(Document {
             keys: b_tree_map![
                 "a".to_string() => Any,
@@ -555,7 +555,7 @@ test_contains_field!(
 test_contains_field!(
     contains_field_one_of_document_and_document_must_contain_field,
     Must,
-    OneOf(b_tree_set![
+    OneOf(vec![
         Document(Document {
             keys: b_tree_map![
                 "a".to_string() => Any,
