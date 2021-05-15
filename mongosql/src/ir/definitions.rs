@@ -9,7 +9,7 @@ pub enum Stage {
     Group(Group),
     Limit(Limit),
     Offset(Offset),
-    Sort(Vec<SortSpecification>),
+    Sort(Sort),
     Collection(Collection),
     Array(Array),
     Join(Join),
@@ -65,6 +65,13 @@ pub struct Limit {
 pub struct Offset {
     pub source: Box<Stage>,
     pub offset: u64,
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone)]
+pub struct Sort {
+    pub source: Box<Stage>,
+    pub specs: Vec<SortSpecification>,
 }
 
 #[allow(dead_code)]

@@ -4,6 +4,7 @@ use crate::{
 };
 use std::collections::HashMap;
 
+#[derive(PartialEq, Debug, Clone)]
 pub struct MappingRegistry(HashMap<Key, String>);
 
 impl MappingRegistry {
@@ -13,6 +14,10 @@ impl MappingRegistry {
 
     pub fn insert<K: Into<Key>, V: Into<String>>(&mut self, k: K, v: V) -> Option<String> {
         self.0.insert(k.into(), v.into())
+    }
+
+    pub fn merge(&mut self, other: MappingRegistry) {
+        self.0.extend(other.0.into_iter());
     }
 }
 
@@ -34,6 +39,7 @@ macro_rules! mappings {
 	}
 }
 
+#[derive(PartialEq, Debug)]
 pub struct MqlTranslation {
     pub database: Option<String>,
     pub collection: Option<String>,
@@ -48,6 +54,7 @@ impl MqlTranslation {
     }
 }
 
+#[derive(Clone)]
 pub struct MqlCodeGenerator {
     pub mapping_registry: MappingRegistry,
 }
@@ -73,7 +80,7 @@ impl MqlCodeGenerator {
             Offset(o) => Ok(self
                 .codegen_stage(*o.source)?
                 .with_additional_stage(doc! {"$skip": o.offset})),
-            Sort(_) => unimplemented!(),
+            Sort(s) => self.codegen_sort(s),
             Collection(c) => Ok(MqlTranslation {
                 database: Some(c.db),
                 collection: Some(c.collection.clone()),
@@ -97,6 +104,52 @@ impl MqlCodeGenerator {
             Join(_) => unimplemented!(),
             Set(_) => unimplemented!(),
         }
+    }
+
+    fn with_merged_mappings(mut self, mappings: MappingRegistry) -> Self {
+        self.mapping_registry.merge(mappings);
+        self
+    }
+
+    fn codegen_sort(&self, sort: ir::Sort) -> Result<MqlTranslation> {
+        use bson::{doc, Bson};
+        use ir::{Expression::*, SortSpecification::*};
+
+        let source_translation = self.codegen_stage(*sort.source)?;
+        let expr_code_generator = self
+            .clone()
+            .with_merged_mappings(source_translation.mapping_registry.clone());
+
+        let sort_specs = sort
+            .specs
+            .into_iter()
+            .map(|spec| {
+                let (expr, direction) = match spec {
+                    Asc(expr) => (*expr, Bson::Int32(1)),
+                    Dsc(expr) => (*expr, Bson::Int32(-1)),
+                };
+
+                // anything that's not a reference or a static field
+                // access cannot be used as a sort key
+                match expr {
+                    Reference(_) | FieldAccess(_) => Ok(()),
+                    _ => Err(Error::InvalidSortKey),
+                }?;
+
+                // we still need to ensure that the result is a
+                // string, since not all FieldAccess expressions will
+                // translate to single MQL references
+                let expr = expr_code_generator.codegen_expression(expr)?;
+                let key = match expr {
+                    Bson::String(s) => Ok(s[1..].to_string()),
+                    _ => Err(Error::InvalidSortKey),
+                }?;
+
+                Ok((key, direction))
+            })
+            .collect::<Result<bson::Document>>()?;
+
+        Ok(source_translation.with_additional_stage(doc! {"$sort": sort_specs}))
     }
 
     /// Recursively generates a translation for this expression. When
@@ -136,7 +189,7 @@ impl MqlCodeGenerator {
                     map.into_iter()
                         .map(|(k, v)| {
                             if k.starts_with('$') {
-                                Err(Error::DollarPrefixedDocumentKey)
+                                Err(Error::DotsOrDollarsInFieldName)
                             } else {
                                 Ok((k, self.codegen_expression(v)?))
                             }
@@ -144,7 +197,18 @@ impl MqlCodeGenerator {
                         .collect::<Result<bson::Document>>()?
                 }
             })),
-            FieldAccess(_) => unimplemented!(),
+            FieldAccess(fa) => {
+                if fa.field.contains(&['.', '$'] as &[_]) {
+                    return Err(Error::DotsOrDollarsInFieldName);
+                };
+                Ok(match self.codegen_expression(*fa.expr)? {
+                    Bson::String(e) => Bson::String(format!("{}.{}", e, fa.field)),
+                    e => bson::bson!({"$let": {
+                        "vars": {"docExpr": e},
+                        "in": format!("$$docExpr.{}", fa.field),
+                    }}),
+                })
+            }
             Function(_) => unimplemented!(),
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),

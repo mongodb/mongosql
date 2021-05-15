@@ -142,6 +142,149 @@ mod filter {
     );
 }
 
+mod sort {
+    use crate::{
+        codegen::Error,
+        ir::{Expression::Reference, SortSpecification::*, *},
+        map,
+    };
+
+    test_codegen_plan!(
+        empty,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": []}},
+                bson::doc!{"$sort": {}},
+            ],
+        }),
+        Stage::Sort(Sort {
+            specs: vec![],
+            source: Stage::Array(Array {
+                exprs: vec![],
+                alias: "arr".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        single_spec_asc,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
+                bson::doc!{"$sort": {"col": 1}},
+            ],
+        }),
+        Stage::Sort(Sort {
+            specs: vec![Asc(Reference(("col", 0u16).into()).into())],
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        single_spec_dsc,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
+                bson::doc!{"$sort": {"col": -1}},
+            ],
+        }),
+        Stage::Sort(Sort {
+            specs: vec![Dsc(Reference(("col", 0u16).into()).into())],
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        multi_spec,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
+                bson::doc!{"$sort": {"col": 1, "col.a": -1}},
+            ],
+        }),
+        Stage::Sort(Sort {
+            specs: vec![
+                Asc(Reference(("col", 0u16).into()).into()),
+                Dsc(
+                    Expression::FieldAccess(FieldAccess{
+                        field: "a".to_string(),
+                        expr: Reference(("col", 0u16).into()).into(),
+                    }).into(),
+                ),
+            ],
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        compound_ident,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
+                bson::doc!{"$sort": {"col.f": 1}},
+            ],
+        }),
+        Stage::Sort(Sort {
+            specs: vec![Asc(
+                Expression::FieldAccess(FieldAccess{
+                    field: "f".to_string(),
+                    expr: Reference(("col", 0u16).into()).into(),
+                }).into(),
+            )],
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        other_expr,
+        Err(Error::InvalidSortKey),
+        Stage::Sort(Sort {
+            specs: vec![Asc(Expression::Literal(Literal::Integer(1)).into())],
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })
+            .into(),
+        }),
+    );
+    test_codegen_plan!(
+        non_ident_field_reference,
+        Err(Error::InvalidSortKey),
+        Stage::Sort(Sort {
+            specs: vec![Asc(Expression::FieldAccess(FieldAccess {
+                expr: Expression::Document(
+                    map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+                )
+                .into(),
+                field: "sub".to_string(),
+            })
+            .into(),)],
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })
+            .into(),
+        }),
+    );
+}
+
 mod limit_offset {
     use crate::ir::*;
 
@@ -272,12 +415,116 @@ mod document {
     );
     test_codegen_expr!(
         dollar_prefixed_key_disallowed,
-        Err(Error::DollarPrefixedDocumentKey),
+        Err(Error::DotsOrDollarsInFieldName),
         Document(map! {"$foo".to_string() => Literal(Literal::Integer(1)),}),
     );
     test_codegen_expr!(
         key_containing_dot_allowed,
         Ok(bson!({"foo.bar": {"$literal": 1}})),
         Document(map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}),
+    );
+}
+
+mod field_access {
+    use crate::{
+        codegen::{mql::MappingRegistry, Error},
+        ir::*,
+        map,
+    };
+    use bson::Bson;
+
+    test_codegen_expr!(
+        reference,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(Bson::String("$f.sub".to_string())),
+        Expression::FieldAccess(FieldAccess {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            field: "sub".to_string(),
+        }),
+    );
+    test_codegen_expr!(
+        field_access,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(Bson::String("$f.sub.sub".to_string())),
+        Expression::FieldAccess(FieldAccess {
+            field: "sub".to_string(),
+            expr: Expression::FieldAccess(FieldAccess {
+                expr: Expression::Reference(("f", 0u16).into()).into(),
+                field: "sub".to_string(),
+            })
+            .into(),
+        }),
+    );
+    test_codegen_expr!(
+        expr,
+        Ok(bson::bson!({"$let": {
+            "vars": {"docExpr": {"a": {"$literal": 1}}},
+            "in": "$$docExpr.sub",
+        }})),
+        Expression::FieldAccess(FieldAccess {
+            expr: Expression::Document(
+                map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+            )
+            .into(),
+            field: "sub".to_string(),
+        }),
+    );
+    test_codegen_expr!(
+        string,
+        Ok(bson::bson!({"$let": {
+            "vars": {"docExpr": {"$literal": "$f"}},
+            "in": "$$docExpr.sub",
+        }})),
+        Expression::FieldAccess(FieldAccess {
+            expr: Expression::Literal(Literal::String("$f".into())).into(),
+            field: "sub".to_string(),
+        }),
+    );
+    test_codegen_expr!(
+        dollar_prefixed_field,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Err(Error::DotsOrDollarsInFieldName),
+        Expression::FieldAccess(FieldAccess {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            field: "$sub".to_string(),
+        }),
+    );
+    test_codegen_expr!(
+        field_contains_dollar,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Err(Error::DotsOrDollarsInFieldName),
+        Expression::FieldAccess(FieldAccess {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            field: "s$ub".to_string(),
+        }),
+    );
+    test_codegen_expr!(
+        field_contains_dot,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Err(Error::DotsOrDollarsInFieldName),
+        Expression::FieldAccess(FieldAccess {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            field: "s.ub".to_string(),
+        }),
     );
 }
