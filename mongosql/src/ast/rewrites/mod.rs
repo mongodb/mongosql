@@ -9,6 +9,8 @@ mod from;
 pub use from::ImplicitFromRewritePass;
 mod order_by;
 pub use order_by::PositionalSortKeyRewritePass;
+mod aggregate;
+pub use aggregate::AggregateRewritePass;
 
 #[cfg(test)]
 mod test;
@@ -24,6 +26,12 @@ pub enum Error {
     PositionalSortKeyOutOfRange(usize),
     #[error("positional sort key {0} references a select expression with no alias")]
     NoAliasForSortKeyAtPosition(usize),
+    #[error("aggregation functions may not be used as GROUP BY keys")]
+    AggregationFunctionInGroupByKeyList,
+    #[error("aggregation functions in GROUP BY must have an alias")]
+    AggregationFunctionInGroupByAggListNotAliased,
+    #[error("cannot specify aggregation functions in GROUP BY AGGREGATE clause and elsewhere")]
+    AggregationFunctionInGroupByAggListAndElsewhere,
 }
 
 /// A fallible transformation that can be applied to a query
@@ -36,6 +44,7 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
         &AddAliasRewritePass,
         &ImplicitFromRewritePass,
+        &AggregateRewritePass,
         &InTupleRewritePass,
         &PositionalSortKeyRewritePass,
     ];

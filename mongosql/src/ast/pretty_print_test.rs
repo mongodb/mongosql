@@ -197,7 +197,7 @@ query_printer_test!(
     "SELECT * FROM foo GROUP BY a c, b b"
 );
 query_printer_test!(
-    select_group_by_one_aggregate,
+    select_group_by_one_aggregates,
     "SELECT * FROM foo GROUP BY a AS c, b AS b AGGREGATE COUNT(*) AS agg1",
     "SELECT * FROM foo GROUP BY a c, b b AGGREGATE COUNT(*) agg1"
 );
@@ -476,18 +476,18 @@ expression_printer_test!(unary_pos, "3", "+ (3)");
 expression_printer_test!(unary_pos_parens, "3 + 4", "+(3+4)");
 expression_printer_test!(
     unary_negative_sub_function,
-    "4 - FOO(bar)",
-    "4 - + FOO(bar)"
+    "4 - SUM(bar)",
+    "4 - + SUM(bar)"
 );
 expression_printer_test!(
     unary_positive_sub_function,
-    "4 - -FOO(bar)",
-    "4 - - FOO(bar)"
+    "4 - -SUM(bar)",
+    "4 - - SUM(bar)"
 );
 expression_printer_test!(
     unary_not_sub_function,
-    "4 - NOT FOO(bar)",
-    "4 - not FOO(bar)"
+    "4 - NOT SUM(bar)",
+    "4 - not SUM(bar)"
 );
 
 expression_printer_test!(binary_add_and_mul_no_parens, "3 + 4 * 6", "3 + 4 * 6");
@@ -564,10 +564,10 @@ expression_printer_test!(
 
 expression_printer_test!(
     function_basic,
-    "FOO(bar, foo + bar, hello * 3)",
-    "FOO(bar, foo+bar, hello*3)"
+    "COALESCE(bar, foo + bar, hello * 3)",
+    "COALESCE(bar, foo+bar, hello*3)"
 );
-expression_printer_test!(function_sub, "4 - FOO(bar)", "4 - FOO(bar)");
+expression_printer_test!(function_sub, "4 - SUM(bar)", "4 - SUM(bar)");
 expression_printer_test!(
     function_extract_day,
     "EXTRACT(DAY FROM bar)",

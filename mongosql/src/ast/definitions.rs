@@ -1,4 +1,5 @@
 use linked_hash_map::LinkedHashMap;
+use std::convert::TryFrom;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Query {
@@ -201,8 +202,154 @@ pub struct FunctionExpr {
     pub set_quantifier: Option<SetQuantifier>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct FunctionName(pub String);
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum FunctionName {
+    // Aggregation functions.
+    AddToArray,
+    AddToSet,
+    Avg,
+    Count,
+    First,
+    Last,
+    Max,
+    MergeDocuments,
+    Min,
+    StddevPop,
+    StddevSamp,
+    Sum,
+
+    // Scalar functions.
+    BitLength,
+    CharLength,
+    Coalesce,
+    CurrentTimestamp,
+    Extract,
+    Lower,
+    NullIf,
+    OctetLength,
+    Position,
+    Size,
+    Slice,
+    Substring,
+    Trim,
+    Upper,
+}
+
+impl TryFrom<&str> for FunctionName {
+    type Error = String;
+
+    /// Takes a case-insensitive string of a function name and tries to return the
+    /// corresponding enum. Returns an error string if the name is not recognized.
+    ///
+    /// The reciprocal `try_into` method on the `&str` type is implicitly defined.
+    fn try_from(name: &str) -> Result<Self, Self::Error> {
+        match name.to_uppercase().as_str() {
+            // Keep in sync with `FunctionName::as_str` below.
+            "ADD_TO_ARRAY" => Ok(FunctionName::AddToArray),
+            "ADD_TO_SET" => Ok(FunctionName::AddToSet),
+            "BIT_LENGTH" => Ok(FunctionName::BitLength),
+            "AVG" => Ok(FunctionName::Avg),
+            "CHAR_LENGTH" => Ok(FunctionName::CharLength),
+            "CHARACTER_LENGTH" => Ok(FunctionName::CharLength),
+            "COALESCE" => Ok(FunctionName::Coalesce),
+            "COUNT" => Ok(FunctionName::Count),
+            "CURRENT_TIMESTAMP" => Ok(FunctionName::CurrentTimestamp),
+            "EXTRACT" => Ok(FunctionName::Extract),
+            "FIRST" => Ok(FunctionName::First),
+            "LAST" => Ok(FunctionName::Last),
+            "LOWER" => Ok(FunctionName::Lower),
+            "MAX" => Ok(FunctionName::Max),
+            "MERGE_DOCUMENTS" => Ok(FunctionName::MergeDocuments),
+            "MIN" => Ok(FunctionName::Min),
+            "NULLIF" => Ok(FunctionName::NullIf),
+            "OCTET_LENGTH" => Ok(FunctionName::OctetLength),
+            "POSITION" => Ok(FunctionName::Position),
+            "SIZE" => Ok(FunctionName::Size),
+            "SLICE" => Ok(FunctionName::Slice),
+            "STDDEV_POP" => Ok(FunctionName::StddevPop),
+            "STDDEV_SAMP" => Ok(FunctionName::StddevSamp),
+            "SUBSTRING" => Ok(FunctionName::Substring),
+            "SUM" => Ok(FunctionName::Sum),
+            "TRIM" => Ok(FunctionName::Trim),
+            "UPPER" => Ok(FunctionName::Upper),
+            _ => Err(format!("unknown function {}", name)),
+        }
+    }
+}
+
+impl FunctionName {
+    /// Returns a capitalized string representing the function name enum.
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            // Keep in sync with `FunctionName::try_from` above.
+            FunctionName::AddToArray => "ADD_TO_ARRAY",
+            FunctionName::AddToSet => "ADD_TO_SET",
+            FunctionName::BitLength => "BIT_LENGTH",
+            FunctionName::Avg => "AVG",
+            FunctionName::CharLength => "CHARACTER_LENGTH",
+            FunctionName::Coalesce => "COALESCE",
+            FunctionName::Count => "COUNT",
+            FunctionName::CurrentTimestamp => "CURRENT_TIMESTAMP",
+            FunctionName::Extract => "EXTRACT",
+            FunctionName::First => "FIRST",
+            FunctionName::Last => "LAST",
+            FunctionName::Lower => "LOWER",
+            FunctionName::Max => "MAX",
+            FunctionName::MergeDocuments => "MERGE_DOCUMENTS",
+            FunctionName::Min => "MIN",
+            FunctionName::NullIf => "NULLIF",
+            FunctionName::OctetLength => "OCTET_LENGTH",
+            FunctionName::Position => "POSITION",
+            FunctionName::Size => "SIZE",
+            FunctionName::Slice => "SLICE",
+            FunctionName::StddevPop => "STDDEV_POP",
+            FunctionName::StddevSamp => "STDDEV_SAMP",
+            FunctionName::Substring => "SUBSTRING",
+            FunctionName::Sum => "SUM",
+            FunctionName::Trim => "TRIM",
+            FunctionName::Upper => "UPPER",
+        }
+    }
+
+    /// Returns true if the `FunctionName` is any of the aggregation functions, and false otherwise.
+    pub(crate) fn is_aggregation_function(&self) -> bool {
+        match self {
+            FunctionName::AddToArray
+            | FunctionName::AddToSet
+            | FunctionName::Avg
+            | FunctionName::Count
+            | FunctionName::First
+            | FunctionName::Last
+            | FunctionName::Max
+            | FunctionName::MergeDocuments
+            | FunctionName::Min
+            | FunctionName::StddevPop
+            | FunctionName::StddevSamp
+            | FunctionName::Sum => true,
+
+            FunctionName::BitLength
+            | FunctionName::CharLength
+            | FunctionName::Coalesce
+            | FunctionName::CurrentTimestamp
+            | FunctionName::Extract
+            | FunctionName::Lower
+            | FunctionName::NullIf
+            | FunctionName::OctetLength
+            | FunctionName::Position
+            | FunctionName::Size
+            | FunctionName::Slice
+            | FunctionName::Substring
+            | FunctionName::Trim
+            | FunctionName::Upper => false,
+        }
+    }
+
+    /// Returns true if the `FunctionName` is any of the scalar functions, and false otherwise.
+    #[allow(dead_code)]
+    pub(crate) fn is_scalar_function(&self) -> bool {
+        !self.is_aggregation_function()
+    }
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum FunctionArg {

@@ -488,10 +488,10 @@ impl Display for SubpathExpr {
 
 impl Display for FunctionExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self.function.0.as_ref() {
-            "EXTRACT" => fmt_extract(f, &self.args),
-            "POSITION" => fmt_position(f, &self.args),
-            "TRIM" => fmt_trim(f, &self.args),
+        match self.function {
+            FunctionName::Extract => fmt_extract(f, &self.args),
+            FunctionName::Position => fmt_position(f, &self.args),
+            FunctionName::Trim => fmt_trim(f, &self.args),
             _ => {
                 let args = self
                     .args
@@ -499,7 +499,7 @@ impl Display for FunctionExpr {
                     .map(|x| format!("{}", x))
                     .collect::<Vec<_>>()
                     .join(", ");
-                write!(f, "{}({})", self.function.0, args)
+                write!(f, "{}({})", self.function, args)
             }
         }
     }
@@ -531,6 +531,12 @@ fn fmt_trim(f: &mut Formatter<'_>, args: &[FunctionArg]) -> Result {
         }
     } else {
         write!(f, "TRIM({} {} FROM {})", trim_spec, args[1], args[2])
+    }
+}
+
+impl Display for FunctionName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "{}", self.as_str())
     }
 }
 

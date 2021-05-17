@@ -595,14 +595,9 @@ should_parse!(group_by_simple, true, "select * group by a");
 should_parse!(group_by_compound, true, "select * group by a.b");
 should_parse!(group_by_alias, true, "select * group by a as b");
 should_parse!(
-    group_by_aggregate,
-    true,
-    "select * group by a aggregate sum(a)"
-);
-should_parse!(
     group_by_aggregate_count_star,
     true,
-    "select * group by a aggregate count(*)"
+    "select * group by a aggregate count(*) as b"
 );
 should_parse!(
     group_by_aggregate_alias,
@@ -612,12 +607,12 @@ should_parse!(
 should_parse!(
     group_by_aggregate_all,
     true,
-    "select * group by a aggregate sum(all a)"
+    "select * group by a aggregate sum(all a) as b"
 );
 should_parse!(
     group_by_aggregate_distinct,
     true,
-    "select * group by a aggregate sum(distinct a)"
+    "select * group by a aggregate sum(distinct a) as b"
 );
 should_parse!(
     group_by_aggregate_distinct_alias,
@@ -627,7 +622,7 @@ should_parse!(
 should_parse!(
     group_by_aggregate_distinct_all,
     false,
-    "select * group by a aggregate sum(distinct all a)"
+    "select * group by a aggregate sum(distinct all a) as b"
 );
 should_parse!(group_by_none, false, "select * group by");
 should_parse!(
@@ -636,13 +631,18 @@ should_parse!(
     "select * group by a aggregate"
 );
 should_parse!(
-    group_by_aggregate_no_args,
+    group_by_aggregate_no_alias,
     true,
     "select * group by a aggregate sum()"
 );
+should_parse!(
+    group_by_aggregate_no_args,
+    true,
+    "select * group by a aggregate sum() as b"
+);
 
 validate_query_ast!(
-    group_by_aggregates_distinct_with_alias,
+    group_by_aggregate_distinct_with_alias,
     "select * group by a, b aggregate sum(distinct b) as c",
     Query::Select(SelectQuery {
         select_clause: SelectClause {
@@ -664,7 +664,7 @@ validate_query_ast!(
             ],
             aggregations: vec![AliasedExpr {
                 expr: Expression::Function(FunctionExpr {
-                    function: FunctionName("SUM".to_string()),
+                    function: FunctionName::Sum,
                     args: vec![FunctionArg::Expr(Expression::Identifier("b".to_string()))],
                     set_quantifier: Some(SetQuantifier::Distinct),
                 }),
@@ -682,13 +682,13 @@ validate_query_ast!(
 should_parse!(having_simple, true, "select * having y");
 should_parse!(having_with_group_by, true, "select * group by a having y");
 should_parse!(
-    having_with_aggregations,
+    having_with_aggregation_function,
     true,
     "select * group by a having sum(a) > 0 "
 );
 
 validate_query_ast!(
-    having_aggregation_all_with_group_by,
+    having_with_aggregation_distinct_and_group_by,
     "select * group by a having sum(distinct a) > 0",
     Query::Select(SelectQuery {
         select_clause: SelectClause {
@@ -706,7 +706,7 @@ validate_query_ast!(
         }),
         having_clause: Some(Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Function(FunctionExpr {
-                function: FunctionName("SUM".to_string()),
+                function: FunctionName::Sum,
                 args: vec![FunctionArg::Expr(Expression::Identifier("a".to_string()))],
                 set_quantifier: Some(SetQuantifier::Distinct),
             })),
@@ -1008,21 +1008,30 @@ should_parse!(
     true,
     "select current_timestamp(a)"
 );
-should_parse!(create_func_no_args, true, "select brand_new_func()");
+should_parse!(create_func_no_args, false, "select brand_new_func()");
 should_parse!(
     create_func_with_args,
-    true,
+    false,
     "select brand_new_func(a, b, c)"
 );
 should_parse!(nested_scalar_func, true, "select nullif(coalesce(a, b), c)");
-
 should_parse!(position_invalid_binary_op, false, "select position(x OR y)");
+should_parse!(
+    scalar_function_binary_op,
+    true,
+    "select char_length('foo') + 5"
+);
+should_fail_to_parse_with_error!(
+    user_defined_function_not_allowed,
+    "unknown function myFunc",
+    "select myFunc(x)"
+);
 
 validate_expression_ast!(
     position_ast,
     "position((a+b*c) IN d)",
     Expression::Function(FunctionExpr {
-        function: FunctionName("POSITION".to_string()),
+        function: FunctionName::Position,
         args: vec![
             FunctionArg::Expr(Expression::Tuple(vec![Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
@@ -1042,7 +1051,7 @@ validate_expression_ast!(
     extract_ast,
     "extract(year from a)",
     Expression::Function(FunctionExpr {
-        function: FunctionName("EXTRACT".to_string()),
+        function: FunctionName::Extract,
         args: vec![
             FunctionArg::Extract(ExtractSpec::Year),
             FunctionArg::Expr(Expression::Identifier("a".to_string()))
@@ -1054,7 +1063,7 @@ validate_expression_ast!(
     trim_default_spec,
     "trim(substr FROM str)",
     Expression::Function(FunctionExpr {
-        function: FunctionName("TRIM".to_string()),
+        function: FunctionName::Trim,
         args: vec![
             FunctionArg::Trim(TrimSpec::Both),
             FunctionArg::Expr(Expression::Identifier("substr".to_string())),
@@ -1067,7 +1076,7 @@ validate_expression_ast!(
     trim_default_substr,
     "trim(leading FROM str)",
     Expression::Function(FunctionExpr {
-        function: FunctionName("TRIM".to_string()),
+        function: FunctionName::Trim,
         args: vec![
             FunctionArg::Trim(TrimSpec::Leading),
             FunctionArg::Expr(Expression::Identifier(" ".to_string())),
@@ -1080,7 +1089,7 @@ validate_expression_ast!(
     trim_default_spec_and_substr,
     "trim(str)",
     Expression::Function(FunctionExpr {
-        function: FunctionName("TRIM".to_string()),
+        function: FunctionName::Trim,
         args: vec![
             FunctionArg::Trim(TrimSpec::Both),
             FunctionArg::Expr(Expression::Identifier(" ".to_string())),
@@ -1093,18 +1102,13 @@ validate_expression_ast!(
     fold_ast,
     "upper(a)",
     Expression::Function(FunctionExpr {
-        function: FunctionName("UPPER".to_string()),
+        function: FunctionName::Upper,
         args: vec![FunctionArg::Expr(Expression::Identifier("a".to_string()))],
         set_quantifier: None,
     })
 );
 
-should_parse!(
-    scalar_function_binary_op,
-    true,
-    "select char_length('foo') + 5"
-);
-
+// From tests.
 should_parse!(from_no_qualifier, true, "SELECT * FROM foo");
 should_parse!(from_qualifier, true, "SELECT * FROM bar.foo");
 should_parse!(from_no_qualifier_with_alias, true, "SELECT * FROM foo car");

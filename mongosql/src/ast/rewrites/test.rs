@@ -122,6 +122,208 @@ mod implicit_from {
     );
 }
 
+mod aggregate {
+    use super::*;
+
+    // `SELECT` clause tests.
+    test_rewrite!(
+        one_func_in_select_clause,
+        AggregateRewritePass,
+        Ok("SELECT _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        "SELECT SUM(x) FROM foo",
+    );
+    test_rewrite!(
+        different_funcs_in_select_by_clause,
+        AggregateRewritePass,
+        Ok("SELECT _agg1, _agg2 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2"),
+        "SELECT SUM(x), COUNT(y) FROM foo",
+    );
+    test_rewrite!(
+        identical_funcs_in_select_clause,
+        AggregateRewritePass,
+        Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2"),
+        "SELECT SUM(x), SUM(x+1), SUM(x+1), SUM(x) FROM foo",
+    );
+
+    // `GROUP BY` clause tests.
+    test_rewrite!(
+        one_func_in_group_by_aggregate_not_modified,
+        AggregateRewritePass,
+        Ok("SELECT z FROM foo GROUP BY x AGGREGATE SUM(x) AS z"),
+        "SELECT z FROM foo GROUP BY x AGGREGATE SUM(x) AS z",
+    );
+
+    // `HAVING` clause tests.
+    test_rewrite!(
+        one_func_in_having_clause_no_group_by,
+        AggregateRewritePass,
+        Ok("SELECT * FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1 HAVING _agg1 > 42"),
+        "SELECT * FROM foo HAVING SUM(x) > 42",
+    );
+    test_rewrite!(
+        one_func_in_having_clause_with_group_by_keys_preserved,
+        AggregateRewritePass,
+        Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS _agg1 HAVING _agg1 > 42"),
+        "SELECT * FROM foo GROUP BY x HAVING SUM(x) > 42",
+    );
+    test_rewrite!(
+        different_funcs_in_having_clause_with_group_by,
+        AggregateRewritePass,
+        Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2 HAVING _agg1 > 42 AND _agg2 < 42"),
+        "SELECT * FROM foo GROUP BY x HAVING SUM(x) > 42 AND COUNT(y) < 42",
+    );
+    test_rewrite!(
+        identical_funcs_in_having_clause_with_group_by,
+        AggregateRewritePass,
+        Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS _agg1 HAVING _agg1 < 42 AND _agg1 > 24"),
+        "SELECT * FROM foo GROUP BY x HAVING SUM(x) < 42 AND SUM(x) > 24",
+    );
+    test_rewrite!(
+        identical_funcs_in_having_clause_alias_order_dictated_by_select,
+        AggregateRewritePass,
+        Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2 HAVING _agg2 > 42 AND _agg1 < 42"),
+        "SELECT SUM(x), SUM(x+1), SUM(x+1), SUM(x) FROM foo HAVING SUM(x+1) > 42 AND SUM(x) < 42",
+    );
+
+    // Subquery tests.
+    test_rewrite!(
+        top_level_select_and_subquery_select_different_funcs,
+        AggregateRewritePass,
+        Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AGGREGATE COUNT(y) AS _agg1) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        "SELECT SUM(x) FROM (SELECT COUNT(y)) AS z",
+    );
+    test_rewrite!(
+        top_level_select_and_subquery_select_identical_funcs,
+        AggregateRewritePass,
+        Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AGGREGATE SUM(x) AS _agg1) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        "SELECT SUM(x) FROM (SELECT SUM(x)) AS z",
+    );
+    test_rewrite!(
+        top_level_select_and_subquery_group_by_aggregate_not_modified,
+        AggregateRewritePass,
+        Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        "SELECT SUM(x) FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z",
+    );
+    test_rewrite!(
+        top_level_select_and_subquery_having,
+        AggregateRewritePass,
+        Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY NULL AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        "SELECT SUM(x) FROM (SELECT * FROM foo HAVING COUNT(y) > 42) AS z",
+    );
+    test_rewrite!(
+        top_level_select_and_subquery_exists,
+        AggregateRewritePass,
+        Ok("SELECT _agg1 FROM foo WHERE EXISTS(SELECT * FROM bar GROUP BY NULL AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        "SELECT SUM(x) FROM foo WHERE EXISTS(SELECT * FROM bar HAVING COUNT(y) > 42)",
+    );
+    test_rewrite!(
+        subquery_in_func_in_top_level_select,
+        AggregateRewritePass,
+        Ok("SELECT _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AGGREGATE SUM(x) AS _agg1)) AS _agg1"),
+        "SELECT SUM(x <> ANY(SELECT SUM(x) FROM bar)) FROM foo",
+    );
+    test_rewrite!(
+        subquery_in_func_in_group_by_agg_list,
+        AggregateRewritePass,
+        Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AGGREGATE SUM(x) AS _agg1)) AS z"),
+        "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT SUM(x) FROM bar)) AS z",
+    );
+
+    // Error tests.
+
+    // Error if an aggregation function is found in a `GROUP BY` key list.
+    test_rewrite!(
+        one_func_in_group_by_key_list_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByKeyList),
+        "SELECT * FROM foo GROUP BY SUM(x)",
+    );
+    test_rewrite!(
+        identical_funcs_in_select_clause_and_group_by_key_list_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByKeyList),
+        "SELECT SUM(x) FROM foo GROUP BY SUM(x)",
+    );
+    test_rewrite!(
+        one_func_in_group_by_key_list_in_subquery_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByKeyList),
+        "SELECT SUM(x) FROM (SELECT * FROM foo GROUP BY SUM(x)) AS z GROUP BY x AGGREGATE SUM(x) AS z",
+    );
+    test_rewrite!(
+        identical_funcs_in_group_by_key_list_and_agg_list_gives_key_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByKeyList),
+        "SELECT * FROM foo GROUP BY SUM(x) AGGREGATE SUM(x)",
+    );
+
+    // Error if an aggregation function is found after `AGGREGATE` without an alias.
+    test_rewrite!(
+        one_func_in_group_by_agg_list_with_no_alias_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListNotAliased),
+        "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x)",
+    );
+    test_rewrite!(
+        identical_funcs_in_select_clause_and_group_by_agg_list_with_no_alias_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListNotAliased),
+        "SELECT SUM(x) FROM foo GROUP BY x AGGREGATE SUM(x)",
+    );
+    test_rewrite!(
+        one_func_in_group_by_agg_list_in_subquery_with_no_alias_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListNotAliased),
+        "SELECT SUM(x) FROM (SELECT * FROM foo GROUP BY x AGGREGATE SUM(x)) AS z",
+    );
+
+    // Error if an aggregation function is found after `AGGREGATE` and elsewhere in query.
+    test_rewrite!(
+        identical_funcs_in_select_clause_and_group_by_aggregate_clause_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
+        "SELECT SUM(x) FROM foo GROUP BY x AGGREGATE SUM(x) AS z",
+    );
+    test_rewrite!(
+        different_funcs_in_select_clause_and_group_by_aggregate_clause_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
+        "SELECT SUM(x) FROM foo GROUP BY x AGGREGATE COUNT(x) AS z",
+    );
+    test_rewrite!(
+        identical_funcs_in_group_by_aggregate_clause_and_having_clause_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
+        "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS z HAVING SUM(x) > 42",
+    );
+    test_rewrite!(
+        different_funcs_in_group_by_aggregate_clause_and_having_clause_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
+        "SELECT * FROM foo GROUP BY x AGGREGATE COUNT(x) AS z HAVING SUM(x) > 42",
+    );
+
+    // Error for subquery containing an aggregation function after `AGGREGATE` and elsewhere.
+    test_rewrite!(
+        funcs_in_subquery_select_clause_and_group_by_aggregate_clause_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
+        "SELECT * FROM (SELECT SUM(x) FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z",
+    );
+    test_rewrite!(
+        funcs_in_subquery_group_by_aggregate_clause_and_having_clause_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
+        "SELECT * FROM (SELECT * FROM foo GROUP BY x AGGREGATE SUM(x) AS z HAVING SUM(x) > 42) AS z",
+    );
+    test_rewrite!(
+        funcs_in_exists_select_clause_and_group_by_aggregate_clause_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
+        "SELECT * FROM foo WHERE EXISTS(SELECT SUM(x) FROM foo GROUP BY x AGGREGATE COUNT(y) AS z)",
+    );
+}
+
 mod in_tuple {
     use super::*;
 

@@ -35,7 +35,7 @@ pub struct Project {
 pub struct Group {
     pub source: Box<Stage>,
     pub keys: Vec<Aliased<Expression>>,
-    pub aggregates: Vec<Aliased<AggregationFunction>>,
+    pub aggregations: Vec<Aliased<AggregationFunction>>,
 }
 
 #[allow(dead_code)]

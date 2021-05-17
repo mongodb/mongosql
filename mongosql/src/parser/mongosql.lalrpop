@@ -199,23 +199,30 @@ ExistsExpr: Expression = {
 }
 
 FunctionExpr: FunctionExpr = {
-    <i:ID> LEFT_PAREN <q:SetQuantifier?> <e:CommaStar<Expression>> RIGHT_PAREN =>
-        FunctionExpr {
-            function:FunctionName(i.to_string().to_uppercase()),
-            args:e.iter().map(|x| FunctionArg::Expr(x.clone())).collect(),
-            set_quantifier:q
-        },
-    <i:ID> LEFT_PAREN <q:SetQuantifier?> STAR RIGHT_PAREN =>
-        FunctionExpr {
-            function:FunctionName(i.to_string().to_uppercase()),
-            args: vec![FunctionArg::Star],
-            set_quantifier:q
-        },
-    CurrentTimestamp,
-    Extract,
-    Position,
-    Substring,
-    Trim,
+  <i:ID> LEFT_PAREN <q:SetQuantifier?> <e:CommaStar<Expression>> RIGHT_PAREN =>? {
+    let function = FunctionName::try_from(i)?;
+    Ok(FunctionExpr {
+      function,
+      args:e.iter().map(|x| FunctionArg::Expr(x.clone())).collect(),
+      set_quantifier:q
+    })
+  },
+
+  <i:ID> LEFT_PAREN <q:SetQuantifier?> STAR RIGHT_PAREN =>? {
+    let function = FunctionName::try_from(i)?;
+    Ok(FunctionExpr {
+      function,
+      args:vec![FunctionArg::Star],
+      set_quantifier:q
+    })
+  },
+
+  // Special-syntax scalar functions.
+  CurrentTimestamp,
+  Extract,
+  Position,
+  Substring,
+  Trim,
 }
 
 CastExpr: CastExpr = {
@@ -237,8 +244,8 @@ CastExpr: CastExpr = {
 
 CurrentTimestamp: FunctionExpr = {
   CURRENT_TIMESTAMP <e:(LEFT_PAREN <Expression> RIGHT_PAREN)?> => match e {
-    Some(e) => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![FunctionArg::Expr(e)], set_quantifier:None},
-    None => FunctionExpr{function: FunctionName("CURRENT_TIMESTAMP".to_string()), args:vec![], set_quantifier:None},
+    Some(e) => FunctionExpr{function: FunctionName::CurrentTimestamp, args:vec![FunctionArg::Expr(e)], set_quantifier:None},
+    None => FunctionExpr{function: FunctionName::CurrentTimestamp, args:vec![], set_quantifier:None},
   }
 }
 
@@ -254,7 +261,7 @@ ExtractSpec: ExtractSpec = {
 }
 
 Extract: FunctionExpr = {
-  EXTRACT LEFT_PAREN <f:ExtractSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("EXTRACT".to_string()), args:vec![FunctionArg::Extract(f), FunctionArg::Expr(e)], set_quantifier:None},
+  EXTRACT LEFT_PAREN <f:ExtractSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName::Extract, args:vec![FunctionArg::Extract(f), FunctionArg::Expr(e)], set_quantifier:None},
 }
 
 // This production uses `Tier4Expr` instead of `Expression IN Expression` to avoid
@@ -265,12 +272,12 @@ Position: FunctionExpr = {
 
 Substring: FunctionExpr = {
   SUBSTRING LEFT_PAREN <e1:Expression> FROM <e2:Expression> <e3:(FOR <Expression>)?> RIGHT_PAREN => match e3 {
-    Some(e3) => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)], set_quantifier:None},
-    None => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)], set_quantifier:None},
+    Some(e3) => FunctionExpr{function:FunctionName::Substring, args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)], set_quantifier:None},
+    None => FunctionExpr{function:FunctionName::Substring, args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)], set_quantifier:None},
   },
   SUBSTRING LEFT_PAREN <e1:Expression> COMMA <e2:Expression> <e3:(COMMA <Expression>)?> RIGHT_PAREN => match e3 {
-    Some(e3) => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)], set_quantifier:None},
-    None => FunctionExpr{function:FunctionName("SUBSTRING".to_string()), args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)], set_quantifier:None},
+    Some(e3) => FunctionExpr{function:FunctionName::Substring, args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2), FunctionArg::Expr(e3)], set_quantifier:None},
+    None => FunctionExpr{function:FunctionName::Substring, args:vec![FunctionArg::Expr(e1), FunctionArg::Expr(e2)], set_quantifier:None},
   }
 }
 
@@ -281,10 +288,10 @@ TrimSpec: TrimSpec = {
 }
 
 Trim: FunctionExpr = {
-  TRIM LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(Expression::Identifier(" ".to_string())), FunctionArg::Expr(e)], set_quantifier:None},
-  TRIM LEFT_PAREN <s:TrimSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(Expression::Identifier(" ".to_string())), FunctionArg::Expr(e)], set_quantifier:None},
-  TRIM LEFT_PAREN <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(substr), FunctionArg::Expr(e)], set_quantifier:None},
-  TRIM LEFT_PAREN <s:TrimSpec> <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName("TRIM".to_string()), args:vec![FunctionArg::Trim(s), FunctionArg::Expr(substr), FunctionArg::Expr(e)], set_quantifier:None},
+  TRIM LEFT_PAREN <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName::Trim, args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(Expression::Identifier(" ".to_string())), FunctionArg::Expr(e)], set_quantifier:None},
+  TRIM LEFT_PAREN <s:TrimSpec> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName::Trim, args:vec![FunctionArg::Trim(s), FunctionArg::Expr(Expression::Identifier(" ".to_string())), FunctionArg::Expr(e)], set_quantifier:None},
+  TRIM LEFT_PAREN <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName::Trim, args:vec![FunctionArg::Trim(TrimSpec::Both), FunctionArg::Expr(substr), FunctionArg::Expr(e)], set_quantifier:None},
+  TRIM LEFT_PAREN <s:TrimSpec> <substr:Expression> FROM <e:Expression> RIGHT_PAREN => FunctionExpr{function:FunctionName::Trim, args:vec![FunctionArg::Trim(s), FunctionArg::Expr(substr), FunctionArg::Expr(e)], set_quantifier:None},
 }
 
 DocumentExpr: Expression = {
