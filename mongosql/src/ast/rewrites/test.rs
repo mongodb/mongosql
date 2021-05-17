@@ -168,3 +168,134 @@ mod in_tuple {
         "SELECT POSITION(a IN (b))",
     );
 }
+
+mod add_alias {
+    use super::*;
+
+    test_rewrite!(
+        simple_ident,
+        AddAliasRewritePass,
+        Ok("SELECT a AS a"),
+        "SELECT a",
+    );
+    test_rewrite!(
+        compound_ident,
+        AddAliasRewritePass,
+        Ok("SELECT a.b.c AS c"),
+        "SELECT a.b.c",
+    );
+    test_rewrite!(
+        generated_aliases,
+        AddAliasRewritePass,
+        Ok("SELECT a + b AS _1, 123 AS _2"),
+        "SELECT a + b, 123",
+    );
+    test_rewrite!(
+        ident_and_generated_aliases,
+        AddAliasRewritePass,
+        Ok("SELECT a AS a, 123 AS _2, b AS c, 456 AS _4"),
+        "SELECT a, 123, b AS c, 456",
+    );
+    test_rewrite!(
+        duplicate_aliases,
+        AddAliasRewritePass,
+        Ok("SELECT 123 AS _1, 456 AS _1"),
+        "SELECT 123, 456 AS _1",
+    );
+    test_rewrite!(
+        group_by_no_alias_top_level_field_ref,
+        AddAliasRewritePass,
+        Ok("SELECT * GROUP BY a, foo.b, c"),
+        "SELECT * GROUP BY a, foo.b, c",
+    );
+    test_rewrite!(
+        group_by_skip_single_dot_ref,
+        AddAliasRewritePass,
+        Ok("SELECT * GROUP BY foo.bar.c AS c, bar.b"),
+        "SELECT * GROUP BY foo.bar.c, bar.b",
+    );
+    test_rewrite!(
+        group_by_non_ref,
+        AddAliasRewritePass,
+        Ok("SELECT * GROUP BY a + b AS _groupKey1, c * d AS _groupKey2"),
+        "SELECT * GROUP BY a + b, c * d",
+    );
+    test_rewrite!(
+        group_by_non_ref_explicit_alias,
+        AddAliasRewritePass,
+        Ok("SELECT * GROUP BY a * b AS a, c * d AS _groupKey2"),
+        "SELECT * GROUP BY a * b AS a, c * d",
+    );
+    test_rewrite!(
+        group_by_mix_non_ref_and_ref,
+        AddAliasRewritePass,
+        Ok("SELECT * GROUP BY a, a + b AS _groupKey2, c, c * d AS _groupKey4, e"),
+        "SELECT * GROUP BY a, a + b, c, c * d, e",
+    );
+    test_rewrite!(
+        mix_select_list_group_by,
+        AddAliasRewritePass,
+        Ok("SELECT a + b AS _1, b AS b GROUP BY a, a + b AS _groupKey2, c, c * d AS _groupKey4, e"),
+        "SELECT a + b, b GROUP BY a, a + b, c, c * d, e",
+    );
+    test_rewrite!(
+        collection_source_simple_ident,
+        AddAliasRewritePass,
+        Ok("SELECT * FROM foo AS foo"),
+        "SELECT * FROM foo",
+    );
+    test_rewrite!(
+        collection_source_compound_ident,
+        AddAliasRewritePass,
+        Ok("SELECT * FROM foo.bar AS bar"),
+        "SELECT * FROM foo.bar",
+    );
+    test_rewrite!(
+        collection_source_no_rewrite,
+        AddAliasRewritePass,
+        Ok("SELECT * FROM foo AS bar"),
+        "SELECT * FROM foo AS bar",
+    );
+    test_rewrite!(
+        from_join_simple_ident,
+        AddAliasRewritePass,
+        Ok("SELECT * FROM foo AS foo CROSS JOIN bar AS bar CROSS JOIN car AS car"),
+        "SELECT * FROM foo JOIN bar JOIN car",
+    );
+    test_rewrite!(
+        from_join_compound_ident,
+        AddAliasRewritePass,
+        Ok("SELECT * FROM foo.bar AS bar CROSS JOIN bar AS bar CROSS JOIN car AS car"),
+        "SELECT * FROM foo.bar JOIN bar JOIN car",
+    );
+    test_rewrite!(
+        subquery_simple_ident,
+        AddAliasRewritePass,
+        Ok("SELECT a AS a FROM foo AS foo WHERE a > (SELECT b AS b FROM baz AS baz)"),
+        "SELECT a FROM foo WHERE a  > (SELECT b FROM baz)",
+    );
+    test_rewrite!(
+        subquery_generated_alias,
+        AddAliasRewritePass,
+        Ok("SELECT a AS a, 5 AS _2 FROM foo AS foo WHERE a > (SELECT 123 AS _1)"),
+        "SELECT a, 5 FROM foo WHERE a  > (SELECT 123)",
+    );
+    test_rewrite!(
+        counter_subquery,
+        AddAliasRewritePass,
+        Ok("SELECT 1 + 2 AS _1, (SELECT 3 + a AS _1, 15 + b AS _2) AS _2, 4 + 5 AS _3"),
+        "SELECT 1 + 2, (SELECT 3 + a, 15 + b), 4+5",
+    );
+    test_rewrite!(
+        counter_multiple_nested_subqueries,
+        AddAliasRewritePass,
+        Ok("SELECT 1 + 2 AS _1, (SELECT 3 + a AS _1, 4 + b AS _2 FROM (SELECT 5 + 6 AS _1) AS sub) AS _2, 7 + 8 AS _3"),
+        "SELECT 1 + 2, (SELECT 3 + a, 4 + b FROM (SELECT 5+6) AS sub), 7+8",
+    );
+    test_rewrite!(
+        group_by_subquery,
+        AddAliasRewritePass,
+        Ok("SELECT 1 + 2 AS _1, (SELECT * FROM bar AS bar GROUP BY a, c + d AS _groupKey2) AS _2, b AS b FROM foo AS foo GROUP BY b + e AS _groupKey1, d"),
+        "SELECT 1 + 2, (SELECT * FROM bar AS bar GROUP BY a, c + d), b FROM foo AS foo GROUP BY b + e, d",
+    );
+}

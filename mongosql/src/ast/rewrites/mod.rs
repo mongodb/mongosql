@@ -1,7 +1,9 @@
 use crate::ast;
 use thiserror::Error;
 
+mod alias;
 mod tuples;
+pub use alias::AddAliasRewritePass;
 pub use tuples::InTupleRewritePass;
 mod from;
 pub use from::ImplicitFromRewritePass;
@@ -32,6 +34,7 @@ pub trait Pass {
 /// Rewrite the provided query by applying rewrites as specified in the MongoSQL spec.
 pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
+        &AddAliasRewritePass,
         &ImplicitFromRewritePass,
         &InTupleRewritePass,
         &PositionalSortKeyRewritePass,

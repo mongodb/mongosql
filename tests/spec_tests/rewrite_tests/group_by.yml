@@ -15,9 +15,9 @@ tests:
     query: "SELECT * FROM foo GROUP BY a, foo.b, c"
     result: "SELECT * FROM foo AS foo GROUP BY a, foo.b, c"
 
-  - description: auto-generate group key aliases for subdocment field references
+  - description: do not auto-generate group key aliases for references with one dot
     query: "SELECT * FROM foo GROUP BY foo.bar.c, bar.b"
-    result: "SELECT * FROM foo AS foo GROUP BY foo.bar.c AS c, bar.b AS b"
+    result: "SELECT * FROM foo AS foo GROUP BY foo.bar.c AS c, bar.b"
 
   - description: Auto generate group key aliases for non-reference expressions
     query: "SELECT * FROM foo GROUP BY a + b, c * d"
