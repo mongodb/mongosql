@@ -312,9 +312,8 @@ Identifier: String = {
 };
 
 // A tuple is a grouping of >= 1 elements, like (A), (A,B), (A,B,C), etc.
-// To differentiate between an actual one-element tuple and a parenthesized
-// expression like (2+2), we use a rewrite pass to unwrap the parenthesized
-// expression if it's not semantically a tuple.
+// We use a `SingleTupleRewritePass` to unwrap each parenthesized
+// expression that is not semantically a tuple.
 Tuple: Expression = {
   LEFT_PAREN <CommaPlus<Expression>> RIGHT_PAREN => Expression::Tuple(<>)
 }

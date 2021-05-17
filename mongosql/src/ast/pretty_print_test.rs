@@ -1,4 +1,4 @@
-use crate::ast::{visitor::Visitor, Expression};
+use crate::ast::{rewrites::tuples::SingleTupleRewriteVisitor, visitor::Visitor};
 use crate::parser::Parser;
 
 macro_rules! query_printer_test {
@@ -275,25 +275,12 @@ query_printer_test!(
     "SELECT * FROM foo bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) as agg2 HAVING agg1 < agg2 ORDER BY agg1 LIMIT 100 OFFSET 10"
 );
 
-struct TupleEraserVisitor {}
-
-// This Visitor is only useful for testing purposes. It replaces all single element
-// tuples with the tuple element.
-impl Visitor for TupleEraserVisitor {
-    fn visit_expression(&mut self, node: Expression) -> Expression {
-        match node {
-            Expression::Tuple(mut v) if v.len() == 1 => self.visit_expression(v.pop().unwrap()),
-            _ => node.walk(self),
-        }
-    }
-}
-
 macro_rules! expression_printer_test {
     ($func_name:ident, $should_print_as:expr, $input:expr) => {
         #[test]
         fn $func_name() {
             let res = Parser::new().parse_expression($input).unwrap();
-            let res = TupleEraserVisitor {}.visit_expression(res);
+            let res = SingleTupleRewriteVisitor {}.visit_expression(res);
             let out = format!("{}", res);
             assert_eq!(out, $should_print_as);
         }

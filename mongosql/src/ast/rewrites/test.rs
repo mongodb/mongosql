@@ -501,3 +501,44 @@ mod add_alias {
         "SELECT 1 + 2, (SELECT * FROM bar AS bar GROUP BY a, c + d), b FROM foo AS foo GROUP BY b + e, d",
     );
 }
+
+mod single_tuple {
+    use super::*;
+
+    test_rewrite!(
+        one_element_tuple_unwrapped,
+        SingleTupleRewritePass,
+        Ok("SELECT a"),
+        "SELECT (a)",
+    );
+    test_rewrite!(
+        nested_one_element_tuple_unwrapped,
+        SingleTupleRewritePass,
+        Ok("SELECT a"),
+        "SELECT (((a)))",
+    );
+    test_rewrite!(
+        two_element_tuple_not_unwrapped,
+        SingleTupleRewritePass,
+        Ok("SELECT (a, b)"),
+        "SELECT (a, b)",
+    );
+    test_rewrite!(
+        nested_two_element_tuple_unwrapped,
+        SingleTupleRewritePass,
+        Ok("SELECT (a, b)"),
+        "SELECT (((a, b)))",
+    );
+    test_rewrite!(
+        subquery_one_element_tuple_unwrapped,
+        SingleTupleRewritePass,
+        Ok("SELECT * FROM (SELECT a) AS z"),
+        "SELECT * FROM (SELECT (a)) AS z",
+    );
+    test_rewrite!(
+        subquery_two_element_tuple_not_unwrapped,
+        SingleTupleRewritePass,
+        Ok("SELECT * FROM (SELECT (a, b)) AS z"),
+        "SELECT * FROM (SELECT (a, b)) AS z",
+    );
+}

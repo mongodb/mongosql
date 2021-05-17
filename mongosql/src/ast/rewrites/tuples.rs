@@ -96,3 +96,27 @@ impl Visitor for InTupleRewriteVisitor {
         })
     }
 }
+
+/// Finds all one-element tuples like (x) or (1+2) and replaces them with the underlying expression.
+/// Intended to be used after `InTupleRewritePass` to avoid rewriting one-element `IN` tuples.
+pub struct SingleTupleRewritePass;
+
+impl Pass for SingleTupleRewritePass {
+    fn apply(&self, query: ast::Query) -> Result<ast::Query> {
+        Ok(query.walk(&mut SingleTupleRewriteVisitor))
+    }
+}
+
+/// The visitor that performs the rewrites for `SingleTupleRewritePass`.
+/// Also used in `pretty_print_test`.
+pub struct SingleTupleRewriteVisitor;
+
+impl Visitor for SingleTupleRewriteVisitor {
+    fn visit_expression(&mut self, e: ast::Expression) -> ast::Expression {
+        use ast::*;
+        match e {
+            Expression::Tuple(mut t) if t.len() == 1 => self.visit_expression(t.pop().unwrap()),
+            _ => e.walk(self),
+        }
+    }
+}

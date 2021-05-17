@@ -2,9 +2,10 @@ use crate::ast;
 use thiserror::Error;
 
 mod alias;
-mod tuples;
 pub use alias::AddAliasRewritePass;
+pub mod tuples;
 pub use tuples::InTupleRewritePass;
+pub use tuples::SingleTupleRewritePass;
 mod from;
 pub use from::ImplicitFromRewritePass;
 mod order_by;
@@ -46,6 +47,7 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &ImplicitFromRewritePass,
         &AggregateRewritePass,
         &InTupleRewritePass,
+        &SingleTupleRewritePass,
         &PositionalSortKeyRewritePass,
     ];
 
