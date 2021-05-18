@@ -48,7 +48,7 @@ Create an annotated tag and push it:
 git tag -a -m X.Y.Z vX.Y.Z
 git push --tags
 ```
-This should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongosql-rs).
+This should trigger an Evergreen version that can be viewed on the [mongosql-rs waterfall](https://evergreen.mongodb.com/waterfall/mongosql-rs).
 If it does not, you may have to ask the project manager to give you the right permissions to do so.
 Make sure to run the 'release' task, if it is not run automatically.
 
@@ -73,8 +73,6 @@ Make sure the libraries are available at the proper urls:
 The following template will be used for the Slack Release Announcement, which will be announced in the #enterprise-tools channel:
 
 ```
-_Released YYYY-MM-DD_
-
 We are pleased to announce version X.Y.Z of the MongoDB MongoSQL Compiler.
 
 <INSERT-DESCRIPTION>
@@ -84,42 +82,14 @@ The MongoSQL Compiler libraries are available at the follwing URLS:
   https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{rhel76,ubuntu1804,macos}/X.Y.Z/libmongosql.a
 * Windows:
   https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows-64}/X.Y.Z/mongosql.dll
-
-
-Bugs and feature requests can be reported in the [SQL Translator Project Jira](https://jira.mongodb.org/browse/SQL) where a list of current issues can be found.
-
-<INSERT-LIST-OF-TICKETS>
 ```
-
-- Update the release date to the date the release-json task finished on Evergreen in Eastern Time.
-  You can set your timezone in "User Settings".
-
-- Go to [Configure Release Notes](https://jira.mongodb.org/secure/ConfigureReleaseNote.jspa?projectId=18280) on JIRA.
-  Choose the version you are releasing and HTML as the style.
-  This will show you the list of tickets tagged with the release version.
-  (If the link does not work, you can access this through the release page for the version you are releasing.)
-- Go through the list of tickets and check that each ticket is categorized correctly (as a task, bugfix etc.).
-  Also make sure there is nothing in the list that might have been tagged with the wrong fix version.
-- Copy the HTML list of tickets from JIRA and paste it in CHANGELOG.md in place of `<INSERT-LIST-OF-TICKETS>`.
-- Remove the top line of the list of tickets that says `Release Notes - MongoDB MongoSQL Compiler - Version X.Y.Z`
-- Change the ticket type titles from `<h2>`s to `<h3>`s. For example,
-
-    ```
-    <h2>        Build Failure
-    </h2>
-    ```
-
-    Becomes:
-
-    ```
-    ### Build Failure
-    ```
-- Insert a brief description of the release in place of `<INSERT-DESCRIPTION>`.
-  Do not go into too much unnecessary detail.
-- Submit a PR with your changes under the release ticket number, and merge once approved.
 
 #### Close Release Ticket
 Move the JIRA ticket tracking this release to the "Closed" state.
 
+#### Ensure next release ticket and fixVersion created
+Ensure that a JIRA ticket tracking the next release has been created
+and is assigned the appropriate fixVersion.
+
 #### Ensure Downstream Tickets Created
-Manually create Downstream integration ticket for Atlas Datalake
+Manually create MHOUSE ticket for integrating the new release into ADL
