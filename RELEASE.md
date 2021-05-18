@@ -45,13 +45,12 @@ Ensure you have the `master` branch checked out, and that you have pulled the la
 #### Create the tag and push
 Create an annotated tag and push it:
 ```
-git tag -a -m X.Y.Z X.Y.Z
+git tag -a -m X.Y.Z vX.Y.Z
 git push --tags
 ```
 This should trigger an Evergreen version that can be viewed on the [Database Tools Waterfall](https://evergreen.mongodb.com/waterfall/mongosql-rs).
 If it does not, you may have to ask the project manager to give you the right permissions to do so.
-Note that we do not use a v-prefixed tag like many projects. Make sure to run the 'release' task, if it is
-not run automatically.
+Make sure to run the 'release' task, if it is not run automatically.
 
 #### Set Evergreen Priorities
 Some evergreen variants may have a long schedule queue.

@@ -48,8 +48,14 @@ functions:
              export GOCACHE=$(cygpath -w "$GOCACHE")
           fi
           export PATH="$GOROOT/bin:$PATH"
+          if [[ "${triggered_by_git_tag}" != "" ]]; then
+            export release_version=$(echo ${triggered_by_git_tag} | sed s/v//)
+          else
+            export release_version=test_release
+          fi
 
           cat <<EOT > expansions.yml
+          release_version: "$release_version"
           prepare_shell: |
             set -o errexit
             export PATH="$PATH"
@@ -58,6 +64,7 @@ functions:
             export GOROOT="$GOROOT"
             export GOPRIVATE="$GOPRIVATE"
             export GOCACHE="$GOCACHE"
+            export release_version="$release_version"
             git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
           EOT
     - command: expansions.update
@@ -162,7 +169,7 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/macos/libmongosql.a
-        remote_file: mongosql-rs/macos/${triggered_by_git_tag|test_release}/libmongosql.a
+        remote_file: mongosql-rs/macos/${release_version}/libmongosql.a
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
@@ -178,7 +185,7 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/rhel76/libmongosql.a
-        remote_file: mongosql-rs/rhel76/${triggered_by_git_tag|test_release}/libmongosql.a
+        remote_file: mongosql-rs/rhel76/${release_version}/libmongosql.a
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
@@ -194,7 +201,7 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/ubuntu1804/libmongosql.a
-        remote_file: mongosql-rs/ubuntu1804/${triggered_by_git_tag|test_release}/libmongosql.a
+        remote_file: mongosql-rs/ubuntu1804/${release_version}/libmongosql.a
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
@@ -210,7 +217,7 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/windows/mongosql.dll
-        remote_file: mongosql-rs/windows/${triggered_by_git_tag|test_release}/mongosql.dll
+        remote_file: mongosql-rs/windows/${release_version}/mongosql.dll
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
@@ -315,6 +322,14 @@ tasks:
     commands:
       - func: "perform release"
 
+  - name: test-release
+    patch_only: true
+    depends_on:
+     - name: compile
+       variant: '*'
+    commands:
+      - func: "perform release"
+
 buildvariants:
 
   - name: static-analysis
@@ -362,3 +377,4 @@ buildvariants:
     run_on: [ ubuntu1804-large ]
     tasks:
       - name: release
+      - name: test-release
