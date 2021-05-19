@@ -1,0 +1,1052 @@
+[
+  {
+    "name": "nothing to desugar",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $subquery expression with only coll",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "collection": "bar",
+              "outputPath": [
+                "p_1",
+                "p_2"
+              ],
+              "pipeline": []
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.p_1.p_2"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $subquery expression with no source",
+    "skip": "SQL-294",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "outputPath": [
+                "arr",
+                "a"
+              ],
+              "pipeline": [
+                {
+                  "$array": {
+                    "arr": [
+                      {
+                        "a": 1
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "",
+          "pipeline": [
+            {
+              "$array": {
+                "arr": [
+                  {
+                    "a": 1
+                  }
+                ]
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.arr.a"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar fully specified $subquery expression",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "db": "db",
+              "collection": "bar",
+              "let": {
+                "foo_a_0": "$a"
+              },
+              "outputPath": [
+                "sum"
+              ],
+              "pipeline": [
+                {
+                  "$project": {
+                    "_id": 0,
+                    "sum": {
+                      "$add": [
+                        "$$foo_a_0",
+                        "$a"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$limit": 1
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": {
+            "db": "db",
+            "coll": "bar"
+          },
+          "let": {
+            "foo_a_0": "$a"
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "sum": {
+                  "$add": [
+                    "$$foo_a_0",
+                    "$a"
+                  ]
+                }
+              }
+            },
+            {
+              "$limit": 1
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.sum"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "nested subquery expression is desugared in nested pipeline",
+    "input": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "expr": {
+                  "$subquery": {
+                    "collection": "baz",
+                    "outputPath": [
+                      "p_1",
+                      "p_2"
+                    ],
+                    "pipeline": [
+                      {
+                        "$project": {
+                          "_id": 0,
+                          "p_1": {
+                            "p_2": 1
+                          }
+                        }
+                      },
+                      {
+                        "$limit": 1
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "as": "out"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$lookup": {
+                "from": "baz",
+                "pipeline": [
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "p_1": {
+                        "p_2": 1
+                      }
+                    }
+                  },
+                  {
+                    "$limit": 1
+                  },
+                  {
+                    "$limit": 1
+                  }
+                ],
+                "as": "__subquery_result_0"
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "expr": {
+                  "$let": {
+                    "vars": {
+                      "docExpr": {
+                        "$arrayElemAt": [
+                          "$__subquery_result_0",
+                          0
+                        ]
+                      }
+                    },
+                    "in": "$$docExpr.p_1.p_2"
+                  }
+                }
+              }
+            }
+          ],
+          "as": "out"
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar stage with multiple subquery expressions",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr1": {
+            "$subquery": {
+              "collection": "bar",
+              "outputPath": [
+                "x"
+              ],
+              "pipeline": [
+                {
+                  "$project": {
+                    "_id": 0,
+                    "x": 1
+                  }
+                },
+                {
+                  "$limit": 1
+                }
+              ]
+            }
+          },
+          "expr2": {
+            "$subquery": {
+              "collection": "baz",
+              "outputPath": [
+                "y"
+              ],
+              "pipeline": [
+                {
+                  "$project": {
+                    "_id": 0,
+                    "y": 1
+                  }
+                },
+                {
+                  "$limit": 1
+                }
+              ]
+            }
+          },
+          "expr3": {
+            "$subqueryExists": {
+              "collection": "zzz",
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$z",
+                        10
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "expr4": {
+            "$subqueryComparison": {
+              "op": "gt",
+              "modifier": "any",
+              "arg": "$a",
+              "subquery": {
+                "collection": "cmp",
+                "outputPath": ["p_1"],
+                "pipeline": [
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "p_1": 1
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "x": 1
+              }
+            },
+            {
+              "$limit": 1
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$lookup": {
+          "from": "baz",
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "y": 1
+              }
+            },
+            {
+              "$limit": 1
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_1"
+        }
+      },
+      {
+        "$lookup": {
+          "from": "zzz",
+          "pipeline": [
+            {
+              "$match": {
+                "$expr": {
+                  "$gt": [
+                    "$z",
+                    10
+                  ]
+                }
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_2"
+        }
+      },
+      {
+        "$lookup": {
+          "from": "cmp",
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "p_1": 1
+              }
+            }
+          ],
+          "as": "__subquery_result_3"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr1": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.x"
+            }
+          },
+          "expr2": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_1",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.y"
+            }
+          },
+          "expr3": {
+            "$gt": [
+              {
+                "$size": "$__subquery_result_2"
+              },
+              0
+            ]
+          },
+          "expr4": {
+            "$reduce": {
+              "input": "$__subquery_result_3",
+              "initialValue": false,
+              "in": {
+                "$sqlOr": [
+                  "$$value",
+                  {
+                    "$sqlGt": [
+                      "$a",
+                      "$$this.p_1"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $subqueryExists expression with only coll",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subqueryExists": {
+              "collection": "bar",
+              "pipeline": []
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$gt": [
+              {
+                "$size": "$__subquery_result_0"
+              },
+              0
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $subqueryExists expression with no source",
+    "skip": "SQL-294",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subqueryExists": {
+              "pipeline": [
+                {
+                  "$array": [
+                    {
+                      "a": 1
+                    },
+                    {
+                      "a": 2
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "",
+          "pipeline": [
+            {
+              "$array": [
+                {
+                  "a": 1
+                },
+                {
+                  "a": 2
+                }
+              ]
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$gt": [
+              {
+                "$size": "$__subquery_result_0"
+              },
+              0
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar fully specified $subqueryExists expression",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subqueryExists": {
+              "db": "db",
+              "collection": "bar",
+              "let": {
+                "foo_a_0": "$a"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$eq": [
+                        "$a",
+                        "$$foo_a_0"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": {
+            "db": "db",
+            "coll": "bar"
+          },
+          "let": {
+            "foo_a_0": "$a"
+          },
+          "pipeline": [
+            {
+              "$match": {
+                "$expr": {
+                  "$eq": [
+                    "$a",
+                    "$$foo_a_0"
+                  ]
+                }
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$gt": [
+              {
+                "$size": "$__subquery_result_0"
+              },
+              0
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $subqueryComparison expression with only coll",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subqueryComparison": {
+              "op": "gt",
+              "modifier": "any",
+              "arg": "$a",
+              "subquery": {
+                "collection": "bar",
+                "outputPath": ["a"],
+                "pipeline": [
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "a": 1
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "a": 1
+              }
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$reduce": {
+              "input": "$__subquery_result_0",
+              "initialValue": false,
+              "in": {
+                "$sqlOr": [
+                  "$$value",
+                  {
+                    "$sqlGt": [
+                      "$a",
+                      "$$this.a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $subqueryComparison expression with no source",
+    "skip": "SQL-294",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subqueryComparison": {
+              "op": "gt",
+              "modifier": "any",
+              "arg": "$a",
+              "subquery": {
+                "outputPath": ["a"],
+                "pipeline": [
+                  {
+                    "$array": [
+                      {
+                        "a": 1
+                      },
+                      {
+                        "a": 2
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$array": [
+                {
+                  "a": 1
+                },
+                {
+                  "a": 2
+                }
+              ]
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$reduce": {
+              "input": "$__subquery_result_0",
+              "initialValue": false,
+              "in": {
+                "$sqlOr": [
+                  "$$value",
+                  {
+                    "$sqlGt": [
+                      "$a",
+                      "$$this.a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar fully specified $subqueryComparison expression",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subqueryComparison": {
+              "op": "gt",
+              "modifier": "any",
+              "arg": "$a",
+              "subquery": {
+                "db": "db",
+                "collection": "bar",
+                "let": {
+                  "foo_b_0": "$b"
+                },
+                "outputPath": ["a"],
+                "pipeline": [
+                  {
+                    "$match": {
+                      "$expr": {
+                        "$eq": [
+                          "$$foo_b_0",
+                          "$b"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "a": 1
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": {
+            "db": "db",
+            "coll": "bar"
+          },
+          "let": {
+            "foo_b_0": "$b"
+          },
+          "pipeline": [
+            {
+              "$match": {
+                "$expr": {
+                  "$eq": [
+                    "$$foo_b_0",
+                    "$b"
+                  ]
+                }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "a": 1
+              }
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$reduce": {
+              "input": "$__subquery_result_0",
+              "initialValue": false,
+              "in": {
+                "$sqlOr": [
+                  "$$value",
+                  {
+                    "$sqlGt": [
+                      "$a",
+                      "$$this.a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $subqueryComparison expression with ALL modifier",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subqueryComparison": {
+              "op": "gt",
+              "modifier": "all",
+              "arg": "$a",
+              "subquery": {
+                "db": "db",
+                "collection": "bar",
+                "let": {
+                  "foo_b_0": "$b"
+                },
+                "outputPath": ["a"],
+                "pipeline": [
+                  {
+                    "$match": {
+                      "$expr": {
+                        "$eq": [
+                          "$$foo_b_0",
+                          "$b"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "a": 1
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": {
+            "db": "db",
+            "coll": "bar"
+          },
+          "let": {
+            "foo_b_0": "$b"
+          },
+          "pipeline": [
+            {
+              "$match": {
+                "$expr": {
+                  "$eq": [
+                    "$$foo_b_0",
+                    "$b"
+                  ]
+                }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "a": 1
+              }
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$reduce": {
+              "input": "$__subquery_result_0",
+              "initialValue": true,
+              "in": {
+                "$sqlAnd": [
+                  "$$value",
+                  {
+                    "$sqlGt": [
+                      "$a",
+                      "$$this.a"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+]

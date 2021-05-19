@@ -15,4 +15,14 @@ var (
 		Type: bsontype.Int32,
 		Data: bsoncore.AppendInt32(nil, 0),
 	})
+
+	trueLiteral = ast.NewConstant(bsoncore.Value{
+		Type: bsontype.Boolean,
+		Data: bsoncore.AppendBoolean(nil, true),
+	})
+
+	falseLiteral = ast.NewConstant(bsoncore.Value{
+		Type: bsontype.Boolean,
+		Data: bsoncore.AppendBoolean(nil, false),
+	})
 )
