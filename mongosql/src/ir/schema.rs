@@ -58,11 +58,11 @@ impl Stage {
             Stage::Project(p) => {
                 let source_result_set = p.source.schema(state)?;
                 let (min_size, max_size) = (source_result_set.min_size, source_result_set.max_size);
-                let source_state = state.with_merged_schema_env(source_result_set.schema);
+                let state = state.with_merged_schema_env(source_result_set.schema);
                 let schema = p
                     .expression
                     .iter()
-                    .map(|(k, e)| match e.schema(&source_state) {
+                    .map(|(k, e)| match e.schema(&state) {
                         Ok(s) => Ok((k.clone(), s)),
                         Err(e) => Err(e),
                     })
