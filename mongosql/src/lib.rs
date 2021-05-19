@@ -38,7 +38,7 @@ pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
     let ast = ast::rewrites::rewrite_query(ast)?;
 
     // construct the algebrizer and use it to build an ir plan
-    let algebrizer = Algebrizer::new(current_db.to_string());
+    let algebrizer = Algebrizer::new(current_db.to_string(), 0u16);
     let plan = algebrizer.algebrize_query(ast)?;
 
     // generate mql from the ir plan

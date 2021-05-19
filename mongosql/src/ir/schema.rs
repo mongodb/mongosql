@@ -2,6 +2,7 @@ use crate::{
     ir::*,
     schema::{Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT},
 };
+use common_macros::hash_map;
 use linked_hash_map::LinkedHashMap;
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
@@ -19,14 +20,27 @@ pub enum Error {
     AccessMissingField(String),
 }
 
-#[allow(dead_code)]
-pub struct SchemaInferenceState<'a> {
-    env: &'a SchemaEnvironment,
+#[derive(Debug, Clone)]
+pub struct SchemaInferenceState {
+    pub scope_level: u16,
+    pub env: SchemaEnvironment,
 }
 
-impl<'a> From<&'a SchemaEnvironment> for SchemaInferenceState<'a> {
-    fn from(env: &'a SchemaEnvironment) -> Self {
-        Self { env }
+impl SchemaInferenceState {
+    #[allow(dead_code)]
+    pub fn new(scope_level: u16, env: SchemaEnvironment) -> SchemaInferenceState {
+        SchemaInferenceState { scope_level, env }
+    }
+
+    pub fn with_merged_schema_env(&self, env: SchemaEnvironment) -> SchemaInferenceState {
+        let mut merged_env = env;
+        for (k, v) in self.env.iter() {
+            merged_env.insert(k.clone(), v.clone());
+        }
+        SchemaInferenceState {
+            env: merged_env,
+            scope_level: self.scope_level,
+        }
     }
 }
 
@@ -38,15 +52,38 @@ impl Stage {
     /// include schema information for any datasources from outer
     /// scopes. Schema information for the current scope will be
     /// obtained by calling [`Stage::schema`] on source stages.
-    pub fn schema(&self, _state: SchemaInferenceState) -> Result<ResultSet, Error> {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<ResultSet, Error> {
         match self {
             Stage::Filter(_) => unimplemented!(),
-            Stage::Project(_) => unimplemented!(),
+            Stage::Project(p) => {
+                let source_result_set = p.source.schema(state)?;
+                let (min_size, max_size) = (source_result_set.min_size, source_result_set.max_size);
+                let source_state = state.with_merged_schema_env(source_result_set.schema);
+                let schema = p
+                    .expression
+                    .iter()
+                    .map(|(k, e)| match e.schema(&source_state) {
+                        Ok(s) => Ok((k.clone(), s)),
+                        Err(e) => Err(e),
+                    })
+                    .collect::<Result<SchemaEnvironment, _>>()?;
+                Ok(ResultSet {
+                    schema,
+                    min_size,
+                    max_size,
+                })
+            }
             Stage::Group(_) => unimplemented!(),
             Stage::Limit(_) => unimplemented!(),
             Stage::Offset(_) => unimplemented!(),
             Stage::Sort(_) => unimplemented!(),
-            Stage::Collection(_) => Ok(ResultSet::default()),
+            Stage::Collection(c) => Ok(ResultSet {
+                schema: hash_map! {
+                    (c.collection.clone(), state.scope_level).into() => Schema::Any,
+                },
+                min_size: None,
+                max_size: None,
+            }),
             Stage::Array(_) => unimplemented!(),
             Stage::Join(_) => unimplemented!(),
             Stage::Set(_) => unimplemented!(),

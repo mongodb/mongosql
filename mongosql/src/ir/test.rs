@@ -28,7 +28,7 @@ macro_rules! test_schema {
             let input = $input;
             let schema_env = $schema_env;
 
-            let state = SchemaInferenceState::from(&schema_env);
+            let state = SchemaInferenceState::new(0u16, schema_env);
             let actual = input.schema(&state);
 
             assert_eq!(expected, actual);
@@ -358,5 +358,47 @@ mod schema {
                 }
             ),
         })},
+    );
+
+    test_schema!(
+        collection_schema,
+        Ok(ResultSet {
+            schema: hash_map! {
+                ("foo", 0u16).into() => Schema::Any,
+            },
+            min_size: None,
+            max_size: None,
+        }),
+        Stage::Collection(Collection {
+            db: "test2".into(),
+            collection: "foo".into(),
+        }),
+    );
+
+    test_schema!(
+        project_schema,
+        Ok(ResultSet {
+            schema: hash_map! {
+                ("bar1", 0u16).into() => Schema::Any,
+                ("bar2", 0u16).into() => Schema::Any,
+                ("bar3", 0u16).into() => Schema::Any,
+            },
+            min_size: None,
+            max_size: None,
+        }),
+        Stage::Project(Project {
+            source: Box::new(Stage::Collection(Collection {
+                db: "test2".into(),
+                collection: "foo".into(),
+            })),
+            expression: hash_map! {
+                ("bar1", 0u16).into() =>
+                    Expression::Reference(("foo", 0u16).into()),
+                ("bar2", 0u16).into() =>
+                    Expression::Reference(("foo", 0u16).into()),
+                ("bar3", 0u16).into() =>
+                    Expression::Reference(("foo", 0u16).into()),
+            }
+        }),
     );
 }
