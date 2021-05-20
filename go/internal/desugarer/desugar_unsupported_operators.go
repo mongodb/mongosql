@@ -11,6 +11,7 @@ var functionDesugarers = map[string]functionDesugarer{
 	"$sqlSlice":   desugarSQLSlice,
 	"$sqlDivide":  desugarSQLDivide,
 	"$nullIf":     desugarNullIf,
+	"$coalesce":   desugarCoalesce,
 }
 
 // desugarUnsupportedOperators desugars any new operators ($sqlBetween,
@@ -105,4 +106,27 @@ func desugarNullIf(f *ast.Function) ast.Expr {
 			expr1VarRef,
 		),
 	)
+}
+
+func desugarCoalesce(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	branches := make([]ast.Expr, len(args.Elements))
+
+	for i, arg := range args.Elements {
+		branches[i] = ast.NewDocument(
+			ast.NewDocumentElement("case",
+				ast.NewBinary(ast.GreaterThan,
+					arg,
+					nullLiteral,
+				),
+			),
+			ast.NewDocumentElement("then", arg),
+		)
+	}
+
+	return ast.NewFunction("$switch", ast.NewDocument(
+		ast.NewDocumentElement("branches", ast.NewArray(branches...)),
+		ast.NewDocumentElement("default", nullLiteral),
+	))
 }

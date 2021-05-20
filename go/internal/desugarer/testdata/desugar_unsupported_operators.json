@@ -351,5 +351,63 @@
         }
       }
     ]
+  },
+  {
+    "name": "desugar $coalesce",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$coalesce": [
+              "$a",
+              "$b",
+              "$c"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$switch": {
+              "branches": [
+                {
+                  "case": {
+                    "$gt": [
+                      "$a",
+                      null
+                    ]
+                  },
+                  "then": "$a"
+                },
+                {
+                  "case": {
+                    "$gt": [
+                      "$b",
+                      null
+                    ]
+                  },
+                  "then": "$b"
+                },
+                {
+                  "case": {
+                    "$gt": [
+                      "$c",
+                      null
+                    ]
+                  },
+                  "then": "$c"
+                }
+              ],
+              "default": null
+            }
+          }
+        }
+      }
+    ]
   }
 ]
