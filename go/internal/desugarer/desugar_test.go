@@ -31,6 +31,11 @@ func TestDesugar(t *testing.T) {
 			file:      "desugar_unsupported_operators.json",
 			desugarer: desugarUnsupportedOperators,
 		},
+		{
+			name:      "desugarNullSemantics",
+			file:      "desugar_sql_null_semantics.json",
+			desugarer: desugarSQLNullSemantics,
+		},
 	}
 
 	for _, test := range tests {
