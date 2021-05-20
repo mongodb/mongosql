@@ -59,11 +59,6 @@ rhel62)
     PUSH_NAME='linux'
     PYTHON_PATH='/opt/python/2.7/bin'
     ;;
-rhel67-s390x)
-    PUSH_ARCH='s390x-rhel67'
-    PUSH_NAME='linux'
-    CC='s390x-redhat-linux-gcc'
-    ;;
 rhel70)
     PUSH_ARCH='x86_64-rhel70'
     PUSH_NAME='linux'
@@ -71,11 +66,6 @@ rhel70)
 rhel71-ppc)
     PUSH_ARCH='ppc64le-rhel71'
     PUSH_NAME='linux'
-    ;;
-rhel72-s390x)
-    PUSH_ARCH='s390x-rhel72'
-    PUSH_NAME='linux'
-    CC='s390x-redhat-linux-gcc'
     ;;
 rhel80)
     PUSH_ARCH='x86_64-rhel80'
@@ -94,11 +84,6 @@ suse12)
     PUSH_ARCH='x86_64-suse12'
     PUSH_NAME='linux'
     ;;
-suse12-s390x)
-    PUSH_ARCH='s390x-suse12'
-    PUSH_NAME='linux'
-    CC='gcc'
-    ;;
 suse15)
     PUSH_ARCH='x86_64-suse15'
     PUSH_NAME='linux'
@@ -116,12 +101,6 @@ ubuntu1604)
 ubuntu1604-ppc)
     PUSH_ARCH='ppc64le-ubuntu1604'
     PUSH_NAME='linux'
-    BUILD_FIPS='false'
-    ;;
-ubuntu1604-s390x)
-    PUSH_ARCH='s390x-ubuntu1604'
-    PUSH_NAME='linux'
-    CC='gcc'
     BUILD_FIPS='false'
     ;;
 ubuntu1804)
@@ -143,12 +122,6 @@ ubuntu1804-container)
 ubuntu1804-ppc)
     PUSH_ARCH='ppc64le-ubuntu1804'
     PUSH_NAME='linux'
-    BUILD_FIPS='false'
-    ;;
-ubuntu1804-s390x)
-    PUSH_ARCH='s390x-ubuntu1804'
-    PUSH_NAME='linux'
-    CC='gcc'
     BUILD_FIPS='false'
     ;;
 ubuntu2004)
