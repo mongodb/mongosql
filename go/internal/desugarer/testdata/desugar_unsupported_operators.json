@@ -304,5 +304,52 @@
         }
       }
     ]
+  },
+  {
+    "name": "desugar $nullIf",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$nullIf": [
+              "$a",
+              "$b"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "expr1": {
+                  "$ifNull": [
+                    "$a",
+                    null
+                  ]
+                }
+              },
+              "in": {
+                "$cond": [
+                  {
+                    "$eq": [
+                      "$$expr1",
+                      "$b"
+                    ]
+                  },
+                  null,
+                  "$$expr1"
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
   }
 ]
