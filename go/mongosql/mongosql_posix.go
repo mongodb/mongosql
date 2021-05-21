@@ -3,7 +3,7 @@
 package mongosql
 
 /*
-#cgo LDFLAGS: -lmongosql -ldl -lm
+#cgo LDFLAGS: -lmongosql -lpthread -ldl -lm
 #include <stdlib.h>
 #include "./mongosql.h"
 */
