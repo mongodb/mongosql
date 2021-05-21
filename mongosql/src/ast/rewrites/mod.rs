@@ -3,6 +3,8 @@ use thiserror::Error;
 
 mod alias;
 pub use alias::AddAliasRewritePass;
+mod select;
+pub use select::SelectRewritePass;
 pub mod tuples;
 pub use tuples::InTupleRewritePass;
 pub use tuples::SingleTupleRewritePass;
@@ -33,6 +35,10 @@ pub enum Error {
     AggregationFunctionInGroupByAggListNotAliased,
     #[error("cannot specify aggregation functions in GROUP BY AGGREGATE clause and elsewhere")]
     AggregationFunctionInGroupByAggListAndElsewhere,
+    #[error("all select expressions must be given aliases before the SelectRewritePass")]
+    NoAliasForSelectExpression,
+    #[error("the top-level SELECT in a subquery expression must be a standard SELECT")]
+    SubqueryWithSelectValue,
 }
 
 /// A fallible transformation that can be applied to a query
@@ -44,6 +50,7 @@ pub trait Pass {
 pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
         &AddAliasRewritePass,
+        &SelectRewritePass,
         &ImplicitFromRewritePass,
         &AggregateRewritePass,
         &InTupleRewritePass,

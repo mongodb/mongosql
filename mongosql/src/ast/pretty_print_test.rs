@@ -35,12 +35,12 @@ query_printer_test!(
 
 query_printer_test!(
     select_values_sub_star,
-    "SELECT VALUES foo.*",
+    "SELECT VALUE foo.*",
     "select VALUES foo.*"
 );
 query_printer_test!(
     select_values_document_expression,
-    "SELECT VALUES {'bar': 42}",
+    "SELECT VALUE {'bar': 42}",
     "select VAlUEs {'bar': 42}"
 );
 query_printer_test!(

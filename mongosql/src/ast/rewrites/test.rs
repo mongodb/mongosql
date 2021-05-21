@@ -371,6 +371,101 @@ mod in_tuple {
     );
 }
 
+mod select {
+    use super::*;
+
+    test_rewrite!(
+        simple_ident_alias,
+        SelectRewritePass,
+        Ok("SELECT VALUE {'a1': a}"),
+        "SELECT a as a1",
+    );
+    test_rewrite!(
+        compound_ident_alias,
+        SelectRewritePass,
+        Ok("SELECT VALUE {'a1': a.b.c}"),
+        "SELECT a.b.c as a1",
+    );
+    test_rewrite!(
+        standalone_substar,
+        SelectRewritePass,
+        Ok("SELECT VALUE t.*"),
+        "SELECT t.*",
+    );
+    test_rewrite!(
+        multiple_substar,
+        SelectRewritePass,
+        Ok("SELECT VALUES t.*, a.*"),
+        "SELECT t.*, a.*",
+    );
+    test_rewrite!(
+        ident_substar_mix,
+        SelectRewritePass,
+        Ok("SELECT VALUES {'a': a}, t.*"),
+        "SELECT a AS a, t.*",
+    );
+    test_rewrite!(
+        multiple_ident_substar_mix,
+        SelectRewritePass,
+        Ok("SELECT VALUES {'a': a, 't': t}, a.*, t.*"),
+        "SELECT a AS a, a.*, t AS t, t.*",
+    );
+    test_rewrite!(
+        star_no_rewrite,
+        SelectRewritePass,
+        Ok("SELECT *"),
+        "SELECT *",
+    );
+    test_rewrite!(
+        select_value_no_rewrite,
+        SelectRewritePass,
+        Ok("SELECT VALUE {'a': a}"),
+        "SELECT VALUE {'a': a}",
+    );
+    test_rewrite!(
+        no_alias,
+        SelectRewritePass,
+        Err(Error::NoAliasForSelectExpression),
+        "SELECT a",
+    );
+    test_rewrite!(
+        subquery,
+        SelectRewritePass,
+        Ok("SELECT VALUE {'a': a, 'b': (SELECT VALUE {'c': c})}"),
+        "SELECT a AS a, (SELECT c AS c) AS b",
+    );
+    test_rewrite!(
+        select_values_subquery_top_level,
+        SelectRewritePass,
+        Err(Error::SubqueryWithSelectValue),
+        "SELECT a AS a, (SELECT VALUES {'b': b}) AS sub",
+    );
+    test_rewrite!(
+        select_values_subquery_datasource_only,
+        SelectRewritePass,
+        Ok("SELECT * FROM (SELECT VALUE {'c': d}) AS foo"),
+        "SELECT * FROM (SELECT VALUE {'c': d}) AS foo",
+    );
+    test_rewrite!(
+        select_values_subquery_not_top_level,
+        SelectRewritePass,
+        Ok("SELECT VALUE {'a': a, 'sub1': (SELECT VALUE {'b': b} FROM (SELECT VALUE {'c': d}) AS sub2)} FROM foo AS foo"),
+        "SELECT a AS a, (SELECT b AS b FROM (SELECT VALUE {'c': d}) AS sub2) AS sub1 FROM foo AS foo",
+    );
+    test_rewrite!(
+        select_values_exists_subquery,
+        SelectRewritePass,
+        Ok("SELECT VALUE {'foo': (SELECT VALUE {'a': a, 'sub': EXISTS(SELECT VALUE {'c': d})})}"),
+        "SELECT (SELECT a AS a, EXISTS (SELECT VALUE {'c': d}) AS sub) AS foo",
+    );
+    test_rewrite!(
+        select_values_nested_subquery_derived_datasource,
+        SelectRewritePass,
+        Err(Error::SubqueryWithSelectValue),
+        "SELECT a AS a FROM (SELECT b AS b, (SELECT VALUES {'c': d}) AS sub) AS foo",
+    );
+}
+
 mod add_alias {
     use super::*;
 

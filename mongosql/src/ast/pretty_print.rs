@@ -89,14 +89,18 @@ impl Display for SelectBody {
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
-            SelectBody::Values(v) => write!(
-                f,
-                " VALUES {}",
-                v.iter()
-                    .map(|x| format!("{}", x))
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            SelectBody::Values(v) => {
+                let kwd = if v.len() > 1 { "VALUES" } else { "VALUE" };
+                write!(
+                    f,
+                    " {} {}",
+                    kwd,
+                    v.iter()
+                        .map(|x| format!("{}", x))
+                        .collect::<Vec<_>>()
+                        .join(", ")
+                )
+            }
         }
     }
 }
