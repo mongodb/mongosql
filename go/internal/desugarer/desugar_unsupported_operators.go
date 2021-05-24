@@ -10,11 +10,12 @@ type functionDesugarer func(*ast.Function) ast.Expr
 
 var functionDesugarers = map[string]functionDesugarer{
 	"$sqlBetween": desugarSQLBetween,
-	"$sqlSlice":   desugarSQLSlice,
+	"$sqlConvert": desugarSQLConvert,
 	"$sqlDivide":  desugarSQLDivide,
-	"$nullIf":     desugarNullIf,
+	"$sqlSlice":   desugarSQLSlice,
 	"$coalesce":   desugarCoalesce,
 	"$like":       desugarLike,
+	"$nullIf":     desugarNullIf,
 }
 
 const regexCharsToEscape = `.^$*+?()[{\|`
@@ -58,6 +59,61 @@ func desugarSQLBetween(f *ast.Function) ast.Expr {
 	)
 }
 
+func desugarSQLConvert(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Document).FieldsMap()
+
+	input := args["input"]
+	targetType := args["type"]
+
+	var onNull ast.Expr = nullLiteral
+	if onNullArg, hasOnNull := args["onNull"]; hasOnNull {
+		onNull = onNullArg
+	}
+
+	var onError ast.Expr = nullLiteral
+	if onErrorArg, hasOnError := args["onError"]; hasOnError {
+		onError = onErrorArg
+	}
+
+	inputVarName := "sqlConvert_input"
+	inputVarRef := ast.NewVariableRef(inputVarName)
+
+	return ast.NewLet(
+		[]*ast.LetVariable{
+			ast.NewLetVariable(inputVarName, input),
+		},
+		ast.NewFunction("$switch", ast.NewDocument(
+			ast.NewDocumentElement("branches", ast.NewArray(
+				ast.NewDocument(
+					ast.NewDocumentElement("case",
+						ast.NewBinary(ast.Equals, ast.NewFunction("$type", inputVarRef), targetType)),
+					ast.NewDocumentElement("then", inputVarRef),
+				),
+				ast.NewDocument(
+					ast.NewDocumentElement("case",
+						ast.NewBinary(ast.LessThanOrEquals, inputVarRef, nullLiteral)),
+					ast.NewDocumentElement("then", onNull),
+				),
+			)),
+			ast.NewDocumentElement("default", onError),
+		)),
+	)
+}
+
+func desugarSQLDivide(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Document).FieldsMap()
+
+	dividend := args["dividend"]
+	divisor := args["divisor"]
+	onError := args["onError"]
+
+	return ast.NewConditional(
+		ast.NewBinary(ast.Equals, divisor, zeroLiteral),
+		onError,
+		ast.NewBinary(ast.Divide, dividend, divisor),
+	)
+}
+
 func desugarSQLSlice(f *ast.Function) ast.Expr {
 	args := f.Arg.(*ast.Array)
 
@@ -73,18 +129,27 @@ func desugarSQLSlice(f *ast.Function) ast.Expr {
 	return expr
 }
 
-func desugarSQLDivide(f *ast.Function) ast.Expr {
-	args := f.Arg.(*ast.Document).FieldsMap()
+func desugarCoalesce(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
 
-	dividend := args["dividend"]
-	divisor := args["divisor"]
-	onError := args["onError"]
+	branches := make([]ast.Expr, len(args.Elements))
 
-	return ast.NewConditional(
-		ast.NewBinary(ast.Equals, divisor, zeroLiteral),
-		onError,
-		ast.NewBinary(ast.Divide, dividend, divisor),
-	)
+	for i, arg := range args.Elements {
+		branches[i] = ast.NewDocument(
+			ast.NewDocumentElement("case",
+				ast.NewBinary(ast.GreaterThan,
+					arg,
+					nullLiteral,
+				),
+			),
+			ast.NewDocumentElement("then", arg),
+		)
+	}
+
+	return ast.NewFunction("$switch", ast.NewDocument(
+		ast.NewDocumentElement("branches", ast.NewArray(branches...)),
+		ast.NewDocumentElement("default", nullLiteral),
+	))
 }
 
 // desugarNullIf desugars { $nullIf: [<expr1>, <expr2>] } into existing MQL
@@ -111,29 +176,6 @@ func desugarNullIf(f *ast.Function) ast.Expr {
 			expr1VarRef,
 		),
 	)
-}
-
-func desugarCoalesce(f *ast.Function) ast.Expr {
-	args := f.Arg.(*ast.Array)
-
-	branches := make([]ast.Expr, len(args.Elements))
-
-	for i, arg := range args.Elements {
-		branches[i] = ast.NewDocument(
-			ast.NewDocumentElement("case",
-				ast.NewBinary(ast.GreaterThan,
-					arg,
-					nullLiteral,
-				),
-			),
-			ast.NewDocumentElement("then", arg),
-		)
-	}
-
-	return ast.NewFunction("$switch", ast.NewDocument(
-		ast.NewDocumentElement("branches", ast.NewArray(branches...)),
-		ast.NewDocumentElement("default", nullLiteral),
-	))
 }
 
 func desugarLike(f *ast.Function) ast.Expr {

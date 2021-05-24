@@ -153,16 +153,18 @@
     ]
   },
   {
-    "name": "desugar $sqlSlice with no start argument",
+    "name": "desugar $sqlConvert",
     "input": [
       {
         "$project": {
           "_id": 0,
           "expr": {
-            "$sqlSlice": [
-              "$arr",
-              "$len"
-            ]
+            "$sqlConvert": {
+              "input": "$a",
+              "type": "array",
+              "onNull": null,
+              "onError": []
+            }
           }
         }
       }
@@ -172,52 +174,38 @@
         "$project": {
           "_id": 0,
           "expr": {
-            "$slice": [
-              "$arr",
-              "$len"
-            ]
-          }
-        }
-      }
-    ]
-  },
-  {
-    "name": "desugar $sqlSlice with start argument",
-    "input": [
-      {
-        "$project": {
-          "_id": 0,
-          "expr": {
-            "$sqlSlice": [
-              "$arr",
-              "$start",
-              "$len"
-            ]
-          }
-        }
-      }
-    ],
-    "expected": [
-      {
-        "$project": {
-          "_id": 0,
-          "expr": {
-            "$cond": [
-              {
-                "$lte": [
-                  "$start",
-                  0
-                ]
+            "$let": {
+              "vars": {
+                "sqlConvert_input": "$a"
               },
-              null,
-              {
-                "$slice": [
-                  "$arr",
-                  "$start",
-                  "$len"
-                ]
+              "in": {
+                "$switch": {
+                  "branches": [
+                    {
+                      "case": {
+                        "$eq": [
+                          {
+                            "$type": "$$sqlConvert_input"
+                          },
+                          "array"
+                        ]
+                      },
+                      "then": "$$sqlConvert_input"
+                    },
+                    {
+                      "case": {
+                        "$lte": [
+                          "$$sqlConvert_input",
+                          null
+                        ]
+                      },
+                      "then": null
+                    }
+                  ],
+                  "default": []
+                }
               }
-            ]
+            }
           }
         }
       }
@@ -306,15 +294,15 @@
     ]
   },
   {
-    "name": "desugar $nullIf",
+    "name": "desugar $sqlSlice with no start argument",
     "input": [
       {
         "$project": {
           "_id": 0,
           "expr": {
-            "$nullIf": [
-              "$a",
-              "$b"
+            "$sqlSlice": [
+              "$arr",
+              "$len"
             ]
           }
         }
@@ -325,28 +313,52 @@
         "$project": {
           "_id": 0,
           "expr": {
-            "$let": {
-              "vars": {
-                "expr1": {
-                  "$ifNull": [
-                    "$a",
-                    null
-                  ]
-                }
+            "$slice": [
+              "$arr",
+              "$len"
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlSlice with start argument",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlSlice": [
+              "$arr",
+              "$start",
+              "$len"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$cond": [
+              {
+                "$lte": [
+                  "$start",
+                  0
+                ]
               },
-              "in": {
-                "$cond": [
-                  {
-                    "$eq": [
-                      "$$expr1",
-                      "$b"
-                    ]
-                  },
-                  null,
-                  "$$expr1"
+              null,
+              {
+                "$slice": [
+                  "$arr",
+                  "$start",
+                  "$len"
                 ]
               }
-            }
+            ]
           }
         }
       }
@@ -465,6 +477,53 @@
               "input": "$s",
               "regex": "^a_._.*%$",
               "options": "is"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $nullIf",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$nullIf": [
+              "$a",
+              "$b"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "expr1": {
+                  "$ifNull": [
+                    "$a",
+                    null
+                  ]
+                }
+              },
+              "in": {
+                "$cond": [
+                  {
+                    "$eq": [
+                      "$$expr1",
+                      "$b"
+                    ]
+                  },
+                  null,
+                  "$$expr1"
+                ]
+              }
             }
           }
         }
