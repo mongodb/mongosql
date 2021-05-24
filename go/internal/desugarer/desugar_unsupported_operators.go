@@ -1,6 +1,8 @@
 package desugarer
 
 import (
+	"strings"
+
 	"github.com/10gen/mongoast/ast"
 )
 
@@ -12,7 +14,10 @@ var functionDesugarers = map[string]functionDesugarer{
 	"$sqlDivide":  desugarSQLDivide,
 	"$nullIf":     desugarNullIf,
 	"$coalesce":   desugarCoalesce,
+	"$like":       desugarLike,
 }
+
+const regexCharsToEscape = `.^$*+?()[{\|`
 
 // desugarUnsupportedOperators desugars any new operators ($sqlBetween,
 // $divide, $sqlSlice, $like, $assert, $nullIf, $coalesce) into appropriate,
@@ -129,4 +134,68 @@ func desugarCoalesce(f *ast.Function) ast.Expr {
 		ast.NewDocumentElement("branches", ast.NewArray(branches...)),
 		ast.NewDocumentElement("default", nullLiteral),
 	))
+}
+
+func desugarLike(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Document).FieldsMap()
+
+	input := args["input"]
+	pattern := args["pattern"]
+	escape, hasEscape := args["escape"]
+
+	patternLiteral, isLiteral := pattern.(*ast.Constant)
+	if !isLiteral {
+		panic("$like pattern must be literal")
+	}
+
+	var escapeChar rune
+	if hasEscape {
+		escapeChar = []rune(escape.(*ast.Constant).Value.StringValue())[0]
+	}
+
+	regex := convertSQLPattern(patternLiteral.Value.StringValue(), escapeChar)
+
+	return ast.NewFunction("$regexMatch", ast.NewDocument(
+		ast.NewDocumentElement("input", input),
+		ast.NewDocumentElement("regex", stringLiteral(regex)),
+		ast.NewDocumentElement("options", stringLiteral("is")),
+	))
+}
+
+// convertSQLPattern converts a SQL-style LIKE pattern string into an MQL-style
+// regular expression string.
+func convertSQLPattern(pattern string, escapeChar rune) string {
+	regex := "^"
+	escaped := false
+	for _, c := range pattern {
+		if !escaped && c == escapeChar {
+			escaped = true
+			continue
+		}
+
+		switch {
+		case c == '_':
+			if escaped {
+				regex += "_"
+			} else {
+				regex += "."
+			}
+		case c == '%':
+			if escaped {
+				regex += "%"
+			} else {
+				regex += ".*"
+			}
+		case strings.Contains(regexCharsToEscape, string(c)):
+			regex += `\` + string(c)
+		default:
+			regex += string(c)
+		}
+
+		escaped = false
+	}
+
+	regex += "$"
+
+	return regex
 }

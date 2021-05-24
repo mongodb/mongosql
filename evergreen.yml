@@ -267,6 +267,7 @@ functions:
 
   "upload go test results":
     - command: gotest.parse_files
+      type: test
       params:
         files:
           - mongosql-rs/go/go-test-results.txt

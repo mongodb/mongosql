@@ -409,5 +409,66 @@
         }
       }
     ]
+  },
+  {
+    "name": "desugar $like with no escape",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$like": {
+              "input": "$s",
+              "pattern": "abc"
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$regexMatch": {
+              "input": "$s",
+              "regex": "^abc$",
+              "options": "is"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $like with escape",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$like": {
+              "input": "$s",
+              "pattern": "a\\__\\_%\\%",
+              "escape": "\\"
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$regexMatch": {
+              "input": "$s",
+              "regex": "^a_._.*%$",
+              "options": "is"
+            }
+          }
+        }
+      }
+    ]
   }
 ]

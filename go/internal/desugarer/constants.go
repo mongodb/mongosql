@@ -41,3 +41,10 @@ var (
 		Data: bsoncore.AppendString(nil, "missing"),
 	})
 )
+
+func stringLiteral(s string) *ast.Constant {
+	return ast.NewConstant(bsoncore.Value{
+		Type: bsontype.String,
+		Data: bsoncore.AppendString(nil, s),
+	})
+}
