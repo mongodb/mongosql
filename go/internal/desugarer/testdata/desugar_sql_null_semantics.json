@@ -1051,5 +1051,343 @@
                 }
             }
         ]
+    },
+    {
+        "name": "desugar $sqlAnd",
+        "input": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "expr": {
+                        "$sqlAnd": [
+                            "$a",
+                            "$b"
+                        ]
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": {
+                        "$numberInt":"0"
+                    },
+                    "expr": {
+                        "$let": {
+                            "vars": {
+                                "desugared_sqlAnd_input0": "$a",
+                                "desugared_sqlAnd_input1": "$b"
+                            },
+                            "in": {
+                                "$cond": {
+                                    "if": {
+                                        "$or": [
+                                            {
+                                                "$eq": [
+                                                    "$$desugared_sqlAnd_input0",
+                                                    {
+                                                        "$literal": false
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "$eq": [
+                                                    "$$desugared_sqlAnd_input1",
+                                                    {
+                                                        "$literal": false
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "then": {
+                                        "$literal": false
+                                    },
+                                    "else": {
+                                        "$cond": {
+                                            "if": {
+                                                "$or": [
+                                                    {
+                                                        "$lte": [
+                                                            "$$desugared_sqlAnd_input0",
+                                                            {
+                                                                "$literal": null
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "$lte": [
+                                                            "$$desugared_sqlAnd_input1",
+                                                            {
+                                                                "$literal": null
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "then": {
+                                                "$literal": null
+                                            },
+                                            "else": {
+                                                "$literal": true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "desugar $sqlAnd with literal in input",
+        "input": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "expr": {
+                        "$sqlAnd": [
+                            "$a",
+                            false
+                        ]
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": {
+                        "$numberInt":"0"
+                    },
+                    "expr": {
+                        "$let": {
+                            "vars": {
+                                "desugared_sqlAnd_input0": "$a"
+                            },
+                            "in": {
+                                "$cond": {
+                                    "if": {
+                                        "$or": [
+                                            {
+                                                "$eq": [
+                                                    "$$desugared_sqlAnd_input0",
+                                                    {
+                                                        "$literal": false
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "$eq": [
+                                                    {
+                                                        "$literal": false
+                                                    },
+                                                    {
+                                                        "$literal": false
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "then": {
+                                        "$literal": false
+                                    },
+                                    "else": {
+                                        "$cond": {
+                                            "if": {
+                                                "$lte": [
+                                                    "$$desugared_sqlAnd_input0",
+                                                    {
+                                                        "$literal": null
+                                                    }
+                                                ]
+                                            },
+                                            "then": {
+                                                "$literal": null
+                                            },
+                                            "else": {
+                                                "$literal": true
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "desugar $sqlOr",
+        "input": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "expr": {
+                        "$sqlOr": [
+                            "$a",
+                            "$b"
+                        ]
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": {
+                        "$numberInt":"0"
+                    },
+                    "expr": {
+                        "$let": {
+                            "vars": {
+                                "desugared_sqlOr_input0": "$a",
+                                "desugared_sqlOr_input1": "$b"
+                            },
+                            "in": {
+                                "$cond": {
+                                    "if": {
+                                        "$or": [
+                                            {
+                                                "$eq": [
+                                                    "$$desugared_sqlOr_input0",
+                                                    {
+                                                        "$literal": true
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "$eq": [
+                                                    "$$desugared_sqlOr_input1",
+                                                    {
+                                                        "$literal": true
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "then": {
+                                        "$literal": true
+                                    },
+                                    "else": {
+                                        "$cond": {
+                                            "if": {
+                                                "$or": [
+                                                    {
+                                                        "$lte": [
+                                                            "$$desugared_sqlOr_input0",
+                                                            {
+                                                                "$literal": null
+                                                            }
+                                                        ]
+                                                    },
+                                                    {
+                                                        "$lte": [
+                                                            "$$desugared_sqlOr_input1",
+                                                            {
+                                                                "$literal": null
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            "then": {
+                                                "$literal": null
+                                            },
+                                            "else": {
+                                                "$literal": false
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]
+    },
+    {
+        "name": "desugar $sqlOr with literal in input",
+        "input": [
+            {
+                "$project": {
+                    "_id": 0,
+                    "expr": {
+                        "$sqlOr": [
+                            "$a",
+                            true
+                        ]
+                    }
+                }
+            }
+        ],
+        "expected": [
+            {
+                "$project": {
+                    "_id": {
+                        "$numberInt":"0"
+                    },
+                    "expr": {
+                        "$let": {
+                            "vars": {
+                                "desugared_sqlOr_input0": "$a"
+                            },
+                            "in": {
+                                "$cond": {
+                                    "if": {
+                                        "$or": [
+                                            {
+                                                "$eq": [
+                                                    "$$desugared_sqlOr_input0",
+                                                    {
+                                                        "$literal": true
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "$eq": [
+                                                    {
+                                                        "$literal": true
+                                                    },
+                                                    {
+                                                        "$literal": true
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    },
+                                    "then": {
+                                        "$literal": true
+                                    },
+                                    "else": {
+                                        "$cond": {
+                                            "if": {
+                                                "$lte": [
+                                                    "$$desugared_sqlOr_input0",
+                                                    {
+                                                        "$literal": null
+                                                    }
+                                                ]
+                                            },
+                                            "then": {
+                                                "$literal": null
+                                            },
+                                            "else": {
+                                                "$literal": false
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        ]
     }
 ]
