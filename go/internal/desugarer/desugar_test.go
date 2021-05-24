@@ -22,8 +22,13 @@ func TestDesugar(t *testing.T) {
 			desugarer: desugarJoins,
 		},
 		{
-			name: "desugarSubqueryExprs",
-			file: "desugar_subquery_expressions.json",
+			name:      "desugarAccumulators",
+			file:      "desugar_accumulators.json",
+			desugarer: desugarAccumulators,
+		},
+		{
+			name:      "desugarSubqueryExprs",
+			file:      "desugar_subquery_expressions.json",
 			desugarer: desugarSubqueryExprs,
 		},
 		{

@@ -16,6 +16,11 @@ var (
 		Data: bsoncore.AppendInt32(nil, 0),
 	})
 
+	oneLiteral = ast.NewConstant(bsoncore.Value{
+		Type: bsontype.Int32,
+		Data: bsoncore.AppendInt32(nil, 1),
+	})
+
 	trueLiteral = ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Boolean,
 		Data: bsoncore.AppendBoolean(nil, true),
@@ -24,5 +29,15 @@ var (
 	falseLiteral = ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Boolean,
 		Data: bsoncore.AppendBoolean(nil, false),
+	})
+
+	nullStringLiteral = ast.NewConstant(bsoncore.Value{
+		Type: bsontype.String,
+		Data: bsoncore.AppendString(nil, "null"),
+	})
+
+	missingStringLiteral = ast.NewConstant(bsoncore.Value{
+		Type: bsontype.String,
+		Data: bsoncore.AppendString(nil, "missing"),
 	})
 )
