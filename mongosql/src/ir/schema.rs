@@ -12,10 +12,18 @@ use thiserror::Error;
 pub enum Error {
     #[error("datasource {0:?} not found in schema environment")]
     DatasourceNotFoundInSchemaEnv(binding_tuple::Key),
-    #[error("incorrect argument count for {0}: expected {1}, found {2}")]
-    IncorrectArgumentCount(&'static str, usize, usize),
-    #[error("schema checking failed for {0}: required {1:?}, found {2:?}")]
-    SchemaChecking(&'static str, Schema, Schema),
+    #[error("incorrect argument count for {name}: required {required}, found {found}")]
+    IncorrectArgumentCount {
+        name: &'static str,
+        required: usize,
+        found: usize,
+    },
+    #[error("schema checking failed for {name}: required {required:?}, found {found:?}")]
+    SchemaChecking {
+        name: &'static str,
+        required: Schema,
+        found: Schema,
+    },
     #[error("cannot access field {0} because it does not exist")]
     AccessMissingField(String),
 }
@@ -157,11 +165,11 @@ impl Expression {
             Expression::FieldAccess(FieldAccess { expr, field }) => {
                 let accessee_schema = expr.schema(state)?;
                 if accessee_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
-                    return Err(Error::SchemaChecking(
-                        "FieldAccess",
-                        accessee_schema,
-                        ANY_DOCUMENT.clone(),
-                    ));
+                    return Err(Error::SchemaChecking {
+                        name: "FieldAccess",
+                        required: ANY_DOCUMENT.clone(),
+                        found: accessee_schema,
+                    });
                 }
                 if accessee_schema.contains_field(field) == Satisfaction::Not {
                     return Err(Error::AccessMissingField(field.clone()));
@@ -244,42 +252,212 @@ impl FunctionApplication {
 }
 
 impl Function {
-    // schema inference for the ComputedFieldAccess function.
-    pub fn computed_field_access_schema(arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        if arg_schemas.len() != 2 {
-            return Err(Error::IncorrectArgumentCount(
-                "ComputedFieldAccess",
-                2,
-                arg_schemas.len(),
-            ));
-        }
-        if arg_schemas[0].satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
-            return Err(Error::SchemaChecking(
-                "ComputedFieldAccess",
-                arg_schemas[0].clone(),
-                ANY_DOCUMENT.clone(),
-            ));
-        }
-        if arg_schemas[1].satisfies(&Schema::AnyOf(vec![
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Null),
-            Schema::Missing,
-        ])) == Satisfaction::Not
-        {
-            return Err(Error::SchemaChecking(
-                "ComputedFieldAccess",
-                arg_schemas[1].clone(),
-                Schema::Atomic(Atomic::String),
-            ));
-        }
-        Ok(Schema::Any)
-    }
-
     pub fn schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
         use Function::*;
         match self {
-            ComputedFieldAccess => Function::computed_field_access_schema(arg_schemas),
-            _ => unimplemented!(),
+            // String operators.
+            Concat => unimplemented!(),
+            Like => unimplemented!(),
+            // Unary arithmetic operators.
+            Pos | Neg => {
+                self.schema_check_fixed_args(
+                    arg_schemas,
+                    &[Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::Int),
+                        Schema::Atomic(Atomic::Long),
+                        Schema::Atomic(Atomic::Double),
+                        Schema::Atomic(Atomic::Decimal),
+                        Schema::Atomic(Atomic::Null),
+                        Schema::Missing,
+                    ])],
+                )?;
+                Ok(arg_schemas[0].clone())
+            }
+            // Arithmetic operators with variadic arguments.
+            Add | Mult => {
+                self.schema_check_variadic_args(
+                    arg_schemas,
+                    Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::Int),
+                        Schema::Atomic(Atomic::Long),
+                        Schema::Atomic(Atomic::Double),
+                        Schema::Atomic(Atomic::Decimal),
+                        Schema::Atomic(Atomic::Null),
+                        Schema::Missing,
+                    ]),
+                )?;
+                Ok(Function::get_arithmetic_schema(arg_schemas))
+            }
+            // Arithmetic operators with fixed (two) arguments.
+            Sub | Div => {
+                self.schema_check_fixed_args(
+                    arg_schemas,
+                    &[
+                        Schema::AnyOf(vec![
+                            Schema::Atomic(Atomic::Int),
+                            Schema::Atomic(Atomic::Long),
+                            Schema::Atomic(Atomic::Double),
+                            Schema::Atomic(Atomic::Decimal),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing,
+                        ]),
+                        Schema::AnyOf(vec![
+                            Schema::Atomic(Atomic::Int),
+                            Schema::Atomic(Atomic::Long),
+                            Schema::Atomic(Atomic::Double),
+                            Schema::Atomic(Atomic::Decimal),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing,
+                        ]),
+                    ],
+                )?;
+                Ok(Function::get_arithmetic_schema(arg_schemas))
+            }
+            // Comparison operators.
+            Lt => unimplemented!(),
+            Lte => unimplemented!(),
+            Ne => unimplemented!(),
+            Eq => unimplemented!(),
+            Gt => unimplemented!(),
+            Gte => unimplemented!(),
+            Between => unimplemented!(),
+            // Boolean operators.
+            Not => unimplemented!(),
+            And => unimplemented!(),
+            Or => unimplemented!(),
+            // Control-flow operator.
+            Case => unimplemented!(),
+            // Type operator.
+            Is => unimplemented!(),
+            // Computed Field Access operator when the field is not known until runtime.
+            ComputedFieldAccess => {
+                self.schema_check_fixed_args(
+                    arg_schemas,
+                    &[
+                        ANY_DOCUMENT.clone(),
+                        Schema::AnyOf(vec![
+                            Schema::Atomic(Atomic::String),
+                            Schema::Atomic(Atomic::Null),
+                            Schema::Missing,
+                        ]),
+                    ],
+                )?;
+                Ok(Schema::Any)
+            }
+            // Conditional scalar functions.
+            Nullif => unimplemented!(),
+            Coalesce => unimplemented!(),
+            // Type conversion scalar function.
+            Cast => unimplemented!(),
+            // Array scalar functions
+            Slice => unimplemented!(),
+            Size => unimplemented!(),
+            // Numeric value scalar functions.
+            Position => unimplemented!(),
+            CharLen => unimplemented!(),
+            OctetLen => unimplemented!(),
+            BitLen => unimplemented!(),
+            Extract => unimplemented!(),
+            // String value scalar functions.
+            Substring => unimplemented!(),
+            Upper => unimplemented!(),
+            Lower => unimplemented!(),
+            Trim => unimplemented!(),
+            // Datetime value scalar functions.
+            CurrentTimestamp => unimplemented!(),
         }
+    }
+
+    /// Checks a function's argument count and its arguments' types against the required schemas.
+    /// Used for functions with a fixed (predetermined) number of arguments.
+    ///
+    /// Since the argument count is fixed, the vector of required schemas must correspond 1-to-1
+    /// with the array of argument schemas.
+    fn schema_check_fixed_args(
+        &self,
+        arg_schemas: &[Schema],
+        required_schemas: &[Schema],
+    ) -> Result<(), Error> {
+        if arg_schemas.len() != required_schemas.len() {
+            return Err(Error::IncorrectArgumentCount {
+                name: self.as_str(),
+                required: required_schemas.len(),
+                found: arg_schemas.len(),
+            });
+        }
+        for (i, arg) in arg_schemas.iter().enumerate() {
+            if arg.satisfies(&required_schemas[i]) != Satisfaction::Must {
+                return Err(Error::SchemaChecking {
+                    name: self.as_str(),
+                    required: required_schemas[i].clone(),
+                    found: arg.clone(),
+                });
+            }
+        }
+        Ok(())
+    }
+
+    /// Checks a function's arguments' types against the required schema.
+    /// Used for functions with a variadic number of arguments.
+    ///
+    /// Since the argument count can vary, the required schema is a single
+    /// value that's compared against each of the arguments.
+    fn schema_check_variadic_args(
+        &self,
+        arg_schemas: &[Schema],
+        required_schema: Schema,
+    ) -> Result<(), Error> {
+        self.schema_check_fixed_args(
+            arg_schemas,
+            &std::iter::repeat(required_schema)
+                .take(arg_schemas.len())
+                .collect::<Vec<Schema>>(),
+        )
+    }
+
+    /// Returns the schema type for an arithmetic (Add, Sub, Mult, Div)
+    /// function in accordance with the following table:
+    /// +-------------------------+-------------------+---------+
+    /// |    Type of Operand 1    | Type of Operand 2 | Result  |
+    /// +-------------------------+-------------------+---------+
+    /// | INT                     | INT               | INT     |
+    /// | INT or LONG             | LONG              | LONG    |
+    /// | Any numeric non-DECIMAL | DOUBLE            | DOUBLE  |
+    /// | Any numeric             | DECIMAL           | DECIMAL |
+    /// +-------------------------+-------------------+---------+
+    ///
+    /// For `Add` and `Mult` which have variadic arguments:
+    /// - If no operand is provided, return an integer type.
+    /// - If one operand is provided, return the type of that operand.
+    /// - Otherwise operands op1, op2, ..., opN are reduced in a
+    ///   pairwise fashion, with the order of priority from
+    ///   'largest' to 'smallest' being:
+    ///
+    ///    null | missing > decimal > double > long > int
+    ///
+    /// The provided `arg_schemas` must have passed schema checking prior.
+    fn get_arithmetic_schema(arg_schemas: &[Schema]) -> Schema {
+        const NULL: &Schema = &Schema::Atomic(Atomic::Null);
+        const MISSING: &Schema = &Schema::Missing;
+        const DECIMAL: &Schema = &Schema::Atomic(Atomic::Decimal);
+        const DOUBLE: &Schema = &Schema::Atomic(Atomic::Double);
+        const LONG: &Schema = &Schema::Atomic(Atomic::Long);
+        const INTEGER: &Schema = &Schema::Atomic(Atomic::Int);
+
+        arg_schemas
+            .iter()
+            .reduce(|op1, op2| match (op1, op2) {
+                (NULL, _) | (_, NULL) | (MISSING, _) | (_, MISSING) => NULL,
+                (DECIMAL, _) | (_, DECIMAL) => DECIMAL,
+                (DOUBLE, _) | (_, DOUBLE) => DOUBLE,
+                (LONG, _) | (_, LONG) => LONG,
+                (INTEGER, _) | (_, INTEGER) => INTEGER,
+                (l, r) => unreachable!(
+                    "argument schemas {:?} and {:?} should be disallowed by schema checking",
+                    l, r
+                ),
+            })
+            .unwrap_or(INTEGER)
+            .clone()
     }
 }

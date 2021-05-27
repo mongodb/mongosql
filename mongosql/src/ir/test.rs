@@ -188,11 +188,11 @@ mod schema {
     // FieldAccess
     test_schema!(
         field_access_accessee_cannot_be_document,
-        Err(Error::SchemaChecking(
-            "FieldAccess",
-            Schema::Atomic(Atomic::Long),
-            crate::schema::ANY_DOCUMENT.clone(),
-        )),
+        Err(Error::SchemaChecking {
+            name: "FieldAccess",
+            required: crate::schema::ANY_DOCUMENT.clone(),
+            found: Schema::Atomic(Atomic::Long),
+        }),
         Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Literal(Literal::Long(1))),
             field: "foo".to_string(),
@@ -299,10 +299,282 @@ mod schema {
         })},
     );
 
+    // General function schema checking.
+    test_schema!(
+        arg_may_satisfy_schema_is_not_sufficient,
+        Err(Error::SchemaChecking {
+            name: "Pos",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::String),
+            ]),
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Pos,
+            args: vec![Expression::Reference(("bar", 0u16).into())],
+        }),
+        hash_map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::String),
+        ])},
+    );
+
+    // Unary functions.
+    test_schema!(
+        unary_pos,
+        Ok(Schema::Atomic(Atomic::Int)),
+        Expression::Function(FunctionApplication {
+            function: Function::Pos,
+            args: vec![Expression::Literal(Literal::Integer(1))],
+        }),
+    );
+    test_schema!(
+        unary_neg,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Expression::Function(FunctionApplication {
+            function: Function::Pos,
+            args: vec![Expression::Literal(Literal::Double(1.0))],
+        }),
+    );
+    test_schema!(
+        unary_pos_requires_one_arg,
+        Err(Error::IncorrectArgumentCount {
+            name: "Pos",
+            required: 1,
+            found: 0
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Pos,
+            args: vec![],
+        }),
+    );
+    test_schema!(
+        unary_neg_requires_one_arg,
+        Err(Error::IncorrectArgumentCount {
+            name: "Neg",
+            required: 1,
+            found: 2
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Neg,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2))
+            ],
+        }),
+    );
+
+    // Arithmetic function type correctness.
+    test_schema!(
+        variadic_arg_arithmetic_no_args_returns_integer,
+        Ok(Schema::Atomic(Atomic::Int)),
+        Expression::Function(FunctionApplication {
+            function: Function::Add,
+            args: vec![],
+        }),
+    );
+    test_schema!(
+        variadic_arg_arithmetic_one_arg_returns_that_type,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Expression::Function(FunctionApplication {
+            function: Function::Mult,
+            args: vec![Expression::Literal(Literal::Double(1.0))],
+        }),
+    );
+    test_schema!(
+        arithmetic_null_takes_priority,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::Function(FunctionApplication {
+            function: Function::Mult,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Null),
+                Expression::Literal(Literal::Double(2.0)),
+                Expression::Literal(Literal::Long(3))
+            ],
+        }),
+    );
+    test_schema!(
+        arithmetic_missing_takes_priority_as_null_result,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::Function(FunctionApplication {
+            function: Function::Mult,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Double(2.0)),
+                Expression::Literal(Literal::Long(3)),
+                Expression::Reference(("bar", 0u16).into())
+            ],
+        }),
+        hash_map! {("bar", 0u16).into() => Schema::Missing},
+    );
+    //
+    // TODO: Add this decimal arithmetic test as part of SQL-344.
+    //
+    // test_schema!(
+    //     arithmetic_decimal_takes_priority,
+    //     Ok(Schema::Atomic(Atomic::Decimal)),
+    //     Expression::Function(FunctionApplication {
+    //         function: Function::Add,
+    //         args: vec![
+    //             Expression::Literal(Literal::Integer(1)),
+    //             // < Cast or TypeAssert to decimal value here >
+    //             Expression::Literal(Literal::Long(2)),
+    //             Expression::Literal(Literal::Double(3.0))
+    //         ],
+    //     }),
+    // );
+    test_schema!(
+        arithmetic_double_takes_priority,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Expression::Function(FunctionApplication {
+            function: Function::Mult,
+            args: vec![
+                Expression::Literal(Literal::Double(1.0)),
+                Expression::Literal(Literal::Integer(2)),
+                Expression::Literal(Literal::Long(3))
+            ],
+        }),
+    );
+    test_schema!(
+        arithmetic_long_takes_priority,
+        Ok(Schema::Atomic(Atomic::Long)),
+        Expression::Function(FunctionApplication {
+            function: Function::Add,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Long(2)),
+                Expression::Literal(Literal::Integer(3))
+            ],
+        }),
+    );
+    test_schema!(
+        arithmetic_integer_takes_priority,
+        Ok(Schema::Atomic(Atomic::Int)),
+        Expression::Function(FunctionApplication {
+            function: Function::Mult,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2))
+            ],
+        }),
+    );
+
+    // Arithmetic function errors.
+    test_schema!(
+        sub_requires_exactly_two_args,
+        Err(Error::IncorrectArgumentCount {
+            name: "Sub",
+            required: 2,
+            found: 1
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Sub,
+            args: vec![Expression::Literal(Literal::Integer(1))],
+        }),
+    );
+    test_schema!(
+        div_requires_exactly_two_args,
+        Err(Error::IncorrectArgumentCount {
+            name: "Div",
+            required: 2,
+            found: 3
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Div,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2)),
+                Expression::Literal(Literal::Integer(3))
+            ],
+        }),
+    );
+    test_schema!(
+        fixed_arg_arithmetic_first_arg_must_be_number,
+        Err(Error::SchemaChecking {
+            name: "Sub",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Sub,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(2)),
+            ],
+        }),
+    );
+    test_schema!(
+        fixed_arg_arithmetic_second_arg_must_be_number,
+        Err(Error::SchemaChecking {
+            name: "Div",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::Boolean),
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Div,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Boolean(true)),
+            ],
+        }),
+    );
+    test_schema!(
+        variadic_arg_arithmetic_all_args_must_be_numbers,
+        Err(Error::SchemaChecking {
+            name: "Add",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::Boolean),
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::Add,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2)),
+                Expression::Literal(Literal::Integer(3)),
+                Expression::Literal(Literal::Boolean(true)),
+                Expression::Literal(Literal::Integer(4)),
+            ]
+        }),
+    );
+
     // ComputedFieldAccess Function
     test_schema!(
         computed_field_access_requires_two_args,
-        Err(Error::IncorrectArgumentCount("ComputedFieldAccess", 2, 3)),
+        Err(Error::IncorrectArgumentCount {
+            name: "ComputedFieldAccess",
+            required: 2,
+            found: 3
+        }),
         Expression::Function(FunctionApplication {
             function: Function::ComputedFieldAccess,
             args: vec![
@@ -314,11 +586,11 @@ mod schema {
     );
     test_schema!(
         computed_field_access_first_arg_must_not_be_document,
-        Err(Error::SchemaChecking(
-            "ComputedFieldAccess",
-            Schema::Atomic(Atomic::Long),
-            crate::schema::ANY_DOCUMENT.clone(),
-        )),
+        Err(Error::SchemaChecking {
+            name: "ComputedFieldAccess",
+            required: crate::schema::ANY_DOCUMENT.clone(),
+            found: Schema::Atomic(Atomic::Long),
+        }),
         Expression::Function(FunctionApplication {
             function: Function::ComputedFieldAccess,
             args: vec![
@@ -329,11 +601,15 @@ mod schema {
     );
     test_schema!(
         computed_field_access_second_arg_must_not_be_string,
-        Err(Error::SchemaChecking(
-            "ComputedFieldAccess",
-            Schema::Atomic(Atomic::Long),
-            Schema::Atomic(Atomic::String),
-        )),
+        Err(Error::SchemaChecking {
+            name: "ComputedFieldAccess",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::String),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::Long),
+        }),
         Expression::Function(FunctionApplication {
             function: Function::ComputedFieldAccess,
             args: vec![

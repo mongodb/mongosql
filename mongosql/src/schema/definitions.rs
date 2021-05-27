@@ -164,13 +164,9 @@ impl Schema {
         use Satisfaction::*;
         use Schema::*;
         match (self, &other) {
-            // other is Any | Missing
+            // other is Any or self is Any
             (_, Any) => Must,
-            (Missing, Missing) => Must,
-
-            // self is Any | Missing
             (Any, _) => May,
-            (Missing, _) => Not,
 
             // self is AnyOf or OneOf
             (AnyOf(self_vs), other_s) => {
@@ -191,6 +187,10 @@ impl Schema {
 
             (Document(self_d), Document(other_d)) => self_d.satisfies(&other_d),
             (Document(_), _) => Not,
+
+            // self is Missing
+            (Missing, Missing) => Must,
+            (Missing, _) => Not,
         }
     }
 

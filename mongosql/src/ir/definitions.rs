@@ -172,6 +172,10 @@ pub enum Function {
     Concat,
     Like,
 
+    // Unary arithmetic operators
+    Pos,
+    Neg,
+
     // Arithmetic operators
     Add,
     Sub,
@@ -228,6 +232,50 @@ pub enum Function {
 
     // Datetime value scalar functions
     CurrentTimestamp,
+}
+
+impl Function {
+    /// Returns a string of the function enum.
+    pub(crate) fn as_str(&self) -> &'static str {
+        match self {
+            Function::Add => "Add",
+            Function::And => "And",
+            Function::Between => "Between",
+            Function::BitLen => "BitLen",
+            Function::Case => "Case",
+            Function::Cast => "Cast",
+            Function::CharLen => "CharLen",
+            Function::Coalesce => "Coalesce",
+            Function::ComputedFieldAccess => "ComputedFieldAccess",
+            Function::Concat => "Concat",
+            Function::CurrentTimestamp => "CurrentTimestamp",
+            Function::Div => "Div",
+            Function::Eq => "Eq",
+            Function::Extract => "Extract",
+            Function::Gt => "Gt",
+            Function::Gte => "Gte",
+            Function::Is => "Is",
+            Function::Like => "Like",
+            Function::Lower => "Lower",
+            Function::Lt => "Lt",
+            Function::Lte => "Lte",
+            Function::Mult => "Mult",
+            Function::Ne => "Ne",
+            Function::Neg => "Neg",
+            Function::Not => "Not",
+            Function::Nullif => "Nullif",
+            Function::OctetLen => "OctetLen",
+            Function::Or => "Or",
+            Function::Pos => "Pos",
+            Function::Position => "Position",
+            Function::Size => "Size",
+            Function::Slice => "Slice",
+            Function::Sub => "Sub",
+            Function::Substring => "Substring",
+            Function::Trim => "Trim",
+            Function::Upper => "Upper",
+        }
+    }
 }
 
 #[allow(dead_code)]

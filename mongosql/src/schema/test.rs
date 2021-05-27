@@ -20,6 +20,12 @@ test_satisfies!(
     Missing
 );
 test_satisfies!(
+    satisfies_missing_must_satisfy_any_of,
+    Must,
+    Missing,
+    AnyOf(vec![Missing])
+);
+test_satisfies!(
     satisfies_one_of_missing_may_satisfy_missing,
     May,
     OneOf(vec![Atomic(String), Missing, Atomic(Int)]),
