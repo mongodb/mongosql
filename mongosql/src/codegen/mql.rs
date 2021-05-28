@@ -274,6 +274,8 @@ impl MqlCodeGenerator {
                 })
             }
             Function(_) => unimplemented!(),
+            Cast(_) => unimplemented!(),
+            TypeAssertion(_) => unimplemented!(),
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),
             Exists(_) => unimplemented!(),

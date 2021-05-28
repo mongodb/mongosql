@@ -177,6 +177,8 @@ impl Expression {
                 Ok(Expression::get_field_schema(&accessee_schema, &field))
             }
             Expression::Function(f) => f.schema(state),
+            Expression::Cast(c) => c.schema(state),
+            Expression::TypeAssertion(t) => t.schema(state),
             Expression::SubqueryExpression(_) => unimplemented!(),
             Expression::SubqueryComparison(_) => unimplemented!(),
             Expression::Exists(_) => unimplemented!(),
@@ -347,8 +349,6 @@ impl Function {
             // Conditional scalar functions.
             Nullif => unimplemented!(),
             Coalesce => unimplemented!(),
-            // Type conversion scalar function.
-            Cast => unimplemented!(),
             // Array scalar functions
             Slice => unimplemented!(),
             Size => unimplemented!(),
@@ -459,5 +459,57 @@ impl Function {
             })
             .unwrap_or(INTEGER)
             .clone()
+    }
+}
+
+impl CastExpression {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        // The schemas of the original expression and the type being casted to.
+        let expr_schema = self.expr.schema(state)?;
+        let type_schema = Schema::from(self.to);
+
+        // The schemas of the `on_null` and `on_error` fields as set during algebrization.
+        let on_null_schema = self.on_null.schema(state)?;
+        let on_error_schema = self.on_error.schema(state)?;
+
+        // If the original expression is definitely null or missing, return the `on_null` schema.
+        if expr_schema.satisfies(&Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing,
+        ])) == Satisfaction::Must
+        {
+            return Ok(on_null_schema);
+        }
+
+        // If the original expression is being cast to its own type, return that type.
+        if expr_schema.satisfies(&type_schema) == Satisfaction::Must {
+            return Ok(type_schema);
+        }
+
+        Ok(Schema::AnyOf(vec![
+            type_schema,
+            on_null_schema,
+            on_error_schema,
+        ]))
+    }
+}
+
+impl TypeAssertionExpression {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        // The schemas of the original expression and the type being asserted to.
+        let expr_schema = self.expr.schema(state)?;
+        let target_schema = Schema::from(self.target_type);
+
+        // Return an error if the target type is not one of the
+        // original expression's possible types.
+        if expr_schema.satisfies(&target_schema) == Satisfaction::Not {
+            return Err(Error::SchemaChecking {
+                name: "::!",
+                required: target_schema,
+                found: expr_schema,
+            });
+        }
+
+        Ok(target_schema)
     }
 }

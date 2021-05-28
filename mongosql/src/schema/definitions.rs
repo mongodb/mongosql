@@ -1,4 +1,7 @@
-use crate::{ir::binding_tuple::BindingTuple, map, set};
+use crate::{
+    ir::{binding_tuple::BindingTuple, Type},
+    map, set,
+};
 use lazy_static::lazy_static;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -202,6 +205,35 @@ impl Schema {
             required: set![field.to_string()],
             additional_properties: true,
         }))
+    }
+}
+
+impl From<Type> for Schema {
+    fn from(t: Type) -> Self {
+        use Type::*;
+        match t {
+            Array => ANY_ARRAY.clone(),
+            BinData => Schema::Atomic(Atomic::BinData),
+            Boolean => Schema::Atomic(Atomic::Boolean),
+            Datetime => Schema::Atomic(Atomic::Date),
+            DbPointer => Schema::Atomic(Atomic::DbPointer),
+            Decimal128 => Schema::Atomic(Atomic::Decimal),
+            Document => ANY_DOCUMENT.clone(),
+            Double => Schema::Atomic(Atomic::Double),
+            Int32 => Schema::Atomic(Atomic::Int),
+            Int64 => Schema::Atomic(Atomic::Long),
+            Javascript => Schema::Atomic(Atomic::Javascript),
+            JavascriptWithScope => Schema::Atomic(Atomic::JavascriptWithScope),
+            MaxKey => Schema::Atomic(Atomic::MaxKey),
+            MinKey => Schema::Atomic(Atomic::MinKey),
+            Null => Schema::Atomic(Atomic::Null),
+            ObjectId => Schema::Atomic(Atomic::ObjectId),
+            RegularExpression => Schema::Atomic(Atomic::Regex),
+            String => Schema::Atomic(Atomic::String),
+            Symbol => Schema::Atomic(Atomic::Symbol),
+            Timestamp => Schema::Atomic(Atomic::Timestamp),
+            Undefined => Schema::Atomic(Atomic::Null),
+        }
     }
 }
 

@@ -310,7 +310,7 @@ mod schema {
             function: Function::Pos,
             args: vec![Expression::Reference(("bar", 0u16).into())],
         }),
-        hash_map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
             Schema::Atomic(Atomic::Int),
             Schema::Atomic(Atomic::String),
         ])},
@@ -403,7 +403,7 @@ mod schema {
                 Expression::Reference(("bar", 0u16).into())
             ],
         }),
-        hash_map! {("bar", 0u16).into() => Schema::Missing},
+        map! {("bar", 0u16).into() => Schema::Missing},
     );
     //
     // TODO: Add this decimal arithmetic test as part of SQL-344.
@@ -664,6 +664,158 @@ mod schema {
                 ("bar3", 0u16).into() =>
                     Expression::Reference(("foo", 0u16).into()),
             }
+        }),
+    );
+
+    // Cast.
+    test_schema!(
+        cast_expr_to_same_type,
+        Ok(Schema::Atomic(Atomic::Int)),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            to: Type::Int32,
+            on_null: Box::new(Expression::Literal(Literal::Null)),
+            on_error: Box::new(Expression::Literal(Literal::Null)),
+        }),
+    );
+    test_schema!(
+        cast_expr_to_other_type,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            to: Type::Double,
+            on_null: Box::new(Expression::Literal(Literal::Null)),
+            on_error: Box::new(Expression::Literal(Literal::Null)),
+        }),
+    );
+    test_schema!(
+        cast_expr_to_other_type_with_on_null_and_on_error_set,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Boolean),
+        ])),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            to: Type::Double,
+            on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
+            on_error: Box::new(Expression::Literal(Literal::Boolean(true))),
+        }),
+    );
+    test_schema!(
+        cast_multi_type_expr_to_possible_type,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Boolean),
+        ])),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            to: Type::Double,
+            on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
+            on_error: Box::new(Expression::Literal(Literal::Boolean(true))),
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Double),
+        ])},
+    );
+    test_schema!(
+        cast_multi_type_expr_to_impossible_type,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Boolean),
+        ])),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            to: Type::String,
+            on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
+            on_error: Box::new(Expression::Literal(Literal::Boolean(true))),
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Double),
+        ])},
+    );
+    test_schema!(
+        cast_null_expr_to_type,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Literal(Literal::Null)),
+            to: Type::Int32,
+            on_null: Box::new(Expression::Literal(Literal::Null)),
+            on_error: Box::new(Expression::Literal(Literal::Null)),
+        }),
+    );
+    test_schema!(
+        cast_null_expr_to_type_with_on_null_set,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Literal(Literal::Null)),
+            to: Type::Int32,
+            on_null: Box::new(Expression::Literal(Literal::Double(1.0))),
+            on_error: Box::new(Expression::Literal(Literal::Null)),
+        }),
+    );
+    test_schema!(
+        cast_missing_expr_to_type,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            to: Type::Int32,
+            on_null: Box::new(Expression::Literal(Literal::Null)),
+            on_error: Box::new(Expression::Literal(Literal::Null)),
+        }),
+        map! {("bar", 0u16).into() => Schema::Missing},
+    );
+    test_schema!(
+        cast_missing_expr_to_type_with_on_null_set,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Expression::Cast(CastExpression {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            to: Type::Int32,
+            on_null: Box::new(Expression::Literal(Literal::Double(1.0))),
+            on_error: Box::new(Expression::Literal(Literal::Null)),
+        }),
+        map! {("bar", 0u16).into() => Schema::Missing},
+    );
+
+    // TypeAssert.
+    test_schema!(
+        assert_expr_to_same_type,
+        Ok(Schema::Atomic(Atomic::Int)),
+        Expression::TypeAssertion(TypeAssertionExpression {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            target_type: Type::Int32,
+        }),
+    );
+    test_schema!(
+        assert_multi_type_expr_to_possible_type,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Expression::TypeAssertion(TypeAssertionExpression {
+            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+            target_type: Type::Double,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Double),
+        ])},
+    );
+    test_schema!(
+        assert_expr_to_impossible_type,
+        Err(Error::SchemaChecking {
+            name: "::!",
+            required: Schema::Atomic(Atomic::String),
+            found: Schema::Atomic(Atomic::Int),
+        }),
+        Expression::TypeAssertion(TypeAssertionExpression {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            target_type: Type::String,
         }),
     );
 }

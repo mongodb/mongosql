@@ -134,6 +134,8 @@ pub enum Expression {
     Array(Vec<Expression>),
     Document(LinkedHashMap<String, Expression>),
     Function(FunctionApplication),
+    Cast(CastExpression),
+    TypeAssertion(TypeAssertionExpression),
     FieldAccess(FieldAccess),
     SubqueryExpression(SubqueryExpression),
     SubqueryComparison(SubqueryComparison),
@@ -210,9 +212,6 @@ pub enum Function {
     Nullif,
     Coalesce,
 
-    // Type conversion scalar function
-    Cast,
-
     // Array scalar functions
     Slice,
     Size,
@@ -243,7 +242,6 @@ impl Function {
             Function::Between => "Between",
             Function::BitLen => "BitLen",
             Function::Case => "Case",
-            Function::Cast => "Cast",
             Function::CharLen => "CharLen",
             Function::Coalesce => "Coalesce",
             Function::ComputedFieldAccess => "ComputedFieldAccess",
@@ -276,6 +274,48 @@ impl Function {
             Function::Upper => "Upper",
         }
     }
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone)]
+pub struct CastExpression {
+    pub expr: Box<Expression>,
+    pub to: Type,
+    pub on_null: Box<Expression>,
+    pub on_error: Box<Expression>,
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone)]
+pub struct TypeAssertionExpression {
+    pub expr: Box<Expression>,
+    pub target_type: Type,
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum Type {
+    Array,
+    BinData,
+    Boolean,
+    Datetime,
+    DbPointer,
+    Decimal128,
+    Document,
+    Double,
+    Int32,
+    Int64,
+    Javascript,
+    JavascriptWithScope,
+    MaxKey,
+    MinKey,
+    Null,
+    ObjectId,
+    RegularExpression,
+    String,
+    Symbol,
+    Timestamp,
+    Undefined,
 }
 
 #[allow(dead_code)]
