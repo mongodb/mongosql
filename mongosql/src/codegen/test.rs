@@ -119,6 +119,132 @@ mod array_stage {
     );
 }
 
+mod project {
+    use crate::{
+        ir::{
+            binding_tuple::{DatasourceName, Key},
+            *,
+        },
+        map,
+    };
+
+    test_codegen_plan!(
+        simple,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$project": {"_id": 0, "a": {"$literal": 1}, "b": {"$literal": 2}, "c": {"$literal": 3}}},
+            ],
+        }),
+        Stage::Project(Project {
+            expression: map! {
+                ("a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
+                ("b", 0u16).into() => Expression::Literal(Literal::Integer(2)),
+                ("c", 0u16).into() => Expression::Literal(Literal::Integer(3)),
+            },
+            source: Stage::Array(Array {
+                exprs: vec![Expression::Document(map!{})],
+                alias: "arr".to_string(),
+            }).into(),
+        }),
+    );
+
+    test_codegen_plan!(
+        empty,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$project": {"_id": 0}},
+            ],
+        }),
+        Stage::Project(Project {
+            expression: map! {},
+            source: Stage::Array(Array {
+                exprs: vec![Expression::Document(map!{})],
+                alias: "arr".to_string(),
+            }).into(),
+        }),
+    );
+
+    test_codegen_plan!(
+        source_bindings_available_in_project,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$project": {"_id": 0, "foo": "$arr"}},
+            ],
+        }),
+        Stage::Project(Project {
+            expression: map! {
+                ("foo", 0u16).into() => Expression::Reference(("arr", 0u16).into()),
+            },
+            source: Stage::Array(Array {
+                exprs: vec![Expression::Document(map!{})],
+                alias: "arr".to_string(),
+            }).into(),
+        }),
+    );
+
+    test_codegen_plan!(
+        user_defined_id_projection,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$project": {"_id": {"$literal": 42.0}, "foo": {"$literal": 44.0}}},
+            ],
+        }),
+        Stage::Project(Project {
+            expression: map! {
+                ("_id", 0u16).into() => Expression::Literal(Literal::Double(42.0)),
+                ("foo", 0u16).into() => Expression::Literal(Literal::Double(44.0)),
+            },
+            source: Stage::Array(Array {
+                exprs: vec![Expression::Document(map!{})],
+                alias: "arr".to_string(),
+            }).into(),
+        }),
+    );
+
+    test_codegen_plan!(
+        user_bot_conflict,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$array": {"__bot": [{"a": {"$literal": 42}}]}},
+                bson::doc!{"$project": {
+                    "_id": 0,
+                    "____bot": "$__bot",
+                    // reordered by BTreeMap
+                    "_____bot": {"$literal": 45.0},
+                    "___bot": {"$literal": 44.0},
+                    "__bot": {"$literal": 43.0},
+                }},
+            ],
+        }),
+        Stage::Project(Project {
+            expression: map! {
+                Key{ datasource: DatasourceName::Bottom, scope: 0u16 } => Expression::Reference(("__bot", 0u16).into()),
+                ("__bot", 0u16).into() => Expression::Literal(Literal::Double(43.0)),
+                ("___bot", 0u16).into() => Expression::Literal(Literal::Double(44.0)),
+                ("_____bot", 0u16).into() => Expression::Literal(Literal::Double(45.0)),
+            },
+            source: Stage::Array(Array {
+                exprs: vec![Expression::Document(map!{"a".into() => Expression::Literal(Literal::Integer(42))})],
+                alias: "__bot".to_string(),
+            }).into(),
+        }),
+    );
+}
+
 mod filter {
     use crate::ir::*;
 

@@ -1,12 +1,12 @@
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-pub type BindingTuple<T> = HashMap<Key, T>;
+pub type BindingTuple<T> = BTreeMap<Key, T>;
 
 #[allow(dead_code)]
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, PartialOrd, Ord, Debug, Clone)]
 pub struct Key {
-    datasource: DatasourceName,
-    scope: u16,
+    pub datasource: DatasourceName,
+    pub scope: u16,
 }
 
 impl<D, S> From<(D, S)> for Key
@@ -24,7 +24,7 @@ where
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, PartialOrd, Ord, Debug, Clone)]
 pub enum DatasourceName {
     Bottom,
     Named(String),

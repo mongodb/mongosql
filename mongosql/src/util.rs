@@ -8,3 +8,15 @@ macro_rules! map {
 		]))
 	};
 }
+
+#[macro_export]
+
+macro_rules! set {
+	($($val:expr),* $(,)?) => {
+		std::iter::Iterator::collect(std::array::IntoIter::new([
+			$({
+				($val)
+			},)*
+		]))
+	};
+}

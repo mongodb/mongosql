@@ -1,5 +1,4 @@
-use crate::ir::binding_tuple::BindingTuple;
-use common_macros::{b_tree_map, b_tree_set};
+use crate::{ir::binding_tuple::BindingTuple, map, set};
 use lazy_static::lazy_static;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -197,10 +196,10 @@ impl Schema {
     /// returns if this Schema Must, May, or must Not contain the passed field.
     pub fn contains_field(&self, field: &str) -> Satisfaction {
         self.satisfies(&Schema::Document(Document {
-            keys: b_tree_map! {
+            keys: map! {
                 field.to_string() => Schema::Any
             },
-            required: b_tree_set![field.to_string()],
+            required: set![field.to_string()],
             additional_properties: true,
         }))
     }

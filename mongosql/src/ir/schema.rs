@@ -1,8 +1,8 @@
 use crate::{
     ir::*,
+    map,
     schema::{Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT},
 };
-use common_macros::hash_map;
 use linked_hash_map::LinkedHashMap;
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
@@ -86,7 +86,7 @@ impl Stage {
             Stage::Offset(_) => unimplemented!(),
             Stage::Sort(_) => unimplemented!(),
             Stage::Collection(c) => Ok(ResultSet {
-                schema: hash_map! {
+                schema: map! {
                     (c.collection.clone(), state.scope_level).into() => Schema::Any,
                 },
                 min_size: None,

@@ -15,7 +15,7 @@ macro_rules! test_algebrize {
 }
 
 mod from_clause {
-    use common_macros::hash_map;
+    use crate::map;
 
     test_algebrize!(
         collection_must_have_alias,
@@ -35,7 +35,7 @@ mod from_clause {
                 db: "test".into(),
                 collection: "foo".into(),
             })),
-            expression: hash_map! {
+            expression: map! {
                 ("bar", 0u16).into() =>
                     ir::Expression::Reference(("foo", 0u16).into())
             }
@@ -54,7 +54,7 @@ mod from_clause {
                 db: "test2".into(),
                 collection: "foo".into(),
             })),
-            expression: hash_map! {
+            expression: map! {
                 ("bar", 0u16).into() =>
                     ir::Expression::Reference(("foo", 0u16).into())
             }

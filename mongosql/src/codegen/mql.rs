@@ -1,6 +1,9 @@
 use crate::{
     codegen::{Error, Result},
-    ir::{self, binding_tuple::Key},
+    ir::{
+        self,
+        binding_tuple::{BindingTuple, DatasourceName, Key},
+    },
 };
 use std::collections::HashMap;
 
@@ -10,6 +13,10 @@ pub struct MappingRegistry(HashMap<Key, String>);
 impl MappingRegistry {
     pub fn new() -> Self {
         MappingRegistry(HashMap::new())
+    }
+
+    pub fn get(&self, k: &Key) -> Option<&String> {
+        self.0.get(k)
     }
 
     pub fn insert<K: Into<Key>, V: Into<String>>(&mut self, k: K, v: V) -> Option<String> {
@@ -52,6 +59,13 @@ impl MqlTranslation {
         self.pipeline.push(stage);
         self
     }
+
+    fn with_mapping_registry(self, mapping_registry: MappingRegistry) -> Self {
+        MqlTranslation {
+            mapping_registry,
+            ..self
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -60,6 +74,27 @@ pub struct MqlCodeGenerator {
 }
 
 impl MqlCodeGenerator {
+    fn get_unique_bot_name(project_names: &BindingTuple<ir::Expression>) -> String {
+        let mut ret = "__bot".to_string();
+        if project_names.is_empty() {
+            return ret;
+        }
+        // find the current scope, if it is not the same in all keys in this
+        // Project expression, it is because of an Algebrization error.
+        let current_scope = project_names.keys().next().unwrap().scope;
+        while project_names.contains_key(&(ret.clone(), current_scope).into()) {
+            ret.insert(0, '_');
+        }
+        ret
+    }
+
+    fn map_project_datasource(datasource: &DatasourceName, unique_bot_name: &str) -> String {
+        match datasource {
+            DatasourceName::Bottom => unique_bot_name.to_string(),
+            DatasourceName::Named(s) => s.clone(),
+        }
+    }
+
     /// Recursively generates a translation for this stage and its
     /// sources. When this function is called, `self.mapping_registry`
     /// should include mappings for any datasources from outer scopes.
@@ -72,7 +107,36 @@ impl MqlCodeGenerator {
             Filter(f) => Ok(self.codegen_stage(*f.source)?.with_additional_stage(
                 doc! {"$match": {"$expr": self.codegen_expression(f.condition)?}},
             )),
-            Project(_) => unimplemented!(),
+            Project(p) => {
+                let source_translation = self.codegen_stage(*p.source)?;
+                // expression_generator contains all the possible correlated mappings
+                // from the self MqlCodeGenerator merged with the mappings from
+                // the source Stage.
+                let expression_generator = self
+                    .clone()
+                    .with_merged_mappings(source_translation.mapping_registry.clone());
+                // output_registry will be the registry we output from this
+                // stage. It should only contain mappings for the names
+                // defined by the $project, because $project kills all
+                // other values, anyway.
+                let mut output_registry = MappingRegistry::new();
+                let unique_bot_name = MqlCodeGenerator::get_unique_bot_name(&p.expression);
+                // we need to porject away _id unless the query maps _id some other way.
+                // {_id: 0} will be overwritten if _id is defined in the project expression.
+                let mut project_body = doc! {"_id": 0};
+                for (k, e) in p.expression.into_iter() {
+                    let mapped_k =
+                        MqlCodeGenerator::map_project_datasource(&k.datasource, &unique_bot_name);
+                    project_body.insert(
+                        mapped_k.clone(),
+                        expression_generator.codegen_expression(e)?,
+                    );
+                    output_registry.insert(k, mapped_k);
+                }
+                Ok(source_translation
+                    .with_mapping_registry(output_registry)
+                    .with_additional_stage(doc! {"$project": project_body}))
+            }
             Group(_) => unimplemented!(),
             Limit(l) => Ok(self
                 .codegen_stage(*l.source)?
@@ -116,7 +180,7 @@ impl MqlCodeGenerator {
         use ir::{Expression::*, SortSpecification::*};
 
         let source_translation = self.codegen_stage(*sort.source)?;
-        let expr_code_generator = self
+        let expression_generator = self
             .clone()
             .with_merged_mappings(source_translation.mapping_registry.clone());
 
@@ -139,7 +203,7 @@ impl MqlCodeGenerator {
                 // we still need to ensure that the result is a
                 // string, since not all FieldAccess expressions will
                 // translate to single MQL references
-                let expr = expr_code_generator.codegen_expression(expr)?;
+                let expr = expression_generator.codegen_expression(expr)?;
                 let key = match expr {
                     Bson::String(s) => Ok(s[1..].to_string()),
                     _ => Err(Error::InvalidSortKey),

@@ -1,15 +1,3 @@
-macro_rules! linked_hash_map(
-    { $($key:expr => $value:expr),+ $(,)?} => {
-        {
-            let mut m = ::linked_hash_map::LinkedHashMap::new();
-            $(
-                m.insert($key, $value);
-            )+
-            m
-        }
-     };
-);
-
 macro_rules! test_schema {
     ($func_name:ident, $expected:expr, $input:expr,) => {
         test_schema!(
@@ -39,9 +27,10 @@ macro_rules! test_schema {
 mod schema {
     use crate::{
         ir::{schema::*, *},
+        map,
         schema::*,
+        set,
     };
-    use common_macros::{b_tree_map, b_tree_set, hash_map};
 
     test_schema!(
         literal_null,
@@ -82,7 +71,7 @@ mod schema {
         reference_exists_in_schema_env,
         Ok(Schema::Atomic(Atomic::Null)),
         Expression::Reference(("a", 0u16).into()),
-        hash_map! {("a", 0u16).into() => Schema::Atomic(Atomic::Null),},
+        map! {("a", 0u16).into() => Schema::Atomic(Atomic::Null),},
     );
 
     // Array Literals
@@ -129,22 +118,22 @@ mod schema {
     test_schema!(
         document_literal_empty,
         Ok(Schema::Document(Document {
-            keys: b_tree_map! {},
-            required: b_tree_set! {},
+            keys: map! {},
+            required: set! {},
             additional_properties: false,
         })),
-        Expression::Document(::linked_hash_map::LinkedHashMap::new()),
+        Expression::Document(map! {}),
     );
     test_schema!(
         document_literal_all_required,
         Ok(Schema::Document(Document {
-            keys: b_tree_map! {
+            keys: map! {
                 "a".to_string() => Schema::Atomic(Atomic::String),
                 "b".to_string() => Schema::Atomic(Atomic::String),
                 "c".to_string() => Schema::Atomic(Atomic::Null),
                 "d".to_string() => Schema::Atomic(Atomic::Long),
             },
-            required: b_tree_set! {
+            required: set! {
                 "a".to_string(),
                 "b".to_string(),
                 "c".to_string(),
@@ -152,7 +141,7 @@ mod schema {
             },
             additional_properties: false,
         })),
-        Expression::Document(linked_hash_map! {
+        Expression::Document(map! {
             "a".to_string() => Expression::Literal(Literal::String("Hello".to_string())),
             "b".to_string() => Expression::Literal(Literal::String("World".to_string())),
             "c".to_string() => Expression::Literal(Literal::Null),
@@ -162,24 +151,24 @@ mod schema {
     test_schema!(
         document_literal_some_keys_may_or_must_satisfy_missing,
         Ok(Schema::Document(Document {
-            keys: b_tree_map! {
+            keys: map! {
                 "a".to_string() => Schema::Atomic(Atomic::String),
                 "c".to_string() => Schema::Atomic(Atomic::Null),
                 "d".to_string() => Schema::OneOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
             },
-            required: b_tree_set! {
+            required: set! {
                 "a".to_string(),
                 "c".to_string(),
             },
             additional_properties: false,
         })),
-        Expression::Document(linked_hash_map! {
+        Expression::Document(map! {
             "a".to_string() => Expression::Literal(Literal::String("Hello".to_string())),
             "b".to_string() => Expression::Reference(("b", 0u16).into()),
             "c".to_string() => Expression::Literal(Literal::Null),
             "d".to_string() => Expression::Reference(("a", 0u16).into()),
         }),
-        hash_map! {
+        map! {
             ("a", 0u16).into() => Schema::OneOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
             ("b", 0u16).into() => Schema::Missing,
         },
@@ -205,10 +194,10 @@ mod schema {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
         }),
-        hash_map! {("bar", 0u16).into() => Schema::Document(
+        map! {("bar", 0u16).into() => Schema::Document(
             Document {
-                keys: b_tree_map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
-                required: b_tree_set!{"foof".to_string()},
+                keys: map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
+                required: set!{"foof".to_string()},
                 additional_properties: false,
             }
         ),},
@@ -220,10 +209,10 @@ mod schema {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
         }),
-        hash_map! {("bar", 0u16).into() => Schema::Document(
+        map! {("bar", 0u16).into() => Schema::Document(
             Document {
-                keys: b_tree_map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
-                required: b_tree_set!{"foof".to_string()},
+                keys: map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
+                required: set!{"foof".to_string()},
                 additional_properties: true,
             }
         ),},
@@ -235,10 +224,10 @@ mod schema {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
         }),
-        hash_map! {("bar", 0u16).into() => Schema::Document(
+        map! {("bar", 0u16).into() => Schema::Document(
             Document {
-                keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
-                required: b_tree_set!{"foo".to_string()},
+                keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                required: set!{"foo".to_string()},
                 additional_properties: false,
             }
         ),},
@@ -252,19 +241,19 @@ mod schema {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
         }),
-        hash_map! {("bar", 0u16).into() =>
+        map! {("bar", 0u16).into() =>
             Schema::OneOf(vec!{
             Schema::Document(
                 Document {
-                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
-                    required: b_tree_set!{"foo".to_string()},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                    required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
             ),
             Schema::Document(
                 Document {
-                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
-                    required: b_tree_set!{"foo".to_string()},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
             ),
@@ -279,19 +268,19 @@ mod schema {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
         }),
-        hash_map! {("bar", 0u16).into() =>
+        map! {("bar", 0u16).into() =>
             Schema::AnyOf(vec!{
             Schema::Document(
                 Document {
-                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
-                    required: b_tree_set!{"foo".to_string()},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                    required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
             ),
             Schema::Document(
                 Document {
-                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
-                    required: b_tree_set!{"foo".to_string()},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
             ),
@@ -617,19 +606,19 @@ mod schema {
                 Expression::Literal(Literal::Long(42)),
             ],
         }),
-        hash_map! {("bar", 0u16).into() =>
+        map! {("bar", 0u16).into() =>
             Schema::OneOf(vec!{
             Schema::Document(
                 Document {
-                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
-                    required: b_tree_set!{"foo".to_string()},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
+                    required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
             ),
             Schema::Document(
                 Document {
-                    keys: b_tree_map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
-                    required: b_tree_set!{"foo".to_string()},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
             ),
@@ -639,7 +628,7 @@ mod schema {
     test_schema!(
         collection_schema,
         Ok(ResultSet {
-            schema: hash_map! {
+            schema: map! {
                 ("foo", 0u16).into() => Schema::Any,
             },
             min_size: None,
@@ -654,7 +643,7 @@ mod schema {
     test_schema!(
         project_schema,
         Ok(ResultSet {
-            schema: hash_map! {
+            schema: map! {
                 ("bar1", 0u16).into() => Schema::Any,
                 ("bar2", 0u16).into() => Schema::Any,
                 ("bar3", 0u16).into() => Schema::Any,
@@ -667,7 +656,7 @@ mod schema {
                 db: "test2".into(),
                 collection: "foo".into(),
             })),
-            expression: hash_map! {
+            expression: map! {
                 ("bar1", 0u16).into() =>
                     Expression::Reference(("foo", 0u16).into()),
                 ("bar2", 0u16).into() =>

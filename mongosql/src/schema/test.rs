@@ -1,5 +1,8 @@
-use crate::schema::{Atomic::*, Document, Satisfaction::*, Schema::*};
-use common_macros::{b_tree_map, b_tree_set};
+use crate::{
+    map,
+    schema::{Atomic::*, Document, Satisfaction::*, Schema::*},
+    set,
+};
 
 macro_rules! test_satisfies {
     ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
@@ -54,8 +57,8 @@ test_satisfies!(
     Not,
     Missing,
     Document(Document {
-        keys: b_tree_map![],
-        required: b_tree_set![],
+        keys: map![],
+        required: set![],
         additional_properties: true,
     })
 );
@@ -174,19 +177,19 @@ test_satisfies!(
     satisfies_document_must_satify_same_document,
     Must,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: true
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: true,
     }),
 );
@@ -194,19 +197,19 @@ test_satisfies!(
     satisfies_document_may_satify_with_more_permissive_key_schema,
     May,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(String),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
 );
@@ -214,19 +217,19 @@ test_satisfies!(
     satisfies_document_must_not_satify_with_incompatable_key_schema,
     Not,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(String),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
 );
@@ -234,19 +237,19 @@ test_satisfies!(
     satisfies_document_may_satify_with_fewer_required_keys,
     May,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set![],
+        required: set![],
         additional_properties: false,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
 );
@@ -254,18 +257,18 @@ test_satisfies!(
     satisfies_document_must_not_satify_with_missing_required_key,
     Not,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set![],
+        required: set![],
         additional_properties: false,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
 );
@@ -273,18 +276,18 @@ test_satisfies!(
     satisfies_document_may_satify_with_missing_required_key,
     May,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set![],
+        required: set![],
         additional_properties: true,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: true,
     }),
 );
@@ -292,19 +295,19 @@ test_satisfies!(
     satisfies_document_must_satify_with_more_required_keys,
     Must,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set![],
+        required: set![],
         additional_properties: false,
     }),
 );
@@ -312,19 +315,19 @@ test_satisfies!(
     satisfies_document_may_satify_due_to_possible_extra_keys,
     May,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set![],
+        required: set![],
         additional_properties: true,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set![],
+        required: set![],
         additional_properties: false,
     }),
 );
@@ -332,27 +335,27 @@ test_satisfies!(
     satisfies_document_satifies_multiple_one_of_results_in_not_satisfied,
     Not,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     OneOf(vec![
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "a".to_string() => Any,
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set!["a".to_string()],
+            required: set!["a".to_string()],
             additional_properties: false,
         }),
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set![],
+            required: set![],
             additional_properties: true,
         }),
     ]),
@@ -361,27 +364,27 @@ test_satisfies!(
     satisfies_document_satifies_multiple_any_of_results_in_must_satisfy,
     Must,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     AnyOf(vec![
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "a".to_string() => Any,
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set!["a".to_string()],
+            required: set!["a".to_string()],
             additional_properties: false,
         }),
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set![],
+            required: set![],
             additional_properties: false,
         }),
     ]),
@@ -390,27 +393,27 @@ test_satisfies!(
     satisfies_document_satifies_one_of_one_of_results_must_satisfy,
     Must,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     OneOf(vec![
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "a".to_string() => Any,
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set!["a".to_string()],
+            required: set!["a".to_string()],
             additional_properties: false,
         }),
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "e".to_string() => Atomic(Int),
             ],
-            required: b_tree_set![],
+            required: set![],
             additional_properties: false,
         }),
     ]),
@@ -419,19 +422,19 @@ test_satisfies!(
     satisfies_document_may_satisfy_when_key_schema_may_satisfy,
     May,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Atomic(Int),
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
 );
@@ -484,11 +487,11 @@ test_contains_field!(
     contains_field_document_must_contain_field,
     Must,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     "a",
@@ -497,11 +500,11 @@ test_contains_field!(
     contains_field_document_may_contain_field,
     May,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     "b",
@@ -510,11 +513,11 @@ test_contains_field!(
     contains_field_document_may_contain_field_due_to_additional_properties,
     May,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: true,
     }),
     "foo",
@@ -523,11 +526,11 @@ test_contains_field!(
     contains_field_document_must_not_contain_field,
     Not,
     Document(Document {
-        keys: b_tree_map![
+        keys: map![
             "a".to_string() => Any,
             "b".to_string() => Atomic(Int),
         ],
-        required: b_tree_set!["a".to_string()],
+        required: set!["a".to_string()],
         additional_properties: false,
     }),
     "foo",
@@ -543,11 +546,11 @@ test_contains_field!(
     Not,
     OneOf(vec![
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "a".to_string() => Any,
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set!["a".to_string()],
+            required: set!["a".to_string()],
             additional_properties: false,
         }),
         Atomic(String),
@@ -559,11 +562,11 @@ test_contains_field!(
     May,
     OneOf(vec![
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "a".to_string() => Any,
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set!["a".to_string()],
+            required: set!["a".to_string()],
             additional_properties: false,
         }),
         Atomic(String),
@@ -575,19 +578,19 @@ test_contains_field!(
     Must,
     OneOf(vec![
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "a".to_string() => Any,
                 "b".to_string() => Atomic(Int),
             ],
-            required: b_tree_set!["b".to_string()],
+            required: set!["b".to_string()],
             additional_properties: false,
         }),
         Document(Document {
-            keys: b_tree_map![
+            keys: map![
                 "a".to_string() => Any,
                 "b".to_string() => Atomic(String),
             ],
-            required: b_tree_set!["b".to_string()],
+            required: set!["b".to_string()],
             additional_properties: false,
         }),
     ]),
