@@ -42,8 +42,8 @@ func TestTranslate(t *testing.T) {
 		t.Fatalf("expected targetDB to be 'bar', got '%s'", translation.TargetDB)
 	}
 
-	if *translation.TargetCollection != "foo" {
-		t.Fatalf("expected targetCollection to be 'foo', got '%s'", *translation.TargetCollection)
+	if translation.TargetCollection != "foo" {
+		t.Fatalf("expected targetCollection to be 'foo', got '%s'", translation.TargetCollection)
 	}
 
 	var pipeline []bson.D

@@ -33,7 +33,7 @@ type Translation struct {
 	// TargetCollection is the collection to be specified in the
 	// aggregate command, or nil if an "aggregate: 1" style aggregate
 	// command should be used
-	TargetCollection *string
+	TargetCollection string
 	// Pipeline is the array representing the aggregation pipeline
 	// serialized to BSON
 	Pipeline []byte
@@ -47,9 +47,9 @@ func Translate(args TranslationArgs) (Translation, error) {
 
 	translationResult := struct {
 		Db         string   `bson:"target_db"`
-		Collection *string  `bson:"target_collection"`
+		Collection string   `bson:"target_collection"`
 		Pipeline   []bson.M `bson:"pipeline"`
-		Error      *string  `bson:"error"`
+		Error      string   `bson:"error"`
 	}{}
 
 	translationBytes, err := base64.StdEncoding.DecodeString(base64TranslationResult)
@@ -62,8 +62,8 @@ func Translate(args TranslationArgs) (Translation, error) {
 		return Translation{}, fmt.Errorf("failed to unmarshal translation result BSON into struct: %w", err)
 	}
 
-	if translationResult.Error != nil {
-		return Translation{}, fmt.Errorf(*translationResult.Error)
+	if translationResult.Error != "" {
+		return Translation{}, fmt.Errorf(translationResult.Error)
 	}
 
 	typ, pipelineBytes, err := bson.MarshalValue(translationResult.Pipeline)
