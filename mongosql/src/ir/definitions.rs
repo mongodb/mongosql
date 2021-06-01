@@ -91,7 +91,7 @@ pub struct Collection {
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Array {
-    pub exprs: Vec<Expression>,
+    pub array: Vec<Expression>,
     pub alias: String,
 }
 
@@ -181,13 +181,13 @@ pub enum Function {
     // Arithmetic operators
     Add,
     Sub,
-    Mult,
+    Mul,
     Div,
 
     // Comparison operators
     Lt,
     Lte,
-    Ne,
+    Neq,
     Eq,
     Gt,
     Gte,
@@ -257,8 +257,8 @@ impl Function {
             Function::Lower => "Lower",
             Function::Lt => "Lt",
             Function::Lte => "Lte",
-            Function::Mult => "Mult",
-            Function::Ne => "Ne",
+            Function::Mul => "Mul",
+            Function::Neq => "Neq",
             Function::Neg => "Neg",
             Function::Not => "Not",
             Function::Nullif => "Nullif",

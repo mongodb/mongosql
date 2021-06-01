@@ -10,7 +10,7 @@ pub type SchemaEnvironment = BindingTuple<Schema>;
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct ResultSet {
-    pub schema: SchemaEnvironment,
+    pub schema_env: SchemaEnvironment,
     pub min_size: Option<u64>,
     pub max_size: Option<u64>,
 }
@@ -18,7 +18,7 @@ pub struct ResultSet {
 impl Default for ResultSet {
     fn default() -> Self {
         Self {
-            schema: SchemaEnvironment::default(),
+            schema_env: SchemaEnvironment::default(),
             min_size: None,
             max_size: None,
         }
@@ -41,7 +41,7 @@ pub enum Schema {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 pub enum Atomic {
     String,
-    Int,
+    Integer,
     Double,
     Long,
     Decimal,
@@ -118,7 +118,7 @@ impl Schema {
                     _ => Some(Satisfaction::May),
                 }
             })
-            .unwrap_or(Satisfaction::May)
+            .unwrap_or(Satisfaction::Must)
     }
 
     /// satisfies AnyOf the passed set of Schemata.
@@ -206,6 +206,26 @@ impl Schema {
             additional_properties: true,
         }))
     }
+
+    /// upconvert_missing_to_null upconverts Missing to Null in the current level
+    /// of the schema including nested Any/OneOf. It does not recurse into Documents or Arrays.
+    /// This is used to properly handle array items Schemata, where Missing is not possible.
+    pub fn upconvert_missing_to_null(self) -> Self {
+        match self {
+            Schema::Missing => Schema::Atomic(Atomic::Null),
+            Schema::AnyOf(vs) => Schema::AnyOf(
+                vs.into_iter()
+                    .map(|e| e.upconvert_missing_to_null())
+                    .collect(),
+            ),
+            Schema::OneOf(vs) => Schema::OneOf(
+                vs.into_iter()
+                    .map(|e| e.upconvert_missing_to_null())
+                    .collect(),
+            ),
+            Schema::Any | Schema::Atomic(_) | Schema::Document(_) | Schema::Array(_) => self,
+        }
+    }
 }
 
 impl From<Type> for Schema {
@@ -220,7 +240,7 @@ impl From<Type> for Schema {
             Decimal128 => Schema::Atomic(Atomic::Decimal),
             Document => ANY_DOCUMENT.clone(),
             Double => Schema::Atomic(Atomic::Double),
-            Int32 => Schema::Atomic(Atomic::Int),
+            Int32 => Schema::Atomic(Atomic::Integer),
             Int64 => Schema::Atomic(Atomic::Long),
             Javascript => Schema::Atomic(Atomic::Javascript),
             JavascriptWithScope => Schema::Atomic(Atomic::JavascriptWithScope),

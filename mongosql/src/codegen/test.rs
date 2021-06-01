@@ -99,7 +99,7 @@ mod array_stage {
             ],
         }),
         Stage::Array(Array {
-            exprs: vec![],
+            array: vec![],
             alias: "arr".to_string(),
         }),
     );
@@ -113,7 +113,7 @@ mod array_stage {
             ],
         }),
         Stage::Array(Array {
-            exprs: vec![Expression::Literal(Literal::Boolean(false))],
+            array: vec![Expression::Literal(Literal::Boolean(false))],
             alias: "arr".to_string(),
         }),
     );
@@ -145,7 +145,7 @@ mod project {
                 ("c", 0u16).into() => Expression::Literal(Literal::Integer(3)),
             },
             source: Stage::Array(Array {
-                exprs: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -164,7 +164,7 @@ mod project {
         Stage::Project(Project {
             expression: map! {},
             source: Stage::Array(Array {
-                exprs: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -185,7 +185,7 @@ mod project {
                 ("foo", 0u16).into() => Expression::Reference(("arr", 0u16).into()),
             },
             source: Stage::Array(Array {
-                exprs: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -207,7 +207,7 @@ mod project {
                 ("foo", 0u16).into() => Expression::Literal(Literal::Double(44.0)),
             },
             source: Stage::Array(Array {
-                exprs: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -238,7 +238,7 @@ mod project {
                 ("_____bot", 0u16).into() => Expression::Literal(Literal::Double(45.0)),
             },
             source: Stage::Array(Array {
-                exprs: vec![Expression::Document(map!{"a".into() => Expression::Literal(Literal::Integer(42))})],
+                array: vec![Expression::Document(map!{"a".into() => Expression::Literal(Literal::Integer(42))})],
                 alias: "__bot".to_string(),
             }).into(),
         }),
@@ -261,7 +261,7 @@ mod filter {
         Stage::Filter(Filter {
             condition: Expression::Literal(Literal::Boolean(true)),
             source: Stage::Array(Array {
-                exprs: vec![],
+                array: vec![],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -288,7 +288,7 @@ mod sort {
         Stage::Sort(Sort {
             specs: vec![],
             source: Stage::Array(Array {
-                exprs: vec![],
+                array: vec![],
                 alias: "arr".to_string(),
             }).into(),
         }),

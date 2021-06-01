@@ -66,8 +66,8 @@ impl Stage {
             Stage::Project(p) => {
                 let source_result_set = p.source.schema(state)?;
                 let (min_size, max_size) = (source_result_set.min_size, source_result_set.max_size);
-                let state = state.with_merged_schema_env(source_result_set.schema);
-                let schema = p
+                let state = state.with_merged_schema_env(source_result_set.schema_env);
+                let schema_env = p
                     .expression
                     .iter()
                     .map(|(k, e)| match e.schema(&state) {
@@ -76,7 +76,7 @@ impl Stage {
                     })
                     .collect::<Result<SchemaEnvironment, _>>()?;
                 Ok(ResultSet {
-                    schema,
+                    schema_env,
                     min_size,
                     max_size,
                 })
@@ -86,13 +86,30 @@ impl Stage {
             Stage::Offset(_) => unimplemented!(),
             Stage::Sort(_) => unimplemented!(),
             Stage::Collection(c) => Ok(ResultSet {
-                schema: map! {
+                schema_env: map! {
                     (c.collection.clone(), state.scope_level).into() => Schema::Any,
                 },
                 min_size: None,
                 max_size: None,
             }),
-            Stage::Array(_) => unimplemented!(),
+            Stage::Array(a) => {
+                let array_items_schema = Expression::array_items_schema(&a.array, state)?;
+                if array_items_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Must {
+                    Ok(ResultSet {
+                        schema_env: map! {
+                            (a.alias.clone(), state.scope_level).into() => array_items_schema,
+                        },
+                        min_size: Some(a.array.len() as u64),
+                        max_size: Some(a.array.len() as u64),
+                    })
+                } else {
+                    Err(Error::SchemaChecking {
+                        name: "array datasource items",
+                        required: ANY_DOCUMENT.clone(),
+                        found: array_items_schema,
+                    })
+                }
+            }
             Stage::Join(_) => unimplemented!(),
             Stage::Set(_) => unimplemented!(),
         }
@@ -185,19 +202,21 @@ impl Expression {
         }
     }
 
-    /// For array literals, we return Array(Any) for an empty array. For other arrays
-    /// we return Array(OneOf(S1...SN)), for Schemata S1...SN inferred from the element
-    /// Expressions of the array literal.
     fn array_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
-        let types = a
-            .iter()
-            .map(|x| x.schema(state))
-            .collect::<Result<Vec<_>, _>>()?;
-        Ok(Schema::Array(Box::new(if types.is_empty() {
-            Schema::Any
-        } else {
-            Schema::OneOf(types)
-        })))
+        Ok(Schema::Array(Box::new(Expression::array_items_schema(
+            a, state,
+        )?)))
+    }
+
+    /// For array literals, we return Array(Any) for an empty array. For other arrays
+    /// we return Array(AnyOf(S1...SN)), for Schemata S1...SN inferred from the element
+    /// Expressions of the array literal.
+    fn array_items_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
+        Ok(Schema::AnyOf(
+            a.iter()
+                .map(|e| e.schema(state).map(|s| s.upconvert_missing_to_null()))
+                .collect::<Result<Vec<_>, _>>()?,
+        ))
     }
 
     /// For document literals, we infer the most restrictive schema possible. This means
@@ -235,7 +254,7 @@ impl Literal {
             Null => Schema::Atomic(Atomic::Null),
             Boolean(_) => Schema::Atomic(Atomic::Boolean),
             String(_) => Schema::Atomic(Atomic::String),
-            Integer(_) => Schema::Atomic(Atomic::Int),
+            Integer(_) => Schema::Atomic(Atomic::Integer),
             Long(_) => Schema::Atomic(Atomic::Long),
             Double(_) => Schema::Atomic(Atomic::Double),
         })
@@ -265,7 +284,7 @@ impl Function {
                 self.schema_check_fixed_args(
                     arg_schemas,
                     &[Schema::AnyOf(vec![
-                        Schema::Atomic(Atomic::Int),
+                        Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Long),
                         Schema::Atomic(Atomic::Double),
                         Schema::Atomic(Atomic::Decimal),
@@ -276,11 +295,11 @@ impl Function {
                 Ok(arg_schemas[0].clone())
             }
             // Arithmetic operators with variadic arguments.
-            Add | Mult => {
+            Add | Mul => {
                 self.schema_check_variadic_args(
                     arg_schemas,
                     Schema::AnyOf(vec![
-                        Schema::Atomic(Atomic::Int),
+                        Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Long),
                         Schema::Atomic(Atomic::Double),
                         Schema::Atomic(Atomic::Decimal),
@@ -296,7 +315,7 @@ impl Function {
                     arg_schemas,
                     &[
                         Schema::AnyOf(vec![
-                            Schema::Atomic(Atomic::Int),
+                            Schema::Atomic(Atomic::Integer),
                             Schema::Atomic(Atomic::Long),
                             Schema::Atomic(Atomic::Double),
                             Schema::Atomic(Atomic::Decimal),
@@ -304,7 +323,7 @@ impl Function {
                             Schema::Missing,
                         ]),
                         Schema::AnyOf(vec![
-                            Schema::Atomic(Atomic::Int),
+                            Schema::Atomic(Atomic::Integer),
                             Schema::Atomic(Atomic::Long),
                             Schema::Atomic(Atomic::Double),
                             Schema::Atomic(Atomic::Decimal),
@@ -318,7 +337,7 @@ impl Function {
             // Comparison operators.
             Lt => unimplemented!(),
             Lte => unimplemented!(),
-            Ne => unimplemented!(),
+            Neq => unimplemented!(),
             Eq => unimplemented!(),
             Gt => unimplemented!(),
             Gte => unimplemented!(),
@@ -442,7 +461,7 @@ impl Function {
         const DECIMAL: &Schema = &Schema::Atomic(Atomic::Decimal);
         const DOUBLE: &Schema = &Schema::Atomic(Atomic::Double);
         const LONG: &Schema = &Schema::Atomic(Atomic::Long);
-        const INTEGER: &Schema = &Schema::Atomic(Atomic::Int);
+        const INTEGER: &Schema = &Schema::Atomic(Atomic::Integer);
 
         arg_schemas
             .iter()

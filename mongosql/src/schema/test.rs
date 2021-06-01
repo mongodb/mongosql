@@ -17,6 +17,54 @@ macro_rules! test_satisfies {
 test_satisfies!(satisfies_any_must_satisfy_any, Must, Any, Any);
 test_satisfies!(satisfies_missing_must_satisfy_any, Must, Missing, Any);
 test_satisfies!(
+    satisfies_any_of_empty_must_satisfy_atomic,
+    Must,
+    AnyOf(vec![]),
+    Atomic(Integer)
+);
+test_satisfies!(
+    satisfies_any_of_empty_must_satisfy_any_of_empty,
+    Must,
+    AnyOf(vec![]),
+    AnyOf(vec![]),
+);
+test_satisfies!(
+    satisfies_any_of_empty_must_satisfy_one_of_empty,
+    Must,
+    AnyOf(vec![]),
+    OneOf(vec![]),
+);
+test_satisfies!(
+    satisfies_one_of_empty_must_satisfy_atomic,
+    Must,
+    OneOf(vec![]),
+    Atomic(Integer)
+);
+test_satisfies!(
+    satisfies_any_of_empty_must_satisfy_missing,
+    Must,
+    AnyOf(vec![]),
+    Missing,
+);
+test_satisfies!(
+    satisfies_one_of_empty_must_satisfy_missing,
+    Must,
+    OneOf(vec![]),
+    Missing,
+);
+test_satisfies!(
+    satisfies_one_of_empty_must_satisfy_any_of_empty,
+    Must,
+    OneOf(vec![]),
+    AnyOf(vec![]),
+);
+test_satisfies!(
+    satisfies_one_of_empty_must_satisfy_one_of_empty,
+    Must,
+    OneOf(vec![]),
+    OneOf(vec![]),
+);
+test_satisfies!(
     satisfies_missing_must_satisfy_missing,
     Must,
     Missing,
@@ -31,13 +79,13 @@ test_satisfies!(
 test_satisfies!(
     satisfies_one_of_missing_may_satisfy_missing,
     May,
-    OneOf(vec![Atomic(String), Missing, Atomic(Int)]),
+    OneOf(vec![Atomic(String), Missing, Atomic(Integer)]),
     Missing
 );
 test_satisfies!(
     satisfies_any_of_missing_may_satisfy_missing,
     May,
-    AnyOf(vec![Atomic(Int), Missing, Atomic(String)]),
+    AnyOf(vec![Atomic(Integer), Missing, Atomic(String)]),
     Missing
 );
 test_satisfies!(
@@ -66,13 +114,13 @@ test_satisfies!(
     satisfies_missing_must_not_satisfy_any_of,
     Not,
     Missing,
-    AnyOf(vec![Atomic(String), Atomic(Int)])
+    AnyOf(vec![Atomic(String), Atomic(Integer)])
 );
 test_satisfies!(
     satisfies_missing_must_not_satisfy_one_of,
     Not,
     Missing,
-    OneOf(vec![Atomic(String), Atomic(Int)])
+    OneOf(vec![Atomic(String), Atomic(Integer)])
 );
 test_satisfies!(satisfies_atomic_must_satisfy_any, Must, Atomic(String), Any);
 test_satisfies!(satisfies_any_may_satisfy_atomic, May, Any, Atomic(String));
@@ -80,7 +128,7 @@ test_satisfies!(
     satisfies_array_of_any_does_not_satisfy_atomic,
     Not,
     Array(Box::new(Any)),
-    Atomic(Int),
+    Atomic(Integer),
 );
 test_satisfies!(
     satisfies_missing_does_not_satisfy_atomic,
@@ -91,63 +139,63 @@ test_satisfies!(
 test_satisfies!(
     satisfies_any_of_must_satisfy_any,
     Must,
-    AnyOf(vec![Atomic(String), Atomic(Int)]),
+    AnyOf(vec![Atomic(String), Atomic(Integer)]),
     Any,
 );
 
 test_satisfies!(
     satisfies_one_of_must_satisfy_one_of_when_equal,
     Must,
-    OneOf(vec![Atomic(String), Atomic(Int)]),
-    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
 );
 test_satisfies!(
     satisfies_one_of_may_satisfy_one_of_when_unequal,
     May,
-    OneOf(vec![Atomic(Double), Atomic(Int)]),
-    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(Double), Atomic(Integer)]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
 );
 test_satisfies!(
     satisfies_one_of_may_satisfy_one_of_when_self_has_missing,
     May,
     OneOf(vec![Atomic(String), Missing]),
-    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
 );
 test_satisfies!(
     satisfies_one_of_must_satisfy_one_of_when_other_has_missing,
     Must,
-    OneOf(vec![Atomic(String), Atomic(Int)]),
-    OneOf(vec![Atomic(String), Atomic(Int), Missing]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
+    OneOf(vec![Atomic(String), Atomic(Integer), Missing]),
 );
 test_satisfies!(
     satisfies_one_of_must_not_satisfy_when_one_of_contains_any,
     Not,
-    OneOf(vec![Atomic(String), Atomic(Int)]),
-    OneOf(vec![Atomic(String), Atomic(Int), Any]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
+    OneOf(vec![Atomic(String), Atomic(Integer), Any]),
 );
 test_satisfies!(
     satisfies_any_of_must_satisfy_when_any_of_contains_any,
     Must,
-    OneOf(vec![Atomic(String), Atomic(Int)]),
-    AnyOf(vec![Atomic(String), Atomic(Int), Any]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
+    AnyOf(vec![Atomic(String), Atomic(Integer), Any]),
 );
 test_satisfies!(
     satisfies_one_of_must_may_satisfy_one_of_when_self_has_any,
     May,
     OneOf(vec![Atomic(String), Any]),
-    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
 );
 test_satisfies!(
     satisfies_one_of_must_satisfy_subset_one_of,
     Must,
-    OneOf(vec![Atomic(String), Atomic(Int)]),
-    OneOf(vec![Atomic(String), Atomic(Int), Atomic(Double)]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
+    OneOf(vec![Atomic(String), Atomic(Integer), Atomic(Double)]),
 );
 test_satisfies!(
     satisfies_one_of_may_satisfy_proper_superset_one_of,
     May,
-    OneOf(vec![Atomic(String), Atomic(Int), Atomic(Double)]),
-    OneOf(vec![Atomic(String), Atomic(Int)]),
+    OneOf(vec![Atomic(String), Atomic(Integer), Atomic(Double)]),
+    OneOf(vec![Atomic(String), Atomic(Integer)]),
 );
 test_satisfies!(
     satisfies_array_of_string_must_satisfy_one_of_array_of_int_or_array_of_string,
@@ -155,23 +203,23 @@ test_satisfies!(
     Array(Box::new(Atomic(String))),
     OneOf(vec![
         Array(Box::new(Atomic(String))),
-        Array(Box::new(Atomic(Int)))
+        Array(Box::new(Atomic(Integer)))
     ]),
 );
 test_satisfies!(
     satisfies_array_of_string_or_int_may_satisfy_one_of_array_of_int_or_array_of_string,
     May,
-    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Int),]))),
+    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Integer),]))),
     OneOf(vec![
         Array(Box::new(Atomic(String))),
-        Array(Box::new(Atomic(Int)))
+        Array(Box::new(Atomic(Integer)))
     ]),
 );
 test_satisfies!(
     satisfies_array_of_string_or_int_must_satisfy_array_of_string_or_int,
     Must,
-    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Int),]))),
-    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Int),]))),
+    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Integer),]))),
+    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Integer),]))),
 );
 test_satisfies!(
     satisfies_document_must_satify_same_document,
@@ -179,7 +227,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: true
@@ -187,7 +235,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: true,
@@ -199,7 +247,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -207,7 +255,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Atomic(String),
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -218,8 +266,8 @@ test_satisfies!(
     Not,
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -227,7 +275,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Atomic(String),
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -238,16 +286,16 @@ test_satisfies!(
     May,
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set![],
         additional_properties: false,
     }),
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -258,15 +306,15 @@ test_satisfies!(
     Not,
     Document(Document {
         keys: map![
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set![],
         additional_properties: false,
     }),
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -277,15 +325,15 @@ test_satisfies!(
     May,
     Document(Document {
         keys: map![
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set![],
         additional_properties: true,
     }),
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: true,
@@ -296,16 +344,16 @@ test_satisfies!(
     Must,
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
     }),
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set![],
         additional_properties: false,
@@ -316,16 +364,16 @@ test_satisfies!(
     May,
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set![],
         additional_properties: true,
     }),
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set![],
         additional_properties: false,
@@ -337,7 +385,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -346,14 +394,14 @@ test_satisfies!(
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set!["a".to_string()],
             additional_properties: false,
         }),
         Document(Document {
             keys: map![
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set![],
             additional_properties: true,
@@ -366,7 +414,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -375,14 +423,14 @@ test_satisfies!(
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set!["a".to_string()],
             additional_properties: false,
         }),
         Document(Document {
             keys: map![
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set![],
             additional_properties: false,
@@ -395,7 +443,7 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -404,14 +452,14 @@ test_satisfies!(
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set!["a".to_string()],
             additional_properties: false,
         }),
         Document(Document {
             keys: map![
-                "e".to_string() => Atomic(Int),
+                "e".to_string() => Atomic(Integer),
             ],
             required: set![],
             additional_properties: false,
@@ -424,15 +472,15 @@ test_satisfies!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
     }),
     Document(Document {
         keys: map![
-            "a".to_string() => Atomic(Int),
-            "b".to_string() => Atomic(Int),
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -442,14 +490,14 @@ test_satisfies!(
     satisfies_array_may_satisfy_when_array_item_schema_may_satisfy,
     May,
     Array(Box::new(Any)),
-    Array(Box::new(Atomic(Int))),
+    Array(Box::new(Atomic(Integer))),
 );
 test_satisfies!(
     satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_one_of_array,
     May,
     Array(Box::new(Any)),
     OneOf(vec![
-        Array(Box::new(Atomic(Int))),
+        Array(Box::new(Atomic(Integer))),
         Array(Box::new(Atomic(String))),
     ]),
 );
@@ -457,13 +505,13 @@ test_satisfies!(
     satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_array_one_of,
     May,
     Array(Box::new(Any)),
-    Array(Box::new(OneOf(vec![Atomic(Int), Atomic(Double),]),)),
+    Array(Box::new(OneOf(vec![Atomic(Integer), Atomic(Double),]),)),
 );
 test_satisfies!(
     satisfies_array_of_missing_does_not_satisfy_array_of_atomic,
     Not,
     Array(Box::new(Missing)),
-    Array(Box::new(Atomic(Int))),
+    Array(Box::new(Atomic(Integer))),
 );
 
 macro_rules! test_contains_field {
@@ -489,7 +537,7 @@ test_contains_field!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -502,7 +550,7 @@ test_contains_field!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -515,7 +563,7 @@ test_contains_field!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: true,
@@ -528,7 +576,7 @@ test_contains_field!(
     Document(Document {
         keys: map![
             "a".to_string() => Any,
-            "b".to_string() => Atomic(Int),
+            "b".to_string() => Atomic(Integer),
         ],
         required: set!["a".to_string()],
         additional_properties: false,
@@ -548,7 +596,7 @@ test_contains_field!(
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set!["a".to_string()],
             additional_properties: false,
@@ -564,7 +612,7 @@ test_contains_field!(
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set!["a".to_string()],
             additional_properties: false,
@@ -580,7 +628,7 @@ test_contains_field!(
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
-                "b".to_string() => Atomic(Int),
+                "b".to_string() => Atomic(Integer),
             ],
             required: set!["b".to_string()],
             additional_properties: false,

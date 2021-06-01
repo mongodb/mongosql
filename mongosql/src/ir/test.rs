@@ -49,7 +49,7 @@ mod schema {
     );
     test_schema!(
         literal_int,
-        Ok(Schema::Atomic(Atomic::Int)),
+        Ok(Schema::Atomic(Atomic::Integer)),
         Expression::Literal(Literal::Integer(5)),
     );
     test_schema!(
@@ -77,19 +77,19 @@ mod schema {
     // Array Literals
     test_schema!(
         array_literal_empty,
-        Ok(Schema::Array(Box::new(Schema::Any))),
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![])))),
         Expression::Array(vec![]),
     );
     test_schema!(
         array_literal_null,
-        Ok(Schema::Array(Box::new(Schema::OneOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
             Schema::Atomic(Atomic::Null)
         ])))),
         Expression::Array(vec![Expression::Literal(Literal::Null)]),
     );
     test_schema!(
         array_literal_two_nulls,
-        Ok(Schema::Array(Box::new(Schema::OneOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null),
         ])))),
@@ -99,8 +99,102 @@ mod schema {
         ]),
     );
     test_schema!(
+        array_literal_missing_to_null,
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Null),
+        ])))),
+        Expression::Array(vec![Expression::Reference(("a", 0u16).into()),]),
+        map! {("a", 0u16).into() => Schema::Missing,},
+    );
+    test_schema!(
+        array_literal_with_nested_document_missing_preserved,
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! {
+                "bar".into() => Schema::Atomic(Atomic::String),
+                    },
+                required: set! {"bar".into()},
+                additional_properties: false,
+            })
+        ])))),
+        Expression::Array(vec![Expression::Document(map! {
+            "foo".into() => Expression::Reference(("a", 0u16).into()),
+            "bar".into() => Expression::Reference(("b", 0u16).into()),
+        }),]),
+        map! {
+            ("a", 0u16).into() => Schema::Missing,
+            ("b", 0u16).into() => Schema::Atomic(Atomic::String),
+        },
+    );
+    test_schema!(
+        array_literal_any_of_one_of_missing_to_null,
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! {"b".into() =>
+                    Schema::AnyOf(
+                    vec![
+                        Schema::OneOf(
+                        vec![
+                            Schema::Missing,
+                            Schema::Atomic(Atomic::Integer)
+                        ]),
+                        Schema::Atomic(Atomic::Double),
+                    ]),
+                },
+                required: set! {},
+                additional_properties: false,
+            })
+        ])))),
+        Expression::Array(vec![Expression::Document(
+            map! {"b".into() => Expression::Reference(("a", 0u16).into())},
+        )]),
+        map! {("a", 0u16).into() =>
+        Schema::AnyOf(
+        vec![
+            Schema::OneOf(
+            vec![
+                Schema::Missing,
+                Schema::Atomic(Atomic::Integer)
+            ]),
+            Schema::Atomic(Atomic::Double),
+        ]),},
+    );
+    test_schema!(
+        array_of_array_of_literal_any_of_one_of_missing_to_null,
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+            Schema::Array(Box::new(Schema::AnyOf(vec![Schema::AnyOf(vec![
+                Schema::OneOf(vec![
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Integer)
+                ]),
+                Schema::Atomic(Atomic::Double)
+            ])]))),
+            Schema::Array(Box::new(Schema::AnyOf(vec![Schema::AnyOf(vec![
+                Schema::OneOf(vec![
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Integer)
+                ]),
+                Schema::Atomic(Atomic::Double)
+            ])])))
+        ])))),
+        Expression::Array(vec![
+            Expression::Array(vec![Expression::Reference(("a", 0u16).into()),]),
+            Expression::Array(vec![Expression::Reference(("a", 0u16).into()),]),
+        ]),
+        map! {("a", 0u16).into() =>
+        Schema::AnyOf(
+        vec![
+            Schema::OneOf(
+            vec![
+                Schema::Missing,
+                Schema::Atomic(Atomic::Integer)
+            ]),
+            Schema::Atomic(Atomic::Double),
+        ]),},
+    );
+    test_schema!(
         array_literal_null_or_string,
-        Ok(Schema::Array(Box::new(Schema::OneOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null),
@@ -235,7 +329,7 @@ mod schema {
     test_schema!(
         field_access_field_must_one_of,
         Ok(Schema::AnyOf(
-            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Int)}
+            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer)}
         )),
         Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
@@ -252,7 +346,7 @@ mod schema {
             ),
             Schema::Document(
                 Document {
-                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Integer)},
                     required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
@@ -262,7 +356,7 @@ mod schema {
     test_schema!(
         field_access_field_must_any_of_with_missing,
         Ok(Schema::AnyOf(
-            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Int), Schema::Missing}
+            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer), Schema::Missing}
         )),
         Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
@@ -279,12 +373,12 @@ mod schema {
             ),
             Schema::Document(
                 Document {
-                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Integer)},
                     required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
             ),
-            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Integer),
         })},
     );
 
@@ -294,7 +388,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "Pos",
             required: Schema::AnyOf(vec![
-                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
                 Schema::Atomic(Atomic::Decimal),
@@ -302,7 +396,7 @@ mod schema {
                 Schema::Missing
             ]),
             found: Schema::AnyOf(vec![
-                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
             ]),
         }),
@@ -311,7 +405,7 @@ mod schema {
             args: vec![Expression::Reference(("bar", 0u16).into())],
         }),
         map! {("bar", 0u16).into() => Schema::AnyOf(vec![
-            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
         ])},
     );
@@ -319,7 +413,7 @@ mod schema {
     // Unary functions.
     test_schema!(
         unary_pos,
-        Ok(Schema::Atomic(Atomic::Int)),
+        Ok(Schema::Atomic(Atomic::Integer)),
         Expression::Function(FunctionApplication {
             function: Function::Pos,
             args: vec![Expression::Literal(Literal::Integer(1))],
@@ -364,7 +458,7 @@ mod schema {
     // Arithmetic function type correctness.
     test_schema!(
         variadic_arg_arithmetic_no_args_returns_integer,
-        Ok(Schema::Atomic(Atomic::Int)),
+        Ok(Schema::Atomic(Atomic::Integer)),
         Expression::Function(FunctionApplication {
             function: Function::Add,
             args: vec![],
@@ -374,7 +468,7 @@ mod schema {
         variadic_arg_arithmetic_one_arg_returns_that_type,
         Ok(Schema::Atomic(Atomic::Double)),
         Expression::Function(FunctionApplication {
-            function: Function::Mult,
+            function: Function::Mul,
             args: vec![Expression::Literal(Literal::Double(1.0))],
         }),
     );
@@ -382,7 +476,7 @@ mod schema {
         arithmetic_null_takes_priority,
         Ok(Schema::Atomic(Atomic::Null)),
         Expression::Function(FunctionApplication {
-            function: Function::Mult,
+            function: Function::Mul,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Null),
@@ -395,7 +489,7 @@ mod schema {
         arithmetic_missing_takes_priority_as_null_result,
         Ok(Schema::Atomic(Atomic::Null)),
         Expression::Function(FunctionApplication {
-            function: Function::Mult,
+            function: Function::Mul,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Double(2.0)),
@@ -425,7 +519,7 @@ mod schema {
         arithmetic_double_takes_priority,
         Ok(Schema::Atomic(Atomic::Double)),
         Expression::Function(FunctionApplication {
-            function: Function::Mult,
+            function: Function::Mul,
             args: vec![
                 Expression::Literal(Literal::Double(1.0)),
                 Expression::Literal(Literal::Integer(2)),
@@ -447,9 +541,9 @@ mod schema {
     );
     test_schema!(
         arithmetic_integer_takes_priority,
-        Ok(Schema::Atomic(Atomic::Int)),
+        Ok(Schema::Atomic(Atomic::Integer)),
         Expression::Function(FunctionApplication {
-            function: Function::Mult,
+            function: Function::Mul,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Integer(2))
@@ -491,7 +585,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "Sub",
             required: Schema::AnyOf(vec![
-                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
                 Schema::Atomic(Atomic::Decimal),
@@ -513,7 +607,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "Div",
             required: Schema::AnyOf(vec![
-                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
                 Schema::Atomic(Atomic::Decimal),
@@ -535,7 +629,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "Add",
             required: Schema::AnyOf(vec![
-                Schema::Atomic(Atomic::Int),
+                Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
                 Schema::Atomic(Atomic::Decimal),
@@ -617,7 +711,7 @@ mod schema {
             ),
             Schema::Document(
                 Document {
-                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Int)},
+                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Integer)},
                     required: set!{"foo".to_string()},
                     additional_properties: false,
                 }
@@ -628,7 +722,7 @@ mod schema {
     test_schema!(
         collection_schema,
         Ok(ResultSet {
-            schema: map! {
+            schema_env: map! {
                 ("foo", 0u16).into() => Schema::Any,
             },
             min_size: None,
@@ -641,9 +735,122 @@ mod schema {
     );
 
     test_schema!(
+        empty_array_datasource_schema,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(vec![])
+            },
+            min_size: Some(0),
+            max_size: Some(0),
+        }),
+        Stage::Array(Array {
+            array: vec![],
+            alias: "foo".into(),
+        }),
+    );
+    test_schema!(
+        dual_array_datasource_schema,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        Schema::Document( Document {
+                            keys: map!{},
+                            required: set!{},
+                            additional_properties: false,
+                        })
+                    ]
+                ),
+            },
+            min_size: Some(1),
+            max_size: Some(1),
+        }),
+        Stage::Array(Array {
+            array: vec![Expression::Document(map! {})],
+            alias: "foo".into(),
+        }),
+    );
+    test_schema!(
+        literal_array_items_datasource_schema,
+        Err(Error::SchemaChecking {
+            name: "array datasource items",
+            required: ANY_DOCUMENT.clone(),
+            found: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            ])
+        }),
+        Stage::Array(Array {
+            array: vec![
+                Expression::Literal(Literal::Integer(42)),
+                Expression::Literal(Literal::Double(42f64))
+            ],
+            alias: "foo".into(),
+        }),
+    );
+    test_schema!(
+        single_document_array_datasource_schema,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        Schema::Document( Document {
+                            keys: map!{"bar".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{"bar".into()},
+                            additional_properties: false,
+                        })
+                    ]
+                ),
+            },
+            min_size: Some(1),
+            max_size: Some(1),
+        }),
+        Stage::Array(Array {
+            array: vec![Expression::Document(map! {
+                "bar".into() => Expression::Literal(Literal::Integer(1))
+            })],
+            alias: "foo".into(),
+        }),
+    );
+    test_schema!(
+        two_document_array_datasource_schema,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        Schema::Document( Document {
+                            keys: map!{"bar".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{"bar".into()},
+                            additional_properties: false,
+                        }),
+                        Schema::Document( Document {
+                            keys: map!{"car".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{"car".into()},
+                            additional_properties: false,
+                        }),
+                    ]
+                ),
+            },
+            min_size: Some(2),
+            max_size: Some(2),
+        }),
+        Stage::Array(Array {
+            array: vec![
+                Expression::Document(map! {
+                "bar".into() => Expression::Literal(Literal::Integer(1))
+                }),
+                Expression::Document(map! {
+                "car".into() => Expression::Literal(Literal::Integer(1))
+                })
+            ],
+            alias: "foo".into(),
+        }),
+    );
+
+    test_schema!(
         project_schema,
         Ok(ResultSet {
-            schema: map! {
+            schema_env: map! {
                 ("bar1", 0u16).into() => Schema::Any,
                 ("bar2", 0u16).into() => Schema::Any,
                 ("bar3", 0u16).into() => Schema::Any,
@@ -670,7 +877,7 @@ mod schema {
     // Cast.
     test_schema!(
         cast_expr_to_same_type,
-        Ok(Schema::Atomic(Atomic::Int)),
+        Ok(Schema::Atomic(Atomic::Integer)),
         Expression::Cast(CastExpression {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             to: Type::Int32,
@@ -720,7 +927,7 @@ mod schema {
             on_error: Box::new(Expression::Literal(Literal::Boolean(true))),
         }),
         map! {("bar", 0u16).into() => Schema::AnyOf(vec![
-            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ])},
     );
@@ -738,7 +945,7 @@ mod schema {
             on_error: Box::new(Expression::Literal(Literal::Boolean(true))),
         }),
         map! {("bar", 0u16).into() => Schema::AnyOf(vec![
-            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ])},
     );
@@ -788,7 +995,7 @@ mod schema {
     // TypeAssert.
     test_schema!(
         assert_expr_to_same_type,
-        Ok(Schema::Atomic(Atomic::Int)),
+        Ok(Schema::Atomic(Atomic::Integer)),
         Expression::TypeAssertion(TypeAssertionExpression {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             target_type: Type::Int32,
@@ -802,7 +1009,7 @@ mod schema {
             target_type: Type::Double,
         }),
         map! {("bar", 0u16).into() => Schema::AnyOf(vec![
-            Schema::Atomic(Atomic::Int),
+            Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ])},
     );
@@ -811,7 +1018,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "::!",
             required: Schema::Atomic(Atomic::String),
-            found: Schema::Atomic(Atomic::Int),
+            found: Schema::Atomic(Atomic::Integer),
         }),
         Expression::TypeAssertion(TypeAssertionExpression {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),

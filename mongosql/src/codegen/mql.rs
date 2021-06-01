@@ -5,14 +5,14 @@ use crate::{
         binding_tuple::{BindingTuple, DatasourceName, Key},
     },
 };
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct MappingRegistry(HashMap<Key, String>);
+pub struct MappingRegistry(BTreeMap<Key, String>);
 
 impl MappingRegistry {
     pub fn new() -> Self {
-        MappingRegistry(HashMap::new())
+        MappingRegistry(BTreeMap::new())
     }
 
     pub fn get(&self, k: &Key) -> Option<&String> {
@@ -154,7 +154,7 @@ impl MqlCodeGenerator {
             Array(arr) => {
                 let mapping_registry = mappings! {(&arr.alias, 0u16).into() => &arr.alias};
                 let docs = arr
-                    .exprs
+                    .array
                     .into_iter()
                     .map(|e| self.codegen_expression(e))
                     .collect::<Result<Vec<Bson>>>()?;
