@@ -499,22 +499,20 @@ mod schema {
         }),
         map! {("bar", 0u16).into() => Schema::Missing},
     );
-    //
-    // TODO: Add this decimal arithmetic test as part of SQL-344.
-    //
-    // test_schema!(
-    //     arithmetic_decimal_takes_priority,
-    //     Ok(Schema::Atomic(Atomic::Decimal)),
-    //     Expression::Function(FunctionApplication {
-    //         function: Function::Add,
-    //         args: vec![
-    //             Expression::Literal(Literal::Integer(1)),
-    //             // < Cast or TypeAssert to decimal value here >
-    //             Expression::Literal(Literal::Long(2)),
-    //             Expression::Literal(Literal::Double(3.0))
-    //         ],
-    //     }),
-    // );
+    test_schema!(
+        arithmetic_decimal_takes_priority,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        Expression::Function(FunctionApplication {
+            function: Function::Add,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Long(2)),
+                Expression::Literal(Literal::Double(3.0))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Decimal)},
+    );
     test_schema!(
         arithmetic_double_takes_priority,
         Ok(Schema::Atomic(Atomic::Double)),
