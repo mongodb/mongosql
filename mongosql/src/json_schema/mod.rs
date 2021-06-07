@@ -5,39 +5,29 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[allow(dead_code)]
-#[derive(Serialize, Deserialize, PartialEq, Debug, Default)]
-#[serde(rename_all = "camelCase", default)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Schema {
-    #[serde(skip_serializing_if = "is_default")]
-    pub bson_type: BsonType,
-    #[serde(skip_serializing_if = "is_default")]
-    pub properties: HashMap<String, Schema>,
-    #[serde(skip_serializing_if = "is_default")]
-    pub required: Vec<String>,
-    #[serde(skip_serializing_if = "is_default")]
-    pub additional_properties: bool,
-    #[serde(skip_serializing_if = "is_default")]
-    pub items: Vec<Schema>,
-    #[serde(skip_serializing_if = "is_default")]
-    pub any_of: Vec<Schema>,
-    #[serde(skip_serializing_if = "is_default")]
-    pub one_of: Vec<Schema>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bson_type: Option<BsonType>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub properties: Option<HashMap<String, Schema>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub additional_properties: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub items: Option<Box<Schema>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub any_of: Option<Vec<Schema>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub one_of: Option<Vec<Schema>>,
 }
 
 #[allow(dead_code)]
-#[derive(Serialize, Deserialize, PartialEq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 #[serde(untagged)]
 pub enum BsonType {
     Single(String),
     Multiple(Vec<String>),
-}
-
-impl Default for BsonType {
-    fn default() -> Self {
-        BsonType::Multiple(vec![])
-    }
-}
-
-fn is_default<T: Default + PartialEq>(t: &T) -> bool {
-    t == &T::default()
 }

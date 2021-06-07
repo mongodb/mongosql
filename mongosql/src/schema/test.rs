@@ -1,8 +1,12 @@
 use crate::{
-    map,
+    ir::schema::Error,
+    json_schema,
+    json_schema::BsonType,
+    map, schema,
     schema::{Atomic::*, Document, Satisfaction::*, Schema::*},
     set,
 };
+use std::convert::TryFrom;
 
 macro_rules! test_satisfies {
     ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
@@ -13,6 +17,294 @@ macro_rules! test_satisfies {
         }
     };
 }
+
+macro_rules! test_from_json_schema {
+    ($func_name:ident, $schema_schema:expr, $json_schema:expr) => {
+        #[test]
+        fn $func_name() {
+            let s = schema::Schema::try_from($json_schema);
+            assert_eq!(s, $schema_schema);
+        }
+    };
+}
+
+test_from_json_schema!(
+    convert_bson_single_to_atomic,
+    Ok(Atomic(Integer)),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("int".to_string())),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    invalid_bson_type,
+    Err(Error::InvalidJsonSchema(
+        "blah is not a valid BSON type".to_string()
+    )),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("blah".to_string())),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    convert_bson_multiple_to_any_of,
+    Ok(AnyOf(vec![Atomic(Integer), Atomic(Null)])),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Multiple(vec![
+            "int".to_string(),
+            "null".to_string()
+        ])),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    convert_one_of_to_one_of,
+    Ok(OneOf(vec![Atomic(Integer), Atomic(Null)])),
+    json_schema::Schema {
+        one_of: Some(vec![
+            json_schema::Schema {
+                bson_type: Some(BsonType::Single("int".to_string())),
+                ..Default::default()
+            },
+            json_schema::Schema {
+                bson_type: Some(BsonType::Single("null".to_string())),
+                ..Default::default()
+            }
+        ]),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    one_of_invalid_nested_bson,
+    Err(Error::InvalidJsonSchema(
+        "blah is not a valid BSON type".to_string()
+    )),
+    json_schema::Schema {
+        one_of: Some(vec![
+            json_schema::Schema {
+                bson_type: Some(BsonType::Single("blah".to_string())),
+                ..Default::default()
+            },
+            json_schema::Schema {
+                bson_type: Some(BsonType::Single("null".to_string())),
+                ..Default::default()
+            }
+        ]),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    one_of_invalid_extra_fields,
+    Err(Error::InvalidJsonSchema(
+        "invalid combination of fields".to_string()
+    )),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("int".to_string())),
+        one_of: Some(vec![json_schema::Schema {
+            bson_type: Some(BsonType::Single("null".to_string())),
+            ..Default::default()
+        }]),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    convert_any_of_to_any_of,
+    Ok(AnyOf(vec![Atomic(Integer), Atomic(Null)])),
+    json_schema::Schema {
+        any_of: Some(vec![
+            json_schema::Schema {
+                bson_type: Some(BsonType::Single("int".to_string())),
+                ..Default::default()
+            },
+            json_schema::Schema {
+                bson_type: Some(BsonType::Single("null".to_string())),
+                ..Default::default()
+            }
+        ]),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    convert_properties_to_document,
+    Ok(Document(Document {
+        keys: map![
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
+        ],
+        required: set!["a".to_string()],
+        additional_properties: true,
+    })),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("object".to_string())),
+        properties: Some(map! { "a".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }, "b".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }}),
+        required: Some(vec!["a".to_string()]),
+        additional_properties: Some(true),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    document_bson_type_not_object,
+    Ok(Atomic(Integer)),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("int".to_string())),
+        properties: Some(map! { "a".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }, "b".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }}),
+        required: Some(vec!["a".to_string()]),
+        additional_properties: Some(true),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    document_properties_not_set,
+    Ok(Document(Document {
+        keys: map![],
+        required: set!["a".to_string()],
+        additional_properties: true
+    })),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("object".to_string())),
+        required: Some(vec!["a".to_string()]),
+        additional_properties: Some(true),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    document_additional_properties_not_set,
+    Ok(Document(Document {
+        keys: map![
+            "a".to_string() => Atomic(Integer),
+            "b".to_string() => Atomic(Integer),
+        ],
+        required: set!["a".to_string()],
+        additional_properties: true,
+    })),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("object".to_string())),
+        properties: Some(map! { "a".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }, "b".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }}),
+        required: Some(vec!["a".to_string()]),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    convert_array_to_any_of,
+    Ok(Array(Box::new(Atomic(Integer)))),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("array".to_string())),
+        items: Some(Box::new(json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        })),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    items_set_bson_type_not_array,
+    Ok(AnyOf(vec![Atomic(Integer)])),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Multiple(vec!["int".to_string(),])),
+        items: Some(Box::new(json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        })),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    bson_type_array_set_missing_items_field,
+    Ok(Array(Box::new(Any))),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Single("array".to_string())),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    convert_array_and_document_fields,
+    Ok(AnyOf(vec![
+        Array(Box::new(Atomic(Integer))),
+        Document(Document {
+            keys: map![
+                "a".to_string() => Atomic(Integer),
+                "b".to_string() => Atomic(Integer),
+            ],
+            required: set!["a".to_string()],
+            additional_properties: true,
+        })
+    ])),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Multiple(vec![
+            "array".to_string(),
+            "object".to_string()
+        ])),
+        properties: Some(map! { "a".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }, "b".to_string() => json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        }}),
+        required: Some(vec!["a".to_string()]),
+        additional_properties: Some(true),
+        items: Some(Box::new(json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        })),
+        ..Default::default()
+    }
+);
+
+test_from_json_schema!(
+    bson_type_object_set_missing_document_fields,
+    Ok(AnyOf(vec![
+        Array(Box::new(Atomic(Integer))),
+        Document(Document {
+            keys: map![],
+            required: set![],
+            additional_properties: true
+        })
+    ])),
+    json_schema::Schema {
+        bson_type: Some(BsonType::Multiple(vec![
+            "array".to_string(),
+            "object".to_string()
+        ])),
+        items: Some(Box::new(json_schema::Schema {
+            bson_type: Some(BsonType::Single("int".to_string())),
+            ..Default::default()
+        })),
+        ..Default::default()
+    }
+);
 
 test_satisfies!(satisfies_any_must_satisfy_any, Must, Any, Any);
 test_satisfies!(satisfies_missing_must_satisfy_any, Must, Missing, Any);

@@ -26,6 +26,8 @@ pub enum Error {
     },
     #[error("cannot access field {0} because it does not exist")]
     AccessMissingField(String),
+    #[error("Invalid JSON schema: {0}")]
+    InvalidJsonSchema(String),
 }
 
 #[derive(Debug, Clone)]

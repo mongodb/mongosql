@@ -2,6 +2,7 @@ mod algebrizer;
 mod ast;
 mod codegen;
 mod ir;
+mod json_schema;
 mod parser;
 mod result;
 mod schema;
