@@ -1,23 +1,21 @@
 catalog_environment:
-  {
-    'information_schema': {
-      'mytbl': [{'a': 1}]
-    },
-    'INFORMATION_SCHEMA': {
-      'mytbl': [{'a': 1}]
-    }
-  }
+  information_schema:
+    mytbl:
+      - {'_id': 0, 'a': 1}
+  INFORMATION_SCHEMA:
+    mytbl:
+      - {'_id': 0, 'a': 1}
 
 tests:
   - description: a user db called information_schema should require no special handling
     query: "SELECT * FROM information_schema.mytbl"
     result:
-      - {'a': 1}
+      - {'mytbl': {'_id': 0, 'a': 1}}
 
   - description: a user db called all caps INFORMATION_SCHEMA should require no special handling
     query: "SELECT * FROM INFORMATION_SCHEMA.mytbl"
     result:
-      - {'a': 1}
+      - {'mytbl': {'_id': 0, 'a': 1}}
 
   - description: describe is a keyword
     query: "SELECT describe"

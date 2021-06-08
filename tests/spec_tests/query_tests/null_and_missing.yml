@@ -1,18 +1,8 @@
 catalog_environment:
-    {
-        'foo': {
-            'bar': [
-                {
-                    'a': 42, 'b': null,
-                    'c': {'d': 'hello', 'e': 142}
-                },
-                {
-                    'a': 52,
-                    'c': {'d': 'world'}
-                }
-            ]
-        }
-    }
+  foo:
+    bar:
+      - {'_id': 0, 'a': 42, 'b': null, 'c': {'d': 'hello', 'e': 142}}
+      - {'_id': 1, 'a': 52, 'c': {'d': 'world'}}
 tests:
   - description: Normal non-missing reference
     current_db: 'foo'

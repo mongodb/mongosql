@@ -1,21 +1,10 @@
 catalog_environment:
-    {
-        "foo": {
-            "bar": [
-                {
-                   "foo": true,
-                },
-                {
-                   "foo": false
-                }
-            ],
-            "bar2": [
-                {
-                   "foo": true
-                }
-            ]
-        }
-    }
+  foo:
+    bar:
+      - {'_id': 0, 'foo': true}
+      - {'_id': 1, 'foo': false}
+    baz:
+      - {'_id': 0, 'foo': true}
 
 schema_environment:
     {
@@ -94,7 +83,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$sqlNot': ['$bar.foo']}}}
     result:
-      - {'bar': {'a': false}}
+      - {'bar': {'_id': 0, 'foo': false}}
 
   - description: WHERE must be statically determined to be a BOOLEAN and no schema for bar2
     query: "SELECT * FROM bar2 WHERE NOT foo"
