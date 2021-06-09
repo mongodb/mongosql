@@ -31,6 +31,17 @@ mod schema {
         schema::*,
         set,
     };
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        pub static ref TEST_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+            keys: map! {
+            "bar".into() => Schema::Atomic(Atomic::Integer),
+                },
+            required: set! {"bar".into()},
+            additional_properties: false,
+        });
+    }
 
     test_schema!(
         literal_null,
@@ -723,7 +734,7 @@ mod schema {
             schema_env: map! {
                 ("foo", 0u16).into() => Schema::Any,
             },
-            min_size: None,
+            min_size: 0,
             max_size: None,
         }),
         Stage::Collection(Collection {
@@ -738,7 +749,7 @@ mod schema {
             schema_env: map! {
                 ("foo", 0u16).into() => Schema::AnyOf(vec![])
             },
-            min_size: Some(0),
+            min_size: 0,
             max_size: Some(0),
         }),
         Stage::Array(Array {
@@ -760,7 +771,7 @@ mod schema {
                     ]
                 ),
             },
-            min_size: Some(1),
+            min_size: 1,
             max_size: Some(1),
         }),
         Stage::Array(Array {
@@ -800,7 +811,7 @@ mod schema {
                     ]
                 ),
             },
-            min_size: Some(1),
+            min_size: 1,
             max_size: Some(1),
         }),
         Stage::Array(Array {
@@ -829,7 +840,7 @@ mod schema {
                     ]
                 ),
             },
-            min_size: Some(2),
+            min_size: 2,
             max_size: Some(2),
         }),
         Stage::Array(Array {
@@ -853,7 +864,7 @@ mod schema {
                 ("bar2", 0u16).into() => Schema::Any,
                 ("bar3", 0u16).into() => Schema::Any,
             },
-            min_size: None,
+            min_size: 0,
             max_size: None,
         }),
         Stage::Project(Project {
@@ -1021,6 +1032,166 @@ mod schema {
         Expression::TypeAssertion(TypeAssertionExpression {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             target_type: Type::String,
+        }),
+    );
+
+    // Limit and Offset
+    test_schema!(
+        limit_collection_datasource,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::Any,
+            },
+            min_size: 0,
+            max_size: Some(20),
+        }),
+        Stage::Limit(Limit {
+            limit: 20,
+            source: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        limit_lt_num_docs,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(vec![
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone()
+                ]),
+            },
+            min_size: 2,
+            max_size: Some(2),
+        }),
+        Stage::Limit(Limit {
+            limit: 2,
+            source: Box::new(Stage::Array(Array {
+                array: vec![
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                    })
+                ],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        limit_gt_num_docs,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(vec![
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                ]),
+            },
+            min_size: 3,
+            max_size: Some(3),
+        }),
+        Stage::Limit(Limit {
+            limit: 10,
+            source: Box::new(Stage::Array(Array {
+                array: vec![
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                    })
+                ],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        offset_collection_datasource,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::Any,
+            },
+            min_size: 0,
+            max_size: None,
+        }),
+        Stage::Offset(Offset {
+            offset: 20,
+            source: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        offset_lt_num_docs,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(vec![
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                ]),
+            },
+            min_size: 2,
+            max_size: Some(2),
+        }),
+        Stage::Offset(Offset {
+            offset: 1,
+            source: Box::new(Stage::Array(Array {
+                array: vec![
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                    })
+                ],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        offset_gt_num_docs,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(vec![
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                    TEST_DOCUMENT_SCHEMA.clone(),
+                ]),
+            },
+            min_size: 0,
+            max_size: Some(0),
+        }),
+        Stage::Offset(Offset {
+            offset: 10,
+            source: Box::new(Stage::Array(Array {
+                array: vec![
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                    }),
+                    Expression::Document(map! {
+                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                    })
+                ],
+                alias: "foo".into(),
+            })),
         }),
     );
 }

@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test;
 
+use crate::ir::{Limit, Offset};
 use crate::{
     ast,
     ir::{
@@ -64,14 +65,17 @@ impl Algebrizer {
         self
     }
 
-    pub(crate) fn algebrize_select_query(&self, ast_node: ast::SelectQuery) -> Result<ir::Stage> {
+    pub fn algebrize_select_query(&self, ast_node: ast::SelectQuery) -> Result<ir::Stage> {
         let from_ast = ast_node.from_clause.ok_or(Error::NoFromClause)?;
         let plan = self.algebrize_from_clause(from_ast)?;
         let plan = self.algebrize_select_clause(ast_node.select_clause, plan)?;
+        let plan = self.algebrize_offset_clause(ast_node.offset, plan)?;
+        let plan = self.algebrize_limit_clause(ast_node.limit, plan)?;
+
         Ok(plan)
     }
 
-    pub(crate) fn algebrize_from_clause(&self, ast_node: ast::Datasource) -> Result<ir::Stage> {
+    pub fn algebrize_from_clause(&self, ast_node: ast::Datasource) -> Result<ir::Stage> {
         match ast_node {
             ast::Datasource::Array(a) => {
                 let (ve, alias) = (a.array, a.alias);
@@ -116,7 +120,7 @@ impl Algebrizer {
         }
     }
 
-    pub(crate) fn algebrize_select_clause(
+    pub fn algebrize_select_clause(
         &self,
         ast_node: ast::SelectClause,
         source: ir::Stage,
@@ -143,7 +147,7 @@ impl Algebrizer {
         }
     }
 
-    pub(crate) fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<ir::Expression> {
+    pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<ir::Expression> {
         match ast_node {
             ast::Expression::Literal(l) => Ok(ir::Expression::Literal(self.algebrize_literal(l)?)),
             ast::Expression::Array(a) => Ok(ir::Expression::Array(
@@ -175,7 +179,7 @@ impl Algebrizer {
         }
     }
 
-    pub(crate) fn algebrize_literal(&self, ast_node: ast::Literal) -> Result<ir::Literal> {
+    pub fn algebrize_literal(&self, ast_node: ast::Literal) -> Result<ir::Literal> {
         match ast_node {
             ast::Literal::Null => Ok(ir::Literal::Null),
             ast::Literal::Boolean(b) => Ok(ir::Literal::Boolean(b)),
@@ -183,6 +187,42 @@ impl Algebrizer {
             ast::Literal::Integer(i) => Ok(ir::Literal::Integer(i)),
             ast::Literal::Long(l) => Ok(ir::Literal::Long(l)),
             ast::Literal::Double(d) => Ok(ir::Literal::Double(d)),
+        }
+    }
+
+    pub fn algebrize_limit_clause(
+        &self,
+        ast_node: Option<u32>,
+        source: ir::Stage,
+    ) -> Result<ir::Stage> {
+        match ast_node {
+            None => Ok(source),
+            Some(x) => {
+                let stage = ir::Stage::Limit(Limit {
+                    source: Box::new(source),
+                    limit: u64::from(x),
+                });
+                stage.schema(&self.schema_inference_state())?;
+                Ok(stage)
+            }
+        }
+    }
+
+    pub fn algebrize_offset_clause(
+        &self,
+        ast_node: Option<u32>,
+        source: ir::Stage,
+    ) -> Result<ir::Stage> {
+        match ast_node {
+            None => Ok(source),
+            Some(x) => {
+                let stage = ir::Stage::Offset(Offset {
+                    source: Box::new(source),
+                    offset: u64::from(x),
+                });
+                stage.schema(&self.schema_inference_state())?;
+                Ok(stage)
+            }
         }
     }
 }

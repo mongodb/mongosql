@@ -1,3 +1,6 @@
+use crate::ir::{Collection, Stage};
+use lazy_static::lazy_static;
+
 macro_rules! test_algebrize {
     ($func_name:ident, $method:ident, $expected:expr, $ast:expr $(,)?) => {
         #[test]
@@ -9,6 +12,19 @@ macro_rules! test_algebrize {
             let algebrizer = Algebrizer::new("test".into(), 0u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast);
+            assert_eq!(expected, res);
+        }
+    };
+    ($func_name:ident, $method:ident, $expected:expr, $ast:expr, $source:expr) => {
+        #[test]
+        fn $func_name() {
+            use crate::{
+                algebrizer::{Algebrizer, Error},
+                ir,
+            };
+            let algebrizer = Algebrizer::new("test".into(), 0u16);
+            let expected: Result<ir::Stage, Error> = $expected;
+            let res: Result<ir::Stage, Error> = algebrizer.$method($ast, $source);
             assert_eq!(expected, res);
         }
     };
@@ -301,5 +317,84 @@ mod from_clause {
             ],
             alias: "bar".into(),
         }),
+    );
+}
+
+lazy_static! {
+    static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
+        db: "test".into(),
+        collection: "foo".into()
+    });
+}
+
+mod limit_or_offset_clause {
+    use crate::{algebrizer::test::TEST_SOURCE, ir, map};
+
+    test_algebrize!(
+        limit_set,
+        algebrize_limit_clause,
+        Ok(ir::Stage::Limit(ir::Limit {
+            source: Box::new(TEST_SOURCE.clone()),
+            limit: 42_u64
+        })),
+        Some(42_u32),
+        TEST_SOURCE.clone()
+    );
+    test_algebrize!(
+        limit_unset,
+        algebrize_limit_clause,
+        Ok(TEST_SOURCE.clone()),
+        None,
+        TEST_SOURCE.clone()
+    );
+    test_algebrize!(
+        offset_set,
+        algebrize_offset_clause,
+        Ok(ir::Stage::Offset(ir::Offset {
+            source: Box::new(TEST_SOURCE.clone()),
+            offset: 3_u64
+        })),
+        Some(3_u32),
+        TEST_SOURCE.clone()
+    );
+    test_algebrize!(
+        offset_unset,
+        algebrize_offset_clause,
+        Ok(TEST_SOURCE.clone()),
+        None,
+        TEST_SOURCE.clone()
+    );
+    test_algebrize!(
+        limit_and_offset,
+        algebrize_select_query,
+        Ok(ir::Stage::Limit(ir::Limit {
+            source: Box::new(ir::Stage::Offset(ir::Offset {
+                source: Box::new(ir::Stage::Project(ir::Project {
+                    source: Box::new(TEST_SOURCE.clone()),
+                    expression: map! {
+                        ("foo", 0u16).into() => ir::Expression::Reference(("foo", 0u16).into())
+                    }
+                })),
+                offset: 3
+            })),
+            limit: 10
+        })),
+        ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
+            },
+            from_clause: Some(ast::Datasource::Collection(ast::CollectionSource {
+                database: Some("test".into()),
+                collection: "foo".into(),
+                alias: Some("foo".into()),
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: Some(10_u32),
+            offset: Some(3_u32)
+        },
     );
 }

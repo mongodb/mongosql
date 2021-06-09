@@ -4,6 +4,7 @@ use crate::{
     schema::{Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT},
 };
 use linked_hash_map::LinkedHashMap;
+use std::cmp::min;
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
 
@@ -84,14 +85,32 @@ impl Stage {
                 })
             }
             Stage::Group(_) => unimplemented!(),
-            Stage::Limit(_) => unimplemented!(),
-            Stage::Offset(_) => unimplemented!(),
+            Stage::Limit(l) => {
+                let source_result_set = l.source.schema(state)?;
+                Ok(ResultSet {
+                    schema_env: source_result_set.schema_env,
+                    min_size: min(l.limit, source_result_set.min_size),
+                    max_size: source_result_set
+                        .max_size
+                        .map_or(Some(l.limit), |x| Some(min(l.limit, x))),
+                })
+            }
+            Stage::Offset(o) => {
+                let source_result_set = o.source.schema(state)?;
+                Ok(ResultSet {
+                    schema_env: source_result_set.schema_env,
+                    min_size: source_result_set.min_size.saturating_sub(o.offset),
+                    max_size: source_result_set
+                        .max_size
+                        .map(|x| x.saturating_sub(o.offset)),
+                })
+            }
             Stage::Sort(_) => unimplemented!(),
             Stage::Collection(c) => Ok(ResultSet {
                 schema_env: map! {
                     (c.collection.clone(), state.scope_level).into() => Schema::Any,
                 },
-                min_size: None,
+                min_size: 0,
                 max_size: None,
             }),
             Stage::Array(a) => {
@@ -101,7 +120,7 @@ impl Stage {
                         schema_env: map! {
                             (a.alias.clone(), state.scope_level).into() => array_items_schema,
                         },
-                        min_size: Some(a.array.len() as u64),
+                        min_size: a.array.len() as u64,
                         max_size: Some(a.array.len() as u64),
                     })
                 } else {
