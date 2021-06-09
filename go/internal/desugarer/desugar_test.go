@@ -7,9 +7,40 @@ import (
 	"github.com/10gen/mongoast/optimizer"
 	"github.com/10gen/mongoast/parser"
 	"github.com/google/go-cmp/cmp"
+
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestDesugar(t *testing.T) {
+
+	t.Run("all", func(t *testing.T) {
+		testCases := LoadTestCases("desugar_all.json")
+
+		for _, tc := range testCases {
+			t.Run(tc.Name, func(t *testing.T) {
+				if tc.Skip != nil {
+					t.Skip(*tc.Skip)
+				}
+
+				actual, err := Desugar(tc.Input)
+				if err != nil {
+					t.Fatalf("Failed to desugar pipeline: %v", err)
+				}
+
+				expected, err := parser.ParsePipeline(tc.Expected)
+				if err != nil {
+					t.Fatalf("Failed to parse expected pipeline: %v", err)
+				}
+
+				expectedStr := parser.DeparsePipeline(expected).String()
+				actualStr := bsoncore.Array(actual).String()
+
+				if !cmp.Equal(expectedStr, actualStr) {
+					t.Fatalf("\nexpected:\n %s\ngot:\n %s", expectedStr, actualStr)
+				}
+			})
+		}
+	})
 
 	tests := []struct {
 		name      string

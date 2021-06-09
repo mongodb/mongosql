@@ -574,5 +574,124 @@
         }
       }
     ]
+  },
+  {
+    "name": "nested join",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "pipeline": [
+            {
+              "$join": {
+                "collection": "baz",
+                "joinType": "inner",
+                "pipeline": [
+                  {
+                    "$join": {
+                      "collection": "car",
+                      "joinType": "inner",
+                      "pipeline": []
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$lookup": {
+                "from": "baz",
+                "pipeline": [
+                  {
+                    "$lookup": {
+                      "from": "car",
+                      "pipeline": [],
+                      "as": "eca58228-b657-498a-b76e-f48a9161a404"
+                    }
+                  },
+                  {
+                    "$unwind": {
+                      "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+                      "preserveNullAndEmptyArrays": false
+                    }
+                  },
+                  {
+                    "$replaceRoot": {
+                      "newRoot": {
+                        "$mergeObjects": [
+                          "$$ROOT",
+                          "$eca58228-b657-498a-b76e-f48a9161a404"
+                        ]
+                      }
+                    }
+                  },
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "eca58228-b657-498a-b76e-f48a9161a404": 0
+                    }
+                  }
+                ],
+                "as": "eca58228-b657-498a-b76e-f48a9161a404"
+              }
+            },
+            {
+              "$unwind": {
+                "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+                "preserveNullAndEmptyArrays": false
+              }
+            },
+            {
+              "$replaceRoot": {
+                "newRoot": {
+                  "$mergeObjects": [
+                    "$$ROOT",
+                    "$eca58228-b657-498a-b76e-f48a9161a404"
+                  ]
+                }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "eca58228-b657-498a-b76e-f48a9161a404": 0
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
   }
 ]

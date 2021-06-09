@@ -1,0 +1,1835 @@
+[
+  {
+    "name": "nothing to desugar",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "foo": "$$ROOT"
+        }
+      }
+    ]
+  },
+  {
+    "name": "join nested in subquery pipeline",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "collection": "bar",
+              "outputPath": [
+                "x"
+              ],
+              "pipeline": [
+                {
+                  "$join": {
+                    "collection": "baz",
+                    "joinType": "inner",
+                    "pipeline": []
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$lookup": {
+                "from": "baz",
+                "pipeline": [],
+                "as": "eca58228-b657-498a-b76e-f48a9161a404"
+              }
+            },
+            {
+              "$unwind": {
+                "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+                "preserveNullAndEmptyArrays": false
+              }
+            },
+            {
+              "$replaceRoot": {
+                "newRoot": {
+                  "$mergeObjects": [
+                    "$$ROOT",
+                    "$eca58228-b657-498a-b76e-f48a9161a404"
+                  ]
+                }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "eca58228-b657-498a-b76e-f48a9161a404": 0
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.x"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "multiple levels of new expressions that contain pipelines: join nested in subquery nested in join nested in subquery",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "collection": "bar",
+              "outputPath": [
+                "x"
+              ],
+              "pipeline": [
+                {
+                  "$join": {
+                    "collection": "baz",
+                    "joinType": "inner",
+                    "pipeline": [
+                      {
+                        "$project": {
+                          "_id": 0,
+                          "expr": {
+                            "$subquery": {
+                              "collection": "car",
+                              "outputPath": [
+                                "y"
+                              ],
+                              "pipeline": [
+                                {
+                                  "$join": {
+                                    "collection": "caz",
+                                    "joinType": "inner",
+                                    "pipeline": []
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$lookup": {
+                "from": "baz",
+                "pipeline": [
+                  {
+                    "$lookup": {
+                      "from": "car",
+                      "pipeline": [
+                        {
+                          "$lookup": {
+                            "from": "caz",
+                            "pipeline": [],
+                            "as": "eca58228-b657-498a-b76e-f48a9161a404"
+                          }
+                        },
+                        {
+                          "$unwind": {
+                            "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+                            "preserveNullAndEmptyArrays": false
+                          }
+                        },
+                        {
+                          "$replaceRoot": {
+                            "newRoot": {
+                              "$mergeObjects": [
+                                "$$ROOT",
+                                "$eca58228-b657-498a-b76e-f48a9161a404"
+                              ]
+                            }
+                          }
+                        },
+                        {
+                          "$project": {
+                            "_id": 0,
+                            "eca58228-b657-498a-b76e-f48a9161a404": 0
+                          }
+                        },
+                        {
+                          "$limit": 1
+                        }
+                      ],
+                      "as": "__subquery_result_0"
+                    }
+                  },
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "expr": {
+                        "$let": {
+                          "vars": {
+                            "docExpr": {
+                              "$arrayElemAt": [
+                                "$__subquery_result_0",
+                                0
+                              ]
+                            }
+                          },
+                          "in": "$$docExpr.y"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "as": "eca58228-b657-498a-b76e-f48a9161a404"
+              }
+            },
+            {
+              "$unwind": {
+                "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+                "preserveNullAndEmptyArrays": false
+              }
+            },
+            {
+              "$replaceRoot": {
+                "newRoot": {
+                  "$mergeObjects": [
+                    "$$ROOT",
+                    "$eca58228-b657-498a-b76e-f48a9161a404"
+                  ]
+                }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "eca58228-b657-498a-b76e-f48a9161a404": 0
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.x"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "group nested in join pipeline",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "pipeline": [
+            {
+              "$group": {
+                "_id": null,
+                "acc": {
+                  "$sqlAvg": {
+                    "var": "$a",
+                    "distinct": true
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$group": {
+                "_id": null,
+                "acc": {
+                  "$addToSet": "$a"
+                }
+              }
+            },
+            {
+              "$project": {
+                "acc": {
+                  "$avg": "$acc"
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "group nested in subquery pipeline",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "collection": "bar",
+              "outputPath": [
+                "acc"
+              ],
+              "pipeline": [
+                {
+                  "$group": {
+                    "_id": null,
+                    "acc": {
+                      "$sqlAvg": {
+                        "var": "$a",
+                        "distinct": true
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$group": {
+                "_id": null,
+                "acc": {
+                  "$addToSet": "$a"
+                }
+              }
+            },
+            {
+              "$project": {
+                "acc": {
+                  "$avg": "$acc"
+                }
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.acc"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "subquery nested in join pipeline",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "expr": {
+                  "$subquery": {
+                    "collection": "baz",
+                    "outputPath": [
+                      "x"
+                    ],
+                    "pipeline": []
+                  }
+                }
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$lookup": {
+                "from": "baz",
+                "pipeline": [
+                  {
+                    "$limit": 1
+                  }
+                ],
+                "as": "__subquery_result_0"
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "expr": {
+                  "$let": {
+                    "vars": {
+                      "docExpr": {
+                        "$arrayElemAt": [
+                          "$__subquery_result_0",
+                          0
+                        ]
+                      }
+                    },
+                    "in": "$$docExpr.x"
+                  }
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "subquery nested in join match condition",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "pipeline": [],
+          "condition": {
+            "$match": {
+              "$expr": {
+                "$subquery": {
+                  "collection": "baz",
+                  "outputPath": [
+                    "x"
+                  ],
+                  "pipeline": []
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$lookup": {
+                "from": "baz",
+                "pipeline": [
+                  {
+                    "$limit": 1
+                  }
+                ],
+                "as": "__subquery_result_0"
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$let": {
+                    "vars": {
+                      "docExpr": {
+                        "$arrayElemAt": [
+                          "$__subquery_result_0",
+                          0
+                        ]
+                      }
+                    },
+                    "in": "$$docExpr.x"
+                  }
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "subquery nested in join let",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "let": {
+            "x": {
+              "$subquery": {
+                "collection": "baz",
+                "outputPath": [
+                  "x"
+                ],
+                "pipeline": []
+              }
+            }
+          },
+          "pipeline": []
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "baz",
+          "pipeline": [
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "x": {
+              "$let": {
+                "vars": {
+                  "docExpr": {
+                    "$arrayElemAt": [
+                      "$__subquery_result_0",
+                      0
+                    ]
+                  }
+                },
+                "in": "$$docExpr.x"
+              }
+            }
+          },
+          "pipeline": [],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "subquery nested in group accumulator as arg",
+    "input": [
+      {
+        "$group": {
+          "_id": null,
+          "acc": {
+            "$sqlAvg": {
+              "var": {
+                "$subquery": {
+                  "collection": "bar",
+                  "outputPath": [
+                    "x"
+                  ],
+                  "pipeline": []
+                }
+              },
+              "distinct": true
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "acc": {
+            "$addToSet": {
+              "$let": {
+                "vars": {
+                  "docExpr": {
+                    "$arrayElemAt": [
+                      "$__subquery_result_0",
+                      0
+                    ]
+                  }
+                },
+                "in": "$$docExpr.x"
+              }
+            }
+          }
+        }
+      },
+      {
+        "$project": {
+          "acc": {
+            "$avg": "$acc"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "subquery nested in unsupported op as arg",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlDivide": {
+              "dividend": {
+                "$subquery": {
+                  "collection": "bar",
+                  "outputPath": [
+                    "x"
+                  ],
+                  "pipeline": []
+                }
+              },
+              "divisor": "$b",
+              "onError": null
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$cond": [
+              {
+                "$eq": [
+                  "$b",
+                  0
+                ]
+              },
+              null,
+              {
+                "$divide": [
+                  {
+                    "$let": {
+                      "vars": {
+                        "docExpr": {
+                          "$arrayElemAt": [
+                            "$__subquery_result_0",
+                            0
+                          ]
+                        }
+                      },
+                      "in": "$$docExpr.x"
+                    }
+                  },
+                  "$b"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "subquery nested in null semantic op as arg",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlNot": [
+              {
+                "$subquery": {
+                  "collection": "bar",
+                  "outputPath": [
+                    "x"
+                  ],
+                  "pipeline": []
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlNot_input0": {
+                  "$let": {
+                    "vars": {
+                      "docExpr": {
+                        "$arrayElemAt": [
+                          "$__subquery_result_0",
+                          0
+                        ]
+                      }
+                    },
+                    "in": "$$docExpr.x"
+                  }
+                }
+              },
+              "in": {
+                "$cond": {
+                  "if": {
+                    "$lte": [
+                      "$$desugared_sqlNot_input0",
+                      null
+                    ]
+                  },
+                  "then": null,
+                  "else": {
+                    "$not": [
+                      "$$desugared_sqlNot_input0"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "unsupported ops nested in join",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "let": {
+            "x": {
+              "$sqlConvert": {
+                "input": "$x",
+                "type": "array",
+                "onNull": null,
+                "onError": []
+              }
+            }
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "a": "$a",
+                "expr": {
+                  "$sqlSlice": [
+                    "$$x",
+                    "$len"
+                  ]
+                }
+              }
+            }
+          ],
+          "condition": {
+            "$match": {
+              "$expr": {
+                "$like": {
+                  "input": "$a",
+                  "pattern": "abc"
+                }
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "x": {
+              "$let": {
+                "vars": {
+                  "sqlConvert_input": "$x"
+                },
+                "in": {
+                  "$switch": {
+                    "branches": [
+                      {
+                        "case": {
+                          "$eq": [
+                            {
+                              "$type": "$$sqlConvert_input"
+                            },
+                            "array"
+                          ]
+                        },
+                        "then": "$$sqlConvert_input"
+                      },
+                      {
+                        "case": {
+                          "$lte": [
+                            "$$sqlConvert_input",
+                            null
+                          ]
+                        },
+                        "then": null
+                      }
+                    ],
+                    "default": []
+                  }
+                }
+              }
+            }
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "a": "$a",
+                "expr": {
+                  "$slice": [
+                    "$$x",
+                    "$len"
+                  ]
+                }
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$regexMatch": {
+                    "input": "$a",
+                    "regex": "^abc$",
+                    "options": "is"
+                  }
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "unsupported op nested in group accumulator as arg",
+    "input": [
+      {
+        "$group": {
+          "_id": null,
+          "acc": {
+            "$sqlAvg": {
+              "var": {
+                "$sqlDivide": {
+                  "dividend": "$a",
+                  "divisor": "$b",
+                  "onError": null
+                }
+              },
+              "distinct": true
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$group": {
+          "_id": null,
+          "acc": {
+            "$addToSet": {
+              "$cond": [
+                {
+                  "$eq": [
+                    "$b",
+                    0
+                  ]
+                },
+                null,
+                {
+                  "$divide": [
+                    "$a",
+                    "$b"
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      },
+      {
+        "$project": {
+          "acc": {
+            "$avg": "$acc"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "unsupported ops nested in subquery",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "collection": "bar",
+              "let": {
+                "arr": {
+                  "$sqlConvert": {
+                    "input": "$a",
+                    "type": "array",
+                    "onNull": null,
+                    "onError": []
+                  }
+                }
+              },
+              "outputPath": [
+                "v"
+              ],
+              "pipeline": [
+                {
+                  "$project": {
+                    "_id": 0,
+                    "v": {
+                      "$sqlSlice": [
+                        "$$arr",
+                        "$len"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "arr": {
+              "$let": {
+                "vars": {
+                  "sqlConvert_input": "$a"
+                },
+                "in": {
+                  "$switch": {
+                    "branches": [
+                      {
+                        "case": {
+                          "$eq": [
+                            {
+                              "$type": "$$sqlConvert_input"
+                            },
+                            "array"
+                          ]
+                        },
+                        "then": "$$sqlConvert_input"
+                      },
+                      {
+                        "case": {
+                          "$lte": [
+                            "$$sqlConvert_input",
+                            null
+                          ]
+                        },
+                        "then": null
+                      }
+                    ],
+                    "default": []
+                  }
+                }
+              }
+            }
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "v": {
+                  "$slice": [
+                    "$$arr",
+                    "$len"
+                  ]
+                }
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.v"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "unsupported op nested in null semantic op as arg",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlSize": {
+              "$sqlSlice": [
+                "$arr",
+                "$len"
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlSize_input": {
+                  "$slice": [
+                    "$arr",
+                    "$len"
+                  ]
+                }
+              },
+              "in": {
+                "$cond": {
+                  "if": {
+                    "$lte": [
+                      "$$desugared_sqlSize_input",
+                      null
+                    ]
+                  },
+                  "then": null,
+                  "else": {
+                    "$size": "$$desugared_sqlSize_input"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "null semantic ops nested in join",
+    "input": [
+      {
+        "$join": {
+          "collection": "bar",
+          "joinType": "inner",
+          "let": {
+            "x": {
+              "$sqlNot": [
+                "$a"
+              ]
+            }
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "expr": {
+                  "$sqlNot": [
+                    "$$x"
+                  ]
+                }
+              }
+            }
+          ],
+          "condition": {
+            "$match": {
+              "$expr": {
+                "$sqlNot": [
+                  "$expr"
+                ]
+              }
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "x": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlNot_input0": "$a"
+                },
+                "in": {
+                  "$cond": {
+                    "if": {
+                      "$lte": [
+                        "$$desugared_sqlNot_input0",
+                        null
+                      ]
+                    },
+                    "then": null,
+                    "else": {
+                      "$not": [
+                        "$$desugared_sqlNot_input0"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "expr": {
+                  "$let": {
+                    "vars": {
+                      "desugared_sqlNot_input0": "$$x"
+                    },
+                    "in": {
+                      "$cond": {
+                        "if": {
+                          "$lte": [
+                            "$$desugared_sqlNot_input0",
+                            null
+                          ]
+                        },
+                        "then": null,
+                        "else": {
+                          "$not": [
+                            "$$desugared_sqlNot_input0"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "$match": {
+                "$expr": {
+                  "$let": {
+                    "vars": {
+                      "desugared_sqlNot_input0": "$expr"
+                    },
+                    "in": {
+                      "$cond": {
+                        "if": {
+                          "$lte": [
+                            "$$desugared_sqlNot_input0",
+                            null
+                          ]
+                        },
+                        "then": null,
+                        "else": {
+                          "$not": [
+                            "$$desugared_sqlNot_input0"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          ],
+          "as": "eca58228-b657-498a-b76e-f48a9161a404"
+        }
+      },
+      {
+        "$unwind": {
+          "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+          "preserveNullAndEmptyArrays": false
+        }
+      },
+      {
+        "$replaceRoot": {
+          "newRoot": {
+            "$mergeObjects": [
+              "$$ROOT",
+              "$eca58228-b657-498a-b76e-f48a9161a404"
+            ]
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "eca58228-b657-498a-b76e-f48a9161a404": 0
+        }
+      }
+    ]
+  },
+  {
+    "name": "null semantic op nested in group accumulator as arg",
+    "input": [
+      {
+        "$group": {
+          "_id": null,
+          "acc": {
+            "$sqlAvg": {
+              "var": {
+                "$sqlSize": "$a"
+              },
+              "distinct": true
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$group": {
+          "_id": null,
+          "acc": {
+            "$addToSet": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlSize_input": "$a"
+                },
+                "in": {
+                  "$cond": {
+                    "if": {
+                      "$lte": [
+                        "$$desugared_sqlSize_input",
+                        null
+                      ]
+                    },
+                    "then": null,
+                    "else": {
+                      "$size": "$$desugared_sqlSize_input"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "$project": {
+          "acc": {
+            "$avg": "$acc"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "null semantic ops nested in subquery",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "collection": "bar",
+              "let": {
+                "s": {
+                  "$sqlSize": "$a"
+                }
+              },
+              "outputPath": [
+                "v"
+              ],
+              "pipeline": [
+                {
+                  "$project": {
+                    "_id": 0,
+                    "v": {
+                      "$sqlEq": [
+                        "$$s",
+                        "$s"
+                      ]
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "let": {
+            "s": {
+              "$let": {
+                "vars": {
+                  "desugared_sqlSize_input": "$a"
+                },
+                "in": {
+                  "$cond": {
+                    "if": {
+                      "$lte": [
+                        "$$desugared_sqlSize_input",
+                        null
+                      ]
+                    },
+                    "then": null,
+                    "else": {
+                      "$size": "$$desugared_sqlSize_input"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "pipeline": [
+            {
+              "$project": {
+                "_id": 0,
+                "v": {
+                  "$let": {
+                    "vars": {
+                      "desugared_sqlEq_input0": "$$s",
+                      "desugared_sqlEq_input1": "$s"
+                    },
+                    "in": {
+                      "$cond": {
+                        "if": {
+                          "$or": [
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input0",
+                                null
+                              ]
+                            },
+                            {
+                              "$lte": [
+                                "$$desugared_sqlEq_input1",
+                                null
+                              ]
+                            }
+                          ]
+                        },
+                        "then": null,
+                        "else": {
+                          "$eq": [
+                            "$$desugared_sqlEq_input0",
+                            "$$desugared_sqlEq_input1"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.v"
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "null semantic op nested in unsupported op as arg",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlDivide": {
+              "dividend": "$a",
+              "divisor": {
+                "$sqlSize": "$b"
+              },
+              "onError": null
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$cond": [
+              {
+                "$eq": [
+                  {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlSize_input": "$b"
+                      },
+                      "in": {
+                        "$cond": {
+                          "if": {
+                            "$lte": [
+                              "$$desugared_sqlSize_input",
+                              null
+                            ]
+                          },
+                          "then": null,
+                          "else": {
+                            "$size": "$$desugared_sqlSize_input"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  0
+                ]
+              },
+              null,
+              {
+                "$divide": [
+                  "$a",
+                  {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlSize_input": "$b"
+                      },
+                      "in": {
+                        "$cond": {
+                          "if": {
+                            "$lte": [
+                              "$$desugared_sqlSize_input",
+                              null
+                            ]
+                          },
+                          "then": null,
+                          "else": {
+                            "$size": "$$desugared_sqlSize_input"
+                          }
+                        }
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "all present together in one pipeline",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$subquery": {
+              "collection": "bar",
+              "outputPath": [
+                "acc"
+              ],
+              "pipeline": [
+                {
+                  "$join": {
+                    "collection": "baz",
+                    "joinType": "inner",
+                    "pipeline": [],
+                    "condition": {
+                      "$match": {
+                        "$expr": {
+                          "$sqlNot": [
+                            "$b"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$group": {
+                    "_id": null,
+                    "acc": {
+                      "$sqlAvg": {
+                        "var": {
+                          "$sqlDivide": {
+                            "dividend": "$baz.a",
+                            "divisor": "$b",
+                            "onError": 0
+                          }
+                        },
+                        "distinct": false
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [
+            {
+              "$lookup": {
+                "from": "baz",
+                "pipeline": [
+                  {
+                    "$match": {
+                      "$expr": {
+                        "$let": {
+                          "vars": {
+                            "desugared_sqlNot_input0": "$b"
+                          },
+                          "in": {
+                            "$cond": {
+                              "if": {
+                                "$lte": [
+                                  "$$desugared_sqlNot_input0",
+                                  null
+                                ]
+                              },
+                              "then": null,
+                              "else": {
+                                "$not": [
+                                  "$$desugared_sqlNot_input0"
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                ],
+                "as": "eca58228-b657-498a-b76e-f48a9161a404"
+              }
+            },
+            {
+              "$unwind": {
+                "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+                "preserveNullAndEmptyArrays": false
+              }
+            },
+            {
+              "$replaceRoot": {
+                "newRoot": {
+                  "$mergeObjects": [
+                    "$$ROOT",
+                    "$eca58228-b657-498a-b76e-f48a9161a404"
+                  ]
+                }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "eca58228-b657-498a-b76e-f48a9161a404": 0
+              }
+            },
+            {
+              "$group": {
+                "_id": null,
+                "acc": {
+                  "$avg": {
+                    "$cond": [
+                      {
+                        "$eq": [
+                          "$b",
+                          0
+                        ]
+                      },
+                      0,
+                      {
+                        "$divide": [
+                          "$baz.a",
+                          "$b"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            },
+            {
+              "$limit": 1
+            }
+          ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "docExpr": {
+                  "$arrayElemAt": [
+                    "$__subquery_result_0",
+                    0
+                  ]
+                }
+              },
+              "in": "$$docExpr.acc"
+            }
+          }
+        }
+      }
+    ]
+  }
+]
