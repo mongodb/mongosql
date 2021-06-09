@@ -4,6 +4,7 @@ use crate::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
     },
+    map,
 };
 use std::collections::BTreeMap;
 
@@ -32,18 +33,6 @@ impl Default for MappingRegistry {
     fn default() -> Self {
         Self::new()
     }
-}
-
-macro_rules! mappings {
-	($($key:expr => $ref:expr),* $(,)?) => {
-		MappingRegistry(std::iter::Iterator::collect(std::array::IntoIter::new([
-			$({
-				let key: Key = $key;
-				let name: String = $ref.to_string();
-				(key, name)
-			},)*
-		])))
-	}
 }
 
 #[derive(PartialEq, Debug)]
@@ -148,11 +137,14 @@ impl MqlCodeGenerator {
             Collection(c) => Ok(MqlTranslation {
                 database: Some(c.db),
                 collection: Some(c.collection.clone()),
-                mapping_registry: mappings! { (&c.collection, 0u16).into() => &c.collection },
+                mapping_registry: MappingRegistry(
+                    map! {(&c.collection, 0u16).into() => c.collection.clone()},
+                ),
                 pipeline: vec![doc! {"$project": {"_id": 0, &c.collection: "$$ROOT"}}],
             }),
             Array(arr) => {
-                let mapping_registry = mappings! {(&arr.alias, 0u16).into() => &arr.alias};
+                let mapping_registry =
+                    MappingRegistry(map! {(&arr.alias, 0u16).into() => arr.alias.clone()});
                 let docs = arr
                     .array
                     .into_iter()
