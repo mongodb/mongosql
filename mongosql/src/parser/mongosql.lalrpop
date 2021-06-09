@@ -123,6 +123,7 @@ LimitOffset: (Option<u32>, Option<u32>) = {
 
 Limit: u32 = {
   LIMIT <Unsigned32>,
+  FETCH_FIRST <Unsigned32> ROWS_ONLY,
 }
 
 Offset: u32 = {
@@ -660,6 +661,7 @@ match {
   r"(?i)exists" => EXISTS,
   r"(?i)extract" => EXTRACT,
   r"(?i)false" => FALSE,
+  r"(?i)fetch\s+(first|next)" => FETCH_FIRST,
   r"(?i)float" => FLOAT,
   r"(?i)for" => FOR,
   r"(?i)from" => FROM,
@@ -700,6 +702,7 @@ match {
   r"(?i)real" => REAL,
   r"(?i)regex" => REGEX,
   r"(?i)right" => RIGHT,
+  r"(?i)rows?\s+only" => ROWS_ONLY,
   r"(?i)second" => SECOND,
   r"(?i)smallint" => SMALLINT,
   r"(?i)some" => SOME,

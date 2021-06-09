@@ -826,6 +826,113 @@ validate_query_ast!(
     })
 );
 
+// Fetch first and offset tests
+should_parse!(
+    fetch_first_simple,
+    true,
+    "select * fetch first 42 rows only"
+);
+should_parse!(
+    fetch_first_then_offset,
+    true,
+    "select * fetch first 42 rows only offset 24"
+);
+should_parse!(
+    offset_then_fetch_first,
+    true,
+    "select * offset 42 fetch first 24 rows only"
+);
+should_parse!(
+    fetch_first_row_synonym,
+    true,
+    "select * fetch first 42 row only"
+);
+should_parse!(fetch_next_synonym, true, "select * fetch next 42 rows only");
+should_parse!(
+    fetch_next_row_synonym,
+    true,
+    "select * fetch next 42 row only"
+);
+should_parse!(
+    fetch_first_comma_offset,
+    false,
+    "select * fetch first 24 rows only, 24"
+);
+should_parse!(
+    fetch_first_alphabetic,
+    false,
+    "select * fetch first a rows only"
+);
+should_parse!(
+    fetch_first_non_integer,
+    false,
+    "select * fetch first 2.0 rows only"
+);
+should_parse!(
+    fetch_first_negative,
+    false,
+    "select * fetch first -42 rows only"
+);
+should_parse!(
+    fetch_first_overflow,
+    false,
+    "select * fetch first 4294967296 rows only"
+);
+
+validate_query_ast!(
+    fetch_first_no_offset,
+    "select * fetch first 42 rows only",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: Some(42_u32),
+        offset: None,
+    })
+);
+
+validate_query_ast!(
+    fetch_first_offset,
+    "select * fetch first 42 rows only offset 24",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: Some(42_u32),
+        offset: Some(24_u32),
+    })
+);
+
+validate_query_ast!(
+    fetch_first_synonyms,
+    "select * fetch next 42 row only offset 24",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Star])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: Some(42_u32),
+        offset: Some(24_u32),
+    })
+);
+
 should_parse!(
     order_by_neg_positional_sort,
     false,
