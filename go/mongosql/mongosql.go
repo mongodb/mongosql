@@ -48,7 +48,7 @@ func Translate(args TranslationArgs) (Translation, error) {
 	translationResult := struct {
 		Db         string   `bson:"target_db"`
 		Collection string   `bson:"target_collection"`
-		Pipeline   []bson.M `bson:"pipeline"`
+		Pipeline   []bson.D `bson:"pipeline"`
 		Error      string   `bson:"error"`
 	}{}
 
