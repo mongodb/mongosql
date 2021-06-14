@@ -680,7 +680,7 @@ mod schema {
         computed_field_access_first_arg_must_not_be_document,
         Err(Error::SchemaChecking {
             name: "ComputedFieldAccess",
-            required: crate::schema::ANY_DOCUMENT.clone(),
+            required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::Long),
         }),
         Expression::Function(FunctionApplication {
@@ -692,14 +692,26 @@ mod schema {
         }),
     );
     test_schema!(
+        computed_field_access_first_arg_may_be_document,
+        Err(Error::SchemaChecking {
+            name: "ComputedFieldAccess",
+            required: ANY_DOCUMENT.clone(),
+            found: Schema::AnyOf(vec![ANY_DOCUMENT.clone(), Schema::Missing]),
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::ComputedFieldAccess,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("field".to_string())),
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![ANY_DOCUMENT.clone(), Schema::Missing])},
+    );
+    test_schema!(
         computed_field_access_second_arg_must_not_be_string,
         Err(Error::SchemaChecking {
             name: "ComputedFieldAccess",
-            required: Schema::AnyOf(vec![
-                Schema::Atomic(Atomic::String),
-                Schema::Atomic(Atomic::Null),
-                Schema::Missing
-            ]),
+            required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Long),
         }),
         Expression::Function(FunctionApplication {
@@ -709,25 +721,37 @@ mod schema {
                 Expression::Literal(Literal::Long(42)),
             ],
         }),
-        map! {("bar", 0u16).into() =>
-            Schema::OneOf(vec!{
-            Schema::Document(
-                Document {
-                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
-                    required: set!{"foo".to_string()},
-                    additional_properties: false,
-                }
-            ),
-            Schema::Document(
-                Document {
-                    keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Integer)},
-                    required: set!{"foo".to_string()},
-                    additional_properties: false,
-                }
-            ),
-        })},
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
-
+    test_schema!(
+        computed_field_access_second_arg_may_be_string,
+        Err(Error::SchemaChecking {
+            name: "ComputedFieldAccess",
+            required: Schema::Atomic(Atomic::String),
+            found: Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing]),
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::ComputedFieldAccess,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("baz", 0u16).into()),
+            ],
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone(),
+        ("baz", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        computed_field_access_valid_args,
+        Ok(Schema::Any),
+        Expression::Function(FunctionApplication {
+            function: Function::ComputedFieldAccess,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("field".to_string())),
+            ],
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
     test_schema!(
         collection_schema,
         Ok(ResultSet {

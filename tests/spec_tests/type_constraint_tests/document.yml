@@ -1,5 +1,5 @@
 tests:
   - description: Bracket-notation document field access type constraints
-    query: "SELECT d[arg1]"
+    query: "SELECT arg1[arg2]"
     valid_types:
-      - { "arg1": ["STRING", "NULL", "MISSING"] }
+      - { "arg1": ["DOCUMENT"], "arg2": ["STRING"] }

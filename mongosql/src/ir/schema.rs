@@ -159,7 +159,7 @@ impl Expression {
                     vs.iter()
                         .map(|s| Expression::get_field_schema(s, field))
                         .collect(),
-                )
+                );
             }
             Schema::Missing | Schema::Array(_) | Schema::Atomic(_) => return Schema::Missing,
         };
@@ -375,14 +375,7 @@ impl Function {
             ComputedFieldAccess => {
                 self.schema_check_fixed_args(
                     arg_schemas,
-                    &[
-                        ANY_DOCUMENT.clone(),
-                        Schema::AnyOf(vec![
-                            Schema::Atomic(Atomic::String),
-                            Schema::Atomic(Atomic::Null),
-                            Schema::Missing,
-                        ]),
-                    ],
+                    &[ANY_DOCUMENT.clone(), Schema::Atomic(Atomic::String)],
                 )?;
                 Ok(Schema::Any)
             }
