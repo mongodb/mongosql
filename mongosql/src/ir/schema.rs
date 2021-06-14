@@ -1,7 +1,10 @@
 use crate::{
     ir::*,
     map,
-    schema::{Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT},
+    schema::{
+        Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT,
+        BOOLEAN_OR_NULLISH,
+    },
 };
 use linked_hash_map::LinkedHashMap;
 use std::cmp::min;
@@ -65,7 +68,23 @@ impl Stage {
     /// obtained by calling [`Stage::schema`] on source stages.
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<ResultSet, Error> {
         match self {
-            Stage::Filter(_) => unimplemented!(),
+            Stage::Filter(f) => {
+                let source_result_set = f.source.schema(state)?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
+                let cond_schema = f.condition.schema(&state)?;
+                if cond_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
+                    return Err(Error::SchemaChecking {
+                        name: "filter condition",
+                        required: BOOLEAN_OR_NULLISH.clone(),
+                        found: cond_schema,
+                    });
+                }
+                Ok(ResultSet {
+                    schema_env: source_result_set.schema_env,
+                    min_size: 0,
+                    max_size: source_result_set.max_size,
+                })
+            }
             Stage::Project(p) => {
                 let source_result_set = p.source.schema(state)?;
                 let (min_size, max_size) = (source_result_set.min_size, source_result_set.max_size);

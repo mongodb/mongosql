@@ -66,16 +66,20 @@ impl Algebrizer {
     }
 
     pub fn algebrize_select_query(&self, ast_node: ast::SelectQuery) -> Result<ir::Stage> {
-        let from_ast = ast_node.from_clause.ok_or(Error::NoFromClause)?;
-        let plan = self.algebrize_from_clause(from_ast)?;
+        let plan = self.algebrize_from_clause(ast_node.from_clause)?;
+        let plan = self.algebrize_filter_clause(ast_node.where_clause, plan)?;
+        let plan = self.algebrize_group_by_clause(ast_node.group_by_clause, plan)?;
+        let plan = self.algebrize_filter_clause(ast_node.having_clause, plan)?;
         let plan = self.algebrize_select_clause(ast_node.select_clause, plan)?;
+        let plan = self.algebrize_order_by_clause(ast_node.order_by_clause, plan)?;
         let plan = self.algebrize_offset_clause(ast_node.offset, plan)?;
         let plan = self.algebrize_limit_clause(ast_node.limit, plan)?;
 
         Ok(plan)
     }
 
-    pub fn algebrize_from_clause(&self, ast_node: ast::Datasource) -> Result<ir::Stage> {
+    pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<ir::Stage> {
+        let ast_node = ast_node.ok_or(Error::NoFromClause)?;
         match ast_node {
             ast::Datasource::Array(a) => {
                 let (ve, alias) = (a.array, a.alias);
@@ -120,6 +124,40 @@ impl Algebrizer {
         }
     }
 
+    pub fn algebrize_filter_clause(
+        &self,
+        ast_node: Option<ast::Expression>,
+        source: ir::Stage,
+    ) -> Result<ir::Stage> {
+        let filtered = match ast_node {
+            None => source,
+            Some(expr) => {
+                let expression_algebrizer = self.clone().with_merged_mappings(
+                    source.schema(&self.schema_inference_state())?.schema_env,
+                );
+                ir::Stage::Filter(ir::Filter {
+                    source: Box::new(source),
+                    condition: expression_algebrizer.algebrize_expression(expr)?,
+                })
+            }
+        };
+        filtered.schema(&self.schema_inference_state())?;
+        Ok(filtered)
+    }
+
+    pub fn algebrize_group_by_clause(
+        &self,
+        ast_node: Option<ast::GroupByClause>,
+        source: ir::Stage,
+    ) -> Result<ir::Stage> {
+        let grouped = match ast_node {
+            None => source,
+            Some(_) => unimplemented!(),
+        };
+        grouped.schema(&self.schema_inference_state())?;
+        Ok(grouped)
+    }
+
     pub fn algebrize_select_clause(
         &self,
         ast_node: ast::SelectClause,
@@ -145,6 +183,19 @@ impl Algebrizer {
                 _ => Err(Error::NonStarStandardSelectBody),
             },
         }
+    }
+
+    pub fn algebrize_order_by_clause(
+        &self,
+        ast_node: Option<ast::OrderByClause>,
+        source: ir::Stage,
+    ) -> Result<ir::Stage> {
+        let ordered = match ast_node {
+            None => source,
+            Some(_) => unimplemented!(),
+        };
+        ordered.schema(&self.schema_inference_state())?;
+        Ok(ordered)
     }
 
     pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<ir::Expression> {

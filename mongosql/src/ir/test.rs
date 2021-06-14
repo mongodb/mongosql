@@ -1,4 +1,26 @@
 macro_rules! test_schema {
+    ($func_name:ident, match $expected:pat, $input:expr,) => {
+        test_schema!(
+            $func_name,
+            match $expected,
+            $input,
+            crate::schema::SchemaEnvironment::default(),
+        );
+    };
+    ($func_name:ident, match $expected:pat, $input:expr, $schema_env:expr,) => {
+        #[test]
+        fn $func_name() {
+            use crate::ir::schema::SchemaInferenceState;
+
+            let input = $input;
+            let schema_env = $schema_env;
+
+            let state = SchemaInferenceState::new(0u16, schema_env);
+            let actual = input.schema(&state);
+
+            assert!(matches!(actual, $expected));
+        }
+    };
     ($func_name:ident, $expected:expr, $input:expr,) => {
         test_schema!(
             $func_name,
@@ -906,6 +928,120 @@ mod schema {
             }
         }),
     );
+
+    mod filter {
+        use crate::{
+            ir::{schema::Error, *},
+            map,
+            schema::{Atomic, ResultSet, Schema},
+        };
+
+        const TRUE: Expression = Expression::Literal(Literal::Boolean(true));
+        lazy_static::lazy_static! {
+            static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into()
+            });
+        }
+
+        test_schema!(
+            boolean_condition_allowed,
+            match Ok(_),
+            Stage::Filter(Filter {
+                source: Box::new(TEST_SOURCE.clone()),
+                condition: TRUE,
+            }),
+        );
+        test_schema!(
+            null_condition_allowed,
+            match Ok(_),
+            Stage::Filter(Filter {
+                source: Box::new(TEST_SOURCE.clone()),
+                condition: Expression::Literal(Literal::Null),
+            }),
+        );
+        test_schema!(
+            missing_condition_allowed,
+            match Ok(_),
+            Stage::Filter(Filter {
+                source: Box::new(TEST_SOURCE.clone()),
+                condition: Expression::Reference(("m", 0u16).into()),
+            }),
+            map! {("m", 0u16).into() => Schema::Missing},
+        );
+        test_schema!(
+            non_boolean_condition_disallowed,
+            Err(Error::SchemaChecking {
+                name: "filter condition",
+                required: Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Missing,
+                ]),
+                found: Schema::Atomic(Atomic::Integer),
+            }),
+            Stage::Filter(Filter {
+                source: Box::new(TEST_SOURCE.clone()),
+                condition: Expression::Literal(Literal::Integer(123)),
+            }),
+        );
+        test_schema!(
+            possible_non_boolean_condition_disallowed,
+            Err(Error::SchemaChecking {
+                name: "filter condition",
+                required: Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Missing,
+                ]),
+                found: Schema::Any,
+            }),
+            Stage::Filter(Filter {
+                source: Box::new(TEST_SOURCE.clone()),
+                condition: Expression::FieldAccess(FieldAccess {
+                    expr: Expression::Reference(("foo", 0u16).into()).into(),
+                    field: "bar".into(),
+                }),
+            }),
+        );
+        test_schema!(
+            source_fails_schema_check,
+            match Err(Error::SchemaChecking {
+                name: "array datasource items",
+                ..
+            }),
+            Stage::Filter(Filter {
+                source: Stage::Array(Array {
+                    alias: "arr".into(),
+                    array: vec![Expression::Literal(Literal::Null)],
+                }).into(),
+                condition: TRUE,
+            }),
+        );
+        test_schema!(
+            condition_fails_schema_check,
+            Err(Error::DatasourceNotFoundInSchemaEnv(("abc", 0u16).into())),
+            Stage::Filter(Filter {
+                source: Box::new(TEST_SOURCE.clone()),
+                condition: Expression::Reference(("abc", 0u16).into()),
+            }),
+        );
+        test_schema!(
+            min_size_reduced_to_zero_max_size_preserved,
+            match Ok(ResultSet{
+                min_size: 0,
+                max_size: Some(1),
+                ..
+            }),
+            Stage::Filter(Filter {
+                condition: TRUE,
+                source: Stage::Array(Array {
+                    alias: "arr".into(),
+                    array: vec![Expression::Document(map!{"a".into() => Expression::Literal(Literal::Null),})],
+                }).into(),
+            }),
+        );
+    }
 
     // Cast.
     test_schema!(

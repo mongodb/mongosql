@@ -133,6 +133,11 @@ lazy_static! {
         additional_properties: true
     });
     pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
+    pub static ref BOOLEAN_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::Atomic(Atomic::Boolean),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
 }
 
 #[allow(dead_code)]

@@ -5,17 +5,14 @@ macro_rules! test_algebrize {
     ($func_name:ident, $method:ident, $expected:expr, $ast:expr $(,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{
-                algebrizer::{Algebrizer, Error},
-                ast,
-            };
+            use crate::algebrizer::{Algebrizer, Error};
             let algebrizer = Algebrizer::new("test".into(), 0u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast);
             assert_eq!(expected, res);
         }
     };
-    ($func_name:ident, $method:ident, $expected:expr, $ast:expr, $source:expr) => {
+    ($func_name:ident, $method:ident, $expected:expr, $ast:expr, $source:expr $(,)?) => {
         #[test]
         fn $func_name() {
             use crate::{
@@ -31,7 +28,7 @@ macro_rules! test_algebrize {
 }
 
 mod expression {
-    use crate::{ir, map};
+    use crate::{ast, ir, map};
     test_algebrize!(
         null,
         algebrize_expression,
@@ -122,19 +119,25 @@ mod expression {
 
 mod from_clause {
     use crate::{
-        ir, map,
+        ast, ir, map,
         schema::{Atomic, Schema, ANY_DOCUMENT},
     };
 
     test_algebrize!(
+        from_clause_must_exist,
+        algebrize_from_clause,
+        Err(Error::NoFromClause),
+        None,
+    );
+    test_algebrize!(
         collection_must_have_alias,
         algebrize_from_clause,
         Err(Error::CollectionMustHaveAlias),
-        ast::Datasource::Collection(ast::CollectionSource {
+        Some(ast::Datasource::Collection(ast::CollectionSource {
             database: None,
             collection: "foo".into(),
             alias: None,
-        }),
+        })),
     );
     test_algebrize!(
         basic_collection,
@@ -149,11 +152,11 @@ mod from_clause {
                     ir::Expression::Reference(("foo", 0u16).into())
             }
         },),),
-        ast::Datasource::Collection(ast::CollectionSource {
+        Some(ast::Datasource::Collection(ast::CollectionSource {
             database: None,
             collection: "foo".into(),
             alias: Some("bar".into()),
-        }),
+        })),
     );
     test_algebrize!(
         qualified_collection,
@@ -168,11 +171,11 @@ mod from_clause {
                     ir::Expression::Reference(("foo", 0u16).into())
             }
         }),),
-        ast::Datasource::Collection(ast::CollectionSource {
+        Some(ast::Datasource::Collection(ast::CollectionSource {
             database: Some("test2".into()),
             collection: "foo".into(),
             alias: Some("bar".into()),
-        }),
+        })),
     );
     test_algebrize!(
         empty_array,
@@ -181,10 +184,10 @@ mod from_clause {
             array: vec![],
             alias: "bar".into(),
         }),),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![],
             alias: "bar".into(),
-        }),
+        })),
     );
     test_algebrize!(
         dual,
@@ -193,10 +196,10 @@ mod from_clause {
             array: vec![ir::Expression::Document(map! {})],
             alias: "_dual".into(),
         }),),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(map! {},)],
             alias: "_dual".into(),
-        }),
+        })),
     );
     test_algebrize!(
         int_array,
@@ -206,10 +209,10 @@ mod from_clause {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer)]),
         })),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Integer(42))],
             alias: "bar".into(),
-        }),
+        })),
     );
     test_algebrize!(
         null_array,
@@ -219,22 +222,22 @@ mod from_clause {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(vec![Schema::Atomic(Atomic::Null)]),
         })),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Null)],
             alias: "bar".into(),
-        })
+        })),
     );
     test_algebrize!(
         array_datasource_must_be_constant,
         algebrize_from_clause,
         Err(Error::ArrayDatasourceMustBeLiteral),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(map! {
                 "foo".into() => ast::Expression::Identifier("foo".into()),
                 "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
             },)],
             alias: "bar".into(),
-        }),
+        })),
     );
     test_algebrize!(
         single_document_array,
@@ -246,13 +249,13 @@ mod from_clause {
             })],
             alias: "bar".into(),
         }),),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(map! {
                 "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
                 "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
             },)],
             alias: "bar".into(),
-        }),
+        })),
     );
     test_algebrize!(
         two_document_array,
@@ -270,7 +273,7 @@ mod from_clause {
             ],
             alias: "bar".into(),
         }),),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![
                 ast::Expression::Document(map! {
                     "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
@@ -282,7 +285,7 @@ mod from_clause {
                 },)
             ],
             alias: "bar".into(),
-        }),
+        })),
     );
     test_algebrize!(
         two_document_with_nested_document_array,
@@ -302,7 +305,7 @@ mod from_clause {
             ],
             alias: "bar".into(),
         }),),
-        ast::Datasource::Array(ast::ArraySource {
+        Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![
                 ast::Expression::Document(map! {
                     "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
@@ -316,7 +319,7 @@ mod from_clause {
                 },)
             ],
             alias: "bar".into(),
-        }),
+        })),
     );
 }
 
@@ -328,7 +331,7 @@ lazy_static! {
 }
 
 mod limit_or_offset_clause {
-    use crate::{algebrizer::test::TEST_SOURCE, ir, map};
+    use crate::{algebrizer::test::TEST_SOURCE, ast, ir, map};
 
     test_algebrize!(
         limit_set,
@@ -396,5 +399,31 @@ mod limit_or_offset_clause {
             limit: Some(10_u32),
             offset: Some(3_u32)
         },
+    );
+}
+
+mod filter_clause {
+    use super::TEST_SOURCE;
+    use crate::{ast, ir};
+
+    const TRUE_IR: ir::Expression = ir::Expression::Literal(ir::Literal::Boolean(true));
+    const TRUE_AST: ast::Expression = ast::Expression::Literal(ast::Literal::Boolean(true));
+
+    test_algebrize!(
+        simple,
+        algebrize_filter_clause,
+        Ok(ir::Stage::Filter(ir::Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: TRUE_IR,
+        })),
+        Some(TRUE_AST),
+        TEST_SOURCE.clone(),
+    );
+    test_algebrize!(
+        none,
+        algebrize_filter_clause,
+        Ok(TEST_SOURCE.clone()),
+        None,
+        TEST_SOURCE.clone(),
     );
 }
