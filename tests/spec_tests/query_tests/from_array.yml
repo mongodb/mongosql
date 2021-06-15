@@ -50,3 +50,7 @@ tests:
   - description: array datasource cannot be referenced as value
     query: "SELECT arr FROM [{'a': 1}] AS arr"
     error: "unknown field 'arr'"
+
+  - description: references in array datasources are disallowed
+    query: "SELECT (SELECT * FROM [{'a': foo.a}]) FROM foo"
+    error: "field 'a' cannot be referenced in array datasource"
