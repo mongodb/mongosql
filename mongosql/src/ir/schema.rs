@@ -235,6 +235,8 @@ impl Expression {
             }
             Expression::Function(f) => f.schema(state),
             Expression::Cast(c) => c.schema(state),
+            Expression::SearchedCase(_) => unimplemented!(),
+            Expression::SimpleCase(_) => unimplemented!(),
             Expression::TypeAssertion(t) => t.schema(state),
             Expression::SubqueryExpression(_) => unimplemented!(),
             Expression::SubqueryComparison(_) => unimplemented!(),
@@ -387,7 +389,6 @@ impl Function {
             And => unimplemented!(),
             Or => unimplemented!(),
             // Control-flow operator.
-            Case => unimplemented!(),
             // Type operator.
             Is => unimplemented!(),
             // Computed Field Access operator when the field is not known until runtime.

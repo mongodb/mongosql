@@ -134,6 +134,8 @@ pub enum Expression {
     Array(Vec<Expression>),
     Document(LinkedHashMap<String, Expression>),
     Function(FunctionApplication),
+    SearchedCase(SearchedCaseExpr),
+    SimpleCase(SimpleCaseExpr),
     Cast(CastExpression),
     TypeAssertion(TypeAssertionExpression),
     FieldAccess(FieldAccess),
@@ -199,7 +201,6 @@ pub enum Function {
     Or,
 
     // Control-flow operator
-    Case,
 
     // Type operator
     Is,
@@ -241,7 +242,6 @@ impl Function {
             Function::And => "And",
             Function::Between => "Between",
             Function::BitLen => "BitLen",
-            Function::Case => "Case",
             Function::CharLen => "CharLen",
             Function::Coalesce => "Coalesce",
             Function::ComputedFieldAccess => "ComputedFieldAccess",
@@ -340,4 +340,23 @@ pub struct SubqueryComparison {
 pub enum SubqueryModifier {
     Any,
     All,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SearchedCaseExpr {
+    pub when_branch: Vec<WhenBranch>,
+    pub else_branch: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SimpleCaseExpr {
+    pub expr: Box<Expression>,
+    pub when_branch: Vec<WhenBranch>,
+    pub else_branch: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct WhenBranch {
+    pub when: Box<Expression>,
+    pub then: Box<Expression>,
 }

@@ -654,3 +654,123 @@ mod field_access {
         }),
     );
 }
+
+mod searched_case_expression {
+    use crate::ir::*;
+    test_codegen_expr!(
+        one_case,
+        Ok(bson::bson!({"$switch": 
+            {"branches": [{"case": {"$literal": true}, 
+                                            "then": {"$literal": "first case"}}],
+            "default": {"$literal": "else case"}}})),
+        Expression::SearchedCase(SearchedCaseExpr {
+            when_branch: vec![WhenBranch {
+                when: Box::new(Expression::Literal(Literal::Boolean(true))),
+                then: Box::new(Expression::Literal(Literal::String(
+                    "first case".to_string()
+                )))
+            }],
+            else_branch: Box::new(Expression::Literal(Literal::String(
+                "else case".to_string()
+            )))
+        }),
+    );
+
+    test_codegen_expr!(
+        multiple_cases,
+        Ok(bson::bson!({"$switch": 
+            {"branches": [{"case": {"$literal": false}, "then": {"$literal": "first case"}},
+            {"case": {"$literal": true}, "then": {"$literal": "second case"}},
+            {"case": {"$literal": true}, "then": {"$literal": "third case"}}],
+            "default": {"$literal": "else case"}}})),
+        Expression::SearchedCase(SearchedCaseExpr {
+            when_branch: vec![
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
+                    then: Box::new(Expression::Literal(Literal::String(
+                        "first case".to_string()
+                    )))
+                },
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(true))),
+                    then: Box::new(Expression::Literal(Literal::String(
+                        "second case".to_string()
+                    )))
+                },
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(true))),
+                    then: Box::new(Expression::Literal(Literal::String(
+                        "third case".to_string()
+                    )))
+                }
+            ],
+            else_branch: Box::new(Expression::Literal(Literal::String(
+                "else case".to_string()
+            )))
+        }),
+    );
+}
+
+mod simple_case_expression {
+    use crate::ir::*;
+    test_codegen_expr!(
+        one_case,
+        Ok(
+            bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}}, "in": {"$switch": 
+            {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": true}]}, 
+                                            "then": {"$literal": "true case"}}],
+            "default": {"$literal": "else case"}}}})
+        ),
+        Expression::SimpleCase(SimpleCaseExpr {
+            expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),
+            when_branch: vec![WhenBranch {
+                when: Box::new(Expression::Literal(Literal::Boolean(true))),
+                then: Box::new(Expression::Literal(Literal::String(
+                    "true case".to_string()
+                )))
+            }],
+            else_branch: Box::new(Expression::Literal(Literal::String(
+                "else case".to_string()
+            )))
+        }),
+    );
+    test_codegen_expr!(
+        multiple_cases,
+        Ok(
+            bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}}, "in": {"$switch": 
+            {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
+                                            "then": {"$literal": "first case"}},
+            {"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
+                                            "then": {"$literal": "second case"}},
+            {"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
+                                            "then": {"$literal": "third case"}}],
+            "default": {"$literal": "else case"}}}})
+        ),
+        Expression::SimpleCase(SimpleCaseExpr {
+            expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),
+            when_branch: vec![
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
+                    then: Box::new(Expression::Literal(Literal::String(
+                        "first case".to_string()
+                    )))
+                },
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
+                    then: Box::new(Expression::Literal(Literal::String(
+                        "second case".to_string()
+                    )))
+                },
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
+                    then: Box::new(Expression::Literal(Literal::String(
+                        "third case".to_string()
+                    )))
+                }
+            ],
+            else_branch: Box::new(Expression::Literal(Literal::String(
+                "else case".to_string()
+            )))
+        }),
+    );
+}

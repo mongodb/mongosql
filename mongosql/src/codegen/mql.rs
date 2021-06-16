@@ -266,6 +266,41 @@ impl MqlCodeGenerator {
                 })
             }
             Function(_) => unimplemented!(),
+            SearchedCase(ce) => {
+                let br = ce
+                    .when_branch
+                    .into_iter()
+                    .map(|wb| {
+                        Ok(bson::doc! {"case": self.codegen_expression(*wb.when)?,
+                        "then": self.codegen_expression(*wb.then)?})
+                    })
+                    .collect::<Result<Vec<bson::Document>>>()?;
+
+                Ok(bson::bson!({"$switch": {
+                    "branches": br,
+                    "default": self.codegen_expression(*ce.else_branch)?
+                    }
+                }))
+            }
+            SimpleCase(ce) => {
+                let br = ce
+                    .when_branch
+                    .into_iter()
+                    .map(|wb| {
+                        Ok(bson::doc! {"case": {"$sqlEq": ["$$target", self.codegen_expression(*wb.when)?]},
+                        "then": self.codegen_expression(*wb.then)?})
+                    })
+                    .collect::<Result<Vec<bson::Document>>>()?;
+
+                Ok(
+                    bson::bson!({"$let": {"vars": {"target": self.codegen_expression(*ce.expr)?}},
+                        "in": {"$switch": {
+                        "branches": br,
+                        "default": self.codegen_expression(*ce.else_branch)?
+                        }
+                    }}),
+                )
+            }
             Cast(_) => unimplemented!(),
             TypeAssertion(_) => unimplemented!(),
             SubqueryExpression(_) => unimplemented!(),
