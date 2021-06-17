@@ -416,16 +416,19 @@ impl Function {
             Upper => unimplemented!(),
             Lower => unimplemented!(),
             Trim => unimplemented!(),
-            // Datetime value scalar functions.
-            CurrentTimestamp => unimplemented!(),
+            // Datetime value scalar function.
+            CurrentTimestamp => {
+                self.schema_check_fixed_args(arg_schemas, &[])?;
+                Ok(Schema::Atomic(Atomic::Date))
+            }
         }
     }
 
     /// Checks a function's argument count and its arguments' types against the required schemas.
-    /// Used for functions with a fixed (predetermined) number of arguments.
+    /// Used for functions with a fixed (predetermined) number of arguments, including 0.
     ///
-    /// Since the argument count is fixed, the vector of required schemas must correspond 1-to-1
-    /// with the array of argument schemas.
+    /// Since the argument count is fixed, the slice of required schemas must correspond 1-to-1
+    /// with the slice of argument schemas.
     fn schema_check_fixed_args(
         &self,
         arg_schemas: &[Schema],
@@ -451,7 +454,7 @@ impl Function {
     }
 
     /// Checks a function's arguments' types against the required schema.
-    /// Used for functions with a variadic number of arguments.
+    /// Used for functions with a variadic number of arguments, including 0.
     ///
     /// Since the argument count can vary, the required schema is a single
     /// value that's compared against each of the arguments.

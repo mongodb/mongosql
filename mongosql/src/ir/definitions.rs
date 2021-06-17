@@ -230,7 +230,7 @@ pub enum Function {
     Lower,
     Trim,
 
-    // Datetime value scalar functions
+    // Datetime value scalar function
     CurrentTimestamp,
 }
 

@@ -774,6 +774,29 @@ mod schema {
         }),
         map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
+
+    // Datetime value scalar function.
+    test_schema!(
+        current_timestamp_no_arg,
+        Ok(Schema::Atomic(Atomic::Date)),
+        Expression::Function(FunctionApplication {
+            function: Function::CurrentTimestamp,
+            args: vec![],
+        }),
+    );
+    test_schema!(
+        current_timestamp_integer_arg_should_be_removed_in_algebrization,
+        Err(Error::IncorrectArgumentCount {
+            name: "CurrentTimestamp",
+            required: 0,
+            found: 1
+        }),
+        Expression::Function(FunctionApplication {
+            function: Function::CurrentTimestamp,
+            args: vec![Expression::Literal(Literal::Integer(1))],
+        }),
+    );
+
     test_schema!(
         collection_schema,
         Ok(ResultSet {
