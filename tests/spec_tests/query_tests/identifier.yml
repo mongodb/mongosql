@@ -52,12 +52,15 @@ tests:
       - {'__bot': {'a': 1, 'b': 2}}
       - {'__bot': {'a': 3, 'b': 4}}
 
-  - description: Identifier with non-ASCII characters
+  - description: Undelimited identifier with non-ASCII characters is invalid
     query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
+    error: "error: undelimited identifiers should only contain alphanumerics"
+    
+  - description: Delimited identifier with non-ASCII characters
+    query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"
     translation:
       - {'$array': {'arr': [{'αβγ': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'αβγ': '$arr.αβγ'}}}
-    skip_reason: "SQL-262: Allow non-ASCII characters in identifiers"
     result:
       - {'__bot': {'αβγ': 1}}
 
