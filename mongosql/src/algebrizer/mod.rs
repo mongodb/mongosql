@@ -6,15 +6,23 @@ use crate::{
     ast,
     ir::{
         self,
-        binding_tuple::BindingTuple,
+        binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{self, SchemaInferenceState},
     },
-    schema::SchemaEnvironment,
+    schema::{Satisfaction, SchemaEnvironment},
     util::are_literal,
 };
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
+
+macro_rules! schema_check_return {
+    ($self:ident, $e:expr $(,)?) => {{
+        let ret = $e;
+        ret.schema(&$self.schema_inference_state())?;
+        return Ok(ret);
+    }};
+}
 
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
@@ -26,6 +34,10 @@ pub enum Error {
     CollectionMustHaveAlias,
     #[error("array datasource must be constant")]
     ArrayDatasourceMustBeLiteral,
+    #[error("field `{0}` cannot be resolved to any datasource")]
+    FieldNotFound(String),
+    #[error("ambiguous field `{0}`")]
+    AmbiguousField(String),
     #[error(transparent)]
     SchemaChecking(#[from] schema::Error),
 }
@@ -211,8 +223,12 @@ impl Algebrizer {
                     .map(|(k, e)| Ok((k, self.algebrize_expression(e)?)))
                     .collect::<Result<_>>()?,
             )),
+            // If we ever see Identifier in algebrize_expression it must be an unqualified
+            // reference, because we do not recurse on the expr field of Subpath if it is an
+            // Identifier
+            ast::Expression::Identifier(i) => self.algebrize_unqualified_identifier(i),
+            ast::Expression::Subpath(s) => self.algebrize_subpath(s),
             ast::Expression::Unary(_)
-            | ast::Expression::Identifier(_)
             | ast::Expression::Binary(_)
             | ast::Expression::Between(_)
             | ast::Expression::Case(_)
@@ -222,7 +238,6 @@ impl Algebrizer {
             | ast::Expression::SubqueryComparison(_)
             | ast::Expression::Exists(_)
             | ast::Expression::Access(_)
-            | ast::Expression::Subpath(_)
             | ast::Expression::Is(_)
             | ast::Expression::Like(_)
             | ast::Expression::Tuple(_)
@@ -274,6 +289,150 @@ impl Algebrizer {
                 stage.schema(&self.schema_inference_state())?;
                 Ok(stage)
             }
+        }
+    }
+
+    fn algebrize_subpath(&self, p: ast::SubpathExpr) -> Result<ir::Expression> {
+        if let ast::Expression::Identifier(s) = *p.expr {
+            schema_check_return!(
+                self,
+                self.algebrize_possibly_qualified_field_access(s, p.subpath)?,
+            );
+        }
+        schema_check_return!(
+            self,
+            ir::Expression::FieldAccess(ir::FieldAccess {
+                expr: Box::new(self.algebrize_expression(*p.expr)?),
+                field: p.subpath,
+            }),
+        );
+    }
+
+    fn algebrize_possibly_qualified_field_access(
+        &self,
+        q: String,
+        field: String,
+    ) -> Result<ir::Expression> {
+        // clone the field here so that we only have to clone once.
+        // The borrow checker still isn't perfect.
+        let cloned_field = field.clone();
+        // First we check if q is a qualifier
+        let possible_datasource = DatasourceName::from(q.clone());
+        // If there is a nearest_scope for `q`, then it must be a datasource, meaning this is a
+        // qualified field access
+        self.schema_env
+            .nearest_scope_for_datasource(&possible_datasource, self.scope_level)
+            .map_or_else(
+                move || {
+                    Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(self.algebrize_unqualified_identifier(q)?),
+                        // combinators make this clone necessary, unfortunately
+                        field: cloned_field,
+                    }))
+                },
+                move |scope|
+                // Since this is qualified, we return `q.field`
+                Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::Reference(Key {
+                    datasource: possible_datasource,
+                    scope,
+                })),
+                field,
+            })),
+            )
+    }
+
+    fn algebrize_unqualified_identifier(&self, i: String) -> Result<ir::Expression> {
+        // Attempt to find a datasource for this unqualified reference
+        // at _any_ scope level.
+        // If we find exactly one datasource that May or Must contain
+        // the field `i`, we return `datasource.i`. If there is more
+        // than one, it is an ambiguous error.
+        let mut i_containing_datasources = self
+            .schema_env
+            .iter()
+            .filter(|(_, schema)| {
+                let sat = schema.contains_field(i.as_ref());
+                sat == Satisfaction::May || sat == Satisfaction::Must
+            })
+            .collect::<Vec<_>>();
+        // If there is no datasource containging the field, the field is not found.
+        if i_containing_datasources.is_empty() {
+            return Err(Error::FieldNotFound(i));
+        }
+        // If there is exactly one possible datasource that May or Must
+        // contain our reference, we use it.
+        if i_containing_datasources.len() == 1 {
+            return Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+                expr: Box::new(ir::Expression::Reference(
+                    i_containing_datasources.remove(0).0.clone(),
+                )),
+                field: i,
+            }));
+        }
+
+        // Otherwise, we check datasources per scope, starting at the current scope,
+        // to find the best datasource from multiple possible datasources.
+        self.algebrize_unqualified_identifier_by_scope(i, self.scope_level)
+    }
+
+    fn algebrize_unqualified_identifier_by_scope(
+        &self,
+        i: String,
+        scope_level: u16,
+    ) -> Result<ir::Expression> {
+        // When checking variables by scope, if a variable may exist, we treat that as ambiguous,
+        // and only accept a single Must exist reference.
+        let mut current_scope = scope_level;
+        loop {
+            let current_bot = Key::bot(current_scope);
+            // Attempt to find a datasource for this reference in the current_scope.
+            // If we find exactly one datasource Must contain the field `i`, we return
+            // `datasource.i`. If there is more than one, it is an ambiguous error. As mentioned,
+            // if there is a May exists, it is also an ambiguous variable error.
+            let (datasource, mays, musts) = self
+                .schema_env
+                .iter()
+                .filter(
+                    |(
+                        &Key {
+                            datasource: _,
+                            scope: n,
+                        },
+                        _,
+                    )| n == current_scope,
+                )
+                .fold(
+                    (&current_bot, 0, 0),
+                    |(found_datasource, mays, musts), (curr_datasource, schema)| {
+                        let sat = schema.contains_field(i.as_ref());
+                        match sat {
+                            Satisfaction::Must => (curr_datasource, mays, musts + 1),
+                            Satisfaction::May => (found_datasource, mays + 1, musts),
+                            Satisfaction::Not => (found_datasource, mays, musts),
+                        }
+                    },
+                );
+            if musts > 1 || mays > 0 {
+                return Err(Error::AmbiguousField(i));
+            }
+            if musts == 1 {
+                return Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::Reference(datasource.clone())),
+                    field: i,
+                }));
+            }
+
+            // Otherwise, the field does not exist in datasource of the current_scope.
+            //
+            // If the current_scope is 0, it must be that this field does not exist in the
+            // SchemaEnv at all, which means the field cannot be found. This should not
+            // be possible at this point, because this error is handled in `algebrize_qualified_identifier`.
+            if current_scope == 0 {
+                unreachable!();
+            }
+            // Otherwise, check the next highest scope.
+            current_scope -= 1;
         }
     }
 }

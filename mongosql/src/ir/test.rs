@@ -779,8 +779,8 @@ mod schema {
     test_schema!(
         current_timestamp_no_arg,
         Ok(Schema::Atomic(Atomic::Date)),
-        Expression::Function(FunctionApplication {
-            function: Function::CurrentTimestamp,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::CurrentTimestamp,
             args: vec![],
         }),
     );
@@ -791,8 +791,8 @@ mod schema {
             required: 0,
             found: 1
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::CurrentTimestamp,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::CurrentTimestamp,
             args: vec![Expression::Literal(Literal::Integer(1))],
         }),
     );

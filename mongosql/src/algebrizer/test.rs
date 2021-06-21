@@ -27,8 +27,31 @@ macro_rules! test_algebrize {
     };
 }
 
+macro_rules! test_algebrize_with_env {
+    ($func_name:ident, $method:ident, $expected:expr, $ast:expr, $env:expr $(,)?) => {
+        #[test]
+        fn $func_name() {
+            use crate::{
+                algebrizer::{Algebrizer, Error},
+                ast,
+            };
+            let algebrizer = Algebrizer::new("test".into(), 1u16).with_merged_mappings($env);
+            let expected: Result<_, Error> = $expected;
+            let res: Result<_, Error> = algebrizer.$method($ast);
+            assert_eq!(expected, res);
+        }
+    };
+}
+
 mod expression {
-    use crate::{ast, ir, map};
+    use crate::{
+        ast,
+        ir::{self, binding_tuple::Key},
+        map,
+        schema::{Atomic, Document, Schema},
+        set,
+    };
+
     test_algebrize!(
         null,
         algebrize_expression,
@@ -114,6 +137,400 @@ mod expression {
                     ),
                     "bar2".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
         }),
+    );
+
+    test_algebrize_with_env!(
+        qualified_ref_in_current_scope,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(("foo", 1u16).into())),
+            field: "a".into(),
+        })),
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Identifier("foo".into())),
+            subpath: "a".into(),
+        }),
+        map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+            ("foo", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        qualified_ref_in_super_scope,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+            field: "a".into(),
+        })),
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Identifier("foo".into())),
+            subpath: "a".into(),
+        }),
+        map! {
+            ("bar", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+            ("foo", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_ref_may_exist_in_current_scope,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(("foo", 1u16).into())),
+            field: "a".into(),
+        })),
+        ast::Expression::Identifier("a".into()),
+        map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_ref_must_exist_in_current_scope,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(("foo", 1u16).into())),
+            field: "a".into(),
+        })),
+        ast::Expression::Identifier("a".into()),
+        map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_ref_may_exist_only_in_super_scope,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+            field: "a".into(),
+        })),
+        ast::Expression::Identifier("a".into()),
+        map! {
+            ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
+            ("foo", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_ref_must_exist_in_super_scope,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+            field: "a".into(),
+        })),
+        ast::Expression::Identifier("a".into()),
+        map! {
+            ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
+            ("foo", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_ref_must_exist_in_super_scope_bot_source,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(Key::bot(0u16))),
+            field: "a".into(),
+        })),
+        ast::Expression::Identifier("a".into()),
+        map! {
+            ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
+            Key::bot(0u16) => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_ref_may_and_must_exist_in_two_sources,
+        algebrize_expression,
+        Err(Error::AmbiguousField("a".into())),
+        ast::Expression::Identifier("a".into()),
+        map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+            Key::bot(1u16) => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_subpath_in_current_and_super_must_exist_in_current,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                expr: Box::new(ir::Expression::Reference(("test", 1u16).into())),
+                field: "a".into(),
+            })),
+            field: "c".into(),
+        })),
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Identifier("a".into())),
+            subpath: "c".into(),
+        }),
+        map! {
+            ("test", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+            ("super_test", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_subpath_in_current_and_super_may_exist_is_ambiguous,
+        algebrize_expression,
+        Err(Error::AmbiguousField("a".into())),
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Identifier("a".into())),
+            subpath: "c".into(),
+        }),
+        map! {
+            ("test", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+            ("super_test", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_subpath_in_super_scope,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                expr: Box::new(ir::Expression::Reference(("super_test", 0u16).into())),
+                field: "a".into(),
+            })),
+            field: "c".into(),
+        })),
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Identifier("a".into())),
+            subpath: "c".into(),
+        }),
+        map! {
+            ("test", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "b".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+            ("super_test", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{"c".into()},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        qualified_ref_prefers_super_datasource_to_local_field,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+            field: "a".into(),
+        })),
+        // test MongoSQL: SELECT (SELECT foo.a FROM bar) FROM foo => (foo.a)
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Identifier("foo".into())),
+            subpath: "a".into(),
+        }),
+        map! {
+            ("bar", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "foo".into() => Schema::Document( Document {
+                        keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+            ("foo", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic( Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        qualified_ref_to_local_field,
+        algebrize_expression,
+        Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+            expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                expr: Box::new(ir::Expression::Reference(("bar", 1u16).into())),
+                field: "foo".into(),
+            })),
+            field: "a".into(),
+        })),
+        //test MongoSQL: SELECT (SELECT bar.foo.a FROM bar) FROM foo => (bar.foo.a)
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("bar".into())),
+                subpath: "foo".into(),
+            })),
+            subpath: "a".into(),
+        }),
+        map! {
+            ("bar", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "foo".into() => Schema::Document( Document {
+                        keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+            ("foo", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic( Atomic::Integer),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize_with_env!(
+        unqualified_reference_and_may_contain_sub_and_must_contain_outer_is_ambiguous,
+        algebrize_expression,
+        Err(Error::AmbiguousField("a".into())),
+        ast::Expression::Subpath(ast::SubpathExpr {
+            expr: Box::new(ast::Expression::Identifier("a".into())),
+            subpath: "c".into(),
+        }),
+        map! {
+            ("test", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+            ("super_test", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Document( Document {
+                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                        required: set!{},
+                        additional_properties: false,
+                    }),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize!(
+        ref_does_not_exist,
+        algebrize_expression,
+        Err(Error::FieldNotFound("bar".into())),
+        ast::Expression::Identifier("bar".into()),
     );
 }
 
