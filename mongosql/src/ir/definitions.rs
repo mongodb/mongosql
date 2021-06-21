@@ -35,10 +35,9 @@ pub struct Project {
 pub struct Group {
     pub source: Box<Stage>,
     pub keys: Vec<Aliased<Expression>>,
-    pub aggregations: Vec<Aliased<AggregationFunction>>,
+    pub aggregations: Vec<Aliased<AggregationExpr>>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Aliased<T> {
     pub alias: String,
@@ -47,10 +46,16 @@ pub struct Aliased<T> {
 
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
-pub struct AggregationFunction {
-    pub function: String,
+pub enum AggregationExpr {
+    CountStar(bool),
+    Function(AggregationFunctionApplication),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct AggregationFunctionApplication {
+    pub function: AggregationFunction,
     pub distinct: bool,
-    pub args: Vec<Expression>,
+    pub arg: Box<Expression>,
 }
 
 #[allow(dead_code)]
@@ -133,18 +138,19 @@ pub enum Expression {
     Reference(Key),
     Array(Vec<Expression>),
     Document(LinkedHashMap<String, Expression>),
-    Function(FunctionApplication),
+    ScalarFunction(ScalarFunctionApplication),
+    Cast(CastExpr),
     SearchedCase(SearchedCaseExpr),
     SimpleCase(SimpleCaseExpr),
-    Cast(CastExpression),
-    TypeAssertion(TypeAssertionExpression),
+    TypeAssertion(TypeAssertionExpr),
+    Is(IsExpr),
+    Like(LikeExpr),
     FieldAccess(FieldAccess),
-    SubqueryExpression(SubqueryExpression),
+    SubqueryExpression(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
     Exists(Box<Stage>),
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum Literal {
     Null,
@@ -155,14 +161,25 @@ pub enum Literal {
     Double(f64),
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
-pub struct FunctionApplication {
-    pub function: Function,
+pub struct IsExpr {
+    pub expr: Box<Expression>,
+    pub target_type: TypeOrMissing,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct LikeExpr {
+    pub expr: Box<Expression>,
+    pub pattern: Box<Expression>,
+    pub escape: Option<String>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ScalarFunctionApplication {
+    pub function: ScalarFunction,
     pub args: Vec<Expression>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct FieldAccess {
     pub expr: Box<Expression>,
@@ -171,10 +188,47 @@ pub struct FieldAccess {
 
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone, Copy)]
-pub enum Function {
+pub enum AggregationFunction {
+    AddToArray,
+    AddToSet,
+    Avg,
+    Count,
+    First,
+    Last,
+    Max,
+    MergeDocuments,
+    Min,
+    StddevPop,
+    StddevSamp,
+    Sum,
+}
+
+impl AggregationFunction {
+    /// Returns a string of the function enum.
+    #[allow(dead_code)]
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            AggregationFunction::AddToArray => "AddToArray",
+            AggregationFunction::AddToSet => "AddToSet",
+            AggregationFunction::Avg => "Avg",
+            AggregationFunction::Count => "Count",
+            AggregationFunction::First => "First",
+            AggregationFunction::Last => "Last",
+            AggregationFunction::Max => "Max",
+            AggregationFunction::MergeDocuments => "MergeDocuments",
+            AggregationFunction::Min => "Min",
+            AggregationFunction::StddevPop => "StddevPop",
+            AggregationFunction::StddevSamp => "StddevSamp",
+            AggregationFunction::Sum => "Sum",
+        }
+    }
+}
+
+#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum ScalarFunction {
     // String operators
     Concat,
-    Like,
 
     // Unary arithmetic operators
     Pos,
@@ -200,17 +254,12 @@ pub enum Function {
     And,
     Or,
 
-    // Control-flow operator
-
-    // Type operator
-    Is,
-
     // Computed Field Access operator
     // when the field is not known until runtime.
     ComputedFieldAccess,
 
     // Conditional scalar functions
-    Nullif,
+    NullIf,
     Coalesce,
 
     // Array scalar functions
@@ -219,80 +268,114 @@ pub enum Function {
 
     // Numeric value scalar functions
     Position,
-    CharLen,
-    OctetLen,
-    BitLen,
-    Extract,
+    CharLength,
+    OctetLength,
+    BitLength,
 
     // String value scalar functions
     Substring,
     Upper,
     Lower,
-    Trim,
+    BTrim,
+    LTrim,
+    RTrim,
 
     // Datetime value scalar function
     CurrentTimestamp,
+    Year,
+    Month,
+    Day,
+    Hour,
+    Minute,
+    Second,
 }
 
-impl Function {
+impl ScalarFunction {
     /// Returns a string of the function enum.
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
-            Function::Add => "Add",
-            Function::And => "And",
-            Function::Between => "Between",
-            Function::BitLen => "BitLen",
-            Function::CharLen => "CharLen",
-            Function::Coalesce => "Coalesce",
-            Function::ComputedFieldAccess => "ComputedFieldAccess",
-            Function::Concat => "Concat",
-            Function::CurrentTimestamp => "CurrentTimestamp",
-            Function::Div => "Div",
-            Function::Eq => "Eq",
-            Function::Extract => "Extract",
-            Function::Gt => "Gt",
-            Function::Gte => "Gte",
-            Function::Is => "Is",
-            Function::Like => "Like",
-            Function::Lower => "Lower",
-            Function::Lt => "Lt",
-            Function::Lte => "Lte",
-            Function::Mul => "Mul",
-            Function::Neq => "Neq",
-            Function::Neg => "Neg",
-            Function::Not => "Not",
-            Function::Nullif => "Nullif",
-            Function::OctetLen => "OctetLen",
-            Function::Or => "Or",
-            Function::Pos => "Pos",
-            Function::Position => "Position",
-            Function::Size => "Size",
-            Function::Slice => "Slice",
-            Function::Sub => "Sub",
-            Function::Substring => "Substring",
-            Function::Trim => "Trim",
-            Function::Upper => "Upper",
+            ScalarFunction::Add => "Add",
+            ScalarFunction::And => "And",
+            ScalarFunction::BitLength => "BitLength",
+            ScalarFunction::CharLength => "CharLength",
+            ScalarFunction::Coalesce => "Coalesce",
+            ScalarFunction::ComputedFieldAccess => "ComputedFieldAccess",
+            ScalarFunction::Concat => "Concat",
+            ScalarFunction::CurrentTimestamp => "CurrentTimestamp",
+            ScalarFunction::Year => "Year",
+            ScalarFunction::Month => "Month",
+            ScalarFunction::Day => "Day",
+            ScalarFunction::Hour => "Hour",
+            ScalarFunction::Minute => "Minute",
+            ScalarFunction::Second => "Second",
+            ScalarFunction::Div => "Div",
+            ScalarFunction::Eq => "Eq",
+            ScalarFunction::Gt => "Gt",
+            ScalarFunction::Gte => "Gte",
+            ScalarFunction::Between => "Between",
+            ScalarFunction::Lower => "Lower",
+            ScalarFunction::Lt => "Lt",
+            ScalarFunction::Lte => "Lte",
+            ScalarFunction::Mul => "Mul",
+            ScalarFunction::Neq => "Neq",
+            ScalarFunction::Neg => "Neg",
+            ScalarFunction::Not => "Not",
+            ScalarFunction::NullIf => "NullIf",
+            ScalarFunction::OctetLength => "OctetLength",
+            ScalarFunction::Or => "Or",
+            ScalarFunction::Pos => "Pos",
+            ScalarFunction::Position => "Position",
+            ScalarFunction::Size => "Size",
+            ScalarFunction::Slice => "Slice",
+            ScalarFunction::Sub => "Sub",
+            ScalarFunction::Substring => "Substring",
+            ScalarFunction::LTrim => "LTrim",
+            ScalarFunction::RTrim => "RTrim",
+            ScalarFunction::BTrim => "BTrim",
+            ScalarFunction::Upper => "Upper",
         }
     }
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
-pub struct CastExpression {
+pub struct SearchedCaseExpr {
+    pub when_branch: Vec<WhenBranch>,
+    pub else_branch: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SimpleCaseExpr {
+    pub expr: Box<Expression>,
+    pub when_branch: Vec<WhenBranch>,
+    pub else_branch: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct WhenBranch {
+    pub when: Box<Expression>,
+    pub then: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct CastExpr {
     pub expr: Box<Expression>,
     pub to: Type,
     pub on_null: Box<Expression>,
     pub on_error: Box<Expression>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
-pub struct TypeAssertionExpression {
+pub struct TypeAssertionExpr {
     pub expr: Box<Expression>,
     pub target_type: Type,
 }
 
-#[allow(dead_code)]
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum TypeOrMissing {
+    Missing,
+    Type(Type),
+}
+
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Type {
     Array,
@@ -320,7 +403,7 @@ pub enum Type {
 
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
-pub struct SubqueryExpression {
+pub struct SubqueryExpr {
     pub output_expr: Box<Expression>,
     pub subquery: Box<Stage>,
 }
@@ -329,7 +412,7 @@ pub struct SubqueryExpression {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryComparison {
     pub output_expr: Box<Expression>,
-    pub operator: Function,
+    pub operator: ScalarFunction,
     pub modifier: SubqueryModifier,
     pub argument: Box<Expression>,
     pub subquery: Box<Stage>,
@@ -342,21 +425,51 @@ pub enum SubqueryModifier {
     All,
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct SearchedCaseExpr {
-    pub when_branch: Vec<WhenBranch>,
-    pub else_branch: Box<Expression>,
+impl From<crate::ast::UnaryOp> for ScalarFunction {
+    fn from(op: crate::ast::UnaryOp) -> ScalarFunction {
+        use crate::ast;
+        match op {
+            ast::UnaryOp::Pos => ScalarFunction::Pos,
+            ast::UnaryOp::Neg => ScalarFunction::Neg,
+            ast::UnaryOp::Not => ScalarFunction::Not,
+        }
+    }
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct SimpleCaseExpr {
-    pub expr: Box<Expression>,
-    pub when_branch: Vec<WhenBranch>,
-    pub else_branch: Box<Expression>,
+impl From<crate::ast::TypeOrMissing> for TypeOrMissing {
+    fn from(ty: crate::ast::TypeOrMissing) -> Self {
+        match ty {
+            crate::ast::TypeOrMissing::Missing => TypeOrMissing::Missing,
+            crate::ast::TypeOrMissing::Type(ty) => TypeOrMissing::Type(Type::from(ty)),
+        }
+    }
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct WhenBranch {
-    pub when: Box<Expression>,
-    pub then: Box<Expression>,
+impl From<crate::ast::Type> for Type {
+    fn from(ty: crate::ast::Type) -> Self {
+        use Type::*;
+        match ty {
+            crate::ast::Type::Array => Array,
+            crate::ast::Type::BinData => BinData,
+            crate::ast::Type::Boolean => Boolean,
+            crate::ast::Type::Datetime => Datetime,
+            crate::ast::Type::DbPointer => DbPointer,
+            crate::ast::Type::Decimal128 => Decimal128,
+            crate::ast::Type::Document => Document,
+            crate::ast::Type::Double => Double,
+            crate::ast::Type::Int32 => Int32,
+            crate::ast::Type::Int64 => Int64,
+            crate::ast::Type::Javascript => Javascript,
+            crate::ast::Type::JavascriptWithScope => JavascriptWithScope,
+            crate::ast::Type::MaxKey => MaxKey,
+            crate::ast::Type::MinKey => MinKey,
+            crate::ast::Type::Null => Null,
+            crate::ast::Type::ObjectId => ObjectId,
+            crate::ast::Type::RegularExpression => RegularExpression,
+            crate::ast::Type::String => String,
+            crate::ast::Type::Symbol => Symbol,
+            crate::ast::Type::Timestamp => Timestamp,
+            crate::ast::Type::Undefined => Undefined,
+        }
+    }
 }

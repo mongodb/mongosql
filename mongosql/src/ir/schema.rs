@@ -233,7 +233,7 @@ impl Expression {
                 }
                 Ok(Expression::get_field_schema(&accessee_schema, &field))
             }
-            Expression::Function(f) => f.schema(state),
+            Expression::ScalarFunction(f) => f.schema(state),
             Expression::Cast(c) => c.schema(state),
             Expression::SearchedCase(_) => unimplemented!(),
             Expression::SimpleCase(_) => unimplemented!(),
@@ -241,6 +241,8 @@ impl Expression {
             Expression::SubqueryExpression(_) => unimplemented!(),
             Expression::SubqueryComparison(_) => unimplemented!(),
             Expression::Exists(_) => unimplemented!(),
+            Expression::Is(_) => unimplemented!(),
+            Expression::Like(_) => unimplemented!(),
         }
     }
 
@@ -303,7 +305,7 @@ impl Literal {
     }
 }
 
-impl FunctionApplication {
+impl ScalarFunctionApplication {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         let args = self
             .args
@@ -314,13 +316,12 @@ impl FunctionApplication {
     }
 }
 
-impl Function {
+impl ScalarFunction {
     pub fn schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        use Function::*;
+        use ScalarFunction::*;
         match self {
             // String operators.
             Concat => unimplemented!(),
-            Like => unimplemented!(),
             // Unary arithmetic operators.
             Pos | Neg => {
                 self.schema_check_fixed_args(
@@ -349,7 +350,7 @@ impl Function {
                         Schema::Missing,
                     ]),
                 )?;
-                Ok(Function::get_arithmetic_schema(arg_schemas))
+                Ok(ScalarFunction::get_arithmetic_schema(arg_schemas))
             }
             // Arithmetic operators with fixed (two) arguments.
             Sub | Div => {
@@ -374,7 +375,7 @@ impl Function {
                         ]),
                     ],
                 )?;
-                Ok(Function::get_arithmetic_schema(arg_schemas))
+                Ok(ScalarFunction::get_arithmetic_schema(arg_schemas))
             }
             // Comparison operators.
             Lt => unimplemented!(),
@@ -388,9 +389,6 @@ impl Function {
             Not => unimplemented!(),
             And => unimplemented!(),
             Or => unimplemented!(),
-            // Control-flow operator.
-            // Type operator.
-            Is => unimplemented!(),
             // Computed Field Access operator when the field is not known until runtime.
             ComputedFieldAccess => {
                 self.schema_check_fixed_args(
@@ -400,22 +398,29 @@ impl Function {
                 Ok(Schema::Any)
             }
             // Conditional scalar functions.
-            Nullif => unimplemented!(),
+            NullIf => unimplemented!(),
             Coalesce => unimplemented!(),
             // Array scalar functions
             Slice => unimplemented!(),
             Size => unimplemented!(),
             // Numeric value scalar functions.
             Position => unimplemented!(),
-            CharLen => unimplemented!(),
-            OctetLen => unimplemented!(),
-            BitLen => unimplemented!(),
-            Extract => unimplemented!(),
+            CharLength => unimplemented!(),
+            OctetLength => unimplemented!(),
+            BitLength => unimplemented!(),
+            Year => unimplemented!(),
+            Month => unimplemented!(),
+            Day => unimplemented!(),
+            Hour => unimplemented!(),
+            Minute => unimplemented!(),
+            Second => unimplemented!(),
             // String value scalar functions.
             Substring => unimplemented!(),
             Upper => unimplemented!(),
             Lower => unimplemented!(),
-            Trim => unimplemented!(),
+            BTrim => unimplemented!(),
+            LTrim => unimplemented!(),
+            RTrim => unimplemented!(),
             // Datetime value scalar function.
             CurrentTimestamp => {
                 self.schema_check_fixed_args(arg_schemas, &[])?;
@@ -518,7 +523,7 @@ impl Function {
     }
 }
 
-impl CastExpression {
+impl CastExpr {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         // The schemas of the original expression and the type being casted to.
         let expr_schema = self.expr.schema(state)?;
@@ -550,7 +555,7 @@ impl CastExpression {
     }
 }
 
-impl TypeAssertionExpression {
+impl TypeAssertionExpr {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         // The schemas of the original expression and the type being asserted to.
         let expr_schema = self.expr.schema(state)?;

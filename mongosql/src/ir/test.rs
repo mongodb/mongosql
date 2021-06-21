@@ -433,8 +433,8 @@ mod schema {
                 Schema::Atomic(Atomic::String),
             ]),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Pos,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Pos,
             args: vec![Expression::Reference(("bar", 0u16).into())],
         }),
         map! {("bar", 0u16).into() => Schema::AnyOf(vec![
@@ -447,16 +447,16 @@ mod schema {
     test_schema!(
         unary_pos,
         Ok(Schema::Atomic(Atomic::Integer)),
-        Expression::Function(FunctionApplication {
-            function: Function::Pos,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Pos,
             args: vec![Expression::Literal(Literal::Integer(1))],
         }),
     );
     test_schema!(
         unary_neg,
         Ok(Schema::Atomic(Atomic::Double)),
-        Expression::Function(FunctionApplication {
-            function: Function::Pos,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Pos,
             args: vec![Expression::Literal(Literal::Double(1.0))],
         }),
     );
@@ -467,8 +467,8 @@ mod schema {
             required: 1,
             found: 0
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Pos,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Pos,
             args: vec![],
         }),
     );
@@ -479,8 +479,8 @@ mod schema {
             required: 1,
             found: 2
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Neg,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Neg,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Integer(2))
@@ -492,24 +492,24 @@ mod schema {
     test_schema!(
         variadic_arg_arithmetic_no_args_returns_integer,
         Ok(Schema::Atomic(Atomic::Integer)),
-        Expression::Function(FunctionApplication {
-            function: Function::Add,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
             args: vec![],
         }),
     );
     test_schema!(
         variadic_arg_arithmetic_one_arg_returns_that_type,
         Ok(Schema::Atomic(Atomic::Double)),
-        Expression::Function(FunctionApplication {
-            function: Function::Mul,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
             args: vec![Expression::Literal(Literal::Double(1.0))],
         }),
     );
     test_schema!(
         arithmetic_null_takes_priority,
         Ok(Schema::Atomic(Atomic::Null)),
-        Expression::Function(FunctionApplication {
-            function: Function::Mul,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Null),
@@ -521,8 +521,8 @@ mod schema {
     test_schema!(
         arithmetic_missing_takes_priority_as_null_result,
         Ok(Schema::Atomic(Atomic::Null)),
-        Expression::Function(FunctionApplication {
-            function: Function::Mul,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Double(2.0)),
@@ -535,8 +535,8 @@ mod schema {
     test_schema!(
         arithmetic_decimal_takes_priority,
         Ok(Schema::Atomic(Atomic::Decimal)),
-        Expression::Function(FunctionApplication {
-            function: Function::Add,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Reference(("bar", 0u16).into()),
@@ -549,8 +549,8 @@ mod schema {
     test_schema!(
         arithmetic_double_takes_priority,
         Ok(Schema::Atomic(Atomic::Double)),
-        Expression::Function(FunctionApplication {
-            function: Function::Mul,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
             args: vec![
                 Expression::Literal(Literal::Double(1.0)),
                 Expression::Literal(Literal::Integer(2)),
@@ -561,8 +561,8 @@ mod schema {
     test_schema!(
         arithmetic_long_takes_priority,
         Ok(Schema::Atomic(Atomic::Long)),
-        Expression::Function(FunctionApplication {
-            function: Function::Add,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Long(2)),
@@ -573,8 +573,8 @@ mod schema {
     test_schema!(
         arithmetic_integer_takes_priority,
         Ok(Schema::Atomic(Atomic::Integer)),
-        Expression::Function(FunctionApplication {
-            function: Function::Mul,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Integer(2))
@@ -590,8 +590,8 @@ mod schema {
             required: 2,
             found: 1
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Sub,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sub,
             args: vec![Expression::Literal(Literal::Integer(1))],
         }),
     );
@@ -602,8 +602,8 @@ mod schema {
             required: 2,
             found: 3
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Div,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Div,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Integer(2)),
@@ -625,8 +625,8 @@ mod schema {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Sub,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sub,
             args: vec![
                 Expression::Literal(Literal::String("abc".to_string())),
                 Expression::Literal(Literal::Integer(2)),
@@ -647,8 +647,8 @@ mod schema {
             ]),
             found: Schema::Atomic(Atomic::Boolean),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Div,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Div,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Boolean(true)),
@@ -669,8 +669,8 @@ mod schema {
             ]),
             found: Schema::Atomic(Atomic::Boolean),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::Add,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
             args: vec![
                 Expression::Literal(Literal::Integer(1)),
                 Expression::Literal(Literal::Integer(2)),
@@ -689,8 +689,8 @@ mod schema {
             required: 2,
             found: 3
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::ComputedFieldAccess,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::ComputedFieldAccess,
             args: vec![
                 Expression::Literal(Literal::Long(1)),
                 Expression::Literal(Literal::Long(2)),
@@ -705,8 +705,8 @@ mod schema {
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::Long),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::ComputedFieldAccess,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::ComputedFieldAccess,
             args: vec![
                 Expression::Literal(Literal::Long(1)),
                 Expression::Literal(Literal::Long(2)),
@@ -720,8 +720,8 @@ mod schema {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(vec![ANY_DOCUMENT.clone(), Schema::Missing]),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::ComputedFieldAccess,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::ComputedFieldAccess,
             args: vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Literal(Literal::String("field".to_string())),
@@ -736,8 +736,8 @@ mod schema {
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Long),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::ComputedFieldAccess,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::ComputedFieldAccess,
             args: vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Literal(Literal::Long(42)),
@@ -752,8 +752,8 @@ mod schema {
             required: Schema::Atomic(Atomic::String),
             found: Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing]),
         }),
-        Expression::Function(FunctionApplication {
-            function: Function::ComputedFieldAccess,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::ComputedFieldAccess,
             args: vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
@@ -765,8 +765,8 @@ mod schema {
     test_schema!(
         computed_field_access_valid_args,
         Ok(Schema::Any),
-        Expression::Function(FunctionApplication {
-            function: Function::ComputedFieldAccess,
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::ComputedFieldAccess,
             args: vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Literal(Literal::String("field".to_string())),
@@ -1070,7 +1070,7 @@ mod schema {
     test_schema!(
         cast_expr_to_same_type,
         Ok(Schema::Atomic(Atomic::Integer)),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(Literal::Null)),
@@ -1084,7 +1084,7 @@ mod schema {
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null),
         ])),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             to: Type::Double,
             on_null: Box::new(Expression::Literal(Literal::Null)),
@@ -1098,7 +1098,7 @@ mod schema {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Boolean),
         ])),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             to: Type::Double,
             on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
@@ -1112,7 +1112,7 @@ mod schema {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Boolean),
         ])),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             to: Type::Double,
             on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
@@ -1130,7 +1130,7 @@ mod schema {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Boolean),
         ])),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             to: Type::String,
             on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
@@ -1144,7 +1144,7 @@ mod schema {
     test_schema!(
         cast_null_expr_to_type,
         Ok(Schema::Atomic(Atomic::Null)),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Literal(Literal::Null)),
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(Literal::Null)),
@@ -1154,7 +1154,7 @@ mod schema {
     test_schema!(
         cast_null_expr_to_type_with_on_null_set,
         Ok(Schema::Atomic(Atomic::Double)),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Literal(Literal::Null)),
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(Literal::Double(1.0))),
@@ -1164,7 +1164,7 @@ mod schema {
     test_schema!(
         cast_missing_expr_to_type,
         Ok(Schema::Atomic(Atomic::Null)),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(Literal::Null)),
@@ -1175,7 +1175,7 @@ mod schema {
     test_schema!(
         cast_missing_expr_to_type_with_on_null_set,
         Ok(Schema::Atomic(Atomic::Double)),
-        Expression::Cast(CastExpression {
+        Expression::Cast(CastExpr {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(Literal::Double(1.0))),
@@ -1188,7 +1188,7 @@ mod schema {
     test_schema!(
         assert_expr_to_same_type,
         Ok(Schema::Atomic(Atomic::Integer)),
-        Expression::TypeAssertion(TypeAssertionExpression {
+        Expression::TypeAssertion(TypeAssertionExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             target_type: Type::Int32,
         }),
@@ -1196,7 +1196,7 @@ mod schema {
     test_schema!(
         assert_multi_type_expr_to_possible_type,
         Ok(Schema::Atomic(Atomic::Double)),
-        Expression::TypeAssertion(TypeAssertionExpression {
+        Expression::TypeAssertion(TypeAssertionExpr {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             target_type: Type::Double,
         }),
@@ -1212,7 +1212,7 @@ mod schema {
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Integer),
         }),
-        Expression::TypeAssertion(TypeAssertionExpression {
+        Expression::TypeAssertion(TypeAssertionExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             target_type: Type::String,
         }),

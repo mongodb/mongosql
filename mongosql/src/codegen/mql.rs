@@ -265,7 +265,7 @@ impl MqlCodeGenerator {
                     }}),
                 })
             }
-            Function(_) => unimplemented!(),
+            ScalarFunction(_) => unimplemented!(),
             SearchedCase(ce) => {
                 let br = ce
                     .when_branch
@@ -306,6 +306,8 @@ impl MqlCodeGenerator {
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),
             Exists(_) => unimplemented!(),
+            Is(_) => unimplemented!(),
+            Like(_) => unimplemented!(),
         }
     }
 }
