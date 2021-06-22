@@ -32,6 +32,8 @@ pub enum Error {
     AccessMissingField(String),
     #[error("Invalid JSON schema: {0}")]
     InvalidJsonSchema(String),
+    #[error("cardinality of the subquery's result set may be greater than 1")]
+    InvalidSubqueryCardinality,
 }
 
 #[derive(Debug, Clone)]
@@ -54,6 +56,13 @@ impl SchemaInferenceState {
         SchemaInferenceState {
             env: merged_env,
             scope_level: self.scope_level,
+        }
+    }
+
+    pub fn subquery_state(&self) -> SchemaInferenceState {
+        SchemaInferenceState {
+            scope_level: self.scope_level + 1,
+            env: self.env.clone(),
         }
     }
 }
@@ -238,9 +247,33 @@ impl Expression {
             Expression::SearchedCase(_) => unimplemented!(),
             Expression::SimpleCase(_) => unimplemented!(),
             Expression::TypeAssertion(t) => t.schema(state),
-            Expression::SubqueryExpression(_) => unimplemented!(),
+            Expression::SubqueryExpression(SubqueryExpr {
+                output_expr,
+                subquery,
+            }) => {
+                let result_set = subquery.schema(&state.subquery_state())?;
+                let schema = output_expr.schema(&SchemaInferenceState {
+                    scope_level: state.scope_level + 1,
+                    env: result_set.schema_env,
+                })?;
+
+                // The subquery's result set MUST have a cardinality of 0 or 1. The returned schema
+                // MUST include MISSING if the cardinality of the result set MAY be 0. We can exclude
+                // MISSING from the returned schema if the cardinality of the result set MUST be 1.
+                if result_set.max_size == None || result_set.max_size.unwrap() > 1 {
+                    return Err(Error::InvalidSubqueryCardinality);
+                }
+                match result_set.min_size {
+                    0 => Ok(Schema::AnyOf(vec![schema, Schema::Missing])),
+                    1 => Ok(schema),
+                    _ => Err(Error::InvalidSubqueryCardinality),
+                }
+            }
             Expression::SubqueryComparison(_) => unimplemented!(),
-            Expression::Exists(_) => unimplemented!(),
+            Expression::Exists(stage) => {
+                stage.schema(&state.subquery_state())?;
+                Ok(Schema::Atomic(Atomic::Boolean))
+            }
             Expression::Is(_) => unimplemented!(),
             Expression::Like(_) => unimplemented!(),
         }

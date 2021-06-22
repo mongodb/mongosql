@@ -47,6 +47,7 @@ macro_rules! test_schema {
 }
 
 mod schema {
+    use crate::ir::binding_tuple::DatasourceName::Bottom;
     use crate::{
         ir::{schema::*, *},
         map,
@@ -1371,6 +1372,232 @@ mod schema {
                     }),
                     Expression::Document(map! {
                         "bar".into() => Expression::Literal(Literal::Integer(3))
+                    })
+                ],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+    // Exists subquery
+    test_schema!(
+        exists_uncorrelated,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::Exists(Box::new(Stage::Collection(Collection {
+            db: "test".into(),
+            collection: "foo".into(),
+        }))),
+    );
+
+    test_schema!(
+        exists_correlated,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::Exists(Box::new(Stage::Project(Project {
+            source: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+            })),
+            expression: map! {
+                (Bottom, 1u16).into() => Expression::Document(map! {
+                    "a".into() => Expression::FieldAccess(FieldAccess{
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    })
+                })
+            }
+        }))),
+        map! {
+            ("foo", 0u16).into() => Schema::Document( Document{
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::String)
+                },
+                required: set! { "a".into() },
+                additional_properties: false,
+            }),
+        },
+    );
+
+    test_schema!(
+        exists_invalid_expression,
+        Err(Error::IncorrectArgumentCount {
+            name: "Div",
+            required: 2,
+            found: 3
+        }),
+        Expression::Exists(Box::new(Stage::Project(Project {
+            source: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+            })),
+            expression: map! {
+                ("a", 0u16).into() =>
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Div,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(1)),
+                            Expression::Literal(Literal::Integer(2)),
+                            Expression::Literal(Literal::Integer(3))
+                        ],
+                    })
+            }
+        }))),
+    );
+
+    // Subquery Expression
+
+    test_schema!(
+        subquery_output_expr_violates_type_constraints,
+        Err(Error::AccessMissingField("_2".into())),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                field: "_2".into()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "foo".into(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(map! {
+                        "_1".into() => Expression::Literal(Literal::Integer(5))
+                    })
+                }
+            }))
+        }),
+    );
+
+    // Analogous SQL query: SELECT (SELECT foo.a FROM []) FROM foo
+    test_schema!(
+        correlated_subquery,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Missing
+        ])),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                field: "a".into()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Array(Array {
+                    array: vec![],
+                    alias: "bar".into(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(map! {
+                        "a".into() => Expression::FieldAccess(FieldAccess{
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".into()
+                        })
+                    })
+                }
+            }))
+        }),
+        map! {
+            ("foo", 0u16).into() => Schema::Document( Document{
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::String)
+                },
+                required: set! { "a".into() },
+                additional_properties: false,
+            }),
+        },
+    );
+
+    test_schema!(
+        subquery_output_expr_correlated_datasource,
+        Err(Error::DatasourceNotFoundInSchemaEnv(("foo", 0u16).into())),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                field: "a".into()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(map! {
+                        "a".into() => Expression::FieldAccess(FieldAccess{
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".into()
+                        })
+                    })
+                }
+            }))
+        }),
+        map! {
+            ("foo", 0u16).into() => Schema::Document( Document{
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::String)
+                },
+                required: set! { "a".into() },
+                additional_properties: false,
+            }),
+        },
+    );
+
+    // Analogous SQL query: "SELECT (SELECT * FROM [] AS foo)"
+    test_schema!(
+        uncorrelated_subquery_cardinality_is_zero,
+        Ok(Schema::AnyOf(vec![Schema::AnyOf(vec![]), Schema::Missing])),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+            subquery: Box::new(Stage::Array(Array {
+                array: vec![],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+
+    // Analogous SQL query: "SELECT (SELECT * FROM [{'a': 5}] AS foo)"
+    test_schema!(
+        subquery_expression_cardinality_must_be_one,
+        Ok(Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer)])),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                field: "a".into()
+            })),
+            subquery: Box::new(Stage::Array(Array {
+                array: vec![Expression::Document(map! {
+                    "a".into() => Expression::Literal(Literal::Integer(5))
+                }),],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+
+    // Analogous SQL query: "SELECT (SELECT * FROM foo)"
+    test_schema!(
+        subquery_cardinality_may_be_1,
+        Err(Error::InvalidSubqueryCardinality),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+            subquery: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+            })),
+        }),
+    );
+
+    // Analogous SQL query: "SELECT (SELECT * FROM [{'a': 5}, {'a': 6}] AS foo)"
+    test_schema!(
+        subquery_expression_cardinality_gt_one,
+        Err(Error::InvalidSubqueryCardinality),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                field: "a".into()
+            })),
+            subquery: Box::new(Stage::Array(Array {
+                array: vec![
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(5))
+                    }),
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(6))
                     })
                 ],
                 alias: "foo".into(),
