@@ -774,3 +774,137 @@ mod simple_case_expression {
         }),
     );
 }
+
+mod join {
+    use crate::ir::*;
+
+    test_codegen_plan!(
+        join_simple,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}},
+            bson::doc!{"$join": {"collection": "col2", "joinType": "inner", "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}]}}],
+        }),
+        Stage::Join(Join {
+            condition: None,
+            left: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col2".to_string(),
+            }).into(),
+            join_type: JoinType::Inner,
+        }),
+    );
+    test_codegen_plan!(
+        join_left_different_databases,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+                "$join":
+                {"database": "mydb2",
+                "collection": "col2",
+                "joinType":"left",
+                "let": {"__col_0": "$col"},
+                "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                "condition": {"$match": {"$expr": {"$literal": true}}}
+            }}],
+        }),
+        Stage::Join(Join {
+            condition: Some(Box::new(Expression::Literal(Literal::Boolean(true)))),
+            left: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "mydb2".to_string(),
+                collection: "col2".to_string(),
+            }).into(),
+            join_type: JoinType::Left,
+        }),
+    );
+    test_codegen_plan!(
+        join_on_array,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+                "$join":
+                {"joinType":"left",
+                "pipeline": [{"$array": {"arr": [{"$literal": 1}, {"$literal": 1}]}}],
+            }}],
+        }),
+        Stage::Join(Join {
+            condition: None,
+            left: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+            right: Stage::Array(Array {
+                array: vec![Expression::Literal(Literal::Integer(1)),Expression::Literal(Literal::Integer(1))],
+                alias: "arr".to_string(),
+            }).into(),
+            join_type: JoinType::Left,
+        }),
+    );
+    test_codegen_plan!(
+        join_condition_references_left,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+                "$join":
+                {"database": "mydb2",
+                "collection": "col2",
+                "joinType":"left",
+                "let": {"__col_0": "$col"},
+                "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                "condition": {"$match": {"$expr": "$$__col_0"}}
+            }}],
+        }),
+        Stage::Join(Join {
+            condition: Some(Box::new(Expression::Reference(("col", 0u16).into()))),
+            left: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "mydb2".to_string(),
+                collection: "col2".to_string(),
+            }).into(),
+            join_type: JoinType::Left,
+        }),
+    );
+    test_codegen_plan!(
+        join_condition_references_right,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+                "$join":
+                {"database": "mydb2",
+                "collection": "col2",
+                "joinType":"left",
+                "let": {"__col_0": "$col"},
+                "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                "condition": {"$match": {"$expr": "$col2"}}
+            }}],
+        }),
+        Stage::Join(Join {
+            condition: Some(Box::new(Expression::Reference(("col2", 0u16).into()))),
+            left: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "mydb2".to_string(),
+                collection: "col2".to_string(),
+            }).into(),
+            join_type: JoinType::Left,
+        }),
+    );
+}

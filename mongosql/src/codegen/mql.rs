@@ -24,8 +24,9 @@ impl MappingRegistry {
         self.0.insert(k.into(), v.into())
     }
 
-    pub fn merge(&mut self, other: MappingRegistry) {
+    pub fn merge(&mut self, other: MappingRegistry) -> &mut Self {
         self.0.extend(other.0.into_iter());
+        self
     }
 }
 
@@ -157,7 +158,89 @@ impl MqlCodeGenerator {
                     pipeline: vec![doc! {"$array": {arr.alias: Bson::Array(docs)}}],
                 })
             }
-            Join(_) => unimplemented!(),
+            Join(join) => {
+                use serde::{Deserialize, Serialize};
+                #[derive(Serialize, Deserialize)]
+                struct JoinBody {
+                    #[serde(skip_serializing_if = "Option::is_none")]
+                    database: Option<String>,
+                    #[serde(skip_serializing_if = "Option::is_none")]
+                    collection: Option<String>,
+                    #[serde(rename = "joinType")]
+                    join_type: &'static str,
+                    #[serde(skip_serializing_if = "Option::is_none", rename = "let")]
+                    let_body: Option<bson::Document>,
+                    pipeline: Vec<bson::Document>,
+                    #[serde(skip_serializing_if = "Option::is_none")]
+                    condition: Option<bson::Document>,
+                }
+                let left = self.codegen_stage(*join.left)?;
+                let right = self.codegen_stage(*join.right)?;
+                let database = match (left.database.clone(), right.database) {
+                    (Some(ref left_db), Some(ref right_db)) => {
+                        if left_db != right_db {
+                            Some(right_db.clone())
+                        } else {
+                            None
+                        }
+                    }
+                    (None, Some(ref right_db)) => Some(right_db.clone()),
+                    (_, None) => None,
+                };
+                let collection = right.collection;
+                let join_type = match join.join_type {
+                    ir::JoinType::Inner => "inner",
+                    ir::JoinType::Left => "left",
+                };
+                let output_registry = self
+                    .mapping_registry
+                    .clone()
+                    .merge(left.mapping_registry.clone())
+                    .merge(right.mapping_registry.clone())
+                    .clone();
+                let pipeline = right.pipeline;
+                let (condition, let_body) = match join.condition {
+                    None => (None, None),
+                    Some(expr) => {
+                        use bson::bson;
+                        let left_registry = left
+                            .mapping_registry
+                            .clone()
+                            .0
+                            .into_iter()
+                            .map(|(k, v)| (k.clone(), format!("$__{}_{}", v, k.scope)))
+                            .collect();
+                        let let_doc: bson::Document = left
+                            .mapping_registry
+                            .clone()
+                            .0
+                            .into_iter()
+                            .map(|(k, v)| {
+                                (format!("__{}_{}", v, k.scope), bson! {format!("${}", v)})
+                            })
+                            .collect();
+                        let expression_generator = self
+                            .clone()
+                            .with_merged_mappings(MappingRegistry(left_registry))
+                            .with_merged_mappings(right.mapping_registry);
+                        let cond = expression_generator.codegen_expression(*expr)?;
+                        let cond_doc = doc! {"$match" : {"$expr": cond}};
+                        (Some(cond_doc), Some(let_doc))
+                    }
+                };
+                let join_body = bson::to_bson(&JoinBody {
+                    database,
+                    collection,
+                    join_type,
+                    let_body,
+                    pipeline,
+                    condition,
+                })
+                .unwrap();
+                Ok(left
+                    .with_mapping_registry(output_registry)
+                    .with_additional_stage(doc! {"$join": join_body}))
+            }
             Set(_) => unimplemented!(),
         }
     }

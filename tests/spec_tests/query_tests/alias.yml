@@ -43,7 +43,6 @@ tests:
       - {'$join': {
         'source': 'foo',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'foo': '$$ROOT'}},
           {'$project': {'_id': 0, 'foo2': '$foo'}},

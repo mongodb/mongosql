@@ -57,7 +57,6 @@ tests:
       - {'$array': {'foo': [{'a': 1}]}}
       - {'$join': {
         'joinType': 'inner',
-        'let': {},
         'pipeline': [{'$array': {'bar': [{'b': 2}]}}],
       }}
       - {'$project': {'_id': 0, 'foo': '$foo', 'bar': '$bar'}}

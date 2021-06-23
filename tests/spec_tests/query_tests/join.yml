@@ -56,7 +56,6 @@ tests:
         - {'$join': {
           'collection': 'coll',
           'joinType': 'inner',
-          'let': {},
           'pipeline': [
             {'$project': {'_id': 0, 'coll': '$$ROOT'}},
             {'$project': {'_id': 0, 'coll': '$coll'}},
@@ -77,12 +76,12 @@ tests:
       - {'$join': {
         'collection': 'coll',
         'joinType': 'inner',
-        'let': {'__bar_foo': '$bar.foo'},
+        'let': {'__bar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'coll': '$$ROOT'}},
           {'$project': {'_id': 0, 'coll': '$coll'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_0.foo', '$coll.car']}}},
       }}
     result:
       - {'bar': {'_id': 0, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
@@ -98,12 +97,12 @@ tests:
       - {'$join': {
         'collection': 'bar',
         'joinType': 'left',
-        'let': {'__bar2_foo': '$bar2.foo'},
+        'let': {'__bar2_0': '$bar2'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar': '$bar'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar2_foo', '$bar.foo']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar2_0.foo', '$bar.foo']}}},
       }}
     result:
       - {'bar2': {'_id': 0, 'foo': 42, 'baz': 63}, 'bar': {'_id': 1, 'foo': 42}}
@@ -120,12 +119,12 @@ tests:
       - {'$join': {
         'collection': 'bar2',
         'joinType': 'left',
-        'let': {'__bar_foo': '$bar.foo'},
+        'let': {'__bar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar2': '$bar2'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$bar2.foo']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_0.foo', '$bar2.foo']}}},
       }}
     result:
         - {'bar': {'_id': 1, 'foo': 42}, 'bar2': {'_id': 0, 'foo': 42, 'baz': 63}}
@@ -152,12 +151,12 @@ tests:
       - {'$join': {
         'collection': 'bar2',
         'joinType': 'inner',
-        'let': {'__bar_foo': '$bar.foo'},
+        'let': {'__bar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar2': '$bar2'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': ['$$__bar_foo', {'$literal': 15}]}, '$bar2.baz']}}}
+        'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': ['$$__bar_0.foo', {'$literal': 15}]}, '$bar2.baz']}}}
       }}
     result:
       - {'bar': {'foo': 42}, 'bar2': {'foo': 42, 'baz': 63}}
@@ -178,12 +177,12 @@ tests:
       - {'$join': {
         'collection': 'coll',
         'joinType': 'inner',
-        'let': {'__bar_foo': '$bar.foo'},
+        'let': {'__bar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'coll': '$$ROOT'}},
           {'$project': {'_id': 0, 'coll': '$coll'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_0.foo', '$coll.car']}}},
       }}
     result:
         - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
@@ -199,12 +198,12 @@ tests:
       - {'$join': {
         'collection': 'coll',
         'joinType': 'inner',
-        'let': {'__bar_foo': '$bar.foo'},
+        'let': {'__bar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'coll': '$$ROOT'}},
           {'$project': {'_id': 0, 'coll': '$coll'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_foo', '$coll.car']}}}
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__bar_0.foo', '$coll.car']}}}
       }}
     result:
         - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
@@ -224,7 +223,6 @@ tests:
       - {'$join': {
         'collection': 'bar',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'b': '$bar'}},
@@ -233,12 +231,12 @@ tests:
       - {'$join': {
         'collection': 'bar',
         'joinType': 'left',
-        'let': {'__a_foo': '$a.foo'},
+        'let': {'__a_0': '$a'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'c': '$bar'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__a_foo', '$c.foo']}}}
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$__a_0.foo', '$c.foo']}}}
       }}
     result:
       - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 0, 'foo':  1}, 'c': {'_id': 0, 'foo':  1}}
@@ -267,7 +265,6 @@ tests:
                     'database': 'db2',
                     'collection': 'foo',
                     'joinType': 'inner',
-                    'let': {},
                     'pipeline': [
                       {'$project': {'_id': 0, 'foo': '$$ROOT'}},
                       {'$project': {'_id': 0, 'foo': 'foo'}}
