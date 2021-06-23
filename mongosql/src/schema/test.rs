@@ -61,8 +61,8 @@ test_from_json_schema!(
 );
 
 test_from_json_schema!(
-    convert_one_of_to_one_of,
-    Ok(OneOf(vec![Atomic(Integer), Atomic(Null)])),
+    convert_one_of_to_any_of,
+    Ok(AnyOf(vec![Atomic(Integer), Atomic(Null)])),
     json_schema::Schema {
         one_of: Some(vec![
             json_schema::Schema {
@@ -321,40 +321,10 @@ test_satisfies!(
     AnyOf(vec![]),
 );
 test_satisfies!(
-    satisfies_any_of_empty_must_satisfy_one_of_empty,
-    Must,
-    AnyOf(vec![]),
-    OneOf(vec![]),
-);
-test_satisfies!(
-    satisfies_one_of_empty_must_satisfy_atomic,
-    Must,
-    OneOf(vec![]),
-    Atomic(Integer)
-);
-test_satisfies!(
     satisfies_any_of_empty_must_satisfy_missing,
     Must,
     AnyOf(vec![]),
     Missing,
-);
-test_satisfies!(
-    satisfies_one_of_empty_must_satisfy_missing,
-    Must,
-    OneOf(vec![]),
-    Missing,
-);
-test_satisfies!(
-    satisfies_one_of_empty_must_satisfy_any_of_empty,
-    Must,
-    OneOf(vec![]),
-    AnyOf(vec![]),
-);
-test_satisfies!(
-    satisfies_one_of_empty_must_satisfy_one_of_empty,
-    Must,
-    OneOf(vec![]),
-    OneOf(vec![]),
 );
 test_satisfies!(
     satisfies_missing_must_satisfy_missing,
@@ -367,12 +337,6 @@ test_satisfies!(
     Must,
     Missing,
     AnyOf(vec![Missing])
-);
-test_satisfies!(
-    satisfies_one_of_missing_may_satisfy_missing,
-    May,
-    OneOf(vec![Atomic(String), Missing, Atomic(Integer)]),
-    Missing
 );
 test_satisfies!(
     satisfies_any_of_missing_may_satisfy_missing,
@@ -408,12 +372,6 @@ test_satisfies!(
     Missing,
     AnyOf(vec![Atomic(String), Atomic(Integer)])
 );
-test_satisfies!(
-    satisfies_missing_must_not_satisfy_one_of,
-    Not,
-    Missing,
-    OneOf(vec![Atomic(String), Atomic(Integer)])
-);
 test_satisfies!(satisfies_atomic_must_satisfy_any, Must, Atomic(String), Any);
 test_satisfies!(satisfies_any_may_satisfy_atomic, May, Any, Atomic(String));
 test_satisfies!(
@@ -436,73 +394,25 @@ test_satisfies!(
 );
 
 test_satisfies!(
-    satisfies_one_of_must_satisfy_one_of_when_equal,
-    Must,
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-);
-test_satisfies!(
-    satisfies_one_of_may_satisfy_one_of_when_unequal,
-    May,
-    OneOf(vec![Atomic(Double), Atomic(Integer)]),
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-);
-test_satisfies!(
-    satisfies_one_of_may_satisfy_one_of_when_self_has_missing,
-    May,
-    OneOf(vec![Atomic(String), Missing]),
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-);
-test_satisfies!(
-    satisfies_one_of_must_satisfy_one_of_when_other_has_missing,
-    Must,
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-    OneOf(vec![Atomic(String), Atomic(Integer), Missing]),
-);
-test_satisfies!(
-    satisfies_one_of_must_not_satisfy_when_one_of_contains_any,
-    Not,
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-    OneOf(vec![Atomic(String), Atomic(Integer), Any]),
-);
-test_satisfies!(
     satisfies_any_of_must_satisfy_when_any_of_contains_any,
     Must,
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
+    AnyOf(vec![Atomic(String), Atomic(Integer)]),
     AnyOf(vec![Atomic(String), Atomic(Integer), Any]),
 );
 test_satisfies!(
-    satisfies_one_of_must_may_satisfy_one_of_when_self_has_any,
-    May,
-    OneOf(vec![Atomic(String), Any]),
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-);
-test_satisfies!(
-    satisfies_one_of_must_satisfy_subset_one_of,
-    Must,
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-    OneOf(vec![Atomic(String), Atomic(Integer), Atomic(Double)]),
-);
-test_satisfies!(
-    satisfies_one_of_may_satisfy_proper_superset_one_of,
-    May,
-    OneOf(vec![Atomic(String), Atomic(Integer), Atomic(Double)]),
-    OneOf(vec![Atomic(String), Atomic(Integer)]),
-);
-test_satisfies!(
-    satisfies_array_of_string_must_satisfy_one_of_array_of_int_or_array_of_string,
+    satisfies_array_of_string_must_satisfy_any_of_array_of_int_or_array_of_string,
     Must,
     Array(Box::new(Atomic(String))),
-    OneOf(vec![
+    AnyOf(vec![
         Array(Box::new(Atomic(String))),
         Array(Box::new(Atomic(Integer)))
     ]),
 );
 test_satisfies!(
-    satisfies_array_of_string_or_int_may_satisfy_one_of_array_of_int_or_array_of_string,
+    satisfies_array_of_string_or_int_may_satisfy_any_of_array_of_int_or_array_of_string,
     May,
-    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Integer),]))),
-    OneOf(vec![
+    Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer),]))),
+    AnyOf(vec![
         Array(Box::new(Atomic(String))),
         Array(Box::new(Atomic(Integer)))
     ]),
@@ -510,8 +420,8 @@ test_satisfies!(
 test_satisfies!(
     satisfies_array_of_string_or_int_must_satisfy_array_of_string_or_int,
     Must,
-    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Integer),]))),
-    Array(Box::new(OneOf(vec![Atomic(String), Atomic(Integer),]))),
+    Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer),]))),
+    Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer),]))),
 );
 test_satisfies!(
     satisfies_document_must_satify_same_document,
@@ -672,35 +582,6 @@ test_satisfies!(
     }),
 );
 test_satisfies!(
-    satisfies_document_satifies_multiple_one_of_results_in_not_satisfied,
-    Not,
-    Document(Document {
-        keys: map![
-            "a".to_string() => Any,
-            "b".to_string() => Atomic(Integer),
-        ],
-        required: set!["a".to_string()],
-        additional_properties: false,
-    }),
-    OneOf(vec![
-        Document(Document {
-            keys: map![
-                "a".to_string() => Any,
-                "b".to_string() => Atomic(Integer),
-            ],
-            required: set!["a".to_string()],
-            additional_properties: false,
-        }),
-        Document(Document {
-            keys: map![
-                "b".to_string() => Atomic(Integer),
-            ],
-            required: set![],
-            additional_properties: true,
-        }),
-    ]),
-);
-test_satisfies!(
     satisfies_document_satifies_multiple_any_of_results_in_must_satisfy,
     Must,
     Document(Document {
@@ -730,7 +611,7 @@ test_satisfies!(
     ]),
 );
 test_satisfies!(
-    satisfies_document_satifies_one_of_one_of_results_must_satisfy,
+    satisfies_document_satifies_any_of_any_of_results_must_satisfy,
     Must,
     Document(Document {
         keys: map![
@@ -740,7 +621,7 @@ test_satisfies!(
         required: set!["a".to_string()],
         additional_properties: false,
     }),
-    OneOf(vec![
+    AnyOf(vec![
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
@@ -785,19 +666,19 @@ test_satisfies!(
     Array(Box::new(Atomic(Integer))),
 );
 test_satisfies!(
-    satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_one_of_array,
+    satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_any_of_array,
     May,
     Array(Box::new(Any)),
-    OneOf(vec![
+    AnyOf(vec![
         Array(Box::new(Atomic(Integer))),
         Array(Box::new(Atomic(String))),
     ]),
 );
 test_satisfies!(
-    satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_array_one_of,
+    satisfies_array_may_satisfy_when_array_item_schema_may_satisfy_multiple_array_any_of,
     May,
     Array(Box::new(Any)),
-    Array(Box::new(OneOf(vec![Atomic(Integer), Atomic(Double),]),)),
+    Array(Box::new(AnyOf(vec![Atomic(Integer), Atomic(Double),]),)),
 );
 test_satisfies!(
     satisfies_array_of_missing_does_not_satisfy_array_of_atomic,
@@ -882,9 +763,9 @@ test_contains_field!(
     "foo",
 );
 test_contains_field!(
-    contains_field_one_of_document_and_atomic_may_not_contain_field,
+    contains_field_any_of_document_and_atomic_may_not_contain_field,
     Not,
-    OneOf(vec![
+    AnyOf(vec![
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
@@ -898,9 +779,9 @@ test_contains_field!(
     "c",
 );
 test_contains_field!(
-    contains_field_one_of_document_and_atomic_may_contain_field,
+    contains_field_any_of_document_and_atomic_may_contain_field,
     May,
-    OneOf(vec![
+    AnyOf(vec![
         Document(Document {
             keys: map![
                 "a".to_string() => Any,
@@ -914,9 +795,9 @@ test_contains_field!(
     "b",
 );
 test_contains_field!(
-    contains_field_one_of_document_and_document_must_contain_field,
+    contains_field_any_of_document_and_document_must_contain_field,
     Must,
-    OneOf(vec![
+    AnyOf(vec![
         Document(Document {
             keys: map![
                 "a".to_string() => Any,

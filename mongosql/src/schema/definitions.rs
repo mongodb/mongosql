@@ -35,7 +35,6 @@ pub enum Schema {
     Any,
     Missing,
     Atomic(Atomic),
-    OneOf(Vec<Schema>),
     AnyOf(Vec<Schema>),
     Array(Box<Schema>),
     Document(Document),
@@ -198,26 +197,6 @@ impl Schema {
         ret
     }
 
-    /// satisfies exactly OneOf the passed set of Schemata.
-    fn satisfies_one_of(&self, vs: &[Schema]) -> Satisfaction {
-        use Satisfaction::*;
-        let mut ret = Not;
-        for s in vs.iter() {
-            match self.satisfies(s) {
-                May => return May,
-                Must => {
-                    if ret == Must {
-                        return Not;
-                    } else {
-                        ret = Must;
-                    }
-                }
-                Not => (),
-            }
-        }
-        ret
-    }
-
     /// Returns if all the possible values satisfying the self Schema also satisfy the argument
     /// other Schema.
     ///
@@ -233,16 +212,13 @@ impl Schema {
             (_, Any) => Must,
             (Any, _) => May,
 
-            // self is AnyOf or OneOf
+            // self is AnyOf
             (AnyOf(self_vs), other_s) => {
                 Schema::schema_predicate_meet(self_vs, &|s: &Schema| s.satisfies(other_s))
             }
-            (OneOf(self_vs), other_s) => {
-                Schema::schema_predicate_meet(self_vs, &|s: &Schema| s.satisfies(other_s))
-            }
-            // other is AnyOf or OneOf
+
+            // other is AnyOf
             (_, AnyOf(vs)) => self.satisfies_any_of(vs),
-            (_, OneOf(vs)) => self.satisfies_one_of(vs),
 
             (Atomic(self_a), Atomic(other_a)) => self_a.satisfies(&other_a),
             (Atomic(_), _) => Not,
@@ -271,17 +247,12 @@ impl Schema {
     }
 
     /// upconvert_missing_to_null upconverts Missing to Null in the current level
-    /// of the schema including nested Any/OneOf. It does not recurse into Documents or Arrays.
+    /// of the schema including nested Any. It does not recurse into Documents or Arrays.
     /// This is used to properly handle array items Schemata, where Missing is not possible.
     pub fn upconvert_missing_to_null(self) -> Self {
         match self {
             Schema::Missing => Schema::Atomic(Atomic::Null),
             Schema::AnyOf(vs) => Schema::AnyOf(
-                vs.into_iter()
-                    .map(|e| e.upconvert_missing_to_null())
-                    .collect(),
-            ),
-            Schema::OneOf(vs) => Schema::OneOf(
                 vs.into_iter()
                     .map(|e| e.upconvert_missing_to_null())
                     .collect(),
@@ -329,7 +300,6 @@ impl TryFrom<json_schema::Schema> for Schema {
     ///      - properties, required, and additional_properties => Schema::Document
     ///      - items => Schema::Array
     ///      - any_of => Schema::AnyOf
-    ///      - one_of => Schema::OneOf
     ///
     /// any_of and one_of are the only fields that are mutually exclusive with the rest.
     fn try_from(v: json_schema::Schema) -> Result<Self, Self::Error> {
@@ -407,7 +377,8 @@ impl TryFrom<json_schema::Schema> for Schema {
                 items: None,
                 any_of: None,
                 one_of: Some(one_of),
-            } => Ok(Schema::OneOf(
+                // convert one_of to any_of
+            } => Ok(Schema::AnyOf(
                 one_of
                     .into_iter()
                     .map(Schema::try_from)

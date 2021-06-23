@@ -161,13 +161,13 @@ mod schema {
         },
     );
     test_schema!(
-        array_literal_any_of_one_of_missing_to_null,
+        array_literal_any_of_any_of_missing_to_null,
         Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
             Schema::Document(Document {
                 keys: map! {"b".into() =>
                     Schema::AnyOf(
                     vec![
-                        Schema::OneOf(
+                        Schema::AnyOf(
                         vec![
                             Schema::Missing,
                             Schema::Atomic(Atomic::Integer)
@@ -185,7 +185,7 @@ mod schema {
         map! {("a", 0u16).into() =>
         Schema::AnyOf(
         vec![
-            Schema::OneOf(
+            Schema::AnyOf(
             vec![
                 Schema::Missing,
                 Schema::Atomic(Atomic::Integer)
@@ -194,17 +194,17 @@ mod schema {
         ]),},
     );
     test_schema!(
-        array_of_array_of_literal_any_of_one_of_missing_to_null,
+        array_of_array_of_literal_any_of_any_of_missing_to_null,
         Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
             Schema::Array(Box::new(Schema::AnyOf(vec![Schema::AnyOf(vec![
-                Schema::OneOf(vec![
+                Schema::AnyOf(vec![
                     Schema::Atomic(Atomic::Null),
                     Schema::Atomic(Atomic::Integer)
                 ]),
                 Schema::Atomic(Atomic::Double)
             ])]))),
             Schema::Array(Box::new(Schema::AnyOf(vec![Schema::AnyOf(vec![
-                Schema::OneOf(vec![
+                Schema::AnyOf(vec![
                     Schema::Atomic(Atomic::Null),
                     Schema::Atomic(Atomic::Integer)
                 ]),
@@ -218,7 +218,7 @@ mod schema {
         map! {("a", 0u16).into() =>
         Schema::AnyOf(
         vec![
-            Schema::OneOf(
+            Schema::AnyOf(
             vec![
                 Schema::Missing,
                 Schema::Atomic(Atomic::Integer)
@@ -282,7 +282,7 @@ mod schema {
             keys: map! {
                 "a".to_string() => Schema::Atomic(Atomic::String),
                 "c".to_string() => Schema::Atomic(Atomic::Null),
-                "d".to_string() => Schema::OneOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
+                "d".to_string() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
             },
             required: set! {
                 "a".to_string(),
@@ -297,7 +297,7 @@ mod schema {
             "d".to_string() => Expression::Reference(("a", 0u16).into()),
         }),
         map! {
-            ("a", 0u16).into() => Schema::OneOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
+            ("a", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
             ("b", 0u16).into() => Schema::Missing,
         },
     );
@@ -361,7 +361,7 @@ mod schema {
         ),},
     );
     test_schema!(
-        field_access_field_must_one_of,
+        field_access_field_must_any_of,
         Ok(Schema::AnyOf(
             vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer)}
         )),
@@ -370,7 +370,7 @@ mod schema {
             field: "foo".to_string(),
         }),
         map! {("bar", 0u16).into() =>
-            Schema::OneOf(vec!{
+            Schema::AnyOf(vec!{
             Schema::Document(
                 Document {
                     keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},

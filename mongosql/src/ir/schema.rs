@@ -176,13 +176,13 @@ impl Expression {
     pub fn get_field_schema(s: &Schema, field: &str) -> Schema {
         // If self is Any, it may contain the field, but we don't know the
         // Schema. If it's a Document we need to do more investigation.
-        // If it's AnyOf or OneOf we need to apply get_field_schema to each
-        // sub-schema and apply AnyOf or OneOf to the results as appropriate.
+        // If it's AnyOf we need to apply get_field_schema to each
+        // sub-schema and apply AnyOf to the results as appropriate.
         // If it's anything else it will Not contain the field, so we return Missing.
         let d = match s {
             Schema::Any => return Schema::Any,
             Schema::Document(d) => d,
-            Schema::AnyOf(vs) | Schema::OneOf(vs) => {
+            Schema::AnyOf(vs) => {
                 return Schema::AnyOf(
                     vs.iter()
                         .map(|s| Expression::get_field_schema(s, field))
@@ -193,12 +193,12 @@ impl Expression {
         };
         // If we find the field in the Document, we just return
         // the Schema for that field, unless the field is not required,
-        // then we return OneOf(Schema, Missing).
+        // then we return AnyOf(Schema, Missing).
         if let Some(s) = d.keys.get(field) {
             if d.required.contains(field) {
                 return s.clone();
             }
-            return Schema::OneOf(vec![s.clone(), Schema::Missing]);
+            return Schema::AnyOf(vec![s.clone(), Schema::Missing]);
         }
         // If the schema allows additional_properties, it May exist,
         // regardless of its presence or absence in keys, but we don't know the Schema.
