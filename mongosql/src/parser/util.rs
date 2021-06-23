@@ -59,7 +59,7 @@ pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, Lalrpop
             } else {
                 Ok(FunctionExpr {
                     function: FunctionName::Position,
-                    args: vec![FunctionArg::Expr(*left), FunctionArg::Expr(*right)],
+                    args: FunctionArguments::Args(vec![*left, *right]),
                     set_quantifier: None,
                 })
             }

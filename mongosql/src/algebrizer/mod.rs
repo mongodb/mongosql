@@ -241,6 +241,8 @@ impl Algebrizer {
             | ast::Expression::Is(_)
             | ast::Expression::Like(_)
             | ast::Expression::Tuple(_)
+            | ast::Expression::Trim(_)
+            | ast::Expression::Extract(_)
             | ast::Expression::TypeAssertion(_) => unimplemented!(),
         }
     }

@@ -124,6 +124,8 @@ pub enum Expression {
     Between(BetweenExpr),
     Case(CaseExpr),
     Function(FunctionExpr),
+    Trim(TrimExpr),
+    Extract(ExtractExpr),
     Cast(CastExpr),
     Array(Vec<Expression>),
     Subquery(Box<Query>),
@@ -198,8 +200,21 @@ pub struct SubqueryComparisonExpr {
 #[derive(PartialEq, Debug, Clone)]
 pub struct FunctionExpr {
     pub function: FunctionName,
-    pub args: Vec<FunctionArg>,
+    pub args: FunctionArguments,
     pub set_quantifier: Option<SetQuantifier>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ExtractExpr {
+    pub extract_spec: ExtractSpec,
+    pub arg: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct TrimExpr {
+    pub trim_spec: TrimSpec,
+    pub trim_chars: Box<Expression>,
+    pub arg: Box<Expression>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -223,7 +238,6 @@ pub enum FunctionName {
     CharLength,
     Coalesce,
     CurrentTimestamp,
-    Extract,
     Lower,
     NullIf,
     OctetLength,
@@ -231,7 +245,6 @@ pub enum FunctionName {
     Size,
     Slice,
     Substring,
-    Trim,
     Upper,
 }
 
@@ -254,7 +267,6 @@ impl TryFrom<&str> for FunctionName {
             "COALESCE" => Ok(FunctionName::Coalesce),
             "COUNT" => Ok(FunctionName::Count),
             "CURRENT_TIMESTAMP" => Ok(FunctionName::CurrentTimestamp),
-            "EXTRACT" => Ok(FunctionName::Extract),
             "FIRST" => Ok(FunctionName::First),
             "LAST" => Ok(FunctionName::Last),
             "LOWER" => Ok(FunctionName::Lower),
@@ -270,7 +282,6 @@ impl TryFrom<&str> for FunctionName {
             "STDDEV_SAMP" => Ok(FunctionName::StddevSamp),
             "SUBSTRING" => Ok(FunctionName::Substring),
             "SUM" => Ok(FunctionName::Sum),
-            "TRIM" => Ok(FunctionName::Trim),
             "UPPER" => Ok(FunctionName::Upper),
             _ => Err(format!("unknown function {}", name)),
         }
@@ -290,7 +301,6 @@ impl FunctionName {
             FunctionName::Coalesce => "COALESCE",
             FunctionName::Count => "COUNT",
             FunctionName::CurrentTimestamp => "CURRENT_TIMESTAMP",
-            FunctionName::Extract => "EXTRACT",
             FunctionName::First => "FIRST",
             FunctionName::Last => "LAST",
             FunctionName::Lower => "LOWER",
@@ -306,7 +316,6 @@ impl FunctionName {
             FunctionName::StddevSamp => "STDDEV_SAMP",
             FunctionName::Substring => "SUBSTRING",
             FunctionName::Sum => "SUM",
-            FunctionName::Trim => "TRIM",
             FunctionName::Upper => "UPPER",
         }
     }
@@ -331,7 +340,6 @@ impl FunctionName {
             | FunctionName::CharLength
             | FunctionName::Coalesce
             | FunctionName::CurrentTimestamp
-            | FunctionName::Extract
             | FunctionName::Lower
             | FunctionName::NullIf
             | FunctionName::OctetLength
@@ -339,7 +347,6 @@ impl FunctionName {
             | FunctionName::Size
             | FunctionName::Slice
             | FunctionName::Substring
-            | FunctionName::Trim
             | FunctionName::Upper => false,
         }
     }
@@ -352,17 +359,13 @@ impl FunctionName {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum FunctionArg {
+pub enum FunctionArguments {
     Star,
-    Expr(Expression),
-    Extract(ExtractSpec),
-    Trim(TrimSpec),
+    Args(Vec<Expression>),
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum ExtractSpec {
-    TimezoneHour,
-    TimezoneMinute,
     Year,
     Month,
     Day,

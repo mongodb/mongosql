@@ -344,16 +344,8 @@ impl Expression {
             TypeAssertion(_) => Tier12Expr,
             Subpath(s) => s.get_tier(),
             Access(a) => a.get_tier(),
-            Array(_) => BottomExpr,
-            Case(_) => BottomExpr,
-            Cast(_) => BottomExpr,
-            Document(_) => BottomExpr,
-            Exists(_) => BottomExpr,
-            Function(_) => BottomExpr,
-            Identifier(_) => BottomExpr,
-            Literal(_) => BottomExpr,
-            Subquery(_) => BottomExpr,
-            Tuple(_) => BottomExpr,
+            Array(_) | Case(_) | Cast(_) | Document(_) | Exists(_) | Function(_) | Trim(_)
+            | Extract(_) | Identifier(_) | Literal(_) | Subquery(_) | Tuple(_) => BottomExpr,
         }
     }
 }
@@ -388,6 +380,8 @@ impl Display for Expression {
             Literal(l) => write!(f, "{}", l),
             Unary(u) => write!(f, "{}", u),
             Binary(b) => write!(f, "{}", b),
+            Extract(e) => write!(f, "{}", e),
+            Trim(t) => write!(f, "{}", t),
             Function(fun) => write!(f, "{}", fun),
             Access(a) => write!(f, "{}", a),
             Subpath(sp) => write!(f, "{}", sp),
@@ -493,48 +487,27 @@ impl Display for SubpathExpr {
 impl Display for FunctionExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.function {
-            FunctionName::Extract => fmt_extract(f, &self.args),
             FunctionName::Position => fmt_position(f, &self.args),
-            FunctionName::Trim => fmt_trim(f, &self.args),
             _ => {
-                let args = self
-                    .args
-                    .iter()
-                    .map(|x| format!("{}", x))
-                    .collect::<Vec<_>>()
-                    .join(", ");
-                write!(f, "{}({})", self.function, args)
+                let quantifier = self.set_quantifier.unwrap_or(SetQuantifier::All);
+                match quantifier {
+                    SetQuantifier::Distinct => {
+                        write!(f, "{}(DISTINCT {})", self.function, self.args)
+                    }
+                    SetQuantifier::All => write!(f, "{}({})", self.function, self.args),
+                }
             }
         }
     }
 }
 
-fn fmt_extract(f: &mut Formatter<'_>, args: &[FunctionArg]) -> Result {
-    assert!(args.len() == 2);
-    write!(f, "EXTRACT({} FROM {})", args[0], args[1])
-}
-
-fn fmt_position(f: &mut Formatter<'_>, args: &[FunctionArg]) -> Result {
-    assert!(args.len() == 2);
-    write!(f, "POSITION({} IN {})", args[0], args[1])
-}
-
-fn fmt_trim(f: &mut Formatter<'_>, args: &[FunctionArg]) -> Result {
-    assert!(args.len() == 3);
-    let trim_spec = match args[0] {
-        FunctionArg::Trim(TrimSpec::Both) => "BOTH",
-        FunctionArg::Trim(TrimSpec::Leading) => "LEADING",
-        FunctionArg::Trim(TrimSpec::Trailing) => "TRAILING",
-        _ => unreachable!(),
-    };
-    if let FunctionArg::Expr(Expression::Identifier(s)) = &args[1] {
-        if s == " " {
-            write!(f, "TRIM({} FROM {})", trim_spec, args[2])
-        } else {
-            write!(f, "TRIM({} {} FROM {})", trim_spec, s, args[2])
+fn fmt_position(f: &mut Formatter<'_>, args: &FunctionArguments) -> Result {
+    match args {
+        FunctionArguments::Star => unreachable!(),
+        FunctionArguments::Args(args) => {
+            assert!(args.len() == 2);
+            write!(f, "POSITION({} IN {})", args[0], args[1])
         }
-    } else {
-        write!(f, "TRIM({} {} FROM {})", trim_spec, args[1], args[2])
     }
 }
 
@@ -544,13 +517,18 @@ impl Display for FunctionName {
     }
 }
 
-impl Display for FunctionArg {
+impl Display for FunctionArguments {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
-            FunctionArg::Star => write!(f, "*"),
-            FunctionArg::Expr(e) => write!(f, "{}", e),
-            FunctionArg::Extract(ext) => write!(f, "{}", ext),
-            FunctionArg::Trim(t) => write!(f, "{}", t),
+            FunctionArguments::Star => write!(f, "*"),
+            FunctionArguments::Args(ve) => write!(
+                f,
+                "{}",
+                ve.iter()
+                    .map(|e| e.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
         }
     }
 }
@@ -609,8 +587,6 @@ impl Display for Type {
 impl Display for ExtractSpec {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let out = match self {
-            ExtractSpec::TimezoneHour => "TIMEZONE_HOUR",
-            ExtractSpec::TimezoneMinute => "TIMEZONE_MINUTE",
             ExtractSpec::Year => "YEAR",
             ExtractSpec::Month => "MONTH",
             ExtractSpec::Day => "DAY",
@@ -718,6 +694,32 @@ impl Display for UnaryOp {
                 UnaryOp::Not => "NOT ",
             }
         )
+    }
+}
+
+impl Display for ExtractExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(f, "EXTRACT({} FROM {})", self.extract_spec, self.arg)
+    }
+}
+
+impl Display for TrimExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let trim_spec = match self.trim_spec {
+            TrimSpec::Both => "BOTH",
+            TrimSpec::Leading => "LEADING",
+            TrimSpec::Trailing => "TRAILING",
+        };
+        match *self.trim_chars {
+            Expression::Literal(Literal::String(ref s)) if s.as_str() == " " => {
+                write!(f, "TRIM({} FROM {})", trim_spec, self.arg)
+            }
+            _ => write!(
+                f,
+                "TRIM({} {} FROM {})",
+                trim_spec, self.trim_chars, self.arg
+            ),
+        }
     }
 }
 

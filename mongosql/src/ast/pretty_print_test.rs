@@ -581,16 +581,6 @@ expression_printer_test!(
     "extract(SECOND FROM bar)"
 );
 expression_printer_test!(
-    function_extract_timezone_hour,
-    "EXTRACT(TIMEZONE_HOUR FROM bar)",
-    "extract(TIMEZONE_HOUR FROM bar)"
-);
-expression_printer_test!(
-    function_extract_timezone_minute,
-    "EXTRACT(TIMEZONE_MINUTE FROM bar)",
-    "extract(TIMEZONE_MINUTE FROM bar)"
-);
-expression_printer_test!(
     function_extract_year,
     "EXTRACT(YEAR FROM bar)",
     "extract(YEAR FROM bar)"

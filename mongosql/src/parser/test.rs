@@ -665,7 +665,7 @@ validate_query_ast!(
             aggregations: vec![AliasedExpr {
                 expr: Expression::Function(FunctionExpr {
                     function: FunctionName::Sum,
-                    args: vec![FunctionArg::Expr(Expression::Identifier("b".to_string()))],
+                    args: FunctionArguments::Args(vec![Expression::Identifier("b".to_string())]),
                     set_quantifier: Some(SetQuantifier::Distinct),
                 }),
                 alias: Some("c".to_string()),
@@ -707,7 +707,7 @@ validate_query_ast!(
         having_clause: Some(Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Function(FunctionExpr {
                 function: FunctionName::Sum,
-                args: vec![FunctionArg::Expr(Expression::Identifier("a".to_string()))],
+                args: FunctionArguments::Args(vec![Expression::Identifier("a".to_string())]),
                 set_quantifier: Some(SetQuantifier::Distinct),
             })),
             op: BinaryOp::Gt,
@@ -1066,16 +1066,6 @@ should_parse!(char_length, true, "select char_length('foo')");
 should_parse!(character_length, true, "select character_length('bar')");
 should_parse!(octet_length, true, "select octet_length(a)");
 should_parse!(bit_length, true, "select bit_length(a)");
-should_parse!(
-    extract_timezone_hour,
-    true,
-    "select extract(timezone_hour from a)"
-);
-should_parse!(
-    extract_timezone_minute,
-    true,
-    "select extract(timezone_minute from a)"
-);
 should_parse!(extract_year, true, "select extract(year from a)");
 should_parse!(extract_month, true, "select extract(month from a)");
 should_parse!(extract_day, true, "select extract(day from a)");
@@ -1139,8 +1129,8 @@ validate_expression_ast!(
     "position((a+b*c) IN d)",
     Expression::Function(FunctionExpr {
         function: FunctionName::Position,
-        args: vec![
-            FunctionArg::Expr(Expression::Tuple(vec![Expression::Binary(BinaryExpr {
+        args: FunctionArguments::Args(vec![
+            Expression::Tuple(vec![Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Add,
                 right: Box::new(Expression::Binary(BinaryExpr {
@@ -1148,61 +1138,45 @@ validate_expression_ast!(
                     op: BinaryOp::Mul,
                     right: Box::new(Expression::Identifier("c".to_string()))
                 }))
-            })])),
-            FunctionArg::Expr(Expression::Identifier("d".to_string()))
-        ],
+            })]),
+            Expression::Identifier("d".to_string()),
+        ]),
         set_quantifier: None,
     })
 );
 validate_expression_ast!(
     extract_ast,
     "extract(year from a)",
-    Expression::Function(FunctionExpr {
-        function: FunctionName::Extract,
-        args: vec![
-            FunctionArg::Extract(ExtractSpec::Year),
-            FunctionArg::Expr(Expression::Identifier("a".to_string()))
-        ],
-        set_quantifier: None,
+    Expression::Extract(ExtractExpr {
+        extract_spec: ExtractSpec::Year,
+        arg: Box::new(Expression::Identifier("a".to_string()))
     })
 );
 validate_expression_ast!(
     trim_default_spec,
     "trim(substr FROM str)",
-    Expression::Function(FunctionExpr {
-        function: FunctionName::Trim,
-        args: vec![
-            FunctionArg::Trim(TrimSpec::Both),
-            FunctionArg::Expr(Expression::Identifier("substr".to_string())),
-            FunctionArg::Expr(Expression::Identifier("str".to_string()))
-        ],
-        set_quantifier: None,
+    Expression::Trim(TrimExpr {
+        trim_spec: TrimSpec::Both,
+        trim_chars: Box::new(Expression::Identifier("substr".into())),
+        arg: Box::new(Expression::Identifier("str".to_string())),
     })
 );
 validate_expression_ast!(
     trim_default_substr,
     "trim(leading FROM str)",
-    Expression::Function(FunctionExpr {
-        function: FunctionName::Trim,
-        args: vec![
-            FunctionArg::Trim(TrimSpec::Leading),
-            FunctionArg::Expr(Expression::Identifier(" ".to_string())),
-            FunctionArg::Expr(Expression::Identifier("str".to_string()))
-        ],
-        set_quantifier: None,
+    Expression::Trim(TrimExpr {
+        trim_spec: TrimSpec::Leading,
+        trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
+        arg: Box::new(Expression::Identifier("str".to_string())),
     })
 );
 validate_expression_ast!(
     trim_default_spec_and_substr,
     "trim(str)",
-    Expression::Function(FunctionExpr {
-        function: FunctionName::Trim,
-        args: vec![
-            FunctionArg::Trim(TrimSpec::Both),
-            FunctionArg::Expr(Expression::Identifier(" ".to_string())),
-            FunctionArg::Expr(Expression::Identifier("str".to_string()))
-        ],
-        set_quantifier: None,
+    Expression::Trim(TrimExpr {
+        trim_spec: TrimSpec::Both,
+        trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
+        arg: Box::new(Expression::Identifier("str".to_string())),
     })
 );
 validate_expression_ast!(
@@ -1210,7 +1184,7 @@ validate_expression_ast!(
     "upper(a)",
     Expression::Function(FunctionExpr {
         function: FunctionName::Upper,
-        args: vec![FunctionArg::Expr(Expression::Identifier("a".to_string()))],
+        args: FunctionArguments::Args(vec![Expression::Identifier("a".to_string())]),
         set_quantifier: None,
     })
 );
