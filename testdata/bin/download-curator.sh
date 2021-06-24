@@ -19,7 +19,7 @@ download_curator ()
         echo "building curator..."
         cd curator
         git checkout 967f3b29ba7f5c16a9cad555b3b4ed80aa759b32
-        GO111MODULE="" GOBIN="$GOBIN" go install cmd/curator/curator.go
+        GO111MODULE="auto" GOBIN="$GOBIN" go install cmd/curator/curator.go
     else
         echo "curator already exists"
     fi

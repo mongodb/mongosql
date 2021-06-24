@@ -3,7 +3,7 @@
 if [ "$VARIANT" != "" ]; then
     ARCHIVE_FORMAT='tgz'
     JAVA_HOME='/opt/java/jdk8'
-    GOROOT='/opt/golang/go1.15'
+    GOROOT='/opt/golang/go1.16'
     BUILD_GSSAPI='true'
     BUILD_FIPS='true'
 fi
@@ -58,6 +58,7 @@ rhel62)
     PUSH_ARCH='x86_64-rhel62'
     PUSH_NAME='linux'
     PYTHON_PATH='/opt/python/2.7/bin'
+    PATH="/opt/rh/devtoolset-8/root/usr/bin:$PATH"
     ;;
 rhel70)
     PUSH_ARCH='x86_64-rhel70'
@@ -92,6 +93,7 @@ ubuntu1404)
     PUSH_ARCH='x86_64-ubuntu1404'
     PUSH_NAME='linux'
     BUILD_FIPS='false'
+    PATH="/usr/lib/binutils-2.26/bin:$PATH"
     ;;
 ubuntu1604)
     PUSH_ARCH='x86_64-ubuntu1604'
@@ -144,8 +146,8 @@ windows)
     MINGW_PATH='/cygdrive/c/mingw-w64/x86_64-4.9.1-posix-seh-rt_v3-rev1/mingw64/bin'
     ARCHIVE_FORMAT='zip'
     ARCHIVE_CONTENT_TYPE='zip'
-    GOROOT='c:\golang\go1.15'
-    GOBINDIR='/cygdrive/c/golang/go1.15/bin'
+    GOROOT='c:\golang\go1.16'
+    GOBINDIR='/cygdrive/c/golang/go1.16/bin'
     ;;
 ubi8)
     PUSH_ARCH='x86_64-ubi8'
