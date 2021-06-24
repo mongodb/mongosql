@@ -15,13 +15,20 @@ macro_rules! test_algebrize {
     ($func_name:ident, $method:ident, $expected:expr, $ast:expr, $source:expr $(,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{
-                algebrizer::{Algebrizer, Error},
-                ir,
-            };
+            use crate::algebrizer::{Algebrizer, Error};
             let algebrizer = Algebrizer::new("test".into(), 0u16);
-            let expected: Result<ir::Stage, Error> = $expected;
-            let res: Result<ir::Stage, Error> = algebrizer.$method($ast, $source);
+            let expected: Result<_, Error> = $expected;
+            let res: Result<_, Error> = algebrizer.$method($ast, $source);
+            assert_eq!(expected, res);
+        }
+    };
+    ($func_name:ident, $method:ident, source = $source:expr, expected = $expected:expr, input = $ast:expr, env = $env:expr $(,)?) => {
+        #[test]
+        fn $func_name() {
+            use crate::algebrizer::{Algebrizer, Error};
+            let algebrizer = Algebrizer::new("test".into(), 1u16).with_merged_mappings($env);
+            let expected: Result<_, Error> = $expected;
+            let res: Result<_, Error> = algebrizer.$method($ast, $source);
             assert_eq!(expected, res);
         }
     };
@@ -531,6 +538,136 @@ mod expression {
         algebrize_expression,
         Err(Error::FieldNotFound("bar".into())),
         ast::Expression::Identifier("bar".into()),
+    );
+}
+
+mod select_clause {
+    use crate::{
+        ast,
+        ir::{self, binding_tuple::Key},
+        map,
+        schema::ANY_DOCUMENT,
+    };
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        static ref SOURCE: ir::Stage = ir::Stage::Collection(ir::Collection {
+            db: "bar".into(),
+            collection: "bar".into(),
+        });
+    }
+
+    test_algebrize!(
+        select_distinct_not_allowed,
+        algebrize_select_clause,
+        source = SOURCE.clone(),
+        expected = Err(Error::DistinctSelect),
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::Distinct,
+            body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                ast::Expression::Identifier("foo".into())
+            ),]),
+        },
+        env = map! {
+            ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+        },
+    );
+    test_algebrize!(
+        select_duplicate_bot,
+        algebrize_select_clause,
+        source = SOURCE.clone(),
+        expected = Err(Error::DuplicateDatasource("select clause", Key::bot(1u16))),
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Values(vec![
+                ast::SelectValuesExpression::Expression(ast::Expression::Document(map! {},)),
+                ast::SelectValuesExpression::Expression(ast::Expression::Document(map! {},)),
+            ]),
+        },
+        env = map! {},
+    );
+    test_algebrize!(
+        select_bot_and_double_substar,
+        algebrize_select_clause,
+        source = SOURCE.clone(),
+        expected = Ok(ir::Stage::Project(ir::Project {
+            source: Box::new(SOURCE.clone()),
+            expression: map! {
+                ("bar", 1u16).into() => ir::Expression::Reference(("bar", 1u16).into()),
+                Key::bot(1u16) => ir::Expression::Document(map!{}),
+                ("foo", 1u16).into() => ir::Expression::Reference(("foo", 0u16).into()),
+            }
+        })),
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Values(vec![
+                ast::SelectValuesExpression::Substar("bar".into()),
+                ast::SelectValuesExpression::Expression(ast::Expression::Document(map! {},)),
+                ast::SelectValuesExpression::Substar("foo".into()),
+            ]),
+        },
+        env = map! {
+            ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+            ("bar", 1u16).into() => ANY_DOCUMENT.clone(),
+        },
+    );
+    test_algebrize!(
+        select_value_expression_must_be_document,
+        algebrize_select_clause,
+        source = SOURCE.clone(),
+        expected = Err(Error::SchemaChecking(
+            crate::ir::schema::Error::SchemaChecking {
+                name: "project datasource",
+                required: ANY_DOCUMENT.clone(),
+                found: crate::schema::Schema::Atomic(crate::schema::Atomic::String),
+            }
+        )),
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                ast::Expression::Literal(ast::Literal::String("foo".into()))
+            ),]),
+        },
+        env = map! {},
+    );
+    test_algebrize!(
+        select_duplicate_substar,
+        algebrize_select_clause,
+        source = SOURCE.clone(),
+        expected = Err(Error::DuplicateDatasource(
+            "select clause",
+            ("foo", 1u16).into()
+        )),
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Values(vec![
+                ast::SelectValuesExpression::Substar("foo".into()),
+                ast::SelectValuesExpression::Substar("foo".into()),
+            ]),
+        },
+        env = map! {
+            ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+        },
+    );
+    test_algebrize!(
+        select_substar_body,
+        algebrize_select_clause,
+        source = SOURCE.clone(),
+        expected = Ok(ir::Stage::Project(ir::Project {
+            source: Box::new(SOURCE.clone()),
+            expression: map! {
+                ("foo", 1u16).into() => ir::Expression::Reference(("foo", 0u16).into()),
+            }
+        })),
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Values(
+                vec![ast::SelectValuesExpression::Substar("foo".into()),]
+            ),
+        },
+        env = map! {
+            ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+        },
     );
 }
 

@@ -18,7 +18,7 @@ pub struct Key {
 
 impl Key {
     pub fn bot(scope: u16) -> Self {
-        Key {
+        Self {
             datasource: DatasourceName::Bottom,
             scope,
         }
@@ -56,9 +56,12 @@ where
 }
 
 impl<T> BindingTuple<T> {
+    pub fn new() -> BindingTuple<T> {
+        BindingTuple(BTreeMap::new())
+    }
+
     pub fn nearest_scope_for_datasource(&self, d: &DatasourceName, scope: u16) -> Option<u16> {
-        let mut current_scope = scope;
-        loop {
+        for current_scope in (0..=scope).rev() {
             let possible_key = Key {
                 datasource: d.clone(),
                 scope: current_scope,
@@ -67,16 +70,8 @@ impl<T> BindingTuple<T> {
             if self.contains_key(&possible_key) {
                 return Some(current_scope);
             }
-
-            if current_scope == 0 {
-                return None;
-            }
-            current_scope -= 1;
         }
-    }
-
-    pub fn new() -> BindingTuple<T> {
-        BindingTuple(BTreeMap::new())
+        None
     }
 
     pub fn get(&self, k: &Key) -> Option<&T> {

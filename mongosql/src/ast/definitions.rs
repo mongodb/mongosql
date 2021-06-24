@@ -68,6 +68,17 @@ pub struct SubstarExpr {
     pub datasource: String,
 }
 
+impl<S> From<S> for SubstarExpr
+where
+    S: Into<String>,
+{
+    fn from(s: S) -> Self {
+        Self {
+            datasource: s.into(),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum Datasource {
     Array(ArraySource),

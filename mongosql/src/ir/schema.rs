@@ -102,7 +102,17 @@ impl Stage {
                     .expression
                     .iter()
                     .map(|(k, e)| match e.schema(&state) {
-                        Ok(s) => Ok((k.clone(), s)),
+                        Ok(s) => {
+                            if s.satisfies(&ANY_DOCUMENT) != Satisfaction::Must {
+                                Err(Error::SchemaChecking {
+                                    name: "project datasource",
+                                    required: ANY_DOCUMENT.clone(),
+                                    found: s,
+                                })
+                            } else {
+                                Ok((k.clone(), s))
+                            }
+                        }
                         Err(e) => Err(e),
                     })
                     .collect::<Result<SchemaEnvironment, _>>()?;
@@ -136,7 +146,9 @@ impl Stage {
             Stage::Sort(_) => unimplemented!(),
             Stage::Collection(c) => Ok(ResultSet {
                 schema_env: map! {
-                    (c.collection.clone(), state.scope_level).into() => Schema::Any,
+                    // we know the top level elements of a collection must be a Document,
+                    // but we do not know what kind, so we return ANY_DOCUMENT.
+                    (c.collection.clone(), state.scope_level).into() => ANY_DOCUMENT.clone(),
                 },
                 min_size: 0,
                 max_size: None,

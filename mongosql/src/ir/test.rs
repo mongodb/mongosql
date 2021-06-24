@@ -802,7 +802,7 @@ mod schema {
         collection_schema,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::Any,
+                ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
             },
             min_size: 0,
             max_size: None,
@@ -930,9 +930,9 @@ mod schema {
         project_schema,
         Ok(ResultSet {
             schema_env: map! {
-                ("bar1", 0u16).into() => Schema::Any,
-                ("bar2", 0u16).into() => Schema::Any,
-                ("bar3", 0u16).into() => Schema::Any,
+                ("bar1", 0u16).into() => ANY_DOCUMENT.clone(),
+                ("bar2", 0u16).into() => ANY_DOCUMENT.clone(),
+                ("bar3", 0u16).into() => ANY_DOCUMENT.clone(),
             },
             min_size: 0,
             max_size: None,
@@ -1224,7 +1224,7 @@ mod schema {
         limit_collection_datasource,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::Any,
+                ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
             },
             min_size: 0,
             max_size: Some(20),
@@ -1303,7 +1303,7 @@ mod schema {
         offset_collection_datasource,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::Any,
+                ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
             },
             min_size: 0,
             max_size: None,

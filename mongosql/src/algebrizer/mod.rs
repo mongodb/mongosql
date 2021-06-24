@@ -12,6 +12,7 @@ use crate::{
     schema::{Satisfaction, SchemaEnvironment},
     util::are_literal,
 };
+use std::collections::BTreeSet;
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -34,6 +35,12 @@ pub enum Error {
     CollectionMustHaveAlias,
     #[error("array datasource must be constant")]
     ArrayDatasourceMustBeLiteral,
+    #[error("SELECT DISTINCT not allowed")]
+    DistinctSelect,
+    #[error("duplicate datasource {1:?} in {0}")]
+    DuplicateDatasource(&'static str, Key),
+    #[error("no such datasource: {0:?}")]
+    NoSuchDatasource(DatasourceName),
     #[error("field `{0}` cannot be resolved to any datasource")]
     FieldNotFound(String),
     #[error("ambiguous field `{0}`")]
@@ -88,6 +95,63 @@ impl Algebrizer {
         let plan = self.algebrize_limit_clause(ast_node.limit, plan)?;
 
         Ok(plan)
+    }
+
+    fn algebrize_select_values_body(
+        &self,
+        exprs: Vec<ast::SelectValuesExpression>,
+        source: ir::Stage,
+    ) -> Result<ir::Stage> {
+        // We must check for duplicate Datasource Keys, which is an error. The datasources
+        // Set keeps track of which Keys have been seen.
+        let mut datasources = BTreeSet::new();
+        // Build the Project expression from the SelectBody::Values(exprs)
+        let expression = exprs
+            .into_iter()
+            .map(|expr| {
+                match expr {
+                    // An Expression is mapped to DatasourceName::Bottom.
+                    ast::SelectValuesExpression::Expression(e) => {
+                        let e = self.algebrize_expression(e)?;
+                        let bot = Key::bot(self.scope_level);
+                        datasources.insert(bot.clone()).then(|| ()).ok_or_else(|| {
+                            Error::DuplicateDatasource("select clause", bot.clone())
+                        })?;
+                        Ok((bot, e))
+                    }
+                    // For a Substar, a.*, we map the name of the Substar, 'a', to a Key
+                    // containing 'a' and the proper scope level.
+                    ast::SelectValuesExpression::Substar(s) => {
+                        let datasource = DatasourceName::Named(s.datasource.clone());
+                        let key = Key {
+                            datasource: datasource.clone(),
+                            scope: self.scope_level,
+                        };
+                        datasources.insert(key.clone()).then(|| ()).ok_or_else(|| {
+                            Error::DuplicateDatasource("select clause", key.clone())
+                        })?;
+                        let scope = self
+                            .schema_env
+                            .nearest_scope_for_datasource(&datasource, self.scope_level)
+                            .ok_or_else(|| Error::NoSuchDatasource(datasource.clone()))?;
+                        Ok((
+                            key,
+                            ir::Expression::Reference(Key {
+                                datasource: DatasourceName::Named(s.datasource),
+                                scope,
+                            }),
+                        ))
+                    }
+                }
+            })
+            .collect::<Result<_>>()?;
+        // Build the Project Stage using the source and built expression.
+        let stage = ir::Stage::Project(ir::Project {
+            source: Box::new(source),
+            expression,
+        });
+        stage.schema(&self.schema_inference_state())?;
+        Ok(stage)
     }
 
     pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<ir::Stage> {
@@ -185,15 +249,27 @@ impl Algebrizer {
             .with_merged_mappings(source.schema(&self.schema_inference_state())?.schema_env);
         match ast_node.set_quantifier {
             ast::SetQuantifier::All => (),
-            ast::SetQuantifier::Distinct => unimplemented!(),
+            ast::SetQuantifier::Distinct => return Err(Error::DistinctSelect),
         };
 
         match ast_node.body {
-            ast::SelectBody::Values(_) => unimplemented!(),
+            // Standard Select bodies must be only *, otherwise this is an
+            // error.
             ast::SelectBody::Standard(exprs) => match exprs.as_slice() {
-                [ast::SelectExpression::Star] => Ok(source),
+                [ast::SelectExpression::Star] => {
+                    source.schema(&self.schema_inference_state())?;
+                    Ok(source)
+                }
                 _ => Err(Error::NonStarStandardSelectBody),
             },
+            // SELECT VALUES expressions must be Substar expressions or normal Expressions that are
+            // Documents, i.e., that have Schema that Must statisfy ANY_DOCUMENT.
+            //
+            // All normal Expressions will be mapped as Datasource Bottom, and all Substars will be mapped
+            // as their name as a Datasource.
+            ast::SelectBody::Values(exprs) => {
+                expression_algebrizer.algebrize_select_values_body(exprs, source)
+            }
         }
     }
 
