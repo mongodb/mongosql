@@ -46,6 +46,20 @@ macro_rules! test_schema {
     };
 }
 
+macro_rules! test_constant_fold {
+    ($func_name:ident, $expected:expr, $input:expr,) => {
+        #[test]
+        fn $func_name() {
+            use crate::ir::constant_folding::*;
+
+            let input = $input;
+            let expected = $expected;
+            let actual = fold_constants(input);
+            assert_eq!(actual, expected);
+        }
+    };
+}
+
 mod schema {
     use crate::ir::binding_tuple::DatasourceName::Bottom;
     use crate::{
@@ -1602,6 +1616,27 @@ mod schema {
                 ],
                 alias: "foo".into(),
             })),
+        }),
+    );
+}
+
+mod constant_folding {
+    use crate::ir::definitions::*;
+    lazy_static::lazy_static! {
+        static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
+            db: "test".into(),
+            collection: "foo".into()
+        });
+    }
+    test_constant_fold!(
+        constant_fold_literal,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Integer(1)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Integer(1)),
         }),
     );
 }

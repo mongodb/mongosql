@@ -14,6 +14,7 @@ fn main() {
     gen_query_tests();
     gen_rewrite_tests();
     gen_visitor("src/ast/definitions.rs");
+    gen_visitor("src/ir/definitions.rs");
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=parser/mongosql.lalrpop");
 }

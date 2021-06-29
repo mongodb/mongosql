@@ -34,14 +34,20 @@ pub struct Project {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Group {
     pub source: Box<Stage>,
-    pub keys: Vec<Aliased<Expression>>,
-    pub aggregations: Vec<Aliased<AggregationExpr>>,
+    pub keys: Vec<AliasedExpression>,
+    pub aggregations: Vec<AliasedAggregation>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Aliased<T> {
+pub struct AliasedExpression {
     pub alias: String,
-    pub inner: T,
+    pub inner: Expression,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct AliasedAggregation {
+    pub alias: String,
+    pub inner: AggregationExpr,
 }
 
 #[allow(dead_code)]
