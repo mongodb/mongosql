@@ -439,10 +439,22 @@ should_parse!(
     false,
     "select case a when a+b then a else c-d"
 );
+validate_expression_ast!(
+    binary_sub_unary_neg_paren_ast,
+    "b-(-a)",
+    Expression::Binary(BinaryExpr {
+        left: Box::new(Expression::Identifier("b".to_string())),
+        op: BinaryOp::Sub,
+        right: Box::new(Expression::Tuple(vec![Expression::Unary(UnaryExpr {
+            op: UnaryOp::Neg,
+            expr: Box::new(Expression::Identifier("a".to_string()))
+        })]))
+    })
+);
 
 validate_expression_ast!(
-    binary_sub_unary_neg_ast,
-    "b--a",
+    binary_sub_unary_neg_space_ast,
+    "b- -a",
     Expression::Binary(BinaryExpr {
         left: Box::new(Expression::Identifier("b".to_string())),
         op: BinaryOp::Sub,
@@ -1963,5 +1975,182 @@ validate_expression_ast!(
             subfield: Box::new(Expression::Literal(Literal::String("c".to_string()))),
         })),
         subpath: "d".to_string()
+    })
+);
+
+// Comment tests
+should_parse!(
+    comment_standard_parse,
+    true,
+    "SELECT a FROM foo -- This is a standard comment"
+);
+should_parse!(
+    comment_standard_conflict_with_minus_minus,
+    true,
+    "SELECT a -- b"
+);
+should_parse!(
+    comment_standard_single_line_parse,
+    true,
+    "-- This is a standard single line comment
+    SELECT a FROM foo"
+);
+should_parse!(
+    comment_inline_parse,
+    true,
+    "SELECT a /* This is an inline comment */ FROM foo"
+);
+should_parse!(
+    comment_multiline_parse,
+    true,
+    "/* This is a multiline comment
+    This is a multiline comment */
+    SELECT a FROM foo"
+);
+should_parse!(
+    comment_multiline_inline_parse,
+    true,
+    "SELECT a /* This is an inline
+    comment */ FROM foo"
+);
+should_parse!(
+    comment_multiline_nesting,
+    true,
+    "/* This is a multiline comment
+    * with nesting: /* nested block comment */
+    */
+    SELECT a FROM foo"
+);
+
+validate_query_ast!(
+    comment_standard_ast,
+    "SELECT foo -- This is a standard comment",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
+                alias: None
+            })])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
+validate_query_ast!(
+    comment_ast,
+    "-- This is a standard single line comment
+    SELECT foo",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
+                alias: None
+            })])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
+validate_query_ast!(
+    comment_inline_ast,
+    "SELECT /* This is an inline comment */ foo",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
+                alias: None
+            })])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
+validate_query_ast!(
+    comment_multiline_ast,
+    "/* This is a multiline comment
+    This is a multiline comment */
+    SELECT foo",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
+                alias: None
+            })])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
+validate_query_ast!(
+    comment_inline_multiline_ast,
+    "SELECT /* This is an inline
+    comment */ foo",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
+                alias: None
+            })])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    })
+);
+
+validate_query_ast!(
+    comment_multiline_nesting_ast,
+    "/* This is a multiline comment
+    * with nesting: /* nested block comment */
+    */
+    SELECT foo",
+    Query::Select(SelectQuery {
+        select_clause: SelectClause {
+            set_quantifier: SetQuantifier::All,
+            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
+                expr: Expression::Identifier("foo".to_string()),
+                alias: None
+            })])
+        },
+        from_clause: None,
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
     })
 );
