@@ -103,7 +103,7 @@ tests:
                                             "branches": [
                                             {"case": { "$sqlEq": [ "$bar.a", { $literal: 1 } ] }, "then": 'a' },
                                             {"case": { "$sqlEq": [ "$bar.b", { $literal: 1 } ] }, "then": 'b' },
-                                            {"case": { "$sqlNeq": [ "$bar.c", { $literal: 0 } ] }, "then": 'c' }
+                                            {"case": { "$sqlNe": [ "$bar.c", { $literal: 0 } ] }, "then": 'c' }
                                             ],
                                             "default": 'none'
                                           }}}}}

@@ -3,6 +3,7 @@ use crate::{
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
+        ScalarFunction,
     },
     map,
 };
@@ -61,6 +62,68 @@ impl MqlTranslation {
 #[derive(Clone)]
 pub struct MqlCodeGenerator {
     pub mapping_registry: MappingRegistry,
+}
+
+impl ScalarFunction {
+    pub fn mql_op(self) -> Option<&'static str> {
+        use ir::ScalarFunction::*;
+
+        Some(match self {
+            Concat => "$concat",
+
+            // Arithmetic operators
+            Add => "$add",
+            Sub => "$subtract",
+            Mul => "$multiply",
+            Div => "$sqlDivide",
+
+            // Comparison operators
+            Lt => "$sqlLt",
+            Lte => "$sqlLte",
+            Neq => "$sqlNe",
+            Eq => "$sqlEq",
+            Gt => "$sqlGt",
+            Gte => "$sqlGte",
+            Between => "$sqlBetween",
+
+            // Boolean operators
+            Not => "$sqlNot",
+            And => "$sqlAnd",
+            Or => "$sqlOr",
+
+            // Conditional scalar functions
+            NullIf => "$nullIf",
+            Coalesce => "$coalesce",
+
+            // Array scalar functions
+            Slice => "$sqlSlice",
+            Size => "$sqlSize",
+
+            // Numeric value scalar functions
+            Position => "$sqlIndexOfCP",
+            CharLength => "$sqlStrLenCP",
+            OctetLength => "$sqlStrLenBytes",
+            BitLength => "$sqlStrLenBytes", // with $mul
+
+            // String value scalar functions
+            Substring => "$sqlSubstrCP",
+            Upper => "$sqlToUpper",
+            Lower => "$sqlToLower",
+            Pos => return None,
+            Neg => return None,
+            ComputedFieldAccess => return None,
+            BTrim => "$trim",
+            LTrim => "$ltrim",
+            RTrim => "$rtrim",
+            CurrentTimestamp => return None,
+            Year => "$year",
+            Month => "$month",
+            Day => "$day",
+            Hour => "$hour",
+            Minute => "$minute",
+            Second => "$second",
+        })
+    }
 }
 
 impl MqlCodeGenerator {
@@ -345,7 +408,6 @@ impl MqlCodeGenerator {
                     e => bson::bson!({"$getField": {"field": fa.field, "input": e}}),
                 })
             }
-            ScalarFunction(_) => unimplemented!(),
             SearchedCase(ce) => {
                 let br = ce
                     .when_branch
@@ -383,11 +445,59 @@ impl MqlCodeGenerator {
             }
             Cast(_) => unimplemented!(),
             TypeAssertion(_) => unimplemented!(),
+            ScalarFunction(sa) => {
+                use crate::ir::ScalarFunction::*;
+                Ok(match sa.function {
+                    Pos => self.codegen_expression(sa.args[0].clone())?,
+                    Neg => bson::bson!({
+                        "$multiply" : [
+                             self.codegen_expression(sa.args[0].clone())?,
+                             Bson::Int32(-1),
+                        ]
+                    }),
+                    ComputedFieldAccess => {
+                        return Err(Error::UnsupportedFunction(ComputedFieldAccess))
+                    } // depend on new $getField operator in SQL-282
+                    CurrentTimestamp => Bson::String("$$NOW".to_string()),
+                    CharLength | OctetLength | Size | Upper | Lower | Year | Month | Day | Hour
+                    | Minute | Second => {
+                        bson::bson!({ sa.function.mql_op().unwrap(): self.codegen_expression(sa.args[0].clone())?})
+                    }
+                    BitLength => bson::bson!({
+                        "$multiply" : [
+                            { sa.function.mql_op().unwrap(): self.codegen_expression(sa.args[0].clone())?},
+                             Bson::Int32(8),
+                        ]
+                    }),
+                    BTrim | LTrim | RTrim => bson::bson!({
+                        sa.function.mql_op().unwrap(): {"input": self.codegen_expression(sa.args[1].clone())?,
+                            "chars": self.codegen_expression(sa.args[0].clone())?,
+                    }}),
+                    Not | Concat | Add | Sub | Mul | Div | Lt | Lte | Neq | Eq | Gt | Gte
+                    | Between | And | Or | NullIf | Coalesce | Slice | Position | Substring => {
+                        let args = Bson::Array(
+                            sa.args
+                                .into_iter()
+                                .map(|e| self.codegen_expression(e))
+                                .collect::<Result<Vec<Bson>>>()?,
+                        );
+                        Bson::Document(bson::doc! { sa.function.mql_op().unwrap(): args})
+                    }
+                })
+            }
+            Like(expr) => Ok(match expr.escape {
+                Some(escape) => Bson::Document(bson::doc! {
+                "$like": {"input": self.codegen_expression(*expr.expr)?,
+                          "pattern": self.codegen_expression(*expr.pattern)?,
+                          "escape": escape}}),
+                None => Bson::Document(bson::doc! {
+                "$like": {"input": self.codegen_expression(*expr.expr)?,
+                          "pattern": self.codegen_expression(*expr.pattern)?}}),
+            }),
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),
             Exists(_) => unimplemented!(),
             Is(_) => unimplemented!(),
-            Like(_) => unimplemented!(),
         }
     }
 }

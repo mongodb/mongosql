@@ -909,3 +909,653 @@ mod join {
         }),
     );
 }
+
+mod function {
+    use crate::{
+        codegen::{mql::MappingRegistry, Error},
+        ir::{definitions::*, Expression::*, Literal, ScalarFunction::*},
+    };
+    use bson::bson;
+
+    test_codegen_expr!(
+        concat_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$concat": ["$f", {"$literal": "bar"}]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Concat,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::String("bar".to_string())),
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        like_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("input", 0u16), "input");
+            mr.insert(("pattern", 0u16), "pattern");
+            mr
+        },
+        Ok(bson!({"$like": {
+            "input": "$input",
+            "pattern": "$pattern",
+            "escape": "escape",
+        }})),
+        Like(LikeExpr {
+            expr: Expression::Reference(("input", 0u16).into()).into(),
+            pattern: Expression::Reference(("pattern", 0u16).into()).into(),
+            escape: Some("escape".to_string()),
+        }),
+    );
+    test_codegen_expr!(
+        pos_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!("$f")),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Pos,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        neg_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$multiply": [
+            "$f", -1
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Neg,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        add_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+        Ok(bson::bson! ({"$add": [
+            "$f1", "$f2", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Add,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        sub_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$subtract": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Sub,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        mult_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+        Ok(bson::bson! ({"$multiply": [
+            "$f1", "$f2", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Mul,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        div_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlDivide": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Div,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        lt_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlLt": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Lt,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        lte_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlLte": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Lte,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        ne_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlNe": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Neq,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        eq_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlEq": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Eq,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        gt_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlGt": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Gt,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        gte_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlGte": [
+            "$f", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Gte,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        between_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlBetween": [
+            "$f", {"$literal": 1}, {"$literal": 10}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Between,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(10))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        not_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlNot": ["$f"]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Not,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        and_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlAnd": [
+            "$f1", "$f2", {"$literal": true}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: And,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        or_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlOr": [
+            "$f1", "$f2", {"$literal": true}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Or,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        nullif_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+        Ok(bson::bson! ({"$nullIf": [
+            "$f1", "$f2", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: NullIf,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        coalesce_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+        Ok(bson::bson! ({"$coalesce": [
+            "$f1", "$f2", {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Coalesce,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into()),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        slice_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson::bson! ({"$sqlSlice": [
+            "$f", {"$literal": 1}, {"$literal": 1}
+        ]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Slice,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        size_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlSize": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Size,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        position_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlIndexOfCP": [ "$f", {"$literal": "a"}, {"$literal": 1}, {"$literal": 10}]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Position,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(10)),
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        charlen_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlStrLenCP": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: CharLength,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        octetlen_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlStrLenBytes": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: OctetLength,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        bitlen_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$multiply": [{"$sqlStrLenBytes": "$f"}, 8]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: BitLength,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        substring_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlSubstrCP": ["$f", {"$literal": 1}, {"$literal": 10}]})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Substring,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(10)),
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        upper_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlToUpper": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Upper,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        lower_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$sqlToLower": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Lower,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        currenttimestamp_expr,
+        Ok(bson!("$$NOW")),
+        ScalarFunction(ScalarFunctionApplication {
+            function: CurrentTimestamp,
+            args: vec![],
+        }),
+    );
+    test_codegen_expr!(
+        ltrim_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$ltrim": {"input": "$f", "chars": {"$literal": "a"}}})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: LTrim,
+            args: vec![
+                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Reference(("f", 0u16).into()),
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        rtrim_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$rtrim": {"input": "$f", "chars": {"$literal": "a"}}})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: RTrim,
+            args: vec![
+                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Reference(("f", 0u16).into()),
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        trim_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$trim": {"input": "$f", "chars": {"$literal": "a"}}})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: BTrim,
+            args: vec![
+                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Reference(("f", 0u16).into()),
+            ],
+        }),
+    );
+    test_codegen_expr!(
+        extract_year_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$year": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Year,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        extract_month_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$month": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Month,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        extract_day_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$day": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Day,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        extract_hour_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$hour": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Hour,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        extract_minute_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$minute": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Minute,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        extract_second_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$second": "$f"})),
+        ScalarFunction(ScalarFunctionApplication {
+            function: Second,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+        }),
+    );
+    test_codegen_expr!(
+        computedfieldaccess_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Err(Error::UnsupportedFunction(ComputedFieldAccess)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ComputedFieldAccess,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(Literal::Long(42)),
+            ],
+        }),
+    );
+}

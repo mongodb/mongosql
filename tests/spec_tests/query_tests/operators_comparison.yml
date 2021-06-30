@@ -325,7 +325,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
       - {'$project': {'_id': 0, 'numbers': '$numbers'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlNeq": [ "$numbers.a", "$numbers.b" ]}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlNe": [ "$numbers.a", "$numbers.b" ]}}}}
     result:
       - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } } 
       - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } } 
@@ -427,7 +427,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'strings': '$strings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlNeq": [ "$strings.a", "$strings.b" ]}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlNe": [ "$strings.a", "$strings.b" ]}}}}
     result:
       - {'__bot': { "a": "abc", "b": "def", "c": true } } 
       - {'__bot': { "a": "xyz", "b": "xyz", "c": false } } 
@@ -529,7 +529,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bools': '$bools'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlNeq": [ "$bools.a", "$bools.b" ]}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlNe": [ "$bools.a", "$bools.b" ]}}}}
     result:
       - {'__bot': { "a": false, "b": true, "c": true } }
       - {'__bot': { "a": true, "b": true, "c": false } }
@@ -631,7 +631,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'dates': '$dates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlNeq": [ "$dates.a", "$dates.b" ]}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlNe": [ "$dates.a", "$dates.b" ]}}}}
     result:
       - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
       - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
@@ -728,7 +728,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlNeq": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlNe": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
     result:
       - {'__bot': { "a": null, "b": null, "c": null } }
       - {'__bot': { "a": null, "c": null } }

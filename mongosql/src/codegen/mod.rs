@@ -18,6 +18,8 @@ pub enum Error {
     DotsOrDollarsInFieldName,
     #[error("sort keys must be field references")]
     InvalidSortKey,
+    #[error("cannot generate MQL for {0:?} function")]
+    UnsupportedFunction(ir::ScalarFunction),
 }
 
 pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {
