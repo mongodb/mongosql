@@ -94,3 +94,18 @@ func TestTranslateError(t *testing.T) {
 		t.Fatalf("error message did not contain expected text: %q", err.Error())
 	}
 }
+
+func TestTranslatePanic(t *testing.T) {
+	_, err := mongosql.Translate(mongosql.TranslationArgs{
+		DB:  "__test_panic",
+		SQL: "__test_panic",
+	})
+
+	if err == nil {
+		t.Fatalf("expected error to be non-nil, but it was nil")
+	}
+
+	if !strings.Contains(err.Error(), "caught panic during translation: panic thrown") {
+		t.Fatalf("error message did not contain expected text: %q", err.Error())
+	}
+}

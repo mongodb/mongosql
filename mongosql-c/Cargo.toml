@@ -15,3 +15,6 @@ mongosql = { path = "../mongosql" }
 [lib]
 name = "mongosql"
 crate-type = ["staticlib", "cdylib"]
+
+[features]
+test = []

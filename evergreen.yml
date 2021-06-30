@@ -136,6 +136,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
+          cargo build --release --features "mongosql-c/test" --target-dir "test_target"
           cargo build --release
 
   "download c library":
@@ -144,7 +145,7 @@ functions:
         build_variants: ['macos', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/libmongosql.a
+        remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
         local_file: mongosql-rs/libmongosql.a
         bucket: mciuploads
     - command: s3.get
@@ -152,7 +153,7 @@ functions:
         build_variants: ['windows']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql.dll
+        remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
         local_file: mongosql-rs/go/mongosql/mongosql.dll
         bucket: mciuploads
 
@@ -261,6 +262,26 @@ functions:
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/mongosql.dll
         remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql.dll
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        build_variants: ['macos', 'rhel76', 'ubuntu1804']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/test_target/release/libmongosql.a
+        remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        build_variants: ['windows']
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/test_target/release/mongosql.dll
+        remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream

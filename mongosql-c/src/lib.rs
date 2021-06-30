@@ -1,6 +1,7 @@
 use std::{
     ffi::{CStr, CString, NulError},
     os::raw,
+    panic,
     string::FromUtf8Error,
 };
 mod version;
@@ -20,10 +21,22 @@ pub extern "C" fn translate(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
 ) -> *const raw::c_char {
-    let payload = match translate_sql_bson_base64(current_db, sql) {
-        Ok(translation) => translation_success_payload(translation),
-        Err(msg) => translation_failure_payload(msg),
+    let result = panic::catch_unwind(|| translate_sql_bson_base64(current_db, sql));
+
+    let payload = match result {
+        Ok(result) => match result {
+            Ok(translation) => translation_success_payload(translation),
+            Err(msg) => translation_failure_payload(msg),
+        },
+        Err(err) => {
+            if let Some(msg) = err.downcast_ref::<&'static str>() {
+                translation_failure_payload(format!("caught panic during translation: {}", msg))
+            } else {
+                translation_failure_payload(format!("caught panic during translation: {:?}", err))
+            }
+        }
     };
+
     to_raw_c_string(&payload).expect("failed to convert base64 string to extern string")
 }
 
@@ -37,6 +50,15 @@ fn translate_sql_bson_base64(
         from_extern_string(current_db).map_err(|_| "current_db not valid UTF-8".to_string())?;
     let sql =
         from_extern_string(sql).map_err(|_| "sql query string not valid UTF-8".to_string())?;
+
+    // used for testing purpose
+    #[cfg(feature = "test")]
+    {
+        if current_db == "__test_panic" && sql == "__test_panic" {
+            panic!("panic thrown")
+        }
+    }
+
     mongosql::translate_sql(&current_db, &sql).map_err(|e| format!("{}", e))
 }
 
