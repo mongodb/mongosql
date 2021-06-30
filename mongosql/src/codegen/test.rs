@@ -591,9 +591,9 @@ mod field_access {
     );
     test_codegen_expr!(
         expr,
-        Ok(bson::bson!({"$let": {
-            "vars": {"docExpr": {"a": {"$literal": 1}}},
-            "in": "$$docExpr.sub",
+        Ok(bson::bson!({"$getField": {
+            "field": "sub",
+            "input": {"a": {"$literal": 1}},
         }})),
         Expression::FieldAccess(FieldAccess {
             expr: Expression::Document(
@@ -603,11 +603,12 @@ mod field_access {
             field: "sub".to_string(),
         }),
     );
+
     test_codegen_expr!(
         string,
-        Ok(bson::bson!({"$let": {
-            "vars": {"docExpr": {"$literal": "$f"}},
-            "in": "$$docExpr.sub",
+        Ok(bson::bson!({"$getField": {
+            "field": "sub",
+            "input": {"$literal": "$f"},
         }})),
         Expression::FieldAccess(FieldAccess {
             expr: Expression::Literal(Literal::String("$f".into())).into(),

@@ -52,7 +52,7 @@ tests:
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
     translation:
       - {'$array': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'$let': {'vars': {'docExpr': {'a': 1, 'b': 2}}, 'in': '$$docExpr.a'}}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'$getField': {'field': 'a', 'input': {'a': 1, 'b': 2}}}}}}
     result:
       - {'__bot': {'a': 1}}
 
@@ -105,7 +105,7 @@ tests:
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}['a']} FROM [{}] AS _dual"
     translation:
       - {'$array': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'a': {'$let': {'vars': {'docExpr': {'a': 1, 'b': 2}}, 'in': '$$docExpr.a'}}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': {'$getField': {'field': 'a', 'input': {'a': 1, 'b': 2}}}}}}
     result:
       - {'__bot': {'a': 1}}
 

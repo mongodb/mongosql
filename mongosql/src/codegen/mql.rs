@@ -342,10 +342,7 @@ impl MqlCodeGenerator {
                 };
                 Ok(match self.codegen_expression(*fa.expr)? {
                     Bson::String(e) => Bson::String(format!("{}.{}", e, fa.field)),
-                    e => bson::bson!({"$let": {
-                        "vars": {"docExpr": e},
-                        "in": format!("$$docExpr.{}", fa.field),
-                    }}),
+                    e => bson::bson!({"$getField": {"field": fa.field, "input": e}}),
                 })
             }
             ScalarFunction(_) => unimplemented!(),
