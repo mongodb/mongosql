@@ -132,19 +132,39 @@ lazy_static! {
         additional_properties: true
     });
     pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
+    pub static ref NULLISH: Schema =
+        Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing,]);
     pub static ref BOOLEAN_OR_NULLISH: Schema = Schema::AnyOf(vec![
         Schema::Atomic(Atomic::Boolean),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
+    pub static ref DATE_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::Atomic(Atomic::Date),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
+    pub static ref NUMERIC_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Double),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
+    pub static ref STRING_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::Atomic(Atomic::String),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
 pub enum Satisfaction {
-    Must,
     Not,
     May,
+    Must,
 }
 
 #[allow(dead_code, unused_variables)]

@@ -3,7 +3,7 @@ use crate::{
     map,
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT,
-        BOOLEAN_OR_NULLISH,
+        BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
 };
 use linked_hash_map::LinkedHashMap;
@@ -256,7 +256,7 @@ impl Expression {
             }
             Expression::ScalarFunction(f) => f.schema(state),
             Expression::Cast(c) => c.schema(state),
-            Expression::SearchedCase(_) => unimplemented!(),
+            Expression::SearchedCase(sc) => sc.schema(state),
             Expression::SimpleCase(_) => unimplemented!(),
             Expression::TypeAssertion(t) => t.schema(state),
             Expression::SubqueryExpression(SubqueryExpr {
@@ -286,8 +286,32 @@ impl Expression {
                 stage.schema(&state.subquery_state())?;
                 Ok(Schema::Atomic(Atomic::Boolean))
             }
-            Expression::Is(_) => unimplemented!(),
-            Expression::Like(_) => unimplemented!(),
+            Expression::Is(i) => {
+                i.expr.schema(state)?;
+                Ok(Schema::Atomic(Atomic::Boolean))
+            }
+            Expression::Like(l) => {
+                let expr_schema = l.expr.schema(state)?;
+                if expr_schema.satisfies(&STRING_OR_NULLISH) != Satisfaction::Must {
+                    return Err(Error::SchemaChecking {
+                        name: "Like",
+                        required: STRING_OR_NULLISH.clone(),
+                        found: expr_schema,
+                    });
+                }
+                let pattern_schema = l.pattern.schema(state)?;
+                if pattern_schema.satisfies(&STRING_OR_NULLISH) != Satisfaction::Must {
+                    return Err(Error::SchemaChecking {
+                        name: "Like",
+                        required: STRING_OR_NULLISH.clone(),
+                        found: pattern_schema,
+                    });
+                }
+                Ok(Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Null),
+                    Schema::Atomic(Atomic::Boolean),
+                ]))
+            }
         }
     }
 
@@ -366,59 +390,34 @@ impl ScalarFunction {
         use ScalarFunction::*;
         match self {
             // String operators.
-            Concat => unimplemented!(),
+            Concat => Ok(
+                match self.schema_check_fixed_args(
+                    arg_schemas,
+                    &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
+                )? {
+                    Satisfaction::May => Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::String),
+                        Schema::Atomic(Atomic::Null),
+                    ]),
+                    Satisfaction::Not => Schema::Atomic(Atomic::String),
+                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
+                },
+            ),
             // Unary arithmetic operators.
             Pos | Neg => {
-                self.schema_check_fixed_args(
-                    arg_schemas,
-                    &[Schema::AnyOf(vec![
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Long),
-                        Schema::Atomic(Atomic::Double),
-                        Schema::Atomic(Atomic::Decimal),
-                        Schema::Atomic(Atomic::Null),
-                        Schema::Missing,
-                    ])],
-                )?;
-                Ok(arg_schemas[0].clone())
+                self.schema_check_fixed_args(arg_schemas, &[NUMERIC_OR_NULLISH.clone()])?;
+                Ok(arg_schemas[0].clone().upconvert_missing_to_null())
             }
             // Arithmetic operators with variadic arguments.
             Add | Mul => {
-                self.schema_check_variadic_args(
-                    arg_schemas,
-                    Schema::AnyOf(vec![
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Long),
-                        Schema::Atomic(Atomic::Double),
-                        Schema::Atomic(Atomic::Decimal),
-                        Schema::Atomic(Atomic::Null),
-                        Schema::Missing,
-                    ]),
-                )?;
+                self.schema_check_variadic_args(arg_schemas, NUMERIC_OR_NULLISH.clone())?;
                 Ok(ScalarFunction::get_arithmetic_schema(arg_schemas))
             }
             // Arithmetic operators with fixed (two) arguments.
             Sub | Div => {
                 self.schema_check_fixed_args(
                     arg_schemas,
-                    &[
-                        Schema::AnyOf(vec![
-                            Schema::Atomic(Atomic::Integer),
-                            Schema::Atomic(Atomic::Long),
-                            Schema::Atomic(Atomic::Double),
-                            Schema::Atomic(Atomic::Decimal),
-                            Schema::Atomic(Atomic::Null),
-                            Schema::Missing,
-                        ]),
-                        Schema::AnyOf(vec![
-                            Schema::Atomic(Atomic::Integer),
-                            Schema::Atomic(Atomic::Long),
-                            Schema::Atomic(Atomic::Double),
-                            Schema::Atomic(Atomic::Decimal),
-                            Schema::Atomic(Atomic::Null),
-                            Schema::Missing,
-                        ]),
-                    ],
+                    &[NUMERIC_OR_NULLISH.clone(), NUMERIC_OR_NULLISH.clone()],
                 )?;
                 Ok(ScalarFunction::get_arithmetic_schema(arg_schemas))
             }
@@ -453,19 +452,41 @@ impl ScalarFunction {
             CharLength => unimplemented!(),
             OctetLength => unimplemented!(),
             BitLength => unimplemented!(),
-            Year => unimplemented!(),
-            Month => unimplemented!(),
-            Day => unimplemented!(),
-            Hour => unimplemented!(),
-            Minute => unimplemented!(),
-            Second => unimplemented!(),
+            Year | Month | Day | Hour | Minute | Second => Ok(
+                match self.schema_check_fixed_args(arg_schemas, &[DATE_OR_NULLISH.clone()])? {
+                    Satisfaction::May => Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Null),
+                    ]),
+                    Satisfaction::Not => Schema::Atomic(Atomic::Integer),
+                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
+                },
+            ),
             // String value scalar functions.
             Substring => unimplemented!(),
-            Upper => unimplemented!(),
-            Lower => unimplemented!(),
-            BTrim => unimplemented!(),
-            LTrim => unimplemented!(),
-            RTrim => unimplemented!(),
+            Upper | Lower => Ok(
+                match self.schema_check_fixed_args(arg_schemas, &[STRING_OR_NULLISH.clone()])? {
+                    Satisfaction::May => Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::String),
+                        Schema::Atomic(Atomic::Null),
+                    ]),
+                    Satisfaction::Not => Schema::Atomic(Atomic::String),
+                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
+                },
+            ),
+            LTrim | RTrim | BTrim => Ok(
+                match self.schema_check_fixed_args(
+                    arg_schemas,
+                    &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
+                )? {
+                    Satisfaction::May => Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::String),
+                        Schema::Atomic(Atomic::Null),
+                    ]),
+                    Satisfaction::Not => Schema::Atomic(Atomic::String),
+                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
+                },
+            ),
             // Datetime value scalar function.
             CurrentTimestamp => {
                 self.schema_check_fixed_args(arg_schemas, &[])?;
@@ -479,11 +500,13 @@ impl ScalarFunction {
     ///
     /// Since the argument count is fixed, the slice of required schemas must correspond 1-to-1
     /// with the slice of argument schemas.
+    ///
+    /// The boolean result returns whether a NULLISH argument is a possibility.
     fn schema_check_fixed_args(
         &self,
         arg_schemas: &[Schema],
         required_schemas: &[Schema],
-    ) -> Result<(), Error> {
+    ) -> Result<Satisfaction, Error> {
         if arg_schemas.len() != required_schemas.len() {
             return Err(Error::IncorrectArgumentCount {
                 name: self.as_str(),
@@ -491,6 +514,7 @@ impl ScalarFunction {
                 found: arg_schemas.len(),
             });
         }
+        let mut total_null_sat = Satisfaction::Not;
         for (i, arg) in arg_schemas.iter().enumerate() {
             if arg.satisfies(&required_schemas[i]) != Satisfaction::Must {
                 return Err(Error::SchemaChecking {
@@ -499,8 +523,12 @@ impl ScalarFunction {
                     found: arg.clone(),
                 });
             }
+            let sat = arg.satisfies(&NULLISH);
+            if sat > total_null_sat {
+                total_null_sat = sat;
+            }
         }
-        Ok(())
+        Ok(total_null_sat)
     }
 
     /// Checks a function's arguments' types against the required schema.
@@ -512,7 +540,7 @@ impl ScalarFunction {
         &self,
         arg_schemas: &[Schema],
         required_schema: Schema,
-    ) -> Result<(), Error> {
+    ) -> Result<Satisfaction, Error> {
         self.schema_check_fixed_args(
             arg_schemas,
             &std::iter::repeat(required_schema)
@@ -597,6 +625,33 @@ impl CastExpr {
             on_null_schema,
             on_error_schema,
         ]))
+    }
+}
+
+impl SearchedCaseExpr {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let mut schemas = self
+            .when_branch
+            .iter()
+            .map(|wb| {
+                Ok({
+                    // the when branch must evaluate to BOOLEAN_OR_NULLISH.
+                    let when_schema = wb.when.schema(state)?;
+                    if when_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
+                        return Err(Error::SchemaChecking {
+                            name: "SearchedCase",
+                            required: BOOLEAN_OR_NULLISH.clone(),
+                            found: when_schema,
+                        });
+                    }
+                    // the Schema of the when branch is collected to the output.
+                    wb.then.schema(state)?
+                })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        schemas.push(self.else_branch.schema(state)?);
+        // The resulting Schema is the AnyOf every WHEN branch with the ELSE branch.
+        Ok(Schema::AnyOf(schemas))
     }
 }
 

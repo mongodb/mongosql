@@ -433,16 +433,9 @@ mod schema {
     // General function schema checking.
     test_schema!(
         arg_may_satisfy_schema_is_not_sufficient,
-        Err(Error::SchemaChecking {
+        Err(schema::Error::SchemaChecking {
             name: "Pos",
-            required: Schema::AnyOf(vec![
-                Schema::Atomic(Atomic::Integer),
-                Schema::Atomic(Atomic::Long),
-                Schema::Atomic(Atomic::Double),
-                Schema::Atomic(Atomic::Decimal),
-                Schema::Atomic(Atomic::Null),
-                Schema::Missing
-            ]),
+            required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(vec![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
@@ -501,6 +494,569 @@ mod schema {
                 Expression::Literal(Literal::Integer(2))
             ],
         }),
+    );
+
+    // Trim function type correctness
+    test_schema!(
+        ltrim_must_be_string,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::LTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
+    );
+    test_schema!(
+        ltrim_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::LTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        ltrim_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::LTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        ltrim_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::LTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        rtrim_must_be_string,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::RTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
+    );
+    test_schema!(
+        rtrim_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::RTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        rtrim_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::RTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        rtrim_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::RTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+    test_schema!(
+        btrim_must_be_string,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::BTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
+    );
+    test_schema!(
+        btrim_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::BTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        btrim_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::BTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        btrim_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::BTrim,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+    test_schema!(
+        concat_must_be_string,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Concat,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
+    );
+    test_schema!(
+        concat_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Concat,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        concat_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Concat,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        concat_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Concat,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::String("hello".into()))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        lower_must_be_string,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lower,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
+    );
+    test_schema!(
+        lower_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lower,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        lower_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lower,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        lower_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lower,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        upper_must_be_string,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Upper,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
+    );
+    test_schema!(
+        upper_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Upper,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        upper_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Upper,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        upper_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Upper,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        year_must_be_string,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Year,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
+    );
+    test_schema!(
+        year_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Year,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        year_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Year,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+    );
+    test_schema!(
+        year_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Year,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        month_must_be_string,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Month,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
+    );
+    test_schema!(
+        month_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Month,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        month_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Month,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+    );
+    test_schema!(
+        month_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Month,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        day_must_be_string,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Day,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
+    );
+    test_schema!(
+        day_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Day,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        day_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Day,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+    );
+    test_schema!(
+        day_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Day,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        minute_must_be_string,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Minute,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
+    );
+    test_schema!(
+        minute_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Minute,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        minute_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Minute,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+    );
+    test_schema!(
+        minute_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Minute,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        hour_must_be_string,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Hour,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
+    );
+    test_schema!(
+        hour_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Hour,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        hour_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Hour,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+    );
+    test_schema!(
+        hour_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Hour,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    test_schema!(
+        second_must_be_string,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Second,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
+    );
+    test_schema!(
+        second_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Second,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        second_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Second,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+    );
+    test_schema!(
+        second_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Second,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 
     // Arithmetic function type correctness.

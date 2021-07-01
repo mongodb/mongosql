@@ -455,6 +455,29 @@ pub enum BinaryOp {
     Sub,
 }
 
+impl BinaryOp {
+    pub fn as_str(&self) -> &'static str {
+        use BinaryOp::*;
+        match self {
+            Add => "Add",
+            And => "And",
+            Concat => "Concat",
+            Div => "Div",
+            Eq => "Eq",
+            Gt => "Gt",
+            Gte => "Gte",
+            In => "In",
+            Lt => "Lt",
+            Lte => "Lte",
+            Mul => "Mul",
+            Neq => "Neq",
+            NotIn => "NotIn",
+            Or => "Or",
+            Sub => "Sub",
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct GroupByClause {
     pub keys: Vec<AliasedExpr>,

@@ -12,7 +12,7 @@ use crate::{
     schema::{Satisfaction, SchemaEnvironment},
     util::are_literal,
 };
-use std::collections::BTreeSet;
+use std::{collections::BTreeSet, convert::TryFrom};
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -45,8 +45,77 @@ pub enum Error {
     FieldNotFound(String),
     #[error("ambiguous field `{0}`")]
     AmbiguousField(String),
+    #[error("* argument only valid in COUNT function")]
+    StarInNonCount,
+    #[error("aggregation function {0} used in scalar postion")]
+    AggregationInPlaceOfScalar(String),
+    #[error("scalar functions cannot be DISTINCT")]
+    DistinctScalarFunction,
+    #[error("{0} cannot be algebrized")]
+    CannotBeAlgebrized(&'static str),
     #[error(transparent)]
     SchemaChecking(#[from] schema::Error),
+}
+
+impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
+    type Error = Error;
+
+    fn try_from(op: crate::ast::BinaryOp) -> Result<Self> {
+        Ok(match op {
+            ast::BinaryOp::Add => ir::ScalarFunction::Add,
+            ast::BinaryOp::And => ir::ScalarFunction::And,
+            ast::BinaryOp::Concat => ir::ScalarFunction::Concat,
+            ast::BinaryOp::Div => ir::ScalarFunction::Div,
+            ast::BinaryOp::Eq => ir::ScalarFunction::Eq,
+            ast::BinaryOp::Gt => ir::ScalarFunction::Gt,
+            ast::BinaryOp::Gte => ir::ScalarFunction::Gte,
+            ast::BinaryOp::Lt => ir::ScalarFunction::Lt,
+            ast::BinaryOp::Lte => ir::ScalarFunction::Lte,
+            ast::BinaryOp::Mul => ir::ScalarFunction::Mul,
+            ast::BinaryOp::Neq => ir::ScalarFunction::Neq,
+            ast::BinaryOp::Or => ir::ScalarFunction::Or,
+            ast::BinaryOp::Sub => ir::ScalarFunction::Sub,
+            ast::BinaryOp::In | ast::BinaryOp::NotIn => {
+                return Err(Error::CannotBeAlgebrized(op.as_str()))
+            }
+        })
+    }
+}
+
+impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
+    type Error = Error;
+
+    fn try_from(f: crate::ast::FunctionName) -> Result<Self> {
+        Ok(match f {
+            ast::FunctionName::BitLength => ir::ScalarFunction::BitLength,
+            ast::FunctionName::CharLength => ir::ScalarFunction::CharLength,
+            ast::FunctionName::Coalesce => ir::ScalarFunction::Coalesce,
+            ast::FunctionName::CurrentTimestamp => ir::ScalarFunction::CurrentTimestamp,
+            ast::FunctionName::Lower => ir::ScalarFunction::Lower,
+            ast::FunctionName::NullIf => ir::ScalarFunction::NullIf,
+            ast::FunctionName::OctetLength => ir::ScalarFunction::OctetLength,
+            ast::FunctionName::Position => ir::ScalarFunction::Position,
+            ast::FunctionName::Size => ir::ScalarFunction::Size,
+            ast::FunctionName::Slice => ir::ScalarFunction::Slice,
+            ast::FunctionName::Substring => ir::ScalarFunction::Substring,
+            ast::FunctionName::Upper => ir::ScalarFunction::Upper,
+
+            ast::FunctionName::AddToArray
+            | ast::FunctionName::AddToSet
+            | ast::FunctionName::Avg
+            | ast::FunctionName::Count
+            | ast::FunctionName::First
+            | ast::FunctionName::Last
+            | ast::FunctionName::Max
+            | ast::FunctionName::MergeDocuments
+            | ast::FunctionName::Min
+            | ast::FunctionName::StddevPop
+            | ast::FunctionName::StddevSamp
+            | ast::FunctionName::Sum => {
+                return Err(Error::AggregationInPlaceOfScalar(f.to_string()))
+            }
+        })
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -93,7 +162,6 @@ impl Algebrizer {
         let plan = self.algebrize_order_by_clause(ast_node.order_by_clause, plan)?;
         let plan = self.algebrize_offset_clause(ast_node.offset, plan)?;
         let plan = self.algebrize_limit_clause(ast_node.limit, plan)?;
-
         Ok(plan)
     }
 
@@ -288,7 +356,7 @@ impl Algebrizer {
 
     pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<ir::Expression> {
         match ast_node {
-            ast::Expression::Literal(l) => Ok(ir::Expression::Literal(self.algebrize_literal(l)?)),
+            ast::Expression::Literal(l) => Ok(ir::Expression::Literal(self.algebrize_literal(l))),
             ast::Expression::Array(a) => Ok(ir::Expression::Array(
                 a.into_iter()
                     .map(|e| self.algebrize_expression(e))
@@ -304,33 +372,34 @@ impl Algebrizer {
             // Identifier
             ast::Expression::Identifier(i) => self.algebrize_unqualified_identifier(i),
             ast::Expression::Subpath(s) => self.algebrize_subpath(s),
-            ast::Expression::Unary(_)
-            | ast::Expression::Binary(_)
-            | ast::Expression::Between(_)
-            | ast::Expression::Case(_)
-            | ast::Expression::Function(_)
-            | ast::Expression::Cast(_)
-            | ast::Expression::Subquery(_)
-            | ast::Expression::SubqueryComparison(_)
-            | ast::Expression::Exists(_)
-            | ast::Expression::Access(_)
-            | ast::Expression::Is(_)
-            | ast::Expression::Like(_)
-            | ast::Expression::Tuple(_)
-            | ast::Expression::Trim(_)
-            | ast::Expression::Extract(_)
-            | ast::Expression::TypeAssertion(_) => unimplemented!(),
+            ast::Expression::Unary(u) => self.algebrize_unary_expr(u),
+            ast::Expression::Binary(b) => self.algebrize_binary_expr(b),
+            ast::Expression::Function(f) => self.algebrize_function(f),
+            ast::Expression::Between(b) => self.algebrize_between(b),
+            ast::Expression::Trim(t) => self.algebrize_trim(t),
+            ast::Expression::Extract(e) => self.algebrize_extract(e),
+            ast::Expression::Access(a) => self.algebrize_access(a),
+            ast::Expression::Case(c) => self.algebrize_case(c),
+            ast::Expression::Cast(c) => self.algebrize_cast(c),
+            ast::Expression::TypeAssertion(t) => self.algebrize_type_assertion(t),
+            ast::Expression::Is(i) => self.algebrize_is(i),
+            ast::Expression::Like(l) => self.algebrize_like(l),
+            // Tuples should all be rewritten away.
+            ast::Expression::Tuple(_) => Err(Error::CannotBeAlgebrized("tuples")),
+            ast::Expression::Subquery(_) => unimplemented!(),
+            ast::Expression::SubqueryComparison(_) => unimplemented!(),
+            ast::Expression::Exists(_) => unimplemented!(),
         }
     }
 
-    pub fn algebrize_literal(&self, ast_node: ast::Literal) -> Result<ir::Literal> {
+    pub fn algebrize_literal(&self, ast_node: ast::Literal) -> ir::Literal {
         match ast_node {
-            ast::Literal::Null => Ok(ir::Literal::Null),
-            ast::Literal::Boolean(b) => Ok(ir::Literal::Boolean(b)),
-            ast::Literal::String(s) => Ok(ir::Literal::String(s)),
-            ast::Literal::Integer(i) => Ok(ir::Literal::Integer(i)),
-            ast::Literal::Long(l) => Ok(ir::Literal::Long(l)),
-            ast::Literal::Double(d) => Ok(ir::Literal::Double(d)),
+            ast::Literal::Null => ir::Literal::Null,
+            ast::Literal::Boolean(b) => ir::Literal::Boolean(b),
+            ast::Literal::String(s) => ir::Literal::String(s),
+            ast::Literal::Integer(i) => ir::Literal::Integer(i),
+            ast::Literal::Long(l) => ir::Literal::Long(l),
+            ast::Literal::Double(d) => ir::Literal::Double(d),
         }
     }
 
@@ -368,6 +437,215 @@ impl Algebrizer {
                 Ok(stage)
             }
         }
+    }
+
+    fn algebrize_function(&self, f: ast::FunctionExpr) -> Result<ir::Expression> {
+        if f.set_quantifier == Some(ast::SetQuantifier::Distinct) {
+            return Err(Error::DistinctScalarFunction);
+        }
+        // get the arguments as a vec of ast::Expressions. If the arguments are
+        // Star this must be a COUNT function, otherwise it is an error.
+        let args = match f.args {
+            ast::FunctionArguments::Args(ve) => ve,
+            ast::FunctionArguments::Star => return Err(Error::StarInNonCount),
+        };
+        schema_check_return!(
+            self,
+            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::try_from(f.function)?,
+                args: args
+                    .into_iter()
+                    .map(|e| self.algebrize_expression(e))
+                    .collect::<Result<_>>()?,
+            })
+        );
+    }
+
+    fn algebrize_unary_expr(&self, u: ast::UnaryExpr) -> Result<ir::Expression> {
+        schema_check_return!(
+            self,
+            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::from(u.op),
+                args: vec![self.algebrize_expression(*u.expr)?]
+            }),
+        );
+    }
+
+    fn algebrize_binary_expr(&self, b: ast::BinaryExpr) -> Result<ir::Expression> {
+        schema_check_return!(
+            self,
+            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::try_from(b.op)?,
+                args: vec![
+                    self.algebrize_expression(*b.left)?,
+                    self.algebrize_expression(*b.right)?,
+                ],
+            })
+        );
+    }
+
+    fn algebrize_is(&self, ast_node: ast::IsExpr) -> Result<ir::Expression> {
+        schema_check_return!(
+            self,
+            ir::Expression::Is(ir::IsExpr {
+                expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
+                target_type: ir::TypeOrMissing::from(ast_node.target_type),
+            }),
+        )
+    }
+
+    fn algebrize_like(&self, ast_node: ast::LikeExpr) -> Result<ir::Expression> {
+        schema_check_return!(
+            self,
+            ir::Expression::Like(ir::LikeExpr {
+                expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
+                pattern: Box::new(self.algebrize_expression(*ast_node.pattern)?),
+                escape: ast_node.escape,
+            }),
+        )
+    }
+
+    fn algebrize_between(&self, b: ast::BetweenExpr) -> Result<ir::Expression> {
+        let (arg, min, max) = (
+            self.algebrize_expression(*b.expr)?,
+            self.algebrize_expression(*b.min)?,
+            self.algebrize_expression(*b.max)?,
+        );
+        schema_check_return!(
+            self,
+            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Between,
+                args: vec![arg, min, max,],
+            })
+        );
+    }
+
+    fn algebrize_trim(&self, t: ast::TrimExpr) -> Result<ir::Expression> {
+        let function = match t.trim_spec {
+            ast::TrimSpec::Leading => ir::ScalarFunction::LTrim,
+            ast::TrimSpec::Trailing => ir::ScalarFunction::RTrim,
+            ast::TrimSpec::Both => ir::ScalarFunction::BTrim,
+        };
+        schema_check_return!(
+            self,
+            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function,
+                args: vec![
+                    self.algebrize_expression(*t.trim_chars)?,
+                    self.algebrize_expression(*t.arg)?,
+                ]
+            }),
+        );
+    }
+
+    fn algebrize_extract(&self, e: ast::ExtractExpr) -> Result<ir::Expression> {
+        use crate::ast::ExtractSpec::*;
+        let function = match e.extract_spec {
+            Year => ir::ScalarFunction::Year,
+            Month => ir::ScalarFunction::Month,
+            Day => ir::ScalarFunction::Day,
+            Hour => ir::ScalarFunction::Hour,
+            Minute => ir::ScalarFunction::Minute,
+            Second => ir::ScalarFunction::Second,
+        };
+        schema_check_return!(
+            self,
+            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function,
+                args: vec![self.algebrize_expression(*e.arg)?]
+            }),
+        )
+    }
+
+    fn algebrize_access(&self, a: ast::AccessExpr) -> Result<ir::Expression> {
+        let expr = self.algebrize_expression(*a.expr)?;
+        schema_check_return!(
+            self,
+            match *a.subfield {
+                ast::Expression::Literal(ast::Literal::String(s)) =>
+                    ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(expr),
+                        field: s,
+                    }),
+                sf => ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                    function: ir::ScalarFunction::ComputedFieldAccess,
+                    args: vec![expr, self.algebrize_expression(sf)?],
+                }),
+            }
+        );
+    }
+
+    fn algebrize_type_assertion(&self, t: ast::TypeAssertionExpr) -> Result<ir::Expression> {
+        schema_check_return!(
+            self,
+            ir::Expression::TypeAssertion(ir::TypeAssertionExpr {
+                expr: Box::new(self.algebrize_expression(*t.expr)?),
+                target_type: ir::Type::from(t.target_type),
+            }),
+        );
+    }
+
+    fn algebrize_case(&self, c: ast::CaseExpr) -> Result<ir::Expression> {
+        let else_branch = c
+            .else_branch
+            .map(|e| self.algebrize_expression(*e))
+            .transpose()?
+            .map(Box::new)
+            .unwrap_or_else(|| Box::new(ir::Expression::Literal(ir::Literal::Null)));
+        let expr = c.expr.map(|e| self.algebrize_expression(*e)).transpose()?;
+        let when_branch = c
+            .when_branch
+            .into_iter()
+            .map(|wb| {
+                Ok(ir::WhenBranch {
+                    when: Box::new(self.algebrize_expression(*wb.when)?),
+                    then: Box::new(self.algebrize_expression(*wb.then)?),
+                })
+            })
+            .collect::<Result<_>>()?;
+        match expr {
+            Some(expr) => {
+                let expr = Box::new(expr);
+                schema_check_return!(
+                    self,
+                    ir::Expression::SimpleCase(ir::SimpleCaseExpr {
+                        expr,
+                        when_branch,
+                        else_branch,
+                    }),
+                )
+            }
+            None => {
+                schema_check_return!(
+                    self,
+                    ir::Expression::SearchedCase(ir::SearchedCaseExpr {
+                        when_branch,
+                        else_branch,
+                    }),
+                )
+            }
+        }
+    }
+
+    fn algebrize_cast(&self, c: ast::CastExpr) -> Result<ir::Expression> {
+        macro_rules! null_expr {
+            () => {{
+                Box::new(ast::Expression::Literal(ast::Literal::Null))
+            }};
+        }
+        schema_check_return!(
+            self,
+            ir::Expression::Cast(ir::CastExpr {
+                expr: Box::new(self.algebrize_expression(*c.expr)?),
+                to: ir::Type::from(c.to),
+                on_null: Box::new(
+                    self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())))?
+                ),
+                on_error: Box::new(
+                    self.algebrize_expression(*(c.on_error.unwrap_or_else(|| null_expr!())))?
+                ),
+            }),
+        );
     }
 
     fn algebrize_subpath(&self, p: ast::SubpathExpr) -> Result<ir::Expression> {

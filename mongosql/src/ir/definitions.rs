@@ -196,7 +196,6 @@ pub struct FieldAccess {
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
     AddToArray,
-    AddToSet,
     Avg,
     Count,
     First,
@@ -215,7 +214,6 @@ impl AggregationFunction {
     pub fn as_str(&self) -> &'static str {
         match self {
             AggregationFunction::AddToArray => "AddToArray",
-            AggregationFunction::AddToSet => "AddToSet",
             AggregationFunction::Avg => "Avg",
             AggregationFunction::Count => "Count",
             AggregationFunction::First => "First",

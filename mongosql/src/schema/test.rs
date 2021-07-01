@@ -28,6 +28,15 @@ macro_rules! test_from_json_schema {
     };
 }
 
+mod satisfaction_ord {
+    #[test]
+    fn satisfaction_ord() {
+        use crate::schema::Satisfaction::*;
+        assert!(Must > May);
+        assert!(May > Not);
+    }
+}
+
 test_from_json_schema!(
     convert_bson_single_to_atomic,
     Ok(Atomic(Integer)),
