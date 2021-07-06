@@ -286,7 +286,7 @@ impl MqlCodeGenerator {
                             .clone()
                             .with_merged_mappings(MappingRegistry(left_registry))
                             .with_merged_mappings(right.mapping_registry);
-                        let cond = expression_generator.codegen_expression(*expr)?;
+                        let cond = expression_generator.codegen_expression(expr)?;
                         let cond_doc = doc! {"$match" : {"$expr": cond}};
                         (Some(cond_doc), Some(let_doc))
                     }

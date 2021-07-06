@@ -6,6 +6,11 @@ use std::{
     iter::FromIterator,
 };
 
+#[derive(Debug)]
+pub struct DuplicateKeyError {
+    pub key: Key,
+}
+
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BindingTuple<T>(pub BTreeMap<Key, T>);
 
@@ -106,8 +111,21 @@ impl<T> BindingTuple<T> {
         self.0.into_iter()
     }
 
-    pub fn merge(&mut self, other: BindingTuple<T>) {
-        self.0.extend(other.0.into_iter());
+    pub fn merge(&mut self, other: BindingTuple<T>) -> Result<(), DuplicateKeyError> {
+        for (k, v) in other.0.into_iter() {
+            if self.0.insert(k.clone(), v).is_some() {
+                return Err(DuplicateKeyError { key: k });
+            }
+        }
+        Ok(())
+    }
+
+    pub fn with_merged_mappings(
+        mut self,
+        mappings: BindingTuple<T>,
+    ) -> Result<Self, DuplicateKeyError> {
+        self.merge(mappings)?;
+        Ok(self)
     }
 }
 

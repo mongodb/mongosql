@@ -112,7 +112,7 @@ pub struct Join {
     pub join_type: JoinType,
     pub left: Box<Stage>,
     pub right: Box<Stage>,
-    pub condition: Option<Box<Expression>>,
+    pub condition: Option<Expression>,
 }
 
 #[allow(dead_code)]

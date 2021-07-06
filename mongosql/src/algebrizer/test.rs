@@ -1,4 +1,8 @@
-use crate::ir::{Collection, Stage};
+use crate::{
+    ast::{CollectionSource, Datasource},
+    ir::{Collection, Expression, Project, Stage},
+    map,
+};
 use lazy_static::lazy_static;
 
 macro_rules! test_algebrize {
@@ -26,7 +30,9 @@ macro_rules! test_algebrize {
         #[test]
         fn $func_name() {
             use crate::algebrizer::{Algebrizer, Error};
-            let algebrizer = Algebrizer::new("test".into(), 1u16).with_merged_mappings($env);
+            let algebrizer = Algebrizer::new("test".into(), 1u16)
+                .with_merged_mappings($env)
+                .unwrap();
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast, $source);
             assert_eq!(expected, res);
@@ -42,12 +48,45 @@ macro_rules! test_algebrize_with_env {
                 algebrizer::{Algebrizer, Error},
                 ast,
             };
-            let algebrizer = Algebrizer::new("test".into(), 1u16).with_merged_mappings($env);
+            let algebrizer = Algebrizer::new("test".into(), 1u16)
+                .with_merged_mappings($env)
+                .unwrap();
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast);
             assert_eq!(expected, res);
         }
     };
+}
+
+lazy_static! {
+    static ref IR_SOURCE_FOO: Stage = Stage::Project(Project {
+        source: Box::new(Stage::Collection(Collection {
+            db: "test".into(),
+            collection: "foo".into()
+        })),
+        expression: map! {
+            ("foo", 0u16).into() => Expression::Reference(("foo", 0u16).into())
+        }
+    });
+    static ref IR_SOURCE_BAR: Stage = Stage::Project(Project {
+        source: Box::new(Stage::Collection(Collection {
+            db: "test".into(),
+            collection: "bar".into()
+        })),
+        expression: map! {
+            ("bar", 0u16).into() => Expression::Reference(("bar", 0u16).into())
+        }
+    });
+    static ref AST_SOURCE_FOO: Datasource = Datasource::Collection(CollectionSource {
+        database: Some("test".into()),
+        collection: "foo".into(),
+        alias: Some("foo".into()),
+    });
+    static ref AST_SOURCE_BAR: Datasource = Datasource::Collection(CollectionSource {
+        database: Some("test".into()),
+        collection: "bar".into(),
+        alias: Some("bar".into()),
+    });
 }
 
 mod expression {
@@ -148,7 +187,6 @@ mod expression {
                     "bar2".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
         }),
     );
-
     test_algebrize_with_env!(
         qualified_ref_in_current_scope,
         algebrize_expression,
@@ -1238,8 +1276,8 @@ mod select_clause {
 
     lazy_static! {
         static ref SOURCE: ir::Stage = ir::Stage::Collection(ir::Collection {
-            db: "bar".into(),
-            collection: "bar".into(),
+            db: "test".into(),
+            collection: "baz".into(),
         });
     }
 
@@ -1262,7 +1300,7 @@ mod select_clause {
         select_duplicate_bot,
         algebrize_select_clause,
         source = SOURCE.clone(),
-        expected = Err(Error::DuplicateDatasource("select clause", Key::bot(1u16))),
+        expected = Err(Error::DuplicateKeyError(Key::bot(1u16))),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![
@@ -1320,10 +1358,7 @@ mod select_clause {
         select_duplicate_substar,
         algebrize_select_clause,
         source = SOURCE.clone(),
-        expected = Err(Error::DuplicateDatasource(
-            "select clause",
-            ("foo", 1u16).into()
-        )),
+        expected = Err(Error::DuplicateKeyError(("foo", 1u16).into())),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![
@@ -1358,8 +1393,11 @@ mod select_clause {
 }
 
 mod from_clause {
+    use super::{AST_SOURCE_BAR, AST_SOURCE_FOO, IR_SOURCE_BAR, IR_SOURCE_FOO};
     use crate::{
-        ast, ir, map,
+        ast::{self, JoinSource},
+        ir::{self, JoinType},
+        map,
         schema::{Atomic, Schema, ANY_DOCUMENT},
     };
 
@@ -1561,63 +1599,149 @@ mod from_clause {
             alias: "bar".into(),
         })),
     );
-}
-
-lazy_static! {
-    static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
-        db: "test".into(),
-        collection: "foo".into()
-    });
+    test_algebrize!(
+        left_join,
+        algebrize_from_clause,
+        Ok(ir::Stage::Join(ir::Join {
+            join_type: JoinType::Left,
+            left: Box::new(IR_SOURCE_FOO.clone()),
+            right: Box::new(IR_SOURCE_BAR.clone()),
+            condition: Some(ir::Expression::Literal(ir::Literal::Boolean(true)))
+        })),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Left,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: Some(ast::Expression::Literal(ast::Literal::Boolean(true)))
+        }))
+    );
+    test_algebrize!(
+        right_join,
+        algebrize_from_clause,
+        Ok(ir::Stage::Join(ir::Join {
+            join_type: JoinType::Left,
+            left: Box::new(IR_SOURCE_BAR.clone()),
+            right: Box::new(IR_SOURCE_FOO.clone()),
+            condition: Some(ir::Expression::Literal(ir::Literal::Boolean(true)))
+        })),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Right,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: Some(ast::Expression::Literal(ast::Literal::Boolean(true)))
+        }))
+    );
+    test_algebrize!(
+        left_outer_join_without_condition,
+        algebrize_from_clause,
+        Err(Error::NoOuterJoinCondition),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Left,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: None
+        }))
+    );
+    test_algebrize!(
+        right_outer_join_without_condition,
+        algebrize_from_clause,
+        Err(Error::NoOuterJoinCondition),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Right,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: None
+        }))
+    );
+    test_algebrize!(
+        inner_join,
+        algebrize_from_clause,
+        Ok(ir::Stage::Join(ir::Join {
+            join_type: JoinType::Inner,
+            left: Box::new(IR_SOURCE_FOO.clone()),
+            right: Box::new(IR_SOURCE_BAR.clone()),
+            condition: None
+        })),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Inner,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: None
+        }))
+    );
+    test_algebrize!(
+        cross_join,
+        algebrize_from_clause,
+        Ok(ir::Stage::Join(ir::Join {
+            join_type: JoinType::Inner,
+            left: Box::new(IR_SOURCE_FOO.clone()),
+            right: Box::new(IR_SOURCE_BAR.clone()),
+            condition: None
+        })),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Cross,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: None
+        }))
+    );
+    test_algebrize!(
+        invalid_join_condition,
+        algebrize_from_clause,
+        Err(Error::FieldNotFound("bar".into())),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Cross,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: Some(ast::Expression::Identifier("bar".into())),
+        }))
+    );
 }
 
 mod limit_or_offset_clause {
-    use crate::{algebrizer::test::TEST_SOURCE, ast, ir, map};
+    use super::{AST_SOURCE_FOO, IR_SOURCE_FOO};
+    use crate::{ast, ir};
 
     test_algebrize!(
         limit_set,
         algebrize_limit_clause,
         Ok(ir::Stage::Limit(ir::Limit {
-            source: Box::new(TEST_SOURCE.clone()),
+            source: Box::new(IR_SOURCE_FOO.clone()),
             limit: 42_u64
         })),
         Some(42_u32),
-        TEST_SOURCE.clone()
+        IR_SOURCE_FOO.clone()
     );
     test_algebrize!(
         limit_unset,
         algebrize_limit_clause,
-        Ok(TEST_SOURCE.clone()),
+        Ok(IR_SOURCE_FOO.clone()),
         None,
-        TEST_SOURCE.clone()
+        IR_SOURCE_FOO.clone()
     );
     test_algebrize!(
         offset_set,
         algebrize_offset_clause,
         Ok(ir::Stage::Offset(ir::Offset {
-            source: Box::new(TEST_SOURCE.clone()),
+            source: Box::new(IR_SOURCE_FOO.clone()),
             offset: 3_u64
         })),
         Some(3_u32),
-        TEST_SOURCE.clone()
+        IR_SOURCE_FOO.clone()
     );
     test_algebrize!(
         offset_unset,
         algebrize_offset_clause,
-        Ok(TEST_SOURCE.clone()),
+        Ok(IR_SOURCE_FOO.clone()),
         None,
-        TEST_SOURCE.clone()
+        IR_SOURCE_FOO.clone()
     );
     test_algebrize!(
         limit_and_offset,
         algebrize_select_query,
         Ok(ir::Stage::Limit(ir::Limit {
             source: Box::new(ir::Stage::Offset(ir::Offset {
-                source: Box::new(ir::Stage::Project(ir::Project {
-                    source: Box::new(TEST_SOURCE.clone()),
-                    expression: map! {
-                        ("foo", 0u16).into() => ir::Expression::Reference(("foo", 0u16).into())
-                    }
-                })),
+                source: Box::new(IR_SOURCE_FOO.clone()),
                 offset: 3
             })),
             limit: 10
@@ -1627,11 +1751,7 @@ mod limit_or_offset_clause {
                 set_quantifier: ast::SetQuantifier::All,
                 body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
             },
-            from_clause: Some(ast::Datasource::Collection(ast::CollectionSource {
-                database: Some("test".into()),
-                collection: "foo".into(),
-                alias: Some("foo".into()),
-            })),
+            from_clause: Some(AST_SOURCE_FOO.clone()),
             where_clause: None,
             group_by_clause: None,
             having_clause: None,
@@ -1643,7 +1763,7 @@ mod limit_or_offset_clause {
 }
 
 mod filter_clause {
-    use super::TEST_SOURCE;
+    use super::IR_SOURCE_FOO;
     use crate::{ast, ir};
 
     const TRUE_IR: ir::Expression = ir::Expression::Literal(ir::Literal::Boolean(true));
@@ -1653,17 +1773,17 @@ mod filter_clause {
         simple,
         algebrize_filter_clause,
         Ok(ir::Stage::Filter(ir::Filter {
-            source: Box::new(TEST_SOURCE.clone()),
+            source: Box::new(IR_SOURCE_FOO.clone()),
             condition: TRUE_IR,
         })),
         Some(TRUE_AST),
-        TEST_SOURCE.clone(),
+        IR_SOURCE_FOO.clone(),
     );
     test_algebrize!(
         none,
         algebrize_filter_clause,
-        Ok(TEST_SOURCE.clone()),
+        Ok(IR_SOURCE_FOO.clone()),
         None,
-        TEST_SOURCE.clone(),
+        IR_SOURCE_FOO.clone(),
     );
 }

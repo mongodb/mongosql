@@ -1,7 +1,6 @@
 #[cfg(test)]
 mod test;
 
-use crate::ir::{Limit, Offset};
 use crate::{
     ast,
     ir::{
@@ -37,8 +36,6 @@ pub enum Error {
     ArrayDatasourceMustBeLiteral,
     #[error("SELECT DISTINCT not allowed")]
     DistinctSelect,
-    #[error("duplicate datasource {1:?} in {0}")]
-    DuplicateDatasource(&'static str, Key),
     #[error("no such datasource: {0:?}")]
     NoSuchDatasource(DatasourceName),
     #[error("field `{0}` cannot be resolved to any datasource")]
@@ -55,6 +52,10 @@ pub enum Error {
     CannotBeAlgebrized(&'static str),
     #[error(transparent)]
     SchemaChecking(#[from] schema::Error),
+    #[error("OUTER JOINs must specify a JOIN condition")]
+    NoOuterJoinCondition,
+    #[error("cannot create schema environment with duplicate key: {0:?}")]
+    DuplicateKeyError(Key),
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -148,9 +149,11 @@ impl Algebrizer {
         }
     }
 
-    fn with_merged_mappings(mut self, mappings: SchemaEnvironment) -> Self {
-        self.schema_env.merge(mappings);
-        self
+    fn with_merged_mappings(mut self, mappings: SchemaEnvironment) -> Result<Self> {
+        self.schema_env
+            .merge(mappings)
+            .map_err(|e| Error::DuplicateKeyError(e.key))?;
+        Ok(self)
     }
 
     pub fn algebrize_select_query(&self, ast_node: ast::SelectQuery) -> Result<ir::Stage> {
@@ -170,6 +173,15 @@ impl Algebrizer {
         exprs: Vec<ast::SelectValuesExpression>,
         source: ir::Stage,
     ) -> Result<ir::Stage> {
+        let expression_algebrizer = self.clone();
+        // Algebrization for every node that has a source should get the schema for the source.
+        // The SchemaEnvironment from the source is merged into the SchemaEnvironment from the
+        // current Algebrizer, correctly giving us the the correlated bindings with the bindings
+        // available from the current query level.
+        #[allow(unused_variables)]
+        let expression_algebrizer = expression_algebrizer
+            .with_merged_mappings(source.schema(&self.schema_inference_state())?.schema_env)?;
+
         // We must check for duplicate Datasource Keys, which is an error. The datasources
         // Set keeps track of which Keys have been seen.
         let mut datasources = BTreeSet::new();
@@ -180,11 +192,12 @@ impl Algebrizer {
                 match expr {
                     // An Expression is mapped to DatasourceName::Bottom.
                     ast::SelectValuesExpression::Expression(e) => {
-                        let e = self.algebrize_expression(e)?;
-                        let bot = Key::bot(self.scope_level);
-                        datasources.insert(bot.clone()).then(|| ()).ok_or_else(|| {
-                            Error::DuplicateDatasource("select clause", bot.clone())
-                        })?;
+                        let e = expression_algebrizer.algebrize_expression(e)?;
+                        let bot = Key::bot(expression_algebrizer.scope_level);
+                        datasources
+                            .insert(bot.clone())
+                            .then(|| ())
+                            .ok_or_else(|| Error::DuplicateKeyError(bot.clone()))?;
                         Ok((bot, e))
                     }
                     // For a Substar, a.*, we map the name of the Substar, 'a', to a Key
@@ -193,14 +206,18 @@ impl Algebrizer {
                         let datasource = DatasourceName::Named(s.datasource.clone());
                         let key = Key {
                             datasource: datasource.clone(),
-                            scope: self.scope_level,
+                            scope: expression_algebrizer.scope_level,
                         };
-                        datasources.insert(key.clone()).then(|| ()).ok_or_else(|| {
-                            Error::DuplicateDatasource("select clause", key.clone())
-                        })?;
-                        let scope = self
+                        datasources
+                            .insert(key.clone())
+                            .then(|| ())
+                            .ok_or_else(|| Error::DuplicateKeyError(key.clone()))?;
+                        let scope = expression_algebrizer
                             .schema_env
-                            .nearest_scope_for_datasource(&datasource, self.scope_level)
+                            .nearest_scope_for_datasource(
+                                &datasource,
+                                expression_algebrizer.scope_level,
+                            )
                             .ok_or_else(|| Error::NoSuchDatasource(datasource.clone()))?;
                         Ok((
                             key,
@@ -224,6 +241,10 @@ impl Algebrizer {
 
     pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<ir::Stage> {
         let ast_node = ast_node.ok_or(Error::NoFromClause)?;
+        self.algebrize_datasource(ast_node)
+    }
+
+    pub fn algebrize_datasource(&self, ast_node: ast::Datasource) -> Result<ir::Stage> {
         match ast_node {
             ast::Datasource::Array(a) => {
                 let (ve, alias) = (a.array, a.alias);
@@ -264,7 +285,44 @@ impl Algebrizer {
                 Ok(stage)
             }
             ast::Datasource::Derived(_) => unimplemented!(),
-            ast::Datasource::Join(_) => unimplemented!(),
+            ast::Datasource::Join(j) => {
+                let condition = j
+                    .condition
+                    .map(|e| self.algebrize_expression(e))
+                    .transpose()?;
+                let stage = match j.join_type {
+                    ast::JoinType::Left => {
+                        if condition.is_none() {
+                            return Err(Error::NoOuterJoinCondition);
+                        }
+                        ir::Stage::Join(ir::Join {
+                            join_type: ir::JoinType::Left,
+                            left: Box::new(self.algebrize_datasource(*j.left)?),
+                            right: Box::new(self.algebrize_datasource(*j.right)?),
+                            condition,
+                        })
+                    }
+                    ast::JoinType::Right => {
+                        if condition.is_none() {
+                            return Err(Error::NoOuterJoinCondition);
+                        }
+                        ir::Stage::Join(ir::Join {
+                            join_type: ir::JoinType::Left,
+                            left: Box::new(self.algebrize_datasource(*j.right)?),
+                            right: Box::new(self.algebrize_datasource(*j.left)?),
+                            condition,
+                        })
+                    }
+                    ast::JoinType::Cross | ast::JoinType::Inner => ir::Stage::Join(ir::Join {
+                        join_type: ir::JoinType::Inner,
+                        left: Box::new(self.algebrize_datasource(*j.left)?),
+                        right: Box::new(self.algebrize_datasource(*j.right)?),
+                        condition,
+                    }),
+                };
+                stage.schema(&self.schema_inference_state())?;
+                Ok(stage)
+            }
         }
     }
 
@@ -278,7 +336,7 @@ impl Algebrizer {
             Some(expr) => {
                 let expression_algebrizer = self.clone().with_merged_mappings(
                     source.schema(&self.schema_inference_state())?.schema_env,
-                );
+                )?;
                 ir::Stage::Filter(ir::Filter {
                     source: Box::new(source),
                     condition: expression_algebrizer.algebrize_expression(expr)?,
@@ -307,14 +365,6 @@ impl Algebrizer {
         ast_node: ast::SelectClause,
         source: ir::Stage,
     ) -> Result<ir::Stage> {
-        let expression_algebrizer = self.clone();
-        // Aglebrization for every node that has a source should get the schema for the source.
-        // The SchemaEnvironment from the source is merged into the SchemaEnvironment from the
-        // current Algebrizer, correctly giving us the the correlated bindings with the bindings
-        // available from the current query level.
-        #[allow(unused_variables)]
-        let expression_algebrizer = expression_algebrizer
-            .with_merged_mappings(source.schema(&self.schema_inference_state())?.schema_env);
         match ast_node.set_quantifier {
             ast::SetQuantifier::All => (),
             ast::SetQuantifier::Distinct => return Err(Error::DistinctSelect),
@@ -331,13 +381,11 @@ impl Algebrizer {
                 _ => Err(Error::NonStarStandardSelectBody),
             },
             // SELECT VALUES expressions must be Substar expressions or normal Expressions that are
-            // Documents, i.e., that have Schema that Must statisfy ANY_DOCUMENT.
+            // Documents, i.e., that have Schema that Must satisfy ANY_DOCUMENT.
             //
             // All normal Expressions will be mapped as Datasource Bottom, and all Substars will be mapped
             // as their name as a Datasource.
-            ast::SelectBody::Values(exprs) => {
-                expression_algebrizer.algebrize_select_values_body(exprs, source)
-            }
+            ast::SelectBody::Values(exprs) => self.algebrize_select_values_body(exprs, source),
         }
     }
 
@@ -411,7 +459,7 @@ impl Algebrizer {
         match ast_node {
             None => Ok(source),
             Some(x) => {
-                let stage = ir::Stage::Limit(Limit {
+                let stage = ir::Stage::Limit(ir::Limit {
                     source: Box::new(source),
                     limit: u64::from(x),
                 });
@@ -429,7 +477,7 @@ impl Algebrizer {
         match ast_node {
             None => Ok(source),
             Some(x) => {
-                let stage = ir::Stage::Offset(Offset {
+                let stage = ir::Stage::Offset(ir::Offset {
                     source: Box::new(source),
                     offset: u64::from(x),
                 });

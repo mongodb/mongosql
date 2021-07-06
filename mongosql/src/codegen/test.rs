@@ -816,7 +816,7 @@ mod join {
             }}],
         }),
         Stage::Join(Join {
-            condition: Some(Box::new(Expression::Literal(Literal::Boolean(true)))),
+            condition: Some(Expression::Literal(Literal::Boolean(true))),
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
@@ -868,7 +868,7 @@ mod join {
             }}],
         }),
         Stage::Join(Join {
-            condition: Some(Box::new(Expression::Reference(("col", 0u16).into()))),
+            condition: Some(Expression::Reference(("col", 0u16).into())),
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
@@ -896,7 +896,7 @@ mod join {
             }}],
         }),
         Stage::Join(Join {
-            condition: Some(Box::new(Expression::Reference(("col2", 0u16).into()))),
+            condition: Some(Expression::Reference(("col2", 0u16).into())),
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),

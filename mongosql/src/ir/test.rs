@@ -71,11 +71,34 @@ mod schema {
     use lazy_static::lazy_static;
 
     lazy_static! {
-        pub static ref TEST_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+        pub static ref TEST_DOCUMENT_A: Expression = Expression::Document(map! {
+            "a".into() => Expression::Literal(Literal::Integer(1))
+        });
+        pub static ref TEST_DOCUMENT_SCHEMA_A: Schema = Schema::Document(Document {
             keys: map! {
-            "bar".into() => Schema::Atomic(Atomic::Integer),
-                },
-            required: set! {"bar".into()},
+                "a".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        });
+        pub static ref TEST_DOCUMENT_B: Expression = Expression::Document(map! {
+            "b".into() => Expression::Literal(Literal::Integer(1))
+        });
+        pub static ref TEST_DOCUMENT_SCHEMA_B: Schema = Schema::Document(Document {
+            keys: map! {
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"b".into()},
+            additional_properties: false,
+        });
+        pub static ref TEST_DOCUMENT_C: Expression = Expression::Document(map! {
+            "c".into() => Expression::Literal(Literal::Integer(1))
+        });
+        pub static ref TEST_DOCUMENT_SCHEMA_C: Schema = Schema::Document(Document {
+            keys: map! {
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"c".into()},
             additional_properties: false,
         });
     }
@@ -1809,29 +1832,23 @@ mod schema {
     );
     test_schema!(
         limit_lt_num_docs,
-        Ok(ResultSet {
-            schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(vec![
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone()
-                ]),
-            },
+        match Ok(ResultSet {
             min_size: 2,
             max_size: Some(2),
+            ..
         }),
         Stage::Limit(Limit {
             limit: 2,
             source: Box::new(Stage::Array(Array {
                 array: vec![
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                        "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                        "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                        "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
                 alias: "foo".into(),
@@ -1840,29 +1857,23 @@ mod schema {
     );
     test_schema!(
         limit_gt_num_docs,
-        Ok(ResultSet {
-            schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(vec![
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                ]),
-            },
+        match Ok(ResultSet {
             min_size: 3,
             max_size: Some(3),
+            ..
         }),
         Stage::Limit(Limit {
             limit: 10,
             source: Box::new(Stage::Array(Array {
                 array: vec![
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                        "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                        "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                        "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
                 alias: "foo".into(),
@@ -1888,29 +1899,23 @@ mod schema {
     );
     test_schema!(
         offset_lt_num_docs,
-        Ok(ResultSet {
-            schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(vec![
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                ]),
-            },
+        match Ok(ResultSet {
             min_size: 2,
             max_size: Some(2),
+            ..
         }),
         Stage::Offset(Offset {
             offset: 1,
             source: Box::new(Stage::Array(Array {
                 array: vec![
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                        "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                        "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                        "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
                 alias: "foo".into(),
@@ -1919,35 +1924,30 @@ mod schema {
     );
     test_schema!(
         offset_gt_num_docs,
-        Ok(ResultSet {
-            schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(vec![
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                    TEST_DOCUMENT_SCHEMA.clone(),
-                ]),
-            },
+        match Ok(ResultSet {
             min_size: 0,
             max_size: Some(0),
+            ..
         }),
         Stage::Offset(Offset {
             offset: 10,
             source: Box::new(Stage::Array(Array {
                 array: vec![
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(1))
+                        "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(2))
+                        "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
                     Expression::Document(map! {
-                        "bar".into() => Expression::Literal(Literal::Integer(3))
+                        "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
                 alias: "foo".into(),
             })),
         }),
     );
+
     // Exists subquery
     test_schema!(
         exists_uncorrelated,
@@ -2173,6 +2173,292 @@ mod schema {
                 alias: "foo".into(),
             })),
         }),
+    );
+
+    // Join tests
+    test_schema!(
+        left_join,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("bar", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        Schema::Missing,
+                        Schema::AnyOf(
+                            vec![
+                                TEST_DOCUMENT_SCHEMA_B.clone()
+                            ]
+                        ),
+                    ]
+                ),
+                ("foo", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        TEST_DOCUMENT_SCHEMA_A.clone()
+                    ]
+                ),
+            },
+            min_size: 1,
+            max_size: Some(1),
+        }),
+        Stage::Join(Join {
+            join_type: JoinType::Left,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone()],
+                alias: "bar".into(),
+            })),
+            condition: Some(Expression::Literal(Literal::Boolean(false)))
+        }),
+    );
+    test_schema!(
+        cross_join,
+        match Ok(ResultSet {
+            min_size: 6,
+            max_size: Some(6),
+            ..
+        }),
+        Stage::Join(Join {
+            join_type: JoinType::Inner,
+            left: Box::new(Stage::Array(Array {
+                array: vec![
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(1))
+                    }),
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(2))
+                    }),
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(3))
+                    })
+                ],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![Expression::Document(map! {
+                        "b".into() => Expression::Literal(Literal::Integer(5))
+                    }),
+                    Expression::Document(map! {
+                        "b".into() => Expression::Literal(Literal::Integer(6))
+                    }),
+                ],
+                alias: "bar".into(),
+            })),
+            condition: None
+        }),
+    );
+    test_schema!(
+        inner_join,
+        match Ok(ResultSet {
+            min_size: 0,
+            max_size: Some(6),
+            ..
+        }),
+        Stage::Join(Join {
+            join_type: JoinType::Inner,
+            left: Box::new(Stage::Array(Array {
+                array: vec![
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(1))
+                    }),
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(2))
+                    }),
+                    Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(3))
+                    })
+                ],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![Expression::Document(map! {
+                        "b".into() => Expression::Literal(Literal::Integer(5))
+                    }),
+                    Expression::Document(map! {
+                        "b".into() => Expression::Literal(Literal::Integer(6))
+                    }),
+                ],
+                alias: "bar".into(),
+            })),
+            condition: Some(Expression::Literal(Literal::Boolean(false)))
+        }),
+    );
+    test_schema!(
+        inner_and_left_join,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        TEST_DOCUMENT_SCHEMA_A.clone(),
+                    ]
+                ),
+                ("bar", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        TEST_DOCUMENT_SCHEMA_B.clone(),
+                    ]
+                ),
+                ("car", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        Schema::Missing,
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_C.clone()]),
+                    ]
+                ),
+            },
+            min_size: 1,
+            max_size: Some(1),
+        }),
+        Stage::Join(Join {
+            join_type: JoinType::Inner,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Join(Join {
+                join_type: JoinType::Left,
+                left: Box::new(Stage::Array(Array {
+                    array: vec![TEST_DOCUMENT_B.clone()],
+                    alias: "bar".into(),
+                })),
+                right: Box::new(Stage::Array(Array {
+                    array: vec![TEST_DOCUMENT_C.clone()],
+                    alias: "car".into(),
+                })),
+                condition: Some(Expression::Literal(Literal::Boolean(false)))
+            })),
+            condition: None
+        }),
+    );
+    test_schema!(
+        join_duplicate_datasource_names,
+        Err(Error::DuplicateKeyError(("foo", 0u16).into())),
+        Stage::Join(Join {
+            join_type: JoinType::Inner,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone()],
+                alias: "foo".into(),
+            })),
+            condition: None
+        }),
+    );
+    test_schema!(
+        invalid_join_condition,
+        Err(Error::SchemaChecking {
+            name: "join condition",
+            required: BOOLEAN_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::Integer),
+        }),
+        Stage::Join(Join {
+            join_type: JoinType::Left,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone()],
+                alias: "bar".into(),
+            })),
+            condition: Some(Expression::Literal(Literal::Integer(5)))
+        }),
+    );
+    test_schema!(
+        join_condition_uses_left_datasource,
+        match Ok(ResultSet {..}),
+        Stage::Join(Join {
+            join_type: JoinType::Left,
+            left: Box::new(Stage::Array(Array {
+                array: vec![Expression::Document(map! {
+                    "a".into() => Expression::Literal(Literal::Boolean(true))
+                })],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone()],
+                alias: "bar".into(),
+            })),
+            condition: Some(Expression::TypeAssertion(TypeAssertionExpr {
+                expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "a".to_string(),
+                })),
+                target_type: Type::Boolean
+            }))
+        }),
+    );
+    test_schema!(
+        join_condition_uses_right_datasource,
+        match Ok(ResultSet {..}),
+        Stage::Join(Join {
+            join_type: JoinType::Left,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![Expression::Document(map! {
+                    "b".into() => Expression::Literal(Literal::Boolean(true))
+                })],
+                alias: "bar".into(),
+            })),
+            condition: Some(Expression::TypeAssertion(TypeAssertionExpr {
+                expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("bar", 0u16).into())),
+                    field: "b".to_string(),
+                })),
+                target_type: Type::Boolean
+            }))
+        }),
+    );
+    test_schema!(
+        join_condition_uses_correlated_datasource,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::SubqueryExpression(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                field: "a".into()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Join(Join {
+                    join_type: JoinType::Left,
+                    left: Box::new(Stage::Array(Array {
+                        array: vec![TEST_DOCUMENT_B.clone()],
+                        alias: "bar".into(),
+                    })),
+                    right: Box::new(Stage::Array(Array {
+                        array: vec![TEST_DOCUMENT_C.clone()],
+                        alias: "car".into(),
+                    })),
+                    condition: Some(Expression::TypeAssertion(TypeAssertionExpr {
+                        expr: Box::new(Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".to_string(),
+                        })),
+                        target_type: Type::Boolean
+                    }))
+                }),),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(map! {
+                        "a".into() => Expression::FieldAccess(FieldAccess{
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".into()
+                        })
+                    })
+                }
+            }))
+        }),
+        map! {
+            ("foo", 0u16).into() => Schema::Document( Document{
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Boolean)
+                },
+                required: set! { "a".into() },
+                additional_properties: false,
+            }),
+        },
     );
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    ir::*,
+    ir::{binding_tuple::Key, *},
     map,
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT,
@@ -30,10 +30,12 @@ pub enum Error {
     },
     #[error("cannot access field {0} because it does not exist")]
     AccessMissingField(String),
-    #[error("Invalid JSON schema: {0}")]
+    #[error("invalid JSON schema: {0}")]
     InvalidJsonSchema(String),
     #[error("cardinality of the subquery's result set may be greater than 1")]
     InvalidSubqueryCardinality,
+    #[error("cannot create schema environment with duplicate datasource: {0:?}")]
+    DuplicateKeyError(Key),
 }
 
 #[derive(Debug, Clone)]
@@ -48,15 +50,16 @@ impl SchemaInferenceState {
         SchemaInferenceState { scope_level, env }
     }
 
-    pub fn with_merged_schema_env(&self, env: SchemaEnvironment) -> SchemaInferenceState {
-        let mut merged_env = env;
-        for (k, v) in self.env.iter() {
-            merged_env.insert(k.clone(), v.clone());
-        }
-        SchemaInferenceState {
-            env: merged_env,
+    pub fn with_merged_schema_env(
+        &self,
+        env: SchemaEnvironment,
+    ) -> Result<SchemaInferenceState, Error> {
+        Ok(SchemaInferenceState {
+            env: env
+                .with_merged_mappings(self.env.clone())
+                .map_err(|e| Error::DuplicateKeyError(e.key))?,
             scope_level: self.scope_level,
-        }
+        })
     }
 
     pub fn subquery_state(&self) -> SchemaInferenceState {
@@ -79,7 +82,7 @@ impl Stage {
         match self {
             Stage::Filter(f) => {
                 let source_result_set = f.source.schema(state)?;
-                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
                 let cond_schema = f.condition.schema(&state)?;
                 if cond_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
                     return Err(Error::SchemaChecking {
@@ -97,7 +100,7 @@ impl Stage {
             Stage::Project(p) => {
                 let source_result_set = p.source.schema(state)?;
                 let (min_size, max_size) = (source_result_set.min_size, source_result_set.max_size);
-                let state = state.with_merged_schema_env(source_result_set.schema_env);
+                let state = state.with_merged_schema_env(source_result_set.schema_env)?;
                 let schema_env = p
                     .expression
                     .iter()
@@ -171,7 +174,67 @@ impl Stage {
                     })
                 }
             }
-            Stage::Join(_) => unimplemented!(),
+            Stage::Join(j) => {
+                let left_result_set = j.left.schema(state)?;
+                let right_result_set = j.right.schema(state)?;
+                let state = state
+                    .with_merged_schema_env(left_result_set.schema_env.clone())?
+                    .with_merged_schema_env(right_result_set.schema_env.clone())?;
+                if let Some(e) = &j.condition {
+                    let cond_schema = e.schema(&state)?;
+                    if cond_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
+                        return Err(Error::SchemaChecking {
+                            name: "join condition",
+                            required: BOOLEAN_OR_NULLISH.clone(),
+                            found: cond_schema,
+                        });
+                    }
+                };
+                match j.join_type {
+                    JoinType::Left => {
+                        let min_size = left_result_set.min_size;
+                        let max_size = left_result_set
+                            .max_size
+                            .and_then(|l| right_result_set.max_size.map(|r| l * r));
+                        Ok(ResultSet {
+                            schema_env: left_result_set
+                                .schema_env
+                                .with_merged_mappings(
+                                    right_result_set
+                                        .schema_env
+                                        .into_iter()
+                                        .map(|(key, schema)| {
+                                            (key, Schema::AnyOf(vec![Schema::Missing, schema]))
+                                        })
+                                        .collect::<SchemaEnvironment>(),
+                                )
+                                .map_err(|e| Error::DuplicateKeyError(e.key))?,
+                            min_size,
+                            max_size,
+                        })
+                    }
+                    JoinType::Inner => {
+                        // If the join is a cross join, set min_size to the cardinality of the
+                        // Cartesian product of the left and right result sets. Set max_size to this
+                        // value for both cross and inner joins.
+                        let min_size = match j.condition {
+                            None => left_result_set.min_size * right_result_set.min_size,
+                            Some(_) => 0,
+                        };
+                        let max_size = left_result_set
+                            .max_size
+                            .and_then(|l| right_result_set.max_size.map(|r| l * r));
+                        Ok(ResultSet {
+                            schema_env: left_result_set
+                                .schema_env
+                                .with_merged_mappings(right_result_set.schema_env)
+                                .map_err(|e| Error::DuplicateKeyError(e.key))?,
+                            min_size,
+                            max_size,
+                        })
+                    }
+                }
+            }
             Stage::Set(_) => unimplemented!(),
         }
     }
