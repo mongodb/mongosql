@@ -28,6 +28,16 @@ macro_rules! test_from_json_schema {
     };
 }
 
+macro_rules! test_simplify {
+    ($func_name:ident, $expected:expr, $input:expr $(,)?) => {
+        #[test]
+        fn $func_name() {
+            let res = schema::Schema::simplify(&$input);
+            assert_eq!($expected, res)
+        }
+    };
+}
+
 mod satisfaction_ord {
     #[test]
     fn satisfaction_ord() {
@@ -695,6 +705,13 @@ test_satisfies!(
     Array(Box::new(Missing)),
     Array(Box::new(Atomic(Integer))),
 );
+test_satisfies!(satisfies_any_of_empty_and_unsat, Must, AnyOf(vec![]), Unsat);
+test_satisfies!(
+    satisfies_any_of_and_unsat_not_empty,
+    Not,
+    AnyOf(vec![Atomic(Integer)]),
+    Unsat
+);
 
 macro_rules! test_contains_field {
     ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
@@ -825,4 +842,89 @@ test_contains_field!(
         }),
     ]),
     "b",
+);
+test_simplify!(contains_empty_vec, Unsat, AnyOf(vec![]));
+test_simplify!(
+    remove_any_of_duplicates,
+    AnyOf(vec![Atomic(String), Atomic(Integer)]),
+    AnyOf(vec![Atomic(Integer), Atomic(Integer), Atomic(String)])
+);
+test_simplify!(
+    remove_any_of_duplicates_not_consecutive,
+    AnyOf(vec![Atomic(String), Atomic(Integer)]),
+    AnyOf(vec![
+        Atomic(Integer),
+        Atomic(Integer),
+        Atomic(String),
+        Atomic(Integer)
+    ])
+);
+test_simplify!(flatten_any_is_flat, Any, Any);
+test_simplify!(
+    flatten_any_of_one_schema,
+    Atomic(Integer),
+    AnyOf(vec![Atomic(Integer)])
+);
+test_simplify!(flatten_any_of_any_schema, Any, AnyOf(vec!(Any, Missing)));
+test_simplify!(
+    flatten_any_of_any_of,
+    AnyOf(vec![Missing, Atomic(String), Atomic(Integer)]),
+    AnyOf(vec![AnyOf(vec![Missing, Atomic(String)]), Atomic(Integer)]),
+);
+test_simplify!(
+    flatten_any_of_and_remove_duplicates,
+    AnyOf(vec![Atomic(String), Atomic(Integer), Atomic(Null)]),
+    AnyOf(vec![
+        AnyOf(vec![Atomic(Integer), Atomic(String)]),
+        AnyOf(vec![Atomic(Integer), Atomic(Null)])
+    ])
+);
+test_simplify!(
+    flatten_any_of_containing_array,
+    Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer)]))),
+    AnyOf(vec![Array(Box::new(AnyOf(vec![
+        Atomic(Integer),
+        Atomic(String)
+    ])))])
+);
+test_simplify!(
+    flatten_any_of_and_return_single_element,
+    Atomic(Integer),
+    AnyOf(vec![Atomic(Integer), Atomic(Integer)])
+);
+test_simplify!(
+    simplify_array,
+    Array(Box::new(AnyOf(vec![
+        Missing,
+        Atomic(String),
+        Atomic(Integer)
+    ]))),
+    Array(Box::new(AnyOf(vec![
+        AnyOf(vec![Missing, Atomic(String)]),
+        Atomic(Integer)
+    ])))
+);
+test_simplify!(
+    simplify_document,
+    Document(Document {
+        keys: map![
+            "a".to_string() => AnyOf(vec![
+            Missing,
+            Atomic(String),
+            Atomic(Integer)
+        ])
+            ],
+        required: set!["a".to_string()],
+        additional_properties: true,
+    }),
+    Document(Document {
+        keys: map![
+            "a".to_string() => AnyOf(vec![
+            AnyOf(vec![Missing, Atomic(String)]),
+            Atomic(Integer)
+        ]),
+                        ],
+        required: set!["a".to_string()],
+        additional_properties: true,
+    })
 );

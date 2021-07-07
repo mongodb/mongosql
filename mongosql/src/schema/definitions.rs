@@ -1,7 +1,7 @@
 use crate::{
     ir::{binding_tuple::BindingTuple, schema::Error, Type},
     json_schema, map,
-    schema::Schema::AnyOf,
+    schema::Schema::{AnyOf, Unsat},
     set,
 };
 use lazy_static::lazy_static;
@@ -33,6 +33,7 @@ impl Default for ResultSet {
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum Schema {
     Any,
+    Unsat,
     Missing,
     Atomic(Atomic),
     AnyOf(Vec<Schema>),
@@ -169,6 +170,49 @@ pub enum Satisfaction {
 
 #[allow(dead_code, unused_variables)]
 impl Schema {
+    /// returns a simplified version of this schema.
+    pub fn simplify(schema: &Schema) -> Schema {
+        match schema {
+            Schema::AnyOf(a) => {
+                let ret: Vec<Schema> = a
+                    .iter()
+                    .map(Schema::simplify)
+                    .flat_map(|x| match x {
+                        Schema::AnyOf(vs) => vs,
+                        _ => vec![x],
+                    })
+                    .collect();
+                if ret.is_empty() {
+                    Unsat
+                } else if ret.contains(&Schema::Any) {
+                    Schema::Any
+                } else {
+                    let unique: BTreeSet<Schema> = ret.iter().cloned().collect::<BTreeSet<_>>();
+                    let ret: Vec<Schema> = unique.into_iter().collect();
+                    if ret.len() == 1 {
+                        ret.into_iter().next().unwrap()
+                    } else {
+                        Schema::AnyOf(ret)
+                    }
+                }
+            }
+            Schema::Array(arr) => Schema::Array(Box::new(Schema::simplify(arr))),
+            Schema::Document(d) => Schema::Document(Document {
+                keys: d
+                    .keys
+                    .iter()
+                    .map(|(k, s)| (k.clone(), Schema::simplify(s)))
+                    .collect(),
+                required: d.required.clone(),
+                ..*d
+            }),
+            Schema::Atomic(x) => schema.clone(),
+            Schema::Any => Schema::Any,
+            Schema::Unsat => Schema::Unsat,
+            Schema::Missing => Schema::Missing,
+        }
+    }
+
     /// schema_predicate_meet applies a schema_predicate to all passed Schemata,
     /// and takes the meet of the Satisfaction lattice defined as:
     ///
@@ -228,6 +272,11 @@ impl Schema {
         use Satisfaction::*;
         use Schema::*;
         match (self, &other) {
+            // other is Unsat or self is Unsat
+            (Unsat, _) => Must,
+            (AnyOf(x), Unsat) if x.is_empty() => Must,
+            (_, Unsat) => Not,
+
             // other is Any or self is Any
             (_, Any) => Must,
             (Any, _) => May,
@@ -277,7 +326,11 @@ impl Schema {
                     .map(|e| e.upconvert_missing_to_null())
                     .collect(),
             ),
-            Schema::Any | Schema::Atomic(_) | Schema::Document(_) | Schema::Array(_) => self,
+            Schema::Any
+            | Schema::Atomic(_)
+            | Schema::Document(_)
+            | Schema::Array(_)
+            | Schema::Unsat => self,
         }
     }
 }

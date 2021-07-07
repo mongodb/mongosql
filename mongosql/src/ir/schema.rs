@@ -265,6 +265,7 @@ impl Expression {
                 );
             }
             Schema::Missing | Schema::Array(_) | Schema::Atomic(_) => return Schema::Missing,
+            Schema::Unsat => return Schema::Unsat,
         };
         // If we find the field in the Document, we just return
         // the Schema for that field, unless the field is not required,
