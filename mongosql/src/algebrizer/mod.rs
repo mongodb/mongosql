@@ -128,9 +128,18 @@ pub struct Algebrizer {
 
 impl Algebrizer {
     pub fn new(current_db: String, scope_level: u16) -> Self {
+        Self::with_schema_env(current_db, SchemaEnvironment::default(), scope_level)
+    }
+
+    #[allow(dead_code)]
+    pub fn with_schema_env(
+        current_db: String,
+        schema_env: SchemaEnvironment,
+        scope_level: u16,
+    ) -> Self {
         Self {
             current_db,
-            schema_env: SchemaEnvironment::default(),
+            schema_env,
             scope_level,
         }
     }

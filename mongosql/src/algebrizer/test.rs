@@ -30,9 +30,7 @@ macro_rules! test_algebrize {
         #[test]
         fn $func_name() {
             use crate::algebrizer::{Algebrizer, Error};
-            let algebrizer = Algebrizer::new("test".into(), 1u16)
-                .with_merged_mappings($env)
-                .unwrap();
+            let algebrizer = Algebrizer::with_schema_env("test".into(), $env, 1u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast, $source);
             assert_eq!(expected, res);
@@ -48,9 +46,7 @@ macro_rules! test_algebrize_with_env {
                 algebrizer::{Algebrizer, Error},
                 ast,
             };
-            let algebrizer = Algebrizer::new("test".into(), 1u16)
-                .with_merged_mappings($env)
-                .unwrap();
+            let algebrizer = Algebrizer::with_schema_env("test".into(), $env, 1u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast);
             assert_eq!(expected, res);
