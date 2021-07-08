@@ -158,6 +158,11 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
+    pub static ref INTEGER_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
 }
 
 #[allow(dead_code)]

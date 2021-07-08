@@ -519,6 +519,107 @@ mod schema {
         }),
     );
 
+    // Substring function.
+    test_schema!(
+        substring_requires_string_for_first_arg,
+        Err(Error::SchemaChecking {
+            name: "Substring",
+            required: STRING_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::Integer),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Substring,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2)),
+                Expression::Literal(Literal::Integer(3))
+            ],
+        }),
+    );
+    test_schema!(
+        substring_requires_integer_for_second_arg,
+        Err(Error::SchemaChecking {
+            name: "Substring",
+            required: INTEGER_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Substring,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::String("def".to_string())),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_schema!(
+        substring_requires_integer_for_third_arg,
+        Err(Error::SchemaChecking {
+            name: "Substring",
+            required: INTEGER_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Substring,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::String("def".to_string()))
+            ],
+        }),
+    );
+    test_schema!(
+        substring_with_start_arg,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Substring,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(1))
+            ],
+        }),
+    );
+    test_schema!(
+        substring_with_start_and_length_args,
+        Ok(Schema::Atomic(Atomic::String)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Substring,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2))
+            ],
+        }),
+    );
+    test_schema!(
+        substring_with_null_arg,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Substring,
+            args: vec![
+                Expression::Literal(Literal::Null),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2))
+            ],
+        }),
+    );
+    test_schema!(
+        substring_with_potentially_null_arg,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Substring,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Reference(("integer_or_null", 0u16).into())
+            ],
+        }),
+        map! {("integer_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
+    );
+
     // Trim function type correctness
     test_schema!(
         ltrim_must_be_string,

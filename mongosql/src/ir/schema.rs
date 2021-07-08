@@ -3,7 +3,8 @@ use crate::{
     map,
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT,
-        BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+        BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH,
+        STRING_OR_NULLISH,
     },
 };
 use linked_hash_map::LinkedHashMap;
@@ -527,7 +528,7 @@ impl ScalarFunction {
                 },
             ),
             // String value scalar functions.
-            Substring => unimplemented!(),
+            Substring => self.get_substring_schema(arg_schemas),
             Upper | Lower => Ok(
                 match self.schema_check_fixed_args(arg_schemas, &[STRING_OR_NULLISH.clone()])? {
                     Satisfaction::May => Schema::AnyOf(vec![
@@ -610,6 +611,43 @@ impl ScalarFunction {
             &std::iter::repeat(required_schema)
                 .take(arg_schemas.len())
                 .collect::<Vec<Schema>>(),
+        )
+    }
+
+    /// Returns the schema for the substring function.
+    ///
+    /// The error checks include special handling for an optional third argument.
+    /// That is, a valid substring function can only be one of:
+    ///   - SUBSTRING(<string> FROM <start>)
+    ///   - SUBSTRING(<string> FROM <start> FOR <length>)
+    ///
+    /// We first check the schema for 3 args. If the check fails specifically due
+    /// to an incorrect argument count, we check the schema for 2 args instead.
+    fn get_substring_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+        Ok(
+            match self
+                .schema_check_fixed_args(
+                    arg_schemas,
+                    &[
+                        STRING_OR_NULLISH.clone(),
+                        INTEGER_OR_NULLISH.clone(),
+                        INTEGER_OR_NULLISH.clone(),
+                    ],
+                )
+                .or_else(|err| match err {
+                    Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
+                        arg_schemas,
+                        &[STRING_OR_NULLISH.clone(), INTEGER_OR_NULLISH.clone()],
+                    ),
+                    e => Err(e),
+                })? {
+                Satisfaction::May => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                Satisfaction::Not => Schema::Atomic(Atomic::String),
+                Satisfaction::Must => Schema::Atomic(Atomic::Null),
+            },
         )
     }
 
