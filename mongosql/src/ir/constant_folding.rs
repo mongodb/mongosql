@@ -33,7 +33,7 @@ impl Visitor for ConstantFoldExprVisitor {
     fn visit_stage(&mut self, st: ir::Stage) -> ir::Stage {
         use ir::definitions::*;
         let st = st.walk(self);
-        match st.clone() {
+        match st {
             Stage::Array(_) => st,
             Stage::Collection(_) => st,
             Stage::Filter(_) => st,

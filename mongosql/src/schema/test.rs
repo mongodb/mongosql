@@ -1,33 +1,3 @@
-macro_rules! test_satisfies {
-    ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
-        #[test]
-        fn $func_name() {
-            let res = $self.satisfies(&$other);
-            assert_eq!($expected, res)
-        }
-    };
-}
-
-macro_rules! test_from_json_schema {
-    ($func_name:ident, $schema_schema:expr, $json_schema:expr) => {
-        #[test]
-        fn $func_name() {
-            let s = schema::Schema::try_from($json_schema);
-            assert_eq!(s, $schema_schema);
-        }
-    };
-}
-
-macro_rules! test_simplify {
-    ($func_name:ident, $expected:expr, $input:expr $(,)?) => {
-        #[test]
-        fn $func_name() {
-            let res = schema::Schema::simplify(&$input);
-            assert_eq!($expected, res)
-        }
-    };
-}
-
 mod satisfaction_ord {
     #[test]
     fn satisfaction_ord() {
@@ -36,6 +6,10 @@ mod satisfaction_ord {
         assert!(May > Not);
     }
 }
+
+// +-------------------+
+// | JSON schema tests |
+// +-------------------+
 
 mod from_json {
     use crate::{
@@ -47,6 +21,17 @@ mod from_json {
         set,
     };
     use std::convert::TryFrom;
+
+    macro_rules! test_from_json_schema {
+        ($func_name:ident, $schema_schema:expr, $json_schema:expr) => {
+            #[test]
+            fn $func_name() {
+                let s = schema::Schema::try_from($json_schema);
+                assert_eq!(s, $schema_schema);
+            }
+        };
+    }
+
     test_from_json_schema!(
         convert_bson_single_to_atomic,
         Ok(Atomic(Integer)),
@@ -55,6 +40,7 @@ mod from_json {
             ..Default::default()
         }
     );
+
     test_from_json_schema!(
         invalid_bson_type,
         Err(Error::InvalidJsonSchema(
@@ -324,12 +310,28 @@ mod from_json {
         }
     );
 }
+
+// +-----------------+
+// | Satisfies tests |
+// +-----------------+
+
 mod satisfies {
     use crate::{
         map,
         schema::{Atomic::*, Document, Satisfaction::*, Schema::*},
         set,
     };
+
+    macro_rules! test_satisfies {
+        ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                let res = $self.satisfies(&$other);
+                assert_eq!($expected, res)
+            }
+        };
+    }
+
     test_satisfies!(any_must_satisfy_any, Must, Any, Any);
     test_satisfies!(missing_must_satisfy_any, Must, Missing, Any);
     test_satisfies!(
@@ -411,7 +413,6 @@ mod satisfies {
         AnyOf(vec![Atomic(String), Atomic(Integer)]),
         Any,
     );
-
     test_satisfies!(
         any_of_must_satisfy_when_any_of_contains_any,
         Must,
@@ -707,15 +708,253 @@ mod satisfies {
     );
 }
 
-macro_rules! test_contains_field {
-    ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
-        #[test]
-        fn $func_name() {
-            let res = $self.contains_field($other);
-            assert_eq!($expected, res)
-        }
-    };
+// +---------------------+
+// | Comparability tests |
+// +---------------------+
+
+mod is_comparable_with {
+    use crate::schema::{Atomic::*, Satisfaction::*, Schema::*, ANY_ARRAY, ANY_DOCUMENT};
+
+    macro_rules! test_is_comparable_with {
+        ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                let mut res = $self.is_comparable_with(&$other);
+                assert_eq!($expected, res);
+                res = $other.is_comparable_with(&$self);
+                assert_eq!($expected, res)
+            }
+        };
+    }
+
+    // Disallowed comparability tests (arrays and documents).
+    test_is_comparable_with!(
+        array_not_comparable_with_another_array,
+        Not,
+        ANY_ARRAY,
+        ANY_ARRAY,
+    );
+    test_is_comparable_with!(
+        document_not_comparable_with_another_document,
+        Not,
+        ANY_DOCUMENT,
+        ANY_DOCUMENT,
+    );
+    test_is_comparable_with!(
+        array_not_comparable_with_document,
+        Not,
+        ANY_ARRAY,
+        ANY_DOCUMENT,
+    );
+
+    test_is_comparable_with!(array_not_comparable_with_any, Not, ANY_ARRAY, Any,);
+    test_is_comparable_with!(
+        array_not_comparable_with_another_type,
+        Not,
+        ANY_ARRAY,
+        Atomic(Integer),
+    );
+    test_is_comparable_with!(array_not_comparable_with_null, Not, ANY_ARRAY, Atomic(Null),);
+    test_is_comparable_with!(array_not_comparable_with_missing, Not, ANY_ARRAY, Missing,);
+    test_is_comparable_with!(array_not_comparable_with_unsat, Not, ANY_ARRAY, Unsat,);
+
+    test_is_comparable_with!(
+        document_not_comparable_with_any_type,
+        Not,
+        ANY_DOCUMENT,
+        Any,
+    );
+    test_is_comparable_with!(
+        document_not_comparable_with_a_type,
+        Not,
+        ANY_DOCUMENT,
+        Atomic(Integer),
+    );
+    test_is_comparable_with!(
+        document_not_comparable_with_null,
+        Not,
+        ANY_DOCUMENT,
+        Atomic(Null),
+    );
+    test_is_comparable_with!(
+        document_not_comparable_with_missing,
+        Not,
+        ANY_DOCUMENT,
+        Missing,
+    );
+    test_is_comparable_with!(document_not_comparable_with_unsat, Not, ANY_DOCUMENT, Unsat,);
+
+    // Any comparison tests.
+    test_is_comparable_with!(
+        any_type_may_be_comparable_with_another_type,
+        May,
+        Any,
+        Atomic(Integer),
+    );
+    test_is_comparable_with!(any_type_may_be_comparable_with_null, May, Any, Atomic(Null),);
+    test_is_comparable_with!(any_type_may_be_comparable_with_missing, May, Any, Missing,);
+    test_is_comparable_with!(any_type_may_be_comparable_with_unsat, May, Any, Unsat,);
+
+    // Missing comparability tests.
+    test_is_comparable_with!(
+        missing_must_be_comparable_with_missing,
+        Must,
+        Missing,
+        Missing,
+    );
+    test_is_comparable_with!(
+        missing_must_be_comparable_with_another_type,
+        Must,
+        Missing,
+        Atomic(Integer),
+    );
+    test_is_comparable_with!(
+        missing_must_be_comparable_with_null,
+        Must,
+        Missing,
+        Atomic(Null),
+    );
+    test_is_comparable_with!(missing_must_be_comparable_with_unsat, Must, Missing, Unsat,);
+
+    // Unsat comparability tests.
+    test_is_comparable_with!(unsat_must_be_comparable_with_unsat, Must, Unsat, Unsat,);
+    test_is_comparable_with!(
+        unsat_must_be_comparable_with_another_type,
+        Must,
+        Unsat,
+        Atomic(Integer),
+    );
+    test_is_comparable_with!(
+        unsat_must_be_comparable_with_null,
+        Must,
+        Unsat,
+        Atomic(Null),
+    );
+
+    // Atomic comparability tests.
+    test_is_comparable_with!(
+        null_must_be_comparable_with_null,
+        Must,
+        Atomic(Null),
+        Atomic(Null),
+    );
+    test_is_comparable_with!(
+        null_must_be_comparable_with_atomic_numeric,
+        Must,
+        Atomic(Null),
+        Atomic(Integer),
+    );
+    test_is_comparable_with!(
+        atomic_numeric_must_be_comparable_with_same_atomic_numeric,
+        Must,
+        Atomic(Integer),
+        Atomic(Integer),
+    );
+    test_is_comparable_with!(
+        atomic_numeric_must_be_comparable_with_different_atomic_numeric,
+        Must,
+        Atomic(Integer),
+        Atomic(Double),
+    );
+    test_is_comparable_with!(
+        non_numeric_atomic_must_be_comparable_with_same_non_numeric_atomic,
+        Must,
+        Atomic(String),
+        Atomic(String),
+    );
+    test_is_comparable_with!(
+        atomic_not_comparable_with_different_atomic,
+        Not,
+        Atomic(String),
+        Atomic(Integer),
+    );
+
+    // AnyOf comparability tests (numeric).
+    test_is_comparable_with!(
+        numeric_atomic_must_be_comparable_with_a_set_of_numerics,
+        Must,
+        Atomic(Integer),
+        AnyOf(vec![Atomic(Integer), Atomic(Long)]),
+    );
+    test_is_comparable_with!(
+        a_set_of_numerics_must_be_comparable_with_a_disjoint_set_of_numerics,
+        Must,
+        AnyOf(vec![Atomic(Integer), Atomic(Long)]),
+        AnyOf(vec![Atomic(Double), Atomic(Decimal)]),
+    );
+    test_is_comparable_with!(
+        numeric_must_be_comparable_with_different_numeric_or_null,
+        Must,
+        Atomic(Integer),
+        AnyOf(vec![Atomic(Long), Atomic(Null)]),
+    );
+    test_is_comparable_with!(
+        numeric_or_null_must_be_comparable_with_different_numeric_or_null,
+        Must,
+        AnyOf(vec![Atomic(Integer), Atomic(Null)]),
+        AnyOf(vec![Atomic(Long), Atomic(Null)]),
+    );
+    test_is_comparable_with!(
+        numeric_atomic_may_be_comparable_with_potentially_same_numeric,
+        May,
+        Atomic(Integer),
+        AnyOf(vec![Atomic(Integer), Atomic(String)]),
+    );
+    test_is_comparable_with!(
+        potential_numeric_may_be_comparable_with_potentially_same_numeric,
+        May,
+        AnyOf(vec![Atomic(Integer), Atomic(String)]),
+        AnyOf(vec![Atomic(Integer), Atomic(String)]),
+    );
+    test_is_comparable_with!(
+        potential_numeric_may_be_comparable_with_potentially_different_numeric,
+        May,
+        AnyOf(vec![Atomic(Integer), Atomic(String)]),
+        AnyOf(vec![Atomic(Double), Atomic(String)]),
+    );
+
+    // AnyOf comparability tests (non-numeric).
+    test_is_comparable_with!(
+        atomic_must_be_comparable_with_same_atomic_or_null,
+        Must,
+        Atomic(String),
+        AnyOf(vec![Atomic(String), Atomic(Null)]),
+    );
+    test_is_comparable_with!(
+        atomic_or_null_must_be_comparable_with_same_atomic_or_null,
+        Must,
+        AnyOf(vec![Atomic(String), Atomic(Null)]),
+        AnyOf(vec![Atomic(String), Atomic(Null)]),
+    );
+    test_is_comparable_with!(
+        atomic_may_be_comparable_with_potentially_same_atomic,
+        May,
+        Atomic(String),
+        AnyOf(vec![Atomic(String), Atomic(Integer)]),
+    );
+    test_is_comparable_with!(
+        atomic_or_null_may_be_comparable_with_different_atomic_or_null,
+        May,
+        AnyOf(vec![Atomic(String), Atomic(Null)]),
+        AnyOf(vec![Atomic(Integer), Atomic(Null)]),
+    );
+    test_is_comparable_with!(
+        some_atomic_may_be_comparable_with_potentially_same_atomic,
+        May,
+        AnyOf(vec![Atomic(String), Atomic(Boolean)]),
+        AnyOf(vec![Atomic(String), Atomic(Integer)]),
+    );
+    test_is_comparable_with!(
+        a_set_of_atomics_not_comparable_with_disjoint_set_of_atomics,
+        Not,
+        AnyOf(vec![Atomic(String), Atomic(Boolean)]),
+        AnyOf(vec![Atomic(Date), Atomic(Integer)]),
+    );
 }
+
+// +----------------------+
+// | Contains field tests |
+// +----------------------+
 
 mod contains_field {
     use crate::{
@@ -723,6 +962,17 @@ mod contains_field {
         schema::{Atomic::*, Document, Satisfaction::*, Schema::*},
         set,
     };
+
+    macro_rules! test_contains_field {
+        ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                let res = $self.contains_field($other);
+                assert_eq!($expected, res)
+            }
+        };
+    }
+
     test_contains_field!(any_may_contain_field, May, Any, "a");
     test_contains_field!(missing_does_not_contain_field, Not, Missing, "a");
     test_contains_field!(
@@ -835,12 +1085,27 @@ mod contains_field {
     );
 }
 
+// +----------------+
+// | Simplify tests |
+// +----------------+
+
 mod simplify {
     use crate::{
         map, schema,
         schema::{Atomic::*, Document, Schema::*},
         set,
     };
+
+    macro_rules! test_simplify {
+        ($func_name:ident, $expected:expr, $input:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                let res = schema::Schema::simplify(&$input);
+                assert_eq!($expected, res)
+            }
+        };
+    }
+
     test_simplify!(contains_empty_vec, Unsat, AnyOf(vec![]));
     test_simplify!(
         remove_any_of_duplicates,

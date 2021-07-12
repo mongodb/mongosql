@@ -2,9 +2,9 @@ use crate::{
     ir::{binding_tuple::Key, *},
     map,
     schema::{
-        Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_DOCUMENT,
-        BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH,
-        STRING_OR_NULLISH,
+        Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
+        ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH,
+        INTEGER_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
 };
 use linked_hash_map::LinkedHashMap;
@@ -29,6 +29,8 @@ pub enum Error {
         required: Schema,
         found: Schema,
     },
+    #[error("invalid comparison for {0}: {1:?} cannot be compared to {2:?}")]
+    InvalidComparison(&'static str, Schema, Schema),
     #[error("cannot access field {0} because it does not exist")]
     AccessMissingField(String),
     #[error("invalid JSON schema: {0}")]
@@ -507,11 +509,26 @@ impl ScalarFunction {
                 Ok(Schema::Any)
             }
             // Conditional scalar functions.
-            NullIf => unimplemented!(),
-            Coalesce => unimplemented!(),
-            // Array scalar functions
-            Slice => unimplemented!(),
-            Size => unimplemented!(),
+            NullIf => {
+                self.get_comparison_schema(arg_schemas)?;
+                Ok(Schema::AnyOf(vec![
+                    arg_schemas[0].clone().upconvert_missing_to_null(),
+                    Schema::Atomic(Atomic::Null),
+                ]))
+            }
+            Coalesce => self.get_coalesce_schema(arg_schemas),
+            // Array scalar functions.
+            Slice => self.get_slice_schema(arg_schemas),
+            Size => Ok(
+                match self.schema_check_fixed_args(arg_schemas, &[ANY_ARRAY_OR_NULLISH.clone()])? {
+                    Satisfaction::May => Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Null),
+                    ]),
+                    Satisfaction::Not => Schema::Atomic(Atomic::Integer),
+                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
+                },
+            ),
             // Numeric value scalar functions.
             Position => unimplemented!(),
             CharLength => unimplemented!(),
@@ -566,7 +583,7 @@ impl ScalarFunction {
     /// Since the argument count is fixed, the slice of required schemas must correspond 1-to-1
     /// with the slice of argument schemas.
     ///
-    /// The boolean result returns whether a NULLISH argument is a possibility.
+    /// The satisfaction result returns whether a NULLISH argument is a possibility.
     fn schema_check_fixed_args(
         &self,
         arg_schemas: &[Schema],
@@ -614,7 +631,7 @@ impl ScalarFunction {
         )
     }
 
-    /// Returns the schema for the substring function.
+    /// Returns the string and/or null schema for the substring function.
     ///
     /// The error checks include special handling for an optional third argument.
     /// That is, a valid substring function can only be one of:
@@ -646,6 +663,84 @@ impl ScalarFunction {
                     Schema::Atomic(Atomic::Null),
                 ]),
                 Satisfaction::Not => Schema::Atomic(Atomic::String),
+                Satisfaction::Must => Schema::Atomic(Atomic::Null),
+            },
+        )
+    }
+
+    /// Returns the boolean and/or null schema for a valid comparison, or an error
+    /// if the number of operands is not two or the comparison is not valid.
+    fn get_comparison_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+        let ret_schema =
+            match self.schema_check_fixed_args(arg_schemas, &[Schema::Any, Schema::Any])? {
+                Satisfaction::May => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Boolean),
+                    Schema::Atomic(Atomic::Null),
+                ]),
+                Satisfaction::Not => Schema::Atomic(Atomic::Boolean),
+                Satisfaction::Must => Schema::Atomic(Atomic::Null),
+            };
+
+        if arg_schemas[0].is_comparable_with(&arg_schemas[1]) == Satisfaction::Must {
+            Ok(ret_schema)
+        } else {
+            Err(Error::InvalidComparison(
+                self.as_str(),
+                arg_schemas[0].clone(),
+                arg_schemas[1].clone(),
+            ))
+        }
+    }
+
+    /// Returns the schema for the coalesce function, or an error if no arguments are provided.
+    /// Currently returns the schema of all args with the null schema.
+    /// See SQL-400 for tightening the schema.
+    fn get_coalesce_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+        // Coalesce requires at least one argument.
+        if arg_schemas.is_empty() {
+            return Err(Error::IncorrectArgumentCount {
+                name: self.as_str(),
+                required: 1,
+                found: 0,
+            });
+        }
+
+        let mut v = vec![Schema::Atomic(Atomic::Null)];
+        v.extend_from_slice(arg_schemas);
+        Ok(Schema::AnyOf(v).upconvert_missing_to_null())
+    }
+
+    /// Returns the array and/or null schema for the slice function.
+    ///
+    /// The error checks include special handling for an optional third argument.
+    /// That is, a valid slice function can only be one of:
+    ///   - SLICE(<array>, <length>)
+    ///   - SLICE(<array>, <start>, <length>)
+    ///
+    /// We first check the schema for 3 args. If the check fails specifically due
+    /// to an incorrect argument count, we check the schema for 2 args instead.
+    fn get_slice_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+        Ok(
+            match self
+                .schema_check_fixed_args(
+                    arg_schemas,
+                    &[
+                        ANY_ARRAY.clone(),
+                        INTEGER_OR_NULLISH.clone(),
+                        INTEGER_OR_NULLISH.clone(),
+                    ],
+                )
+                .or_else(|err| match err {
+                    Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
+                        arg_schemas,
+                        &[ANY_ARRAY.clone(), INTEGER_OR_NULLISH.clone()],
+                    ),
+                    e => Err(e),
+                })? {
+                Satisfaction::May => {
+                    Schema::AnyOf(vec![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)])
+                }
+                Satisfaction::Not => ANY_ARRAY.clone(),
                 Satisfaction::Must => Schema::Atomic(Atomic::Null),
             },
         )

@@ -127,14 +127,22 @@ impl TryFrom<json_schema::Schema> for Document {
 }
 
 lazy_static! {
+    // Array and Document schemas.
+    pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
     pub static ref ANY_DOCUMENT: Schema = Schema::Document(Document {
         keys: BTreeMap::new(),
         required: BTreeSet::new(),
         additional_properties: true
     });
-    pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
+
+    // Nullish schemas (schemas with null or missing).
     pub static ref NULLISH: Schema =
         Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing,]);
+    pub static ref ANY_ARRAY_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::Array(Box::new(Schema::Any)),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
     pub static ref BOOLEAN_OR_NULLISH: Schema = Schema::AnyOf(vec![
         Schema::Atomic(Atomic::Boolean),
         Schema::Atomic(Atomic::Null),
@@ -142,6 +150,11 @@ lazy_static! {
     ]);
     pub static ref DATE_OR_NULLISH: Schema = Schema::AnyOf(vec![
         Schema::Atomic(Atomic::Date),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
+    pub static ref INTEGER_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
@@ -155,11 +168,6 @@ lazy_static! {
     ]);
     pub static ref STRING_OR_NULLISH: Schema = Schema::AnyOf(vec![
         Schema::Atomic(Atomic::String),
-        Schema::Atomic(Atomic::Null),
-        Schema::Missing,
-    ]);
-    pub static ref INTEGER_OR_NULLISH: Schema = Schema::AnyOf(vec![
-        Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
@@ -252,7 +260,7 @@ impl Schema {
             .unwrap_or(Satisfaction::Must)
     }
 
-    /// satisfies AnyOf the passed set of Schemata.
+    /// Satisfies AnyOf the passed set of Schemata.
     fn satisfies_any_of(&self, vs: &[Schema]) -> Satisfaction {
         use Satisfaction::*;
         let mut ret = Not;
@@ -309,7 +317,7 @@ impl Schema {
         }
     }
 
-    /// returns if this Schema Must, May, or must Not contain the passed field.
+    /// Returns if this Schema Must, May, or must Not contain the passed field.
     pub fn contains_field(&self, field: &str) -> Satisfaction {
         self.satisfies(&Schema::Document(Document {
             keys: map! {
@@ -320,8 +328,40 @@ impl Schema {
         }))
     }
 
+    /// Returns the satisfaction result for comparing two operands.
+    pub fn is_comparable_with(&self, other: &Schema) -> Satisfaction {
+        use Satisfaction::*;
+        use Schema::*;
+
+        match (&self, &other) {
+            // We currently disallow arrays and documents in comparisons.
+            (Array(_), _) | (_, Array(_)) => Not,
+            (Document(_), _) | (_, Document(_)) => Not,
+
+            // Comparing with an Any schema will always result in a May.
+            (Any, _) | (_, Any) => May,
+
+            // Missing behaves like null, in that any type is comparable to it.
+            (Missing, _) | (_, Missing) => Must,
+
+            // Unsat behaves like null, in that any type is comparable to it.
+            // However, this likely does not matter at the moment given that Unsat
+            // can only be found in arrays, for which we currently disallow comparisons.
+            (Unsat, _) | (_, Unsat) => Must,
+
+            // Atomics have their own criteria for comparability involving numerics and null.
+            (Atomic(a1), Atomic(a2)) => a1.is_comparable_with(a2),
+
+            // Use the meet logic if we have an AnyOf regardless of which side the AnyOf is on,
+            // since comparison is a commutative operation that type satisfaction must reflect.
+            (AnyOf(anyof_vs), v) | (v, AnyOf(anyof_vs)) => {
+                Schema::schema_predicate_meet(anyof_vs, &|s: &Schema| s.is_comparable_with(v))
+            }
+        }
+    }
+
     /// upconvert_missing_to_null upconverts Missing to Null in the current level
-    /// of the schema including nested Any. It does not recurse into Documents or Arrays.
+    /// of the schema including nested AnyOf's. It does not recurse into Documents or Arrays.
     /// This is used to properly handle array items Schemata, where Missing is not possible.
     pub fn upconvert_missing_to_null(self) -> Self {
         match self {
@@ -470,11 +510,36 @@ impl TryFrom<json_schema::Schema> for Schema {
 }
 
 impl Atomic {
+    /// Returns whether one atomic satisfies another atomic (Must or Not only).
     fn satisfies(&self, other: &Self) -> Satisfaction {
         if self == other {
             Satisfaction::Must
         } else {
             Satisfaction::Not
+        }
+    }
+
+    /// Returns whether or not two atomics are comparable (Must or Not only).
+    /// Atomics are comparable if they are both numeric, if either is null,
+    /// or otherwise both equal.
+    fn is_comparable_with(&self, other: &Self) -> Satisfaction {
+        use self::Atomic::*;
+        use Satisfaction::*;
+
+        match (self, other) {
+            (Null, _) | (_, Null) => Must,
+            (l, r) if l == r || l.is_numeric() && r.is_numeric() => Must,
+            _ => Not,
+        }
+    }
+
+    // Returns whether or not the atomic value is numeric.
+    fn is_numeric(&self) -> bool {
+        use self::Atomic::*;
+        match self {
+            Decimal | Double | Integer | Long => true,
+            String | BinData | ObjectId | Boolean | Date | Null | Regex | DbPointer
+            | Javascript | Symbol | JavascriptWithScope | Timestamp | MinKey | MaxKey => false,
         }
     }
 }

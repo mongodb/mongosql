@@ -473,6 +473,19 @@ mod schema {
             Schema::Atomic(Atomic::String),
         ])},
     );
+    test_schema!(
+        an_arg_that_may_be_nullish_manifests_as_null_in_final_schema,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Size,
+            args: vec![Expression::Reference(("array_or_null", 0u16).into())],
+        }),
+        map! { ("array_or_null", 0u16).into() =>
+        Schema::AnyOf(vec![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)]) },
+    );
 
     // Unary functions.
     test_schema!(
@@ -1492,6 +1505,381 @@ mod schema {
         }),
     );
 
+    // NullIf function.
+    test_schema!(
+        nullif_requires_two_args,
+        Err(Error::IncorrectArgumentCount {
+            name: "NullIf",
+            required: 2,
+            found: 1,
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![Expression::Literal(Literal::Integer(1))],
+        }),
+    );
+    test_schema!(
+        nullif_cannot_compare_numeric_with_non_numeric,
+        Err(Error::InvalidComparison(
+            "NullIf",
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String)
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::String("abc".to_string()))
+            ],
+        }),
+    );
+    test_schema!(
+        nullif_types_must_be_identical_if_non_numeric,
+        Err(Error::InvalidComparison(
+            "NullIf",
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::String)
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![
+                Expression::Literal(Literal::Boolean(true)),
+                Expression::Literal(Literal::String("abc".to_string()))
+            ],
+        }),
+    );
+    test_schema!(
+        nullif_args_cannot_be_potentially_comparable,
+        Err(Error::InvalidComparison(
+            "NullIf",
+            Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String)
+            ]),
+            Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String)
+            ])
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("bar", 0u16).into())
+            ],
+        }),
+        map! {
+            ("foo", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+            ("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)])
+        },
+    );
+    test_schema!(
+        nullif_identical_types,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::String("def".to_string()))
+            ],
+        }),
+    );
+    test_schema!(
+        nullif_missing_type_upconverts_to_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![
+                Expression::Reference(("missing", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+            ],
+        }),
+        map! {
+            ("missing", 0u16).into() => Schema::Missing,
+        },
+    );
+    test_schema!(
+        nullif_different_numerical_types_uses_first_arg_type,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Long(2))
+            ],
+        }),
+    );
+    test_schema!(
+        nullif_multitype_numeric_args,
+        Ok(Schema::AnyOf(vec![
+            Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long)
+            ]),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::NullIf,
+            args: vec![
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("bar", 0u16).into())
+            ],
+        }),
+        map! {
+            ("foo", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
+            ("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal)])
+        },
+    );
+
+    // Coalesce function.
+    test_schema!(
+        coalesce_requires_at_least_one_arg,
+        Err(Error::IncorrectArgumentCount {
+            name: "Coalesce",
+            required: 1,
+            found: 0,
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Coalesce,
+            args: vec![],
+        }),
+    );
+    test_schema!(
+        coalesce_returns_all_arg_schemas_with_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Boolean)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Coalesce,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+    );
+    test_schema!(
+        coalesce_upconverts_missing_to_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Coalesce,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Reference(("missing", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("missing", 0u16).into() => Schema::Missing,
+        },
+    );
+
+    // Slice function.
+    test_schema!(
+        slice_requires_more_than_one_arg,
+        Err(Error::IncorrectArgumentCount {
+            name: "Slice",
+            required: 2,
+            found: 1,
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![Expression::Reference(("array", 0u16).into())],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+    test_schema!(
+        slice_requires_fewer_than_four_arg,
+        Err(Error::IncorrectArgumentCount {
+            name: "Slice",
+            required: 2,
+            found: 4,
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2)),
+                Expression::Literal(Literal::Integer(3))
+            ],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+    test_schema!(
+        slice_with_two_args_requires_an_array_for_the_first_arg,
+        Err(Error::SchemaChecking {
+            name: "Slice",
+            required: ANY_ARRAY.clone(),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(1)),
+            ],
+        }),
+    );
+    test_schema!(
+        slice_with_two_args_requires_an_integer_for_the_second_arg,
+        Err(Error::SchemaChecking {
+            name: "Slice",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::Long),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Literal(Literal::Long(1)),
+            ],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+    test_schema!(
+        slice_with_three_args_requires_an_array_for_the_first_arg,
+        Err(Error::SchemaChecking {
+            name: "Slice",
+            required: ANY_ARRAY.clone(),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2))
+            ],
+        }),
+    );
+    test_schema!(
+        slice_with_three_args_requires_an_integer_for_the_second_arg,
+        Err(Error::SchemaChecking {
+            name: "Slice",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(1)),
+            ],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+    test_schema!(
+        slice_with_three_args_requires_an_integer_for_the_third_arg,
+        Err(Error::SchemaChecking {
+            name: "Slice",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::String("abc".to_string())),
+            ],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+    test_schema!(
+        slice_with_length_arg,
+        Ok(ANY_ARRAY.clone()),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+            ],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+    test_schema!(
+        slice_with_start_and_length_arg,
+        Ok(ANY_ARRAY.clone()),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Slice,
+            args: vec![
+                Expression::Reference(("array", 0u16).into()),
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2)),
+            ],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+
+    // Size function.
+    test_schema!(
+        size_requires_one_arg,
+        Err(Error::IncorrectArgumentCount {
+            name: "Size",
+            required: 1,
+            found: 0,
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Size,
+            args: vec![],
+        }),
+    );
+    test_schema!(
+        size_requires_array_arg,
+        Err(Error::SchemaChecking {
+            name: "Size",
+            required: Schema::AnyOf(vec![
+                ANY_ARRAY.clone(),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing,
+            ]),
+            found: Schema::Atomic(Atomic::Integer),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Size,
+            args: vec![Expression::Literal(Literal::Integer(1))],
+        }),
+    );
+    test_schema!(
+        size_of_array,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Size,
+            args: vec![Expression::Reference(("array", 0u16).into())],
+        }),
+        map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
+    );
+
+    // Datasource tests.
     test_schema!(
         collection_schema,
         Ok(ResultSet {
@@ -1620,6 +2008,7 @@ mod schema {
         }),
     );
 
+    // Project.
     test_schema!(
         project_schema,
         Ok(ResultSet {
