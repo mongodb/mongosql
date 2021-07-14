@@ -367,7 +367,7 @@ impl Display for Expression {
         use Expression::*;
         match self {
             Identifier(s) => {
-                if has_special_chars(s) {
+                if ident_needs_delimiters(s) {
                     write!(f, "`{}`", s)
                 } else {
                     write!(f, "{}", s)
@@ -640,10 +640,17 @@ impl Display for WhenBranch {
     }
 }
 
-fn has_special_chars(s: &str) -> bool {
-    let search = "$.";
-    for c in s.chars() {
-        if search.contains(c) {
+fn ident_needs_delimiters(s: &str) -> bool {
+    if s.is_empty() {
+        return true;
+    }
+    let mut char_iter = s.chars();
+    let first = char_iter.next().unwrap();
+    if !(first.is_alphabetic() | (first == '_')) {
+        return true;
+    }
+    for c in char_iter {
+        if !(c.is_alphanumeric() | (c == '_')) {
             return true;
         }
     }

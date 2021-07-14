@@ -293,7 +293,10 @@ expression_printer_test!(
     "`fo.o` - bar / `$car`",
     "`fo.o` - (bar / `$car`)"
 );
-
+expression_printer_test!(starts_with_number, "`1foo`", "`1foo`");
+expression_printer_test!(starts_with_underscore, "_foo", "`_foo`");
+expression_printer_test!(regular_identifier_containing_number, "foo1", "foo1");
+expression_printer_test!(empty_identifier, "``", "``");
 expression_printer_test!(
     is_missing,
     "true AND (x IS MISSING)",

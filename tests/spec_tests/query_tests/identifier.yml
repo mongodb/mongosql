@@ -91,3 +91,11 @@ tests:
   - description: Identifiers cannot contain null character (hex)
     query: "SELECT a\x00b FROM foo"
     error: "error: identifiers may not contain the null character \x00"
+
+  - description: Empty identifiers
+    query: "SELECT VALUE {'empty': ``} FROM [{'': 2}] AS arr"
+    translation:
+      - {'$array': {'arr': [{'': 2}]}}
+      - {'$project': {'_id': 0, '__bot': {'empty': {'$getField': {'field': '', 'input': '$arr'}}}}}
+    result:
+      - {'__bot': {'empty': 2}}
