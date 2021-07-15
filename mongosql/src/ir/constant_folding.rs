@@ -4,15 +4,15 @@ use crate::{
 };
 use lazy_static::lazy_static;
 
+#[derive(Default)]
+struct ConstantFoldExprVisitor;
+
 lazy_static! {
     static ref EMPTY_STATE: SchemaInferenceState = SchemaInferenceState {
         scope_level: 0u16,
         env: SchemaEnvironment::default(),
     };
 }
-
-#[derive(Default)]
-pub(crate) struct ConstantFoldExprVisitor;
 
 impl ConstantFoldExprVisitor {
     // Constant folds boolean functions
@@ -73,6 +73,92 @@ impl ConstantFoldExprVisitor {
             args,
         })
     }
+
+    // This is not a general purpose function and is not capable of checking equality of very
+    // large longs. It is used to check special arithmetic edge cases like 0 and 1.
+    fn numeric_eq(expr: &Expression, num: f64) -> bool {
+        match expr {
+            Expression::Literal(Literal::Integer(val)) => *val == num as i32,
+            Expression::Literal(Literal::Long(val)) => *val == num as i64,
+            Expression::Literal(Literal::Double(val)) => *val == num,
+            _ => false,
+        }
+    }
+
+    // Constant folds constants of the same type within an associative arithmetic function
+    fn fold_associative_arithmetic_function(
+        &mut self,
+        sf: ScalarFunctionApplication,
+    ) -> Expression {
+        for expr in &sf.args {
+            match expr.schema(&EMPTY_STATE) {
+                Err(_) => break,
+                Ok(sch) => {
+                    if sch.satisfies(&Schema::AnyOf(vec![
+                        Schema::Missing,
+                        Schema::Atomic(Atomic::Null),
+                    ])) == Satisfaction::Must
+                    {
+                        return Expression::Literal(Literal::Null);
+                    }
+                }
+            }
+        }
+        let mut non_literals = Vec::<Expression>::new();
+        let (int_fold, long_fold, float_fold) = match sf.function {
+            ScalarFunction::Add => {
+                sf.args
+                    .into_iter()
+                    .fold((0, 0i64, 0.0), |(i, l, f), expr| match expr {
+                        Expression::Literal(Literal::Integer(val)) => (i + val, l, f),
+                        Expression::Literal(Literal::Long(val)) => (i, l + val, f),
+                        Expression::Literal(Literal::Double(val)) => (i, l, f + val),
+                        _ => {
+                            non_literals.push(expr);
+                            (i, l, f)
+                        }
+                    })
+            }
+            ScalarFunction::Mul => {
+                sf.args
+                    .into_iter()
+                    .fold((1, 1i64, 1.0), |(i, l, f), expr| match expr {
+                        Expression::Literal(Literal::Integer(val)) => (i * val, l, f),
+                        Expression::Literal(Literal::Long(val)) => (i, l * val, f),
+                        Expression::Literal(Literal::Double(val)) => (i, l, f * val),
+                        _ => {
+                            non_literals.push(expr);
+                            (i, l, f)
+                        }
+                    })
+            }
+            _ => unreachable!("fold associative function is only called on And and Mul"),
+        };
+        let literals = vec![
+            Expression::Literal(Literal::Integer(int_fold)),
+            Expression::Literal(Literal::Long(long_fold)),
+            Expression::Literal(Literal::Double(float_fold)),
+        ];
+        let literals = match sf.function {
+            ScalarFunction::Add => literals
+                .into_iter()
+                .filter(|expr| !Self::numeric_eq(expr, 0.0))
+                .collect(),
+            ScalarFunction::Mul => literals
+                .into_iter()
+                .filter(|expr| !Self::numeric_eq(expr, 1.0))
+                .collect(),
+            _ => unreachable!("fold associative function is only called on And and Mul"),
+        };
+        let args = [literals, non_literals].concat();
+        if args.len() == 1 {
+            return args[0].clone();
+        }
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: sf.function,
+            args,
+        })
+    }
 }
 
 impl Visitor for ConstantFoldExprVisitor {
@@ -90,6 +176,9 @@ impl Visitor for ConstantFoldExprVisitor {
             Expression::Reference(_) => e,
             Expression::ScalarFunction(f) => match f.function {
                 ScalarFunction::And | ScalarFunction::Or => Self::fold_logical_functions(self, f),
+                ScalarFunction::Add | ScalarFunction::Mul => {
+                    self.fold_associative_arithmetic_function(f)
+                }
                 _ => Expression::ScalarFunction(f),
             },
             Expression::SearchedCase(_) => e,
