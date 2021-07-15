@@ -41,6 +41,7 @@ pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
     // construct the algebrizer and use it to build an ir plan
     let algebrizer = Algebrizer::new(current_db.to_string(), 0u16);
     let plan = algebrizer.algebrize_query(ast)?;
+
     // constant fold stages
     let plan = ir::constant_folding::fold_constants(plan);
 

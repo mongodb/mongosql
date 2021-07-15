@@ -51,7 +51,6 @@ macro_rules! test_constant_fold {
         #[test]
         fn $func_name() {
             use crate::ir::constant_folding::*;
-
             let input = $input;
             let expected = $expected;
             let actual = fold_constants(input);
@@ -2961,7 +2960,7 @@ mod constant_folding {
         });
     }
     test_constant_fold!(
-        constant_fold_literal,
+        literal,
         Stage::Filter(Filter {
             source: Box::new(TEST_SOURCE.clone()),
             condition: Expression::Literal(Literal::Integer(1)),
@@ -2969,6 +2968,204 @@ mod constant_folding {
         Stage::Filter(Filter {
             source: Box::new(TEST_SOURCE.clone()),
             condition: Expression::Literal(Literal::Integer(1)),
+        }),
+    );
+    test_constant_fold!(
+        or_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Boolean(false)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::Literal(Literal::Boolean(false)),
+                    Expression::Literal(Literal::Boolean(false))
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        and_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Boolean(true)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![
+                    Expression::Literal(Literal::Boolean(true)),
+                    Expression::Literal(Literal::Boolean(true))
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        true_and_nulls_is_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![
+                    Expression::Literal(Literal::Boolean(true)),
+                    Expression::Literal(Literal::Boolean(true)),
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        null_and_null_is_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        true_and_nulls_and_ref_is_null_and_ref,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![
+                    Expression::Literal(Literal::Null),
+                    Expression::Reference(("foo", 1u16).into())
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![
+                    Expression::Literal(Literal::Boolean(true)),
+                    Expression::Literal(Literal::Boolean(true)),
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                    Expression::Reference(("foo", 1u16).into())
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        false_or_nulls_or_ref_is_null_or_ref,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::Literal(Literal::Null),
+                    Expression::Reference(("foo", 1u16).into())
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::Literal(Literal::Boolean(false)),
+                    Expression::Literal(Literal::Boolean(false)),
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                    Expression::Reference(("foo", 1u16).into())
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        null_or_null_is_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        false_or_nulls_is_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Boolean(false)),
+                    Expression::Literal(Literal::Boolean(false)),
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        or_with_true_literal_is_true,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Boolean(true)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![
+                    Expression::Literal(Literal::Boolean(true)),
+                    Expression::Literal(Literal::Boolean(false)),
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                    Expression::Reference(("foo", 1u16).into())
+                ]
+            }),
+        }),
+    );
+    test_constant_fold!(
+        and_with_false_literal_is_false,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Boolean(false)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![
+                    Expression::Literal(Literal::Boolean(true)),
+                    Expression::Literal(Literal::Boolean(false)),
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::Null),
+                    Expression::Reference(("foo", 1u16).into())
+                ]
+            }),
         }),
     );
 }
