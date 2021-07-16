@@ -59,6 +59,19 @@ macro_rules! test_constant_fold {
     };
 }
 
+macro_rules! test_flatten_variadic_functions {
+    ($func_name:ident, $expected:expr, $input:expr,) => {
+        #[test]
+        fn $func_name() {
+            use crate::ir::flatten::*;
+            let input = $input;
+            let expected = $expected;
+            let actual = flatten_variadic_functions(input);
+            assert_eq!(actual, expected);
+        }
+    };
+}
+
 mod schema {
     use crate::ir::binding_tuple::DatasourceName::Bottom;
     use crate::{
@@ -3343,6 +3356,242 @@ mod constant_folding {
                     Expression::Literal(Literal::Double(4.0)),
                     Expression::Literal(Literal::Double(4.0))
                 ],
+            }),
+        }),
+    );
+}
+
+mod flatten_node {
+    use crate::ir::*;
+    lazy_static::lazy_static! {
+        static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
+            db: "test".into(),
+            collection: "foo".into()
+        });
+    }
+    test_flatten_variadic_functions!(
+        flatten_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(3)),
+                    Expression::Literal(Literal::Integer(1)),
+                    Expression::Literal(Literal::Integer(2))
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(3)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Add,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(1)),
+                            Expression::Literal(Literal::Integer(2))
+                        ]
+                    })
+                ]
+            }),
+        }),
+    );
+    test_flatten_variadic_functions!(
+        flatten_ignores_different_funcs,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(3)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Mul,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(1)),
+                            Expression::Literal(Literal::Integer(2))
+                        ]
+                    })
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(3)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Mul,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(1)),
+                            Expression::Literal(Literal::Integer(2))
+                        ]
+                    })
+                ]
+            }),
+        }),
+    );
+    test_flatten_variadic_functions!(
+        flatten_nested_multiple_levels,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(3)),
+                    Expression::Literal(Literal::Integer(1)),
+                    Expression::Literal(Literal::Integer(2)),
+                    Expression::Literal(Literal::Integer(4))
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(3)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Add,
+                        args: vec![Expression::ScalarFunction(ScalarFunctionApplication {
+                            function: ScalarFunction::Add,
+                            args: vec![
+                                Expression::Literal(Literal::Integer(1)),
+                                Expression::Literal(Literal::Integer(2)),
+                                Expression::Literal(Literal::Integer(4))
+                            ]
+                        })]
+                    })
+                ]
+            }),
+        }),
+    );
+    test_flatten_variadic_functions!(
+        flatten_multiple_funcs,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(3)),
+                    Expression::Literal(Literal::Integer(4)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Mul,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(2)),
+                            Expression::Literal(Literal::Integer(1)),
+                            Expression::Literal(Literal::Integer(3)),
+                            Expression::Literal(Literal::Integer(1))
+                        ]
+                    }),
+                    Expression::Literal(Literal::Integer(1))
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Add,
+                        args: vec![Expression::ScalarFunction(ScalarFunctionApplication {
+                            function: ScalarFunction::Add,
+                            args: vec![
+                                Expression::Literal(Literal::Integer(3)),
+                                Expression::Literal(Literal::Integer(4)),
+                                Expression::ScalarFunction(ScalarFunctionApplication {
+                                    function: ScalarFunction::Mul,
+                                    args: vec![
+                                        Expression::ScalarFunction(ScalarFunctionApplication {
+                                            function: ScalarFunction::Mul,
+                                            args: vec![
+                                                Expression::Literal(Literal::Integer(2)),
+                                                Expression::Literal(Literal::Integer(1))
+                                            ]
+                                        }),
+                                        Expression::ScalarFunction(ScalarFunctionApplication {
+                                            function: ScalarFunction::Mul,
+                                            args: vec![
+                                                Expression::Literal(Literal::Integer(3)),
+                                                Expression::Literal(Literal::Integer(1))
+                                            ]
+                                        })
+                                    ]
+                                })
+                            ]
+                        })]
+                    },),
+                    Expression::Literal(Literal::Integer(1))
+                ]
+            }),
+        }),
+    );
+    test_flatten_variadic_functions!(
+        flatten_not_necessary,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Sub,
+                args: vec![
+                    Expression::Literal(Literal::Integer(5)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Sub,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(2)),
+                            Expression::Literal(Literal::Integer(1))
+                        ]
+                    })
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Sub,
+                args: vec![
+                    Expression::Literal(Literal::Integer(5)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Sub,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(2)),
+                            Expression::Literal(Literal::Integer(1))
+                        ]
+                    })
+                ]
+            }),
+        }),
+    );
+    test_flatten_variadic_functions!(
+        flatten_order_matters,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: vec![
+                    Expression::Literal(Literal::String("foo".to_string())),
+                    Expression::Literal(Literal::String("bar".to_string())),
+                    Expression::Literal(Literal::String("baz".to_string()))
+                ]
+            }),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: vec![
+                    Expression::Literal(Literal::String("foo".to_string())),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Concat,
+                        args: vec![
+                            Expression::Literal(Literal::String("bar".to_string())),
+                            Expression::Literal(Literal::String("baz".to_string()))
+                        ]
+                    })
+                ]
             }),
         }),
     );

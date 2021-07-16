@@ -4,6 +4,7 @@ pub mod binding_tuple;
 pub mod definitions;
 pub use definitions::*;
 pub mod constant_folding;
+pub mod flatten;
 pub mod schema;
 #[cfg(test)]
 mod test;

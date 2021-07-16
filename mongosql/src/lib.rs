@@ -42,6 +42,9 @@ pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
     let algebrizer = Algebrizer::new(current_db.to_string(), 0u16);
     let plan = algebrizer.algebrize_query(ast)?;
 
+    // flatten variadic function
+    let plan = ir::flatten::flatten_variadic_functions(plan);
+
     // constant fold stages
     let plan = ir::constant_folding::fold_constants(plan);
 
