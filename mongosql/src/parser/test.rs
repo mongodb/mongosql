@@ -376,6 +376,8 @@ mod operator {
     should_parse!(is_not_type, true, "select a-8 IS NOT DECIMAL(1)");
     should_parse!(is_missing, true, "select a IS MISSING");
     should_parse!(is_not_missing, true, "select (a+b) IS NOT MISSING");
+    should_parse!(is_number, true, "select a IS NUMBER");
+    should_parse!(is_not_number, true, "select a IS NOT NUMBER");
     should_parse!(like, true, "select col1 LIKE 'A%'");
     should_parse!(
         not_like_multiple_spaces,
@@ -399,7 +401,25 @@ mod operator {
             target_type: TypeOrMissing::Missing,
         })
     );
-
+    validate_expression_ast!(
+        is_number_expr,
+        "1 IS NUMBER",
+        Expression::Is(IsExpr {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            target_type: TypeOrMissing::Number,
+        })
+    );
+    validate_expression_ast!(
+        is_not_number_expr,
+        "1 IS NOT NUMBER",
+        Expression::Unary(UnaryExpr {
+            op: UnaryOp::Not,
+            expr: Box::new(Expression::Is(IsExpr {
+                expr: Box::new(Expression::Literal(Literal::Integer(1))),
+                target_type: TypeOrMissing::Number,
+            })),
+        })
+    );
     should_parse!(between_invalid_binary_op, false, "select a BETWEEN b + c");
     should_parse!(
         not_between_invalid_binary_op,

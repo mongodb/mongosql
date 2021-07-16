@@ -750,3 +750,36 @@ tests:
       - {'__bot': {'type': 'decimal', 'tc': false}}
       - {'__bot': {'type': 'minKey', 'tc': false}}
       - {'__bot': {'type': 'maxKey', 'tc': true}}
+
+  - description: Correctness test for IS NUMBER
+    current_db: foo
+    query: "SELECT VALUE { 'type': type, 'tc': v IS NUMBER } FROM bar AS bar"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$isNumber': '$bar.v'}}}}
+    result:
+      - {'__bot': {'type': 'double', 'tc': true}}
+      - {'__bot': {'type': 'string', 'tc': false}}
+      - {'__bot': {'type': 'document', 'tc': false}}
+      - {'__bot': {'type': 'array', 'tc': false}}
+      - {'__bot': {'type': 'binData', 'tc': false}}
+      - {'__bot': {'type': 'undefined', 'tc': false}}
+      - {'__bot': {'type': 'objectid', 'tc': false}}
+      - {'__bot': {'type': 'boolean', 'tc': false}}
+      - {'__bot': {'type': 'date', 'tc': false}}
+      - {'__bot': {'type': 'null', 'tc': false}}
+      - {'__bot': {'type': 'missing', 'tc': false}}
+      - {'__bot': {'type': 'regex', 'tc': false}}
+      - {'__bot': {'type': 'dbPointer', 'tc': false}}
+      - {'__bot': {'type': 'javascript', 'tc': false}}
+      - {'__bot': {'type': 'symbol', 'tc': false}}
+      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'__bot': {'type': 'int', 'tc': true}}
+      - {'__bot': {'type': 'timestamp', 'tc': false}}
+      - {'__bot': {'type': 'long', 'tc': true}}
+      - {'__bot': {'type': 'decimal', 'tc': true}}
+      - {'__bot': {'type': 'minKey', 'tc': false}}
+      - {'__bot': {'type': 'maxKey', 'tc': false}}

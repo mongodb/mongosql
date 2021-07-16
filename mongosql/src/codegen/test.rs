@@ -953,6 +953,19 @@ mod function {
         }),
     );
     test_codegen_expr!(
+        is_number_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$isNumber": "$f"})),
+        Expression::Is(IsExpr {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            target_type: TypeOrMissing::Number,
+        }),
+    );
+    test_codegen_expr!(
         pos_expr,
         {
             let mut mr = MappingRegistry::default();

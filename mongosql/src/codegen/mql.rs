@@ -497,7 +497,15 @@ impl MqlCodeGenerator {
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),
             Exists(_) => unimplemented!(),
-            Is(_) => unimplemented!(),
+            Is(expr) => {
+                use crate::ir::TypeOrMissing;
+                Ok(match expr.target_type {
+                    TypeOrMissing::Number => Bson::Document(
+                        bson::doc! {"$isNumber": self.codegen_expression(*expr.expr)?},
+                    ),
+                    _ => unimplemented!(),
+                })
+            }
         }
     }
 }

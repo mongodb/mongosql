@@ -423,6 +423,7 @@ impl Display for IsExpr {
         match self.target_type {
             TypeOrMissing::Missing => write!(f, "{} IS MISSING", self.expr),
             TypeOrMissing::Type(t) => write!(f, "{} IS {}", self.expr, t),
+            TypeOrMissing::Number => write!(f, "{} IS NUMBER", self.expr),
         }
     }
 }

@@ -407,6 +407,7 @@ pub struct SubpathExpr {
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TypeOrMissing {
     Type(Type),
+    Number,
     Missing,
 }
 

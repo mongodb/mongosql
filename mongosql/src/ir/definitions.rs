@@ -377,6 +377,7 @@ pub struct TypeAssertionExpr {
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum TypeOrMissing {
     Missing,
+    Number,
     Type(Type),
 }
 
@@ -445,6 +446,7 @@ impl From<crate::ast::TypeOrMissing> for TypeOrMissing {
         match ty {
             crate::ast::TypeOrMissing::Missing => TypeOrMissing::Missing,
             crate::ast::TypeOrMissing::Type(ty) => TypeOrMissing::Type(Type::from(ty)),
+            crate::ast::TypeOrMissing::Number => TypeOrMissing::Number,
         }
     }
 }

@@ -417,6 +417,9 @@ IsTier<Expression,NextTier>: Box<Expression> = {
   <e:IsTier<Expression,NextTier>> IS NOT <t:Type> => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Type(t)}))})),
   <e:IsTier<Expression,NextTier>> IS MISSING => Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Missing})),
   <e:IsTier<Expression,NextTier>> IS NOT MISSING => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Missing}))})),
+  <e:IsTier<Expression,NextTier>> IS NUMBER => Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Number})),
+  <e:IsTier<Expression,NextTier>> IS NOT NUMBER => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Number}))})),
+  
   NextTier
 }
 
@@ -741,6 +744,7 @@ match {
   r"(?i)not\s+like" => NOT_LIKE,
   r"(?i)null" => NULL,
   r"(?i)numeric" => NUMERIC,
+  r"(?i)number" => NUMBER,
   r"(?i)objectid" => OBJECTID,
   r"(?i)offset" => OFFSET,
   r"(?i)on" => ON,
