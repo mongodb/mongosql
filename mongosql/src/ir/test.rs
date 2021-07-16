@@ -1401,6 +1401,173 @@ mod schema {
         }),
     );
 
+    // Comparison operators.
+    test_schema!(
+        comp_op_requires_exactly_two_args,
+        Err(Error::IncorrectArgumentCount {
+            name: "Lt",
+            required: 2,
+            found: 1
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lt,
+            args: vec![Expression::Literal(Literal::Integer(1))],
+        }),
+    );
+    test_schema!(
+        comp_op_requires_a_valid_comparison,
+        Err(Error::InvalidComparison(
+            "Lte",
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lte,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::String("abc".to_string()))
+            ],
+        }),
+    );
+    test_schema!(
+        comp_op_returns_boolean_schema_for_non_nullish_comparison,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Eq,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2))
+            ],
+        }),
+    );
+    test_schema!(
+        comp_op_returns_boolean_and_null_schema_for_potentially_nullish_comparison,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Gt,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Reference(("integer_or_null", 0u16).into()),
+            ],
+        }),
+        map! {("integer_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        comp_op_returns_null_schema_for_nullish_comparison,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Gte,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Null),
+            ],
+        }),
+    );
+
+    // Between function.
+    test_schema!(
+        between_requires_exactly_three_args,
+        Err(Error::IncorrectArgumentCount {
+            name: "Between",
+            required: 3,
+            found: 1
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Between,
+            args: vec![Expression::Literal(Literal::Integer(1))],
+        }),
+    );
+    test_schema!(
+        between_requires_a_valid_comparison_between_first_and_second_args,
+        Err(Error::InvalidComparison(
+            "Between",
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Between,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::String("abc".to_string())),
+                Expression::Literal(Literal::Integer(2)),
+            ],
+        }),
+    );
+    test_schema!(
+        between_requires_a_valid_comparison_between_first_and_third_args,
+        Err(Error::InvalidComparison(
+            "Between",
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Between,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2)),
+                Expression::Literal(Literal::String("abc".to_string())),
+            ],
+        }),
+    );
+    test_schema!(
+        between_returns_boolean_schema_for_non_nullish_comparisons,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Boolean)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Between,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Integer(2)),
+                Expression::Literal(Literal::Long(3))
+            ],
+        }),
+    );
+    test_schema!(
+        between_returns_boolean_and_null_schema_for_potentially_nullish_comparison,
+        Ok(Schema::AnyOf(vec![
+            Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Boolean),
+                Schema::Atomic(Atomic::Null)
+            ]),
+            Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Boolean),
+                Schema::Atomic(Atomic::Null)
+            ]),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Between,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Reference(("integer_or_null", 0u16).into()),
+                Expression::Reference(("long_or_null", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("integer_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
+            ("long_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Null)])
+        },
+    );
+    test_schema!(
+        between_returns_null_schema_for_nullish_comparison,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Between,
+            args: vec![
+                Expression::Literal(Literal::Integer(1)),
+                Expression::Literal(Literal::Null),
+                Expression::Literal(Literal::Null),
+            ],
+        }),
+    );
+
     // ComputedFieldAccess Function
     test_schema!(
         computed_field_access_requires_two_args,
@@ -2311,6 +2478,105 @@ mod schema {
         Expression::TypeAssertion(TypeAssertionExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             target_type: Type::String,
+        }),
+    );
+
+    // Searched Case
+    test_schema!(
+        searched_case_when_branch_condition_must_be_boolean_or_nullish,
+        Err(Error::SchemaChecking {
+            name: "SearchedCase",
+            required: Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Boolean),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing,
+            ]),
+            found: Schema::Atomic(Atomic::Integer),
+        }),
+        Expression::SearchedCase(SearchedCaseExpr {
+            when_branch: vec![WhenBranch {
+                when: Box::new(Expression::Literal(Literal::Integer(1))),
+                then: Box::new(Expression::Literal(Literal::Integer(2))),
+            }],
+            else_branch: Box::new(Expression::Literal(Literal::Null)),
+        }),
+    );
+    test_schema!(
+        searched_case_with_no_when_branch_uses_else_branch,
+        Ok(Schema::AnyOf(vec![Schema::Atomic(Atomic::Long)])),
+        Expression::SearchedCase(SearchedCaseExpr {
+            when_branch: vec![],
+            else_branch: Box::new(Expression::Literal(Literal::Long(1))),
+        }),
+    );
+    test_schema!(
+        searched_case_multiple_when_branches,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::SearchedCase(SearchedCaseExpr {
+            when_branch: vec![
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(true))),
+                    then: Box::new(Expression::Literal(Literal::Integer(1))),
+                },
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Boolean(true))),
+                    then: Box::new(Expression::Literal(Literal::Long(2))),
+                }
+            ],
+            else_branch: Box::new(Expression::Literal(Literal::Null)),
+        }),
+    );
+
+    // Simple Case
+    test_schema!(
+        simple_case_when_branch_operand_must_be_comparable_with_case_operand,
+        Err(Error::InvalidComparison(
+            "SimpleCase",
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Integer),
+        )),
+        Expression::SimpleCase(SimpleCaseExpr {
+            expr: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
+            when_branch: vec![WhenBranch {
+                when: Box::new(Expression::Literal(Literal::Integer(1))),
+                then: Box::new(Expression::Literal(Literal::Integer(2))),
+            }],
+            else_branch: Box::new(Expression::Literal(Literal::Null)),
+        }),
+    );
+    test_schema!(
+        simple_case_with_no_when_branch_uses_else_branch,
+        Ok(Schema::AnyOf(vec![Schema::Atomic(Atomic::Long)])),
+        Expression::SimpleCase(SimpleCaseExpr {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            when_branch: vec![],
+            else_branch: Box::new(Expression::Literal(Literal::Long(2))),
+        }),
+    );
+    test_schema!(
+        simple_case_multiple_when_branches,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::SimpleCase(SimpleCaseExpr {
+            expr: Box::new(Expression::Literal(Literal::Integer(1))),
+            when_branch: vec![
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Integer(2))),
+                    then: Box::new(Expression::Literal(Literal::Integer(3))),
+                },
+                WhenBranch {
+                    when: Box::new(Expression::Literal(Literal::Long(4))),
+                    then: Box::new(Expression::Literal(Literal::Long(5))),
+                }
+            ],
+            else_branch: Box::new(Expression::Literal(Literal::Null)),
         }),
     );
 

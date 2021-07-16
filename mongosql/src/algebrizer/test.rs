@@ -1046,8 +1046,9 @@ mod expression {
             arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
+
     test_algebrize!(
-        bool_case,
+        searched_case,
         algebrize_expression,
         Ok(ir::Expression::SearchedCase(ir::SearchedCaseExpr {
             when_branch: vec![ir::WhenBranch {
@@ -1068,7 +1069,7 @@ mod expression {
         }),
     );
     test_algebrize!(
-        bool_case_no_else,
+        searched_case_no_else,
         algebrize_expression,
         Ok(ir::Expression::SearchedCase(ir::SearchedCaseExpr {
             when_branch: vec![ir::WhenBranch {
@@ -1087,7 +1088,7 @@ mod expression {
         }),
     );
     test_algebrize!(
-        bool_case_not_bool,
+        searched_case_when_condition_is_not_bool,
         algebrize_expression,
         Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
             name: "SearchedCase",
@@ -1102,6 +1103,68 @@ mod expression {
             }],
             else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
                 "foo".into()
+            )))),
+        }),
+    );
+
+    test_algebrize!(
+        simple_case,
+        algebrize_expression,
+        Ok(ir::Expression::SimpleCase(ir::SimpleCaseExpr {
+            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(1))),
+            when_branch: vec![ir::WhenBranch {
+                when: Box::new(ir::Expression::Literal(ir::Literal::Integer(2))),
+                then: Box::new(ir::Expression::Literal(ir::Literal::String("bar".into()))),
+            }],
+            else_branch: Box::new(ir::Expression::Literal(ir::Literal::String("foo".into()))),
+        })),
+        ast::Expression::Case(ast::CaseExpr {
+            expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+            when_branch: vec![ast::WhenBranch {
+                when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+            }],
+            else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
+                "foo".into()
+            )))),
+        }),
+    );
+    test_algebrize!(
+        simple_case_no_else,
+        algebrize_expression,
+        Ok(ir::Expression::SimpleCase(ir::SimpleCaseExpr {
+            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(1))),
+            when_branch: vec![ir::WhenBranch {
+                when: Box::new(ir::Expression::Literal(ir::Literal::Integer(2))),
+                then: Box::new(ir::Expression::Literal(ir::Literal::String("bar".into()))),
+            }],
+            else_branch: Box::new(ir::Expression::Literal(ir::Literal::Null)),
+        })),
+        ast::Expression::Case(ast::CaseExpr {
+            expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+            when_branch: vec![ast::WhenBranch {
+                when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+            }],
+            else_branch: None,
+        }),
+    );
+    test_algebrize!(
+        simple_case_operand_and_when_operand_not_comparable,
+        algebrize_expression,
+        Err(Error::SchemaChecking(ir::schema::Error::InvalidComparison(
+            "SimpleCase",
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ))),
+        ast::Expression::Case(ast::CaseExpr {
+            expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+            when_branch: vec![ast::WhenBranch {
+                when: Box::new(ast::Expression::Literal(ast::Literal::String("foo".into()))),
+                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+            }],
+            else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
+                "baz".into()
             )))),
         }),
     );

@@ -324,7 +324,7 @@ impl Expression {
             Expression::ScalarFunction(f) => f.schema(state),
             Expression::Cast(c) => c.schema(state),
             Expression::SearchedCase(sc) => sc.schema(state),
-            Expression::SimpleCase(_) => unimplemented!(),
+            Expression::SimpleCase(sc) => sc.schema(state),
             Expression::TypeAssertion(t) => t.schema(state),
             Expression::SubqueryExpression(SubqueryExpr {
                 output_expr,
@@ -489,13 +489,17 @@ impl ScalarFunction {
                 Ok(ScalarFunction::get_arithmetic_schema(arg_schemas))
             }
             // Comparison operators.
-            Lt => unimplemented!(),
-            Lte => unimplemented!(),
-            Neq => unimplemented!(),
-            Eq => unimplemented!(),
-            Gt => unimplemented!(),
-            Gte => unimplemented!(),
-            Between => unimplemented!(),
+            Lt | Lte | Neq | Eq | Gt | Gte => self.get_comparison_schema(arg_schemas),
+            Between => {
+                self.schema_check_fixed_args(
+                    arg_schemas,
+                    &[Schema::Any, Schema::Any, Schema::Any],
+                )?;
+                Ok(Schema::AnyOf(vec![
+                    self.get_comparison_schema(&[arg_schemas[0].clone(), arg_schemas[1].clone()])?,
+                    self.get_comparison_schema(&[arg_schemas[0].clone(), arg_schemas[2].clone()])?,
+                ]))
+            }
             // Boolean operators.
             Not => unimplemented!(),
             And => unimplemented!(),
@@ -825,30 +829,79 @@ impl CastExpr {
     }
 }
 
-impl SearchedCaseExpr {
-    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
-        let mut schemas = self
-            .when_branch
+/// A trait with the shared schema checking behavior for SearchedCaseExpr and SimpleCaseExpr.
+/// Both case expressions specify their check on the WHEN branch by implementing `schema()`.
+/// The trait's `schema_aux()` function then performs that check and returns the resulting schema.
+trait SchemaCheckCaseExpr {
+    fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error>;
+    fn schema_aux(
+        state: &SchemaInferenceState,
+        when_branches: &[WhenBranch],
+        else_branch: &Expression,
+        check_when_schema: &dyn Fn(&Schema) -> Result<(), Error>,
+    ) -> Result<Schema, Error> {
+        // Check each WHEN condition/operand and collect each THEN result in the output.
+        let mut schemas = when_branches
             .iter()
             .map(|wb| {
                 Ok({
-                    // the when branch must evaluate to BOOLEAN_OR_NULLISH.
-                    let when_schema = wb.when.schema(state)?;
-                    if when_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
-                        return Err(Error::SchemaChecking {
-                            name: "SearchedCase",
-                            required: BOOLEAN_OR_NULLISH.clone(),
-                            found: when_schema,
-                        });
-                    }
-                    // the Schema of the when branch is collected to the output.
+                    check_when_schema(&wb.when.schema(state)?)?;
                     wb.then.schema(state)?
                 })
             })
             .collect::<Result<Vec<_>, _>>()?;
-        schemas.push(self.else_branch.schema(state)?);
-        // The resulting Schema is the AnyOf every WHEN branch with the ELSE branch.
+
+        // The resulting schema for a case expression is AnyOf the THEN results
+        // from each when_branch, along with the ELSE branch result.
+        schemas.push(else_branch.schema(state)?);
         Ok(Schema::AnyOf(schemas))
+    }
+}
+
+impl SchemaCheckCaseExpr for SearchedCaseExpr {
+    fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        // All WHEN conditions for a SearchedCaseExpr must be boolean or nullish.
+        let check_when_schema = &|when_schema: &Schema| {
+            if when_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
+                return Err(Error::SchemaChecking {
+                    name: "SearchedCase",
+                    required: BOOLEAN_OR_NULLISH.clone(),
+                    found: when_schema.clone(),
+                });
+            }
+            Ok(())
+        };
+
+        Self::schema_aux(
+            state,
+            &self.when_branch,
+            &self.else_branch,
+            check_when_schema,
+        )
+    }
+}
+
+impl SchemaCheckCaseExpr for SimpleCaseExpr {
+    fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        // The case operand for a SimpleCaseExpr must be comparable with all WHEN operands.
+        let case_operand_schema = self.expr.schema(state)?;
+        let check_when_schema = &|when_schema: &Schema| {
+            if case_operand_schema.is_comparable_with(when_schema) != Satisfaction::Must {
+                return Err(Error::InvalidComparison(
+                    "SimpleCase",
+                    case_operand_schema.clone(),
+                    when_schema.clone(),
+                ));
+            }
+            Ok(())
+        };
+
+        Self::schema_aux(
+            state,
+            &self.when_branch,
+            &self.else_branch,
+            check_when_schema,
+        )
     }
 }
 
