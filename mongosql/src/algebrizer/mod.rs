@@ -37,6 +37,8 @@ pub enum Error {
     ArrayDatasourceMustBeLiteral,
     #[error("SELECT DISTINCT not allowed")]
     DistinctSelect,
+    #[error("UNION DISTINCT not allowed")]
+    DistinctUnion,
     #[error("no such datasource: {0:?}")]
     NoSuchDatasource(DatasourceName),
     #[error("field `{0}` cannot be resolved to any datasource")]
@@ -157,7 +159,7 @@ impl Algebrizer {
     pub fn algebrize_query(&self, ast_node: ast::Query) -> Result<ir::Stage> {
         match ast_node {
             ast::Query::Select(q) => self.algebrize_select_query(q),
-            ast::Query::Set(_) => unimplemented!(),
+            ast::Query::Set(s) => self.algebrize_set_query(s),
         }
     }
 
@@ -178,6 +180,20 @@ impl Algebrizer {
         let plan = self.algebrize_offset_clause(ast_node.offset, plan)?;
         let plan = self.algebrize_limit_clause(ast_node.limit, plan)?;
         Ok(plan)
+    }
+
+    pub fn algebrize_set_query(&self, ast_node: ast::SetQuery) -> Result<ir::Stage> {
+        match ast_node.op {
+            ast::SetOperator::Union => Err(Error::DistinctUnion),
+            ast::SetOperator::UnionAll => schema_check_return!(
+                self,
+                ir::Stage::Set(ir::Set {
+                    operation: ir::SetOperation::UnionAll,
+                    left: Box::new(self.algebrize_query(*ast_node.left)?),
+                    right: Box::new(self.algebrize_query(*ast_node.right)?),
+                })
+            ),
+        }
     }
 
     fn algebrize_select_values_body(

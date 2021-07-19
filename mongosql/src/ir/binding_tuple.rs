@@ -83,6 +83,10 @@ impl<T> BindingTuple<T> {
         self.0.get(k)
     }
 
+    pub fn remove(&mut self, k: &Key) -> Option<T> {
+        self.0.remove(k)
+    }
+
     #[allow(dead_code)]
     pub fn contains_key(&self, k: &Key) -> bool {
         self.0.contains_key(k)

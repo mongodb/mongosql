@@ -238,7 +238,29 @@ impl Stage {
                     }
                 }
             }
-            Stage::Set(_) => unimplemented!(),
+            Stage::Set(s) => {
+                let left_result_set = s.left.schema(state)?;
+                let right_result_set = s.right.schema(state)?;
+                let max_size = left_result_set
+                    .max_size
+                    .and_then(|l| right_result_set.max_size.map(|r| l + r));
+                match s.operation {
+                    SetOperation::Union => Ok(ResultSet {
+                        schema_env: left_result_set
+                            .schema_env
+                            .union(right_result_set.schema_env),
+                        min_size: min(left_result_set.min_size + right_result_set.min_size, 1),
+                        max_size,
+                    }),
+                    SetOperation::UnionAll => Ok(ResultSet {
+                        schema_env: left_result_set
+                            .schema_env
+                            .union(right_result_set.schema_env),
+                        min_size: left_result_set.min_size + right_result_set.min_size,
+                        max_size,
+                    }),
+                }
+            }
         }
     }
 }

@@ -11,6 +11,20 @@ use std::str::FromStr;
 
 pub type SchemaEnvironment = BindingTuple<Schema>;
 
+impl SchemaEnvironment {
+    pub fn union(self, other: SchemaEnvironment) -> Self {
+        let mut out = self;
+        for (k, v) in other.into_iter() {
+            if let Some(out_v) = out.remove(&k) {
+                out.insert(k, Schema::AnyOf(vec![v, out_v]));
+            } else {
+                out.insert(k, v);
+            }
+        }
+        out
+    }
+}
+
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct ResultSet {

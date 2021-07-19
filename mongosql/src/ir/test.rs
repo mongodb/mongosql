@@ -3594,6 +3594,132 @@ mod schema {
         }),
     );
 
+    // Set tests
+    test_schema!(
+        set_unionall_same_name_unioned,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone()]),
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone()]),
+                    ]
+                ),
+            },
+            min_size: 2,
+            max_size: Some(2),
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::UnionAll,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone()],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        set_unionall_distinct_name_not_unioned,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() =>
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone()]),
+                ("bar", 0u16).into() =>
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone()]),
+            },
+            min_size: 2,
+            max_size: Some(2),
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::UnionAll,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone()],
+                alias: "bar".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        set_union_same_name_unioned,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() => Schema::AnyOf(
+                    vec![
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone()]),
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone()]),
+                    ]
+                ),
+            },
+            min_size: 1,
+            max_size: Some(2),
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::Union,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone()],
+                alias: "foo".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        set_union_distinct_name_not_unioned,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() =>
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone(), TEST_DOCUMENT_SCHEMA_A.clone()]),
+                ("bar", 0u16).into() =>
+                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone(), TEST_DOCUMENT_SCHEMA_C.clone()]),
+            },
+            min_size: 1,
+            max_size: Some(4),
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::Union,
+            left: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_A.clone(), TEST_DOCUMENT_A.clone()],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![TEST_DOCUMENT_B.clone(), TEST_DOCUMENT_C.clone(),],
+                alias: "bar".into(),
+            })),
+        }),
+    );
+    test_schema!(
+        set_union_of_two_empty_sets_has_min_and_max_size_0,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("foo", 0u16).into() =>
+                        Schema::AnyOf(vec![]),
+                ("bar", 0u16).into() =>
+                        Schema::AnyOf(vec![]),
+            },
+            min_size: 0,
+            max_size: Some(0),
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::Union,
+            left: Box::new(Stage::Array(Array {
+                array: vec![],
+                alias: "foo".into(),
+            })),
+            right: Box::new(Stage::Array(Array {
+                array: vec![],
+                alias: "bar".into(),
+            })),
+        }),
+    );
+
     // Join tests
     test_schema!(
         left_join,

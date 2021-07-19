@@ -1,5 +1,5 @@
 use crate::{
-    ast::{CollectionSource, Datasource},
+    ast::{self, CollectionSource, Datasource},
     ir::{Collection, Expression, Project, Stage},
     map,
 };
@@ -78,10 +78,36 @@ lazy_static! {
         collection: "foo".into(),
         alias: Some("foo".into()),
     });
+    static ref AST_QUERY_FOO: ast::Query = ast::Query::Select(ast::SelectQuery {
+        select_clause: ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star]),
+        },
+        from_clause: Some(AST_SOURCE_FOO.clone()),
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
+    });
     static ref AST_SOURCE_BAR: Datasource = Datasource::Collection(CollectionSource {
         database: Some("test".into()),
         collection: "bar".into(),
         alias: Some("bar".into()),
+    });
+    static ref AST_QUERY_BAR: ast::Query = ast::Query::Select(ast::SelectQuery {
+        select_clause: ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star]),
+        },
+        from_clause: Some(AST_SOURCE_BAR.clone()),
+        where_clause: None,
+        group_by_clause: None,
+        having_clause: None,
+        order_by_clause: None,
+        limit: None,
+        offset: None,
     });
 }
 
@@ -2072,6 +2098,36 @@ mod limit_or_offset_clause {
             limit: Some(10_u32),
             offset: Some(3_u32)
         },
+    );
+}
+
+mod set_query {
+    use super::{AST_QUERY_BAR, AST_QUERY_FOO, IR_SOURCE_BAR, IR_SOURCE_FOO};
+    use crate::{ast, ir};
+
+    test_algebrize!(
+        union_distinct_not_allowed,
+        algebrize_set_query,
+        Err(Error::DistinctUnion),
+        ast::SetQuery {
+            left: Box::new(AST_QUERY_FOO.clone()),
+            op: ast::SetOperator::Union,
+            right: Box::new(AST_QUERY_BAR.clone()),
+        }
+    );
+    test_algebrize!(
+        basic,
+        algebrize_set_query,
+        Ok(ir::Stage::Set(ir::Set {
+            operation: ir::SetOperation::UnionAll,
+            left: Box::new(IR_SOURCE_FOO.clone()),
+            right: Box::new(IR_SOURCE_BAR.clone()),
+        })),
+        ast::SetQuery {
+            left: Box::new(AST_QUERY_FOO.clone()),
+            op: ast::SetOperator::UnionAll,
+            right: Box::new(AST_QUERY_BAR.clone()),
+        }
     );
 }
 
