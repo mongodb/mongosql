@@ -645,6 +645,315 @@ mod schema {
         map! {("integer_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
     );
 
+    // Like function type correctness
+    test_schema!(
+        like_first_arg_not_string_or_nullish_is_error,
+        Err(Error::SchemaChecking {
+            name: "Like",
+            required: STRING_OR_NULLISH.clone(),
+            found: NUMERIC_OR_NULLISH.clone(),
+        }),
+        Expression::Like(LikeExpr {
+            expr: Expression::Reference(("bar", 0u16).into()).into(),
+            pattern: Expression::Literal(Literal::String("hello".into())).into(),
+            escape: None,
+        }),
+        map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+    test_schema!(
+        like_second_arg_not_string_or_nullish_is_error,
+        Err(Error::SchemaChecking {
+            name: "Like",
+            required: STRING_OR_NULLISH.clone(),
+            found: NUMERIC_OR_NULLISH.clone(),
+        }),
+        Expression::Like(LikeExpr {
+            expr: Expression::Literal(Literal::String("hello".into())).into(),
+            pattern: Expression::Reference(("bar", 0u16).into()).into(),
+            escape: None,
+        }),
+        map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+    test_schema!(
+        like_must_be_string,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::Like(LikeExpr {
+            expr: Expression::Reference(("bar", 0u16).into()).into(),
+            pattern: Expression::Literal(Literal::String("hello".into())).into(),
+            escape: None,
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
+    );
+    test_schema!(
+        like_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::Like(LikeExpr {
+            expr: Expression::Reference(("bar", 0u16).into()).into(),
+            pattern: Expression::Literal(Literal::String("hello".into())).into(),
+            escape: None,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        like_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::Like(LikeExpr {
+            expr: Expression::Reference(("bar", 0u16).into()).into(),
+            pattern: Expression::Literal(Literal::String("hello".into())).into(),
+            escape: None,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+    );
+    test_schema!(
+        like_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::Like(LikeExpr {
+            expr: Expression::Reference(("bar", 0u16).into()).into(),
+            pattern: Expression::Literal(Literal::String("hello".into())).into(),
+            escape: None,
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    // And tests.
+    test_schema!(
+        and_first_arg_is_not_bool_is_error,
+        Err(Error::SchemaChecking {
+            name: "And",
+            required: BOOLEAN_OR_NULLISH.clone(),
+            found: NUMERIC_OR_NULLISH.clone(),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+    test_schema!(
+        and_second_arg_is_not_bool_is_error,
+        Err(Error::SchemaChecking {
+            name: "And",
+            required: BOOLEAN_OR_NULLISH.clone(),
+            found: NUMERIC_OR_NULLISH.clone(),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::Literal(Literal::Boolean(true)),
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+        }),
+        map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+    test_schema!(
+        and_must_be_bool,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
+    );
+    test_schema!(
+        and_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        and_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
+    );
+    test_schema!(
+        and_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    // Or tests.
+    test_schema!(
+        or_first_arg_is_not_bool_is_error,
+        Err(Error::SchemaChecking {
+            name: "Or",
+            required: BOOLEAN_OR_NULLISH.clone(),
+            found: NUMERIC_OR_NULLISH.clone(),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Or,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+    test_schema!(
+        or_second_arg_is_not_bool_is_error,
+        Err(Error::SchemaChecking {
+            name: "Or",
+            required: BOOLEAN_OR_NULLISH.clone(),
+            found: NUMERIC_OR_NULLISH.clone(),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Or,
+            args: vec![
+                Expression::Literal(Literal::Boolean(true)),
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+        }),
+        map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+    test_schema!(
+        or_must_be_bool,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Or,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
+    );
+    test_schema!(
+        or_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Or,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        or_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Or,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
+    );
+    test_schema!(
+        or_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Or,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Literal(Literal::Boolean(true))
+            ],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
+    // Not tests.
+    test_schema!(
+        not_arg_is_not_bool_is_error,
+        Err(Error::SchemaChecking {
+            name: "Not",
+            required: BOOLEAN_OR_NULLISH.clone(),
+            found: NUMERIC_OR_NULLISH.clone(),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Not,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
+    );
+    test_schema!(
+        not_must_be_bool,
+        Ok(Schema::Atomic(Atomic::Boolean)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Not,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
+    );
+    test_schema!(
+        not_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Not,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
+    );
+    test_schema!(
+        not_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Not,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
+    );
+    test_schema!(
+        not_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Not,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+    );
+
     // Trim function type correctness
     test_schema!(
         ltrim_must_be_string,
@@ -1300,6 +1609,138 @@ mod schema {
                 Expression::Literal(Literal::Integer(2))
             ],
         }),
+    );
+    test_schema!(
+        arithmetic_decimal_takes_priority_in_any_of_must_be_numeric,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("baz", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+            ]),
+            ("foo", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+            ]),
+            ("baz", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        },
+    );
+    test_schema!(
+        arithmetic_decimal_takes_priority_in_any_of_may_be_null,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("baz", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+            ]),
+            ("foo", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Null),
+            ]),
+            ("baz", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        },
+    );
+    test_schema!(
+        arithmetic_must_be_null,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("baz", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+            ]),
+            ("foo", 0u16).into() =>
+                Schema::Atomic(Atomic::Null),
+            ("baz", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        },
+    );
+    test_schema!(
+        arithmetic_decimal_takes_priority_in_any_of_may_be_missing,
+        Ok(Schema::AnyOf(vec![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("baz", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+            ]),
+            ("foo", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Missing,
+            ]),
+            ("baz", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        },
+    );
+    test_schema!(
+        arithmetic_must_be_missing,
+        Ok(Schema::Atomic(Atomic::Null)),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mul,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("baz", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+            ]),
+            ("foo", 0u16).into() =>
+                Schema::Missing,
+            ("baz", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        },
     );
 
     // Arithmetic function errors.

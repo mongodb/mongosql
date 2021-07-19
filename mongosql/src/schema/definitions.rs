@@ -173,7 +173,7 @@ lazy_static! {
     ]);
 }
 
-#[derive(PartialEq, PartialOrd, Ord, Eq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 pub enum Satisfaction {
     Not,
     May,
@@ -601,7 +601,7 @@ impl Atomic {
     }
 
     /// is_numeric returns whether or not the atomic value is numeric.
-    fn is_numeric(&self) -> bool {
+    pub fn is_numeric(&self) -> bool {
         use self::Atomic::*;
         match self {
             Decimal | Double | Integer | Long => true,
