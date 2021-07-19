@@ -20,6 +20,8 @@ pub enum Error {
     InvalidSortKey,
     #[error("cannot generate MQL for {0:?} function")]
     UnsupportedFunction(ir::ScalarFunction),
+    #[error("GROUP BY keys must be valid field references")]
+    InvalidGroupKey,
 }
 
 pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {

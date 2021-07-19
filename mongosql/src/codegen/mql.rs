@@ -3,11 +3,11 @@ use crate::{
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
-        ScalarFunction,
+        AggregationExpr, ScalarFunction,
     },
     map,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct MappingRegistry(BTreeMap<Key, String>);
@@ -151,6 +151,13 @@ impl MqlCodeGenerator {
         }
     }
 
+    fn get_unique_alias(existing_aliases: BTreeSet<String>, mut alias: String) -> String {
+        while existing_aliases.contains(&alias) {
+            alias.insert(0, '_')
+        }
+        alias
+    }
+
     /// Recursively generates a translation for this stage and its
     /// sources. When this function is called, `self.mapping_registry`
     /// should include mappings for any datasources from outer scopes.
@@ -193,7 +200,7 @@ impl MqlCodeGenerator {
                     .with_mapping_registry(output_registry)
                     .with_additional_stage(doc! {"$project": project_body}))
             }
-            Group(_) => unimplemented!(),
+            Group(g) => self.codegen_group_by(g),
             Limit(l) => Ok(self
                 .codegen_stage(*l.source)?
                 .with_additional_stage(doc! {"$limit": l.limit})),
@@ -314,6 +321,134 @@ impl MqlCodeGenerator {
     fn with_merged_mappings(mut self, mappings: MappingRegistry) -> Self {
         self.mapping_registry.merge(mappings);
         self
+    }
+
+    fn codegen_group_by(&self, group: ir::Group) -> Result<MqlTranslation> {
+        use bson::doc;
+        use ir::AggregationFunction::*;
+
+        let source_translation = self.codegen_stage(*group.source)?;
+        let expression_generator = self
+            .clone()
+            .with_merged_mappings(source_translation.mapping_registry.clone());
+
+        let mut group_keys = doc! {};
+        let mut bot_body = doc! {};
+        let mut project_body = doc! {"_id": 0};
+        let mut counter = 1;
+
+        // There shouldn't be any duplicate group key aliases post-algebrization.
+        let unique_aliases = group
+            .keys
+            .iter()
+            .filter_map(|k| k.alias.clone())
+            .collect::<BTreeSet<String>>();
+
+        for key in group.keys {
+            // Project each key under the __bot namespace, unless the key is an unaliased
+            // compound identifier, in which case it should be nested under its original
+            // namespace and field name.
+            let key_alias = match key.alias {
+                Some(ref alias) => {
+                    bot_body.insert(alias, format!("$_id.{}", alias));
+                    alias.to_string()
+                }
+                None => {
+                    let alias = MqlCodeGenerator::get_unique_alias(
+                        unique_aliases.clone(),
+                        format!("__unaliasedKey{}", counter),
+                    );
+                    if let ir::Expression::FieldAccess(ref fa) = key.inner {
+                        // Throw an error if the FieldAccess expr doesn't resolve to a
+                        // compound identifier.
+                        match expression_generator
+                            .codegen_expression(*fa.expr.clone())?
+                            .as_str()
+                        {
+                            Some(datasource) => {
+                                let stripped_ds =
+                                    datasource.strip_prefix('$').unwrap_or(datasource);
+
+                                match project_body.get_mut(stripped_ds) {
+                                    // We can safely unwrap here since `doc` will always be a
+                                    // Bson::Document.
+                                    Some(doc) => doc
+                                        .as_document_mut()
+                                        .unwrap()
+                                        .insert(fa.field.clone(), format!("$_id.{}", alias)),
+                                    None => project_body.insert(
+                                        stripped_ds,
+                                        bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
+                                    ),
+                                }
+                            }
+                            None => return Err(Error::InvalidGroupKey),
+                        };
+                    };
+                    alias
+                }
+            };
+            group_keys.insert(
+                key_alias,
+                expression_generator.codegen_expression(key.inner)?,
+            );
+            counter += 1;
+        }
+        let mut group_body = doc! {
+            "_id": group_keys,
+        };
+
+        // Reset `unique_aliases` since there is no risk of conflict in the $group stage
+        // between the aliases nested under _id and the aliases at the same level as it.
+        let mut unique_aliases = BTreeSet::new();
+        unique_aliases.insert("_id".into());
+
+        for agg in group.aggregations {
+            let agg_func_doc = match agg.inner {
+                AggregationExpr::CountStar(distinct) => {
+                    doc! {"$sqlCount": {
+                        "var": "$$ROOT".to_string(),
+                        "distinct": distinct
+                    }}
+                }
+                AggregationExpr::Function(f) => {
+                    let var = expression_generator.codegen_expression(*f.arg)?;
+                    let distinct_body = doc! {
+                        "var": var.clone(),
+                        "distinct": f.distinct
+                    };
+                    match f.function {
+                        AddToArray => doc! {"$push": var},
+                        Avg => doc! {"$sqlAvg": distinct_body},
+                        Count => doc! {"$sqlCount": distinct_body},
+                        First => doc! {"$first": var},
+                        Last => doc! {"$sqlLast": var},
+                        Max => doc! {"$max": var},
+                        MergeDocuments => doc! {"$sqlMergeObjects": distinct_body},
+                        Min => doc! {"$min": var},
+                        StddevPop => doc! {"$sqlStdDevPop": distinct_body},
+                        StddevSamp => doc! {"$sqlStdDevSamp": distinct_body},
+                        Sum => doc! {"$sqlSum": distinct_body},
+                    }
+                }
+            };
+            // If an aggregated expression's alias is "_id", prepend additional underscores
+            // until there is no longer a conflict in the $group stage.
+            let unique_agg_alias = match agg.alias.as_str() {
+                "_id" => {
+                    MqlCodeGenerator::get_unique_alias(unique_aliases.clone(), "__id".to_string())
+                }
+                a => a.to_string(),
+            };
+            bot_body.insert(agg.alias, format!("${}", unique_agg_alias));
+            group_body.insert(unique_agg_alias, agg_func_doc);
+        }
+        if !bot_body.is_empty() {
+            project_body.insert("__bot", bot_body);
+        }
+        Ok(source_translation
+            .with_additional_stage(doc! {"$group": group_body})
+            .with_additional_stage(doc! {"$project": project_body}))
     }
 
     fn codegen_sort(&self, sort: ir::Sort) -> Result<MqlTranslation> {

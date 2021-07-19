@@ -1572,3 +1572,523 @@ mod function {
         }),
     );
 }
+
+mod group_by {
+    use crate::{codegen::Error, ir::definitions::*, map};
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        static ref SOURCE_IR: Box<Stage> = Box::new(Stage::Collection(Collection {
+            db: "test".into(),
+            collection: "foo".into(),
+        }));
+        static ref KEY_FOO_A: Vec<AliasedExpression> = vec![AliasedExpression {
+            alias: Some("foo_a".to_string()),
+            inner: Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                field: "a".into()
+            }),
+        },];
+    }
+
+    test_codegen_plan!(
+        simple,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"f": "$foo"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"f": "$_id.f"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: Some("f".into()),
+                inner: Expression::Reference(("foo", 0u16).into()),
+            }],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        aliased_compound_ident,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        unaliased_compound_idents,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"__unaliasedKey1": "$foo.a", "__unaliasedKey2": "$foo.b"}}},
+                bson::doc!{"$project": {"_id": 0, "foo": {"a": "$_id.__unaliasedKey1", "b": "$_id.__unaliasedKey2"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "a".into()
+                }),
+            },AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "b".into()
+                }),
+            },],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        mix_aliased_and_unaliased_keys,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a", "__unaliasedKey2": "$foo.b", "foo_c": "$foo.c"}}},
+                bson::doc!{"$project": {"_id": 0, "foo": {"b": "$_id.__unaliasedKey2"}, "__bot": {"foo_a": "$_id.foo_a", "foo_c": "$_id.foo_c"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: Some("foo_a".to_string()),
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "a".into()
+                }),
+            },
+            AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "b".into()
+                }),
+            },
+            AliasedExpression {
+                alias: Some("foo_c".to_string()),
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "c".into()
+                }),
+            }],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        duplicate_generated_alias,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"__unaliasedKey2": "$foo.a", "___unaliasedKey2": "$foo.b"}}},
+                bson::doc!{"$project": {"_id": 0, "foo": {"b": "$_id.___unaliasedKey2"}, "__bot": {"__unaliasedKey2": "$_id.__unaliasedKey2"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: Some("__unaliasedKey2".to_string()),
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "a".into()
+                }),
+            },
+            AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "b".into()
+                }),
+            }],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        invalid_group_key_field_access,
+        Err(Error::InvalidGroupKey),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Document(
+                        map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+                    )),
+                    field: "sub".to_string(),
+                })
+            }],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        add_to_array,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$push": "$foo.a"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::AddToArray,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        avg,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlAvg": {"var": "$foo.a", "distinct": false}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::Avg,
+                    distinct: false,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        count,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlCount": {"var": "$foo.a", "distinct": true}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::Count,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        first,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$first": "$foo.a"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::First,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        last,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlLast": "$foo.a"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::Last,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        max,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$max": "$foo.a"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::Max,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        merge_documents,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlMergeObjects": {"var": "$foo.a", "distinct": true}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::MergeDocuments,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        min,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$min": "$foo.a"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::Min,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        std_dev_pop,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlStdDevPop": {"var": "$foo.a", "distinct": true}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::StddevPop,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        std_dev_samp,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlStdDevSamp": {"var": "$foo.a", "distinct": true}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::StddevSamp,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        sum,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlSum": {"var": "$foo.a", "distinct": true}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::Sum,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        count_star,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlCount": {"var": "$$ROOT", "distinct": true}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: KEY_FOO_A.clone(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                inner: AggregationExpr::CountStar(true)
+            }],
+        }),
+    );
+    test_codegen_plan!(
+        agg_alias_underscore_id,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"__id": "$foo.a"}, "__id": {"$sqlSum": {"var": "$foo.a", "distinct": true}}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"__id": "$_id.__id", "_id": "$__id"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: Some("__id".to_string()),
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "a".into()
+                }),
+            },],
+            aggregations: vec![AliasedAggregation {
+                alias: "_id".into(),
+                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::Sum,
+                    distinct: true,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    }))
+                })
+            }],
+        }),
+    );
+}

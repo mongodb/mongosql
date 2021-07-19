@@ -40,7 +40,7 @@ pub struct Group {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct AliasedExpression {
-    pub alias: String,
+    pub alias: Option<String>,
     pub inner: Expression,
 }
 
