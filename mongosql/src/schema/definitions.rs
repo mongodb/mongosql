@@ -127,15 +127,15 @@ impl TryFrom<json_schema::Schema> for Document {
 }
 
 lazy_static! {
-    // Array and Document schemas.
-    pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
-    pub static ref ANY_DOCUMENT: Schema = Schema::Document(Document {
-        keys: BTreeMap::new(),
-        required: BTreeSet::new(),
-        additional_properties: true
-    });
+    // Special Document Schemas.
+    pub static ref ANY_DOCUMENT: Schema = Schema::Document(Document::any());
+    pub static ref EMPTY_DOCUMENT: Schema = Schema::Document(Document::empty());
 
-    // Nullish schemas (schemas with null or missing).
+    // Special Array Schemas.
+    pub static ref ANY_ARRAY: Schema = Schema::Array(Box::new(Schema::Any));
+    pub static ref EMPTY_ARRAY: Schema = Schema::Array(Box::new(Schema::Unsat));
+
+    // Nullish Schemas (Schemas that additionally allow for Null or Missing).
     pub static ref NULLISH: Schema =
         Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing,]);
     pub static ref ANY_ARRAY_OR_NULLISH: Schema = Schema::AnyOf(vec![
@@ -173,12 +173,23 @@ lazy_static! {
     ]);
 }
 
-#[allow(dead_code)]
-#[derive(PartialEq, PartialOrd, Debug, Clone, Copy)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Debug, Clone, Copy)]
 pub enum Satisfaction {
     Not,
     May,
     Must,
+}
+
+impl Satisfaction {
+    /// equal_or_may returns self if other is equal, otherwise it
+    /// returns Satisfaction::May.
+    fn equal_or_may(self, other: Self) -> Self {
+        if self == other {
+            self
+        } else {
+            Satisfaction::May
+        }
+    }
 }
 
 #[allow(dead_code, unused_variables)]
@@ -360,6 +371,37 @@ impl Schema {
         }
     }
 
+    // has_overlapping_keys_with returns whether any value satisfying the self Schema May, Must, or
+    // must Not have overlapping keys with any value satisfying the other Schema. Either Schema may
+    // be any kind of Schema, and if one of them does Not satisfy ANY_DOCUMENT, it will return Not.
+    // Additionally, the EMPTY_DOCUMENT must Not have overlapping keys with any other Schema, since
+    // it allows no keys.
+    pub fn has_overlapping_keys_with(&self, other: &Schema) -> Satisfaction {
+        match self {
+            Schema::AnyOf(ao) => ao
+                .iter()
+                .map(|s| s.has_overlapping_keys_with(other))
+                .reduce(Satisfaction::equal_or_may)
+                .unwrap_or(Satisfaction::Not),
+            Schema::Any => std::cmp::min(Satisfaction::May, other.satisfies(&ANY_DOCUMENT)),
+            Schema::Unsat | Schema::Missing | Schema::Atomic(_) | Schema::Array(_) => {
+                Satisfaction::Not
+            }
+            Schema::Document(d1) => match other {
+                Schema::AnyOf(ao) => ao
+                    .iter()
+                    .map(|s| self.has_overlapping_keys_with(s))
+                    .reduce(Satisfaction::equal_or_may)
+                    .unwrap_or(Satisfaction::Not),
+                Schema::Any => Satisfaction::May,
+                Schema::Unsat | Schema::Missing | Schema::Atomic(_) | Schema::Array(_) => {
+                    Satisfaction::Not
+                }
+                Schema::Document(d2) => d1.has_overlapping_keys_with(d2),
+            },
+        }
+    }
+
     /// upconvert_missing_to_null upconverts Missing to Null in the current level
     /// of the schema including nested AnyOf's. It does not recurse into Documents or Arrays.
     /// This is used to properly handle array items Schemata, where Missing is not possible.
@@ -376,6 +418,31 @@ impl Schema {
             | Schema::Document(_)
             | Schema::Array(_)
             | Schema::Unsat => self,
+        }
+    }
+
+    /// document_union unions together two Schemata returning a single Schema guaranteed to have
+    /// variant Schema::Document.  The return Schema matches all document values matched by either
+    /// `self` or `other`.  The Schema returned is not necessarily as tight a bound as
+    /// `AnyOf([self, other])`; in other words, it may match additional document values not matched
+    /// by `self` or `other`.
+    pub fn document_union(self, other: Schema) -> Schema {
+        match self {
+            Schema::AnyOf(ao) => ao.into_iter().fold(other, Schema::document_union),
+            Schema::Any
+            | Schema::Unsat
+            | Schema::Missing
+            | Schema::Atomic(_)
+            | Schema::Array(_) => EMPTY_DOCUMENT.clone(),
+            Schema::Document(ref d1) => match other {
+                Schema::AnyOf(_) => other.document_union(self),
+                Schema::Document(d2) => Schema::Document(d1.clone().union(d2)),
+                Schema::Any
+                | Schema::Unsat
+                | Schema::Missing
+                | Schema::Atomic(_)
+                | Schema::Array(_) => EMPTY_DOCUMENT.clone(),
+            },
         }
     }
 }
@@ -510,7 +577,7 @@ impl TryFrom<json_schema::Schema> for Schema {
 }
 
 impl Atomic {
-    /// Returns whether one atomic satisfies another atomic (Must or Not only).
+    /// satisfies returns whether one atomic satisfies another atomic (Must or Not only).
     fn satisfies(&self, other: &Self) -> Satisfaction {
         if self == other {
             Satisfaction::Must
@@ -519,7 +586,7 @@ impl Atomic {
         }
     }
 
-    /// Returns whether or not two atomics are comparable (Must or Not only).
+    /// is_comparable_with returns whether or not two atomics are comparable (Must or Not only).
     /// Atomics are comparable if they are both numeric, if either is null,
     /// or otherwise both equal.
     fn is_comparable_with(&self, other: &Self) -> Satisfaction {
@@ -533,7 +600,7 @@ impl Atomic {
         }
     }
 
-    // Returns whether or not the atomic value is numeric.
+    /// is_numeric returns whether or not the atomic value is numeric.
     fn is_numeric(&self) -> bool {
         use self::Atomic::*;
         match self {
@@ -545,6 +612,26 @@ impl Atomic {
 }
 
 impl Document {
+    /// any returns an Any Document, that is a Document that may contain any
+    /// keys of Any Schema
+    pub fn any() -> Document {
+        Document {
+            keys: map! {},
+            required: set! {},
+            additional_properties: true,
+        }
+    }
+
+    /// empty returns an Empty Document
+    pub fn empty() -> Document {
+        Document {
+            keys: map! {},
+            required: set! {},
+            additional_properties: false,
+        }
+    }
+
+    /// satisfies returns whether one Document Schema satisfies another Document Schema.
     fn satisfies(&self, other: &Self) -> Satisfaction {
         use Satisfaction::*;
         let mut ret = Must;
@@ -601,5 +688,106 @@ impl Document {
             }
         }
         ret
+    }
+
+    /// union_keys constructs a key map where all the keys from both maps are kept.
+    /// Those keys that overlap have their Schemata joined in an AnyOf.
+    fn union_keys(
+        mut m1: BTreeMap<String, Schema>,
+        m2: BTreeMap<String, Schema>,
+    ) -> BTreeMap<String, Schema> {
+        for (key2, schema2) in m2.into_iter() {
+            if let Some(old_schema) = m1.remove(&key2) {
+                m1.insert(key2, Schema::AnyOf(vec![old_schema.clone(), schema2]));
+            } else {
+                m1.insert(key2, schema2);
+            }
+        }
+        m1
+    }
+
+    /// intersect_keys constructs a key map that is the intersection of the
+    /// two passed maps.
+    fn intersect_keys(
+        m1: BTreeMap<String, Schema>,
+        mut m2: BTreeMap<String, Schema>,
+    ) -> BTreeMap<String, Schema> {
+        let mut out = BTreeMap::new();
+        for (key, s1) in m1.into_iter() {
+            if let Some(s2) = m2.remove(&key) {
+                out.insert(key, Schema::AnyOf(vec![s1, s2]));
+            }
+        }
+        out
+    }
+
+    /// retain_keys retains keys from the m1 map argument, creating an AnyOf for the Schema of any
+    /// that overlap, and ignoring the keys from the m1 map that are not overlapping with m1.
+    fn retain_keys(
+        mut m1: BTreeMap<String, Schema>,
+        m2: BTreeMap<String, Schema>,
+    ) -> BTreeMap<String, Schema> {
+        for (key, s1) in m2.into_iter() {
+            if let Some(s2) = m1.remove(&key) {
+                m1.insert(key, Schema::AnyOf(vec![s1, s2]));
+            }
+        }
+        m1
+    }
+
+    /// union unions together two schema::Documents returning a single Document schema that matches
+    /// all document values matched by either `self` or `other`.  The Document returned is not
+    /// necessarily as tight a bound as `AnyOf([Schema::Document(self), Schema::Document(other)])`;
+    /// in other words, it may match additional document values not matched by `self` or `other`.
+    fn union(self, other: Document) -> Document {
+        let additional_properties = self.additional_properties || other.additional_properties;
+        let keys = match (self.additional_properties, other.additional_properties) {
+            (true, true) => Document::intersect_keys(self.keys, other.keys),
+            (false, false) => Document::union_keys(self.keys, other.keys),
+            (true, false) => Document::retain_keys(self.keys, other.keys),
+            (false, true) => Document::retain_keys(other.keys, self.keys),
+        };
+        Document {
+            keys,
+            required: self
+                .required
+                .intersection(&other.required)
+                .cloned()
+                .collect(),
+            additional_properties,
+        }
+    }
+
+    /// has_overlapping_keys_with returns whether any Document value satisfying the self Document
+    /// Schema May, Must, or must Not have overlapping keys with any value satisfying the other
+    /// Document Schema.
+    fn has_overlapping_keys_with(&self, other: &Document) -> Satisfaction {
+        // the empty document schema cannot overlap with any other document, even if the other
+        // document allows additional_properties.
+        if self.is_empty() || other.is_empty() {
+            return Satisfaction::Not;
+        }
+        if self.required.intersection(&other.required).next().is_some() {
+            return Satisfaction::Must;
+        }
+        if self.additional_properties || other.additional_properties {
+            return Satisfaction::May;
+        }
+        if self
+            .keys
+            .keys()
+            .collect::<BTreeSet<_>>()
+            .intersection(&other.keys.keys().collect::<BTreeSet<_>>())
+            .next()
+            .is_some()
+        {
+            return Satisfaction::May;
+        }
+        Satisfaction::Not
+    }
+
+    #[inline]
+    fn is_empty(&self) -> bool {
+        self.keys.is_empty() && self.required.is_empty() && !self.additional_properties
     }
 }

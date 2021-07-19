@@ -1,3 +1,7 @@
+// +---------------------------+
+// | ORD for Satisfaction test |
+// +---------------------------+
+
 mod satisfaction_ord {
     #[test]
     fn satisfaction_ord() {
@@ -705,6 +709,554 @@ mod satisfies {
         Not,
         Array(Box::new(Missing)),
         Array(Box::new(Atomic(Integer))),
+    );
+}
+
+mod has_overlaping_keys_with {
+    use crate::{
+        map,
+        schema::{Atomic, Document, Satisfaction, Schema, ANY_DOCUMENT, EMPTY_DOCUMENT},
+        set,
+    };
+
+    macro_rules! test_has_overlapping_keys_with {
+        ($func_name:ident, $expected:expr, $schema1:expr, $schema2:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                let out = $schema1.has_overlapping_keys_with($schema2);
+                assert_eq!($expected, out);
+            }
+        };
+    }
+
+    test_has_overlapping_keys_with!(
+        any_may_overlap_any_document,
+        Satisfaction::May,
+        &Schema::Any,
+        &ANY_DOCUMENT,
+    );
+    test_has_overlapping_keys_with!(
+        any_overlap_may_any_document_symmetric,
+        Satisfaction::May,
+        &ANY_DOCUMENT,
+        &Schema::Any,
+    );
+    test_has_overlapping_keys_with!(
+        atomic_has_no_keys_to_overlap,
+        Satisfaction::Not,
+        Schema::Atomic(Atomic::Integer),
+        &ANY_DOCUMENT,
+    );
+    test_has_overlapping_keys_with!(
+        atomic_has_no_keys_to_overlap_symmetric,
+        Satisfaction::Not,
+        &ANY_DOCUMENT,
+        &Schema::Atomic(Atomic::Integer),
+    );
+    test_has_overlapping_keys_with!(
+        any_document_may_overlap_keys_with_any_document,
+        Satisfaction::May,
+        &ANY_DOCUMENT,
+        &ANY_DOCUMENT,
+    );
+    test_has_overlapping_keys_with!(
+        explicit_document_may_overlap_keys_with_any_document,
+        Satisfaction::May,
+        Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {},
+            additional_properties: false,
+        }),
+        &ANY_DOCUMENT,
+    );
+    test_has_overlapping_keys_with!(
+        any_document_does_not_overlap_with_empty_document,
+        Satisfaction::Not,
+        &EMPTY_DOCUMENT,
+        &ANY_DOCUMENT,
+    );
+    test_has_overlapping_keys_with!(
+        explicit_document_may_overlap_keys_with_any_document_symmetric,
+        Satisfaction::May,
+        &ANY_DOCUMENT,
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {},
+            additional_properties: false,
+        }),
+    );
+    test_has_overlapping_keys_with!(
+        any_document_does_not_overlap_with_empty_document_symmetric,
+        Satisfaction::Not,
+        &ANY_DOCUMENT,
+        &EMPTY_DOCUMENT,
+    );
+    test_has_overlapping_keys_with!(
+        two_explicit_documents_without_required_keys_may_overlap,
+        Satisfaction::May,
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {},
+            additional_properties: false,
+        }),
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {},
+            additional_properties: false,
+        }),
+    );
+    test_has_overlapping_keys_with!(
+        two_explicit_documents_with_required_keys_may_overlap,
+        Satisfaction::May,
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {"b".into()},
+            additional_properties: false,
+        }),
+    );
+    test_has_overlapping_keys_with!(
+        two_explicit_documents_with_required_keys_must_overlap,
+        Satisfaction::Must,
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+    );
+    test_has_overlapping_keys_with!(
+        any_of_documents_with_required_keys_may_overlap,
+        Satisfaction::May,
+        &Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"b".into()},
+                additional_properties: false,
+            }),
+        ]),
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer),
+            "c".into() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set! {"c".into()},
+            additional_properties: false,
+        }),
+    );
+    test_has_overlapping_keys_with!(
+        any_of_documents_with_required_keys_must_overlap,
+        Satisfaction::Must,
+        &Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+        ]),
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer),
+            "c".into() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+    );
+    test_has_overlapping_keys_with!(
+        any_of_documents_with_required_keys_may_overlap_symmetric,
+        Satisfaction::May,
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer),
+            "c".into() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set! {"c".into()},
+            additional_properties: false,
+        }),
+        &Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"b".into()},
+                additional_properties: false,
+            }),
+        ]),
+    );
+    test_has_overlapping_keys_with!(
+        any_of_documents_with_required_keys_must_overlap_symmetric,
+        Satisfaction::Must,
+        &Schema::Document(Document {
+            keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+            "b".into() => Schema::Atomic(Atomic::Integer),
+            "c".into() => Schema::Atomic(Atomic::Integer)
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+        &Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+        ]),
+    );
+}
+
+mod document_union {
+    use crate::{
+        map,
+        schema::{Atomic, Document, Schema, ANY_DOCUMENT, EMPTY_DOCUMENT},
+        set,
+    };
+
+    macro_rules! test_document_union {
+        ($func_name:ident, $expected:expr, $schema1:expr, $schema2:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                let out = $schema1.document_union($schema2);
+                assert_eq!($expected, out);
+            }
+        };
+    }
+
+    test_document_union!(
+        schema_does_not_satisfy_document_results_in_any,
+        EMPTY_DOCUMENT.clone(),
+        Schema::Atomic(Atomic::Integer),
+        ANY_DOCUMENT.clone(),
+    );
+    test_document_union!(
+        schema_does_not_satisfy_document_results_in_any_symmetric,
+        EMPTY_DOCUMENT.clone(),
+        ANY_DOCUMENT.clone(),
+        Schema::Atomic(Atomic::Integer),
+    );
+    test_document_union!(
+        document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Integer),
+                ]),
+                "b".into() => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Double),
+                    Schema::Atomic(Atomic::Integer),
+                ]),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Decimal),
+                "b".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "b".into()},
+            additional_properties: false,
+        }),
+    );
+    test_document_union!(
+        document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties_symmetric,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                ]),
+                "b".into() => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Double),
+                ]),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "b".into()},
+            additional_properties: false,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Decimal),
+                "b".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+    );
+    test_document_union!(
+        document_union_of_two_documents_will_retain_keys_when_first_is_open,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                ]),
+                "b".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Decimal),
+                "b".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "c".into()},
+            additional_properties: false,
+        }),
+    );
+    test_document_union!(
+        document_union_of_two_documents_will_retain_keys_when_second_is_open,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                ]),
+                "c".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "c".into()},
+            additional_properties: false,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Decimal),
+                "c".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+        }),
+    );
+    test_document_union!(
+        document_union_of_two_documents_will_intersect_keys_when_both_are_open,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
+                ]),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "c".into()},
+            additional_properties: true,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Decimal),
+                "b".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: true,
+        }),
+    );
+    test_document_union!(
+        document_union_of_any_doc_with_doc_is_any_doc,
+        ANY_DOCUMENT.clone(),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "c".into()},
+            additional_properties: false,
+        }),
+        ANY_DOCUMENT.clone(),
+    );
+    test_document_union!(
+        document_union_of_any_doc_with_doc_is_any_doc_symmetric,
+        ANY_DOCUMENT.clone(),
+        ANY_DOCUMENT.clone(),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "c".into()},
+            additional_properties: false,
+        }),
+    );
+    test_document_union!(
+        document_union_of_doc_with_empty_doc_is_doc_with_no_required,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {},
+            additional_properties: false,
+        }),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "c".into()},
+            additional_properties: false,
+        }),
+        EMPTY_DOCUMENT.clone(),
+    );
+    test_document_union!(
+        document_union_of_doc_with_empty_doc_is_doc_with_no_required_symmetric,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {},
+            additional_properties: false,
+        }),
+        EMPTY_DOCUMENT.clone(),
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {"a".into(), "c".into()},
+            additional_properties: false,
+        }),
+    );
+    test_document_union!(
+        document_union_of_any_of_recursively_applies_document_union,
+        Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::AnyOf(vec![
+                    Schema::AnyOf(vec![
+                        Schema::AnyOf(vec![
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Decimal),
+                        ]),
+                        Schema::Atomic(Atomic::Decimal),
+                    ]),
+                    Schema::Atomic(Atomic::Integer),
+                ]),
+                "b".into() => Schema::AnyOf(vec![
+                    Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Double),
+                    ]),
+                    Schema::Atomic(Atomic::Integer),
+                ]),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Double),
+            },
+            required: set! {"a".into()},
+            additional_properties: false,
+        }),
+        Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into(), "b".into()},
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                    "c".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into(), "b".into()},
+                additional_properties: false,
+            })
+        ]),
+        Schema::AnyOf(vec![
+            Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Decimal),
+                    "b".into() => Schema::Atomic(Atomic::Double),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Decimal),
+                    "d".into() => Schema::Atomic(Atomic::Double),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+        ])
     );
 }
 

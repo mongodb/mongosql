@@ -8,6 +8,7 @@ use crate::{
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{self, SchemaInferenceState},
     },
+    map,
     schema::{Satisfaction, SchemaEnvironment},
     util::are_literal,
 };
@@ -48,6 +49,8 @@ pub enum Error {
     AggregationInPlaceOfScalar(String),
     #[error("scalar functions cannot be DISTINCT")]
     DistinctScalarFunction,
+    #[error("derived table datasources {2:?} have overlapping keys, schemata: {0:?} and {1:?}")]
+    DerivedDatasouceOverlappingKeys(crate::schema::Schema, crate::schema::Schema, Satisfaction),
     #[error("{0} cannot be algebrized")]
     CannotBeAlgebrized(&'static str),
     #[error(transparent)]
@@ -293,7 +296,6 @@ impl Algebrizer {
                 stage.schema(&self.schema_inference_state())?;
                 Ok(stage)
             }
-            ast::Datasource::Derived(_) => unimplemented!(),
             ast::Datasource::Join(j) => {
                 let condition = j
                     .condition
@@ -330,6 +332,36 @@ impl Algebrizer {
                     }),
                 };
                 stage.schema(&self.schema_inference_state())?;
+                Ok(stage)
+            }
+            ast::Datasource::Derived(d) => {
+                let derived_algebrizer =
+                    Algebrizer::new(self.current_db.clone(), self.scope_level + 1);
+                let src = derived_algebrizer.algebrize_query(*d.query)?;
+                let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
+                let expression = map! {
+                    (d.alias, self.scope_level).into() =>
+                    ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::MergeObjects,
+                        args: src_resultset
+                            .schema_env
+                            .into_iter()
+                            .map(|(k, _)| ir::Expression::Reference(k))
+                            .collect::<Vec<_>>(),
+                    }),
+                };
+                let stage = ir::Stage::Project(ir::Project {
+                    source: Box::new(src),
+                    expression,
+                });
+                stage
+                    .schema(&derived_algebrizer.schema_inference_state())
+                    .map_err(|e| match e {
+                        ir::schema::Error::CannotMergeObjects(s1, s2, sat) => {
+                            Error::DerivedDatasouceOverlappingKeys(s1, s2, sat)
+                        }
+                        _ => Error::SchemaChecking(e),
+                    })?;
                 Ok(stage)
             }
         }

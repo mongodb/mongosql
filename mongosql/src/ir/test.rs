@@ -1568,6 +1568,216 @@ mod schema {
         }),
     );
 
+    test_schema!(
+        merge_object_args_must_be_documents,
+        Err(Error::SchemaChecking {
+            name: "MergeObjects",
+            required: ANY_DOCUMENT.clone(),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::MergeObjects,
+            args: vec![Expression::Literal(Literal::String("abc".to_string())),],
+        }),
+    );
+    test_schema!(
+        merge_objects_ok_to_be_one_any_document,
+        Ok(ANY_DOCUMENT.clone()),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::MergeObjects,
+            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        merge_objects_not_ok_to_be_multiple_any_document,
+        Err(Error::CannotMergeObjects(
+            ANY_DOCUMENT.clone(),
+            ANY_DOCUMENT.clone(),
+            Satisfaction::May,
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::MergeObjects,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        merge_object_args_must_have_disjoint_keys,
+        Err(Error::CannotMergeObjects(
+            Schema::Document(Document {
+                keys: map! {"a".into() => Schema::Atomic(Atomic::Integer) },
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! {"a".into() => Schema::Atomic(Atomic::Double) },
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            Satisfaction::Must,
+        )),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::MergeObjects,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("car", 0u16).into())
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() => Schema::Document(
+            Document {
+                keys: map! {"a".into() => Schema::Atomic(Atomic::Integer)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            ("car", 0u16).into() => Schema::Document(
+            Document {
+                keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_schema!(
+        merge_three_objects,
+        Ok(Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() => Schema::Atomic(Atomic::Integer),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Integer),
+                "e".into() => Schema::Atomic(Atomic::Integer),
+                "f".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {
+                "a".into(), "d".into(), "e".into(),
+            },
+            additional_properties: false,
+        })),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::MergeObjects,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("baz", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() => Schema::Document(
+            Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".into()},
+                additional_properties: false,
+            }),
+            ("baz", 0u16).into() => Schema::Document(
+            Document {
+                keys: map! {
+                    "c".into() => Schema::Atomic(Atomic::Integer),
+                    "d".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"d".into()},
+                additional_properties: false,
+            }),
+            ("foo", 0u16).into() => Schema::Document(
+            Document {
+                keys: map! {
+                    "e".into() => Schema::Atomic(Atomic::Integer),
+                    "f".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"e".into()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_schema!(
+        merge_two_anyof_objects,
+        Ok(Schema::Document(Document {
+            keys: map! {
+                "a".into() => Schema::AnyOf(vec![
+                    Schema::AnyOf(vec![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Integer),
+                    ]),
+                    Schema::Atomic(Atomic::Integer)
+                ]),
+                "b".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
+                "c".into() => Schema::Atomic(Atomic::Integer),
+                "d".into() => Schema::Atomic(Atomic::Integer),
+                "e".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
+                "f".into() => Schema::Atomic(Atomic::Integer),
+            },
+            required: set! {
+                "a".into(), "e".into(),
+            },
+            additional_properties: false,
+        })),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::MergeObjects,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("foo", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Document(
+                    Document {
+                        keys: map! {
+                           "a".into() => Schema::Atomic(Atomic::Integer),
+                           "b".into() => Schema::Atomic(Atomic::Integer),
+                        },
+                    required: set! {"a".into()},
+                    additional_properties: false,
+                }),
+                Schema::Document(
+                    Document {
+                        keys: map! {
+                           "a".into() => Schema::Atomic(Atomic::Integer),
+                           "b".into() => Schema::Atomic(Atomic::Integer),
+                        },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                }),
+                Schema::Document(
+                    Document {
+                        keys: map! {
+                           "a".into() => Schema::Atomic(Atomic::Integer),
+                        },
+                    required: set! {"a".into()},
+                    additional_properties: false,
+                }),
+            ]),
+            ("bar", 0u16).into() => Schema::AnyOf(vec![
+                Schema::Document(
+                    Document {
+                        keys: map! {
+                           "c".into() => Schema::Atomic(Atomic::Integer),
+                           "d".into() => Schema::Atomic(Atomic::Integer),
+                           "e".into() => Schema::Atomic(Atomic::Integer),
+                        },
+                    required: set! {"e".into(), "d".into()},
+                    additional_properties: false,
+                }),
+                Schema::Document(
+                    Document {
+                        keys: map! {
+                           "e".into() => Schema::Atomic(Atomic::Integer),
+                           "f".into() => Schema::Atomic(Atomic::Integer),
+                        },
+                    required: set! {"e".into()},
+                    additional_properties: false,
+                }),
+            ]),
+        },
+    );
+
     // ComputedFieldAccess Function
     test_schema!(
         computed_field_access_requires_two_args,

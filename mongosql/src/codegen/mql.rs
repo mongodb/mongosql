@@ -122,6 +122,9 @@ impl ScalarFunction {
             Hour => "$hour",
             Minute => "$minute",
             Second => "$second",
+
+            // MergeObject
+            MergeObjects => "$mergeObjects",
         })
     }
 }
@@ -474,7 +477,8 @@ impl MqlCodeGenerator {
                             "chars": self.codegen_expression(sa.args[0].clone())?,
                     }}),
                     Not | Concat | Add | Sub | Mul | Div | Lt | Lte | Neq | Eq | Gt | Gte
-                    | Between | And | Or | NullIf | Coalesce | Slice | Position | Substring => {
+                    | Between | And | Or | NullIf | Coalesce | Slice | Position | Substring
+                    | MergeObjects => {
                         let args = Bson::Array(
                             sa.args
                                 .into_iter()

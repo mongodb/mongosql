@@ -292,6 +292,9 @@ pub enum ScalarFunction {
     Hour,
     Minute,
     Second,
+
+    // MergeObjects merges an array of objects
+    MergeObjects,
 }
 
 impl ScalarFunction {
@@ -337,6 +340,7 @@ impl ScalarFunction {
             ScalarFunction::RTrim => "RTrim",
             ScalarFunction::BTrim => "BTrim",
             ScalarFunction::Upper => "Upper",
+            ScalarFunction::MergeObjects => "MergeObjects",
         }
     }
 }

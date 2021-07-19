@@ -3,7 +3,7 @@ use crate::{
     map,
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
-        ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH,
+        ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, EMPTY_DOCUMENT,
         INTEGER_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
 };
@@ -12,7 +12,6 @@ use std::cmp::min;
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
 
-#[allow(dead_code)]
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("datasource {0:?} not found in schema environment")]
@@ -31,6 +30,8 @@ pub enum Error {
     },
     #[error("invalid comparison for {0}: {1:?} cannot be compared to {2:?}")]
     InvalidComparison(&'static str, Schema, Schema),
+    #[error("cannot merge objects {0:?} and {1:?} as they {2:?} have overlapping keys")]
+    CannotMergeObjects(Schema, Schema, Satisfaction),
     #[error("cannot access field {0} because it does not exist")]
     AccessMissingField(String),
     #[error("invalid JSON schema: {0}")]
@@ -48,7 +49,6 @@ pub struct SchemaInferenceState {
 }
 
 impl SchemaInferenceState {
-    #[allow(dead_code)]
     pub fn new(scope_level: u16, env: SchemaEnvironment) -> SchemaInferenceState {
         SchemaInferenceState { scope_level, env }
     }
@@ -296,7 +296,6 @@ impl Expression {
     /// returns a [`Schema`] describing this expression's schema. The
     /// provided [`SchemaInferenceState`] should include schema
     /// information for all datasources in scope.
-    #[allow(dead_code)]
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         match self {
             Expression::Literal(lit) => lit.schema(state),
@@ -578,7 +577,46 @@ impl ScalarFunction {
                 self.schema_check_fixed_args(arg_schemas, &[])?;
                 Ok(Schema::Atomic(Atomic::Date))
             }
+            MergeObjects => self.schema_check_merge_objects(arg_schemas),
         }
+    }
+
+    fn schema_check_merge_objects(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+        self.schema_check_variadic_args(arg_schemas, ANY_DOCUMENT.clone())?;
+        // union all AnyOf arg_schemas into union Document schemata
+        arg_schemas
+            .iter()
+            .cloned()
+            .map(|s| match s {
+                Schema::AnyOf(ao) => ao
+                    .into_iter()
+                    .reduce(Schema::document_union)
+                    .unwrap_or_else(|| EMPTY_DOCUMENT.clone()),
+                Schema::Document(d) => Schema::Document(d),
+                Schema::Any
+                | Schema::Unsat
+                | Schema::Missing
+                | Schema::Atomic(_)
+                | Schema::Array(_) => {
+                    unreachable!()
+                }
+            })
+            .fold(Ok(EMPTY_DOCUMENT.clone()), |acc, curr| {
+                let acc = acc?;
+                let curr = curr;
+                let sat = acc.has_overlapping_keys_with(&curr);
+                if sat != Satisfaction::Not {
+                    return Err(Error::CannotMergeObjects(acc, curr, sat));
+                }
+                if let (Schema::Document(mut d1), Schema::Document(d2)) = (acc, curr) {
+                    d1.keys.extend(d2.keys.into_iter());
+                    d1.required.extend(d2.required.into_iter());
+                    d1.additional_properties |= d2.additional_properties;
+                    Ok(Schema::Document(d1))
+                } else {
+                    unreachable!();
+                }
+            })
     }
 
     /// Checks a function's argument count and its arguments' types against the required schemas.

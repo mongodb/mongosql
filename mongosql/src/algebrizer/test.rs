@@ -1455,9 +1455,10 @@ mod from_clause {
     use super::{AST_SOURCE_BAR, AST_SOURCE_FOO, IR_SOURCE_BAR, IR_SOURCE_FOO};
     use crate::{
         ast::{self, JoinSource},
-        ir::{self, JoinType},
+        ir::{self, binding_tuple::Key, JoinType},
         map,
-        schema::{Atomic, Schema, ANY_DOCUMENT},
+        schema::{Atomic, Document, Schema, ANY_DOCUMENT},
+        set,
     };
 
     test_algebrize!(
@@ -1755,6 +1756,259 @@ mod from_clause {
             condition: Some(ast::Expression::Identifier("bar".into())),
         }))
     );
+
+    test_algebrize!(
+        derived_single_datasource,
+        algebrize_from_clause,
+        Ok(ir::Stage::Project(ir::Project {
+            source: Box::new(ir::Stage::Array(ir::Array {
+                array: vec![ir::Expression::Document(
+                    map! {"foo".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
+                         "bar".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                    }
+                )],
+                alias: "bar".into()
+            })),
+            expression: map! {("d", 0u16).into() =>
+                ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                    function: ir::ScalarFunction::MergeObjects,
+                    args: vec![
+                        ir::Expression::Reference(("bar", 1u16).into())
+                    ]
+                }
+                )
+            },
+        })),
+        Some(ast::Datasource::Derived(ast::DerivedSource {
+            query: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star]),
+                },
+                from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                    array: vec![ast::Expression::Document(map! {
+                        "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                        "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                    },)],
+                    alias: "bar".into(),
+                })),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            })),
+            alias: "d".into(),
+        })),
+    );
+    test_algebrize!(
+        derived_multiple_datasources,
+        algebrize_from_clause,
+        Ok(ir::Stage::Project(ir::Project {
+            source: Box::new(ir::Stage::Project(ir::Project {
+                source: Box::new(ir::Stage::Array(ir::Array {
+                    array: vec![ir::Expression::Document(
+                        map! {"foo".into() => ir::Expression::Literal(
+                            ir::Literal::Integer(1)
+                            ),
+                            "bar".into() => ir::Expression::Literal(
+                                ir::Literal::Integer(1))
+                        }
+                    )],
+                    alias: "bar".into()
+                })),
+                expression: map! {
+                    Key::bot(1u16) => ir::Expression::Document(
+                        map!{"baz".into() => ir::Expression::Literal(ir::Literal::String("hello".into()))}
+                    ),
+                    ("bar", 1u16).into() =>
+                        ir::Expression::Reference(("bar", 1u16).into())
+                }
+            })),
+            expression: map! { ("d", 0u16).into() =>
+                ir::Expression::ScalarFunction(
+                    ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::MergeObjects,
+                        args:
+                            vec![
+                                ir::Expression::Reference(Key::bot(1u16)),
+                                ir::Expression::Reference(("bar", 1u16).into()),
+                            ],
+                    }
+                )
+            }
+        })),
+        Some(ast::Datasource::Derived(ast::DerivedSource {
+            query: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![
+                        ast::SelectValuesExpression::Substar("bar".into()),
+                        ast::SelectValuesExpression::Expression(ast::Expression::Document(map! {
+                            "baz".into() => ast::Expression::Literal(ast::Literal::String("hello".into()))
+                        })),
+                    ]),
+                },
+                from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                    array: vec![ast::Expression::Document(map! {
+                        "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                        "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                    },)],
+                    alias: "bar".into(),
+                })),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            })),
+            alias: "d".into(),
+        })),
+    );
+    test_algebrize!(
+        derived_join_datasources_distinct_keys_succeeds,
+        algebrize_from_clause,
+        Ok(ir::Stage::Project(ir::Project {
+            source: ir::Stage::Join(ir::Join {
+                join_type: ir::JoinType::Inner,
+                left: ir::Stage::Array(ir::Array {
+                    array: vec![ir::Expression::Document(map! {
+                    "foo1".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
+                    "bar1".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                                                })],
+                    alias: "bar1".into()
+                })
+                .into(),
+                right: ir::Stage::Array(ir::Array {
+                    array: vec![ir::Expression::Document(map! {
+                    "foo2".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
+                    "bar2".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                                                })],
+                    alias: "bar2".into()
+                })
+                .into(),
+                condition: None
+            })
+            .into(),
+            expression: map! {("d", 0u16).into() =>
+                ir::Expression::ScalarFunction(
+                    ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::MergeObjects,
+                        args: vec![ir::Expression::Reference(("bar1", 1u16).into()),
+                                   ir::Expression::Reference(("bar2", 1u16).into())]
+                    }
+                )
+            }
+        })),
+        Some(ast::Datasource::Derived(ast::DerivedSource {
+            query: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star,]),
+                },
+                from_clause: Some(ast::Datasource::Join(JoinSource {
+                    join_type: ast::JoinType::Inner,
+                    left: ast::Datasource::Array(ast::ArraySource {
+                        array: vec![ast::Expression::Document(map! {
+                            "foo1".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                            "bar1".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                        },)],
+                        alias: "bar1".into(),
+                    })
+                    .into(),
+                    right: ast::Datasource::Array(ast::ArraySource {
+                        array: vec![ast::Expression::Document(map! {
+                            "foo2".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                            "bar2".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                        },)],
+                        alias: "bar2".into(),
+                    })
+                    .into(),
+                    condition: None,
+                })),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            })),
+            alias: "d".into(),
+        })),
+    );
+    test_algebrize!(
+        derived_join_datasources_overlapped_keys_fails,
+        algebrize_from_clause,
+        Err(Error::DerivedDatasouceOverlappingKeys(
+            Schema::Document(Document {
+                keys: map! {
+                    "bar".into() => Schema::Atomic(Atomic::Integer),
+                    "foo1".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {
+                    "bar".into(),
+                    "foo1".into()
+                },
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! {
+                    "bar".into() => Schema::Atomic(Atomic::Integer),
+                    "foo2".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {
+                    "bar".into(),
+                    "foo2".into()
+                },
+                additional_properties: false,
+            }),
+            crate::schema::Satisfaction::Must,
+        )),
+        Some(ast::Datasource::Derived(ast::DerivedSource {
+            query: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star,]),
+                },
+                from_clause: Some(ast::Datasource::Join(JoinSource {
+                    join_type: ast::JoinType::Inner,
+                    left: ast::Datasource::Array(ast::ArraySource {
+                        array: vec![ast::Expression::Document(map! {
+                            "foo1".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                            "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                        },)],
+                        alias: "bar1".into(),
+                    })
+                    .into(),
+                    right: ast::Datasource::Array(ast::ArraySource {
+                        array: vec![ast::Expression::Document(map! {
+                            "foo2".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                            "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                        },)],
+                        alias: "bar2".into(),
+                    })
+                    .into(),
+                    condition: None,
+                })),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            })),
+            alias: "d".into(),
+        })),
+    );
+}
+
+lazy_static! {
+    static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
+        db: "test".into(),
+        collection: "foo".into()
+    });
 }
 
 mod limit_or_offset_clause {
