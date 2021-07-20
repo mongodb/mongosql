@@ -2156,3 +2156,104 @@ mod filter_clause {
         IR_SOURCE_FOO.clone(),
     );
 }
+
+mod order_by_clause {
+    use crate::{
+        ast, ir, map,
+        schema::{Atomic, Document, Schema},
+        set,
+    };
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        static ref SOURCE: ir::Stage = ir::Stage::Collection(ir::Collection {
+            db: "test".into(),
+            collection: "baz".into(),
+        });
+    }
+
+    test_algebrize!(
+        asc_and_desc,
+        algebrize_order_by_clause,
+        source = SOURCE.clone(),
+        expected = Ok(ir::Stage::Sort(ir::Sort {
+            source: Box::new(SOURCE.clone()),
+            specs: vec![
+                ir::SortSpecification::Asc(Box::new(ir::Expression::FieldAccess(
+                    ir::FieldAccess {
+                        expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+                        field: "a".to_string()
+                    }
+                ))),
+                ir::SortSpecification::Desc(Box::new(ir::Expression::FieldAccess(
+                    ir::FieldAccess {
+                        expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+                        field: "b".to_string()
+                    }
+                )))
+            ]
+        })),
+        input = Some(ast::OrderByClause {
+            sort_specs: vec![
+                ast::SortSpec {
+                    key: ast::SortKey::Simple(ast::Expression::Subpath(ast::SubpathExpr {
+                        expr: Box::new(ast::Expression::Identifier("foo".to_string())),
+                        subpath: "a".to_string()
+                    })),
+                    direction: ast::SortDirection::Asc
+                },
+                ast::SortSpec {
+                    key: ast::SortKey::Simple(ast::Expression::Subpath(ast::SubpathExpr {
+                        expr: Box::new(ast::Expression::Identifier("foo".to_string())),
+                        subpath: "b".to_string()
+                    })),
+                    direction: ast::SortDirection::Desc
+                }
+            ],
+        }),
+        env = map! {
+            ("foo", 0u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "a".into() => Schema::Atomic(Atomic::Integer),
+                    "b".into() => Schema::Atomic(Atomic::String),
+                },
+                required: set!{},
+                additional_properties: false,
+            }),
+        },
+    );
+
+    test_algebrize!(
+        sort_key_from_source,
+        algebrize_order_by_clause,
+        Ok(ir::Stage::Sort(ir::Sort {
+            source: Box::new(ir::Stage::Array(ir::Array {
+                array: vec![ir::Expression::Document(map! {
+                    "a".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                })],
+                alias: "arr".into(),
+            })),
+            specs: vec![ir::SortSpecification::Asc(Box::new(
+                ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
+                    field: "a".to_string()
+                })
+            )),]
+        })),
+        Some(ast::OrderByClause {
+            sort_specs: vec![ast::SortSpec {
+                key: ast::SortKey::Simple(ast::Expression::Subpath(ast::SubpathExpr {
+                    expr: Box::new(ast::Expression::Identifier("arr".to_string())),
+                    subpath: "a".to_string()
+                })),
+                direction: ast::SortDirection::Asc
+            },],
+        }),
+        ir::Stage::Array(ir::Array {
+            array: vec![ir::Expression::Document(map! {
+                "a".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+            })],
+            alias: "arr".into(),
+        }),
+    );
+}

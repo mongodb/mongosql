@@ -73,9 +73,8 @@ macro_rules! test_flatten_variadic_functions {
 }
 
 mod schema {
-    use crate::ir::binding_tuple::DatasourceName::Bottom;
     use crate::{
-        ir::{schema::*, *},
+        ir::{binding_tuple::DatasourceName::Bottom, schema::*, *},
         map,
         schema::*,
         set,
@@ -4005,6 +4004,119 @@ mod schema {
             }),
         },
     );
+
+    mod sort {
+        use crate::{
+            ir::{schema::*, *},
+            map,
+            schema::*,
+            set,
+        };
+        test_schema!(
+            comparable_schemas,
+            Ok(ResultSet {
+                schema_env: map! {
+                    ("bar", 0u16).into() => ANY_DOCUMENT.clone(),
+                },
+                min_size: 0,
+                max_size: None,
+            }),
+            Stage::Sort(Sort {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                specs: vec![
+                    SortSpecification::Asc(Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into(),
+                    }))),
+                    SortSpecification::Desc(Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "b".into(),
+                    })))
+                ]
+            }),
+            map! {
+                ("foo", 0u16).into() => Schema::Document( Document{
+                    keys: map! {
+                        "a".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
+                        "b".into() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set! { "a".into(), "b".into() },
+                    additional_properties: false,
+                }),
+            },
+        );
+        test_schema!(
+            incomparable_schemas,
+            Err(Error::SortKeyNotSelfComparable(
+                1,
+                Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String)
+                ]),
+            )),
+            Stage::Sort(Sort {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                specs: vec![
+                    SortSpecification::Asc(Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into(),
+                    }))),
+                    SortSpecification::Asc(Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "b".into(),
+                    })))
+                ]
+            }),
+            map! {
+                ("foo", 0u16).into() => Schema::Document( Document{
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::String),
+                        "b".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+                    },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                }),
+            },
+        );
+        test_schema!(
+            mix_comparable_and_incomparable_schemas,
+            Err(Error::SortKeyNotSelfComparable(
+                0,
+                Schema::AnyOf(vec![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String),
+                    Schema::Atomic(Atomic::Null)
+                ]),
+            )),
+            Stage::Sort(Sort {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                specs: vec![SortSpecification::Asc(Box::new(Expression::FieldAccess(
+                    FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into(),
+                    }
+                ))),]
+            }),
+            map! {
+                ("foo", 0u16).into() => Schema::Document( Document{
+                    keys: map! {
+                        "a".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)]),
+                    },
+                    required: set! {"a".into(), "b".into(), "c".into()},
+                    additional_properties: false,
+                }),
+            },
+        );
+    }
 }
 
 mod constant_folding {

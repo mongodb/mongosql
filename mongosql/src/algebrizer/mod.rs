@@ -1,6 +1,5 @@
 #[cfg(test)]
 mod test;
-
 use crate::{
     ast,
     ir::{
@@ -47,7 +46,7 @@ pub enum Error {
     AmbiguousField(String),
     #[error("* argument only valid in COUNT function")]
     StarInNonCount,
-    #[error("aggregation function {0} used in scalar postion")]
+    #[error("aggregation function {0} used in scalar position")]
     AggregationInPlaceOfScalar(String),
     #[error("scalar functions cannot be DISTINCT")]
     DistinctScalarFunction,
@@ -61,6 +60,8 @@ pub enum Error {
     NoOuterJoinCondition,
     #[error("cannot create schema environment with duplicate key: {0:?}")]
     DuplicateKeyError(Key),
+    #[error("positional sort keys should have been rewritten to references")]
+    PositionalSortKey,
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -451,9 +452,37 @@ impl Algebrizer {
         ast_node: Option<ast::OrderByClause>,
         source: ir::Stage,
     ) -> Result<ir::Stage> {
+        let expression_algebrizer = self
+            .clone()
+            .with_merged_mappings(source.schema(&self.schema_inference_state())?.schema_env)?;
         let ordered = match ast_node {
             None => source,
-            Some(_) => unimplemented!(),
+            Some(o) => {
+                let sort_specs = o
+                    .sort_specs
+                    .into_iter()
+                    .map(|s| {
+                        let key = match s.key {
+                            ast::SortKey::Simple(expr) => {
+                                expression_algebrizer.algebrize_expression(expr)
+                            }
+                            ast::SortKey::Positional(_) => Err(Error::PositionalSortKey),
+                        }?;
+                        match s.direction {
+                            ast::SortDirection::Asc => {
+                                Ok(ir::SortSpecification::Asc(Box::new(key)))
+                            }
+                            ast::SortDirection::Desc => {
+                                Ok(ir::SortSpecification::Desc(Box::new(key)))
+                            }
+                        }
+                    })
+                    .collect::<Result<Vec<ir::SortSpecification>>>()?;
+                ir::Stage::Sort(ir::Sort {
+                    source: Box::new(source),
+                    specs: sort_specs,
+                })
+            }
         };
         ordered.schema(&self.schema_inference_state())?;
         Ok(ordered)
@@ -817,7 +846,7 @@ impl Algebrizer {
                 sat == Satisfaction::May || sat == Satisfaction::Must
             })
             .collect::<Vec<_>>();
-        // If there is no datasource containging the field, the field is not found.
+        // If there is no datasource containing the field, the field is not found.
         if i_containing_datasources.is_empty() {
             return Err(Error::FieldNotFound(i));
         }

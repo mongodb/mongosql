@@ -40,6 +40,8 @@ pub enum Error {
     InvalidSubqueryCardinality,
     #[error("cannot create schema environment with duplicate datasource: {0:?}")]
     DuplicateKeyError(Key),
+    #[error("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
+    SortKeyNotSelfComparable(usize, Schema),
 }
 
 #[derive(Debug, Clone)]
@@ -149,7 +151,26 @@ impl Stage {
                         .map(|x| x.saturating_sub(o.offset)),
                 })
             }
-            Stage::Sort(_) => unimplemented!(),
+            Stage::Sort(s) => {
+                let source_result_set = s.source.schema(state)?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+
+                // Ensure that each sort key is statically comparable to itself.
+                s.specs
+                    .clone()
+                    .iter()
+                    .enumerate()
+                    .try_for_each(|(index, spec)| match spec {
+                        SortSpecification::Asc(a) | SortSpecification::Desc(a) => {
+                            let schema = a.schema(&state)?;
+                            if schema.is_comparable_with(&schema) != Satisfaction::Must {
+                                return Err(Error::SortKeyNotSelfComparable(index, schema));
+                            }
+                            Ok(())
+                        }
+                    })?;
+                Ok(source_result_set)
+            }
             Stage::Collection(c) => Ok(ResultSet {
                 schema_env: map! {
                     // we know the top level elements of a collection must be a Document,

@@ -466,7 +466,7 @@ impl MqlCodeGenerator {
             .map(|spec| {
                 let (expr, direction) = match spec {
                     Asc(expr) => (*expr, Bson::Int32(1)),
-                    Dsc(expr) => (*expr, Bson::Int32(-1)),
+                    Desc(expr) => (*expr, Bson::Int32(-1)),
                 };
 
                 // anything that's not a reference or a static field

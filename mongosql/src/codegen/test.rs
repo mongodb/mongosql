@@ -322,7 +322,7 @@ mod sort {
             ],
         }),
         Stage::Sort(Sort {
-            specs: vec![Dsc(Reference(("col", 0u16).into()).into())],
+            specs: vec![Desc(Reference(("col", 0u16).into()).into())],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
@@ -342,7 +342,7 @@ mod sort {
         Stage::Sort(Sort {
             specs: vec![
                 Asc(Reference(("col", 0u16).into()).into()),
-                Dsc(
+                Desc(
                     Expression::FieldAccess(FieldAccess{
                         field: "a".to_string(),
                         expr: Reference(("col", 0u16).into()).into(),

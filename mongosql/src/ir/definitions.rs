@@ -89,7 +89,7 @@ pub struct Sort {
 #[derive(PartialEq, Debug, Clone)]
 pub enum SortSpecification {
     Asc(Box<Expression>),
-    Dsc(Box<Expression>),
+    Desc(Box<Expression>),
 }
 
 #[allow(dead_code)]
