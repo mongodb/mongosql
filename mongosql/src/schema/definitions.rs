@@ -16,7 +16,7 @@ impl SchemaEnvironment {
         let mut out = self;
         for (k, v) in other.into_iter() {
             if let Some(out_v) = out.remove(&k) {
-                out.insert(k, Schema::AnyOf(vec![v, out_v]));
+                out.insert(k, Schema::AnyOf(set![v, out_v]));
             } else {
                 out.insert(k, v);
             }
@@ -50,7 +50,7 @@ pub enum Schema {
     Unsat,
     Missing,
     Atomic(Atomic),
-    AnyOf(Vec<Schema>),
+    AnyOf(BTreeSet<Schema>),
     Array(Box<Schema>),
     Document(Document),
 }
@@ -151,28 +151,28 @@ lazy_static! {
 
     // Nullish Schemas (Schemas that additionally allow for Null or Missing).
     pub static ref NULLISH: Schema =
-        Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing,]);
-    pub static ref ANY_ARRAY_OR_NULLISH: Schema = Schema::AnyOf(vec![
+        Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing,]);
+    pub static ref ANY_ARRAY_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Array(Box::new(Schema::Any)),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
-    pub static ref BOOLEAN_OR_NULLISH: Schema = Schema::AnyOf(vec![
+    pub static ref BOOLEAN_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Boolean),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
-    pub static ref DATE_OR_NULLISH: Schema = Schema::AnyOf(vec![
+    pub static ref DATE_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Date),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
-    pub static ref INTEGER_OR_NULLISH: Schema = Schema::AnyOf(vec![
+    pub static ref INTEGER_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
-    pub static ref NUMERIC_OR_NULLISH: Schema = Schema::AnyOf(vec![
+    pub static ref NUMERIC_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Long),
         Schema::Atomic(Atomic::Double),
@@ -180,7 +180,7 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
-    pub static ref STRING_OR_NULLISH: Schema = Schema::AnyOf(vec![
+    pub static ref STRING_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::String),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
@@ -212,26 +212,22 @@ impl Schema {
     pub fn simplify(schema: &Schema) -> Schema {
         match schema {
             Schema::AnyOf(a) => {
-                let ret: Vec<Schema> = a
+                let ret: BTreeSet<Schema> = a
                     .iter()
                     .map(Schema::simplify)
                     .flat_map(|x| match x {
                         Schema::AnyOf(vs) => vs,
-                        _ => vec![x],
+                        _ => set![x],
                     })
                     .collect();
                 if ret.is_empty() {
                     Unsat
                 } else if ret.contains(&Schema::Any) {
                     Schema::Any
+                } else if ret.len() == 1 {
+                    ret.into_iter().next().unwrap()
                 } else {
-                    let unique: BTreeSet<Schema> = ret.iter().cloned().collect::<BTreeSet<_>>();
-                    let ret: Vec<Schema> = unique.into_iter().collect();
-                    if ret.len() == 1 {
-                        ret.into_iter().next().unwrap()
-                    } else {
-                        Schema::AnyOf(ret)
-                    }
+                    Schema::AnyOf(ret)
                 }
             }
             Schema::Array(arr) => Schema::Array(Box::new(Schema::simplify(arr))),
@@ -270,7 +266,7 @@ impl Schema {
     /// where X != Y; X, Y in {May, Must, Not}
     ///
     fn schema_predicate_meet(
-        vs: &[Schema],
+        vs: &BTreeSet<Schema>,
         predicate: &dyn Fn(&Schema) -> Satisfaction,
     ) -> Satisfaction {
         vs.iter()
@@ -286,7 +282,7 @@ impl Schema {
     }
 
     /// Satisfies AnyOf the passed set of Schemata.
-    fn satisfies_any_of(&self, vs: &[Schema]) -> Satisfaction {
+    fn satisfies_any_of(&self, vs: &BTreeSet<Schema>) -> Satisfaction {
         use Satisfaction::*;
         let mut ret = Not;
         for s in vs.iter() {
@@ -550,7 +546,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                                     ..Default::default()
                                 }),
                             })
-                            .collect::<Result<Vec<Schema>, _>>()?,
+                            .collect::<Result<BTreeSet<Schema>, _>>()?,
                     ))
                 }
             },
@@ -566,7 +562,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                 any_of
                     .into_iter()
                     .map(Schema::try_from)
-                    .collect::<Result<Vec<Schema>, _>>()?,
+                    .collect::<Result<BTreeSet<Schema>, _>>()?,
             )),
             json_schema::Schema {
                 bson_type: None,
@@ -581,7 +577,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                 one_of
                     .into_iter()
                     .map(Schema::try_from)
-                    .collect::<Result<Vec<Schema>, _>>()?,
+                    .collect::<Result<BTreeSet<Schema>, _>>()?,
             )),
             _ => Err(Error::InvalidJsonSchema(
                 "invalid combination of fields".into(),
@@ -712,7 +708,7 @@ impl Document {
     ) -> BTreeMap<String, Schema> {
         for (key2, schema2) in m2.into_iter() {
             if let Some(old_schema) = m1.remove(&key2) {
-                m1.insert(key2, Schema::AnyOf(vec![old_schema.clone(), schema2]));
+                m1.insert(key2, Schema::AnyOf(set![old_schema.clone(), schema2]));
             } else {
                 m1.insert(key2, schema2);
             }
@@ -729,7 +725,7 @@ impl Document {
         let mut out = BTreeMap::new();
         for (key, s1) in m1.into_iter() {
             if let Some(s2) = m2.remove(&key) {
-                out.insert(key, Schema::AnyOf(vec![s1, s2]));
+                out.insert(key, Schema::AnyOf(set![s1, s2]));
             }
         }
         out
@@ -743,7 +739,7 @@ impl Document {
     ) -> BTreeMap<String, Schema> {
         for (key, s1) in m2.into_iter() {
             if let Some(s2) = m1.remove(&key) {
-                m1.insert(key, Schema::AnyOf(vec![s1, s2]));
+                m1.insert(key, Schema::AnyOf(set![s1, s2]));
             }
         }
         m1

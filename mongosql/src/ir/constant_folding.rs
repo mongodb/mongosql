@@ -1,6 +1,7 @@
 use crate::{
     ir::{definitions::*, schema::SchemaInferenceState, visitor::Visitor},
     schema::{Atomic, Satisfaction, Schema, SchemaEnvironment},
+    set,
 };
 use lazy_static::lazy_static;
 
@@ -21,7 +22,7 @@ impl ConstantFoldExprVisitor {
             sf.args.clone().into_iter().partition(|e| {
                 e.schema(&EMPTY_STATE)
                     .unwrap_or(Schema::Any)
-                    .satisfies(&Schema::AnyOf(vec![
+                    .satisfies(&Schema::AnyOf(set![
                         Schema::Missing,
                         Schema::Atomic(Atomic::Null),
                     ]))
@@ -94,7 +95,7 @@ impl ConstantFoldExprVisitor {
             match expr.schema(&EMPTY_STATE) {
                 Err(_) => break,
                 Ok(sch) => {
-                    if sch.satisfies(&Schema::AnyOf(vec![
+                    if sch.satisfies(&Schema::AnyOf(set![
                         Schema::Missing,
                         Schema::Atomic(Atomic::Null),
                     ])) == Satisfaction::Must

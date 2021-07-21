@@ -6,6 +6,7 @@ use crate::{
         ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, EMPTY_DOCUMENT,
         INTEGER_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
+    set,
 };
 use linked_hash_map::LinkedHashMap;
 use std::cmp::min;
@@ -228,7 +229,7 @@ impl Stage {
                                         .schema_env
                                         .into_iter()
                                         .map(|(key, schema)| {
-                                            (key, Schema::AnyOf(vec![Schema::Missing, schema]))
+                                            (key, Schema::AnyOf(set![Schema::Missing, schema]))
                                         })
                                         .collect::<SchemaEnvironment>(),
                                 )
@@ -320,7 +321,7 @@ impl Expression {
             if d.required.contains(field) {
                 return s.clone();
             }
-            return Schema::AnyOf(vec![s.clone(), Schema::Missing]);
+            return Schema::AnyOf(set![s.clone(), Schema::Missing]);
         }
         // If the schema allows additional_properties, it May exist,
         // regardless of its presence or absence in keys, but we don't know the Schema.
@@ -385,7 +386,7 @@ impl Expression {
                     return Err(Error::InvalidSubqueryCardinality);
                 }
                 match result_set.min_size {
-                    0 => Ok(Schema::AnyOf(vec![schema, Schema::Missing])),
+                    0 => Ok(Schema::AnyOf(set![schema, Schema::Missing])),
                     1 => Ok(schema),
                     _ => Err(Error::InvalidSubqueryCardinality),
                 }
@@ -421,7 +422,7 @@ impl Expression {
                     .max(pattern_schema.satisfies(&NULLISH))
                 {
                     Satisfaction::Not => Ok(Schema::Atomic(Atomic::Boolean)),
-                    Satisfaction::May => Ok(Schema::AnyOf(vec![
+                    Satisfaction::May => Ok(Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Boolean),
                         Schema::Atomic(Atomic::Null),
                     ])),
@@ -444,7 +445,7 @@ impl Expression {
         Ok(Schema::AnyOf(
             a.iter()
                 .map(|e| e.schema(state).map(|s| s.upconvert_missing_to_null()))
-                .collect::<Result<Vec<_>, _>>()?,
+                .collect::<Result<_, _>>()?,
         ))
     }
 
@@ -511,7 +512,7 @@ impl ScalarFunction {
                     arg_schemas,
                     &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
                 )? {
-                    Satisfaction::May => Schema::AnyOf(vec![
+                    Satisfaction::May => Schema::AnyOf(set![
                         Schema::Atomic(Atomic::String),
                         Schema::Atomic(Atomic::Null),
                     ]),
@@ -538,7 +539,7 @@ impl ScalarFunction {
                     arg_schemas,
                     &[Schema::Any, Schema::Any, Schema::Any],
                 )?;
-                Ok(Schema::AnyOf(vec![
+                Ok(Schema::AnyOf(set![
                     self.get_comparison_schema(&[arg_schemas[0].clone(), arg_schemas[1].clone()])?,
                     self.get_comparison_schema(&[arg_schemas[0].clone(), arg_schemas[2].clone()])?,
                 ]))
@@ -547,7 +548,7 @@ impl ScalarFunction {
             Not => {
                 match self.schema_check_fixed_args(arg_schemas, &[BOOLEAN_OR_NULLISH.clone()])? {
                     Satisfaction::Not => Ok(Schema::Atomic(Atomic::Boolean)),
-                    Satisfaction::May => Ok(Schema::AnyOf(vec![
+                    Satisfaction::May => Ok(Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Boolean),
                         Schema::Atomic(Atomic::Null),
                     ])),
@@ -557,7 +558,7 @@ impl ScalarFunction {
             And | Or => {
                 match self.schema_check_variadic_args(arg_schemas, BOOLEAN_OR_NULLISH.clone())? {
                     Satisfaction::Not => Ok(Schema::Atomic(Atomic::Boolean)),
-                    Satisfaction::May => Ok(Schema::AnyOf(vec![
+                    Satisfaction::May => Ok(Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Boolean),
                         Schema::Atomic(Atomic::Null),
                     ])),
@@ -575,7 +576,7 @@ impl ScalarFunction {
             // Conditional scalar functions.
             NullIf => {
                 self.get_comparison_schema(arg_schemas)?;
-                Ok(Schema::AnyOf(vec![
+                Ok(Schema::AnyOf(set![
                     arg_schemas[0].clone().upconvert_missing_to_null(),
                     Schema::Atomic(Atomic::Null),
                 ]))
@@ -585,7 +586,7 @@ impl ScalarFunction {
             Slice => self.get_slice_schema(arg_schemas),
             Size => Ok(
                 match self.schema_check_fixed_args(arg_schemas, &[ANY_ARRAY_OR_NULLISH.clone()])? {
-                    Satisfaction::May => Schema::AnyOf(vec![
+                    Satisfaction::May => Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Null),
                     ]),
@@ -600,7 +601,7 @@ impl ScalarFunction {
             BitLength => unimplemented!(),
             Year | Month | Day | Hour | Minute | Second => Ok(
                 match self.schema_check_fixed_args(arg_schemas, &[DATE_OR_NULLISH.clone()])? {
-                    Satisfaction::May => Schema::AnyOf(vec![
+                    Satisfaction::May => Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Null),
                     ]),
@@ -612,7 +613,7 @@ impl ScalarFunction {
             Substring => self.get_substring_schema(arg_schemas),
             Upper | Lower => Ok(
                 match self.schema_check_fixed_args(arg_schemas, &[STRING_OR_NULLISH.clone()])? {
-                    Satisfaction::May => Schema::AnyOf(vec![
+                    Satisfaction::May => Schema::AnyOf(set![
                         Schema::Atomic(Atomic::String),
                         Schema::Atomic(Atomic::Null),
                     ]),
@@ -625,7 +626,7 @@ impl ScalarFunction {
                     arg_schemas,
                     &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
                 )? {
-                    Satisfaction::May => Schema::AnyOf(vec![
+                    Satisfaction::May => Schema::AnyOf(set![
                         Schema::Atomic(Atomic::String),
                         Schema::Atomic(Atomic::Null),
                     ]),
@@ -766,7 +767,7 @@ impl ScalarFunction {
                     ),
                     e => Err(e),
                 })? {
-                Satisfaction::May => Schema::AnyOf(vec![
+                Satisfaction::May => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::String),
                     Schema::Atomic(Atomic::Null),
                 ]),
@@ -781,7 +782,7 @@ impl ScalarFunction {
     fn get_comparison_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
         let ret_schema =
             match self.schema_check_fixed_args(arg_schemas, &[Schema::Any, Schema::Any])? {
-                Satisfaction::May => Schema::AnyOf(vec![
+                Satisfaction::May => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Boolean),
                     Schema::Atomic(Atomic::Null),
                 ]),
@@ -813,9 +814,9 @@ impl ScalarFunction {
             });
         }
 
-        let mut v = vec![Schema::Atomic(Atomic::Null)];
-        v.extend_from_slice(arg_schemas);
-        Ok(Schema::AnyOf(v).upconvert_missing_to_null())
+        let mut s = arg_schemas.iter().cloned().collect::<BTreeSet<_>>();
+        s.insert(Schema::Atomic(Atomic::Null));
+        Ok(Schema::AnyOf(s).upconvert_missing_to_null())
     }
 
     /// Returns the array and/or null schema for the slice function.
@@ -846,7 +847,7 @@ impl ScalarFunction {
                     e => Err(e),
                 })? {
                 Satisfaction::May => {
-                    Schema::AnyOf(vec![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)])
+                    Schema::AnyOf(set![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)])
                 }
                 Satisfaction::Not => ANY_ARRAY.clone(),
                 Satisfaction::Must => Schema::Atomic(Atomic::Null),
@@ -875,7 +876,7 @@ impl ScalarFunction {
                     // is AnyOf(Null, Integer, Decimal) we will just set this argument to
                     // Decimal. This avoids the exponential blow up that we would get from
                     // a tighter Schema bound.
-                    AnyOf(ao) => get_arithmetic_schema_aux(&ao),
+                    AnyOf(ao) => get_arithmetic_schema_aux(&ao.iter().cloned().collect::<Vec<_>>()),
                     // Nullability is handled by schema_check_variadic_args, so we
                     // replace Missing and Null with Integer as that is the minimal
                     // Numeric type with respect to the above defined total order.
@@ -903,7 +904,7 @@ impl ScalarFunction {
         match self.schema_check_variadic_args(arg_schemas, NUMERIC_OR_NULLISH.clone())? {
             Satisfaction::Must => Ok(Atomic(Null)),
             Satisfaction::Not => get_arithmetic_schema_aux(arg_schemas),
-            Satisfaction::May => Ok(AnyOf(vec![
+            Satisfaction::May => Ok(AnyOf(set![
                 get_arithmetic_schema_aux(arg_schemas)?,
                 Atomic(Null),
             ])),
@@ -922,7 +923,7 @@ impl CastExpr {
         let on_error_schema = self.on_error.schema(state)?;
 
         // If the original expression is definitely null or missing, return the `on_null` schema.
-        if expr_schema.satisfies(&Schema::AnyOf(vec![
+        if expr_schema.satisfies(&Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
             Schema::Missing,
         ])) == Satisfaction::Must
@@ -935,7 +936,7 @@ impl CastExpr {
             return Ok(type_schema);
         }
 
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             type_schema,
             on_null_schema,
             on_error_schema,
@@ -963,11 +964,11 @@ trait SchemaCheckCaseExpr {
                     wb.then.schema(state)?
                 })
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<BTreeSet<_>, _>>()?;
 
         // The resulting schema for a case expression is AnyOf the THEN results
         // from each when_branch, along with the ELSE branch result.
-        schemas.push(else_branch.schema(state)?);
+        schemas.insert(else_branch.schema(state)?);
         Ok(Schema::AnyOf(schemas))
     }
 }

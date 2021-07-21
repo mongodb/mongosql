@@ -1571,7 +1571,7 @@ mod from_clause {
         Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
             name: "array datasource items",
             required: ANY_DOCUMENT.clone(),
-            found: Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer)]),
+            found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
         })),
         Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Integer(42))],
@@ -1584,7 +1584,7 @@ mod from_clause {
         Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
             name: "array datasource items",
             required: ANY_DOCUMENT.clone(),
-            found: Schema::AnyOf(vec![Schema::Atomic(Atomic::Null)]),
+            found: Schema::AnyOf(set![Schema::Atomic(Atomic::Null)]),
         })),
         Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Null)],

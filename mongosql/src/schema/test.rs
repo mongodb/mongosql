@@ -58,7 +58,7 @@ mod from_json {
 
     test_from_json_schema!(
         convert_bson_multiple_to_any_of,
-        Ok(AnyOf(vec![Atomic(Integer), Atomic(Null)])),
+        Ok(AnyOf(set![Atomic(Integer), Atomic(Null)])),
         json_schema::Schema {
             bson_type: Some(BsonType::Multiple(vec![
                 "int".to_string(),
@@ -70,7 +70,7 @@ mod from_json {
 
     test_from_json_schema!(
         convert_one_of_to_any_of,
-        Ok(AnyOf(vec![Atomic(Integer), Atomic(Null)])),
+        Ok(AnyOf(set![Atomic(Integer), Atomic(Null)])),
         json_schema::Schema {
             one_of: Some(vec![
                 json_schema::Schema {
@@ -123,7 +123,7 @@ mod from_json {
 
     test_from_json_schema!(
         convert_any_of_to_any_of,
-        Ok(AnyOf(vec![Atomic(Integer), Atomic(Null)])),
+        Ok(AnyOf(set![Atomic(Integer), Atomic(Null)])),
         json_schema::Schema {
             any_of: Some(vec![
                 json_schema::Schema {
@@ -236,7 +236,7 @@ mod from_json {
 
     test_from_json_schema!(
         items_set_bson_type_not_array,
-        Ok(AnyOf(vec![Atomic(Integer)])),
+        Ok(AnyOf(set![Atomic(Integer)])),
         json_schema::Schema {
             bson_type: Some(BsonType::Multiple(vec!["int".to_string(),])),
             items: Some(Box::new(json_schema::Schema {
@@ -258,7 +258,7 @@ mod from_json {
 
     test_from_json_schema!(
         convert_array_and_document_fields,
-        Ok(AnyOf(vec![
+        Ok(AnyOf(set![
             Array(Box::new(Atomic(Integer))),
             Document(Document {
                 keys: map![
@@ -293,7 +293,7 @@ mod from_json {
 
     test_from_json_schema!(
         bson_type_object_set_missing_document_fields,
-        Ok(AnyOf(vec![
+        Ok(AnyOf(set![
             Array(Box::new(Atomic(Integer))),
             Document(Document {
                 keys: map![],
@@ -341,19 +341,19 @@ mod satisfies {
     test_satisfies!(
         any_of_empty_must_satisfy_atomic,
         Must,
-        AnyOf(vec![]),
+        AnyOf(set![]),
         Atomic(Integer)
     );
     test_satisfies!(
         any_of_empty_must_satisfy_any_of_empty,
         Must,
-        AnyOf(vec![]),
-        AnyOf(vec![]),
+        AnyOf(set![]),
+        AnyOf(set![]),
     );
     test_satisfies!(
         any_of_empty_must_satisfy_missing,
         Must,
-        AnyOf(vec![]),
+        AnyOf(set![]),
         Missing,
     );
     test_satisfies!(missing_must_satisfy_missing, Must, Missing, Missing);
@@ -361,12 +361,12 @@ mod satisfies {
         missing_must_satisfy_any_of,
         Must,
         Missing,
-        AnyOf(vec![Missing])
+        AnyOf(set![Missing])
     );
     test_satisfies!(
         any_of_missing_may_satisfy_missing,
         May,
-        AnyOf(vec![Atomic(Integer), Missing, Atomic(String)]),
+        AnyOf(set![Atomic(Integer), Missing, Atomic(String)]),
         Missing
     );
     test_satisfies!(
@@ -395,7 +395,7 @@ mod satisfies {
         missing_must_not_satisfy_any_of,
         Not,
         Missing,
-        AnyOf(vec![Atomic(String), Atomic(Integer)])
+        AnyOf(set![Atomic(String), Atomic(Integer)])
     );
     test_satisfies!(atomic_must_satisfy_any, Must, Atomic(String), Any);
     test_satisfies!(any_may_satisfy_atomic, May, Any, Atomic(String));
@@ -414,20 +414,20 @@ mod satisfies {
     test_satisfies!(
         any_of_must_satisfy_any,
         Must,
-        AnyOf(vec![Atomic(String), Atomic(Integer)]),
+        AnyOf(set![Atomic(String), Atomic(Integer)]),
         Any,
     );
     test_satisfies!(
         any_of_must_satisfy_when_any_of_contains_any,
         Must,
-        AnyOf(vec![Atomic(String), Atomic(Integer)]),
-        AnyOf(vec![Atomic(String), Atomic(Integer), Any]),
+        AnyOf(set![Atomic(String), Atomic(Integer)]),
+        AnyOf(set![Atomic(String), Atomic(Integer), Any]),
     );
     test_satisfies!(
         array_of_string_must_satisfy_any_of_array_of_int_or_array_of_string,
         Must,
         Array(Box::new(Atomic(String))),
-        AnyOf(vec![
+        AnyOf(set![
             Array(Box::new(Atomic(String))),
             Array(Box::new(Atomic(Integer)))
         ]),
@@ -435,8 +435,8 @@ mod satisfies {
     test_satisfies!(
         array_of_string_or_int_may_satisfy_any_of_array_of_int_or_array_of_string,
         May,
-        Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer),]))),
-        AnyOf(vec![
+        Array(Box::new(AnyOf(set![Atomic(String), Atomic(Integer),]))),
+        AnyOf(set![
             Array(Box::new(Atomic(String))),
             Array(Box::new(Atomic(Integer)))
         ]),
@@ -444,8 +444,8 @@ mod satisfies {
     test_satisfies!(
         array_of_string_or_int_must_satisfy_array_of_string_or_int,
         Must,
-        Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer),]))),
-        Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer),]))),
+        Array(Box::new(AnyOf(set![Atomic(String), Atomic(Integer),]))),
+        Array(Box::new(AnyOf(set![Atomic(String), Atomic(Integer),]))),
     );
     test_satisfies!(
         document_must_satify_same_document,
@@ -616,7 +616,7 @@ mod satisfies {
             required: set!["a".to_string()],
             additional_properties: false,
         }),
-        AnyOf(vec![
+        AnyOf(set![
             Document(Document {
                 keys: map![
                     "a".to_string() => Any,
@@ -645,7 +645,7 @@ mod satisfies {
             required: set!["a".to_string()],
             additional_properties: false,
         }),
-        AnyOf(vec![
+        AnyOf(set![
             Document(Document {
                 keys: map![
                     "a".to_string() => Any,
@@ -693,7 +693,7 @@ mod satisfies {
         array_may_satisfy_when_array_item_schema_may_satisfy_multiple_any_of_array,
         May,
         Array(Box::new(Any)),
-        AnyOf(vec![
+        AnyOf(set![
             Array(Box::new(Atomic(Integer))),
             Array(Box::new(Atomic(String))),
         ]),
@@ -702,7 +702,7 @@ mod satisfies {
         array_may_satisfy_when_array_item_schema_may_satisfy_multiple_array_any_of,
         May,
         Array(Box::new(Any)),
-        Array(Box::new(AnyOf(vec![Atomic(Integer), Atomic(Double),]),)),
+        Array(Box::new(AnyOf(set![Atomic(Integer), Atomic(Double),]),)),
     );
     test_satisfies!(
         array_of_missing_does_not_satisfy_array_of_atomic,
@@ -840,7 +840,7 @@ mod has_overlaping_keys_with {
     test_has_overlapping_keys_with!(
         any_of_documents_with_required_keys_may_overlap,
         Satisfaction::May,
-        &Schema::AnyOf(vec![
+        &Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
@@ -866,7 +866,7 @@ mod has_overlaping_keys_with {
     test_has_overlapping_keys_with!(
         any_of_documents_with_required_keys_must_overlap,
         Satisfaction::Must,
-        &Schema::AnyOf(vec![
+        &Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
@@ -900,7 +900,7 @@ mod has_overlaping_keys_with {
             required: set! {"c".into()},
             additional_properties: false,
         }),
-        &Schema::AnyOf(vec![
+        &Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
@@ -926,7 +926,7 @@ mod has_overlaping_keys_with {
             required: set! {"a".into()},
             additional_properties: false,
         }),
-        &Schema::AnyOf(vec![
+        &Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
@@ -976,11 +976,11 @@ mod document_union {
         document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties,
         Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(vec![
+                "a".into() => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Decimal),
                     Schema::Atomic(Atomic::Integer),
                 ]),
-                "b".into() => Schema::AnyOf(vec![
+                "b".into() => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Double),
                     Schema::Atomic(Atomic::Integer),
                 ]),
@@ -1009,11 +1009,11 @@ mod document_union {
         document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties_symmetric,
         Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(vec![
+                "a".into() => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Decimal),
                 ]),
-                "b".into() => Schema::AnyOf(vec![
+                "b".into() => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Double),
                 ]),
@@ -1042,7 +1042,7 @@ mod document_union {
         document_union_of_two_documents_will_retain_keys_when_first_is_open,
         Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(vec![
+                "a".into() => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Decimal),
                 ]),
@@ -1072,7 +1072,7 @@ mod document_union {
         document_union_of_two_documents_will_retain_keys_when_second_is_open,
         Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(vec![
+                "a".into() => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Decimal),
                 ]),
@@ -1102,7 +1102,7 @@ mod document_union {
         document_union_of_two_documents_will_intersect_keys_when_both_are_open,
         Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(vec![
+                "a".into() => Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::Decimal),
                 ]),
@@ -1197,9 +1197,9 @@ mod document_union {
         document_union_of_any_of_recursively_applies_document_union,
         Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(vec![
-                    Schema::AnyOf(vec![
-                        Schema::AnyOf(vec![
+                "a".into() => Schema::AnyOf(set![
+                    Schema::AnyOf(set![
+                        Schema::AnyOf(set![
                             Schema::Atomic(Atomic::Integer),
                             Schema::Atomic(Atomic::Decimal),
                         ]),
@@ -1207,8 +1207,8 @@ mod document_union {
                     ]),
                     Schema::Atomic(Atomic::Integer),
                 ]),
-                "b".into() => Schema::AnyOf(vec![
-                    Schema::AnyOf(vec![
+                "b".into() => Schema::AnyOf(set![
+                    Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Double),
                     ]),
@@ -1220,7 +1220,7 @@ mod document_union {
             required: set! {"a".into()},
             additional_properties: false,
         }),
-        Schema::AnyOf(vec![
+        Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! {
                     "a".into() => Schema::Atomic(Atomic::Integer),
@@ -1239,7 +1239,7 @@ mod document_union {
                 additional_properties: false,
             })
         ]),
-        Schema::AnyOf(vec![
+        Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! {
                     "a".into() => Schema::Atomic(Atomic::Decimal),
@@ -1265,7 +1265,10 @@ mod document_union {
 // +---------------------+
 
 mod is_comparable_with {
-    use crate::schema::{Atomic::*, Satisfaction::*, Schema::*, ANY_ARRAY, ANY_DOCUMENT};
+    use crate::{
+        schema::{Atomic::*, Satisfaction::*, Schema::*, ANY_ARRAY, ANY_DOCUMENT},
+        set,
+    };
 
     macro_rules! test_is_comparable_with {
         ($func_name:ident, $expected:expr, $self:expr, $other:expr $(,)?) => {
@@ -1426,43 +1429,43 @@ mod is_comparable_with {
         numeric_atomic_must_be_comparable_with_a_set_of_numerics,
         Must,
         Atomic(Integer),
-        AnyOf(vec![Atomic(Integer), Atomic(Long)]),
+        AnyOf(set![Atomic(Integer), Atomic(Long)]),
     );
     test_is_comparable_with!(
         a_set_of_numerics_must_be_comparable_with_a_disjoint_set_of_numerics,
         Must,
-        AnyOf(vec![Atomic(Integer), Atomic(Long)]),
-        AnyOf(vec![Atomic(Double), Atomic(Decimal)]),
+        AnyOf(set![Atomic(Integer), Atomic(Long)]),
+        AnyOf(set![Atomic(Double), Atomic(Decimal)]),
     );
     test_is_comparable_with!(
         numeric_must_be_comparable_with_different_numeric_or_null,
         Must,
         Atomic(Integer),
-        AnyOf(vec![Atomic(Long), Atomic(Null)]),
+        AnyOf(set![Atomic(Long), Atomic(Null)]),
     );
     test_is_comparable_with!(
         numeric_or_null_must_be_comparable_with_different_numeric_or_null,
         Must,
-        AnyOf(vec![Atomic(Integer), Atomic(Null)]),
-        AnyOf(vec![Atomic(Long), Atomic(Null)]),
+        AnyOf(set![Atomic(Integer), Atomic(Null)]),
+        AnyOf(set![Atomic(Long), Atomic(Null)]),
     );
     test_is_comparable_with!(
         numeric_atomic_may_be_comparable_with_potentially_same_numeric,
         May,
         Atomic(Integer),
-        AnyOf(vec![Atomic(Integer), Atomic(String)]),
+        AnyOf(set![Atomic(Integer), Atomic(String)]),
     );
     test_is_comparable_with!(
         potential_numeric_may_be_comparable_with_potentially_same_numeric,
         May,
-        AnyOf(vec![Atomic(Integer), Atomic(String)]),
-        AnyOf(vec![Atomic(Integer), Atomic(String)]),
+        AnyOf(set![Atomic(Integer), Atomic(String)]),
+        AnyOf(set![Atomic(Integer), Atomic(String)]),
     );
     test_is_comparable_with!(
         potential_numeric_may_be_comparable_with_potentially_different_numeric,
         May,
-        AnyOf(vec![Atomic(Integer), Atomic(String)]),
-        AnyOf(vec![Atomic(Double), Atomic(String)]),
+        AnyOf(set![Atomic(Integer), Atomic(String)]),
+        AnyOf(set![Atomic(Double), Atomic(String)]),
     );
 
     // AnyOf comparability tests (non-numeric).
@@ -1470,37 +1473,37 @@ mod is_comparable_with {
         atomic_must_be_comparable_with_same_atomic_or_null,
         Must,
         Atomic(String),
-        AnyOf(vec![Atomic(String), Atomic(Null)]),
+        AnyOf(set![Atomic(String), Atomic(Null)]),
     );
     test_is_comparable_with!(
         atomic_or_null_must_be_comparable_with_same_atomic_or_null,
         Must,
-        AnyOf(vec![Atomic(String), Atomic(Null)]),
-        AnyOf(vec![Atomic(String), Atomic(Null)]),
+        AnyOf(set![Atomic(String), Atomic(Null)]),
+        AnyOf(set![Atomic(String), Atomic(Null)]),
     );
     test_is_comparable_with!(
         atomic_may_be_comparable_with_potentially_same_atomic,
         May,
         Atomic(String),
-        AnyOf(vec![Atomic(String), Atomic(Integer)]),
+        AnyOf(set![Atomic(String), Atomic(Integer)]),
     );
     test_is_comparable_with!(
         atomic_or_null_may_be_comparable_with_different_atomic_or_null,
         May,
-        AnyOf(vec![Atomic(String), Atomic(Null)]),
-        AnyOf(vec![Atomic(Integer), Atomic(Null)]),
+        AnyOf(set![Atomic(String), Atomic(Null)]),
+        AnyOf(set![Atomic(Integer), Atomic(Null)]),
     );
     test_is_comparable_with!(
         some_atomic_may_be_comparable_with_potentially_same_atomic,
         May,
-        AnyOf(vec![Atomic(String), Atomic(Boolean)]),
-        AnyOf(vec![Atomic(String), Atomic(Integer)]),
+        AnyOf(set![Atomic(String), Atomic(Boolean)]),
+        AnyOf(set![Atomic(String), Atomic(Integer)]),
     );
     test_is_comparable_with!(
         a_set_of_atomics_not_comparable_with_disjoint_set_of_atomics,
         Not,
-        AnyOf(vec![Atomic(String), Atomic(Boolean)]),
-        AnyOf(vec![Atomic(Date), Atomic(Integer)]),
+        AnyOf(set![Atomic(String), Atomic(Boolean)]),
+        AnyOf(set![Atomic(Date), Atomic(Integer)]),
     );
 }
 
@@ -1583,7 +1586,7 @@ mod contains_field {
     test_contains_field!(
         any_of_document_and_atomic_may_not_contain_field,
         Not,
-        AnyOf(vec![
+        AnyOf(set![
             Document(Document {
                 keys: map![
                     "a".to_string() => Any,
@@ -1599,7 +1602,7 @@ mod contains_field {
     test_contains_field!(
         any_of_document_and_atomic_may_contain_field,
         May,
-        AnyOf(vec![
+        AnyOf(set![
             Document(Document {
                 keys: map![
                     "a".to_string() => Any,
@@ -1615,7 +1618,7 @@ mod contains_field {
     test_contains_field!(
         any_of_document_and_document_must_contain_field,
         Must,
-        AnyOf(vec![
+        AnyOf(set![
             Document(Document {
                 keys: map![
                     "a".to_string() => Any,
@@ -1658,16 +1661,16 @@ mod simplify {
         };
     }
 
-    test_simplify!(contains_empty_vec, Unsat, AnyOf(vec![]));
+    test_simplify!(contains_empty_vec, Unsat, AnyOf(set![]));
     test_simplify!(
         remove_any_of_duplicates,
-        AnyOf(vec![Atomic(String), Atomic(Integer)]),
-        AnyOf(vec![Atomic(Integer), Atomic(Integer), Atomic(String)])
+        AnyOf(set![Atomic(String), Atomic(Integer)]),
+        AnyOf(set![Atomic(Integer), Atomic(Integer), Atomic(String)])
     );
     test_simplify!(
         remove_any_of_duplicates_not_consecutive,
-        AnyOf(vec![Atomic(String), Atomic(Integer)]),
-        AnyOf(vec![
+        AnyOf(set![Atomic(String), Atomic(Integer)]),
+        AnyOf(set![
             Atomic(Integer),
             Atomic(Integer),
             Atomic(String),
@@ -1678,26 +1681,26 @@ mod simplify {
     test_simplify!(
         flatten_any_of_one_schema,
         Atomic(Integer),
-        AnyOf(vec![Atomic(Integer)])
+        AnyOf(set![Atomic(Integer)])
     );
-    test_simplify!(flatten_any_of_any_schema, Any, AnyOf(vec!(Any, Missing)));
+    test_simplify!(flatten_any_of_any_schema, Any, AnyOf(set!(Any, Missing)));
     test_simplify!(
         flatten_any_of_any_of,
-        AnyOf(vec![Missing, Atomic(String), Atomic(Integer)]),
-        AnyOf(vec![AnyOf(vec![Missing, Atomic(String)]), Atomic(Integer)]),
+        AnyOf(set![Missing, Atomic(String), Atomic(Integer)]),
+        AnyOf(set![AnyOf(set![Missing, Atomic(String)]), Atomic(Integer)]),
     );
     test_simplify!(
         flatten_any_of_and_remove_duplicates,
-        AnyOf(vec![Atomic(String), Atomic(Integer), Atomic(Null)]),
-        AnyOf(vec![
-            AnyOf(vec![Atomic(Integer), Atomic(String)]),
-            AnyOf(vec![Atomic(Integer), Atomic(Null)])
+        AnyOf(set![Atomic(String), Atomic(Integer), Atomic(Null)]),
+        AnyOf(set![
+            AnyOf(set![Atomic(Integer), Atomic(String)]),
+            AnyOf(set![Atomic(Integer), Atomic(Null)])
         ])
     );
     test_simplify!(
         flatten_any_of_containing_array,
-        Array(Box::new(AnyOf(vec![Atomic(String), Atomic(Integer)]))),
-        AnyOf(vec![Array(Box::new(AnyOf(vec![
+        Array(Box::new(AnyOf(set![Atomic(String), Atomic(Integer)]))),
+        AnyOf(set![Array(Box::new(AnyOf(set![
             Atomic(Integer),
             Atomic(String)
         ])))])
@@ -1705,17 +1708,17 @@ mod simplify {
     test_simplify!(
         flatten_any_of_and_return_single_element,
         Atomic(Integer),
-        AnyOf(vec![Atomic(Integer), Atomic(Integer)])
+        AnyOf(set![Atomic(Integer), Atomic(Integer)])
     );
     test_simplify!(
         array,
-        Array(Box::new(AnyOf(vec![
+        Array(Box::new(AnyOf(set![
             Missing,
             Atomic(String),
             Atomic(Integer)
         ]))),
-        Array(Box::new(AnyOf(vec![
-            AnyOf(vec![Missing, Atomic(String)]),
+        Array(Box::new(AnyOf(set![
+            AnyOf(set![Missing, Atomic(String)]),
             Atomic(Integer)
         ])))
     );
@@ -1723,7 +1726,7 @@ mod simplify {
         document,
         Document(Document {
             keys: map![
-                "a".to_string() => AnyOf(vec![
+                "a".to_string() => AnyOf(set![
                 Missing,
                 Atomic(String),
                 Atomic(Integer)
@@ -1734,8 +1737,8 @@ mod simplify {
         }),
         Document(Document {
             keys: map![
-                "a".to_string() => AnyOf(vec![
-                AnyOf(vec![Missing, Atomic(String)]),
+                "a".to_string() => AnyOf(set![
+                AnyOf(set![Missing, Atomic(String)]),
                 Atomic(Integer)
             ]),
                             ],

@@ -159,19 +159,19 @@ mod schema {
     // Array Literals
     test_schema!(
         array_literal_empty,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![])))),
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![])))),
         Expression::Array(vec![]),
     );
     test_schema!(
         array_literal_null,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null)
         ])))),
         Expression::Array(vec![Expression::Literal(Literal::Null)]),
     );
     test_schema!(
         array_literal_two_nulls,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null),
         ])))),
@@ -182,7 +182,7 @@ mod schema {
     );
     test_schema!(
         array_literal_missing_to_null,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
         ])))),
         Expression::Array(vec![Expression::Reference(("a", 0u16).into()),]),
@@ -190,7 +190,7 @@ mod schema {
     );
     test_schema!(
         array_literal_with_nested_document_missing_preserved,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! {
                 "bar".into() => Schema::Atomic(Atomic::String),
@@ -210,13 +210,11 @@ mod schema {
     );
     test_schema!(
         array_literal_any_of_any_of_missing_to_null,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
             Schema::Document(Document {
                 keys: map! {"b".into() =>
-                    Schema::AnyOf(
-                    vec![
-                        Schema::AnyOf(
-                        vec![
+                    Schema::AnyOf(set![
+                        Schema::AnyOf(set![
                             Schema::Missing,
                             Schema::Atomic(Atomic::Integer)
                         ]),
@@ -231,10 +229,8 @@ mod schema {
             map! {"b".into() => Expression::Reference(("a", 0u16).into())},
         )]),
         map! {("a", 0u16).into() =>
-        Schema::AnyOf(
-        vec![
-            Schema::AnyOf(
-            vec![
+        Schema::AnyOf(set![
+            Schema::AnyOf(set![
                 Schema::Missing,
                 Schema::Atomic(Atomic::Integer)
             ]),
@@ -243,16 +239,16 @@ mod schema {
     );
     test_schema!(
         array_of_array_of_literal_any_of_any_of_missing_to_null,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
-            Schema::Array(Box::new(Schema::AnyOf(vec![Schema::AnyOf(vec![
-                Schema::AnyOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
+            Schema::Array(Box::new(Schema::AnyOf(set![Schema::AnyOf(set![
+                Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Null),
                     Schema::Atomic(Atomic::Integer)
                 ]),
                 Schema::Atomic(Atomic::Double)
             ])]))),
-            Schema::Array(Box::new(Schema::AnyOf(vec![Schema::AnyOf(vec![
-                Schema::AnyOf(vec![
+            Schema::Array(Box::new(Schema::AnyOf(set![Schema::AnyOf(set![
+                Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Null),
                     Schema::Atomic(Atomic::Integer)
                 ]),
@@ -264,10 +260,8 @@ mod schema {
             Expression::Array(vec![Expression::Reference(("a", 0u16).into()),]),
         ]),
         map! {("a", 0u16).into() =>
-        Schema::AnyOf(
-        vec![
-            Schema::AnyOf(
-            vec![
+        Schema::AnyOf(set![
+            Schema::AnyOf(set![
                 Schema::Missing,
                 Schema::Atomic(Atomic::Integer)
             ]),
@@ -276,7 +270,7 @@ mod schema {
     );
     test_schema!(
         array_literal_null_or_string,
-        Ok(Schema::Array(Box::new(Schema::AnyOf(vec![
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null),
@@ -330,7 +324,7 @@ mod schema {
             keys: map! {
                 "a".to_string() => Schema::Atomic(Atomic::String),
                 "c".to_string() => Schema::Atomic(Atomic::Null),
-                "d".to_string() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
+                "d".to_string() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]),
             },
             required: set! {
                 "a".to_string(),
@@ -345,7 +339,7 @@ mod schema {
             "d".to_string() => Expression::Reference(("a", 0u16).into()),
         }),
         map! {
-            ("a", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Null), Schema::Missing]),
+            ("a", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]),
             ("b", 0u16).into() => Schema::Missing,
         },
     );
@@ -411,14 +405,14 @@ mod schema {
     test_schema!(
         field_access_field_must_any_of,
         Ok(Schema::AnyOf(
-            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer)}
+            set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer)}
         )),
         Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
         }),
         map! {("bar", 0u16).into() =>
-            Schema::AnyOf(vec!{
+            Schema::AnyOf(set!{
             Schema::Document(
                 Document {
                     keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
@@ -438,14 +432,14 @@ mod schema {
     test_schema!(
         field_access_field_must_any_of_with_missing,
         Ok(Schema::AnyOf(
-            vec! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer), Schema::Missing}
+            set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Integer), Schema::Missing}
         )),
         Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
         }),
         map! {("bar", 0u16).into() =>
-            Schema::AnyOf(vec!{
+            Schema::AnyOf(set!{
             Schema::Document(
                 Document {
                     keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
@@ -470,7 +464,7 @@ mod schema {
         Err(schema::Error::SchemaChecking {
             name: "Pos",
             required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::AnyOf(vec![
+            found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String),
             ]),
@@ -479,14 +473,14 @@ mod schema {
             function: ScalarFunction::Pos,
             args: vec![Expression::Reference(("bar", 0u16).into())],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
         ])},
     );
     test_schema!(
         an_arg_that_may_be_nullish_manifests_as_null_in_final_schema,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -495,7 +489,7 @@ mod schema {
             args: vec![Expression::Reference(("array_or_null", 0u16).into())],
         }),
         map! { ("array_or_null", 0u16).into() =>
-        Schema::AnyOf(vec![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)]) },
+        Schema::AnyOf(set![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)]) },
     );
 
     // Unary functions.
@@ -629,7 +623,7 @@ mod schema {
     );
     test_schema!(
         substring_with_potentially_null_arg,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null),
         ])),
@@ -641,7 +635,7 @@ mod schema {
                 Expression::Reference(("integer_or_null", 0u16).into())
             ],
         }),
-        map! {("integer_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
+        map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
     );
 
     // Like function type correctness
@@ -685,7 +679,7 @@ mod schema {
     );
     test_schema!(
         like_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -694,11 +688,11 @@ mod schema {
             pattern: Expression::Literal(Literal::String("hello".into())).into(),
             escape: None,
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         like_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -707,7 +701,7 @@ mod schema {
             pattern: Expression::Literal(Literal::String("hello".into())).into(),
             escape: None,
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         like_must_be_null,
@@ -767,7 +761,7 @@ mod schema {
     );
     test_schema!(
         and_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -778,11 +772,11 @@ mod schema {
                 Expression::Literal(Literal::Boolean(true))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         and_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -793,7 +787,7 @@ mod schema {
                 Expression::Literal(Literal::Boolean(true))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
     test_schema!(
         and_must_be_null,
@@ -855,7 +849,7 @@ mod schema {
     );
     test_schema!(
         or_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -866,11 +860,11 @@ mod schema {
                 Expression::Literal(Literal::Boolean(true))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         or_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -881,7 +875,7 @@ mod schema {
                 Expression::Literal(Literal::Boolean(true))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
     test_schema!(
         or_must_be_null,
@@ -921,7 +915,7 @@ mod schema {
     );
     test_schema!(
         not_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -929,11 +923,11 @@ mod schema {
             function: ScalarFunction::Not,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         not_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -941,7 +935,7 @@ mod schema {
             function: ScalarFunction::Not,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
     test_schema!(
         not_must_be_null,
@@ -968,7 +962,7 @@ mod schema {
     );
     test_schema!(
         ltrim_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -979,11 +973,11 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         ltrim_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -994,7 +988,7 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         ltrim_must_be_null,
@@ -1023,7 +1017,7 @@ mod schema {
     );
     test_schema!(
         rtrim_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1034,11 +1028,11 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         rtrim_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1049,7 +1043,7 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         rtrim_must_be_null,
@@ -1077,7 +1071,7 @@ mod schema {
     );
     test_schema!(
         btrim_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1088,11 +1082,11 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         btrim_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1103,7 +1097,7 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         btrim_must_be_null,
@@ -1131,7 +1125,7 @@ mod schema {
     );
     test_schema!(
         concat_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1142,11 +1136,11 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         concat_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1157,7 +1151,7 @@ mod schema {
                 Expression::Literal(Literal::String("hello".into()))
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         concat_must_be_null,
@@ -1183,7 +1177,7 @@ mod schema {
     );
     test_schema!(
         lower_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1191,11 +1185,11 @@ mod schema {
             function: ScalarFunction::Lower,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         lower_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1203,7 +1197,7 @@ mod schema {
             function: ScalarFunction::Lower,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         lower_must_be_null,
@@ -1226,7 +1220,7 @@ mod schema {
     );
     test_schema!(
         upper_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1234,11 +1228,11 @@ mod schema {
             function: ScalarFunction::Upper,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         upper_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1246,7 +1240,7 @@ mod schema {
             function: ScalarFunction::Upper,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         upper_must_be_null,
@@ -1269,7 +1263,7 @@ mod schema {
     );
     test_schema!(
         year_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1277,11 +1271,11 @@ mod schema {
             function: ScalarFunction::Year,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         year_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1289,7 +1283,7 @@ mod schema {
             function: ScalarFunction::Year,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
     test_schema!(
         year_must_be_null,
@@ -1312,7 +1306,7 @@ mod schema {
     );
     test_schema!(
         month_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1320,11 +1314,11 @@ mod schema {
             function: ScalarFunction::Month,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         month_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1332,7 +1326,7 @@ mod schema {
             function: ScalarFunction::Month,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
     test_schema!(
         month_must_be_null,
@@ -1355,7 +1349,7 @@ mod schema {
     );
     test_schema!(
         day_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1363,11 +1357,11 @@ mod schema {
             function: ScalarFunction::Day,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         day_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1375,7 +1369,7 @@ mod schema {
             function: ScalarFunction::Day,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
     test_schema!(
         day_must_be_null,
@@ -1398,7 +1392,7 @@ mod schema {
     );
     test_schema!(
         minute_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1406,11 +1400,11 @@ mod schema {
             function: ScalarFunction::Minute,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         minute_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1418,7 +1412,7 @@ mod schema {
             function: ScalarFunction::Minute,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
     test_schema!(
         minute_must_be_null,
@@ -1441,7 +1435,7 @@ mod schema {
     );
     test_schema!(
         hour_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1449,11 +1443,11 @@ mod schema {
             function: ScalarFunction::Hour,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         hour_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1461,7 +1455,7 @@ mod schema {
             function: ScalarFunction::Hour,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
     test_schema!(
         hour_must_be_null,
@@ -1484,7 +1478,7 @@ mod schema {
     );
     test_schema!(
         second_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1492,11 +1486,11 @@ mod schema {
             function: ScalarFunction::Second,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         second_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1504,7 +1498,7 @@ mod schema {
             function: ScalarFunction::Second,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Date), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
     test_schema!(
         second_must_be_null,
@@ -1621,15 +1615,15 @@ mod schema {
             ],
         }),
         map! {
-            ("bar", 0u16).into() => Schema::AnyOf(vec![
+            ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Double),
             ]),
-            ("foo", 0u16).into() => Schema::AnyOf(vec![
+            ("foo", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Double),
             ]),
-            ("baz", 0u16).into() => Schema::AnyOf(vec![
+            ("baz", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
             ]),
@@ -1637,7 +1631,7 @@ mod schema {
     );
     test_schema!(
         arithmetic_decimal_takes_priority_in_any_of_may_be_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Null),
         ])),
@@ -1650,15 +1644,15 @@ mod schema {
             ],
         }),
         map! {
-            ("bar", 0u16).into() => Schema::AnyOf(vec![
+            ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Double),
             ]),
-            ("foo", 0u16).into() => Schema::AnyOf(vec![
+            ("foo", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Null),
             ]),
-            ("baz", 0u16).into() => Schema::AnyOf(vec![
+            ("baz", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
             ]),
@@ -1676,13 +1670,13 @@ mod schema {
             ],
         }),
         map! {
-            ("bar", 0u16).into() => Schema::AnyOf(vec![
+            ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Double),
             ]),
             ("foo", 0u16).into() =>
                 Schema::Atomic(Atomic::Null),
-            ("baz", 0u16).into() => Schema::AnyOf(vec![
+            ("baz", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
             ]),
@@ -1690,7 +1684,7 @@ mod schema {
     );
     test_schema!(
         arithmetic_decimal_takes_priority_in_any_of_may_be_missing,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Null),
         ])),
@@ -1703,15 +1697,15 @@ mod schema {
             ],
         }),
         map! {
-            ("bar", 0u16).into() => Schema::AnyOf(vec![
+            ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Double),
             ]),
-            ("foo", 0u16).into() => Schema::AnyOf(vec![
+            ("foo", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Missing,
             ]),
-            ("baz", 0u16).into() => Schema::AnyOf(vec![
+            ("baz", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
             ]),
@@ -1729,13 +1723,13 @@ mod schema {
             ],
         }),
         map! {
-            ("bar", 0u16).into() => Schema::AnyOf(vec![
+            ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Double),
             ]),
             ("foo", 0u16).into() =>
                 Schema::Missing,
-            ("baz", 0u16).into() => Schema::AnyOf(vec![
+            ("baz", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
             ]),
@@ -1775,7 +1769,7 @@ mod schema {
         fixed_arg_arithmetic_first_arg_must_be_number,
         Err(Error::SchemaChecking {
             name: "Sub",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
@@ -1797,7 +1791,7 @@ mod schema {
         fixed_arg_arithmetic_second_arg_must_be_number,
         Err(Error::SchemaChecking {
             name: "Div",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
@@ -1819,7 +1813,7 @@ mod schema {
         variadic_arg_arithmetic_all_args_must_be_numbers,
         Err(Error::SchemaChecking {
             name: "Add",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
@@ -1882,7 +1876,7 @@ mod schema {
     );
     test_schema!(
         comp_op_returns_boolean_and_null_schema_for_potentially_nullish_comparison,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -1893,7 +1887,7 @@ mod schema {
                 Expression::Reference(("integer_or_null", 0u16).into()),
             ],
         }),
-        map! {("integer_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
+        map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
     );
     test_schema!(
         comp_op_returns_null_schema_for_nullish_comparison,
@@ -1954,7 +1948,7 @@ mod schema {
     );
     test_schema!(
         between_returns_boolean_schema_for_non_nullish_comparisons,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Boolean)
         ])),
@@ -1969,12 +1963,12 @@ mod schema {
     );
     test_schema!(
         between_returns_boolean_and_null_schema_for_potentially_nullish_comparison,
-        Ok(Schema::AnyOf(vec![
-            Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
+            Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Boolean),
                 Schema::Atomic(Atomic::Null)
             ]),
-            Schema::AnyOf(vec![
+            Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Boolean),
                 Schema::Atomic(Atomic::Null)
             ]),
@@ -1988,13 +1982,13 @@ mod schema {
             ],
         }),
         map! {
-            ("integer_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
-            ("long_or_null", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Null)])
+            ("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
+            ("long_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Null)])
         },
     );
     test_schema!(
         between_returns_null_schema_for_nullish_comparison,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null)
         ])),
@@ -2140,17 +2134,17 @@ mod schema {
         merge_two_anyof_objects,
         Ok(Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(vec![
-                    Schema::AnyOf(vec![
+                "a".into() => Schema::AnyOf(set![
+                    Schema::AnyOf(set![
                         Schema::Atomic(Atomic::Integer),
                         Schema::Atomic(Atomic::Integer),
                     ]),
                     Schema::Atomic(Atomic::Integer)
                 ]),
-                "b".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
+                "b".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
                 "c".into() => Schema::Atomic(Atomic::Integer),
                 "d".into() => Schema::Atomic(Atomic::Integer),
-                "e".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
+                "e".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
                 "f".into() => Schema::Atomic(Atomic::Integer),
             },
             required: set! {
@@ -2166,7 +2160,7 @@ mod schema {
             ],
         }),
         map! {
-            ("foo", 0u16).into() => Schema::AnyOf(vec![
+            ("foo", 0u16).into() => Schema::AnyOf(set![
                 Schema::Document(
                     Document {
                         keys: map! {
@@ -2194,7 +2188,7 @@ mod schema {
                     additional_properties: false,
                 }),
             ]),
-            ("bar", 0u16).into() => Schema::AnyOf(vec![
+            ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Document(
                     Document {
                         keys: map! {
@@ -2255,7 +2249,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone(),
-            found: Schema::AnyOf(vec![ANY_DOCUMENT.clone(), Schema::Missing]),
+            found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]),
         }),
         Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::ComputedFieldAccess,
@@ -2264,7 +2258,7 @@ mod schema {
                 Expression::Literal(Literal::String("field".to_string())),
             ],
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![ANY_DOCUMENT.clone(), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing])},
     );
     test_schema!(
         computed_field_access_second_arg_must_not_be_string,
@@ -2287,7 +2281,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String),
-            found: Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing]),
+            found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]),
         }),
         Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::ComputedFieldAccess,
@@ -2297,7 +2291,7 @@ mod schema {
             ],
         }),
         map! {("bar", 0u16).into() => ANY_DOCUMENT.clone(),
-        ("baz", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::String), Schema::Missing])},
+        ("baz", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
     test_schema!(
         computed_field_access_valid_args,
@@ -2381,11 +2375,11 @@ mod schema {
         nullif_args_cannot_be_potentially_comparable,
         Err(Error::InvalidComparison(
             "NullIf",
-            Schema::AnyOf(vec![
+            Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             ]),
-            Schema::AnyOf(vec![
+            Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::String)
             ])
@@ -2398,13 +2392,13 @@ mod schema {
             ],
         }),
         map! {
-            ("foo", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
-            ("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)])
+            ("foo", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+            ("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)])
         },
     );
     test_schema!(
         nullif_identical_types,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null),
         ])),
@@ -2418,7 +2412,7 @@ mod schema {
     );
     test_schema!(
         nullif_missing_type_upconverts_to_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null),
         ])),
@@ -2435,7 +2429,7 @@ mod schema {
     );
     test_schema!(
         nullif_different_numerical_types_uses_first_arg_type,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null),
         ])),
@@ -2449,8 +2443,8 @@ mod schema {
     );
     test_schema!(
         nullif_multitype_numeric_args,
-        Ok(Schema::AnyOf(vec![
-            Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
+            Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long)
             ]),
@@ -2464,8 +2458,8 @@ mod schema {
             ],
         }),
         map! {
-            ("foo", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
-            ("bar", 0u16).into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal)])
+            ("foo", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
+            ("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal)])
         },
     );
 
@@ -2484,7 +2478,7 @@ mod schema {
     );
     test_schema!(
         coalesce_returns_all_arg_schemas_with_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -2501,7 +2495,7 @@ mod schema {
     );
     test_schema!(
         coalesce_upconverts_missing_to_null,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
@@ -2569,7 +2563,7 @@ mod schema {
         slice_with_two_args_requires_an_integer_for_the_second_arg,
         Err(Error::SchemaChecking {
             name: "Slice",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
@@ -2605,7 +2599,7 @@ mod schema {
         slice_with_three_args_requires_an_integer_for_the_second_arg,
         Err(Error::SchemaChecking {
             name: "Slice",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
@@ -2626,7 +2620,7 @@ mod schema {
         slice_with_three_args_requires_an_integer_for_the_third_arg,
         Err(Error::SchemaChecking {
             name: "Slice",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
@@ -2686,7 +2680,7 @@ mod schema {
         size_requires_array_arg,
         Err(Error::SchemaChecking {
             name: "Size",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 ANY_ARRAY.clone(),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing,
@@ -2728,7 +2722,7 @@ mod schema {
         empty_array_datasource_schema,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(vec![])
+                ("foo", 0u16).into() => Schema::AnyOf(set![])
             },
             min_size: 0,
             max_size: Some(0),
@@ -2742,8 +2736,7 @@ mod schema {
         dual_array_datasource_schema,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("foo", 0u16).into() => Schema::AnyOf(set![
                         Schema::Document( Document {
                             keys: map!{},
                             required: set!{},
@@ -2765,7 +2758,7 @@ mod schema {
         Err(Error::SchemaChecking {
             name: "array datasource items",
             required: ANY_DOCUMENT.clone(),
-            found: Schema::AnyOf(vec![
+            found: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Double),
             ])
@@ -2782,8 +2775,7 @@ mod schema {
         single_document_array_datasource_schema,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("foo", 0u16).into() => Schema::AnyOf(set![
                         Schema::Document( Document {
                             keys: map!{"bar".into() => Schema::Atomic(Atomic::Integer)},
                             required: set!{"bar".into()},
@@ -2806,8 +2798,7 @@ mod schema {
         two_document_array_datasource_schema,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("foo", 0u16).into() => Schema::AnyOf(set![
                         Schema::Document( Document {
                             keys: map!{"bar".into() => Schema::Atomic(Atomic::Integer)},
                             required: set!{"bar".into()},
@@ -2870,6 +2861,7 @@ mod schema {
             ir::{schema::Error, *},
             map,
             schema::{Atomic, ResultSet, Schema},
+            set,
         };
 
         const TRUE: Expression = Expression::Literal(Literal::Boolean(true));
@@ -2909,7 +2901,7 @@ mod schema {
             non_boolean_condition_disallowed,
             Err(Error::SchemaChecking {
                 name: "filter condition",
-                required: Schema::AnyOf(vec![
+                required: Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Boolean),
                     Schema::Atomic(Atomic::Null),
                     Schema::Missing,
@@ -2925,7 +2917,7 @@ mod schema {
             possible_non_boolean_condition_disallowed,
             Err(Error::SchemaChecking {
                 name: "filter condition",
-                required: Schema::AnyOf(vec![
+                required: Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Boolean),
                     Schema::Atomic(Atomic::Null),
                     Schema::Missing,
@@ -2992,7 +2984,7 @@ mod schema {
     );
     test_schema!(
         cast_expr_to_other_type,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null),
@@ -3006,7 +2998,7 @@ mod schema {
     );
     test_schema!(
         cast_expr_to_other_type_with_on_null_and_on_error_set,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Boolean),
@@ -3020,7 +3012,7 @@ mod schema {
     );
     test_schema!(
         cast_multi_type_expr_to_possible_type,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Boolean),
@@ -3031,14 +3023,14 @@ mod schema {
             on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
             on_error: Box::new(Expression::Literal(Literal::Boolean(true))),
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ])},
     );
     test_schema!(
         cast_multi_type_expr_to_impossible_type,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Boolean),
@@ -3049,7 +3041,7 @@ mod schema {
             on_null: Box::new(Expression::Literal(Literal::String("abc".to_string()))),
             on_error: Box::new(Expression::Literal(Literal::Boolean(true))),
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ])},
@@ -3113,7 +3105,7 @@ mod schema {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             target_type: Type::Double,
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(vec![
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Double),
         ])},
@@ -3136,7 +3128,7 @@ mod schema {
         searched_case_when_branch_condition_must_be_boolean_or_nullish,
         Err(Error::SchemaChecking {
             name: "SearchedCase",
-            required: Schema::AnyOf(vec![
+            required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Boolean),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing,
@@ -3153,7 +3145,7 @@ mod schema {
     );
     test_schema!(
         searched_case_with_no_when_branch_uses_else_branch,
-        Ok(Schema::AnyOf(vec![Schema::Atomic(Atomic::Long)])),
+        Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Long)])),
         Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![],
             else_branch: Box::new(Expression::Literal(Literal::Long(1))),
@@ -3161,7 +3153,7 @@ mod schema {
     );
     test_schema!(
         searched_case_multiple_when_branches,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Null)
@@ -3200,7 +3192,7 @@ mod schema {
     );
     test_schema!(
         simple_case_with_no_when_branch_uses_else_branch,
-        Ok(Schema::AnyOf(vec![Schema::Atomic(Atomic::Long)])),
+        Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Long)])),
         Expression::SimpleCase(SimpleCaseExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             when_branch: vec![],
@@ -3209,7 +3201,7 @@ mod schema {
     );
     test_schema!(
         simple_case_multiple_when_branches,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Null)
@@ -3457,7 +3449,7 @@ mod schema {
     // Analogous SQL query: SELECT (SELECT foo.a FROM []) FROM foo
     test_schema!(
         correlated_subquery,
-        Ok(Schema::AnyOf(vec![
+        Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::String),
             Schema::Missing
         ])),
@@ -3529,7 +3521,7 @@ mod schema {
     // Analogous SQL query: "SELECT (SELECT * FROM [] AS foo)"
     test_schema!(
         uncorrelated_subquery_cardinality_is_zero,
-        Ok(Schema::AnyOf(vec![Schema::AnyOf(vec![]), Schema::Missing])),
+        Ok(Schema::AnyOf(set![Schema::AnyOf(set![]), Schema::Missing])),
         Expression::SubqueryExpression(SubqueryExpr {
             output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
             subquery: Box::new(Stage::Array(Array {
@@ -3542,7 +3534,7 @@ mod schema {
     // Analogous SQL query: "SELECT (SELECT * FROM [{'a': 5}] AS foo)"
     test_schema!(
         subquery_expression_cardinality_must_be_one,
-        Ok(Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer)])),
+        Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)])),
         Expression::SubqueryExpression(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
@@ -3598,10 +3590,9 @@ mod schema {
         set_unionall_same_name_unioned,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(
-                    vec![
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone()]),
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone()]),
+                ("foo", 0u16).into() => Schema::AnyOf(set![
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_B.clone()]),
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_A.clone()]),
                     ]
                 ),
             },
@@ -3625,9 +3616,9 @@ mod schema {
         Ok(ResultSet {
             schema_env: map! {
                 ("foo", 0u16).into() =>
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone()]),
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_A.clone()]),
                 ("bar", 0u16).into() =>
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone()]),
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_B.clone()]),
             },
             min_size: 2,
             max_size: Some(2),
@@ -3648,10 +3639,9 @@ mod schema {
         set_union_same_name_unioned,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(
-                    vec![
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone()]),
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone()]),
+                ("foo", 0u16).into() => Schema::AnyOf(set![
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_B.clone()]),
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_A.clone()]),
                     ]
                 ),
             },
@@ -3675,9 +3665,9 @@ mod schema {
         Ok(ResultSet {
             schema_env: map! {
                 ("foo", 0u16).into() =>
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_A.clone(), TEST_DOCUMENT_SCHEMA_A.clone()]),
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_A.clone(), TEST_DOCUMENT_SCHEMA_A.clone()]),
                 ("bar", 0u16).into() =>
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_B.clone(), TEST_DOCUMENT_SCHEMA_C.clone()]),
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_B.clone(), TEST_DOCUMENT_SCHEMA_C.clone()]),
             },
             min_size: 1,
             max_size: Some(4),
@@ -3699,9 +3689,9 @@ mod schema {
         Ok(ResultSet {
             schema_env: map! {
                 ("foo", 0u16).into() =>
-                        Schema::AnyOf(vec![]),
+                        Schema::AnyOf(set![]),
                 ("bar", 0u16).into() =>
-                        Schema::AnyOf(vec![]),
+                        Schema::AnyOf(set![]),
             },
             min_size: 0,
             max_size: Some(0),
@@ -3724,18 +3714,15 @@ mod schema {
         left_join,
         Ok(ResultSet {
             schema_env: map! {
-                ("bar", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("bar", 0u16).into() => Schema::AnyOf(set![
                         Schema::Missing,
-                        Schema::AnyOf(
-                            vec![
+                        Schema::AnyOf(set![
                                 TEST_DOCUMENT_SCHEMA_B.clone()
                             ]
                         ),
                     ]
                 ),
-                ("foo", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("foo", 0u16).into() => Schema::AnyOf(set![
                         TEST_DOCUMENT_SCHEMA_A.clone()
                     ]
                 ),
@@ -3832,20 +3819,17 @@ mod schema {
         inner_and_left_join,
         Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("foo", 0u16).into() => Schema::AnyOf(set![
                         TEST_DOCUMENT_SCHEMA_A.clone(),
                     ]
                 ),
-                ("bar", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("bar", 0u16).into() => Schema::AnyOf(set![
                         TEST_DOCUMENT_SCHEMA_B.clone(),
                     ]
                 ),
-                ("car", 0u16).into() => Schema::AnyOf(
-                    vec![
+                ("car", 0u16).into() => Schema::AnyOf(set![
                         Schema::Missing,
-                        Schema::AnyOf(vec![TEST_DOCUMENT_SCHEMA_C.clone()]),
+                        Schema::AnyOf(set![TEST_DOCUMENT_SCHEMA_C.clone()]),
                     ]
                 ),
             },
