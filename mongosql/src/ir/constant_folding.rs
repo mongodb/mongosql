@@ -17,7 +17,7 @@ lazy_static! {
 
 impl ConstantFoldExprVisitor {
     // Constant folds boolean functions
-    fn fold_logical_functions(&mut self, sf: ScalarFunctionApplication) -> Expression {
+    fn fold_logical_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         let (nullish, non_nullish): (Vec<Expression>, Vec<Expression>) =
             sf.args.clone().into_iter().partition(|e| {
                 e.schema(&EMPTY_STATE)
@@ -193,8 +193,92 @@ impl ConstantFoldExprVisitor {
             args,
         })
     }
-}
 
+    // constant folds binary comparison functions
+    fn fold_comparison_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        use std::cmp::Ordering;
+        assert!(
+            sf.args.len() == 2,
+            "binary comparison scalar functions must contain 2 args"
+        );
+        for expr in &sf.args {
+            match expr.schema(&EMPTY_STATE) {
+                Err(_) => break,
+                Ok(sch) => {
+                    if sch.satisfies(&Schema::AnyOf(set![
+                        Schema::Missing,
+                        Schema::Atomic(Atomic::Null),
+                    ])) == Satisfaction::Must
+                    {
+                        return Expression::Literal(Literal::Null);
+                    }
+                }
+            }
+        }
+        let ord = match (&sf.args[0], &sf.args[1]) {
+            (
+                Expression::Literal(Literal::Boolean(l)),
+                Expression::Literal(Literal::Boolean(r)),
+            ) => l.partial_cmp(&r),
+            (
+                Expression::Literal(Literal::Integer(l)),
+                Expression::Literal(Literal::Integer(r)),
+            ) => l.partial_cmp(&r),
+            (Expression::Literal(Literal::Long(l)), Expression::Literal(Literal::Long(r))) => {
+                l.partial_cmp(&r)
+            }
+            (Expression::Literal(Literal::Double(l)), Expression::Literal(Literal::Double(r))) => {
+                l.partial_cmp(&r)
+            }
+            (Expression::Literal(Literal::String(l)), Expression::Literal(Literal::String(r))) => {
+                l.partial_cmp(&r)
+            }
+            _ => None,
+        };
+        if ord.is_none() {
+            return Expression::ScalarFunction(sf);
+        }
+        let ord = ord.unwrap();
+        let val = match sf.function {
+            ScalarFunction::Eq => ord == Ordering::Equal,
+            ScalarFunction::Gt => ord == Ordering::Greater,
+            ScalarFunction::Gte => ord != Ordering::Less,
+            ScalarFunction::Lt => ord == Ordering::Less,
+            ScalarFunction::Lte => ord != Ordering::Greater,
+            ScalarFunction::Neq => ord != Ordering::Equal,
+            _ => unreachable!("non-comparison function cannot be called"),
+        };
+        Expression::Literal(Literal::Boolean(val))
+    }
+
+    // folds the between function
+    fn fold_between(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        assert!(
+            sf.args.len() == 3,
+            "between scalar function must contain 3 args"
+        );
+        let (arg, bottom, top) = (sf.args[0].clone(), sf.args[1].clone(), sf.args[2].clone());
+        let new_sf = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Lte,
+                    args: vec![arg.clone(), top],
+                }),
+                Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Gte,
+                    args: vec![arg, bottom],
+                }),
+            ],
+        });
+        let folded_expr = self.visit_expression(new_sf);
+        if let Expression::Literal(_) = folded_expr {
+            folded_expr
+        } else {
+            Expression::ScalarFunction(sf)
+        }
+    }
+}
 impl Visitor for ConstantFoldExprVisitor {
     fn visit_expression(&mut self, e: Expression) -> Expression {
         let e = e.walk(self);
@@ -209,10 +293,17 @@ impl Visitor for ConstantFoldExprVisitor {
             Expression::Literal(_) => e,
             Expression::Reference(_) => e,
             Expression::ScalarFunction(f) => match f.function {
-                ScalarFunction::And | ScalarFunction::Or => Self::fold_logical_functions(self, f),
+                ScalarFunction::And | ScalarFunction::Or => self.fold_logical_function(f),
                 ScalarFunction::Add | ScalarFunction::Mul => {
                     self.fold_associative_arithmetic_function(f)
                 }
+                ScalarFunction::Eq
+                | ScalarFunction::Gt
+                | ScalarFunction::Gte
+                | ScalarFunction::Lt
+                | ScalarFunction::Lte
+                | ScalarFunction::Neq => self.fold_comparison_function(f),
+                ScalarFunction::Between => self.fold_between(f),
                 _ => Expression::ScalarFunction(f),
             },
             Expression::SearchedCase(_) => e,
