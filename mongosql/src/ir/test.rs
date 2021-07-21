@@ -4301,6 +4301,20 @@ mod constant_folding {
         }),
     );
     test_constant_fold!(
+        or_empty,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Boolean(false)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Or,
+                args: vec![]
+            }),
+        }),
+    );
+    test_constant_fold!(
         and_with_false_literal_is_false,
         Stage::Filter(Filter {
             source: Box::new(TEST_SOURCE.clone()),
@@ -4321,6 +4335,20 @@ mod constant_folding {
         }),
     );
     test_constant_fold!(
+        and_empty,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Boolean(true)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![]
+            }),
+        }),
+    );
+    test_constant_fold!(
         add_simple,
         Stage::Filter(Filter {
             source: Box::new(TEST_SOURCE.clone()),
@@ -4334,6 +4362,39 @@ mod constant_folding {
                     Expression::Literal(Literal::Integer(1)),
                     Expression::Literal(Literal::Integer(1)),
                     Expression::Literal(Literal::Integer(1)),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        add_empty,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Integer(0)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![]
+            })
+        }),
+    );
+    test_constant_fold!(
+        add_to_zero_is_zero,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Long(0)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Add,
+                args: vec![
+                    Expression::Literal(Literal::Integer(1)),
+                    Expression::Literal(Literal::Integer(-1)),
+                    Expression::Literal(Literal::Long(1)),
+                    Expression::Literal(Literal::Long(-1)),
                 ]
             })
         }),
@@ -4397,6 +4458,39 @@ mod constant_folding {
                     Expression::Literal(Literal::Long(2)),
                 ]
             }),
+        }),
+    );
+    test_constant_fold!(
+        mul_empty,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Integer(1)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Mul,
+                args: vec![]
+            })
+        }),
+    );
+    test_constant_fold!(
+        mul_to_one_is_one,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Double(1.0)),
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Mul,
+                args: vec![
+                    Expression::Literal(Literal::Integer(1)),
+                    Expression::Literal(Literal::Integer(1)),
+                    Expression::Literal(Literal::Double(0.5)),
+                    Expression::Literal(Literal::Double(2.0)),
+                ]
+            })
         }),
     );
     test_constant_fold!(

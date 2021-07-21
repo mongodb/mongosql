@@ -105,15 +105,31 @@ impl ConstantFoldExprVisitor {
                 }
             }
         }
+        if sf.args.is_empty() {
+            match sf.function {
+                ScalarFunction::Add => return Expression::Literal(Literal::Integer(0)),
+                ScalarFunction::Mul => return Expression::Literal(Literal::Integer(1)),
+                _ => unreachable!("fold associative function only called on Add and Mul"),
+            }
+        }
         let mut non_literals = Vec::<Expression>::new();
         let (int_fold, long_fold, float_fold) = match sf.function {
             ScalarFunction::Add => {
                 sf.args
                     .into_iter()
-                    .fold((0, 0i64, 0.0), |(i, l, f), expr| match expr {
-                        Expression::Literal(Literal::Integer(val)) => (i + val, l, f),
-                        Expression::Literal(Literal::Long(val)) => (i, l + val, f),
-                        Expression::Literal(Literal::Double(val)) => (i, l, f + val),
+                    .fold((None, None, None), |(i, l, f), expr| match expr {
+                        Expression::Literal(Literal::Integer(val)) => match i {
+                            None => (Some(val), l, f),
+                            Some(num) => (Some(num + val), l, f),
+                        },
+                        Expression::Literal(Literal::Long(val)) => match l {
+                            None => (i, Some(val), f),
+                            Some(num) => (i, Some(num + val), f),
+                        },
+                        Expression::Literal(Literal::Double(val)) => match f {
+                            None => (i, l, Some(val)),
+                            Some(num) => (i, l, Some(num + val)),
+                        },
                         _ => {
                             non_literals.push(expr);
                             (i, l, f)
@@ -123,10 +139,19 @@ impl ConstantFoldExprVisitor {
             ScalarFunction::Mul => {
                 sf.args
                     .into_iter()
-                    .fold((1, 1i64, 1.0), |(i, l, f), expr| match expr {
-                        Expression::Literal(Literal::Integer(val)) => (i * val, l, f),
-                        Expression::Literal(Literal::Long(val)) => (i, l * val, f),
-                        Expression::Literal(Literal::Double(val)) => (i, l, f * val),
+                    .fold((None, None, None), |(i, l, f), expr| match expr {
+                        Expression::Literal(Literal::Integer(val)) => match i {
+                            None => (Some(val), l, f),
+                            Some(num) => (Some(num * val), l, f),
+                        },
+                        Expression::Literal(Literal::Long(val)) => match l {
+                            None => (i, Some(val), f),
+                            Some(num) => (i, Some(num * val), f),
+                        },
+                        Expression::Literal(Literal::Double(val)) => match f {
+                            None => (i, l, Some(val)),
+                            Some(num) => (i, l, Some(num * val)),
+                        },
                         _ => {
                             non_literals.push(expr);
                             (i, l, f)
@@ -135,23 +160,31 @@ impl ConstantFoldExprVisitor {
             }
             _ => unreachable!("fold associative function is only called on And and Mul"),
         };
-        let literals = vec![
-            Expression::Literal(Literal::Integer(int_fold)),
-            Expression::Literal(Literal::Long(long_fold)),
-            Expression::Literal(Literal::Double(float_fold)),
-        ];
-        let literals = match sf.function {
+        let literals: Vec<Expression> = vec![
+            int_fold.map(|val| Expression::Literal(Literal::Integer(val))),
+            long_fold.map(|val| Expression::Literal(Literal::Long(val))),
+            float_fold.map(|val| Expression::Literal(Literal::Double(val))),
+        ]
+        .into_iter()
+        .flatten()
+        .collect();
+        let filtered_literals: Vec<Expression> = match sf.function {
             ScalarFunction::Add => literals
+                .clone()
                 .into_iter()
                 .filter(|expr| !Self::numeric_eq(expr, 0.0))
                 .collect(),
             ScalarFunction::Mul => literals
+                .clone()
                 .into_iter()
                 .filter(|expr| !Self::numeric_eq(expr, 1.0))
                 .collect(),
             _ => unreachable!("fold associative function is only called on And and Mul"),
         };
-        let args = [literals, non_literals].concat();
+        let args = [filtered_literals, non_literals].concat();
+        if args.is_empty() {
+            return literals.last().unwrap().clone();
+        }
         if args.len() == 1 {
             return args[0].clone();
         }
