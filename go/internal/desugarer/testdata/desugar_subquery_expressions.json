@@ -101,7 +101,6 @@
     "expected": [
       {
         "$lookup": {
-          "from": "",
           "pipeline": [
             {
               "$array": {
@@ -606,7 +605,6 @@
     "expected": [
       {
         "$lookup": {
-          "from": "",
           "pipeline": [
             {
               "$array": [
@@ -815,7 +813,6 @@
     "expected": [
       {
         "$lookup": {
-          "from": "bar",
           "pipeline": [
             {
               "$array": [
