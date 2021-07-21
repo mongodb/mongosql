@@ -4024,7 +4024,7 @@ mod schema {
             map! {
                 ("foo", 0u16).into() => Schema::Document( Document{
                     keys: map! {
-                        "a".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
+                        "a".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
                         "b".into() => Schema::Atomic(Atomic::String),
                     },
                     required: set! { "a".into(), "b".into() },
@@ -4036,7 +4036,7 @@ mod schema {
             incomparable_schemas,
             Err(Error::SortKeyNotSelfComparable(
                 1,
-                Schema::AnyOf(vec![
+                Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::String)
                 ]),
@@ -4061,7 +4061,7 @@ mod schema {
                 ("foo", 0u16).into() => Schema::Document( Document{
                     keys: map! {
                         "a".into() => Schema::Atomic(Atomic::String),
-                        "b".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+                        "b".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
                     },
                     required: set! {"a".into(), "b".into()},
                     additional_properties: false,
@@ -4072,7 +4072,7 @@ mod schema {
             mix_comparable_and_incomparable_schemas,
             Err(Error::SortKeyNotSelfComparable(
                 0,
-                Schema::AnyOf(vec![
+                Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
                     Schema::Atomic(Atomic::String),
                     Schema::Atomic(Atomic::Null)
@@ -4093,7 +4093,7 @@ mod schema {
             map! {
                 ("foo", 0u16).into() => Schema::Document( Document{
                     keys: map! {
-                        "a".into() => Schema::AnyOf(vec![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)]),
+                        "a".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)]),
                     },
                     required: set! {"a".into(), "b".into(), "c".into()},
                     additional_properties: false,
