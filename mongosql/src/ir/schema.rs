@@ -29,6 +29,12 @@ pub enum Error {
         required: Schema,
         found: Schema,
     },
+    #[error(
+        "cannot have {0:?} aggregations over the schema: {1:?} as it is not comparable to itself"
+    )]
+    AggregationArgumentMustBeSelfComparable(String, Schema),
+    #[error("COUNT(DISTINCT *) is not supported")]
+    CountDistinctStarNotSupported,
     #[error("invalid comparison for {0}: {1:?} cannot be compared to {2:?}")]
     InvalidComparison(&'static str, Schema, Schema),
     #[error("cannot merge objects {0:?} and {1:?} as they {2:?} have overlapping keys")]
@@ -287,6 +293,87 @@ impl Stage {
     }
 }
 
+impl AggregationExpr {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        match self {
+            AggregationExpr::CountStar(distinct) => {
+                if *distinct {
+                    Err(Error::CountDistinctStarNotSupported)
+                } else {
+                    Ok(Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Long)
+                    ]))
+                }
+            }
+            AggregationExpr::Function(a) => a.schema(state),
+        }
+    }
+}
+
+impl AggregationFunctionApplication {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let arg_schema = self.arg.schema(state)?;
+        if self.distinct && arg_schema.is_comparable_with(&arg_schema) != Satisfaction::Must {
+            return Err(Error::AggregationArgumentMustBeSelfComparable(
+                format!("{} DISTINCT", self.function.as_str()),
+                arg_schema,
+            ));
+        }
+        self.function.schema(arg_schema)
+    }
+}
+
+impl AggregationFunction {
+    pub fn schema(&self, arg_schema: Schema) -> Result<Schema, Error> {
+        use crate::ir::AggregationFunction::*;
+        Ok(match self {
+            AddToArray => Schema::Array(Box::new(arg_schema)),
+            Avg | StddevPop | StddevSamp => {
+                self.schema_check_fixed_args(&[arg_schema.clone()], &[NUMERIC_OR_NULLISH.clone()])?;
+                // we cannot use get_arithmetic_schema for Avg, StddevPop, StddevSamp
+                // because they never return Long or Integer results, even for Long
+                // or Integer inputs.
+                let get_numeric_schema =
+                    || match arg_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) {
+                        Satisfaction::Not => Schema::Atomic(Atomic::Double),
+                        Satisfaction::Must => Schema::Atomic(Atomic::Decimal),
+                        Satisfaction::May => Schema::AnyOf(set![
+                            Schema::Atomic(Atomic::Double),
+                            Schema::Atomic(Atomic::Decimal),
+                        ]),
+                    };
+                match arg_schema.satisfies(&NULLISH) {
+                    Satisfaction::Not => get_numeric_schema(),
+                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
+                    Satisfaction::May => {
+                        Schema::AnyOf(set![get_numeric_schema(), Schema::Atomic(Atomic::Null)])
+                    }
+                }
+            }
+            Count => Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long)
+            ]),
+            First | Last => arg_schema,
+            Min | Max => {
+                if arg_schema.is_comparable_with(&arg_schema) != Satisfaction::Must {
+                    return Err(Error::AggregationArgumentMustBeSelfComparable(
+                        self.as_str().to_string(),
+                        arg_schema,
+                    ));
+                }
+                arg_schema
+            }
+            MergeDocuments => {
+                self.schema_check_fixed_args(&[arg_schema.clone()], &[ANY_DOCUMENT.clone()])?;
+                arg_schema
+            }
+            Sum => self.get_arithmetic_schema(&[arg_schema])?,
+        })
+    }
+}
+
 impl Expression {
     // get_field_schema returns the Schema for a known field name retrieved
     // from the argument Schema. It follows the MongoSQL semantics for
@@ -502,6 +589,138 @@ impl ScalarFunctionApplication {
     }
 }
 
+trait SQLFunction {
+    /// Returns the schema for an arithmetic function, maximizing the Numeric type
+    /// based on the total order: Integer < Long < Double < Decimal.
+    ///
+    /// If any argument May be Nullish we return AnyOf(Maxed Numeric Schema, Null). If
+    /// any argument Must be NULLISH we return Null. If no argument may be NULLISH we return
+    /// Maxed Numeric Schema.
+    fn get_arithmetic_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+        use schema::{Atomic::*, Schema::*};
+        // get_arithmetic_schema_aux is responsible for unwinding AnyOf into a single Atomic
+        // Numeric Schema, maximizing along the total order defined above. Since AnyOf
+        // may contain AnyOf, it must be recursive.
+        fn get_arithmetic_schema_aux(schemas: &[Schema]) -> Result<Schema, Error> {
+            schemas
+                .iter()
+                // map each viable Schema type into a single Atomic({Integer, Long,
+                // Double, Decimal})
+                .map(|s| match s {
+                    // this is a conservative simplification, if the schema for one argument
+                    // is AnyOf(Null, Integer, Decimal) we will just set this argument to
+                    // Decimal. This avoids the exponential blow up that we would get from
+                    // a tighter Schema bound.
+                    AnyOf(ao) => get_arithmetic_schema_aux(&ao.iter().cloned().collect::<Vec<_>>()),
+                    // Nullability is handled by schema_check_variadic_args, so we
+                    // replace Missing and Null with Integer as that is the minimal
+                    // Numeric type with respect to the above defined total order.
+                    Missing | Atomic(Null) => Ok(Atomic(Integer)),
+                    Atomic(a) if a.is_numeric() => Ok(s.clone()),
+                    // Other Schema are impossible due to schema_check_variadic_args.
+                    _ => unreachable!(),
+                })
+                // reduce the Atomic numerics into the maximum
+                .reduce(|s1, s2| {
+                    Ok(match (s1?, s2?) {
+                        (Atomic(Decimal), _) | (_, Atomic(Decimal)) => Atomic(Decimal),
+                        (Atomic(Double), _) | (_, Atomic(Double)) => Atomic(Double),
+                        (Atomic(Long), _) | (_, Atomic(Long)) => Atomic(Long),
+                        (Atomic(Integer), _) | (_, Atomic(Integer)) => Atomic(Integer),
+                        _ => unreachable!(),
+                    })
+                })
+                // The result Schema of any arithmetic function that has no arguments
+                // is Integer because it is the minimal Numeric Schema with respect to
+                // the predefined total order.
+                .unwrap_or(Ok(Schema::Atomic(Integer)))
+        }
+
+        match self.schema_check_variadic_args(arg_schemas, NUMERIC_OR_NULLISH.clone())? {
+            Satisfaction::Must => Ok(Atomic(Null)),
+            Satisfaction::Not => get_arithmetic_schema_aux(arg_schemas),
+            Satisfaction::May => Ok(AnyOf(set![
+                get_arithmetic_schema_aux(arg_schemas)?,
+                Atomic(Null),
+            ])),
+        }
+    }
+
+    fn ensure_arg_count(&self, found: usize, required: usize) -> Result<(), Error> {
+        if found != required {
+            return Err(Error::IncorrectArgumentCount {
+                name: self.as_str(),
+                required,
+                found,
+            });
+        }
+        Ok(())
+    }
+
+    /// Checks a function's argument count and its arguments' types against the required schemas.
+    /// Used for functions with a fixed (predetermined) number of arguments, including 0.
+    ///
+    /// Since the argument count is fixed, the slice of required schemas must correspond 1-to-1
+    /// with the slice of argument schemas.
+    ///
+    /// The satisfaction result returns whether a NULLISH argument is a possibility.
+    fn schema_check_fixed_args(
+        &self,
+        arg_schemas: &[Schema],
+        required_schemas: &[Schema],
+    ) -> Result<Satisfaction, Error> {
+        self.ensure_arg_count(arg_schemas.len(), required_schemas.len())?;
+        let mut total_null_sat = Satisfaction::Not;
+        for (i, arg) in arg_schemas.iter().enumerate() {
+            if arg.satisfies(&required_schemas[i]) != Satisfaction::Must {
+                return Err(Error::SchemaChecking {
+                    name: self.as_str(),
+                    required: required_schemas[i].clone(),
+                    found: arg.clone(),
+                });
+            }
+            let sat = arg.satisfies(&NULLISH);
+            if sat > total_null_sat {
+                total_null_sat = sat;
+            }
+        }
+        Ok(total_null_sat)
+    }
+
+    /// Checks a function's arguments' types against the required schema.
+    /// Used for functions with a variadic number of arguments, including 0.
+    ///
+    /// Since the argument count can vary, the required schema is a single
+    /// value that's compared against each of the arguments.
+    fn schema_check_variadic_args(
+        &self,
+        arg_schemas: &[Schema],
+        required_schema: Schema,
+    ) -> Result<Satisfaction, Error> {
+        self.schema_check_fixed_args(
+            arg_schemas,
+            &std::iter::repeat(required_schema)
+                .take(arg_schemas.len())
+                .collect::<Vec<Schema>>(),
+        )
+    }
+
+    /// as_str returns a static str representation for the SQLFunction.
+    fn as_str(&self) -> &'static str;
+}
+
+impl SQLFunction for ScalarFunction {
+    fn as_str(&self) -> &'static str {
+        self.as_str()
+    }
+}
+
+impl SQLFunction for AggregationFunction {
+    fn as_str(&self) -> &'static str {
+        self.as_str()
+    }
+}
+
 impl ScalarFunction {
     pub fn schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
         use ScalarFunction::*;
@@ -681,65 +900,6 @@ impl ScalarFunction {
             })
     }
 
-    fn ensure_arg_count(&self, found: usize, required: usize) -> Result<(), Error> {
-        if found != required {
-            return Err(Error::IncorrectArgumentCount {
-                name: self.as_str(),
-                required,
-                found,
-            });
-        }
-        Ok(())
-    }
-
-    /// Checks a function's argument count and its arguments' types against the required schemas.
-    /// Used for functions with a fixed (predetermined) number of arguments, including 0.
-    ///
-    /// Since the argument count is fixed, the slice of required schemas must correspond 1-to-1
-    /// with the slice of argument schemas.
-    ///
-    /// The satisfaction result returns whether a NULLISH argument is a possibility.
-    fn schema_check_fixed_args(
-        &self,
-        arg_schemas: &[Schema],
-        required_schemas: &[Schema],
-    ) -> Result<Satisfaction, Error> {
-        self.ensure_arg_count(arg_schemas.len(), required_schemas.len())?;
-        let mut total_null_sat = Satisfaction::Not;
-        for (i, arg) in arg_schemas.iter().enumerate() {
-            if arg.satisfies(&required_schemas[i]) != Satisfaction::Must {
-                return Err(Error::SchemaChecking {
-                    name: self.as_str(),
-                    required: required_schemas[i].clone(),
-                    found: arg.clone(),
-                });
-            }
-            let sat = arg.satisfies(&NULLISH);
-            if sat > total_null_sat {
-                total_null_sat = sat;
-            }
-        }
-        Ok(total_null_sat)
-    }
-
-    /// Checks a function's arguments' types against the required schema.
-    /// Used for functions with a variadic number of arguments, including 0.
-    ///
-    /// Since the argument count can vary, the required schema is a single
-    /// value that's compared against each of the arguments.
-    fn schema_check_variadic_args(
-        &self,
-        arg_schemas: &[Schema],
-        required_schema: Schema,
-    ) -> Result<Satisfaction, Error> {
-        self.schema_check_fixed_args(
-            arg_schemas,
-            &std::iter::repeat(required_schema)
-                .take(arg_schemas.len())
-                .collect::<Vec<Schema>>(),
-        )
-    }
-
     /// Returns the string and/or null schema for the substring function.
     ///
     /// The error checks include special handling for an optional third argument.
@@ -853,62 +1013,6 @@ impl ScalarFunction {
                 Satisfaction::Must => Schema::Atomic(Atomic::Null),
             },
         )
-    }
-
-    /// Returns the schema for an arithmetic function, maximizing the Numeric type
-    /// based on the total order: Integer < Long < Double < Decimal.
-    ///
-    /// If any argument May be Nullish we return AnyOf(Maxed Numeric Schema, Null). If
-    /// any argument Must be NULLISH we return Null. If no argument may be NULLISH we return
-    /// Maxed Numeric Schema.
-    fn get_arithmetic_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        use schema::{Atomic::*, Schema::*};
-        // get_arithmetic_schema_aux is responsible for unwinding AnyOf into a single Atomic
-        // Numeric Schema, maximizing along the total order defined above. Since AnyOf
-        // may contain AnyOf, it must be recursive.
-        fn get_arithmetic_schema_aux(schemas: &[Schema]) -> Result<Schema, Error> {
-            schemas
-                .iter()
-                // map each viable Schema type into a single Atomic({Integer, Long,
-                // Double, Decimal})
-                .map(|s| match s {
-                    // this is a conservative simplification, if the schema for one argument
-                    // is AnyOf(Null, Integer, Decimal) we will just set this argument to
-                    // Decimal. This avoids the exponential blow up that we would get from
-                    // a tighter Schema bound.
-                    AnyOf(ao) => get_arithmetic_schema_aux(&ao.iter().cloned().collect::<Vec<_>>()),
-                    // Nullability is handled by schema_check_variadic_args, so we
-                    // replace Missing and Null with Integer as that is the minimal
-                    // Numeric type with respect to the above defined total order.
-                    Missing | Atomic(Null) => Ok(Atomic(Integer)),
-                    Atomic(a) if a.is_numeric() => Ok(s.clone()),
-                    // Other Schema are impossible due to schema_check_variadic_args.
-                    _ => unreachable!(),
-                })
-                // reduce the Atomic numerics into the maximum
-                .reduce(|s1, s2| {
-                    Ok(match (s1?, s2?) {
-                        (Atomic(Decimal), _) | (_, Atomic(Decimal)) => Atomic(Decimal),
-                        (Atomic(Double), _) | (_, Atomic(Double)) => Atomic(Double),
-                        (Atomic(Long), _) | (_, Atomic(Long)) => Atomic(Long),
-                        (Atomic(Integer), _) | (_, Atomic(Integer)) => Atomic(Integer),
-                        _ => unreachable!(),
-                    })
-                })
-                // The result Schema of any arithmetic function that has no arguments
-                // is Integer because it is the minimal Numeric Schema with respect to
-                // the predefined total order.
-                .unwrap_or(Ok(Schema::Atomic(Integer)))
-        }
-
-        match self.schema_check_variadic_args(arg_schemas, NUMERIC_OR_NULLISH.clone())? {
-            Satisfaction::Must => Ok(Atomic(Null)),
-            Satisfaction::Not => get_arithmetic_schema_aux(arg_schemas),
-            Satisfaction::May => Ok(AnyOf(set![
-                get_arithmetic_schema_aux(arg_schemas)?,
-                Atomic(Null),
-            ])),
-        }
     }
 }
 

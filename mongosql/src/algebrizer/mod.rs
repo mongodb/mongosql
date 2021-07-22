@@ -26,6 +26,8 @@ macro_rules! schema_check_return {
 
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
+    #[error("add_to_set should be removed before try_from")]
+    AddToSetDoesNotExistInIr,
     #[error("all SELECT queries must have a FROM clause")]
     NoFromClause,
     #[error("standard SELECT bodies are invalid except for SELECT *")]
@@ -48,6 +50,10 @@ pub enum Error {
     StarInNonCount,
     #[error("aggregation function {0} used in scalar position")]
     AggregationInPlaceOfScalar(String),
+    #[error("scalar function {0} used in aggregation position")]
+    ScalarInPlaceOfAggregation(String),
+    #[error("aggregation functions must have exactly one argument")]
+    AggregationFunctionMustHaveOneArgument,
     #[error("scalar functions cannot be DISTINCT")]
     DistinctScalarFunction,
     #[error("derived table datasources {2:?} have overlapping keys, schemata: {0:?} and {1:?}")]
@@ -125,6 +131,42 @@ impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
     }
 }
 
+impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
+    type Error = Error;
+
+    fn try_from(f: crate::ast::FunctionName) -> Result<Self> {
+        Ok(match f {
+            ast::FunctionName::AddToArray => ir::AggregationFunction::AddToArray,
+            ast::FunctionName::AddToSet => return Err(Error::AddToSetDoesNotExistInIr),
+            ast::FunctionName::Avg => ir::AggregationFunction::Avg,
+            ast::FunctionName::Count => ir::AggregationFunction::Count,
+            ast::FunctionName::First => ir::AggregationFunction::First,
+            ast::FunctionName::Last => ir::AggregationFunction::Last,
+            ast::FunctionName::Max => ir::AggregationFunction::Max,
+            ast::FunctionName::MergeDocuments => ir::AggregationFunction::MergeDocuments,
+            ast::FunctionName::Min => ir::AggregationFunction::Min,
+            ast::FunctionName::StddevPop => ir::AggregationFunction::StddevPop,
+            ast::FunctionName::StddevSamp => ir::AggregationFunction::StddevSamp,
+            ast::FunctionName::Sum => ir::AggregationFunction::Sum,
+
+            ast::FunctionName::BitLength
+            | ast::FunctionName::CharLength
+            | ast::FunctionName::Coalesce
+            | ast::FunctionName::CurrentTimestamp
+            | ast::FunctionName::Lower
+            | ast::FunctionName::NullIf
+            | ast::FunctionName::OctetLength
+            | ast::FunctionName::Position
+            | ast::FunctionName::Size
+            | ast::FunctionName::Slice
+            | ast::FunctionName::Substring
+            | ast::FunctionName::Upper => {
+                return Err(Error::ScalarInPlaceOfAggregation(f.to_string()))
+            }
+        })
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Algebrizer {
     current_db: String,
@@ -137,7 +179,6 @@ impl Algebrizer {
         Self::with_schema_env(current_db, SchemaEnvironment::default(), scope_level)
     }
 
-    #[allow(dead_code)]
     pub fn with_schema_env(
         current_db: String,
         schema_env: SchemaEnvironment,
@@ -486,6 +527,40 @@ impl Algebrizer {
         };
         ordered.schema(&self.schema_inference_state())?;
         Ok(ordered)
+    }
+
+    #[allow(dead_code)]
+    pub fn algebrize_aggregation(&self, f: ast::FunctionExpr) -> Result<ir::AggregationExpr> {
+        let (distinct, function) = if f.function == ast::FunctionName::AddToSet {
+            (true, ast::FunctionName::AddToArray)
+        } else {
+            (
+                f.set_quantifier == Some(ast::SetQuantifier::Distinct),
+                f.function,
+            )
+        };
+        let ir_node = match f.args {
+            ast::FunctionArguments::Star => {
+                if f.function == ast::FunctionName::Count {
+                    schema_check_return!(self, ir::AggregationExpr::CountStar(distinct),)
+                }
+                return Err(Error::StarInNonCount);
+            }
+            ast::FunctionArguments::Args(ve) => {
+                ir::AggregationExpr::Function(ir::AggregationFunctionApplication {
+                    function: ir::AggregationFunction::try_from(function)?,
+                    arg: Box::new({
+                        if ve.len() != 1 {
+                            return Err(Error::AggregationFunctionMustHaveOneArgument);
+                        }
+                        self.algebrize_expression(ve[0].clone())?
+                    }),
+                    distinct,
+                })
+            }
+        };
+
+        schema_check_return!(self, ir_node,);
     }
 
     pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<ir::Expression> {

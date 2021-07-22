@@ -1467,47 +1467,549 @@ mod schema {
         map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 
+    //AggregationFunction schema checking.
     test_schema!(
-        second_must_be_string,
-        Ok(Schema::Atomic(Atomic::Integer)),
-        Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Second,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        max_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "Max".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Max,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
         }),
-        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        min_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "Min".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Min,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+
+    test_schema!(
+        distinct_sum_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "Sum DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Sum,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        distinct_count_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "Count DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Count,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        distinct_first_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "First DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::First,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        distinct_last_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "Last DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Last,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        distinct_stddevpop_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "StddevPop DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevPop,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        distinct_stddevsamp_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "StddevSamp DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevSamp,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        distinct_max_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "Max DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Max,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+    test_schema!(
+        distinct_min_args_must_be_comparable,
+        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+            "Min DISTINCT".into(),
+            ANY_DOCUMENT.clone()
+        )),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Min,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
+    );
+
+    test_schema!(
+        count_star_is_int,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long)
+        ])),
+        AggregationExpr::CountStar(false),
+    );
+    test_schema!(
+        count_expr_is_int,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long)
+        ])),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Count,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ])},
+    );
+
+    test_schema!(
+        arg_to_sum_must_be_numeric,
+        Err(schema::Error::SchemaChecking {
+            name: "Sum",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ]),
+        }),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Sum,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ])},
+    );
+    test_schema!(
+        sum_of_int_and_long_is_long,
+        Ok(Schema::Atomic(Atomic::Long)),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Sum,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+    test_schema!(
+        sum_of_int_and_double_is_double,
+        Ok(Schema::Atomic(Atomic::Double)),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Sum,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ])},
+    );
+    test_schema!(
+        sum_of_int_and_decimal_is_decimal,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Sum,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+        ])},
+    );
+
+    test_schema!(
+        arg_to_mergedocuments_must_be_document,
+        Err(schema::Error::SchemaChecking {
+            name: "MergeDocuments",
+            required: ANY_DOCUMENT.clone(),
+            found: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ]),
+        }),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::MergeDocuments,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ])},
+    );
+    test_schema!(
+        mergedocuments_returns_field_schema,
+        Ok(Schema::Document(Document {
+            keys: map! {"foo".into() => Schema::Atomic(Atomic::Integer)},
+            required: set! {},
+            additional_properties: true,
+        })),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::MergeDocuments,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::Document(Document {
+            keys: map!{"foo".into() => Schema::Atomic(Atomic::Integer)},
+            required: set!{},
+            additional_properties: true,
+        })},
+    );
+
+    test_schema!(
+        arg_to_avg_must_be_numeric,
+        Err(schema::Error::SchemaChecking {
+            name: "Avg",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ]),
+        }),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ])},
     );
     test_schema!(
         second_may_be_null,
-        Ok(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Null)
-        ])),
-        Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Second,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        Ok(Schema::Atomic(Atomic::Double)),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
     );
     test_schema!(
-        second_may_be_missing,
+        avg_of_int_and_decimal_is_double_and_decimal,
         Ok(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Null)
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
         ])),
-        Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Second,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
         }),
-        map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+        ])},
     );
     test_schema!(
-        second_must_be_null,
-        Ok(Schema::Atomic(Atomic::Null)),
-        Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Second,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
+        avg_of_decimal_is_decimal,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
         }),
-        map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+        ])},
+    );
+
+    test_schema!(
+        arg_to_stddev_pop_must_be_numeric,
+        Err(schema::Error::SchemaChecking {
+            name: "StddevPop",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ]),
+        }),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevPop,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ])},
+    );
+    test_schema!(
+        stddev_pop_of_integer_and_long_is_double,
+        Ok(Schema::Atomic(Atomic::Double),),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevPop,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+    test_schema!(
+        stddev_pop_of_integer_and_decimal_is_double_and_decimal,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevPop,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+        ])},
+    );
+    test_schema!(
+        stddev_pop_of_decimal_is_decimal,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevPop,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+        ])},
+    );
+
+    test_schema!(
+        arg_to_stddev_samp_must_be_numeric,
+        Err(schema::Error::SchemaChecking {
+            name: "StddevSamp",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ]),
+        }),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevSamp,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::String),
+        ])},
+    );
+    test_schema!(
+        stddev_samp_of_integer_and_long_is_double,
+        Ok(Schema::Atomic(Atomic::Double),),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevSamp,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+    test_schema!(
+        stddev_samp_of_integer_and_decimal_is_double_and_decimal,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevSamp,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+        ])},
+    );
+    test_schema!(
+        stddev_samp_of_decimal_is_decimal,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::StddevSamp,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+        ])},
+    );
+
+    test_schema!(
+        add_to_array_has_array_schema,
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])))),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::AddToArray,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+
+    test_schema!(
+        add_to_set_has_array_schema,
+        Ok(Schema::Array(Box::new(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])))),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::AddToArray,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: true,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+
+    test_schema!(
+        first_has_field_schema,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::First,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+
+    test_schema!(
+        last_has_field_schema,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Last,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+
+    test_schema!(
+        min_has_field_schema,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Min,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
+    );
+
+    test_schema!(
+        max_has_field_schema,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])),
+        AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Max,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])},
     );
 
     // Arithmetic function type correctness.

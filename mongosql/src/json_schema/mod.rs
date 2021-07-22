@@ -4,7 +4,6 @@ mod json_schema_test;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[allow(dead_code)]
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
@@ -24,7 +23,6 @@ pub struct Schema {
     pub one_of: Option<Vec<Schema>>,
 }
 
-#[allow(dead_code)]
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 #[serde(untagged)]
 pub enum BsonType {

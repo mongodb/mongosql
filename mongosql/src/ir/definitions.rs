@@ -1,7 +1,6 @@
 use crate::ir::binding_tuple::{BindingTuple, Key};
 use linked_hash_map::LinkedHashMap;
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stage {
     Filter(Filter),
@@ -16,21 +15,18 @@ pub enum Stage {
     Set(Set),
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Filter {
     pub source: Box<Stage>,
     pub condition: Expression,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Project {
     pub source: Box<Stage>,
     pub expression: BindingTuple<Expression>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Group {
     pub source: Box<Stage>,
@@ -50,7 +46,6 @@ pub struct AliasedAggregation {
     pub inner: AggregationExpr,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum AggregationExpr {
     CountStar(bool),
@@ -64,49 +59,42 @@ pub struct AggregationFunctionApplication {
     pub arg: Box<Expression>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Limit {
     pub source: Box<Stage>,
     pub limit: u64,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Offset {
     pub source: Box<Stage>,
     pub offset: u64,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Sort {
     pub source: Box<Stage>,
     pub specs: Vec<SortSpecification>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum SortSpecification {
     Asc(Box<Expression>),
     Desc(Box<Expression>),
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Collection {
     pub db: String,
     pub collection: String,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Array {
     pub array: Vec<Expression>,
     pub alias: String,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Join {
     pub join_type: JoinType,
@@ -115,14 +103,12 @@ pub struct Join {
     pub condition: Option<Expression>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum JoinType {
     Left,
     Inner,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct Set {
     pub operation: SetOperation,
@@ -130,14 +116,12 @@ pub struct Set {
     pub right: Box<Stage>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum SetOperation {
     UnionAll,
     Union,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
     Literal(Literal),
@@ -192,7 +176,6 @@ pub struct FieldAccess {
     pub field: String,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
     AddToArray,
@@ -210,7 +193,6 @@ pub enum AggregationFunction {
 
 impl AggregationFunction {
     /// Returns a string of the function enum.
-    #[allow(dead_code)]
     pub fn as_str(&self) -> &'static str {
         match self {
             AggregationFunction::AddToArray => "AddToArray",
@@ -228,7 +210,6 @@ impl AggregationFunction {
     }
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum ScalarFunction {
     // String operators
@@ -410,14 +391,12 @@ pub enum Type {
     Undefined,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryExpr {
     pub output_expr: Box<Expression>,
     pub subquery: Box<Stage>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryComparison {
     pub output_expr: Box<Expression>,
@@ -427,7 +406,6 @@ pub struct SubqueryComparison {
     pub subquery: Box<Stage>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum SubqueryModifier {
     Any,

@@ -1350,6 +1350,498 @@ mod expression {
     );
 }
 
+mod aggregation {
+    use crate::{
+        ast, ir, map,
+        schema::{Atomic, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},
+    };
+    test_algebrize!(
+        count_star,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::CountStar(false)),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Count,
+            args: ast::FunctionArguments::Star,
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        count_distinct_star_is_error,
+        algebrize_aggregation,
+        Err(Error::SchemaChecking(
+            ir::schema::Error::CountDistinctStarNotSupported
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Count,
+            args: ast::FunctionArguments::Star,
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+    test_algebrize!(
+        count_all_expr_basic_test,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Count,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Count,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        count_distinct_expr_basic_test,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Count,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Count,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+    test_algebrize_with_env!(
+        count_distinct_expr_argument_not_self_comparable_is_error,
+        algebrize_aggregation,
+        Err(Error::SchemaChecking(
+            ir::schema::Error::AggregationArgumentMustBeSelfComparable(
+                "Count DISTINCT".into(),
+                Schema::Any
+            )
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Count,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Identifier("foo".into())]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        },
+        map! {
+            ("d", 1u16).into() => ANY_DOCUMENT.clone(),
+        }
+    );
+    test_algebrize!(
+        sum_star_is_error,
+        algebrize_aggregation,
+        Err(Error::StarInNonCount),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Sum,
+            args: ast::FunctionArguments::Star,
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        sum_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Sum,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Sum,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        sum_distinct_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Sum,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Sum,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+    test_algebrize!(
+        sum_argument_must_be_numeric,
+        algebrize_aggregation,
+        Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
+            name: "Sum",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::String),
+        })),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Sum,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::String("42".into())
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        avg_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Avg,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Avg,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        avg_distinct_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Avg,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Avg,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        avg_argument_must_be_numeric,
+        algebrize_aggregation,
+        Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
+            name: "Avg",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::String),
+        })),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Avg,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::String("42".into())
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        stddevpop_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::StddevPop,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::StddevPop,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        stddevpop_distinct_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::StddevPop,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::StddevPop,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+    test_algebrize!(
+        stddevpop_argument_must_be_numeric,
+        algebrize_aggregation,
+        Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
+            name: "StddevPop",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::String),
+        })),
+        ast::FunctionExpr {
+            function: ast::FunctionName::StddevPop,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::String("42".into())
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        stddevsamp_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::StddevSamp,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::StddevSamp,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        stddevsamp_distinct_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::StddevSamp,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::StddevSamp,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+    test_algebrize!(
+        stddevsamp_argument_must_be_numeric,
+        algebrize_aggregation,
+        Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
+            name: "StddevSamp",
+            required: NUMERIC_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::String),
+        })),
+        ast::FunctionExpr {
+            function: ast::FunctionName::StddevSamp,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::String("42".into())
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        addtoarray_expr_basic_test,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::AddToArray,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::AddToArray,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        addtoarray_distinct_expr_basic_test,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::AddToArray,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::AddToArray,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        addtoset_expr_is_addtoarray_distinct_in_ir,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::AddToArray,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::AddToSet,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        addtoset_distinct_expr_is_addtoarray_in_ir,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::AddToArray,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::AddToSet,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        first_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::First,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::First,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        first_distinct_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::First,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::First,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        last_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Last,
+                distinct: false,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Last,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        last_distinct_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Last,
+                distinct: true,
+                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::Last,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(42)
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::Distinct),
+        }
+    );
+
+    test_algebrize!(
+        mergedocuments_expr,
+        algebrize_aggregation,
+        Ok(ir::AggregationExpr::Function(
+            ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::MergeDocuments,
+                distinct: false,
+                arg: Box::new(ir::Expression::Document(map! {
+                    "a".into() => ir::Expression::Literal(ir::Literal::Integer(42)),
+                    "b".into() => ir::Expression::Literal(ir::Literal::Integer(42)),
+                },))
+            }
+        )),
+        ast::FunctionExpr {
+            function: ast::FunctionName::MergeDocuments,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Document(map! {
+                "a".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
+                "b".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
+            })]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+    test_algebrize!(
+        mergedocuments_argument_must_be_document,
+        algebrize_aggregation,
+        Err(Error::SchemaChecking(ir::schema::Error::SchemaChecking {
+            name: "MergeDocuments",
+            required: ANY_DOCUMENT.clone(),
+            found: Schema::Atomic(Atomic::String),
+        })),
+        ast::FunctionExpr {
+            function: ast::FunctionName::MergeDocuments,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::String("42".into())
+            )]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }
+    );
+}
+
 mod select_clause {
     use crate::{
         ast,

@@ -495,7 +495,6 @@ impl MqlCodeGenerator {
     /// Recursively generates a translation for this expression. When
     /// this function is called, `self.mapping_registry` should
     /// include mappings for all datasources in scope.
-    #[allow(dead_code)]
     pub fn codegen_expression(&self, expr: ir::Expression) -> Result<bson::Bson> {
         use bson::Bson;
         use ir::{Expression::*, Literal::*};

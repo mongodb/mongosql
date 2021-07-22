@@ -26,18 +26,19 @@ impl From<LalrpopError<'_>> for Error {
 
 pub struct Parser {
     query_parser: grammar::QueryParser,
-    #[allow(dead_code)]
-    expression_parser: grammar::ExpressionParser,
+    #[cfg(test)]
+    _expression_parser: grammar::ExpressionParser,
 }
 
 impl Parser {
     pub fn new() -> Self {
         let query_parser = grammar::QueryParser::new();
-        let expression_parser = grammar::ExpressionParser::new();
+        let _expression_parser = grammar::ExpressionParser::new();
 
         Self {
             query_parser,
-            expression_parser,
+            #[cfg(test)]
+            _expression_parser,
         }
     }
 
@@ -48,7 +49,7 @@ impl Parser {
 
     #[cfg(test)]
     pub fn parse_expression(&self, input: &str) -> Result<ast::Expression> {
-        let expr = self.expression_parser.parse(input)?;
+        let expr = self._expression_parser.parse(input)?;
         Ok(expr)
     }
 }

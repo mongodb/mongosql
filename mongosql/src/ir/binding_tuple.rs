@@ -14,7 +14,6 @@ pub struct DuplicateKeyError {
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BindingTuple<T>(pub BTreeMap<Key, T>);
 
-#[allow(dead_code)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub struct Key {
     pub datasource: DatasourceName,
@@ -44,7 +43,6 @@ where
     }
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum DatasourceName {
     Bottom,
@@ -87,7 +85,6 @@ impl<T> BindingTuple<T> {
         self.0.remove(k)
     }
 
-    #[allow(dead_code)]
     pub fn contains_key(&self, k: &Key) -> bool {
         self.0.contains_key(k)
     }
@@ -100,17 +97,14 @@ impl<T> BindingTuple<T> {
         self.0.is_empty()
     }
 
-    #[allow(dead_code)]
     pub fn keys(&self) -> Keys<Key, T> {
         self.0.keys()
     }
 
-    #[allow(dead_code)]
     pub fn iter(&self) -> Iter<Key, T> {
         self.0.iter()
     }
 
-    #[allow(dead_code)]
     pub fn into_iter(self) -> IntoIter<Key, T> {
         self.0.into_iter()
     }

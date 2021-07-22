@@ -25,7 +25,6 @@ impl SchemaEnvironment {
     }
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub struct ResultSet {
     pub schema_env: SchemaEnvironment,
@@ -43,7 +42,6 @@ impl Default for ResultSet {
     }
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum Schema {
     Any,
@@ -55,7 +53,6 @@ pub enum Schema {
     Document(Document),
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 pub enum Atomic {
     String,
@@ -109,7 +106,6 @@ impl FromStr for Atomic {
     }
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub struct Document {
     pub keys: BTreeMap<String, Schema>,
@@ -206,7 +202,6 @@ impl Satisfaction {
     }
 }
 
-#[allow(dead_code, unused_variables)]
 impl Schema {
     /// returns a simplified version of this schema.
     pub fn simplify(schema: &Schema) -> Schema {
@@ -240,7 +235,7 @@ impl Schema {
                 required: d.required.clone(),
                 ..*d
             }),
-            Schema::Atomic(x) => schema.clone(),
+            Schema::Atomic(_) => schema.clone(),
             Schema::Any => Schema::Any,
             Schema::Unsat => Schema::Unsat,
             Schema::Missing => Schema::Missing,
