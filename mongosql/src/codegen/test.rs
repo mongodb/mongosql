@@ -910,6 +910,124 @@ mod join {
     );
 }
 
+mod union {
+    use crate::ir::*;
+
+    test_codegen_plan!(
+        collection_union_all_collection,
+        Ok({
+            database: Some("foo".to_string()),
+            collection: Some("a".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "a": "$$ROOT"}},
+                bson::doc!{"$unionWith": {"coll": "b", "pipeline": [{"$project": {"_id": 0, "b": "$$ROOT"}}]}}],
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::UnionAll,
+            left: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "a".to_string(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "bar".to_string(),
+                collection: "b".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        array_union_all_array,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![bson::doc!{"$array": {"arr1": [{"$literal": 1}]}},
+                bson::doc!{"$unionWith": {"pipeline": [{"$array": {"arr2": [{"$literal": 2}]}}]}}],
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::UnionAll,
+            left: Stage::Array(Array {
+                array: vec![Expression::Literal(Literal::Integer(1))],
+                alias: "arr1".to_string(),
+            }).into(),
+            right: Stage::Array(Array {
+                array: vec![Expression::Literal(Literal::Integer(2))],
+                alias: "arr2".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        array_union_all_collection,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![bson::doc!{"$array": {"arr": [{"$literal": 1}]}},
+                bson::doc!{"$unionWith": {"coll": "b", "pipeline": [{"$project": {"_id": 0, "b": "$$ROOT"}}]}}],
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::UnionAll,
+            left: Stage::Array(Array {
+                array: vec![Expression::Literal(Literal::Integer(1))],
+                alias: "arr".to_string(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "bar".to_string(),
+                collection: "b".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        collection_union_all_array,
+        Ok({
+            database: Some("foo".to_string()),
+            collection: Some("a".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "a": "$$ROOT"}},
+                bson::doc!{"$unionWith": {"pipeline": [{"$array": {"arr": [{"$literal": 1}]}}]}}],
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::UnionAll,
+            left: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "a".to_string(),
+            }).into(),
+            right: Stage::Array(Array {
+                array: vec![Expression::Literal(Literal::Integer(1))],
+                alias: "arr".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        collection_union_all_with_nested_union_all,
+        Ok({
+            database: Some("foo".to_string()),
+            collection: Some("a".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "a": "$$ROOT"}},
+                bson::doc!{"$unionWith": {"coll": "b", "pipeline": [
+                    {"$project": {"_id": 0, "b": "$$ROOT"}},
+                    {"$unionWith": {"pipeline": [
+                        {"$array": {"arr": [{"$literal": 1}]}},
+                    ]}}
+                ]}}
+            ],
+        }),
+        Stage::Set(Set {
+            operation: SetOperation::UnionAll,
+            left: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "a".to_string(),
+            }).into(),
+            right: Stage::Set(Set {
+                operation: SetOperation::UnionAll,
+                left: Stage::Collection(Collection {
+                    db: "bar".to_string(),
+                    collection: "b".to_string(),
+                }).into(),
+                right: Stage::Array(Array {
+                    array: vec![Expression::Literal(Literal::Integer(1))],
+                    alias: "arr".to_string(),
+                }).into(),
+            }).into(),
+        }),
+    );
+}
+
 mod function {
     use crate::{
         codegen::{mql::MappingRegistry, Error},

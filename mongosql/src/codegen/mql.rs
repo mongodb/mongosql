@@ -265,12 +265,10 @@ impl MqlCodeGenerator {
                     ir::JoinType::Inner => "inner",
                     ir::JoinType::Left => "left",
                 };
-                let output_registry = self
-                    .mapping_registry
-                    .clone()
+                let mut output_registry = self.mapping_registry.clone();
+                output_registry
                     .merge(left.mapping_registry.clone())
-                    .merge(right.mapping_registry.clone())
-                    .clone();
+                    .merge(right.mapping_registry.clone());
                 let pipeline = right.pipeline;
                 let (condition, let_body) = match join.condition {
                     None => (None, None),
@@ -314,7 +312,24 @@ impl MqlCodeGenerator {
                     .with_mapping_registry(output_registry)
                     .with_additional_stage(doc! {"$join": join_body}))
             }
-            Set(_) => unimplemented!(),
+            Set(s) => {
+                let left = self.codegen_stage(*s.left)?;
+                let right = self.codegen_stage(*s.right)?;
+
+                let mut output_registry = self.mapping_registry.clone();
+                output_registry
+                    .merge(left.mapping_registry.clone())
+                    .merge(right.mapping_registry.clone());
+
+                let union_body = match right.collection {
+                    Some(c) => doc! {"coll": c, "pipeline": right.pipeline},
+                    None => doc! {"pipeline": right.pipeline},
+                };
+
+                Ok(left
+                    .with_mapping_registry(output_registry)
+                    .with_additional_stage(doc! {"$unionWith": union_body}))
+            }
         }
     }
 
