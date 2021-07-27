@@ -194,6 +194,75 @@ impl ConstantFoldExprVisitor {
         })
     }
 
+    // Constant folds binary arithmetic functions: subtract and divide
+    fn fold_binary_arithmetic_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        for expr in &sf.args {
+            match expr.schema(&EMPTY_STATE) {
+                Err(_) => break,
+                Ok(sch) => {
+                    if sch.satisfies(&Schema::AnyOf(set![
+                        Schema::Missing,
+                        Schema::Atomic(Atomic::Null),
+                    ])) == Satisfaction::Must
+                    {
+                        return Expression::Literal(Literal::Null);
+                    }
+                }
+            }
+        }
+        assert!(
+            sf.args.len() == 2,
+            "binary arithmetic functions must contain 2 args"
+        );
+        let (left, right) = (sf.args[0].clone(), sf.args[1].clone());
+        match sf.function {
+            ScalarFunction::Sub => {
+                if Self::numeric_eq(&right, 0.0) {
+                    return left;
+                }
+                match (&left, &right) {
+                    (
+                        Expression::Literal(Literal::Integer(l)),
+                        Expression::Literal(Literal::Integer(r)),
+                    ) => Expression::Literal(Literal::Integer(l - r)),
+                    (
+                        Expression::Literal(Literal::Long(l)),
+                        Expression::Literal(Literal::Long(r)),
+                    ) => Expression::Literal(Literal::Long(l - r)),
+                    (
+                        Expression::Literal(Literal::Double(l)),
+                        Expression::Literal(Literal::Double(r)),
+                    ) => Expression::Literal(Literal::Double(l - r)),
+                    _ => Expression::ScalarFunction(sf),
+                }
+            }
+            ScalarFunction::Div => {
+                if Self::numeric_eq(&right, 0.0) {
+                    return Expression::Literal(Literal::Null);
+                }
+                if Self::numeric_eq(&right, 1.0) {
+                    return left;
+                }
+                match (&left, &right) {
+                    (
+                        Expression::Literal(Literal::Integer(l)),
+                        Expression::Literal(Literal::Integer(r)),
+                    ) => Expression::Literal(Literal::Integer(l / r)),
+                    (
+                        Expression::Literal(Literal::Long(l)),
+                        Expression::Literal(Literal::Long(r)),
+                    ) => Expression::Literal(Literal::Long(l / r)),
+                    (
+                        Expression::Literal(Literal::Double(l)),
+                        Expression::Literal(Literal::Double(r)),
+                    ) => Expression::Literal(Literal::Double(l / r)),
+                    _ => Expression::ScalarFunction(sf),
+                }
+            }
+            _ => unreachable!("fold binary arithmetic only called on sub and div"),
+        }
+    }
+
     // constant folds binary comparison functions
     fn fold_comparison_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         use std::cmp::Ordering;
@@ -279,6 +348,7 @@ impl ConstantFoldExprVisitor {
         }
     }
 }
+
 impl Visitor for ConstantFoldExprVisitor {
     fn visit_expression(&mut self, e: Expression) -> Expression {
         let e = e.walk(self);
@@ -293,10 +363,13 @@ impl Visitor for ConstantFoldExprVisitor {
             Expression::Literal(_) => e,
             Expression::Reference(_) => e,
             Expression::ScalarFunction(f) => match f.function {
-                ScalarFunction::And | ScalarFunction::Or => self.fold_logical_function(f),
                 ScalarFunction::Add | ScalarFunction::Mul => {
                     self.fold_associative_arithmetic_function(f)
                 }
+                ScalarFunction::Sub | ScalarFunction::Div => {
+                    self.fold_binary_arithmetic_function(f)
+                }
+                ScalarFunction::And | ScalarFunction::Or => self.fold_logical_function(f),
                 ScalarFunction::Eq
                 | ScalarFunction::Gt
                 | ScalarFunction::Gte
