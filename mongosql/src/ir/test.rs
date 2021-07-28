@@ -5593,6 +5593,385 @@ mod constant_folding {
             }),
         }),
     );
+    test_constant_fold!(
+        pos_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Integer(2))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Pos,
+                args: vec![Expression::Literal(Literal::Integer(2))]
+            })
+        }),
+    );
+    test_constant_fold!(
+        neg_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Integer(-2))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Neg,
+                args: vec![Expression::Literal(Literal::Integer(2))]
+            })
+        }),
+    );
+    test_constant_fold!(
+        not_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Boolean(false))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Not,
+                args: vec![Expression::Literal(Literal::Boolean(true))]
+            })
+        }),
+    );
+    test_constant_fold!(
+        upper_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("AABBCC".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Upper,
+                args: vec![Expression::Literal(Literal::String("aaBBcC".to_string())),]
+            })
+        }),
+    );
+    test_constant_fold!(
+        lower_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("aabbcc".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Lower,
+                args: vec![Expression::Literal(Literal::String("aaBBcC".to_string())),]
+            })
+        }),
+    );
+    test_constant_fold!(
+        lower_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null)
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Lower,
+                args: vec![Expression::Literal(Literal::Null),]
+            })
+        }),
+    );
+    test_constant_fold!(
+        btrim_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("AABBCC".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::BTrim,
+                args: vec![
+                    Expression::Literal(Literal::String("a".to_string())),
+                    Expression::Literal(Literal::String("aAABBCCa".to_string()))
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        ltrim_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("AABBCCa".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::LTrim,
+                args: vec![
+                    Expression::Literal(Literal::String("a".to_string())),
+                    Expression::Literal(Literal::String("aAABBCCa".to_string()))
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        rtrim_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("aAABBCC".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::RTrim,
+                args: vec![
+                    Expression::Literal(Literal::String("a".to_string())),
+                    Expression::Literal(Literal::String("aAABBCCa".to_string()))
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        btrim_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null)
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::BTrim,
+                args: vec![
+                    Expression::Literal(Literal::String("a".to_string())),
+                    Expression::Literal(Literal::Null)
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_nested,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("hello".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Literal(Literal::Integer(0)),
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Add,
+                        args: vec![
+                            Expression::Literal(Literal::Integer(2)),
+                            Expression::Literal(Literal::Integer(3)),
+                        ]
+                    })
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_multi_codepoint_char,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("🇷🇺ááá".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("ááá🇷🇺ááá".to_string())),
+                    Expression::Literal(Literal::Integer(6)),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_negative_length,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("world".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Literal(Literal::Integer(6)),
+                    Expression::Literal(Literal::Integer(-1)),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_negative_start_with_smaller_length,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Literal(Literal::Integer(-6)),
+                    Expression::Literal(Literal::Integer(5)),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_negative_start_with_larger_length,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("hello".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Literal(Literal::Integer(-6)),
+                    Expression::Literal(Literal::Integer(11)),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_start_larger_than_string_length,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Literal(Literal::Integer(20)),
+                    Expression::Literal(Literal::Integer(4)),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_end_larger_than_string_length,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("world".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Literal(Literal::Integer(6)),
+                    Expression::Literal(Literal::Integer(20)),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        substring_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null)
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Substring,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Literal(Literal::Integer(6)),
+                    Expression::Literal(Literal::Null),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        concat_simple,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("hello world".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: vec![
+                    Expression::Literal(Literal::String("hello ".to_string())),
+                    Expression::Literal(Literal::String("world".to_string())),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        concat_with_ref,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: vec![
+                    Expression::Literal(Literal::String("hello world".to_string())),
+                    Expression::Reference(("a", 0u16).into()),
+                    Expression::Literal(Literal::String("hello world2".to_string())),
+                    Expression::Reference(("a", 0u16).into()),
+                ]
+            })
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: vec![
+                    Expression::Literal(Literal::String("hello ".to_string())),
+                    Expression::Literal(Literal::String("world".to_string())),
+                    Expression::Reference(("a", 0u16).into()),
+                    Expression::Literal(Literal::String("hello ".to_string())),
+                    Expression::Literal(Literal::String("world2".to_string())),
+                    Expression::Reference(("a", 0u16).into()),
+                ]
+            })
+        }),
+    );
+    test_constant_fold!(
+        concat_empty,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::String("".to_string()))
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: vec![]
+            })
+        }),
+    );
+    test_constant_fold!(
+        concat_null,
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::Literal(Literal::Null)
+        }),
+        Stage::Filter(Filter {
+            source: Box::new(TEST_SOURCE.clone()),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: vec![
+                    Expression::Literal(Literal::Null),
+                    Expression::Literal(Literal::String("hello".to_string())),
+                    Expression::Literal(Literal::String("world".to_string()))
+                ]
+            })
+        }),
+    );
 }
 
 mod flatten_node {

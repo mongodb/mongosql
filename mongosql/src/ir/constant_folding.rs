@@ -75,6 +75,25 @@ impl ConstantFoldExprVisitor {
         })
     }
 
+    // Checks if a vector of expressions contains a null or missing expression
+    fn has_null_arg(args: &[Expression]) -> bool {
+        for expr in args {
+            match expr.schema(&EMPTY_STATE) {
+                Err(_) => return false,
+                Ok(sch) => {
+                    if sch.satisfies(&Schema::AnyOf(set![
+                        Schema::Missing,
+                        Schema::Atomic(Atomic::Null),
+                    ])) == Satisfaction::Must
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
+    }
+
     // This is not a general purpose function and is not capable of checking equality of very
     // large longs. It is used to check special arithmetic edge cases like 0 and 1.
     fn numeric_eq(expr: &Expression, num: f64) -> bool {
@@ -91,19 +110,8 @@ impl ConstantFoldExprVisitor {
         &mut self,
         sf: ScalarFunctionApplication,
     ) -> Expression {
-        for expr in &sf.args {
-            match expr.schema(&EMPTY_STATE) {
-                Err(_) => break,
-                Ok(sch) => {
-                    if sch.satisfies(&Schema::AnyOf(set![
-                        Schema::Missing,
-                        Schema::Atomic(Atomic::Null),
-                    ])) == Satisfaction::Must
-                    {
-                        return Expression::Literal(Literal::Null);
-                    }
-                }
-            }
+        if Self::has_null_arg(&sf.args) {
+            return Expression::Literal(Literal::Null);
         }
         if sf.args.is_empty() {
             match sf.function {
@@ -347,6 +355,168 @@ impl ConstantFoldExprVisitor {
             Expression::ScalarFunction(sf)
         }
     }
+    // Constant folds unary functions
+    fn fold_unary_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        assert!(
+            sf.args.len() == 1,
+            "Unary function should only have one arg"
+        );
+        if Self::has_null_arg(&sf.args) {
+            return Expression::Literal(Literal::Null);
+        }
+        let arg = sf.args[0].clone();
+        let func = sf.function;
+        let sf_expr = Expression::ScalarFunction(sf);
+        if let Expression::Literal(lit) = arg {
+            match func {
+                ScalarFunction::Pos => match lit {
+                    Literal::Integer(_) | Literal::Long(_) | Literal::Double(_) => {
+                        Expression::Literal(lit)
+                    }
+                    _ => sf_expr,
+                },
+                ScalarFunction::Neg => match lit {
+                    Literal::Integer(val) => Expression::Literal(Literal::Integer(-val)),
+                    Literal::Long(val) => Expression::Literal(Literal::Long(-val)),
+                    Literal::Double(val) => Expression::Literal(Literal::Double(-val)),
+                    _ => sf_expr,
+                },
+                ScalarFunction::Not => {
+                    if let Literal::Boolean(val) = lit {
+                        Expression::Literal(Literal::Boolean(!val))
+                    } else {
+                        sf_expr
+                    }
+                }
+                ScalarFunction::Upper => {
+                    if let Literal::String(val) = lit {
+                        Expression::Literal(Literal::String(val.to_ascii_uppercase()))
+                    } else {
+                        sf_expr
+                    }
+                }
+                ScalarFunction::Lower => {
+                    if let Literal::String(val) = lit {
+                        Expression::Literal(Literal::String(val.to_ascii_lowercase()))
+                    } else {
+                        sf_expr
+                    }
+                }
+                _ => unreachable!("fold unary function is only called on unary functions"),
+            }
+        } else {
+            sf_expr
+        }
+    }
+
+    // Constant folds string trim functions
+    fn fold_trim_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        assert!(sf.args.len() == 2, "Trim must have two args");
+        if Self::has_null_arg(&sf.args) {
+            return Expression::Literal(Literal::Null);
+        }
+        let expr = Expression::ScalarFunction(sf.clone());
+        let (substr, string) = (sf.args[0].clone(), sf.args[1].clone());
+        if let (
+            Expression::Literal(Literal::String(sub)),
+            Expression::Literal(Literal::String(st)),
+        ) = (substr, string)
+        {
+            let pattern = &sub.chars().collect::<Vec<char>>()[..];
+            let val = match sf.function {
+                ScalarFunction::BTrim => st.trim_matches(pattern).to_string(),
+                ScalarFunction::RTrim => st.trim_end_matches(pattern).to_string(),
+                ScalarFunction::LTrim => st.trim_start_matches(pattern).to_string(),
+                _ => unreachable!("fold trim is only called on trim functions"),
+            };
+            Expression::Literal(Literal::String(val))
+        } else {
+            expr
+        }
+    }
+
+    // Constant folds the substring function
+    fn fold_substring_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        use std::cmp;
+        if Self::has_null_arg(&sf.args) {
+            return Expression::Literal(Literal::Null);
+        }
+        let (string, start, len) = if sf.args.len() == 2 {
+            (
+                sf.args[0].clone(),
+                sf.args[1].clone(),
+                Expression::Literal(Literal::Integer(-1)),
+            )
+        } else if sf.args.len() == 3 {
+            (sf.args[0].clone(), sf.args[1].clone(), sf.args[2].clone())
+        } else {
+            panic!("Substring must have two or three args")
+        };
+        if let (
+            Expression::Literal(Literal::String(st)),
+            Expression::Literal(Literal::Integer(start)),
+            Expression::Literal(Literal::Integer(len)),
+        ) = (string, start, len)
+        {
+            let string_len = st.len() as i32;
+            let end = if len < 0 {
+                cmp::max(start, string_len)
+            } else {
+                start + len
+            };
+            if start >= string_len || end < 0 {
+                Expression::Literal(Literal::String("".to_string()))
+            } else {
+                let start = cmp::max(start, 0);
+                let end = cmp::min(end, string_len);
+                let len = end - start;
+                let substr = st
+                    .chars()
+                    .skip(start as usize)
+                    .take(len as usize)
+                    .collect::<String>();
+                Expression::Literal(Literal::String(substr))
+            }
+        } else {
+            Expression::ScalarFunction(sf)
+        }
+    }
+
+    // Constant folds the concat function
+    fn fold_concat_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        if sf.args.is_empty() {
+            return Expression::Literal(Literal::String("".to_string()));
+        }
+        if Self::has_null_arg(&sf.args) {
+            return Expression::Literal(Literal::Null);
+        }
+        let mut result = Vec::<Expression>::new();
+        for expr in sf.args {
+            match &expr {
+                Expression::Literal(Literal::String(val)) => {
+                    if result.is_empty() {
+                        result.push(expr);
+                    } else if let Expression::Literal(Literal::String(prev_val)) =
+                        result.last().unwrap().clone()
+                    {
+                        result.pop();
+                        result.push(Expression::Literal(Literal::String(prev_val + val)));
+                    } else {
+                        result.push(expr)
+                    }
+                }
+                _ => result.push(expr),
+            }
+        }
+        if result.len() == 1 {
+            result[0].clone()
+        } else {
+            Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Concat,
+                args: result,
+            })
+        }
+    }
 }
 
 impl Visitor for ConstantFoldExprVisitor {
@@ -377,6 +547,16 @@ impl Visitor for ConstantFoldExprVisitor {
                 | ScalarFunction::Lte
                 | ScalarFunction::Neq => self.fold_comparison_function(f),
                 ScalarFunction::Between => self.fold_between(f),
+                ScalarFunction::Neg
+                | ScalarFunction::Not
+                | ScalarFunction::Pos
+                | ScalarFunction::Upper
+                | ScalarFunction::Lower => self.fold_unary_function(f),
+                ScalarFunction::BTrim | ScalarFunction::LTrim | ScalarFunction::RTrim => {
+                    self.fold_trim_function(f)
+                }
+                ScalarFunction::Substring => self.fold_substring_function(f),
+                ScalarFunction::Concat => self.fold_concat_function(f),
                 _ => Expression::ScalarFunction(f),
             },
             Expression::SearchedCase(_) => e,
