@@ -3,7 +3,7 @@ use crate::{
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
-        AggregationExpr, ScalarFunction,
+        AggregationExpr, ScalarFunction, Type, TypeOrMissing,
     },
     map,
 };
@@ -126,6 +126,46 @@ impl ScalarFunction {
             // MergeObject
             MergeObjects => "$mergeObjects",
         })
+    }
+}
+
+impl TypeOrMissing {
+    pub fn mql_type(self) -> Option<&'static str> {
+        use ir::TypeOrMissing::*;
+        Some(match self {
+            Missing => "missing",
+            Number => return None,
+            Type(t) => t.mql_type(),
+        })
+    }
+}
+
+impl Type {
+    pub fn mql_type(self) -> &'static str {
+        use ir::Type::*;
+        match self {
+            Array => "array",
+            BinData => "binData",
+            Boolean => "bool",
+            Datetime => "date",
+            DbPointer => "dbPointer",
+            Decimal128 => "decimal",
+            Document => "object",
+            Double => "double",
+            Int32 => "int",
+            Int64 => "long",
+            Javascript => "javascript",
+            JavascriptWithScope => "javascriptWithScope",
+            MaxKey => "maxKey",
+            MinKey => "minKey",
+            Null => "null",
+            ObjectId => "objectId",
+            RegularExpression => "regex",
+            String => "string",
+            Symbol => "symbol",
+            Timestamp => "timestamp",
+            Undefined => "undefined",
+        }
     }
 }
 
@@ -650,15 +690,21 @@ impl MqlCodeGenerator {
             SubqueryExpression(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),
             Exists(_) => unimplemented!(),
-            Is(expr) => {
-                use crate::ir::TypeOrMissing;
-                Ok(match expr.target_type {
-                    TypeOrMissing::Number => Bson::Document(
-                        bson::doc! {"$isNumber": self.codegen_expression(*expr.expr)?},
-                    ),
-                    _ => unimplemented!(),
-                })
-            }
+            Is(expr) => Ok(match expr.target_type {
+                TypeOrMissing::Number => {
+                    Bson::Document(bson::doc! {"$isNumber": self.codegen_expression(*expr.expr)?})
+                }
+                TypeOrMissing::Type(Type::Null) => {
+                    let expr_code = self.codegen_expression(*expr.expr)?;
+                    Bson::Document(
+                        bson::doc! {"$or": [{"$eq": [{"$type": &expr_code}, "missing"]},
+                        {"$eq": [{"$type": &expr_code}, "null"]}]},
+                    )
+                }
+                t => Bson::Document(
+                    bson::doc! {"$eq": [{"$type": self.codegen_expression(*expr.expr)?}, t.mql_type().unwrap()]},
+                ),
+            }),
         }
     }
 }

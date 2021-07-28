@@ -1084,6 +1084,46 @@ mod function {
         }),
     );
     test_codegen_expr!(
+        is_null_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$or": [{"$eq": [{"$type": "$f"}, "missing"]},
+                                {"$eq": [{"$type": "$f"}, "null"]}]})),
+        Expression::Is(IsExpr {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            target_type: TypeOrMissing::Type(Type::Null),
+        }),
+    );
+    test_codegen_expr!(
+        is_missing_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$eq": [{"$type": "$f"}, "missing"]})),
+        Expression::Is(IsExpr {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            target_type: TypeOrMissing::Missing,
+        }),
+    );
+    test_codegen_expr!(
+        is_type_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+        Ok(bson!({"$eq": [{"$type": "$f"}, "double"]})),
+        Expression::Is(IsExpr {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            target_type: TypeOrMissing::Type(Type::Double),
+        }),
+    );
+    test_codegen_expr!(
         pos_expr,
         {
             let mut mr = MappingRegistry::default();
