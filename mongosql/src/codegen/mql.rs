@@ -687,7 +687,7 @@ impl MqlCodeGenerator {
                 "$like": {"input": self.codegen_expression(*expr.expr)?,
                           "pattern": self.codegen_expression(*expr.pattern)?}}),
             }),
-            SubqueryExpression(_) => unimplemented!(),
+            Subquery(_) => unimplemented!(),
             SubqueryComparison(_) => unimplemented!(),
             Exists(_) => unimplemented!(),
             Is(expr) => Ok(match expr.target_type {

@@ -318,13 +318,13 @@ impl Schema {
             // other is AnyOf
             (_, AnyOf(vs)) => self.satisfies_any_of(vs),
 
-            (Atomic(self_a), Atomic(other_a)) => self_a.satisfies(&other_a),
+            (Atomic(self_a), Atomic(other_a)) => self_a.satisfies(other_a),
             (Atomic(_), _) => Not,
 
             (Array(self_arr), Array(other_arr)) => self_arr.satisfies(&*other_arr),
             (Array(_), _) => Not,
 
-            (Document(self_d), Document(other_d)) => self_d.satisfies(&other_d),
+            (Document(self_d), Document(other_d)) => self_d.satisfies(other_d),
             (Document(_), _) => Not,
 
             // self is Missing

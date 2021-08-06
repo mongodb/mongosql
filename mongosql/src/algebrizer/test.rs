@@ -1877,7 +1877,7 @@ mod select_clause {
         select_duplicate_bot,
         algebrize_select_clause,
         source = SOURCE.clone(),
-        expected = Err(Error::DuplicateKeyError(Key::bot(1u16))),
+        expected = Err(Error::DuplicateKey(Key::bot(1u16))),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![
@@ -1935,7 +1935,7 @@ mod select_clause {
         select_duplicate_substar,
         algebrize_select_clause,
         source = SOURCE.clone(),
-        expected = Err(Error::DuplicateKeyError(("foo", 1u16).into())),
+        expected = Err(Error::DuplicateKey(("foo", 1u16).into())),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![

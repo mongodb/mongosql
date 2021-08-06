@@ -46,7 +46,7 @@ pub enum Error {
     #[error("cardinality of the subquery's result set may be greater than 1")]
     InvalidSubqueryCardinality,
     #[error("cannot create schema environment with duplicate datasource: {0:?}")]
-    DuplicateKeyError(Key),
+    DuplicateKey(Key),
     #[error("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
     SortKeyNotSelfComparable(usize, Schema),
 }
@@ -69,7 +69,7 @@ impl SchemaInferenceState {
         Ok(SchemaInferenceState {
             env: env
                 .with_merged_mappings(self.env.clone())
-                .map_err(|e| Error::DuplicateKeyError(e.key))?,
+                .map_err(|e| Error::DuplicateKey(e.key))?,
             scope_level: self.scope_level,
         })
     }
@@ -239,7 +239,7 @@ impl Stage {
                                         })
                                         .collect::<SchemaEnvironment>(),
                                 )
-                                .map_err(|e| Error::DuplicateKeyError(e.key))?,
+                                .map_err(|e| Error::DuplicateKey(e.key))?,
                             min_size,
                             max_size,
                         })
@@ -259,7 +259,7 @@ impl Stage {
                             schema_env: left_result_set
                                 .schema_env
                                 .with_merged_mappings(right_result_set.schema_env)
-                                .map_err(|e| Error::DuplicateKeyError(e.key))?,
+                                .map_err(|e| Error::DuplicateKey(e.key))?,
                             min_size,
                             max_size,
                         })
@@ -449,14 +449,14 @@ impl Expression {
                 if accessee_schema.contains_field(field) == Satisfaction::Not {
                     return Err(Error::AccessMissingField(field.clone()));
                 }
-                Ok(Expression::get_field_schema(&accessee_schema, &field))
+                Ok(Expression::get_field_schema(&accessee_schema, field))
             }
             Expression::ScalarFunction(f) => f.schema(state),
             Expression::Cast(c) => c.schema(state),
             Expression::SearchedCase(sc) => sc.schema(state),
             Expression::SimpleCase(sc) => sc.schema(state),
             Expression::TypeAssertion(t) => t.schema(state),
-            Expression::SubqueryExpression(SubqueryExpr {
+            Expression::Subquery(SubqueryExpr {
                 output_expr,
                 subquery,
             }) => {

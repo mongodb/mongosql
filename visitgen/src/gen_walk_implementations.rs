@@ -49,7 +49,7 @@ pub(crate) fn gen_walk_implementations(module_path: &[&str], types: &[EnumOrStru
 
     let type_set = types.iter().map(|x| x.get_name()).collect::<HashSet<_>>();
     for t in types.iter() {
-        out.push_str(gen_walk_impelementation(&type_set, &t).as_str());
+        out.push_str(gen_walk_impelementation(&type_set, t).as_str());
     }
 
     out.push('}');
@@ -71,8 +71,8 @@ fn gen_walk_impelementation(type_set: &HashSet<String>, t: &EnumOrStruct) -> Str
 
     out.push_str(
         match t {
-            EnumOrStruct::Enum(e) => gen_walk_for_enum(type_set, &e),
-            EnumOrStruct::Struct(s) => gen_walk_for_struct(type_set, &s),
+            EnumOrStruct::Enum(e) => gen_walk_for_enum(type_set, e),
+            EnumOrStruct::Struct(s) => gen_walk_for_struct(type_set, s),
         }
         .as_str(),
     );
@@ -203,7 +203,7 @@ fn gen_walk_visit_box(
         let box_type = get_generic_type(box_generic);
         format!(
             "Box::new({})",
-            gen_walk_visit_type(type_set, &box_type, &(format!("(*{})", field_name))),
+            gen_walk_visit_type(type_set, box_type, &(format!("(*{})", field_name))),
         )
     } else {
         field_name.to_owned()
@@ -237,15 +237,15 @@ fn gen_walk_visit_map(
             format!(
                 "{}.into_iter().map(|(map_k, map_v)| ({}, {})).collect::<{}<_,_>>()",
                 field_name,
-                gen_walk_visit_type(type_set, &key_type, "map_k"),
-                gen_walk_visit_type(type_set, &value_type, "map_v"),
+                gen_walk_visit_type(type_set, key_type, "map_k"),
+                gen_walk_visit_type(type_set, value_type, "map_v"),
                 map_type_name
             )
         } else {
             format!(
                 "{}.into_iter().map(|(map_k, map_v)| ({}, map_v)).collect::<{}<_,_>>()",
                 field_name,
-                gen_walk_visit_type(type_set, &key_type, "map_k"),
+                gen_walk_visit_type(type_set, key_type, "map_k"),
                 map_type_name
             )
         }
@@ -254,7 +254,7 @@ fn gen_walk_visit_map(
         format!(
             "{}.into_iter().map(|(map_k, map_v)| (map_k, {})).collect::<{}<_,_>>()",
             field_name,
-            gen_walk_visit_type(type_set, &value_type, "map_v"),
+            gen_walk_visit_type(type_set, value_type, "map_v"),
             map_type_name
         )
     } else {
@@ -278,7 +278,7 @@ fn gen_walk_visit_option(
         format!(
             "{}.map(|opt_x| {})",
             field_name,
-            gen_walk_visit_type(type_set, &option_type, "opt_x"),
+            gen_walk_visit_type(type_set, option_type, "opt_x"),
         )
     } else {
         field_name.to_owned()
@@ -301,7 +301,7 @@ fn gen_walk_visit_vec(
         format!(
             "{}.into_iter().map(|vec_x| {}).collect::<Vec<_>>()",
             field_name,
-            gen_walk_visit_type(type_set, &vec_type, "vec_x"),
+            gen_walk_visit_type(type_set, vec_type, "vec_x"),
         )
     } else {
         field_name.to_owned()

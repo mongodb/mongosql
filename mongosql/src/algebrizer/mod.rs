@@ -65,7 +65,7 @@ pub enum Error {
     #[error("OUTER JOINs must specify a JOIN condition")]
     NoOuterJoinCondition,
     #[error("cannot create schema environment with duplicate key: {0:?}")]
-    DuplicateKeyError(Key),
+    DuplicateKey(Key),
     #[error("positional sort keys should have been rewritten to references")]
     PositionalSortKey,
 }
@@ -208,7 +208,7 @@ impl Algebrizer {
     fn with_merged_mappings(mut self, mappings: SchemaEnvironment) -> Result<Self> {
         self.schema_env
             .merge(mappings)
-            .map_err(|e| Error::DuplicateKeyError(e.key))?;
+            .map_err(|e| Error::DuplicateKey(e.key))?;
         Ok(self)
     }
 
@@ -267,7 +267,7 @@ impl Algebrizer {
                         datasources
                             .insert(bot.clone())
                             .then(|| ())
-                            .ok_or_else(|| Error::DuplicateKeyError(bot.clone()))?;
+                            .ok_or_else(|| Error::DuplicateKey(bot.clone()))?;
                         Ok((bot, e))
                     }
                     // For a Substar, a.*, we map the name of the Substar, 'a', to a Key
@@ -281,7 +281,7 @@ impl Algebrizer {
                         datasources
                             .insert(key.clone())
                             .then(|| ())
-                            .ok_or_else(|| Error::DuplicateKeyError(key.clone()))?;
+                            .ok_or_else(|| Error::DuplicateKey(key.clone()))?;
                         let scope = expression_algebrizer
                             .schema_env
                             .nearest_scope_for_datasource(

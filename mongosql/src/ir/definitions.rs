@@ -136,7 +136,7 @@ pub enum Expression {
     Is(IsExpr),
     Like(LikeExpr),
     FieldAccess(FieldAccess),
-    SubqueryExpression(SubqueryExpr),
+    Subquery(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
     Exists(Box<Stage>),
 }
