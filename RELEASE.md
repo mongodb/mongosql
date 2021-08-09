@@ -66,7 +66,7 @@ Make sure the libraries are available at the proper urls:
 - POSIX:
   https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{rhel76,ubuntu1804,macos}/<SemVer>/libmongosql.a
 - Windows:
-  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows-64}/<SemVer>/mongosql.dll
+  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows}/<SemVer>/mongosql.dll
 
 #### Announce Release on Slack
 
@@ -81,7 +81,7 @@ The MongoSQL Compiler libraries are available at the follwing URLS:
 * POSIX:
   https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{rhel76,ubuntu1804,macos}/X.Y.Z/libmongosql.a
 * Windows:
-  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows-64}/X.Y.Z/mongosql.dll
+  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows}/X.Y.Z/mongosql.dll
 ```
 
 #### Close Release Ticket
