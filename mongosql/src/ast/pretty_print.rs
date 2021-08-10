@@ -647,11 +647,11 @@ fn ident_needs_delimiters(s: &str) -> bool {
     }
     let mut char_iter = s.chars();
     let first = char_iter.next().unwrap();
-    if !(first.is_alphabetic() | (first == '_')) {
+    if !(first.is_ascii_alphabetic() | (first == '_')) {
         return true;
     }
     for c in char_iter {
-        if !(c.is_alphanumeric() | (c == '_')) {
+        if !(c.is_ascii_alphanumeric() | (c == '_')) {
             return true;
         }
     }

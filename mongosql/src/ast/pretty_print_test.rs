@@ -287,6 +287,8 @@ macro_rules! expression_printer_test {
     };
 }
 
+expression_printer_test!(identifier_non_latin_first_char, "`做`", "`做`");
+expression_printer_test!(identifier_non_latin_subsequent_chars, "`_做`", "`_做`");
 expression_printer_test!(normal_identifiers, "(foo - bar) / car", "(foo - bar) / car");
 expression_printer_test!(
     special_identifiers,
