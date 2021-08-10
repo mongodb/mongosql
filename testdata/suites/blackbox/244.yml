@@ -219,5 +219,4 @@ testcases:
       - [WEST, SMALL BUSINESS, TECHNOLOGY, 7227252, 2002]
       - [WEST, SMALL BUSINESS, TECHNOLOGY, 7407183, 1998]
     expected_types: [varchar, varchar, varchar, float, int]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Segment` AS `none_Customer_Segment_nk`, `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(`Employee Salary`) AS `sum_Employee_Salary_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Call Center Region`, `Customer Segment`, `Prod Type1`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5

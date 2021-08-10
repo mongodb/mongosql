@@ -21,5 +21,4 @@ testcases:
       - [TECHNOLOGY, 376386.8, 1999]
       - [TECHNOLOGY, 415867.73, 1998]
     expected_types: [varchar, float, int]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, YEAR(`Order Date`) ORDER BY 1, 2, 3

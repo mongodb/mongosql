@@ -37,7 +37,6 @@ testcases:
       - [35808, "BB-3200", "", "PUNT"]
     expected_types: ["int", "varchar", "varchar", "varchar"]
     id: "restore block table"
-    min_server_version: 3.6
     sql_cleanup: "drop database created_writes_db"
     sql_list: [
       "create database if not exists created_writes_db",
@@ -75,7 +74,6 @@ testcases:
       - [4071, "PASS", "", "RM-4300", "TO-0200", 1]
     expected_types: ["int", "varchar", "varchar", "varchar", "varchar", "int"]
     id: "restore conv table"
-    min_server_version: 3.6
     sql_cleanup: "drop database created_writes_db"
     sql_list: [
       "create database if not exists created_writes_db",
@@ -99,7 +97,6 @@ testcases:
       - [1, 1, "M.Andersen kicks 65 yards from ATL 30 to SF 5. K.Williams to SF 26 for 21 yards (T.Cousin).", "SF", "ATL", "KOFF", 0, 6, 1, 15, 0, 0, 0, 3, 3, "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "MA-0700", "65", "44", "", "KW-1500", "21"]
     expected_types: ["int", "int", "varchar", "varchar", "varchar", "varchar", "int", "int", "int", "int", "int", "int", "int", "int", "int", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
     id: "restore conv table"
-    min_server_version: 3.6
     sql_cleanup: "drop database created_writes_db"
     sql_list: [
       "create database if not exists created_writes_db",
@@ -120,7 +117,6 @@ testcases:
       - ['foo']
     expected_types: [varchar]
     id: 'versioned statements'
-    min_server_version: 3.6
     sql_list: [
       "/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */",
       "/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */",

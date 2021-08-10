@@ -4,5 +4,4 @@ testcases:
     expected_results:
       - [24607040.48, 98687937.38]
     expected_types: [float, float]
-    min_server_version: '3.4'
     sql: SELECT SUM(`Gross Profit`) AS `sum_Gross_Profit_ok`,   SUM(`Sales Total`) AS `sum_Sales_Total_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1, 2

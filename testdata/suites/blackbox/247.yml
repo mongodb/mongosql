@@ -28,5 +28,4 @@ testcases:
       - [WASHINGTON]
       - [WISCONSIN]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Customer State` AS `none_Customer_State_nk` FROM Staples GROUP BY `Customer State` ORDER BY 1

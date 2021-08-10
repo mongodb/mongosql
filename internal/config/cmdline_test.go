@@ -49,7 +49,7 @@ func TestParseArgs_Valid(t *testing.T) {
 		"--mongo-sslPEMKeyFile", "mongopemkeyfile",
 		"--mongo-sslPEMKeyPassword", "mongopemkeypassword",
 		"--mongo-uri", "mongodb://hostname:27018",
-		"--mongo-versionCompatibility", "3.6",
+		"--mongo-versionCompatibility", "4.4",
 
 		// Metrics
 		"--stitch-url", "https://mystitchapp.com",
@@ -181,7 +181,7 @@ func TestParseArgs_Valid(t *testing.T) {
 	testString(t, cfg.Security.GSSAPI.Hostname, "something", "cfg.Security.GSSAPI.Hostname")
 	testString(t, cfg.Security.GSSAPI.ServiceName, "awesome", "cfg.Security.GSSAPI.ServiceName")
 
-	testString(t, cfg.MongoDB.VersionCompatibility, "3.6", "cfg.MongoDB.VersionCompatibility")
+	testString(t, cfg.MongoDB.VersionCompatibility, "4.4", "cfg.MongoDB.VersionCompatibility")
 	testString(t, cfg.MongoDB.Net.URI, "mongodb://hostname:27018", "cfg.MongoDB.Net.URI")
 
 	testString(

@@ -477,5 +477,4 @@ testcases:
       - [WOODEN BOOKCASES, 737697.93, 2000]
       - [WOODEN BOOKCASES, 821395.99, 1998]
     expected_types: [varchar, float, int]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type4` AS `none_Prod_TypeE_nk`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Prod Type4`, YEAR(`Order Date`) ORDER BY 1, 2, 3

@@ -829,7 +829,7 @@ tasks:
   commands:
     - func: "start mongodb"
       vars:
-        var_version: 3.6
+        var_version: 4.0
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -848,7 +848,7 @@ tasks:
   commands:
     - func: "start mongodb"
       vars:
-        var_version: 3.6
+        var_version: 4.0
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -867,7 +867,7 @@ tasks:
   commands:
     - func: "start mongodb"
       vars:
-        var_version: 3.6
+        var_version: 4.0
     - func: "build mongosqld"
     - func: "start mongosqld"
       vars:
@@ -899,25 +899,6 @@ tasks:
         var_type: integration
         var_benchmark_set: overhead-4.0
 
-- name: benchmark-overhead-3.6
-  tags: [ "benchmark" ]
-  exec_timeout_secs: 28800  # 8h
-  commands:
-    - func: "start mongodb"
-      vars:
-        var_version: 3.6
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run benchmarks"
-      vars:
-        var_type: overhead
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: overhead-3.6
-
 - name: benchmark-queries-4.0
   tags: [ "benchmark" ]
   exec_timeout_secs: 28800  # 8h
@@ -936,25 +917,6 @@ tasks:
       vars:
         var_type: integration
         var_benchmark_set: queries-4.0
-
-- name: benchmark-queries-3.6
-  tags: [ "benchmark" ]
-  exec_timeout_secs: 28800  # 8h
-  commands:
-    - func: "build mongosqld"
-    - func: "start mongodb"
-      vars:
-        var_version: 3.6
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run benchmarks"
-      vars:
-        var_type: queries
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: queries-3.6
 
 - name: blackbox
   tags:
@@ -1500,10 +1462,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
-  name: test-sample-auth-failure-3.6
-  tags: ["test", "config"]
-
-- <<: *run-make-target
   name: test-sample-auth-failure-4.0
   tags: ["test", "config"]
 
@@ -1580,10 +1538,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
-  name: test-kill-queries-3.6
-  tags: ["test", "config"]
-
-- <<: *run-make-target
   name: test-kill-queries-4.0
   tags: ["test", "config"]
 
@@ -1605,10 +1559,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
-  name: test-join-sharded-collection-3.6
-  tags: ["test", "config"]
-
-- <<: *run-make-target
   name: test-join-sharded-collection-4.0
   tags: ["test", "config"]
 
@@ -1618,10 +1568,6 @@ tasks:
 
 - <<: *run-make-target
   name: test-join-sharded-collection-latest
-  tags: ["test", "config"]
-
-- <<: *run-make-target
-  name: test-join-sharded-view-3.6
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -1641,10 +1587,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
-  name: test-count-on-sharded-collection-3.6
-  tags: ["test", "config"]
-
-- <<: *run-make-target
   name: test-count-on-sharded-collection-4.0
   tags: ["test", "config"]
 
@@ -1657,10 +1599,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
-  name: test-count-on-sharded-view-3.6
-  tags: ["test", "config"]
-
-- <<: *run-make-target
   name: test-count-on-sharded-view-4.0
   tags: ["test", "config"]
 
@@ -1670,10 +1608,6 @@ tasks:
 
 - <<: *run-make-target
   name: test-count-on-sharded-view-latest
-  tags: ["test", "config"]
-
-- <<: *run-make-target
-  name: test-count-on-sharded-view-on-view-3.6
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -1733,10 +1667,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
-  name: test-mongo-auth-sample-no-creds-3.6
-  tags: ["test", "config"]
-
-- <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-4.0
   tags: ["test", "config"]
 
@@ -1749,10 +1679,6 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
-  name: test-mongo-auth-sample-wrong-admin-creds-3.6
-  tags: ["test", "config"]
-
-- <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-4.0
   tags: ["test", "config"]
 
@@ -1762,10 +1688,6 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-latest
-  tags: ["test", "config"]
-
-- <<: *run-make-target
-  name: test-mongo-auth-sample-no-roles-3.6
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -1782,10 +1704,6 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-literal-db
-  tags: ["test", "config"]
-
-- <<: *run-make-target
-  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-3.6
   tags: ["test", "config"]
 
 - <<: *run-make-target
@@ -2207,10 +2125,6 @@ axes:
     display_name: MongoDB 4.0
     variables:
       _mongodb_version: 4.0
-  - id: 3.6
-    display_name: MongoDB 3.6
-    variables:
-      _mongodb_version: 3.6
 
 - id: mongodb_topology
   display_name: Topology
@@ -2239,7 +2153,7 @@ buildvariants:
     mongodb_topology: "*"
   exclude_spec:
   - os_full_matrix: ["osx", "ubuntu1404-64"]
-    mongodb_version: ["3.6", "4.0", "4.2", "4.4"]
+    mongodb_version: ["4.0", "4.2", "4.4"]
     mongodb_topology: ["standalone", "replica-set", "sharded-cluster"]
   - os_full_matrix: ["osx", "ubuntu1404-64"]
     mongodb_version: "latest"

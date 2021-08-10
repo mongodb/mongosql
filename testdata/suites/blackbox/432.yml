@@ -8,5 +8,4 @@ testcases:
       - [4-NOT SPECIFIED]
       - [5-LOW]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Order Priority` AS `none_Order_Priority_nk` FROM Staples WHERE ((CONVERT(`Order Date`, SQL_TIMESTAMP) IN ('1997-01-01 00:00:00', '1997-01-03 00:00:00')) AND (`Order Date` IN ( '1997-01-01',  '1997-01-03'))) GROUP BY `Order Priority` ORDER BY 1

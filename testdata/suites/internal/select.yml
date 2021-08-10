@@ -210,7 +210,6 @@ testcases:
       - [24, 24]
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_int_1
-    min_server_version: 3.4
     sql: select i, i div 1 from integer_division
 
   - db: select_sTest
@@ -225,7 +224,6 @@ testcases:
       - [24, 12]
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_int_2
-    min_server_version: 3.4
     sql: select i, i div 2 from integer_division
 
   - db: select_sTest
@@ -240,7 +238,6 @@ testcases:
       - [25.3, 25]
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_int_1
-    min_server_version: 3.4
     sql: select d, d div 1 from integer_division
 
   - db: select_sTest
@@ -255,7 +252,6 @@ testcases:
       - [25.3, 12]
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_int_2
-    min_server_version: 3.4
     sql: select d, d div 2 from integer_division
 
   - db: select_sTest
@@ -270,7 +266,6 @@ testcases:
       - [24, 20]
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_decimal_1.2
-    min_server_version: 3.4
     sql: select i, i div 1.2 from integer_division
 
   - db: select_sTest
@@ -285,7 +280,6 @@ testcases:
       - [24, 10]
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_decimal_2.2
-    min_server_version: 3.4
     sql: select i, i div 2.2 from integer_division
 
   - db: select_sTest
@@ -300,7 +294,6 @@ testcases:
       - [25.3, 21]
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_decimal_1.2
-    min_server_version: 3.4
     sql: select d, d div 1.2 from integer_division
 
   - db: select_sTest
@@ -315,7 +308,6 @@ testcases:
       - [25.3, 11]
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_decimal_2.2
-    min_server_version: 3.4
     sql: select d, d div 2.2 from integer_division
 
   - db: select_sTest
@@ -330,7 +322,6 @@ testcases:
       - [24, 2, 12]
     expected_types: [int, int, int]
     id: integer_division_integer_column_by_integer_column
-    min_server_version: 3.4
     sql: select i, n1, i div n1 from integer_division
 
   - db: select_sTest
@@ -345,7 +336,6 @@ testcases:
       - [25.3, 2, 12]
     expected_types: [decimal, int, int]
     id: integer_division_decimal_column_by_integer_column
-    min_server_version: 3.4
     sql: select d, n1, d div n1 from integer_division
 
   - db: select_sTest
@@ -360,7 +350,6 @@ testcases:
       - [24, 2.2, 10]
     expected_types: [int, decimal, int]
     id: integer_division_integer_column_by_decimal_column
-    min_server_version: 3.4
     sql: select i, n2, i div n2 from integer_division
 
   - db: select_sTest
@@ -375,7 +364,6 @@ testcases:
       - [25.3, 2.2, 11]
     expected_types: [decimal, decimal, int]
     id: integer_division_decimal_column_by_decimal_column
-    min_server_version: 3.4
     sql: select d, n2, d div n2 from integer_division
 
   - db: select_sTest
@@ -1264,7 +1252,6 @@ testcases:
       - [3, 9223372036854776000]
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_max_int64_literal
-    min_server_version: '3.4'
     sql: select a, 9223372036854775807 + a as result from int_bounds
 
   - db: select_sTest
@@ -1278,7 +1265,6 @@ testcases:
       - [9223372036854776000, 9223372036854776000, 9223372036854776000, 18446744073709552000, -1]
     expected_types: [float, float, float, float, int]
     id: arithmetic_overflow_adding_literals_to_max_int64_column
-    min_server_version: '3.4'
     sql: select maxInt + 1 as a, maxInt + 2 as b, maxInt + 3 as c, maxInt + 9223372036854775807 as d, maxInt + -9223372036854775808 as e from int_bounds
 
   - db: select_sTest
@@ -1292,25 +1278,6 @@ testcases:
       - [3, 9223372036854776000]
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_max_int64_column
-    min_server_version: '3.4'
-    sql: select a, maxInt + a as result from int_bounds
-
-  # For server version 3.2, integer arithmetic is performed on int64 types
-  # and overflow occurs. This behavior is not replicated by the BIC's in-
-  # memory arithmetic, so it is tested separately.
-  - db: select_sTest
-    description: adding to max int64 for server version 3.2
-    exact_server_version: '3.2'
-    expected_names: [a, result]
-    expected_results:
-      - [9223372036854775807, -2]
-      - [-9223372036854775808, 0]
-      - [1, -9223372036854776000]
-      - [2, -9223372036854776000]
-      - [3, -9223372036854776000]
-    expected_types: [int, float]
-    id: arithmetic_overflow_adding_to_max_int64_mdb32
-    pushdown_only: true
     sql: select a, maxInt + a as result from int_bounds
 
   - db: select_sTest
@@ -1385,7 +1352,6 @@ testcases:
       - [3, 27670116110564327000]
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_max_int64_literal
-    min_server_version: '3.4'
     sql: select a, 9223372036854775807 * a as result from int_bounds
 
   - db: select_sTest
@@ -1399,7 +1365,6 @@ testcases:
       - [9223372036854775807, 18446744073709552000, 27670116110564327000, 8.507059173023462e+37, -8.507059173023462e+37]
     expected_types: [float, float, float, float, float]
     id: arithmetic_overflow_multiplying_literals_by_max_int64_column
-    min_server_version: '3.4'
     sql: select maxInt * 1 as a, maxInt * 2 as b, maxInt * 3 as c, maxInt * 9223372036854775807 as d, maxInt * -9223372036854775808 as e from int_bounds
 
   - db: select_sTest
@@ -1413,25 +1378,6 @@ testcases:
       - [3, 27670116110564327000]
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_max_int64_column
-    min_server_version: '3.4'
-    sql: select a, maxInt * a as result from int_bounds
-
-  # For server version 3.2, integer arithmetic is performed on int64 types
-  # and overflow occurs. This behavior is not replicated by the BIC's in-
-  # memory arithmetic, so it is tested separately.
-  - db: select_sTest
-    description: multiplying by max int64 for server version 3.2
-    exact_server_version: '3.2'
-    expected_names: [a, result]
-    expected_results:
-      - [9223372036854775807, 1]
-      - [-9223372036854775808, -9223372036854776000]
-      - [1, 9223372036854776000]
-      - [2, -2]
-      - [3, 9223372036854776000]
-    expected_types: [int, float]
-    id: arithmetic_overflow_multiplying_by_max_int64_mdb32
-    pushdown_only: true
     sql: select a, maxInt * a as result from int_bounds
 
   - db: select_sTest
@@ -1454,7 +1400,6 @@ testcases:
       - [3, -9223372036854775805]
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_min_int64_literal
-    min_server_version: '3.4'
     sql: select a, -9223372036854775808 + a as result from int_bounds
 
   - db: select_sTest
@@ -1468,7 +1413,6 @@ testcases:
       - [-9223372036854775807, -9223372036854775806, -9223372036854775805, -1, -18446744073709552000]
     expected_types: [float, float, float, int, float]
     id: arithmetic_overflow_adding_literals_to_min_int64_column
-    min_server_version: '3.4'
     sql: select minInt + 1 as a, minInt + 2 as b, minInt + 3 as c, minInt + 9223372036854775807 as d, minInt + -9223372036854775808 as e from int_bounds
 
   - db: select_sTest
@@ -1482,25 +1426,6 @@ testcases:
       - [3, -9223372036854775805]
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_min_int64_column
-    min_server_version: '3.4'
-    sql: select a, minInt + a as result from int_bounds
-
-  # For server version 3.2, integer arithmetic is performed on int64 types
-  # and overflow occurs. This behavior is not replicated by the BIC's in-
-  # memory arithmetic, so it is tested separately.
-  - db: select_sTest
-    description: adding to min int64 for server version 3.2
-    exact_server_version: '3.2'
-    expected_names: [a, result]
-    expected_results:
-      - [9223372036854775807, -1]
-      - [-9223372036854775808, 0]
-      - [1, -9223372036854776000]
-      - [2, -9223372036854776000]
-      - [3, -9223372036854776000]
-    expected_types: [int, float]
-    id: arithmetic_overflow_adding_to_min_int64_mdb32
-    pushdown_only: true
     sql: select a, minInt + a as result from int_bounds
 
   - db: select_sTest
@@ -1575,7 +1500,6 @@ testcases:
       - [3, -27670116110564327000]
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_min_int64_literal
-    min_server_version: '3.4'
     sql: select a, -9223372036854775808 * a as result from int_bounds
 
   - db: select_sTest
@@ -1589,7 +1513,6 @@ testcases:
       - [-9223372036854775808, -18446744073709552000, -27670116110564327000, -8.507059173023462e+37, 8.507059173023462e+37]
     expected_types: [float, float, float, float, float]
     id: arithmetic_overflow_multiplying_literals_by_min_int64_column
-    min_server_version: '3.4'
     sql: select minInt * 1 as a, minInt * 2 as b, minInt * 3 as c, minInt * 9223372036854775807 as d, minInt * -9223372036854775808 as e from int_bounds
 
   - db: select_sTest
@@ -1603,25 +1526,6 @@ testcases:
       - [3, -27670116110564327000]
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_min_int64_column
-    min_server_version: '3.4'
-    sql: select a, minInt * a as result from int_bounds
-
-  # For server version 3.2, integer arithmetic is performed on int64 types
-  # and overflow occurs. This behavior is not replicated by the BIC's in-
-  # memory arithmetic, so it is tested separately.
-  - db: select_sTest
-    description: multiplying by min int64 for server version 3.2
-    exact_server_version: '3.2'
-    expected_names: [a, result]
-    expected_results:
-      - [9223372036854775807, -9223372036854776000]
-      - [-9223372036854775808, 0]
-      - [1, -9223372036854776000]
-      - [2, 0]
-      - [3, -9223372036854776000]
-    expected_types: [int, float]
-    id: arithmetic_overflow_multiplying_by_min_int64_mdb32
-    pushdown_only: true
     sql: select a, minInt * a as result from int_bounds
 
   - db: select_sTest

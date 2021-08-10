@@ -414,13 +414,15 @@ func (c *conn) handshake(ctx context.Context) error {
 			c.mongoDBInfo.CompatibleVersion)
 	}
 
-	if !c.mongoDBInfo.VersionAtLeast(3, 6) {
+	if !c.mongoDBInfo.VersionAtLeast(4, 0) {
 		err = mysqlerrors.Newf(mysqlerrors.ErHandshakeError,
-			"MongoDB version is %v but version >= 3.6 required",
-			c.mongoDBInfo.Version)
+			"MongoDB version is %v but version >= 4.0 required",
+			c.mongoDBInfo.Version,
+		)
 		c.writeError(err)
 		return err
 	}
+
 	c.setStatusVariables()
 
 	err = c.setCatalogFromSchema(currentSchema)

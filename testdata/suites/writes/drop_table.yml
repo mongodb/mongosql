@@ -6,7 +6,6 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: 'drop table created_writes_db.foo'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -23,7 +22,6 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: 'drop table if exists created_writes_db.foo'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -36,7 +34,6 @@ testcases:
     description: drop table that doesn't exist, should error
     expected_error: "Error 1051: Unknown table 'foo'"
     id: 'drop table create_writes_db.foo that does not exist'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -48,7 +45,6 @@ testcases:
     description: drop table in non-existent database, should error
     expected_error: "Error 1049: Unknown database 'random'"
     id: 'drop table random.foo, random does not exist'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists random
     sql_list: [
       drop database if exists random,
@@ -62,7 +58,6 @@ testcases:
       - ['#Tableau']
     expected_types: [varchar]
     id: 'create #Tableau`'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -78,7 +73,6 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: 'create #Tableau`'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,

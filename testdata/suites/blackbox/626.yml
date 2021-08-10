@@ -11395,5 +11395,4 @@ testcases:
       - [iDENi80s, 2001]
       - [iDENi80s, 2002]
     expected_types: [varchar, int]
-    min_server_version: '3.4'
     sql: SELECT `Product Name` AS `none_Product_Name_nk`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Product Name`, YEAR(`Order Date`) ORDER BY 1, 2

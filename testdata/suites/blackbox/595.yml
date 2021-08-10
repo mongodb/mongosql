@@ -54698,5 +54698,4 @@ testcases:
       - [15425.87, 23792.93]
       - [15636.73, 24327.39]
     expected_types: [float, float]
-    min_server_version: '3.4'
     sql: SELECT `Gross Profit` AS `sum_Gross_Profit_ok`,   `Sales Total` AS `sum_Sales_Total_ok` FROM Staples WHERE ((`Sales Total` >= -3640.2318449999998) AND (`Sales Total` <= 24622.425030999999)) ORDER BY 1, 2

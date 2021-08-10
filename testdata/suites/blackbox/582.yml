@@ -69,5 +69,4 @@ testcases:
       - [William Brown, 2981310, 555]
       - [Yoseph Carroll-Englig, 3231972, 809]
     expected_types: [varchar, int, int]
-    min_server_version: '3.4'
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT(`Item Count`, SQL_BIGINT)) AS `sum_Item_Count_ok` FROM Staples GROUP BY `Customer Name` HAVING ((SUM(`Discount`) >= 0.059999999999999401) AND (SUM(`Discount`) <= 48.330000000000481)) ORDER BY 1, 2, 3

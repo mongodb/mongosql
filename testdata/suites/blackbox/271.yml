@@ -4,5 +4,4 @@ testcases:
     expected_results:
       - [103442, "Suzanne Lafreni\xE8re"]
     expected_types: [float, varchar]
-    min_server_version: '3.4'
     sql: "SELECT AVG(`Employee Salary`) AS `avg_Employee_Salary_ok`,   `Employee Name` AS `none_Employee_Name_nk` FROM Staples WHERE ((NOT (`Employee Dept` IS NULL)) AND (`Employee Name` = 'Suzanne Lafreni\xE8re')) GROUP BY `Employee Name` ORDER BY 1, 2"

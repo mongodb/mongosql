@@ -98,5 +98,4 @@ testcases:
       - [4-NOT SPECIFIED, 54839, COMPUTER PERIPHERALS, '2003-01-01 00:00:00', 1]
       - [4-NOT SPECIFIED, 54841, CHAIRS & CHAIRMATS, '2003-01-02 00:00:00', 2]
     expected_types: [varchar, int, varchar, varchar, int]
-    min_server_version: '3.4'
     sql: SELECT `Order Priority` AS `none_Order_Priority_nk`,   `PID` AS `none_PID_ok`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   `Ship Date` AS `none_Ship_Date_ok`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Order Priority` >= '1-URGENT') AND (`Order Priority` <= '4-NOT SPECIFIED')) AND ((`Ship Date` >= '2002-12-28') AND (`Ship Date` <= '2003-01-02'))) ORDER BY 1, 2, 3, 4, 5

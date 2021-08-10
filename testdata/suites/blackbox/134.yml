@@ -179,5 +179,4 @@ testcases:
       - ["Acco Perma\xAE 4000 Stacking Storage Drawers"]
       - [Acco Pocket Keypad]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Product Name` AS `none_Product_Name_nk` FROM Staples GROUP BY `Product Name` ORDER BY 1 LIMIT 176

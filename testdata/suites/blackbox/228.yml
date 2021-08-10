@@ -14,5 +14,4 @@ testcases:
       - [TECHNOLOGY, COPIERS AND FAX, 3472108.14]
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, 4830099.27]
     expected_types: [varchar, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Prod Type1`,   `Prod Type2` HAVING ((AVG(`Discount`) >= 0.051399999999999488) AND (AVG(`Discount`) <= 0.055001000000000549)) ORDER BY 1, 2, 3

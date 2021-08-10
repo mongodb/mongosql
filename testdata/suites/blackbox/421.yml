@@ -39,5 +39,4 @@ testcases:
       - [WEST, REGULAR SHIPPING, 297915.59, 2000]
       - [WEST, REGULAR SHIPPING, 299179.3, 1997]
     expected_types: [varchar, varchar, float, int]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Ship Promo` AS `none_Ship_Promo_nk`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Call Center Region`, `Ship Promo`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4

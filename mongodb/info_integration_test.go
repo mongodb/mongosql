@@ -125,8 +125,6 @@ schema:
 	req.Equal(mongodb.AllPrivileges, two.Privileges,
 		"mongodb_info_test.two privileges should be all privileges")
 	req.NotNil(two.Collation, "collation should not be nil")
-	if info.VersionAtLeast(3, 3) {
-		req.Equal(two.Collation.Locale, "fr",
-			"collaction locale should be fr")
-	}
+	req.Equal(two.Collation.Locale, "fr",
+		"collaction locale should be fr")
 }

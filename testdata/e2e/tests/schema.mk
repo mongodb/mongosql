@@ -246,12 +246,9 @@ test-sample-ssl-failure: test-sample-connect-failure
 test-sample-auth: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth,sqlproxy/auth/enabled,sqlproxy/auth/admin-creds,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/creds,client/auth/cleartext,client/ssl/require
 test-sample-auth: test-basic-sample
 
-test-sample-auth-failure-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth,mongo/version/3.6
-test-sample-auth-failure-3.6: test-schema-unavailable
-
-# when there's an auth problem in MongoDB versions 3.7+, sqlproxy fail to sample the schema
+# when there's an auth problem in MongoDB versions 4.0+, sqlproxy fail to sample the schema
 # because the schema is not yet available. This is different from prior mongodb versions
-# since 3.7+ requires authentication to list all databases.
+# no longer supported by mongosqld.
 test-sample-auth-failure-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth
 test-sample-auth-failure-4.0: test-schema-unavailable
 

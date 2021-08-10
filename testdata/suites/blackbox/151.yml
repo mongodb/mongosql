@@ -4,5 +4,4 @@ testcases:
     expected_results:
       - [3087.05]
     expected_types: [float]
-    min_server_version: '3.4'
     sql: SELECT SUM(`Discount`) AS `sum_Discount_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1

@@ -13,10 +13,7 @@ import (
 	"github.com/10gen/mongoast/parser"
 	"github.com/10gen/sqlproxy/collation"
 	"github.com/10gen/sqlproxy/evaluator"
-	"github.com/10gen/sqlproxy/evaluator/types"
 	"github.com/10gen/sqlproxy/evaluator/values"
-	"github.com/10gen/sqlproxy/schema"
-	"github.com/smartystreets/goconvey/convey"
 	"github.com/stretchr/testify/require"
 )
 
@@ -560,7 +557,6 @@ func TestTranslate(t *testing.T) {
 
 	// define the MongoDB versions for which we want to test translation
 	versions := [][]uint8{
-		{3, 6, 0},
 		{4, 0, 0},
 		{4, 2, 0},
 	}
@@ -722,110 +718,6 @@ func translatePredicate(t *testing.T, version []uint8, sql string, sqlValueKind 
 	}
 
 	return ret
-}
-
-func TestTranslatePartialPredicate(t *testing.T) {
-	req := require.New(t)
-
-	type test struct {
-		name      string
-		sql       string
-		expected  string
-		localDesc string
-		local     evaluator.SQLExpr
-	}
-
-	runPartialTests := func(tests []test) {
-		testSchema := evaluator.MustLoadSchema(translatorTestSchema)
-
-		db := testSchema.Database("translate_test_db")
-		req.NotNil(db, "could not find db in schema")
-
-		version := []uint8{3, 4, 0}
-		sqlValueKind := values.MySQLValueKind
-		pushdownCfg := createPushdownCfg(version, sqlValueKind)
-
-		translator := evaluator.NewPushdownTranslator(
-			pushdownCfg,
-			createFieldRefLookup(db),
-		)
-
-		for _, test := range tests {
-			t.Run(test.name, func(t *testing.T) {
-				req := require.New(t)
-
-				e, err := evaluator.GetSQLExpr(
-					testSchema,
-					"translate_test_db",
-					tableTwoName,
-					test.sql,
-					false,
-					nil,
-				)
-				req.Nilf(err, "could not get sql expr for %v", test.localDesc)
-
-				match, _, local, _ := translator.TranslatePredicate(e)
-				jsonResult := parser.DeparseMatchExpr(match).String()
-				req.Equalf(test.expected, jsonResult, "actual match expr did "+
-					"not match expected in %v", test.localDesc)
-				req.Zerof(convey.ShouldResemble(test.local, local), "untranslated exprs "+
-					"did not match in %v", test.localDesc)
-			})
-		}
-	}
-
-	db := "translate_test_db"
-
-	tests := []test{
-		// non-boolean types always exclude null
-		{
-			"0", "a", `{"$and": [{"a": {"$ne": {"$numberInt":"0"}}},{"a": {"$ne": null}}]}`, `a`,
-			nil,
-		},
-		{
-			"1", "a = 3 AND a < b", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
-			evaluator.NewSQLComparisonExpr(
-				evaluator.LT,
-				testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
-				testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
-			),
-		},
-		{
-			"2", "a = 3 AND a < b AND b = 4", `{"$and": [{"a": {"$eq": {"$numberLong":"3"}}},{"b": {"$eq": {"$numberLong":"4"}}}]}`, "a < b",
-			evaluator.NewSQLComparisonExpr(
-				evaluator.LT,
-				testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
-				testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
-			),
-		},
-		{
-			"3", "a < b AND a = 3", `{"a": {"$eq": {"$numberLong":"3"}}}`, "a < b",
-			evaluator.NewSQLComparisonExpr(
-				evaluator.LT,
-				testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
-				testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
-			),
-		},
-		{
-			"4", "NOT (a = 3 AND a < b)", `{"$and": [{"a": {"$ne": {"$numberLong":"3"}}},{"a": {"$ne": null}}]}`, "NOT a < b",
-			evaluator.NewSQLNotExpr(
-				evaluator.NewSQLAndExpr(
-					evaluator.NewSQLComparisonExpr(
-						evaluator.EQ,
-						testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
-						evaluator.NewSQLValueExpr(values.NewSQLInt64(values.MySQLValueKind, 3)),
-					),
-					evaluator.NewSQLComparisonExpr(
-						evaluator.LT,
-						testSQLColumnExpr(1, db, tableTwoName, "a", types.EvalInt64, schema.MongoInt, false),
-						testSQLColumnExpr(1, db, tableTwoName, "b", types.EvalInt64, schema.MongoInt, false),
-					),
-				),
-			),
-		},
-	}
-
-	runPartialTests(tests)
 }
 
 func TestTranslateSQLValue(t *testing.T) {

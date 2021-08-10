@@ -71,5 +71,4 @@ testcases:
       - [696.7641935483871, HOME OFFICE, COPIERS AND FAX]
       - [714.9114659685864, CORPORATE, COPIERS AND FAX]
     expected_types: [float, varchar, varchar]
-    min_server_version: '3.4'
     sql: SELECT AVG(`Price`) AS `avg_Price_ok`,   `Customer Segment` AS `none_Customer_Segment_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk` FROM Staples GROUP BY `Customer Segment`,   `Prod Type2` ORDER BY 1, 2, 3

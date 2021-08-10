@@ -486,7 +486,6 @@ func TestPushdownPlan(t *testing.T) {
 
 	// define the MongoDB versions for which we want to test pushdown
 	versions := [][]uint8{
-		{3, 6, 0},
 		{4, 0, 0},
 		{4, 2, 0},
 		{4, 4, 0},

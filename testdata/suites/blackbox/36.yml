@@ -27,5 +27,4 @@ testcases:
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, EAST, 2322339.34]
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, WEST, 1365794.3]
     expected_types: [varchar, varchar, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   `Supplier Region` AS `none_Supplier_Region_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE (`Prod Type1` IN ('FURNITURE', 'TECHNOLOGY')) GROUP BY `Prod Type1`,   `Prod Type2`,   `Supplier Region` ORDER BY 1, 2, 3, 4

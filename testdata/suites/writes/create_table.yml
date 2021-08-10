@@ -7,7 +7,6 @@ testcases:
       - ['foo']
     expected_types: [varchar]
     id: 'create table created_writes_db.foo'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -23,7 +22,6 @@ testcases:
       - ['foo']
     expected_types: [varchar]
     id: 'create table if not exists created_writes_db.foo'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -37,7 +35,6 @@ testcases:
     description: create table that already exists, should error
     expected_error_contains: "already exists"
     id: 'create table create_writes_db.foo conflict'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -50,7 +47,6 @@ testcases:
     description: create table in non-existent database, should error
     expected_error: "Error 1049: Unknown database 'random'"
     id: 'create table random.foo, random does not exist'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists random
     sql_list: [
       drop database if exists random,
@@ -64,7 +60,6 @@ testcases:
       - ['foo']
     expected_types: [varchar]
     id: 'use database and create table'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -85,7 +80,6 @@ testcases:
       - ["d", "bigint(20)", "YES", "MUL", ~, ""]
     expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
     id: describe table
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -105,7 +99,6 @@ testcases:
       - ["d", "bigint(20)", "YES", "MUL", ~, ""]
     expected_types: ["varchar", "varchar", "varchar", "varchar", "varchar", "varchar"]
     id: describe table prefer unique single column index
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -123,7 +116,6 @@ testcases:
          "CREATE TABLE `idxes` (\n  `a` bigint(20) DEFAULT NULL,\n  `b` varchar(65535) COLLATE utf8_bin NOT NULL,\n  `c` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT 'Im C!!!',\n  UNIQUE KEY `aa` (`a`),\n  FULLTEXT KEY `b_text_c_text` (`b`,`c`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin COMMENT='hello!'"]
     expected_types: [varchar, varchar]
     id: show create table
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -141,7 +133,6 @@ testcases:
          "CREATE TABLE `idxes` (\n  `a` bigint(20) DEFAULT NULL,\n  `b` varchar(65535) COLLATE utf8_bin NOT NULL,\n  `c` varchar(65535) COLLATE utf8_bin DEFAULT NULL COMMENT 'Im C!!!',\n  UNIQUE KEY `aa` (`a`),\n  FULLTEXT KEY `b_text_c_text` (`b`,`c`)\n) ENGINE=MongoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin"]
     expected_types: [varchar, varchar]
     id: show create table no comment
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",

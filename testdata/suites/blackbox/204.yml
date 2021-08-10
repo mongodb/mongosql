@@ -7,5 +7,4 @@ testcases:
       - [HOME OFFICE]
       - [SMALL BUSINESS]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Customer Segment` AS `none_Customer_Segment_nk` FROM Staples GROUP BY `Customer Segment` ORDER BY 1 ASC

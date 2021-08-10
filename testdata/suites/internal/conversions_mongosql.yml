@@ -658,7 +658,6 @@ testcases:
       - [null]
     expected_types: [decimal]
     id: decimal_data_assertion
-    min_server_version: 3.4
     sql: select value from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -682,7 +681,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, varchar]
     id: decimal_to_binary
-    min_server_version: 3.4
     sql: select value, convert(value, BINARY) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -706,7 +704,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, varchar]
     id: decimal_to_char
-    min_server_version: 3.4
     sql: select value, convert(value, CHAR) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -730,7 +727,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, date]
     id: decimal_to_date
-    min_server_version: 3.4
     sql: select value, convert(value, DATE) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -754,7 +750,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, date]
     id: decimal_to_date_func
-    min_server_version: 3.4
     sql: select value, date(value) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -778,7 +773,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, varchar]
     id: decimal_to_datetime
-    min_server_version: 3.4
     sql: select value, convert(value, DATETIME) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -802,7 +796,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, varchar]
     id: decimal_to_datetime_func
-    min_server_version: 3.4
     sql: select value, timestamp(value) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -826,7 +819,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, varchar]
     id: decimal_to_time
-    min_server_version: 3.4
     sql: select value, convert(value, TIME) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 
@@ -850,7 +842,6 @@ testcases:
       - [null, null]
     expected_types: [decimal, int]
     id: decimal_to_signed
-    min_server_version: 3.4
     sql: select value, convert(value, SIGNED) as converted from decimal
     variables: {type_conversion_mode: mongosql}
 

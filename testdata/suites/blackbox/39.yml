@@ -25,5 +25,4 @@ testcases:
       - [52, '1997-12-28 00:00:00', '1997-12-30 00:00:00', 3]
       - [52, '1997-12-28 00:00:00', '1997-12-31 00:00:00', 4]
     expected_types: [int, varchar, varchar, int]
-    min_server_version: '3.4'
     sql: SELECT WEEK(`Ship Date`) AS `none_DATEPART__week__Ship_Date__ok`, TIMESTAMPADD(SQL_TSI_DAY,-(DAYOFWEEK(`Ship Date`) - 1),CONVERT(`Ship Date`, SQL_DATE)) AS `none_DATETRUNC__week__Ship_Date__ok`, `Ship Date` AS `none_Ship_Date_ok`, DAYOFWEEK(`Ship Date`) AS `wd_Ship_Date_ok` FROM Staples WHERE ((`Ship Date` >=  '1997-12-20') AND (`Ship Date` <=  '1998-01-10')) GROUP BY WEEK(`Ship Date`), TIMESTAMPADD(SQL_TSI_DAY,-(DAYOFWEEK(`Ship Date`) - 1),CONVERT(`Ship Date`, SQL_DATE)), `Ship Date`, DAYOFWEEK(`Ship Date`) ORDER BY 1, 2, 3, 4

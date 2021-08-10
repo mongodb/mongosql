@@ -752,5 +752,4 @@ testcases:
       - ['2001-08-31 00:00:00', 4-NOT SPECIFIED, 42720, WIRELESS AND CELLULAR, 2]
       - ['2001-09-01 00:00:00', 4-NOT SPECIFIED, 42752, COPY PAPER, 2]
     expected_types: [varchar, varchar, int, varchar, int]
-    min_server_version: '3.4'
     sql: SELECT `Order Date` AS `none_Order_Date_ok`,   `Order Priority` AS `none_Order_Priority_nk`,   `PID` AS `none_PID_ok`,   `Prod Type3` AS `none_Prod_TypeD_nk`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Order Date` >= '2001-01-01') AND (`Order Date` <= '2001-09-01')) AND (`Product Container` IN ('SMALL BOX', 'SMALL PACK', 'WRAP BAG')) AND (`Product In Stock` = 'YES')) ORDER BY 1, 2, 3, 4, 5

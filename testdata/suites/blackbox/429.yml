@@ -7,5 +7,4 @@ testcases:
       - [HOME OFFICE]
       - [SMALL BUSINESS]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT (CASE WHEN (`Customer Segment` = 'CONSUMER') THEN '*Anonymous*' WHEN (`Customer Segment` = 'CORPORATE') THEN '*Public*' ELSE `Customer Segment` END) AS `none_BBAEFH_nk` FROM Staples GROUP BY (CASE WHEN (`Customer Segment` = 'CONSUMER') THEN '*Anonymous*' WHEN (`Customer Segment` = 'CORPORATE') THEN '*Public*' ELSE `Customer Segment` END) ORDER BY 1

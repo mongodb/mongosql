@@ -9,5 +9,4 @@ testcases:
       - [791788.9, 1999]
       - [829214.28, 1998]
     expected_types: [float, int]
-    min_server_version: '3.4'
     sql: SELECT SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY YEAR(`Order Date`) ORDER BY 1, 2

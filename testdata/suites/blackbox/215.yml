@@ -79,5 +79,4 @@ testcases:
       - [Yoseph Carroll-Englig]
       - [Zyzzy Zzuyzyzyk]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` ORDER BY 1 ASC

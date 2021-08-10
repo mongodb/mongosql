@@ -408,22 +408,13 @@ func (s *Session) KillOps(ctx context.Context, clientAddresses []string) error {
 		return err
 	}
 
-	version, err := s.Version(ctx)
-	if err != nil {
-		return err
-	}
-
-	useKillCursors := procutil.VersionAtLeast(version.VersionArray, []uint8{'4', '0', '0'})
-
 	for _, op := range currentOpsToKill {
-		if useKillCursors {
-			if args, isGetMore := op.isGetMore(); isGetMore {
-				err = s.killCursors(ctx, args.cursorID, args.db, args.collection)
-				if err != nil {
-					return err
-				}
-				continue
+		if args, isGetMore := op.isGetMore(); isGetMore {
+			err = s.killCursors(ctx, args.cursorID, args.db, args.collection)
+			if err != nil {
+				return err
 			}
+			continue
 		}
 		err = s.killOp(ctx, op.Opid)
 		if err != nil {

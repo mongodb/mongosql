@@ -101,5 +101,4 @@ testcases:
       - ['2001-08-28 00:00:00', 42597, BINDER ACCESSORIES, 'YES', 12]
       - ['2001-08-28 00:00:00', 42604, COMPUTER PAPER, 'YES', 12]
     expected_types: [varchar, int, varchar, varchar, int]
-    min_server_version: '3.4'
     sql: SELECT `Order Date` AS `none_Order_Date_ok`,   `PID` AS `none_PID_ok`,   `Prod Type3` AS `none_Prod_TypeD_nk`,   `Product In Stock` AS `none_Product_In_Stock_nk`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Fill Time` >= 5) AND (`Fill Time` <= 12)) AND ((`Order Date` >= '2001-01-01') AND (`Order Date` <= '2001-09-01')) AND (`Product Container` IN ('SMALL BOX', 'SMALL PACK', 'WRAP BAG')) AND (`Product In Stock` = 'YES')) ORDER BY 1, 2, 3, 4, 5

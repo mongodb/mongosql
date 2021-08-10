@@ -2190,5 +2190,4 @@ testcases:
       - [53329.89, '1998-01-13 00:00:00']
       - [54352.77, '1999-03-22 00:00:00']
     expected_types: [float, varchar]
-    min_server_version: '3.4'
     sql: SELECT MAX(`Gross Profit`) AS `max_Gross_Profit_ok`,   `Order Date` AS `none_Order_Date_ok` FROM Staples GROUP BY `Order Date` ORDER BY 1, 2

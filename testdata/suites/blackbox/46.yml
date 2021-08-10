@@ -3,5 +3,4 @@ testcases:
   - expected_names: [none_Employee_Name_nk]
     expected_results: []
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Employee Name` AS `none_Employee_Name_nk` FROM Staples WHERE (`Employee Name` IS NULL) ORDER BY 1 LIMIT 1

@@ -20,5 +20,4 @@ testcases:
       - [COPIERS, PERSONAL COPIERS]
       - [COPY PAPER, COPY PAPER]
     expected_types: [varchar, varchar]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type3` AS `none_Prod_TypeD_nk`,   `Prod Type4` AS `none_Prod_TypeE_nk` FROM Staples WHERE (`Prod Type3` IN ('AIR PURIFIERS', 'ART SUPPLIES', 'BINDER ACCESSORIES', 'BINDER CLIPS', 'BINDING MACHINES', 'BINDING SUPPLIES', 'BUSINESS ENVELOPES', 'CALCULATORS', 'CARDBOARD STORAGE', 'CLOCKS', 'COLORED ENVELOPES', 'COMPUTER PAPER', 'COPIERS', 'COPY PAPER')) GROUP BY `Prod Type3`,   `Prod Type4` ORDER BY 1, 2

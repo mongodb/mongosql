@@ -7,7 +7,6 @@ testcases:
       - ['created_writes_db']
     expected_types: [varchar]
     id: 'create database created_writes_db'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -21,7 +20,6 @@ testcases:
       - ['dbs']
     expected_types: [varchar]
     id: 'create database dbs'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists dbs
     sql_list: [
       drop database if exists dbs,
@@ -36,7 +34,6 @@ testcases:
       - ['created_writes_db']
     expected_types: [varchar]
     id: 'create database created_writes_db twice no conflict'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -49,7 +46,6 @@ testcases:
     description: create database that already exists, should error
     expected_error: 'Error 1105: database "created_writes_db" already exists in schema'
     id: 'create database created_writes_db twice conflict'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -63,7 +59,6 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: 'use database'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,

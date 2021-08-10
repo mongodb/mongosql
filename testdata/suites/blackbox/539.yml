@@ -21,5 +21,4 @@ testcases:
       - [TECHNOLOGY, 2776788.63, '1997-01-01 00:00:00']
       - [TECHNOLOGY, 3217163.46, '1998-01-01 00:00:00']
     expected_types: [varchar, float, varchar]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) AS `tyr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) ORDER BY 1, 2, 3

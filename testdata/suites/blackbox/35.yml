@@ -5,5 +5,4 @@ testcases:
       - [8, Sandra Davis]
       - [95, "Sandra R\xEDos Balderrama"]
     expected_types: [int, varchar]
-    min_server_version: '3.4'
     sql: "SELECT COUNT(1) AS `cnt_Number_of_Records_ok`,   `Employee Name` AS `none_Employee_Name_nk` FROM Staples WHERE (`Employee Name` IN ('Sandra Davis', 'Sandra R\xEDos Balderrama')) GROUP BY `Employee Name` ORDER BY 1, 2"

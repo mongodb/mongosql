@@ -1935,5 +1935,4 @@ testcases:
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, WIRELESS AND CELLULAR, NOKIA, Accessory9]
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, WIRELESS AND CELLULAR, NOKIA, Phone 918]
     expected_types: [varchar, varchar, varchar, varchar, varchar]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   `Prod Type3` AS `none_Prod_TypeD_nk`,   `Prod Type4` AS `none_Prod_TypeE_nk`,   `Product Name` AS `none_Product_Name_nk` FROM Staples GROUP BY `Prod Type1`,   `Prod Type2`,   `Prod Type3`,   `Prod Type4`,   `Product Name` ORDER BY 1, 2, 3, 4, 5

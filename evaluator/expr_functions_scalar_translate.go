@@ -1864,12 +1864,6 @@ func (f *baseScalarFunctionExpr) lastDayToAggregationLanguage(t *PushdownTransla
 		)
 
 	} else {
-		if !t.versionAtLeast(3, 6, 0) {
-			return nil, newPushdownFailure(
-				"lastDayToAggregationLanguage",
-				"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
-			)
-		}
 		const30 := astutil.Int32Value(30)
 		// For MongoDB versions < 4.0, underflow and overflow in date computation are not
 		// supported. For example, a day value of zero or a month value of 13 in a date
@@ -2081,13 +2075,6 @@ func (f *baseScalarFunctionExpr) ltrimToAggregationLanguage(t *PushdownTranslato
 }
 
 func (f *baseScalarFunctionExpr) makeDateToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 5, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(makeDate)",
-			"cannot push down to MongoDB < 3.5",
-		)
-	}
-
 	assertExactArgCount(exprs, 2)
 
 	args, err := t.translateArgs(exprs)
@@ -2995,13 +2982,6 @@ func (f *baseScalarFunctionExpr) tanToAggregationLanguage(t *PushdownTranslator,
 }
 
 func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 5, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(timestampAdd)",
-			"cannot push down to MongoDB < 3.5",
-		)
-	}
-
 	assertExactArgCount(exprs, 3)
 
 	unit := exprs[0].String()
@@ -3195,13 +3175,6 @@ func (f *baseScalarFunctionExpr) timestampAddToAggregationLanguage(t *PushdownTr
 }
 
 func (f *baseScalarFunctionExpr) timestampDiffToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 5, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(timestampDiff)",
-			"cannot push down to MongoDB < 3.5",
-		)
-	}
-
 	assertExactArgCount(exprs, 3)
 
 	unit := exprs[0].String()
@@ -3369,12 +3342,6 @@ func (f *baseScalarFunctionExpr) toSecondsToAggregationLanguage(t *PushdownTrans
 
 // We'll just accept a date as a time. Tableau uses TIME_TO_SEC.
 func (f *baseScalarFunctionExpr) timeToSecToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
-	if !t.versionAtLeast(3, 6, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(time_to_sec)",
-			"cannot push down to MongoDB < 3.6",
-		)
-	}
 	assertExactArgCount(exprs, 1)
 
 	// We will only pushdown for things statically known to be datetime/date because
@@ -3545,13 +3512,6 @@ func (f *baseScalarFunctionExpr) unixTimestampToAggregationLanguage(t *PushdownT
 		return astutil.Int64Value(now.Unix()), nil
 	}
 
-	if !t.versionAtLeast(3, 6, 0) {
-		return nil, newPushdownFailure(
-			"SQLScalarFunctionExpr(unix_timestamp)",
-			"cannot push down to MongoDB < 3.6",
-		)
-	}
-
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
@@ -3612,12 +3572,6 @@ func (f *baseScalarFunctionExpr) weekToAggregationLanguage(t *PushdownTranslator
 	args, err := t.translateArgs(exprs)
 	if err != nil {
 		return nil, err
-	}
-	if !t.versionAtLeast(3, 6, 0) && mode != int64(0) {
-		return nil, newPushdownFailure(
-			"weekToAggregationLanguage",
-			"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
-		)
 	}
 	return astutil.WrapInWeekCalculation(args[0], mode), nil
 }
@@ -3748,13 +3702,6 @@ func yearWeekToAggregationLanguage(date ast.Expr, mode int) ast.Expr {
 
 func (f *baseScalarFunctionExpr) yearWeekToAggregationLanguage(t *PushdownTranslator, exprs []SQLExpr) (ast.Expr, PushdownFailure) {
 	assertEitherArgCount(exprs, 1, 2)
-	if !t.versionAtLeast(3, 6, 0) {
-		return nil, newPushdownFailure(
-			"yearWeekToAggregationLanguage",
-			"cannot push down to MongoDB < 3.6 (need overflowing $dateFromParts)",
-		)
-	}
-
 	mode := 0
 	if len(exprs) == 2 {
 		modeValueExpr, ok := exprs[1].(SQLValueExpr)

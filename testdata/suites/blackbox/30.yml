@@ -1764,5 +1764,4 @@ testcases:
       - [WISCONSIN, '2002-11-17 00:00:00', null]
       - [WISCONSIN, '2002-12-10 00:00:00', 25971]
     expected_types: [varchar, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT `Customer State` AS `none_Customer_State_nk`,   `Order Date` AS `none_Order_Date_ok`,   SUM((CASE WHEN `Discount` = 0 THEN NULL ELSE `Price` / `Discount` END)) AS `sum_My_Divide_By_Zero_ok` FROM Staples WHERE (`Prod Type4` = 'MEETING ROOM TABLES') GROUP BY `Customer State`,   `Order Date` ORDER BY 1, 2, 3

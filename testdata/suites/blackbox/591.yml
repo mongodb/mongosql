@@ -6,5 +6,4 @@ testcases:
       - [EAST]
       - [WEST]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk` FROM Staples GROUP BY `Call Center Region` ORDER BY 1 ASC

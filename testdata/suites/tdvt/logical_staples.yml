@@ -6,7 +6,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok]
     expected_types: [var_string, float]
     id: '0'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nWHERE (`Staples`.`Customer\
@@ -61,7 +60,6 @@ testcases:
     expected_names: [Prod Type1, Prod Type2, sum_Gross Profit_ok]
     expected_types: [var_string, var_string, float]
     id: '1'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Prod Type1` AS `Prod Type1`,\n  `Staples`.`Prod\
       \ Type2` AS `Prod Type2`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross Profit_ok`\n\
@@ -173,7 +171,6 @@ testcases:
     expected_names: [Order Date, cnt_Number of Records_ok]
     expected_types: [timestamp, longlong]
     id: '2'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Order Date` AS `Order Date`,\n  COUNT(1) AS `cnt_Number\
       \ of Records_ok`\nFROM `Staples`\nWHERE ((`Staples`.`Order Date` >= TIMESTAMP('1998-02-09\
@@ -285,7 +282,6 @@ testcases:
         Quantity_ok, yr_Order Date_ok]
     expected_types: [var_string, var_string, float, float, longlong]
     id: '3'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer Balance`)\
@@ -402,7 +398,6 @@ testcases:
     expected_names: ['DATEPART(''week'',Ship Date)', 'DATETRUNC(''week'',Ship Date)', Ship Date, wd_Ship Date_ok]
     expected_types: [float, timestamp, timestamp, longlong]
     id: '4'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT FLOOR((7 + DAYOFYEAR(`Staples`.`Ship Date`) - 1 + DAYOFWEEK(DATE_FORMAT(`Staples`.`Ship\
       \ Date`, '%Y-01-01 00:00:00')) - 1) / 7) AS `DATEPART('week',Ship Date)`,\n  ADDDATE(FROM_DAYS(\
@@ -482,7 +477,6 @@ testcases:
     expected_names: [Employee Name, avg_Employee Salary_ok]
     expected_types: [var_string, float]
     id: '5'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Employee Name` AS `Employee Name`,\n  AVG(`Staples`.`Employee\
       \ Salary`) AS `avg_Employee Salary_ok`\nFROM `Staples`\n  INNER JOIN (\n  SELECT\
@@ -596,7 +590,6 @@ testcases:
     expected_names: [PID, sum_Gross Profit_ok, sum_Sales Total_ok]
     expected_types: [longlong, float, float]
     id: '6'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`PID` AS `PID`,\n  `Staples`.`Gross Profit` AS `sum_Gross\
       \ Profit_ok`,\n  `Staples`.`Sales Total` AS `sum_Sales Total_ok`\nFROM `Staples`\n\
@@ -708,7 +701,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok, sum_Order Quantity_ok]
     expected_types: [var_string, float, float]
     id: '7'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`,\n  SUM(`Staples`.`Order Quantity`) AS\
@@ -821,7 +813,6 @@ testcases:
     expected_names: [Prod Type2, mn_Order Date_ok, sum_Gross Profit_ok]
     expected_types: [var_string, longlong, float]
     id: '8'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Prod Type2` AS `Prod Type2`,\n  MONTH(`Staples`.`Order\
       \ Date`) AS `mn_Order Date_ok`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross\
@@ -850,7 +841,6 @@ testcases:
       - ['5052539.0']
     expected_error: ''
     id: '9'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nORDER BY\
@@ -960,7 +950,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok]
     expected_types: [var_string, float]
     id: '10'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING (AVG(`Staples`.`Discount`)\
@@ -1006,7 +995,6 @@ testcases:
     expected_names: [Prod Type1, Prod Type2, sum_Gross Profit_ok]
     expected_types: [var_string, var_string, float]
     id: '11'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Prod Type1` AS `Prod Type1`,\n  `Staples`.`Prod\
       \ Type2` AS `Prod Type2`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross Profit_ok`\n\
@@ -1049,7 +1037,6 @@ testcases:
     expected_names: [Prod Type1, Prod Type2, sum_Gross Profit_ok]
     expected_types: [var_string, var_string, float]
     id: '12'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Prod Type1` AS `Prod Type1`,\n  `Staples`.`Prod\
       \ Type2` AS `Prod Type2`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross Profit_ok`\n\
@@ -1116,7 +1103,6 @@ testcases:
     expected_names: [Prod Type2, sum_Gross Profit_ok, sum_Price_ok]
     expected_types: [var_string, float, float]
     id: '13'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Prod Type2` AS `Prod Type2`,\n  SUM(`Staples`.`Gross\
       \ Profit`) AS `sum_Gross Profit_ok`,\n  SUM(`Staples`.`Price`) AS `sum_Price_ok`\n\
@@ -1176,7 +1162,6 @@ testcases:
     expected_names: [Customer Name, avg_Customer Balance_ok]
     expected_types: [var_string, float]
     id: '14'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  AVG(`Staples`.`Customer\
       \ Balance`) AS `avg_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((AVG(`Staples`.`Customer\
@@ -1217,7 +1202,6 @@ testcases:
     expected_names: [Prod Type1, Prod Type2, sum_Gross Profit_ok]
     expected_types: [var_string, var_string, float]
     id: '15'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Prod Type1` AS `Prod Type1`,\n  `Staples`.`Prod\
       \ Type2` AS `Prod Type2`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross Profit_ok`\n\
@@ -1340,7 +1324,6 @@ testcases:
     expected_names: [Product Name, sum_Gross Profit_ok, sum_Sales Total_ok]
     expected_types: [var_string, float, float]
     id: '16'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Product Name` AS `Product Name`,\n  SUM(`Staples`.`Gross\
       \ Profit`) AS `sum_Gross Profit_ok`,\n  SUM(`Staples`.`Sales Total`) AS `sum_Sales\
@@ -1460,7 +1443,6 @@ testcases:
     expected_names: [Customer Name, cnt_Customer Balance_ok]
     expected_types: [var_string, longlong]
     id: '17'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  COUNT(`Staples`.`Customer\
       \ Balance`) AS `cnt_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((COUNT(`Staples`.`Customer\
@@ -1571,7 +1553,6 @@ testcases:
     expected_names: [md_Order Date_ok, sum_Gross Profit_ok]
     expected_types: [float, float]
     id: '18'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT (((YEAR(`Staples`.`Order Date`) * 10000) + (MONTH(`Staples`.`Order\
       \ Date`) * 100)) + DAYOFMONTH(`Staples`.`Order Date`)) AS `md_Order Date_ok`,\n\
@@ -1691,7 +1672,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok]
     expected_types: [var_string, float]
     id: '19'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\n     order\
@@ -1801,7 +1781,6 @@ testcases:
     expected_names: [Customer Name, min_Customer Balance_ok]
     expected_types: [var_string, longlong]
     id: '20'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  MIN(`Staples`.`Customer\
       \ Balance`) AS `min_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((MIN(`Staples`.`Customer\
@@ -1912,7 +1891,6 @@ testcases:
     expected_names: [Call Center Region, PID, sum_Customer Balance_ok, sum_Order Quantity_ok, yr_Order Date_ok]
     expected_types: [var_string, longlong, longlong, longlong, longlong]
     id: '21'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`PID` AS `PID`,\n  `Staples`.`Customer Balance` AS `sum_Customer Balance_ok`,\n\
@@ -2026,7 +2004,6 @@ testcases:
     expected_names: [md_Order Date_ok, sum_Gross Profit_ok]
     expected_types: [float, float]
     id: '22'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT (((YEAR(`Staples`.`Order Date`) * 10000) + (MONTH(`Staples`.`Order\
       \ Date`) * 100)) + DAYOFMONTH(`Staples`.`Order Date`)) AS `md_Order Date_ok`,\n\
@@ -2070,7 +2047,6 @@ testcases:
     expected_names: [Prod Type1, Prod Type2, sum_Gross Profit_ok]
     expected_types: [var_string, var_string, float]
     id: '23'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Prod Type1` AS `Prod Type1`,\n  `Staples`.`Prod\
       \ Type2` AS `Prod Type2`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross Profit_ok`\n\
@@ -2154,7 +2130,6 @@ testcases:
       - ['17160.4']
     expected_error: ''
     id: '24'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`Customer State` AS `Customer State`,\n  SUM(`Staples`.`Gross Profit`)\
@@ -2282,7 +2257,6 @@ testcases:
         Quantity_ok, yr_Order Date_ok]
     expected_types: [var_string, var_string, float, float, longlong]
     id: '25'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer Balance`)\
@@ -2338,7 +2312,6 @@ testcases:
     expected_names: [Customer Name, max_Customer Balance_ok]
     expected_types: [var_string, longlong]
     id: '26'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  MAX(`Staples`.`Customer\
       \ Balance`) AS `max_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((MAX(`Staples`.`Customer\
@@ -2449,7 +2422,6 @@ testcases:
     expected_names: [Call Center Region, PID, sum_Customer Balance_ok, sum_Order Quantity_ok, yr_Order Date_ok]
     expected_types: [var_string, longlong, longlong, longlong, longlong]
     id: '27'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`PID` AS `PID`,\n  `Staples`.`Customer Balance` AS `sum_Customer Balance_ok`,\n\
@@ -2465,7 +2437,6 @@ testcases:
     expected_names: [sum_Calculation_555068687593533440_ok]
     expected_types: [float]
     id: '28'
-    min_server_version: '3.4'
     sql: "SELECT SUM((`Staples`.`Price` / 1.1000000000000001)) AS `sum_Calculation_555068687593533440_ok`FROM `Staples` HAVING (COUNT(1) > 0) order by 1"
   - expected_results:
       - [Barbara Fisher]
@@ -2572,7 +2543,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok]
     expected_types: [var_string, float]
     id: '29'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nWHERE (((`Staples`.`Customer\
@@ -2616,7 +2586,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok]
     expected_types: [var_string, float]
     id: '30'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((SUM(`Staples`.`Customer\
@@ -2727,7 +2696,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok, sum_Order Quantity_ok]
     expected_types: [var_string, float, float]
     id: '31'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`,\n  SUM(`Staples`.`Order Quantity`) AS\
@@ -2787,7 +2755,6 @@ testcases:
     expected_names: [Call Center Region, Customer Name, sum_Customer Balance_ok]
     expected_types: [var_string, var_string, float]
     id: '32'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer Balance`)\
@@ -2902,7 +2869,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok]
     expected_types: [var_string, float]
     id: '33'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\n  INNER JOIN (\n  SELECT\
@@ -3019,7 +2985,6 @@ testcases:
         Quantity_ok]
     expected_types: [var_string, var_string, float, float]
     id: '34'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer Balance`)\
@@ -3035,7 +3000,6 @@ testcases:
       - ['5052539.0']
     expected_error: ''
     id: '35'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nORDER BY\
@@ -3145,7 +3109,6 @@ testcases:
     expected_names: [Market Segment, Prod Type1, Prod Type2, Prod Type3, Prod Type4, sum_Gross Profit_ok, sum_Sales Total_ok]
     expected_types: [var_string, var_string, var_string, var_string, var_string, float, float]
     id: '36'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Market Segment` AS `Market Segment`,\n  `Staples`.`Prod\
       \ Type1` AS `Prod Type1`,\n  `Staples`.`Prod Type2` AS `Prod Type2`,\n  `Staples`.`Prod\
@@ -3259,7 +3222,6 @@ testcases:
       - ['6']
     expected_error: ''
     id: '37'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT TRUNCATE((((6 + DAYOFWEEK(DATE_ADD(ADDDATE( DATE_FORMAT( `Staples`.`Order\
       \ Date`, '%Y-01-01 00:00:00' ), INTERVAL 0 SECOND ), INTERVAL (2 - (CASE WHEN\
@@ -3379,7 +3341,6 @@ testcases:
     expected_names: [mn_Order Date_qk]
     expected_types: [longlong]
     id: '38'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT MONTH(`Staples`.`Order Date`) AS `mn_Order Date_qk`\nFROM `Staples`\n\
       \     order by 1"
@@ -3416,7 +3377,6 @@ testcases:
     expected_names: [Call Center Region, Order ID, Product Container, avg_Gross Profit_ok, mn_Order Date_ok, sum_Price_ok, yr_Order Date_ok]
     expected_types: [var_string, var_string, var_string, float, longlong, float, longlong]
     id: '39'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Call Center Region` AS `Call Center Region`,\n \
       \ `Staples`.`Order ID` AS `Order ID`,\n  `Staples`.`Product Container` AS `Product\
@@ -3534,7 +3494,6 @@ testcases:
     expected_names: [Customer Name, sum_Customer Balance_ok, sum_Order Quantity_ok]
     expected_types: [var_string, float, float]
     id: '40'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`,\n  SUM(`Staples`.`Order Quantity`) AS\
@@ -3646,7 +3605,6 @@ testcases:
       - ['101589.0']
     expected_error: ''
     id: '41'
-    min_server_version: '3.4'
     skip: true
     sql: "\n      SELECT `Staples`.`Employee Name` AS `Employee Name`,\n  AVG(`Staples`.`Employee\
       \ Salary`) AS `avg_Employee Salary_ok`,\n  AVG(`Staples`.`Employee Salary`) AS\

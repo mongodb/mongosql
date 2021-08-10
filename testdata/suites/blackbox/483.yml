@@ -18,5 +18,4 @@ testcases:
       - [38.861590909090914, East, Tea, 32171924905812.17]
       - [38.96892857142857, East, Coffee, 56639691401960.43]
     expected_types: [float, varchar, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT AVG(`Profit Ratio`) AS `avg_Profit_Ratio_ok`,   `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk`,   SUM((`Sales` * 1000000000)) AS `sum_ProjectedSales_ok` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2, 3, 4

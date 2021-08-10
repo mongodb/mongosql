@@ -806,12 +806,6 @@ func (e *SQLConvertExpr) translateMongoSQL(t *PushdownTranslator) (ast.Expr, Pus
 		converted := astutil.WrapInDateToString(expr, "%Y-%m-%d")
 		return converted, nil
 	} else if fromType == types.EvalDatetime && toType == types.EvalDate {
-		if !t.versionAtLeast(3, 6, 0) {
-			return nil, newPushdownFailure(
-				e.ExprName(),
-				"cannot push down mongosql-mode conversions to MongoDB < 3.6",
-			)
-		}
 		// Need special-case to strip away time
 		asDate := astutil.StripTimeFromDate(expr)
 
@@ -949,13 +943,6 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 		}
 
 	case types.EvalDatetime:
-		if !t.versionAtLeast(3, 6, 0) {
-			return nil, newPushdownFailure(
-				e.ExprName(),
-				"cannot push down mysql-mode conversions to MongoDB < 3.6",
-			)
-		}
-
 		year := ast.NewFunction(bsonutil.OpYear, expr)
 		month := ast.NewFunction(bsonutil.OpMonth, expr)
 		day := ast.NewFunction(bsonutil.OpDayOfMonth, expr)
@@ -1009,13 +996,6 @@ func (e *SQLConvertExpr) translateMySQL(t *PushdownTranslator) (ast.Expr, Pushdo
 		}
 
 	case types.EvalDate:
-		if !t.versionAtLeast(3, 6, 0) {
-			return nil, newPushdownFailure(
-				e.ExprName(),
-				"cannot push down mysql-mode conversions to MongoDB < 3.6",
-			)
-		}
-
 		year := ast.NewFunction(bsonutil.OpYear, expr)
 		month := ast.NewFunction(bsonutil.OpMonth, expr)
 		day := ast.NewFunction(bsonutil.OpDayOfMonth, expr)

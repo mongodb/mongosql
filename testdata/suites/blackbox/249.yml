@@ -2824,5 +2824,4 @@ testcases:
       - [54854, OFFICE SUPPLIES, -18.73, 150.46]
       - [54855, FURNITURE, 334.17, 1822.52]
     expected_types: [int, varchar, float, float]
-    min_server_version: '3.4'
     sql: SELECT `PID` AS `none_PID_ok`, `Prod Type1` AS `none_Prod_TypeB_nk`, `Gross Profit` AS `sum_Gross_Profit_ok`, `Sales Total` AS `sum_Sales_Total_ok` FROM Staples WHERE ((`Call Center Region` = 'EAST') AND (`Customer Segment` IN ('CORPORATE', 'HOME OFFICE')) AND ((`Sales Total` >= -3640.2318449999998) AND (`Sales Total` <= 24622.425030999999)) AND (YEAR(`Order Date`) = 2002)) ORDER BY 1, 2, 3, 4

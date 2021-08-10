@@ -12,5 +12,4 @@ testcases:
       - [WEST, OFFICE SUPPLIES, 35038484, 1375326.17]
       - [WEST, TECHNOLOGY, 15415746, 4617001.09]
     expected_types: [varchar, varchar, int, float]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Call Center Region`, `Prod Type1` ORDER BY 1, 2, 3, 4

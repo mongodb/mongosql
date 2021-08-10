@@ -2190,5 +2190,4 @@ testcases:
       - [20021230]
       - [20021231]
     expected_types: [int]
-    min_server_version: '3.4'
     sql: SELECT (((YEAR(`Order Date`) * 10000) + (MONTH(`Order Date`) * 100)) + DAYOFMONTH(`Order Date`)) AS `md_Order_Date_ok` FROM Staples GROUP BY (((YEAR(`Order Date`) * 10000) + (MONTH(`Order Date`) * 100)) + DAYOFMONTH(`Order Date`)) ORDER BY 1 ASC

@@ -35,5 +35,4 @@ testcases:
       - [68192.84999999999, 186680.47, Hallie Redmond]
       - [87528.14, 284242.16, Shui Tom]
     expected_types: [float, float, varchar]
-    min_server_version: '3.4'
     sql: SELECT SUM(`Gross Profit`) AS `TEMP_Average__Margin__BGGJAIHIBF__A_`,   SUM(`Sales Total`) AS `TEMP_Average__Margin__DFHEEHHCA__A_`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples WHERE (`Customer State` = 'WASHINGTON') GROUP BY `Customer Name` ORDER BY 1, 2, 3

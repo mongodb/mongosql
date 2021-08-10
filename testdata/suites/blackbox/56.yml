@@ -82,5 +82,4 @@ testcases:
       - [WRITINGS PADS, MEMO SLIPS, 1, 109867.31]
       - [WRITINGS PADS, STENO BOOKS, 1, -201.75]
     expected_types: [varchar, varchar, int, float]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type3` AS `Prod_TypeD`,   `Prod Type4` AS `Prod_TypeE`,   MAX(1) AS `max_One_ok`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Prod Type3`,   `Prod Type4` ORDER BY 1, 2, 3, 4

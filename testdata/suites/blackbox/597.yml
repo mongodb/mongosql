@@ -10,5 +10,4 @@ testcases:
       - [SMALL PACK]
       - [WRAP BAG]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Product Container` AS `none_Product_Container_nk` FROM Staples GROUP BY `Product Container` ORDER BY 1 ASC

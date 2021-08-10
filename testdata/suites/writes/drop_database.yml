@@ -6,7 +6,6 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: 'drop database created_writes_db'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -21,7 +20,6 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     id: 'drop database created_writes_db twice no conflict'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -35,7 +33,6 @@ testcases:
     description: drop database that already exists, should error
     expected_error: "Error 1105: database 'created_writes_db' cannot be dropped as it does not exist"
     id: 'drop database created_writes_db twice conflict'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,
@@ -48,7 +45,6 @@ testcases:
     description: dropping the current database should unset the current database
     expected_error: "Error 1046: No database selected"
     id: 'drop current database'
-    min_server_version: 3.6
     sql_cleanup: drop database if exists created_writes_db
     sql_list: [
       drop database if exists created_writes_db,

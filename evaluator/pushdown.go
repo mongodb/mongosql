@@ -1759,14 +1759,6 @@ func (v *pushdownVisitor) visitJoin(join *JoinStage) (PlanStage, error) {
 
 // nolint: unparam
 func (v *pushdownVisitor) visitExpressiveJoin(join *JoinStage) (PlanStage, error) {
-
-	// cannot use expressive lookup before 3.6
-	if !procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 6, 0}) {
-		v.logger.Warnf(log.Dev, "cannot push down join stage to expressive lookup: expressive lookup not available")
-		v.addNewPushdownFailure(join, joinStageName, "cannot push down expressive $lookup to MongoDB < 3.6")
-		return join, nil
-	}
-
 	v.logger.Debugf(log.Dev, "attempting to translate join stage to expressive lookup")
 	v.clearPushdownFailures(join)
 
@@ -2527,18 +2519,7 @@ func (v *pushdownVisitor) visitProject(project *ProjectStage) (PlanStage, error)
 
 		// If no columns are referenced, we can apply the row generator optimization.
 		if !hasColumnRef && v.cfg.allowRowGeneratorOptimization {
-			var stage ast.Stage
-			if procutil.VersionAtLeast(v.cfg.mongoDBVersion, []uint8{3, 4, 0}) {
-				stage = ast.NewCountStage("rowCount")
-			} else {
-				stage = ast.NewGroupStage(
-					ast.NewDocument(),
-					ast.NewGroupItem(
-						"rowCount",
-						ast.NewFunction(bsonutil.OpSum, astutil.OneInt32Literal),
-					),
-				)
-			}
+			stage := ast.NewCountStage("rowCount")
 
 			newMappingRegistry := newMappingRegistry()
 			newColumn := results.NewColumn(ms.selectIDs[0], "", "", "", "rowCount", "", "rowCount",

@@ -12,5 +12,4 @@ testcases:
       - [TECHNOLOGY, EAST, 27927772, 7585954.33]
       - [TECHNOLOGY, WEST, 15892066, 4959892.52]
     expected_types: [varchar, varchar, int, float]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, `Supplier Region` AS `none_Supplier_Region_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Prod Type1`, `Supplier Region` ORDER BY 1, 2, 3, 4

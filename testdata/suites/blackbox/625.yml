@@ -120,5 +120,4 @@ testcases:
       - [WEST, '2002-12-06 00:00:00', CHALK, 327, 5]
       - [WEST, '2002-12-11 00:00:00', CHALK, 323, 2]
     expected_types: [varchar, varchar, varchar, int, int]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Order Date` AS `none_Order_Date_ok`, `Prod Type4` AS `none_Prod_TypeE_nk`, `Product ID` AS `none_Product_ID_ok`, SUM(CONVERT(`Total Cycle Time`, SQL_BIGINT)) AS `sum_Total_Cycle_Time_ok` FROM Staples WHERE ((`Prod Type4` = 'CHALK') AND (NOT (`Product ID` IS NULL)) AND (YEAR(`Order Date`) = 2002)) GROUP BY `Call Center Region`, `Order Date`, `Prod Type4`, `Product ID` ORDER BY 1, 2, 3, 4, 5

@@ -18,6 +18,5 @@ testcases:
       - [COLORADO, 275.37, 1997]
       - [COLORADO, 324.62, 1998]
     expected_types: [varchar, float, float]
-    min_server_version: '3.4'
     skip: true
     sql: SELECT "Customer State" AS "none_Customer_State_nk",   SUM("Price") AS "sum_Price_ok",   {fn YEAR("Order Date")} AS "yr_Order_Date_ok" FROM Staples WHERE (("Customer State" IN ('ALABAMA', 'CALIFORNIA', 'COLORADO')) AND ("Prod Type4" = 'AIR PURIFIERS')) GROUP BY "Customer State",   {fn YEAR("Order Date")}

@@ -41,7 +41,6 @@ testcases:
       - [2, 0]
     expected_types: [int, int]
     id: collation
-    min_server_version: '3.4'
     sql: select _id, sleep(0.1) from collation_1 where a = 'A'
 
   - db: functions_test

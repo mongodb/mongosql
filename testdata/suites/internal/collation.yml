@@ -9,7 +9,6 @@ testcases:
       - [1, B]
     expected_types: [int, varchar]
     id: '0'
-    min_server_version: '3.4'
     sql: select * from collation_1 order by a
 
   - db: collation_test
@@ -20,7 +19,6 @@ testcases:
       - [B, 1]
     expected_types: [varchar, int]
     id: '1'
-    min_server_version: '3.4'
     sql: select a, sum(_id) from collation_1 group by a order by a
 
   - db: collation_test
@@ -31,5 +29,4 @@ testcases:
       - [2]
     expected_types: [int]
     id: '2'
-    min_server_version: '3.4'
     sql: select _id from collation_1 where a = 'A'

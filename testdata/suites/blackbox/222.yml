@@ -8,5 +8,4 @@ testcases:
       - [4-NOT SPECIFIED]
       - [5-LOW]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Order Priority` AS `none_Order_Priority_nk` FROM Staples GROUP BY `Order Priority` ORDER BY 1 ASC

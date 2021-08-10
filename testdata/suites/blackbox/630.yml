@@ -56,5 +56,4 @@ testcases:
       - [-112, Hallie Redmond]
       - [-110, Lela Donovan]
     expected_types: [int, varchar]
-    min_server_version: '3.4'
     sql: SELECT MIN(`Customer Balance`) AS `min_Customer_Balance_ok`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((MIN(`Customer Balance`) >= (-988)) AND (MIN(`Customer Balance`) <= (-100))) ORDER BY 1, 2

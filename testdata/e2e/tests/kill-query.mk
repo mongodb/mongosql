@@ -63,10 +63,7 @@ test-kill-queries-admin-user: KILLING_USER := "2"
 test-kill-queries-admin-user: PROCS := 1
 test-kill-queries-admin-user: test-kill-queries-admin
 
-# Test killing queries in 3.6, 4.0, and latest
-test-kill-queries-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/3.6
-test-kill-queries-3.6: test-kill-queries
-
+# Test killing queries in 4.0, 4.2, and latest
 test-kill-queries-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/version/4.0
 test-kill-queries-4.0: test-kill-queries
 

@@ -322,5 +322,4 @@ testcases:
       - [7, 51, 2002]
       - [7, 52, 2000]
     expected_types: [int, int, int]
-    min_server_version: '3.4'
     sql: SELECT COUNT(DISTINCT `Order Date`) AS `ctd_Order_Date_ok`, WEEK(`Order Date`) AS `none_Week___ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY WEEK(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3

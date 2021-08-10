@@ -4,5 +4,4 @@ testcases:
     expected_results:
       - [0.05826659352715304, NEBRASKA]
     expected_types: [float, varchar]
-    min_server_version: '3.4'
     sql: SELECT AVG(`Discount`) AS `avg_Discount_ok`,   `Customer State` AS `none_Customer_State_nk` FROM Staples GROUP BY `Customer State` HAVING ((AVG(`Discount`) >= 0.058200399999999416) AND (AVG(`Discount`) <= 0.058276600000000581)) ORDER BY 1, 2

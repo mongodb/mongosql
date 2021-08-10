@@ -8,5 +8,4 @@ testcases:
       - [COLORADO, 108.47, 1999]
       - [COLORADO, 169.24, 2000]
     expected_types: [varchar, float, int]
-    min_server_version: '3.4'
     sql: SELECT `Customer State` AS `none_Customer_State_nk`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE ((`Customer State` IN ('ALABAMA', 'CALIFORNIA', 'COLORADO')) AND (`Prod Type4` = 'AIR PURIFIERS') AND (YEAR(`Order Date`) IN (1999, 2000))) GROUP BY `Customer State`, YEAR(`Order Date`) ORDER BY 1, 2, 3

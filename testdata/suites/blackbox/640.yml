@@ -27,5 +27,4 @@ testcases:
       - [3626.841584158416, Mary Zewe]
       - [3681.361549497848, Skye Norling-Christen]
     expected_types: [float, varchar]
-    min_server_version: '3.4'
     sql: SELECT AVG(CONVERT(`Customer Balance`, SQL_DOUBLE)) AS `avg_Customer_Balance_ok`, `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((AVG(CONVERT(`Customer Balance`, SQL_DOUBLE)) >= 252.99999999999747) AND (AVG(CONVERT(`Customer Balance`, SQL_DOUBLE)) <= 3702.7330280000369)) ORDER BY 1, 2

@@ -7,7 +7,6 @@ testcases:
       - [1, "2012-01-01 01:01:01", 42, "hello", 43.0, 540000]
     expected_types: ["int", "varchar", "int", "varchar", "float", "float"]
     id: "insert all types no cols"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -28,7 +27,6 @@ testcases:
       - [~, ~, ~, ~]
     expected_types: ["int", "float", "varchar", "varchar"]
     id: "insert types with cols"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -48,7 +46,6 @@ testcases:
       - [1]
     expected_types: ["int"]
     id: "support type mismatch via conversion bool"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -66,7 +63,6 @@ testcases:
       - [42.0]
     expected_types: ["float"]
     id: "support type mismatch via conversion double"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -84,7 +80,6 @@ testcases:
       - [42.0]
     expected_types: ["float"]
     id: "support type mismatch via conversion decimal"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -102,7 +97,6 @@ testcases:
       - [42]
     expected_types: ["int"]
     id: "support type mismatch via conversion int"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -121,7 +115,6 @@ testcases:
       - ["1970-01-01 00:00:00.042000"]
     expected_types: [varchar]
     id: "support type mismatch via conversion datetime"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -139,7 +132,6 @@ testcases:
     description: "type mismatch results in non-viable NULL value"
     expected_error: "Error 1105: column a cannot be NULL"
     id: "type mismatch results in non-viable NULL value"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -154,7 +146,6 @@ testcases:
     description: "explicit default results in non-viable NULL value"
     expected_error: "Error 1105: column a cannot be NULL"
     id: "explicit default results in non-viable NULL value"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -168,7 +159,6 @@ testcases:
     description: "implicit default results in non-viable NULL value"
     expected_error: "Error 1105: column a cannot be NULL"
     id: "implicit default results in non-viable NULL value"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -182,7 +172,6 @@ testcases:
     description: "literal NULL is non-viable NULL value"
     expected_error: "Error 1105: column a cannot be NULL"
     id: "literal NULL is non-viable"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -196,7 +185,6 @@ testcases:
     description: "violate uniqueness constraint, the error differs slightly depending on mongod version, so we use a expected_error_contains"
     expected_error_contains: "duplicate key error collection: created_writes_db.foo index: a_unique"
     id: "violate uniqueness constraint single row"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -213,7 +201,6 @@ testcases:
     description: "violate uniqueness constraint, the error differs slightly depending on mongod version, so we use a expected_error_contains"
     expected_error_contains: "duplicate key error collection: created_writes_db.foo index: a_unique"
     id: "violate uniqueness constraint multi-row"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -228,7 +215,6 @@ testcases:
     description: "violate uniqueness constraint, the error differs slightly depending on mongod version, so we use a expected_error_contains"
     expected_error_contains: "duplicate key error collection: created_writes_db.foo index: a_1_b_1"
     id: "violate uniqueness constraint multi-key unique index"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -249,7 +235,6 @@ testcases:
       - [43, 43]
     expected_types: ["int", "int"]
     id: "pass uniqueness constraint multi-key unique index"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -265,7 +250,6 @@ testcases:
     description: "insert where number of values in row 2 changes from 2 to 1"
     expected_error: "Error 1136: Column count doesn't match value count at row 2"
     id: "insert where number of values in row 2 changes from 2 to 1"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -279,7 +263,6 @@ testcases:
     description: "insert where number of values in row 2 changes from 0 to 1"
     expected_error: "Error 1136: Column count doesn't match value count at row 2"
     id: "insert where number of values in row 2 changes from 0 to 1"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -293,7 +276,6 @@ testcases:
     description: "insert where number of values in row 3 changes"
     expected_error: "Error 1136: Column count doesn't match value count at row 3"
     id: "insert where number of values in row 3 changes"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -307,7 +289,6 @@ testcases:
     description: "insert 0 values where 1 is required with column list"
     expected_error: "Error 1136: Column count doesn't match value count at row 1"
     id: "insert 0 values where 1 is required with column list"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -321,7 +302,6 @@ testcases:
     description: "insert 1 value where 2 is required without column list"
     expected_error: "Error 1136: Column count doesn't match value count at row 1"
     id: "insert 1 value where 2 is required without column list"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -338,7 +318,6 @@ testcases:
       - [~, ~]
     expected_types: ["int", "int"]
     id: "inserting an empty list no insert columns"
-    min_server_version: 3.6
     sql_cleanup: "drop database if exists created_writes_db"
     sql_list: [
       "drop database if exists created_writes_db",
@@ -356,5 +335,4 @@ testcases:
       - [0]
     expected_types: ["int"]
     id: "ensure STRICT_ALL_TABLES is not set"
-    min_server_version: 3.6
     sql: "select locate('STRICT_ALL_TABLES', variable_value) as strict from information_schema.global_variables where variable_name = 'sql_mode'"

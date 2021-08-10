@@ -1229,5 +1229,4 @@ testcases:
       - ['2001-09-01 00:00:00', 42733, SMALL BOX, Xerox 1969, 12]
       - ['2001-09-01 00:00:00', 42734, MEDIUM BOX, 'Polycom Soundstation EX Audio-Conferencing Telephone, Black', 12]
     expected_types: [varchar, int, varchar, varchar, int]
-    min_server_version: '3.4'
     sql: SELECT `Order Date` AS `none_Order_Date_ok`,   `PID` AS `none_PID_ok`,   `Product Container` AS `none_Product_Container_nk`,   `Product Name` AS `none_Product_Name_nk`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Fill Time` >= 5) AND (`Fill Time` <= 12)) AND ((`Order Date` >= '2001-01-01') AND (`Order Date` <= '2001-09-01'))) ORDER BY 1, 2, 3, 4, 5

@@ -14,5 +14,4 @@ testcases:
       - [574, Sue Ann Reed-Freeman]
       - [575, Tracy Zic]
     expected_types: [int, varchar]
-    min_server_version: '3.4'
     sql: SELECT COUNT(`Customer Balance`) AS `cnt_Customer_Balance_ok`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((COUNT(`Customer Balance`) >= 0) AND (COUNT(`Customer Balance`) <= 577)) ORDER BY 1, 2

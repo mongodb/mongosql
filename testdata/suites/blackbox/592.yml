@@ -6,5 +6,4 @@ testcases:
       - [OFFICE SUPPLIES]
       - [TECHNOLOGY]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk` FROM Staples GROUP BY `Prod Type1` ORDER BY 1 ASC

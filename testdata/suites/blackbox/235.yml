@@ -108,5 +108,4 @@ testcases:
       - [WEST, TECHNOLOGY, WRAP BAG, EXPRESS AIR, 1.03]
       - [WEST, TECHNOLOGY, WRAP BAG, REGULAR AIR, 5.640000000000001]
     expected_types: [varchar, varchar, varchar, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`,   `Prod Type1` AS `none_Prod_TypeB_nk`,   `Product Container` AS `none_Product_Container_nk`,   `Ship Mode` AS `none_Ship_Mode_nk`,   SUM(`Discount`) AS `sum_Discount_ok` FROM Staples GROUP BY `Call Center Region`,   `Prod Type1`,   `Product Container`,   `Ship Mode` ORDER BY 1, 2, 3, 4, 5

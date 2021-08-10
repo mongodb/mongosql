@@ -75,5 +75,4 @@ testcases:
       - [4.2250970245795605, 361.76635187580854, 4, 2, 2001]
       - [4.342569269521411, 433.28557934508814, 5, 2, 2001]
     expected_types: [float, float, int, int, int]
-    min_server_version: '3.4'
     sql: SELECT AVG(CONVERT(`Fill Time`, SQL_DOUBLE)) AS `avg_Fill_Time_ok`, AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, MONTH(`Order Date`) AS `mn_Order_Date_ok`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY MONTH(`Order Date`), QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5

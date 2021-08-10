@@ -75,5 +75,4 @@ testcases:
       - [WEST, SMALL BUSINESS, 785041.95, 2002]
       - [WEST, SMALL BUSINESS, 870670.68, 2001]
     expected_types: [varchar, varchar, float, int]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Segment` AS `none_Customer_Segment_nk`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Call Center Region`, `Customer Segment`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4

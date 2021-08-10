@@ -99,5 +99,4 @@ testcases:
       - [732.5166447368421, WEST, CORPORATE, 3, 357963.49, 2001]
       - [752.7216666666667, CENTRAL, SMALL BUSINESS, 2, 175156.44, 2001]
     expected_types: [float, varchar, varchar, int, float, int]
-    min_server_version: '3.4'
     sql: SELECT AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Segment` AS `none_Customer_Segment_nk`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (YEAR(`Order Date`) IN (2001, 2002)) GROUP BY `Call Center Region`, `Customer Segment`, QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6

@@ -173,5 +173,4 @@ testcases:
       - ["Acco Keyboard-In-A-Box\xAE"]
       - ["Acco PRESSTEX\xAE Data Binder with Storage Hooks, Dark Blue, 14 7/8\" X 11\""]
     expected_types: [varchar]
-    min_server_version: '3.4'
     sql: SELECT `Product Name` AS `none_Product_Name_nk` FROM Staples GROUP BY `Product Name` ORDER BY 1 LIMIT 170

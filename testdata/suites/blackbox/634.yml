@@ -5,5 +5,4 @@ testcases:
       - [EAST, ALABAMA, 733064.99]
       - [WEST, ARIZONA, 951267.56]
     expected_types: [varchar, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`,   `Customer State` AS `none_Customer_State_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE (`Customer State` IN ('ALABAMA', 'ARIZONA')) GROUP BY `Call Center Region`,   `Customer State` ORDER BY 1, 2, 3

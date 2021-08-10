@@ -82,5 +82,4 @@ testcases:
       - [0.07769607843137255, MAGNIFIER LAMPS, 95381.82]
       - [0.07954716981132076, CLAMP ON LAMPS, 19934.1]
     expected_types: [float, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT AVG(`Discount`) AS `avg_Discount_ok`,   `Prod Type4` AS `none_Prod_TypeE_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Prod Type4` ORDER BY 1, 2, 3

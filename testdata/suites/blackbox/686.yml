@@ -54863,5 +54863,4 @@ testcases:
       - [4.726970687893597]
       - [4.73522168209407]
     expected_types: [float]
-    min_server_version: '3.4'
     sql: SELECT (CASE WHEN `Gross Profit` > 0 THEN LOG10(`Gross Profit`) ELSE NULL END) AS `sum_LOG_Test_ok` FROM Staples ORDER BY 1

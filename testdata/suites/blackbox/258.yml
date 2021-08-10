@@ -225,5 +225,4 @@ testcases:
       - [WEST, Yoseph Carroll-Englig, 1775249, 28.42, 11973]
       - [WEST, Zyzzy Zzuyzyzyk, 732970, 7.12, 3450]
     expected_types: [varchar, varchar, int, float, int]
-    min_server_version: '3.4'
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(`Discount`) AS `sum_Discount_ok`, SUM(CONVERT(`Order Quantity`, SQL_BIGINT)) AS `sum_Order_Quantity_ok` FROM Staples GROUP BY `Call Center Region`, `Customer Name` ORDER BY 1, 2, 3, 4, 5

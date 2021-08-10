@@ -64,11 +64,6 @@ test-auth-command-failure: run-mongodb _create-test-user build-mongosqld run-mon
 test-auth-command-data-success: run-mongodb restore-integration-data _create-test-user build-mongosqld run-mongosqld _test-connect-success _test-command-success
 test-auth-command-data-failure: run-mongodb _create-test-user build-mongosqld run-mongosqld restore-integration-data _test-connect-success _test-command-failure
 
-# when no admin credentials are provided, we expect the connection to fail
-# because the schema is not yet available
-test-mongo-auth-sample-no-creds-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/3.6,sqlproxy/schema/mapping-majority
-test-mongo-auth-sample-no-creds-3.6: test-auth-schema-not-available
-
 # when no admin credentials are provided and we are running against mongodb 3.7+,
 # we expect the connection to fail because the schema is not yet available. This
 # is different from prior mongodb versions since 3.7+ requires authentication to
@@ -92,11 +87,6 @@ test-mongo-auth-sample-no-creds-latest: test-auth-schema-not-available
 
 # when incorrect admin credentials are provided, we expect the connection to fail
 # because the schema is not yet available
-test-mongo-auth-sample-wrong-admin-creds-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/3.6,sqlproxy/schema/mapping-majority,sqlproxy/auth/wrong-admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
-test-mongo-auth-sample-wrong-admin-creds-3.6: test-auth-schema-not-available
-
-# when incorrect admin credentials are provided, we expect the connection to fail
-# because the schema is not yet available
 test-mongo-auth-sample-wrong-admin-creds-4.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.0,sqlproxy/schema/mapping-majority,sqlproxy/auth/wrong-admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-wrong-admin-creds-4.0: test-auth-schema-not-available
 
@@ -109,11 +99,6 @@ test-mongo-auth-sample-wrong-admin-creds-4.2: test-auth-schema-not-available
 # because the schema is not yet available
 test-mongo-auth-sample-wrong-admin-creds-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,sqlproxy/schema/mapping-majority,sqlproxy/auth/wrong-admin-creds,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-wrong-admin-creds-latest: test-auth-schema-not-available
-
-# when correct admin credentials are provided but the user has no privileges,
-# we expect the connection to fail because the schema is not yet available
-test-mongo-auth-sample-no-roles-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/3.6,mongo/other-user/no-roles,sqlproxy/schema/mapping-majority,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
-test-mongo-auth-sample-no-roles-3.6: test-auth-schema-not-available
 
 # when correct admin credentials are provided but the user has no privileges,
 # we expect the connection to fail because the schema is not yet available
@@ -132,15 +117,10 @@ test-mongo-auth-sample-no-roles-latest: test-auth-empty-schema-available
 
 # when correct admin credentials are provided but the user does not have the listDatabases action,
 # we expect the connection to succeed as long as none of the database selectors use wildcards
-test-mongo-auth-sample-no-listdatabases-literal-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/3.6,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-literal-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-listdatabases-literal-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.0,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-literal-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-no-listdatabases-literal-db: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-listdatabases-literal-db: EXPECTED_DB_COUNT := 4
 test-mongo-auth-sample-no-listdatabases-literal-db: test-auth-schema-available
-
-# when correct admin credentials are provided but the user does not have the listDatabases action,
-# we expect the connection to fail if any database selectors use wildcards and we are running against 3.6 or earlier
-test-mongo-auth-sample-no-listdatabases-wildcard-db-3.6: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/3.6,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-wildcard-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
-test-mongo-auth-sample-no-listdatabases-wildcard-db-3.6: test-auth-schema-not-available
 
 # when correct admin credentials are provided but the user does not have the listDatabases action,
 # we expect the connection to succeed as long as we are running against 3.7+, even when wildcards are used in db selectors

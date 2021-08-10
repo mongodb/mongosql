@@ -854,8 +854,8 @@ func TestGetVariables(t *testing.T) {
 		tcases := []struct {
 			mdbVersion string
 		}{
-			{"3.6.0"},
 			{"4.0.2"},
+			{"4.2.2"},
 		}
 
 		for _, tc := range tcases {

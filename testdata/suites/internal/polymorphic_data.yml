@@ -61,7 +61,6 @@ testcases:
       - [hello]
     expected_types: [varchar]
     id: select_scalar_type_lattice_fast
-    min_server_version: 4.0
     pushdown_only: true
     sql: select supremum from scalar_types
     variables: {polymorphic_type_conversion_mode: fast, type_conversion_mode: mongosql}
@@ -76,7 +75,6 @@ testcases:
       - [hello]
     expected_types: [varchar]
     id: select_scalar_type_lattice_safe
-    min_server_version: 4.0
     pushdown_only: true
     sql: select supremum from scalar_types
     variables: {polymorphic_type_conversion_mode: safe, type_conversion_mode: mongosql}
@@ -378,7 +376,6 @@ testcases:
       - [null]
     expected_types: [varchar]
     id: select_embedded_docs_as_strings_safe
-    min_server_version: 4.0
     sql: select a from design_doc_example_a
     variables: {polymorphic_type_conversion_mode: safe, pushdown: 1, type_conversion_mode: mongosql}
 

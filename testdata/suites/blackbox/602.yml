@@ -19,5 +19,4 @@ testcases:
       - [Tonja Turnell, 2380589]
       - [Tracy Zic, 2143477]
     expected_types: [varchar, int]
-    min_server_version: '3.4'
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok` FROM Staples GROUP BY `Customer Name` HAVING ((SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) >= (-746)) AND (SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) <= 2384363)) ORDER BY 1, 2

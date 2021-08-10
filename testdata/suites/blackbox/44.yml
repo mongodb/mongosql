@@ -4780,7 +4780,6 @@ testcases:
       - [Zyzzy Zzuyzyzyk, 'Zahrly, Janic', ERICSSON, 2699.7, 6680.65]
       - [Zyzzy Zzuyzyzyk, 'Zaremba, Phyllis', EXECUTIVE CHAIRS, 1992.91, 6483.42]
     expected_types: [varchar, varchar, varchar, float, float]
-    min_server_version: '3.4'
     skip: true
     # yamllint disable rule:line-length
     sql: "SELECT `Customer Name` AS `none_Customer_Name_nk`,   `Employee Name` AS `none_Employee_Name_nk`,   `Prod Type4` AS `none_Prod_TypeE_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_qk`,   SUM(`Sales Total`) AS `sum_Sales_Total_qk` FROM Staples WHERE (((`Prod Type4` = 'AIR PURIFIERS') AND (((`Customer Name` = 'Dario Medina') AND (`Employee Name` = 'Harsha Shah M')) OR ((`Customer Name` = 'David Flashing') AND (`Employee Name` IN ('Aditya Narayan', 'Michael Jeffers'))) OR ((`Customer Name` = 'David Wiener') AND (`Employee Name` IN ('Boaz, Luella', 'Callaway, Elizabeth', 'Freitas, Carol', 'Gabriel Racle', 'Klo, Jackie', 'Lynch, Jackie', 'Mattern, Sue'))) OR ((`Customer Name` = 'Deanra Eno') AND (`Employee Name` IN ('Allgier, Allison', 'G.P Pandey'))) OR ((`Customer Name` = 'Debra Catini-Entman') AND (`Employee Name` = 'Ryan, Kristie')) OR ((`Customer Name` = 'Ellis Ballard') AND (`Employee Name` = 'Taylor, Nikki')) OR ((`Customer Name` = 'Frank Olsen') AND (`Employee Name`\

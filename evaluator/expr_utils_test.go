@@ -16,15 +16,15 @@ func TestGetMongoDBInfo(t *testing.T) {
 
 	req := require.New(t)
 
-	versionArray := []uint8{3, 5, 6}
+	versionArray := []uint8{4, 0, 6}
 	sch := &schema.Schema{}
 	privileges := mongodb.Privilege(0)
 
 	info := GetMongoDBInfo(versionArray, sch, privileges)
-	req.Equal(info.Version, "3.5.6")
+	req.Equal("4.0.6", info.Version)
 
 	info = GetMongoDBInfo(nil, sch, privileges)
-	req.Equal(info.Version, "3.6.0")
+	req.Equal("4.0.0", info.Version)
 }
 
 func TestIsFullyPushedDown(t *testing.T) {

@@ -203,12 +203,6 @@ func (t *PushdownTranslator) generateLetItemsForLookupStage() ([]*ast.LookupLetI
 }
 
 func (t *PushdownTranslator) addExistsSubqueryLookupStage(subPlanMs *MongoSourceStage) error {
-	// cannot use expressive lookup before 3.6
-	if !t.versionAtLeast(3, 6, 0) {
-		return fmt.Errorf("cannot push down subquery exists stage to " +
-			"expressive lookup: expressive lookup not available")
-	}
-
 	collName := subPlanMs.Collection()
 	if !t.Cfg.allowShardedLookups && subPlanMs.isShardedCollection[collName] {
 		return fmt.Errorf("cannot use expressive $lookup on a sharded collection")
@@ -239,12 +233,6 @@ func (t *PushdownTranslator) addExistsSubqueryLookupStage(subPlanMs *MongoSource
 }
 
 func (t *PushdownTranslator) addSubqueryLookupStage(subPlanMs *MongoSourceStage) error {
-	// cannot use expressive lookup before 3.6
-	if !t.versionAtLeast(3, 6, 0) {
-		return fmt.Errorf("cannot push down subquery comparison stage to " +
-			"expressive lookup: expressive lookup not available")
-	}
-
 	if !t.Cfg.allowShardedLookups && subPlanMs.isShardedCollection[subPlanMs.Collection()] {
 		return fmt.Errorf("cannot use expressive $lookup on a sharded collection")
 	}
@@ -358,9 +346,8 @@ func (t *PushdownTranslator) TranslatePredicate(e SQLExpr) (ast.Expr, *ast.AggEx
 		expr = e
 	}
 
-	// If that fails and we're running on MongoDB 3.6+, try to translate the predicate to
-	// the aggregation language for use with $expr.
-	if expr != nil && t.versionAtLeast(3, 6, 0) {
+	// If that fails, try to translate the predicate to the aggregation language for use with $expr.
+	if expr != nil {
 		agg, err := t.ToAggregationPredicate(expr)
 		if err != nil {
 			return doc, nil, expr, err
@@ -453,8 +440,7 @@ func (t *PushdownTranslator) translateDateFormatAsDate(f *dateFormatFunc) (ast.E
 	hasSecond := false
 
 	// NOTE: this is a very specific optimization for Tableau's discrete dimension
-	// functionality, which only generates the below formats. MongoDB 3.6 will support
-	// converting a string back into a date and the below optimizations won't be needed.
+	// functionality, which only generates the below formats.
 	switch formatValue.String() {
 	case "%Y-01-01", "%Y-01-01 00:00:00":
 		hasYear = true

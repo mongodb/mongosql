@@ -78,5 +78,4 @@ testcases:
       - [WISCONSIN, OFFICE SUPPLIES, 49.65]
       - [WISCONSIN, TECHNOLOGY, 22.06]
     expected_types: [varchar, varchar, float]
-    min_server_version: '3.4'
     sql: SELECT `Customer State` AS `none_Customer_State_nk`,   `Prod Type1` AS `none_Prod_TypeB_nk`,   SUM(`Discount`) AS `sum_Discount_ok` FROM Staples GROUP BY `Customer State`,   `Prod Type1` ORDER BY 1, 2, 3
