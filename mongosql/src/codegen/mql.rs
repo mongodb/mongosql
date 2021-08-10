@@ -3,11 +3,15 @@ use crate::{
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
-        AggregationExpr, ScalarFunction, Type, TypeOrMissing,
+        AggregationExpr, ScalarFunction, Stage, Type, TypeOrMissing,
     },
     map,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use bson::Bson;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    convert::From,
+};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct MappingRegistry(BTreeMap<Key, String>);
@@ -57,17 +61,34 @@ impl MqlTranslation {
             ..self
         }
     }
+
+    /// generate_path_components takes an expression and returns a vector of
+    /// its components by recursively tracing its path.
+    pub fn generate_path_components(&self, expr: ir::Expression) -> Result<Vec<String>> {
+        match expr {
+            ir::Expression::Reference(key) => match self.mapping_registry.get(&key) {
+                Some(name) => Ok(vec![name.clone()]),
+                None => Err(Error::ReferenceNotFound(key)),
+            },
+            ir::Expression::FieldAccess(fa) => {
+                let mut path = self.generate_path_components(*fa.expr)?;
+                path.push(fa.field.clone());
+                Ok(path)
+            }
+            _ => Err(Error::NoFieldPathForExpr),
+        }
+    }
 }
 
 #[derive(Clone)]
 pub struct MqlCodeGenerator {
     pub mapping_registry: MappingRegistry,
+    pub scope_level: u16,
 }
 
 impl ScalarFunction {
     pub fn mql_op(self) -> Option<&'static str> {
         use ir::ScalarFunction::*;
-
         Some(match self {
             Concat => "$concat",
 
@@ -184,7 +205,7 @@ impl MqlCodeGenerator {
         ret
     }
 
-    fn map_project_datasource(datasource: &DatasourceName, unique_bot_name: &str) -> String {
+    fn get_datasource_name(datasource: &DatasourceName, unique_bot_name: &str) -> String {
         match datasource {
             DatasourceName::Bottom => unique_bot_name.to_string(),
             DatasourceName::Named(s) => s.clone(),
@@ -198,13 +219,42 @@ impl MqlCodeGenerator {
         alias
     }
 
+    /// generate_let_bindings binds each datasource in the correlated mapping registry
+    /// to a generated name of the form <datasource name>_<nesting depth>. It returns
+    /// the resulting $let document along with a new mapping registry that contains the
+    /// generated names. Naming conflicts are resolved by prepending underscores until the
+    /// generated name is unique.
+    fn generate_let_bindings(self) -> Result<(bson::Document, MappingRegistry)> {
+        let mut let_bindings: bson::Document = map![];
+        let new_mapping_registry = MappingRegistry(
+            self.mapping_registry
+                .0
+                .into_iter()
+                .map(|(key, value)| {
+                    let mut generated_name = format!(
+                        "{}_{}",
+                        MqlCodeGenerator::get_datasource_name(&key.datasource, "__bot"),
+                        key.scope
+                    );
+                    while let_bindings.contains_key(&generated_name) {
+                        generated_name.insert(0, '_');
+                    }
+                    let_bindings.insert(generated_name.clone(), format!("${}", value));
+                    generated_name.insert(0, '$');
+                    (key, generated_name)
+                })
+                .collect::<BTreeMap<Key, String>>(),
+        );
+        Ok((let_bindings, new_mapping_registry))
+    }
+
     /// Recursively generates a translation for this stage and its
     /// sources. When this function is called, `self.mapping_registry`
     /// should include mappings for any datasources from outer scopes.
     /// Mappings for the current scope will be obtained by calling
     /// `codegen_stage` on source stages.
     pub fn codegen_stage(&self, stage: ir::Stage) -> Result<MqlTranslation> {
-        use bson::{doc, Bson};
+        use bson::doc;
         use ir::Stage::*;
         match stage {
             Filter(f) => Ok(self.codegen_stage(*f.source)?.with_additional_stage(
@@ -224,12 +274,12 @@ impl MqlCodeGenerator {
                 // other values, anyway.
                 let mut output_registry = MappingRegistry::new();
                 let unique_bot_name = MqlCodeGenerator::get_unique_bot_name(&p.expression);
-                // we need to porject away _id unless the query maps _id some other way.
+                // we need to project away _id unless the query maps _id some other way.
                 // {_id: 0} will be overwritten if _id is defined in the project expression.
                 let mut project_body = doc! {"_id": 0};
                 for (k, e) in p.expression.into_iter() {
                     let mapped_k =
-                        MqlCodeGenerator::map_project_datasource(&k.datasource, &unique_bot_name);
+                        MqlCodeGenerator::get_datasource_name(&k.datasource, &unique_bot_name);
                     project_body.insert(
                         mapped_k.clone(),
                         expression_generator.codegen_expression(e)?,
@@ -252,13 +302,14 @@ impl MqlCodeGenerator {
                 database: Some(c.db),
                 collection: Some(c.collection.clone()),
                 mapping_registry: MappingRegistry(
-                    map! {(&c.collection, 0u16).into() => c.collection.clone()},
+                    map! {(&c.collection, self.scope_level).into() => c.collection.clone()},
                 ),
                 pipeline: vec![doc! {"$project": {"_id": 0, &c.collection: "$$ROOT"}}],
             }),
             Array(arr) => {
-                let mapping_registry =
-                    MappingRegistry(map! {(&arr.alias, 0u16).into() => arr.alias.clone()});
+                let mapping_registry = MappingRegistry(
+                    map! {(&arr.alias, self.scope_level).into() => arr.alias.clone()},
+                );
                 let docs = arr
                     .array
                     .into_iter()
@@ -313,30 +364,19 @@ impl MqlCodeGenerator {
                 let (condition, let_body) = match join.condition {
                     None => (None, None),
                     Some(expr) => {
-                        use bson::bson;
-                        let left_registry = left
-                            .mapping_registry
-                            .clone()
-                            .0
-                            .into_iter()
-                            .map(|(k, v)| (k.clone(), format!("$__{}_{}", v, k.scope)))
-                            .collect();
-                        let let_doc: bson::Document = left
-                            .mapping_registry
-                            .clone()
-                            .0
-                            .into_iter()
-                            .map(|(k, v)| {
-                                (format!("__{}_{}", v, k.scope), bson! {format!("${}", v)})
-                            })
-                            .collect();
+                        let join_generator = MqlCodeGenerator {
+                            mapping_registry: left.mapping_registry.clone(),
+                            scope_level: self.scope_level,
+                        };
+                        let (let_bindings, left_registry) =
+                            join_generator.generate_let_bindings()?;
                         let expression_generator = self
                             .clone()
-                            .with_merged_mappings(MappingRegistry(left_registry))
+                            .with_merged_mappings(MappingRegistry(left_registry.0))
                             .with_merged_mappings(right.mapping_registry);
                         let cond = expression_generator.codegen_expression(expr)?;
                         let cond_doc = doc! {"$match" : {"$expr": cond}};
-                        (Some(cond_doc), Some(let_doc))
+                        (Some(cond_doc), Some(let_bindings))
                     }
                 };
                 let join_body = bson::to_bson(&JoinBody {
@@ -507,8 +547,11 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_sort(&self, sort: ir::Sort) -> Result<MqlTranslation> {
-        use bson::{doc, Bson};
-        use ir::{Expression::*, SortSpecification::*};
+        use bson::doc;
+        use ir::{
+            Expression::{FieldAccess, Reference},
+            SortSpecification::*,
+        };
 
         let source_translation = self.codegen_stage(*sort.source)?;
         let expression_generator = self
@@ -524,18 +567,14 @@ impl MqlCodeGenerator {
                     Desc(expr) => (*expr, Bson::Int32(-1)),
                 };
 
-                // anything that's not a reference or a static field
-                // access cannot be used as a sort key
                 match expr {
                     Reference(_) | FieldAccess(_) => Ok(()),
                     _ => Err(Error::InvalidSortKey),
                 }?;
 
-                // we still need to ensure that the result is a
-                // string, since not all FieldAccess expressions will
-                // translate to single MQL references
-                let expr = expression_generator.codegen_expression(expr)?;
-                let key = match expr {
+                // We still need to ensure that the result is a string, since not all FieldAccess
+                // expressions will translate to single MQL references
+                let key = match expression_generator.codegen_expression(expr)? {
                     Bson::String(s) => Ok(s[1..].to_string()),
                     _ => Err(Error::InvalidSortKey),
                 }?;
@@ -547,11 +586,53 @@ impl MqlCodeGenerator {
         Ok(source_translation.with_additional_stage(doc! {"$sort": sort_specs}))
     }
 
+    pub fn codegen_subquery(
+        &self,
+        subquery: Stage,
+        output_expr: Option<ir::Expression>,
+    ) -> Result<Bson> {
+        use serde::{Deserialize, Serialize};
+        #[derive(Serialize, Deserialize)]
+        struct SubqueryBody {
+            #[serde(skip_serializing_if = "Option::is_none")]
+            db: Option<String>,
+            #[serde(skip_serializing_if = "Option::is_none")]
+            collection: Option<String>,
+            #[serde(rename = "let")]
+            let_bindings: bson::Document,
+            #[serde(skip_serializing_if = "Option::is_none", rename = "outputPath")]
+            output_path: Option<Vec<String>>,
+            pipeline: Vec<bson::Document>,
+        }
+
+        let (let_bindings, new_mapping_registry) = self.clone().generate_let_bindings()?;
+        let subquery_generator = MqlCodeGenerator {
+            mapping_registry: self
+                .clone()
+                .with_merged_mappings(new_mapping_registry)
+                .mapping_registry,
+            scope_level: self.scope_level + 1,
+        };
+        let subquery_translation = subquery_generator.codegen_stage(subquery)?;
+
+        let output_path = output_expr
+            .map(|e| subquery_translation.generate_path_components(e))
+            .transpose()?;
+
+        Ok(bson::to_bson(&SubqueryBody {
+            db: subquery_translation.database,
+            collection: subquery_translation.collection,
+            let_bindings,
+            output_path,
+            pipeline: subquery_translation.pipeline,
+        })
+        .unwrap())
+    }
+
     /// Recursively generates a translation for this expression. When
     /// this function is called, `self.mapping_registry` should
     /// include mappings for all datasources in scope.
     pub fn codegen_expression(&self, expr: ir::Expression) -> Result<bson::Bson> {
-        use bson::Bson;
         use ir::{Expression::*, Literal::*};
         match expr {
             Literal(lit) => Ok(bson::bson!({
@@ -582,8 +663,8 @@ impl MqlCodeGenerator {
                 } else {
                     map.into_iter()
                         .map(|(k, v)| {
-                            if k.starts_with('$') {
-                                Err(Error::DotsOrDollarsInFieldName)
+                            if k.starts_with('$') || k.contains('.') {
+                                Err(Error::DotsOrDollarsInDocumentKey)
                             } else {
                                 Ok((k, self.codegen_expression(v)?))
                             }
@@ -592,12 +673,14 @@ impl MqlCodeGenerator {
                 }
             })),
             FieldAccess(fa) => {
-                if fa.field.contains(&['.', '$'] as &[_]) {
-                    return Err(Error::DotsOrDollarsInFieldName);
-                };
-                Ok(match self.codegen_expression(*fa.expr)? {
-                    Bson::String(e) => Bson::String(format!("{}.{}", e, fa.field)),
-                    e => bson::bson!({"$getField": {"field": fa.field, "input": e}}),
+                let expr = self.codegen_expression(*fa.expr)?;
+                Ok(if fa.field.contains('.') || fa.field.starts_with('$') {
+                    bson::bson!({"$getField": {"field": fa.field, "input": expr}})
+                } else {
+                    match expr {
+                        Bson::String(e) => Bson::String(format!("{}.{}", e, fa.field)),
+                        _ => bson::bson!({"$getField": {"field": fa.field, "input": expr}}),
+                    }
                 })
             }
             SearchedCase(ce) => {
@@ -687,9 +770,31 @@ impl MqlCodeGenerator {
                 "$like": {"input": self.codegen_expression(*expr.expr)?,
                           "pattern": self.codegen_expression(*expr.pattern)?}}),
             }),
-            Subquery(_) => unimplemented!(),
-            SubqueryComparison(_) => unimplemented!(),
-            Exists(_) => unimplemented!(),
+            Subquery(s) => Ok(
+                bson::bson!({ "$subquery":  self.codegen_subquery(*s.subquery, Some(*s.output_expr))? }),
+            ),
+            SubqueryComparison(s) => {
+                use ir::{SubqueryComparisonOp::*, SubqueryModifier::*};
+                let modifier = match s.modifier {
+                    Any => "any",
+                    All => "all",
+                };
+                let op = match s.operator {
+                    Lt => "lt",
+                    Lte => "lte",
+                    Neq => "neq",
+                    Eq => "eq",
+                    Gt => "gt",
+                    Gte => "gte",
+                };
+                Ok(bson::bson!({"$subqueryComparison": {
+                    "op": op,
+                    "modifier": modifier,
+                    "arg": self.codegen_expression(*s.argument)?,
+                    "subquery": self.codegen_subquery(*s.subquery, Some(*s.output_expr))?,
+                }}))
+            }
+            Exists(e) => Ok(bson::bson!({ "$subqueryExists":  self.codegen_subquery(*e, None)? })),
             Is(expr) => Ok(match expr.target_type {
                 TypeOrMissing::Number => {
                     Bson::Document(bson::doc! {"$isNumber": self.codegen_expression(*expr.expr)?})

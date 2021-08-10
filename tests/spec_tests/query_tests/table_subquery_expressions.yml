@@ -65,7 +65,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -93,7 +93,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -120,7 +120,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -150,7 +150,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -179,7 +179,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -207,7 +207,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -234,7 +234,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -263,7 +263,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -291,7 +291,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -319,7 +319,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -346,7 +346,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -375,7 +375,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -403,7 +403,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -429,7 +429,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -454,7 +454,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -481,7 +481,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -509,7 +509,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -534,7 +534,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -561,7 +561,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -586,7 +586,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -614,7 +614,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -639,7 +639,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -666,7 +666,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -691,7 +691,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -719,7 +719,7 @@ tests:
                                                        'arg': '$bar.v',
                                                        'subquery': {
                                                                      'collection': 'target',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -744,7 +744,7 @@ tests:
                                                                                         'arg': '$bar.v',
                                                                                         'subquery': {
                                                                                                       'collection': 'target',
-                                                                                                      'let': {},
+                                                                                                      'let': {'bar_0': '$bar'},
                                                                                                       'outputPath': ['__bot', 'a'],
                                                                                                       'pipeline': [
                                                                                                                     {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -775,7 +775,7 @@ tests:
                                                                                         'arg': '$bar.v',
                                                                                         'subquery': {
                                                                                                       'collection': 'target',
-                                                                                                      'let': {},
+                                                                                                      'let': {'bar_0': '$bar'},
                                                                                                       'outputPath': ['__bot', 'a'],
                                                                                                       'pipeline': [
                                                                                                                     {'$project': {'_id': 0, 'target': '$$ROOT'}},
@@ -803,7 +803,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryExists': {
                                                    'collection': 'target',
-                                                   'let': {'bar_v_0': '$bar.v'},
+                                                   'let': {'bar_0': '$bar'},
                                                    'pipeline': [
                                                                  {'$project': {'_id': 0, 'target': '$$ROOT'}},
                                                                  {'$project': {'_id': 0, 'target': '$target'}},
@@ -824,7 +824,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$sqlNot': {'$subqueryExists': {
                                                                'collection': 'target',
-                                                               'let': {'bar_v_0': '$bar.v'},
+                                                               'let': {'bar_0': '$bar'},
                                                                'pipeline': [
                                                                              {'$project': {'_id': 0, 'target': '$$ROOT'}},
                                                                              {'$project': {'_id': 0, 'target': '$target'}},
@@ -847,7 +847,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryExists': {
                                                                                     'collection': 'target',
-                                                                                    'let': {'bar_v_0': '$bar.v'},
+                                                                                    'let': {'bar_0': '$bar'},
                                                                                     'pipeline': [
                                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
                                                                                                   {'$project': {'_id': 0, 'target': '$target'}},

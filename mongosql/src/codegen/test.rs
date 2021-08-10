@@ -52,7 +52,10 @@ macro_rules! test_codegen_expr {
             let expected = $expected;
             let input = $input;
 
-            let gen = MqlCodeGenerator { mapping_registry };
+            let gen = MqlCodeGenerator {
+                mapping_registry,
+                scope_level: 0u16,
+            };
             assert_eq!(expected, gen.codegen_expression(input));
         }
     };
@@ -541,22 +544,18 @@ mod document {
     );
     test_codegen_expr!(
         dollar_prefixed_key_disallowed,
-        Err(Error::DotsOrDollarsInFieldName),
+        Err(Error::DotsOrDollarsInDocumentKey),
         Document(map! {"$foo".to_string() => Literal(Literal::Integer(1)),}),
     );
     test_codegen_expr!(
-        key_containing_dot_allowed,
-        Ok(bson!({"foo.bar": {"$literal": 1}})),
+        key_containing_dot_disallowed,
+        Err(Error::DotsOrDollarsInDocumentKey),
         Document(map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}),
     );
 }
 
 mod field_access {
-    use crate::{
-        codegen::{mql::MappingRegistry, Error},
-        ir::*,
-        map,
-    };
+    use crate::{codegen::mql::MappingRegistry, ir::*, map};
     use bson::Bson;
 
     test_codegen_expr!(
@@ -605,13 +604,13 @@ mod field_access {
     );
 
     test_codegen_expr!(
-        string,
+        success_on_non_reference_expr,
         Ok(bson::bson!({"$getField": {
             "field": "sub",
-            "input": {"$literal": "$f"},
+            "input": {"$literal": "f"},
         }})),
         Expression::FieldAccess(FieldAccess {
-            expr: Expression::Literal(Literal::String("$f".into())).into(),
+            expr: Expression::Literal(Literal::String("f".into())).into(),
             field: "sub".to_string(),
         }),
     );
@@ -622,7 +621,7 @@ mod field_access {
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Err(Error::DotsOrDollarsInFieldName),
+        Ok(bson::bson!({"$getField": {"field": "$sub", "input": "$f"}})),
         Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "$sub".to_string(),
@@ -635,7 +634,7 @@ mod field_access {
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Err(Error::DotsOrDollarsInFieldName),
+        Ok(Bson::String("$f.s$ub".to_string())),
         Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s$ub".to_string(),
@@ -648,7 +647,7 @@ mod field_access {
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Err(Error::DotsOrDollarsInFieldName),
+        Ok(bson::bson!({"$getField": {"field": "s.ub", "input": "$f"}})),
         Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s.ub".to_string(),
@@ -810,7 +809,7 @@ mod join {
                 {"database": "mydb2",
                 "collection": "col2",
                 "joinType":"left",
-                "let": {"__col_0": "$col"},
+                "let": {"col_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
                 "condition": {"$match": {"$expr": {"$literal": true}}}
             }}],
@@ -862,9 +861,9 @@ mod join {
                 {"database": "mydb2",
                 "collection": "col2",
                 "joinType":"left",
-                "let": {"__col_0": "$col"},
+                "let": {"col_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
-                "condition": {"$match": {"$expr": "$$__col_0"}}
+                "condition": {"$match": {"$expr": "$$col_0"}}
             }}],
         }),
         Stage::Join(Join {
@@ -890,7 +889,7 @@ mod join {
                 {"database": "mydb2",
                 "collection": "col2",
                 "joinType":"left",
-                "let": {"__col_0": "$col"},
+                "let": {"col_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
                 "condition": {"$match": {"$expr": "$col2"}}
             }}],
@@ -2247,6 +2246,301 @@ mod group_by {
                     }))
                 })
             }],
+        }),
+    );
+}
+
+mod subquery {
+    use crate::{
+        codegen::{mql::MappingRegistry, Error},
+        ir::{binding_tuple::DatasourceName::Bottom, SubqueryModifier::*, *},
+        map,
+    };
+    test_codegen_expr!(
+        exists_uncorrelated,
+        Ok(bson::bson!(
+            {"$subqueryExists": {
+                "db": "test",
+                "collection": "foo",
+                "let": {},
+                "pipeline": [{"$project": {"_id": 0,"foo": "$$ROOT"}},]
+            }}
+        )),
+        Expression::Exists(Box::new(Stage::Collection(Collection {
+            db: "test".into(),
+            collection: "foo".into(),
+        }))),
+    );
+    test_codegen_expr!(
+        exists_correlated,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("foo", 0u16), "foo");
+            mr
+        },
+        Ok(bson::bson!(
+            {"$subqueryExists": {
+                "db": "test",
+                "collection": "bar",
+                "let": {"foo_0": "$foo"},
+                "pipeline": [
+                    {"$project": {"_id": 0,"bar": "$$ROOT"}},
+                    {"$project": {"_id": 0,"__bot": {"a": "$$foo_0.a"}}}
+                ]
+            }}
+        )),
+        Expression::Exists(Box::new(Stage::Project(Project {
+            source: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "bar".into(),
+            })),
+            expression: map! {
+                (Bottom, 1u16).into() => Expression::Document(map! {
+                    "a".into() => Expression::FieldAccess(FieldAccess{
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into()
+                    })
+                })
+            }
+        }))),
+    );
+    test_codegen_expr!(
+        subquery_expr_uncorrelated,
+        Ok(bson::bson!(
+            {"$subquery": {
+                "db": "test",
+                "collection": "foo",
+                "let": {},
+                "outputPath": ["foo"],
+                "pipeline": [{"$project": {"_id": 0,"foo": "$$ROOT"}},]
+            }}
+        )),
+        Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+            subquery: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+            })),
+        }),
+    );
+    test_codegen_expr!(
+        subquery_expr_correlated,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("foo", 0u16), "foo");
+            mr
+        },
+        Ok(bson::bson!(
+            {"$subquery": {
+                "db": "test",
+                "collection": "bar",
+                "let": {"foo_0": "$foo",},
+                "outputPath": ["__bot", "a"],
+                "pipeline": [
+                    {"$project": {"_id": 0,"bar": "$$ROOT"}},
+                    {"$project": {"_id": 0,"__bot": {"a": "$$foo_0.a"}}}
+                ]
+            }}
+        )),
+        Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                field: "a".into()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(map! {
+                        "a".into() => Expression::FieldAccess(FieldAccess{
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".into()
+                        })
+                    })
+                }
+            }))
+        }),
+    );
+    test_codegen_expr!(
+        subquery_expr_no_db_or_coll,
+        Ok(bson::bson!(
+            {"$subquery": {"let": {},"outputPath": ["arr"],"pipeline": [{"$array": {"arr": []}}]}}
+        )),
+        Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+            subquery: Box::new(Stage::Array(Array {
+                array: vec![],
+                alias: "arr".into(),
+            })),
+        }),
+    );
+    test_codegen_expr!(
+        output_expr_field_contains_dot,
+        Ok(bson::bson!(
+            {"$subquery": {
+                "db": "test",
+                "collection": "foo",
+                "let": {},
+                "outputPath": ["foo", "bar.a"],
+                "pipeline": [
+                    {"$project": {"_id": 0, "foo": "$$ROOT"}},
+                    {"$project": {"_id": 0, "foo": "$foo"}}
+                ]
+            }}
+        )),
+        Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                field: "bar.a".into()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "foo".into()
+                })),
+                expression: map! {
+                    ("foo", 1u16).into() => Expression::Reference(("foo", 1u16).into())
+                }
+            }))
+        }),
+    );
+    // This test verifies that we are using the datasource's MQL field name
+    // in the output path. We create an MQL field name that doesn't match the
+    // corresponding datasource by forcing a naming conflict in the project
+    // stage. The translation engine could never actually produce a query like
+    // this one, though, since a subquery expression's degree must be exactly 1.
+    test_codegen_expr!(
+        use_datasource_mql_name,
+        Ok(bson::bson!(
+            {"$subquery": {
+                "db": "test",
+                "collection": "__bot",
+                "let": {},
+                "outputPath": vec!["___bot"],
+                "pipeline": [
+                    {"$project": {"_id": 0, "__bot": "$$ROOT"}},
+                    {"$project": {"_id": 0, "___bot": "$__bot", "__bot": {"$literal": 43.0}}}
+                ]
+            }}
+        )),
+        Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+            subquery: Box::new(Stage::Project(Project {
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Reference(("__bot", 1u16).into()),
+                    ("__bot", 1u16).into() => Expression::Literal(Literal::Double(43.0)),
+                },
+                source: Stage::Collection(Collection {
+                    db: "test".to_string(),
+                    collection: "__bot".to_string(),
+                })
+                .into(),
+            }))
+        }),
+    );
+    test_codegen_expr!(
+        subquery_comparison_uncorrelated,
+        Ok(bson::bson!(
+            {"$subqueryComparison": {
+                "op": "eq",
+                "modifier": "any",
+                "arg": {"$literal": 5},
+                "subquery": {
+                    "db": "test",
+                    "collection": "foo",
+                    "let": {},
+                    "outputPath": ["foo"],
+                    "pipeline": [{"$project": {"_id": 0,"foo": "$$ROOT"}}]
+                }
+            }}
+        )),
+        Expression::SubqueryComparison(SubqueryComparison {
+            output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+            operator: SubqueryComparisonOp::Eq,
+            modifier: Any,
+            argument: Box::new(Expression::Literal(Literal::Integer(5))),
+            subquery: Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+            }))
+        }),
+    );
+    test_codegen_expr!(
+        subquery_comparison_correlated,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("foo", 0u16), "foo");
+            mr.insert(("x", 0u16), "x");
+            mr
+        },
+        Ok(bson::bson!(
+            {"$subqueryComparison": {
+                "op": "eq",
+                "modifier": "any",
+                "arg": "$x",
+                "subquery": {
+                    "db": "test",
+                    "collection": "bar",
+                    "let": {"foo_0": "$foo","x_0": "$x",},
+                    "outputPath": ["__bot", "a"],
+                    "pipeline": [
+                        {"$project": {"_id": 0,"bar": "$$ROOT"}},
+                        {"$project": {"_id": 0,"__bot": {"a": "$$foo_0.a"}}}
+                    ]
+                }
+            }}
+        )),
+        Expression::SubqueryComparison(SubqueryComparison {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                field: "a".into()
+            })),
+            operator: SubqueryComparisonOp::Eq,
+            modifier: Any,
+            argument: Box::new(Expression::Reference(("x", 0u16).into())),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(map! {
+                        "a".into() => Expression::FieldAccess(FieldAccess{
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".into()
+                        })
+                    })
+                }
+            }))
+        }),
+    );
+    test_codegen_expr!(
+        invalid_output_expr,
+        {
+            let mut mr = MappingRegistry::default();
+            mr.insert(("foo", 0u16), "foo");
+            mr.insert(("x", 0u16), "x");
+            mr
+        },
+        Err(Error::NoFieldPathForExpr),
+        Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::Literal(Literal::Integer(5))),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(map! {
+                        "a".into() => Expression::FieldAccess(FieldAccess{
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".into()
+                        })
+                    })
+                }
+            }))
         }),
     );
 }

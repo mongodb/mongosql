@@ -2522,13 +2522,6 @@ mod from_clause {
     );
 }
 
-lazy_static! {
-    static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
-        db: "test".into(),
-        collection: "foo".into()
-    });
-}
-
 mod limit_or_offset_clause {
     use super::{AST_SOURCE_FOO, IR_SOURCE_FOO};
     use crate::{ast, ir};
