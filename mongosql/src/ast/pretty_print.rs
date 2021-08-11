@@ -368,7 +368,7 @@ impl Display for Expression {
         match self {
             Identifier(s) => {
                 if ident_needs_delimiters(s) {
-                    write!(f, "`{}`", s)
+                    write!(f, "`{}`", s.replace("`", "``"))
                 } else {
                     write!(f, "{}", s)
                 }
