@@ -48,7 +48,7 @@ pub struct AliasedAggregation {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum AggregationExpr {
-    CountStar(bool),
+    CountStar(bool), // true = distinct, false = not distinct
     Function(AggregationFunctionApplication),
 }
 

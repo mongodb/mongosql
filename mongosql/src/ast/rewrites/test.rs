@@ -257,23 +257,30 @@ mod aggregate {
         "SELECT * FROM foo GROUP BY SUM(x) AGGREGATE SUM(x)",
     );
 
-    // Error if an aggregation function is found after `AGGREGATE` without an alias.
+    // Error if an expression is found after `AGGREGATE` without an alias.
+    // Ensuring that the expression is an aggregation function occurs during `GROUP BY` algebrization.
+    test_rewrite!(
+        non_agg_expression_in_group_by_agg_list_with_no_alias_gives_error,
+        AggregateRewritePass,
+        Err(Error::AggregateInGroupByAggListNotAliased),
+        "SELECT * FROM foo GROUP BY x AGGREGATE 1 + 2",
+    );
     test_rewrite!(
         one_func_in_group_by_agg_list_with_no_alias_gives_error,
         AggregateRewritePass,
-        Err(Error::AggregationFunctionInGroupByAggListNotAliased),
+        Err(Error::AggregateInGroupByAggListNotAliased),
         "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x)",
     );
     test_rewrite!(
         identical_funcs_in_select_clause_and_group_by_agg_list_with_no_alias_gives_error,
         AggregateRewritePass,
-        Err(Error::AggregationFunctionInGroupByAggListNotAliased),
+        Err(Error::AggregateInGroupByAggListNotAliased),
         "SELECT SUM(x) FROM foo GROUP BY x AGGREGATE SUM(x)",
     );
     test_rewrite!(
         one_func_in_group_by_agg_list_in_subquery_with_no_alias_gives_error,
         AggregateRewritePass,
-        Err(Error::AggregationFunctionInGroupByAggListNotAliased),
+        Err(Error::AggregateInGroupByAggListNotAliased),
         "SELECT SUM(x) FROM (SELECT * FROM foo GROUP BY x AGGREGATE SUM(x)) AS z",
     );
 

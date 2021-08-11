@@ -49,6 +49,12 @@ pub enum Error {
     DuplicateKey(Key),
     #[error("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
     SortKeyNotSelfComparable(usize, Schema),
+    #[error("group key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
+    GroupKeyNotSelfComparable(usize, Schema),
+    #[error("group key at position {0} is an unaliased field access with no datasource reference")]
+    UnaliasedFieldAccessWithNoReference(usize),
+    #[error("group key at position {0} is an unaliased non-field access expression")]
+    UnaliasedNonFieldAccessExpression(usize),
 }
 
 #[derive(Debug, Clone)]
@@ -137,7 +143,121 @@ impl Stage {
                     max_size,
                 })
             }
-            Stage::Group(_) => unimplemented!(),
+            Stage::Group(g) => {
+                let source_result_set = g.source.schema(state)?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+
+                // If all group keys are literals, the result set max size is 1.
+                // Otherwise, the max is derived from the source's result set.
+                let max_size = if g
+                    .keys
+                    .iter()
+                    .all(|key| matches!(key.inner, Expression::Literal(_)))
+                {
+                    Some(1)
+                } else {
+                    source_result_set.max_size
+                };
+
+                // A helper to bind a field/alias to a schema.
+                // Used for embedding a group key or aggregation function under a datasource.
+                let schema_binding_doc = |field_or_alias: String, schema: Schema| {
+                    Schema::Document(Document {
+                        keys: map! { field_or_alias.clone() => schema },
+                        required: set! { field_or_alias },
+                        additional_properties: false,
+                    })
+                };
+
+                let schema_env = g
+                    .keys
+                    .iter()
+                    .enumerate()
+                    .map(|(index, key)| {
+                        // Schema check the group key and upconvert Missing to Null.
+                        let group_key_schema = key
+                            .inner
+                            .schema(&state)
+                            .map(|s| s.upconvert_missing_to_null())?;
+
+                        // The group key must have a schema that is self-comparable.
+                        if group_key_schema.is_self_comparable() != Satisfaction::Must {
+                            return Err(Error::GroupKeyNotSelfComparable(index, group_key_schema));
+                        }
+
+                        // Get the SchemaEnvironment BindingTuple key and its associated schema.
+                        let (schema_env_key, schema_env_schema) = match &key.alias {
+                            // If the group key has an alias, bind a document containing that alias
+                            // and the group key's schema to the Bottom datasource.
+                            Some(a) => (
+                                Key::bot(state.scope_level),
+                                schema_binding_doc(a.clone(), group_key_schema),
+                            ),
+                            // Otherwise for a field access group key, bind a document containing the
+                            // field access string and the group key's schema to the Reference datasource.
+                            None => match &key.inner {
+                                Expression::FieldAccess(f) => match f.expr.as_ref() {
+                                    Expression::Reference(r) => (
+                                        r.clone(),
+                                        schema_binding_doc(f.field.clone(), group_key_schema),
+                                    ),
+                                    _ => {
+                                        return Err(Error::UnaliasedFieldAccessWithNoReference(
+                                            index,
+                                        ))
+                                    }
+                                },
+                                _ => return Err(Error::UnaliasedNonFieldAccessExpression(index)),
+                            },
+                        };
+
+                        Ok((schema_env_key, schema_env_schema))
+                    })
+                    // Since we may have multiple tuples with the same datasource key (e.g. two aliased group
+                    // keys will both belong to the Bottom datasource), it is incorrect to collect() into a
+                    // SchemaEnvironment here, as collect() will overwrite any tuples with the same key.
+                    // We handle this using a fold operation, which allows us to handle duplicate tuples by
+                    // manually unioning them with an accumulating SchemaEnvironment.
+                    .fold(
+                        Ok(SchemaEnvironment::default()),
+                        |acc_schema_env, tuple_result| {
+                            let (schema_env_key, schema_env_schema) = tuple_result?;
+                            Ok(acc_schema_env?
+                                .union_schema_for_datasource(schema_env_key, schema_env_schema))
+                        },
+                    )?;
+
+                let schema_env = g
+                    .aggregations
+                    .iter()
+                    // Bind a document containing each aggregation function's alias
+                    // and the aggregation function schema to the Bottom datasource.
+                    .map(|aliased_agg| {
+                        let agg_schema = aliased_agg.inner.schema(&state)?;
+                        Ok((
+                            Key::bot(state.scope_level),
+                            schema_binding_doc(aliased_agg.alias.clone(), agg_schema),
+                        ))
+                    })
+                    // See the comment above the group key folding; the same requirement
+                    // applies to aggregation functions.
+                    .fold(
+                        Ok(SchemaEnvironment::default()),
+                        |acc_schema_env, tuple_result| {
+                            let (schema_env_key, schema_env_schema) = tuple_result?;
+                            Ok(acc_schema_env?
+                                .union_schema_for_datasource(schema_env_key, schema_env_schema))
+                        },
+                    )?
+                    // Union the aggregation function bindings with the group key bindings.
+                    .union(schema_env);
+
+                Ok(ResultSet {
+                    schema_env,
+                    min_size: source_result_set.min_size,
+                    max_size,
+                })
+            }
             Stage::Limit(l) => {
                 let source_result_set = l.source.schema(state)?;
                 Ok(ResultSet {
@@ -170,7 +290,7 @@ impl Stage {
                     .try_for_each(|(index, spec)| match spec {
                         SortSpecification::Asc(a) | SortSpecification::Desc(a) => {
                             let schema = a.schema(&state)?;
-                            if schema.is_comparable_with(&schema) != Satisfaction::Must {
+                            if schema.is_self_comparable() != Satisfaction::Must {
                                 return Err(Error::SortKeyNotSelfComparable(index, schema));
                             }
                             Ok(())
@@ -314,7 +434,7 @@ impl AggregationExpr {
 impl AggregationFunctionApplication {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         let arg_schema = self.arg.schema(state)?;
-        if self.distinct && arg_schema.is_comparable_with(&arg_schema) != Satisfaction::Must {
+        if self.distinct && arg_schema.is_self_comparable() != Satisfaction::Must {
             return Err(Error::AggregationArgumentMustBeSelfComparable(
                 format!("{} DISTINCT", self.function.as_str()),
                 arg_schema,
@@ -357,7 +477,7 @@ impl AggregationFunction {
             ]),
             First | Last => arg_schema,
             Min | Max => {
-                if arg_schema.is_comparable_with(&arg_schema) != Satisfaction::Must {
+                if arg_schema.is_self_comparable() != Satisfaction::Must {
                     return Err(Error::AggregationArgumentMustBeSelfComparable(
                         self.as_str().to_string(),
                         arg_schema,

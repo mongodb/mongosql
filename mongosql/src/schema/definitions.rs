@@ -1,5 +1,9 @@
 use crate::{
-    ir::{binding_tuple::BindingTuple, schema::Error, Type},
+    ir::{
+        binding_tuple::{self, BindingTuple},
+        schema::Error,
+        Type,
+    },
     json_schema, map,
     schema::Schema::{AnyOf, Unsat},
     set,
@@ -12,16 +16,37 @@ use std::str::FromStr;
 pub type SchemaEnvironment = BindingTuple<Schema>;
 
 impl SchemaEnvironment {
+    /// Takes all Datasource-Schema key-value pairs from a SchemaEnvironment
+    /// and adds them to the current SchemaEnvironment, returning the modified
+    /// SchemaEnvironment.
+    ///
+    /// Schema values with duplicate Datasource keys are bundled in an AnyOf under
+    /// that same Datasource key.
     pub fn union(self, other: SchemaEnvironment) -> Self {
         let mut out = self;
         for (k, v) in other.into_iter() {
-            if let Some(out_v) = out.remove(&k) {
-                out.insert(k, Schema::AnyOf(set![v, out_v]));
-            } else {
-                out.insert(k, v);
-            }
+            out = out.union_schema_for_datasource(k, v);
         }
         out
+    }
+
+    /// Inserts a Datasource-Schema key-value pair into the current
+    /// SchemaEnvironment, returning the modified SchemaEnvironment.
+    ///
+    /// If inserting a key with Schema value V, but the SchemaEnvironment already
+    /// contains the key with existing Schema value W, the existing Schema value
+    /// is overwritten to AnyOf(V, W).
+    pub fn union_schema_for_datasource(
+        mut self,
+        datasource_key: binding_tuple::Key,
+        schema_value: Schema,
+    ) -> Self {
+        if let Some(s) = self.remove(&datasource_key) {
+            self.insert(datasource_key, Schema::AnyOf(set![s, schema_value]));
+        } else {
+            self.insert(datasource_key, schema_value);
+        }
+        self
     }
 }
 
@@ -374,6 +399,11 @@ impl Schema {
                 Schema::schema_predicate_meet(anyof_vs, &|s: &Schema| s.is_comparable_with(v))
             }
         }
+    }
+
+    /// Returns the satisfaction result for comparing a schema to itself.
+    pub fn is_self_comparable(&self) -> Satisfaction {
+        self.is_comparable_with(self)
     }
 
     // has_overlapping_keys_with returns whether any value satisfying the self Schema May, Must, or

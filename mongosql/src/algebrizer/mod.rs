@@ -52,8 +52,14 @@ pub enum Error {
     AggregationInPlaceOfScalar(String),
     #[error("scalar function {0} used in aggregation position")]
     ScalarInPlaceOfAggregation(String),
+    #[error(
+        "non-aggregation expression found in GROUP BY aggregation function list at position {0}"
+    )]
+    NonAggregationInPlaceOfAggregation(usize),
     #[error("aggregation functions must have exactly one argument")]
     AggregationFunctionMustHaveOneArgument,
+    #[error("aggregation function at position {0} has no alias")]
+    AggregationFunctionHasNoAlias(usize),
     #[error("scalar functions cannot be DISTINCT")]
     DistinctScalarFunction,
     #[error("derived table datasources {2:?} have overlapping keys, schemata: {0:?} and {1:?}")]
@@ -446,19 +452,6 @@ impl Algebrizer {
         Ok(filtered)
     }
 
-    pub fn algebrize_group_by_clause(
-        &self,
-        ast_node: Option<ast::GroupByClause>,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
-        let grouped = match ast_node {
-            None => source,
-            Some(_) => unimplemented!(),
-        };
-        grouped.schema(&self.schema_inference_state())?;
-        Ok(grouped)
-    }
-
     pub fn algebrize_select_clause(
         &self,
         ast_node: ast::SelectClause,
@@ -529,7 +522,60 @@ impl Algebrizer {
         Ok(ordered)
     }
 
-    #[allow(dead_code)]
+    pub fn algebrize_group_by_clause(
+        &self,
+        ast_node: Option<ast::GroupByClause>,
+        source: ir::Stage,
+    ) -> Result<ir::Stage> {
+        let grouped = match ast_node {
+            None => source,
+            Some(ast_expr) => {
+                let expression_algebrizer = self.clone().with_merged_mappings(
+                    source.schema(&self.schema_inference_state())?.schema_env,
+                )?;
+
+                let keys = ast_expr
+                    .keys
+                    .into_iter()
+                    .map(|ast_key| {
+                        Ok(ir::AliasedExpression {
+                            alias: ast_key.alias,
+                            inner: expression_algebrizer.algebrize_expression(ast_key.expr)?,
+                        })
+                    })
+                    .collect::<Result<_>>()?;
+
+                let aggregations = ast_expr
+                    .aggregations
+                    .into_iter()
+                    .enumerate()
+                    .map(|(index, ast_agg)| {
+                        Ok(ir::AliasedAggregation {
+                            inner: match ast_agg.expr {
+                                ast::Expression::Function(f) => {
+                                    expression_algebrizer.algebrize_aggregation(f)
+                                }
+                                _ => Err(Error::NonAggregationInPlaceOfAggregation(index)),
+                            }?,
+                            alias: ast_agg
+                                .alias
+                                .ok_or(Error::AggregationFunctionHasNoAlias(index))?,
+                        })
+                    })
+                    .collect::<Result<_>>()?;
+
+                ir::Stage::Group(ir::Group {
+                    source: Box::new(source),
+                    keys,
+                    aggregations,
+                })
+            }
+        };
+
+        grouped.schema(&self.schema_inference_state())?;
+        Ok(grouped)
+    }
+
     pub fn algebrize_aggregation(&self, f: ast::FunctionExpr) -> Result<ir::AggregationExpr> {
         let (distinct, function) = if f.function == ast::FunctionName::AddToSet {
             (true, ast::FunctionName::AddToArray)

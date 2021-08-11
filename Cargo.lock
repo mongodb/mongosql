@@ -330,7 +330,6 @@ name = "mongosql"
 version = "0.1.0"
 dependencies = [
  "bson",
- "itertools",
  "lalrpop",
  "lalrpop-util",
  "lazy_static",

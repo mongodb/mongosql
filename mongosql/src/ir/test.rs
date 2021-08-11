@@ -4603,6 +4603,269 @@ mod schema {
             },
         );
     }
+
+    mod group_by {
+        use crate::{
+            ir::{binding_tuple::Key, schema::*, *},
+            map,
+            schema::*,
+            set,
+        };
+        use lazy_static::lazy_static;
+
+        lazy_static! {
+            static ref GROUP_STAGE_REFS_ONLY: Stage = Stage::Group(Group {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                keys: vec![GROUP_ALIASED_REF.clone(), GROUP_NON_ALIASED_REF.clone(),],
+                aggregations: vec![AliasedAggregation {
+                    alias: "agg".to_string(),
+                    inner: AggregationExpr::CountStar(false),
+                }]
+            });
+            static ref GROUP_ALIASED_REF: AliasedExpression = AliasedExpression {
+                alias: Some("A".into()),
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "a".into(),
+                })
+            };
+            static ref GROUP_NON_ALIASED_REF: AliasedExpression = AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "b".into(),
+                })
+            };
+        }
+
+        test_schema!(
+            key_schemas_are_all_self_comparable,
+            match Ok(_),
+            GROUP_STAGE_REFS_ONLY.clone(),
+            map! {
+                ("foo", 0u16).into() => Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Double)]),
+                        "b".into() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set! { "a".into(), "b".into() },
+                    additional_properties: false,
+                }),
+            },
+        );
+        test_schema!(
+            key_schemas_not_all_self_comparable,
+            Err(Error::GroupKeyNotSelfComparable(
+                1,
+                Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String)
+                ]),
+            )),
+            GROUP_STAGE_REFS_ONLY.clone(),
+            map! {
+                ("foo", 0u16).into() => Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::String),
+                        "b".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
+                    },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                }),
+            },
+        );
+        test_schema!(
+            aliased_field_access_mapped_to_bottom_datasource,
+            Ok(ResultSet {
+                schema_env: map! {
+                    Key::bot(0u16) => Schema::Document(Document {
+                        keys: map! {
+                            "A".into() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set! { "A".into() },
+                        additional_properties: false,
+                    }),
+                },
+                min_size: 0,
+                max_size: None,
+            }),
+            Stage::Group(Group {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                keys: vec![GROUP_ALIASED_REF.clone()],
+                aggregations: vec![]
+            }),
+            map! {
+                ("foo", 0u16).into() => Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set! { "a".into(), },
+                    additional_properties: false,
+                }),
+            },
+        );
+        test_schema!(
+            non_aliased_field_access_mapped_to_reference,
+            Ok(ResultSet {
+                schema_env: map! {
+                    ("foo", 0u16).into() => Schema::Document(Document {
+                        keys: map! {
+                            "b".into() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set! { "b".into() },
+                        additional_properties: false,
+                    }),
+                },
+                min_size: 0,
+                max_size: None,
+            }),
+            Stage::Group(Group {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                keys: vec![GROUP_NON_ALIASED_REF.clone()],
+                aggregations: vec![]
+            }),
+            map! {
+                ("foo", 0u16).into() => Schema::Document(Document {
+                    keys: map! {
+                        "b".into() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set! { "b".into(), },
+                    additional_properties: false,
+                }),
+            },
+        );
+        test_schema!(
+            all_literal_keys_results_in_max_size_1,
+            match Ok(ResultSet {
+                max_size: Some(1),
+                ..
+            }),
+            Stage::Group(Group {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                keys: vec![
+                    AliasedExpression {
+                        alias: Some("a".into()),
+                        inner: Expression::Literal(Literal::Integer(1)),
+                    },
+                    AliasedExpression {
+                        alias: Some("b".into()),
+                        inner: Expression::Literal(Literal::String("abc".into())),
+                    }
+                ],
+                aggregations: vec![],
+            }),
+        );
+        test_schema!(
+            mix_literal_key_and_non_literal_key_results_in_no_max_size,
+            match Ok(ResultSet {
+                max_size: None,
+                ..
+            }),
+            Stage::Group(Group {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                keys: vec![
+                    AliasedExpression {
+                        alias: Some("literal".into()),
+                        inner: Expression::Literal(Literal::Integer(1)),
+                    },
+                    AliasedExpression {
+                        alias: None,
+                        inner: Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                            field: "a".into(),
+                        })
+                    },
+                ],
+                aggregations: vec![],
+            }),
+            map! {
+                ("foo", 0u16).into() => Schema::Document(Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set! { "a".into() },
+                    additional_properties: false,
+                }),
+            },
+        );
+        test_schema!(
+            aliased_key_and_multiple_agg_functions_all_correctly_unioned_under_bottom_datasource,
+            Ok(ResultSet {
+                schema_env: map! {
+                    Key::bot(0u16) => Schema::AnyOf(set![
+                        Schema::Document(Document {
+                            keys: map! {
+                                "literal".into() => Schema::Atomic(Atomic::Integer),
+                            },
+                            required: set! { "literal".into() },
+                            additional_properties: false,
+                        }),
+                        Schema::AnyOf(set![
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "A".into() => Schema::Atomic(Atomic::Boolean),
+                                },
+                                required: set! { "A".into() },
+                                additional_properties: false,
+                            }),
+                            Schema::Document(Document {
+                                keys: map! {
+                                    "B".into() => Schema::Atomic(Atomic::String),
+                                },
+                                required: set! { "B".into() },
+                                additional_properties: false,
+                            })
+                        ])
+                    ]),
+                },
+                min_size: 0,
+                max_size: Some(1),
+            }),
+            Stage::Group(Group {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into()
+                })),
+                keys: vec![AliasedExpression {
+                    alias: Some("literal".into()),
+                    inner: Expression::Literal(Literal::Integer(1)),
+                }],
+                aggregations: vec![
+                    AliasedAggregation {
+                        alias: "A".to_string(),
+                        inner: AggregationExpr::Function(AggregationFunctionApplication {
+                            function: AggregationFunction::First,
+                            distinct: false,
+                            arg: Expression::Literal(Literal::Boolean(true)).into(),
+                        }),
+                    },
+                    AliasedAggregation {
+                        alias: "B".to_string(),
+                        inner: AggregationExpr::Function(AggregationFunctionApplication {
+                            function: AggregationFunction::First,
+                            distinct: false,
+                            arg: Expression::Literal(Literal::String("abc".into())).into(),
+                        }),
+                    },
+                ],
+            }),
+        );
+    }
 }
 
 mod constant_folding {

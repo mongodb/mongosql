@@ -31,8 +31,8 @@ pub enum Error {
     NoAliasForSortKeyAtPosition(usize),
     #[error("aggregation functions may not be used as GROUP BY keys")]
     AggregationFunctionInGroupByKeyList,
-    #[error("aggregation functions in GROUP BY must have an alias")]
-    AggregationFunctionInGroupByAggListNotAliased,
+    #[error("aggregates in GROUP BY must have an alias")]
+    AggregateInGroupByAggListNotAliased,
     #[error("cannot specify aggregation functions in GROUP BY AGGREGATE clause and elsewhere")]
     AggregationFunctionInGroupByAggListAndElsewhere,
     #[error("all select expressions must be given aliases before the SelectRewritePass")]

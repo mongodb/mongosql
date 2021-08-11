@@ -28,7 +28,7 @@ impl Pass for AggregateRewritePass {
 ///
 /// Can result in three possible errors:
 ///   - `Error::AggregationFunctionInGroupByKeyList`
-///   - `Error::AggregationFunctionInGroupByAggListNotAliased`
+///   - `Error::AggregateInGroupByAggListNotAliased`
 ///   - `Error::AggregationFunctionInGroupByAggListAndElsewhere`
 ///
 pub struct AggregateUsageCheckVisitor {
@@ -146,7 +146,7 @@ impl Visitor for AggregateUsageCheckVisitor {
         // It is not valid to have an unaliased aggregation function
         // in a `GROUP BY` aggregation function list.
         if self.in_group_by_agg_func_list && a.alias.is_none() {
-            self.error = Some(Error::AggregationFunctionInGroupByAggListNotAliased);
+            self.error = Some(Error::AggregateInGroupByAggListNotAliased);
             return a;
         }
 

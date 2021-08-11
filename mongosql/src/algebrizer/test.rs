@@ -2742,3 +2742,202 @@ mod order_by_clause {
         }),
     );
 }
+
+mod group_by_clause {
+    use crate::{ast, ir, map};
+    use lazy_static::lazy_static;
+
+    lazy_static! {
+        // ARRAY DATASOURCE
+
+        // [{"a" : 1}] AS arr
+        static ref IR_ARRAY_SOURCE: ir::Stage = ir::Stage::Array(ir::Array {
+            array: vec![ir::Expression::Document(map! {
+                "a".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+            })],
+            alias: "arr".into(),
+        });
+
+        // GROUP BY KEYS
+
+        // arr.a AS key
+        static ref IR_FIELD_ACCESS: ir::AliasedExpression = ir::AliasedExpression {
+            alias: Some("key".to_string()),
+            inner: ir::Expression::FieldAccess(ir::FieldAccess {
+                expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
+                field: "a".to_string()
+            })
+        };
+        static ref AST_SUBPATH: ast::AliasedExpr = ast::AliasedExpr {
+            expr: ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("arr".to_string())),
+                subpath: "a".to_string()
+            }),
+            alias: Some("key".to_string()),
+        };
+
+        // 1 AS literal
+        static ref IR_LITERAL_KEY: ir::AliasedExpression = ir::AliasedExpression {
+            alias: Some("literal".into()),
+            inner: ir::Expression::Literal(ir::Literal::Integer(1)),
+        };
+        static ref AST_LITERAL_KEY: ast::AliasedExpr = ast::AliasedExpr {
+            expr: ast::Expression::Literal(ast::Literal::Integer(1)),
+            alias: Some("literal".into()),
+        };
+
+        // a + 1 AS complex_expr
+        static ref IR_FIELD_ACCESS_COMPLEX_EXPR: ir::AliasedExpression = ir::AliasedExpression {
+            alias: Some("complex_expr".into()),
+            inner: ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Add,
+                args: vec![
+                    ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
+                        field: "a".to_string()
+                    }),
+                    ir::Expression::Literal(ir::Literal::Integer(1))
+                ]
+            })
+        };
+        static ref AST_SUBPATH_COMPLEX_EXPR: ast::AliasedExpr = ast::AliasedExpr {
+            expr: ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Subpath(ast::SubpathExpr {
+                    expr: Box::new(ast::Expression::Identifier("arr".to_string())),
+                    subpath: "a".to_string()
+                })),
+                op: ast::BinaryOp::Add,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))
+            }),
+            alias: Some("complex_expr".into()),
+        };
+
+        // AGGREGATION FUNCTIONS
+
+        // AVG(DISTINCT arr.a) AS agg1
+        static ref IR_AGG_1_ARRAY: ir::AliasedAggregation = ir::AliasedAggregation {
+            alias: "agg1".to_string(),
+            inner: ir::AggregationExpr::Function(ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Avg,
+                arg: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
+                    field: "a".to_string()
+                })),
+                distinct: true,
+            })
+        };
+        static ref AST_AGG_1_ARRAY: ast::AliasedExpr = ast::AliasedExpr {
+            expr: ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Avg,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::Subpath(ast::SubpathExpr {
+                        expr: Box::new(ast::Expression::Identifier("arr".to_string())),
+                        subpath: "a".to_string()
+                    })
+                ]),
+                set_quantifier: Some(ast::SetQuantifier::Distinct),
+            }),
+            alias: Some("agg1".to_string()),
+        };
+
+        // COUNT(*) AS agg2
+        static ref IR_AGG_2: ir::AliasedAggregation = ir::AliasedAggregation {
+            alias: "agg2".to_string(),
+            inner: ir::AggregationExpr::CountStar(false),
+        };
+        static ref AST_AGG_2: ast::AliasedExpr = ast::AliasedExpr {
+            expr: ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Count,
+                args: ast::FunctionArguments::Star,
+                set_quantifier: None
+            }),
+            alias: Some("agg2".to_string()),
+        };
+    }
+
+    // Successful tests.
+
+    // FROM [{"a": 1}] AS arr GROUP BY arr.a AS key AGGREGATE AVG(DISTINCT arr.a) AS agg1, COUNT(*) AS agg2
+    test_algebrize!(
+        group_by_key_with_aggregation_array_source,
+        algebrize_group_by_clause,
+        Ok(ir::Stage::Group(ir::Group {
+            source: Box::new(IR_ARRAY_SOURCE.clone()),
+            keys: vec![IR_FIELD_ACCESS.clone()],
+            aggregations: vec![IR_AGG_1_ARRAY.clone(), IR_AGG_2.clone()],
+        })),
+        Some(ast::GroupByClause {
+            keys: vec![AST_SUBPATH.clone()],
+            aggregations: vec![AST_AGG_1_ARRAY.clone(), AST_AGG_2.clone()],
+        }),
+        IR_ARRAY_SOURCE.clone(),
+    );
+
+    // FROM [{"a": 1}] AS arr GROUP BY 1
+    test_algebrize!(
+        group_by_key_is_literal,
+        algebrize_group_by_clause,
+        Ok(ir::Stage::Group(ir::Group {
+            source: Box::new(IR_ARRAY_SOURCE.clone()),
+            keys: vec![IR_LITERAL_KEY.clone()],
+            aggregations: vec![],
+        })),
+        Some(ast::GroupByClause {
+            keys: vec![AST_LITERAL_KEY.clone()],
+            aggregations: vec![],
+        }),
+        IR_ARRAY_SOURCE.clone(),
+    );
+
+    // FROM [{"a": 1}] AS arr GROUP BY a + 1
+    test_algebrize!(
+        group_by_key_is_complex_expression,
+        algebrize_group_by_clause,
+        Ok(ir::Stage::Group(ir::Group {
+            source: Box::new(IR_ARRAY_SOURCE.clone()),
+            keys: vec![IR_FIELD_ACCESS_COMPLEX_EXPR.clone()],
+            aggregations: vec![],
+        })),
+        Some(ast::GroupByClause {
+            keys: vec![AST_SUBPATH_COMPLEX_EXPR.clone()],
+            aggregations: vec![],
+        }),
+        IR_ARRAY_SOURCE.clone(),
+    );
+
+    // Error tests.
+
+    // FROM [{"a": 1}] AS arr GROUP BY arr.a AS key AGGREGATE 42 AS agg
+    test_algebrize!(
+        group_by_key_with_non_function_aggregation_expression,
+        algebrize_group_by_clause,
+        Err(Error::NonAggregationInPlaceOfAggregation(0)),
+        Some(ast::GroupByClause {
+            keys: vec![AST_SUBPATH.clone()],
+            aggregations: vec![ast::AliasedExpr {
+                expr: ast::Expression::Literal(ast::Literal::Integer(42)),
+                alias: Some("agg".to_string()),
+            },],
+        }),
+        IR_ARRAY_SOURCE.clone(),
+    );
+
+    // FROM [{"a": 1}] AS arr GROUP BY arr.a AS key AGGREGATE COUNT(*)
+    test_algebrize!(
+        group_by_key_with_non_aliased_aggregation_function,
+        algebrize_group_by_clause,
+        Err(Error::AggregationFunctionHasNoAlias(0)),
+        Some(ast::GroupByClause {
+            keys: vec![AST_SUBPATH.clone()],
+            aggregations: vec![ast::AliasedExpr {
+                expr: ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::Count,
+                    args: ast::FunctionArguments::Star,
+                    set_quantifier: None
+                }),
+                alias: None,
+            },],
+        }),
+        IR_ARRAY_SOURCE.clone(),
+    );
+}
