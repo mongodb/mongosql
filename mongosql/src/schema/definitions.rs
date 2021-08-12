@@ -2,7 +2,7 @@ use crate::{
     ir::{
         binding_tuple::{self, BindingTuple},
         schema::Error,
-        Type,
+        Type, TypeOrMissing,
     },
     json_schema, map,
     schema::Schema::{AnyOf, Unsat},
@@ -507,6 +507,21 @@ impl From<Type> for Schema {
             Symbol => Schema::Atomic(Atomic::Symbol),
             Timestamp => Schema::Atomic(Atomic::Timestamp),
             Undefined => Schema::Atomic(Atomic::Null),
+        }
+    }
+}
+
+impl From<TypeOrMissing> for Schema {
+    fn from(t: TypeOrMissing) -> Self {
+        use TypeOrMissing::*;
+        match t {
+            Missing => Schema::Missing,
+            Type(t) => Schema::from(t),
+            Number => Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double)
+            ]),
         }
     }
 }

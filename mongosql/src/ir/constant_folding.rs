@@ -597,13 +597,20 @@ impl ConstantFoldExprVisitor {
         use crate::map;
         use linked_hash_map::LinkedHashMap;
         let mut result_doc: LinkedHashMap<String, Expression> = map! {};
-        for expr in &sf.args {
+        for (i, expr) in sf.args.clone().into_iter().enumerate() {
             if let Expression::Document(map) = expr {
                 for (key, value) in map {
                     result_doc.insert(key.clone(), value.clone());
                 }
             } else {
-                return Expression::ScalarFunction(sf);
+                return Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::MergeObjects,
+                    args: [
+                        vec![Expression::Document(result_doc)],
+                        sf.args.into_iter().skip(i).collect(),
+                    ]
+                    .concat(),
+                });
             }
         }
         Expression::Document(result_doc)
@@ -701,6 +708,134 @@ impl ConstantFoldExprVisitor {
             _ => unreachable!("fold binary functions is only called on binary functions"),
         }
     }
+
+    // Constant folds the is expression
+    fn fold_is_expr(&mut self, is_expr: IsExpr) -> Expression {
+        let schema = is_expr.expr.schema(&EMPTY_STATE);
+        let target_schema = Schema::from(is_expr.target_type);
+        match schema {
+            Err(_) => Expression::Is(is_expr),
+            Ok(schema) => {
+                if schema.satisfies(&target_schema) == Satisfaction::Must {
+                    Expression::Literal(Literal::Boolean(true))
+                } else if schema.satisfies(&target_schema) == Satisfaction::Not {
+                    Expression::Literal(Literal::Boolean(false))
+                } else {
+                    Expression::Is(is_expr)
+                }
+            }
+        }
+    }
+
+    // Constant folds the cast expression
+    fn fold_cast_expr(&mut self, cast_expr: CastExpr) -> Expression {
+        use crate::schema::{ANY_ARRAY, ANY_DOCUMENT};
+        let schema = cast_expr.expr.schema(&EMPTY_STATE);
+        let target_schema = Schema::from(cast_expr.to);
+        if schema.is_err() {
+            return Expression::Cast(cast_expr);
+        }
+        let schema = schema.unwrap();
+        let sat = schema.satisfies(&target_schema);
+        if schema.satisfies(&Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Null),
+            Schema::Missing
+        ])) == Satisfaction::Must
+        {
+            *cast_expr.on_null
+        } else if sat == Satisfaction::Must {
+            *cast_expr.expr
+        } else if sat == Satisfaction::Not
+            && (target_schema == ANY_ARRAY.clone() || target_schema == ANY_DOCUMENT.clone())
+        {
+            *cast_expr.on_error
+        } else {
+            Expression::Cast(cast_expr)
+        }
+    }
+
+    // Folds the simple case expression
+    fn fold_simple_case_expr(&mut self, case_expr: SimpleCaseExpr) -> Expression {
+        let mut new_case_branches: Vec<WhenBranch> = vec![];
+        for when_branch in case_expr.when_branch.clone() {
+            if case_expr.expr.eq(&when_branch.when) && new_case_branches.is_empty() {
+                return *when_branch.then;
+            }
+            match (&*case_expr.expr, &*when_branch.when) {
+                (Expression::Literal(_), Expression::Literal(_)) => {
+                    if case_expr.expr.eq(&when_branch.when) {
+                        new_case_branches.push(when_branch)
+                    }
+                }
+                _ => new_case_branches.push(when_branch),
+            }
+        }
+        if new_case_branches.is_empty() {
+            *case_expr.else_branch
+        } else {
+            Expression::SimpleCase(SimpleCaseExpr {
+                expr: case_expr.expr,
+                when_branch: new_case_branches,
+                else_branch: case_expr.else_branch,
+            })
+        }
+    }
+
+    // Folds the searched case expression
+    fn fold_searched_case_expr(&mut self, case_expr: SearchedCaseExpr) -> Expression {
+        let mut new_case_branches: Vec<WhenBranch> = vec![];
+        for when_branch in case_expr.when_branch.clone() {
+            match &*when_branch.when {
+                Expression::Literal(lit) => {
+                    if lit.eq(&Literal::Boolean(true)) {
+                        if new_case_branches.is_empty() {
+                            return *when_branch.then;
+                        } else {
+                            new_case_branches.push(when_branch)
+                        }
+                    }
+                }
+                _ => new_case_branches.push(when_branch),
+            }
+        }
+        if new_case_branches.is_empty() {
+            *case_expr.else_branch
+        } else {
+            Expression::SearchedCase(SearchedCaseExpr {
+                when_branch: new_case_branches,
+                else_branch: case_expr.else_branch,
+            })
+        }
+    }
+
+    // Folds the field access expression
+    fn fold_field_access_expr(&mut self, field_expr: FieldAccess) -> Expression {
+        let expr = field_expr.clone();
+        if let Expression::Document(ref doc) = *field_expr.expr {
+            let res = doc.get(&field_expr.field);
+            return res.unwrap_or(&Expression::FieldAccess(expr)).clone();
+        }
+        Expression::FieldAccess(field_expr)
+    }
+
+    // Folds the filter stage
+    fn fold_filter_stage(&mut self, filter_stage: Filter) -> Stage {
+        if let Expression::Literal(Literal::Boolean(val)) = filter_stage.condition {
+            if val {
+                return *filter_stage.source;
+            }
+        }
+        Stage::Filter(filter_stage)
+    }
+
+    // Folds the offset stage
+    fn fold_offset_stage(&mut self, offset_stage: Offset) -> Stage {
+        if offset_stage.offset == 0 {
+            *offset_stage.source
+        } else {
+            Stage::Offset(offset_stage)
+        }
+    }
 }
 
 impl Visitor for ConstantFoldExprVisitor {
@@ -708,11 +843,11 @@ impl Visitor for ConstantFoldExprVisitor {
         let e = e.walk(self);
         match e {
             Expression::Array(_) => e,
-            Expression::Cast(_) => e,
+            Expression::Cast(cast_expr) => self.fold_cast_expr(cast_expr),
             Expression::Document(_) => e,
             Expression::Exists(_) => e,
-            Expression::FieldAccess(_) => e,
-            Expression::Is(_) => e,
+            Expression::FieldAccess(field_expr) => self.fold_field_access_expr(field_expr),
+            Expression::Is(is_expr) => self.fold_is_expr(is_expr),
             Expression::Like(_) => e,
             Expression::Literal(_) => e,
             Expression::Reference(_) => e,
@@ -751,8 +886,8 @@ impl Visitor for ConstantFoldExprVisitor {
                 ScalarFunction::Slice => self.fold_slice_function(f),
                 _ => Expression::ScalarFunction(f),
             },
-            Expression::SearchedCase(_) => e,
-            Expression::SimpleCase(_) => e,
+            Expression::SearchedCase(case_expr) => self.fold_searched_case_expr(case_expr),
+            Expression::SimpleCase(case_expr) => self.fold_simple_case_expr(case_expr),
             Expression::SubqueryComparison(_) => e,
             Expression::Subquery(_) => e,
             Expression::TypeAssertion(_) => e,
@@ -764,11 +899,11 @@ impl Visitor for ConstantFoldExprVisitor {
         match st {
             Stage::Array(_) => st,
             Stage::Collection(_) => st,
-            Stage::Filter(_) => st,
+            Stage::Filter(filter) => self.fold_filter_stage(filter),
             Stage::Group(_) => st,
             Stage::Join(_) => st,
             Stage::Limit(_) => st,
-            Stage::Offset(_) => st,
+            Stage::Offset(offset) => self.fold_offset_stage(offset),
             Stage::Project(_) => st,
             Stage::Set(_) => st,
             Stage::Sort(_) => st,
