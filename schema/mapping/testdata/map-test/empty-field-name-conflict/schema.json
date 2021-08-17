@@ -1,0 +1,25 @@
+{
+    "bsonType": "object",
+    "properties": {
+        "x": {
+            "schemas": {
+                "double": {
+                    "bsonType": "double"
+                },
+                "object": {
+                     "bsonType": "object",
+                     "properties": {
+                         "": {
+                             "schemas": {
+                                 "double": {
+                                     "bsonType": "double"
+                                 }
+                             }
+                         }
+                     }
+                }
+            }
+        }
+    }
+}
+

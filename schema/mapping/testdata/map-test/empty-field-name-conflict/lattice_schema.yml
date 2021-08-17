@@ -1,0 +1,30 @@
+schema:
+- db: test
+  tables:
+  - table: empty-field-name-conflict
+    collection: empty-field-name-conflict
+    pipeline:
+        [
+            {
+                "$addFields": {
+                    "x":
+                        {
+                            "$cond": [
+                                {
+                                    "$eq": [
+                                        {"$type": "$x"},
+                                        "object"
+                                    ]
+                                },
+                                null,
+                                "$x"
+                            ]
+                        }
+                }
+            }
+        ]
+    columns:
+    - name: x
+      mongotype: float64
+      sqlname: x
+      sqltype: float64

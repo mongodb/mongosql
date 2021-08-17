@@ -21,6 +21,15 @@ import (
 
 const renameSeparator = "_DOT_"
 
+// We wish to skip empty field names, field names containing dots, and
+// field names starting with $, since these cannot be queried
+// via the agg language. This encapsulates all situations we wish to skip
+// in case this logic need change in the future, such as allowing names to
+// contain '.'.
+func shouldSkipName(name string) bool {
+	return name == "" || strings.Contains(name, ".") || strings.HasPrefix(name, "$")
+}
+
 // SchemaMappingConfig holds all the configuration
 // necessary to perform schema mapping.
 type SchemaMappingConfig struct {
@@ -417,6 +426,9 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 	projectBody := bsonutil.NewD()
 
 	for _, prop := range props {
+		if shouldSkipName(prop) {
+			continue
+		}
 		dottedCtx := ctx.withSubpath(prop)
 		mongoRenamedPrefixPath := dottedCtx.path
 		// If this path has been renamed in a previous $addFields, make sure
@@ -466,6 +478,9 @@ func (ctx *mappingContext) getProjectAndSchemasForProperties(js *mongo.Schema,
 			ctx.buildIfNotObject("$"+mongoRenamedPrefixPath)))
 		objectSchema := s[1]
 		for name := range objectSchema.Properties {
+			if shouldSkipName(name) {
+				continue
+			}
 			preimage := mongoRenamedPrefixPath + "." + name
 			image := ctx.getUniqueFieldName(mongoRenamedPrefixPath, name)
 			colName := dottedCtx.withSubpath(name).path
@@ -508,6 +523,9 @@ func (ctx *mappingContext) getProjectAndSchemaForItems(items *mongo.Schemata) (p
 		ctx.buildIfNotObject("$"+mongoRenamedPrefixPath)))
 	objectSchema := schemas[1]
 	for name := range objectSchema.Properties {
+		if shouldSkipName(name) {
+			continue
+		}
 		preimage := mongoRenamedPrefixPath + "." + name
 		image := ctx.getUniqueFieldName(mongoRenamedPrefixPath, name)
 		colName := ctx.withSubpath(name).path
@@ -531,10 +549,7 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 	props := make([]string, 0, len(js.Properties))
 
 	for prop := range js.Properties {
-		// Skip empty field names, field names containing dots, and
-		// field names starting with $, since these cannot be queried
-		// via the agg language.
-		if prop == "" || strings.Contains(prop, ".") || strings.HasPrefix(prop, "$") {
+		if shouldSkipName(prop) {
 			continue
 		}
 		props = append(props, prop)
@@ -573,6 +588,9 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 
 	// Add every property of this object to ctx.seenFields.
 	for _, prop := range props {
+		if shouldSkipName(prop) {
+			continue
+		}
 		subPath := ctx.withSubpath(prop).path
 		ctx.uniqueFields[subPath] = struct{}{}
 	}
@@ -590,6 +608,10 @@ func (ctx *mappingContext) mapObjectSchema(js *mongo.Schema) error {
 	for _, namedSchema := range namedSchemas {
 		schema := namedSchema.schema
 		name := namedSchema.name
+
+		if shouldSkipName(name) {
+			continue
+		}
 
 		switch schema.BSONType {
 		case mongo.Object:

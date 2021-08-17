@@ -415,3 +415,12 @@ testcases:
     id: BI-2623-ifnull-match-negation
     sql: select a from BI_2623 where not(a <> 0)
     variables: {type_conversion_mode: mongosql}
+
+  - db: bugs_database
+    expected_names: ['_id', 'x']
+    expected_results:
+      - [1, 1]
+      - [2, ~]
+    expected_types: [int, int]
+    id: BI-2639-do-not-map-empty-field-names-in-conflicts
+    sql: select * from BI_2639

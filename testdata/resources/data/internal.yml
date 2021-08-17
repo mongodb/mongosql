@@ -1520,6 +1520,12 @@
   docs:
     - {pos : [ -73.97, 40.77 ]}
 
+- db: "bugs_database"
+  collection: "BI_2639"
+  docs:
+    - { "_id" : 1, "x" : 1 }
+    - { "_id" : 2, "x" : { "" : 2 } }
+
 # TODO(wisdom): holding off testing here until the
 # tools support importing NumberDecimal (TOOLS-1328)
 #
