@@ -74,6 +74,8 @@ pub enum Error {
     DuplicateKey(Key),
     #[error("positional sort keys should have been rewritten to references")]
     PositionalSortKey,
+    #[error("subquery expressions must have a degree of 1")]
+    InvalidSubqueryDegree,
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -201,6 +203,14 @@ impl Algebrizer {
         SchemaInferenceState {
             env: self.schema_env.clone(),
             scope_level: self.scope_level,
+        }
+    }
+
+    pub fn subquery_algebrizer(&self) -> Self {
+        Self {
+            current_db: self.current_db.clone(),
+            schema_env: self.schema_env.clone(),
+            scope_level: self.scope_level + 1,
         }
     }
 
@@ -641,9 +651,9 @@ impl Algebrizer {
             ast::Expression::Like(l) => self.algebrize_like(l),
             // Tuples should all be rewritten away.
             ast::Expression::Tuple(_) => Err(Error::CannotBeAlgebrized("tuples")),
-            ast::Expression::Subquery(_) => unimplemented!(),
+            ast::Expression::Subquery(s) => self.algebrize_subquery(*s),
             ast::Expression::SubqueryComparison(_) => unimplemented!(),
-            ast::Expression::Exists(_) => unimplemented!(),
+            ast::Expression::Exists(e) => self.algebrize_exists(*e),
         }
     }
 
@@ -901,6 +911,38 @@ impl Algebrizer {
                 ),
             }),
         );
+    }
+
+    pub fn algebrize_subquery(&self, ast_node: ast::Query) -> Result<ir::Expression> {
+        let subquery_algebrizer = self.subquery_algebrizer();
+        let subquery = Box::new(subquery_algebrizer.algebrize_query(ast_node)?);
+        let result_set = subquery.schema(&subquery_algebrizer.schema_inference_state())?;
+
+        match result_set.schema_env.0.len() {
+            1 => {
+                let (key, schema) = result_set.schema_env.0.into_iter().next().unwrap();
+                let output_expr = match &schema.get_single_field_name() {
+                    Some(field) => Ok(Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(ir::Expression::Reference(key)),
+                        field: field.to_string(),
+                    }))),
+                    None => Err(Error::InvalidSubqueryDegree),
+                }?;
+                schema_check_return!(
+                    self,
+                    ir::Expression::Subquery(ir::SubqueryExpr {
+                        output_expr,
+                        subquery
+                    })
+                )
+            }
+            _ => Err(Error::InvalidSubqueryDegree),
+        }
+    }
+
+    pub fn algebrize_exists(&self, ast_node: ast::Query) -> Result<ir::Expression> {
+        let exists = self.subquery_algebrizer().algebrize_query(ast_node)?;
+        schema_check_return!(self, ir::Expression::Exists(Box::new(exists)));
     }
 
     fn algebrize_subpath(&self, p: ast::SubpathExpr) -> Result<ir::Expression> {

@@ -2941,3 +2941,410 @@ mod group_by_clause {
         IR_ARRAY_SOURCE.clone(),
     );
 }
+
+mod subquery {
+    use crate::{
+        ast,
+        ir::{binding_tuple::DatasourceName, *},
+        map,
+        schema::{Atomic, Document, Schema},
+        set,
+    };
+    use lazy_static::lazy_static;
+    lazy_static! {
+        static ref AST_ARRAY: ast::Datasource = ast::Datasource::Array(ast::ArraySource {
+            array: vec![ast::Expression::Document(map! {
+                "a".into() => ast::Expression::Literal(ast::Literal::Integer(1))
+            },)],
+            alias: "arr".into()
+        });
+        static ref IR_ARRAY: Stage = Stage::Array(Array {
+            array: vec![Expression::Document(map! {
+                "a".into() => Expression::Literal(Literal::Integer(1))
+            })],
+            alias: "arr".into()
+        });
+    }
+    test_algebrize!(
+        uncorrelated_exists,
+        algebrize_expression,
+        Ok(Expression::Exists(Box::new(Stage::Project(Project {
+            source: Box::new(IR_ARRAY.clone()),
+            expression: map! {
+                (DatasourceName::Bottom, 1u16).into() => Expression::Document(map!{
+                    "a".into() => Expression::Literal(Literal::Integer(1))
+                })
+            }
+        })))),
+        ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                    ast::Expression::Document(map! {
+                        "a".into() => ast::Expression::Literal(ast::Literal::Integer(1))
+                    })
+                )])
+            },
+            from_clause: Some(AST_ARRAY.clone()),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize_with_env!(
+        correlated_exists,
+        algebrize_expression,
+        Ok(Expression::Exists(Box::new(Stage::Project(Project {
+            source: Box::new(IR_ARRAY.clone()),
+            expression: map! {
+                (DatasourceName::Bottom, 2u16).into() => Expression::Document(map!{
+                    "b_0".into() => Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                        field: "b".into()
+                    })
+                })
+            }
+        })))),
+        ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                    ast::Expression::Document(map! {
+                        "b_0".into() => ast::Expression::Identifier("b".into())
+                    })
+                )])
+            },
+            from_clause: Some(AST_ARRAY.clone()),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+        map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"b".to_string()},
+                additional_properties: false,
+            }),
+        },
+    );
+    test_algebrize!(
+        exists_cardinality_gt_1,
+        algebrize_expression,
+        Ok(Expression::Exists(Box::new(Stage::Array(Array {
+            array: vec![
+                Expression::Document(map! {"a".into() => Expression::Literal(Literal::Integer(1))}),
+                Expression::Document(map! {"a".into() => Expression::Literal(Literal::Integer(2))})
+            ],
+            alias: "arr".into()
+        })))),
+        ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
+            },
+            from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                array: vec![
+                    ast::Expression::Document(map! {
+                        "a".into() => ast::Expression::Literal(ast::Literal::Integer(1))
+                    },),
+                    ast::Expression::Document(map! {
+                        "a".into() => ast::Expression::Literal(ast::Literal::Integer(2))
+                    },)
+                ],
+                alias: "arr".into()
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize!(
+        exists_degree_gt_1,
+        algebrize_expression,
+        Ok(Expression::Exists(Box::new(Stage::Array(Array {
+            array: vec![Expression::Document(map! {
+                "a".to_string() => Expression::Literal(Literal::Integer(1)),
+                "b".to_string() => Expression::Literal(Literal::Integer(2))
+            })],
+            alias: "arr".to_string()
+        })))),
+        ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
+            },
+            from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(map! {
+                    "a".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                    "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
+                },),],
+                alias: "arr".into()
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize!(
+        uncorrelated_subquery_expr,
+        algebrize_expression,
+        Ok(Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
+                field: "a_0".to_string()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(IR_ARRAY.clone()),
+                expression: map! {
+                    (DatasourceName::Bottom, 1u16).into() => Expression::Document(map!{
+                        "a_0".into() => Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+                            field: "a".into()
+                        })
+                    })
+                }
+            }))
+        })),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                    ast::Expression::Document(map! {
+                        "a_0".into() => ast::Expression::Identifier("a".into())
+                    })
+                )])
+            },
+            from_clause: Some(AST_ARRAY.clone()),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize_with_env!(
+        correlated_subquery_expr,
+        algebrize_expression,
+        Ok(Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((DatasourceName::Bottom, 2u16).into())),
+                field: "b_0".to_string()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(IR_ARRAY.clone()),
+                expression: map! {
+                    (DatasourceName::Bottom, 2u16).into() => Expression::Document(map!{
+                        "b_0".into() => Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                            field: "b".into()
+                        })
+                    })
+                }
+            }))
+        })),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                    ast::Expression::Document(map! {
+                        "b_0".into() => ast::Expression::Identifier("b".into())
+                    })
+                )])
+            },
+            from_clause: Some(AST_ARRAY.clone()),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+        map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"b".to_string()},
+                additional_properties: false,
+            })
+        },
+    );
+    test_algebrize!(
+        degree_zero_unsat_output,
+        algebrize_expression,
+        Err(Error::InvalidSubqueryDegree),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
+            },
+            from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                array: vec![],
+                alias: "arr".into()
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize!(
+        substar_degree_eq_1,
+        algebrize_expression,
+        Ok(Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+                field: "a".to_string()
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(IR_ARRAY.clone()),
+                expression: map! {
+                    ("arr", 1u16).into() => Expression::Reference(("arr", 1u16).into())
+                }
+            }))
+        })),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Substar(
+                    ast::SubstarExpr {
+                        datasource: "arr".into()
+                    }
+                )])
+            },
+            from_clause: Some(AST_ARRAY.clone()),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize!(
+        select_values_degree_gt_1,
+        algebrize_expression,
+        Err(Error::InvalidSubqueryDegree),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                    ast::Expression::Document(map! {
+                        "a_0".into() => ast::Expression::Identifier("a".into()),
+                        "b_0".into() => ast::Expression::Identifier("b".into())
+                    })
+                ),])
+            },
+            from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                array: vec![
+                    ast::Expression::Document(map! {
+                        "a".into() => ast::Expression::Literal(ast::Literal::Integer(1))
+                    },),
+                    ast::Expression::Document(map! {
+                        "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
+                    },)
+                ],
+                alias: "arr".into()
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize!(
+        star_degree_eq_1,
+        algebrize_expression,
+        Ok(Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+                field: "a".to_string()
+            })),
+            subquery: Box::new(IR_ARRAY.clone())
+        })),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
+            },
+            from_clause: Some(AST_ARRAY.clone()),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize!(
+        select_star_degree_gt_1,
+        algebrize_expression,
+        Err(Error::InvalidSubqueryDegree),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Standard(vec![ast::SelectExpression::Star])
+            },
+            from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(map! {
+                    "a".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                    "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
+                })],
+                alias: "arr".into()
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+    test_algebrize!(
+        substar_degree_gt_1,
+        algebrize_expression,
+        Err(Error::InvalidSubqueryDegree),
+        ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Substar(
+                    ast::SubstarExpr {
+                        datasource: "arr".into()
+                    }
+                )])
+            },
+            from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(map! {
+                    "a".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                    "b".into() => ast::Expression::Literal(ast::Literal::Integer(2))
+                })],
+                alias: "arr".into()
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        },))),
+    );
+}

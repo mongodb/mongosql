@@ -1747,3 +1747,164 @@ mod simplify {
         })
     );
 }
+
+mod get_single_field_name {
+    use crate::{
+        map,
+        schema::{Atomic::String, Document, Schema::*},
+        set,
+    };
+    macro_rules! test_get_single_field_name {
+        ($func_name:ident, $expected:expr, $schema:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $schema.get_single_field_name());
+            }
+        };
+    }
+    test_get_single_field_name!(any, None, &Any);
+    test_get_single_field_name!(unsat, None, &Unsat);
+    test_get_single_field_name!(missing, None, &Missing);
+    test_get_single_field_name!(atomic, None, &Atomic(String));
+    test_get_single_field_name!(any_of_non_document, None, &AnyOf(set![Atomic(String)]));
+    test_get_single_field_name!(array, None, &Array(Box::new(Any)));
+    test_get_single_field_name!(empty_any_of, None, &AnyOf(set![]));
+    test_get_single_field_name!(
+        empty_doc,
+        None,
+        &Document(Document {
+            keys: map![],
+            required: set![],
+            additional_properties: false,
+        })
+    );
+    test_get_single_field_name!(
+        single_doc_no_required_keys,
+        None,
+        &Document(Document {
+            keys: map![
+                "a".to_string() => Atomic(String),
+            ],
+            required: set![],
+            additional_properties: false,
+        })
+    );
+    test_get_single_field_name!(
+        single_doc_multiple_required_keys,
+        None,
+        &Document(Document {
+            keys: map![
+                "a".to_string() => Atomic(String),
+                "b".to_string() => Atomic(String),
+            ],
+            required: set!["a".to_string(), "b".to_string()],
+            additional_properties: false,
+        })
+    );
+    test_get_single_field_name!(
+        single_doc_no_additional_properties,
+        Some("a"),
+        &Document(Document {
+            keys: map![
+                "a".to_string() => Atomic(String),
+            ],
+            required: set!["a".to_string()],
+            additional_properties: false,
+        })
+    );
+    test_get_single_field_name!(
+        single_doc_with_additional_properties,
+        None,
+        &Document(Document {
+            keys: map![
+                "a".to_string() => Atomic(String),
+            ],
+            required: set!["a".to_string()],
+            additional_properties: true,
+        })
+    );
+    test_get_single_field_name!(
+        possible_extra_keys,
+        None,
+        &Document(Document {
+            keys: map![
+                "a".to_string() => Atomic(String),
+                "b".to_string() => Atomic(String),
+            ],
+            required: set!["a".to_string()],
+            additional_properties: false,
+        })
+    );
+    test_get_single_field_name!(
+        two_docs_one_empty,
+        None,
+        &AnyOf(set![
+            Document(Document {
+                keys: map![
+                    "a".to_string() => Atomic(String),
+                ],
+                required: set!["a".to_string()],
+                additional_properties: false,
+            }),
+            Document(Document {
+                keys: map![],
+                required: set![],
+                additional_properties: false,
+            })
+        ])
+    );
+    test_get_single_field_name!(
+        two_docs_one_required_field_per_doc,
+        None,
+        &AnyOf(set![
+            Document(Document {
+                keys: map![
+                    "a".to_string() => Atomic(String),
+                ],
+                required: set!["a".to_string()],
+                additional_properties: false,
+            }),
+            Document(Document {
+                keys: map![
+                    "b".to_string() => Atomic(String),
+                ],
+                required: set!["b".to_string()],
+                additional_properties: false,
+            })
+        ])
+    );
+    test_get_single_field_name!(
+        duplicate_single_field_docs,
+        Some("a"),
+        &AnyOf(set![
+            Document(Document {
+                keys: map![
+                    "a".to_string() => Atomic(String),
+                ],
+                required: set!["a".to_string()],
+                additional_properties: false,
+            }),
+            Document(Document {
+                keys: map![
+                    "a".to_string() => Atomic(String),
+                ],
+                required: set!["a".to_string()],
+                additional_properties: false,
+            })
+        ])
+    );
+    test_get_single_field_name!(
+        any_of_single_field_doc_and_unsat,
+        Some("a"),
+        &AnyOf(set![
+            Unsat,
+            Document(Document {
+                keys: map![
+                    "a".to_string() => Atomic(String),
+                ],
+                required: set!["a".to_string()],
+                additional_properties: false,
+            })
+        ])
+    );
+}

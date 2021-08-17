@@ -138,6 +138,19 @@ pub struct Document {
     pub additional_properties: bool,
 }
 
+impl Document {
+    /// num_keys returns the min and max number of keys that a document matching
+    /// this schema could contain.
+    pub fn num_keys(&self) -> (usize, Option<usize>) {
+        let min = self.required.len();
+        let max = match self.additional_properties {
+            true => None,
+            false => Some(self.keys.len()),
+        };
+        (min, max)
+    }
+}
+
 impl TryFrom<json_schema::Schema> for Document {
     type Error = Error;
 
@@ -478,6 +491,31 @@ impl Schema {
                 | Schema::Atomic(_)
                 | Schema::Array(_) => EMPTY_DOCUMENT.clone(),
             },
+        }
+    }
+
+    /// get_single_field_name returns `Some(fieldName)` if every value matched
+    /// by `self` is a document containing a single field called `fieldName`.
+    /// If this is not the case, or `self` doesn't match any values, it returns
+    /// `None`.
+    pub fn get_single_field_name(&self) -> Option<&str> {
+        match self {
+            AnyOf(any_of) => {
+                let field_names = any_of
+                    .iter()
+                    .filter(|schema| !matches!(schema, Unsat))
+                    .map(|schema| schema.get_single_field_name())
+                    .collect::<BTreeSet<Option<&str>>>();
+                match field_names.len() {
+                    1 => field_names.into_iter().next().unwrap_or(None),
+                    _ => None,
+                }
+            }
+            Schema::Document(d) => match d.num_keys() {
+                (1, Some(1)) => Some(d.keys.iter().next().unwrap().0.as_str()),
+                _ => None,
+            },
+            _ => None,
         }
     }
 }

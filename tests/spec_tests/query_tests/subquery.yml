@@ -219,3 +219,50 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'average_salary': (SELECT VALUE {'a': arr.a} FROM [{a: 4}] AS arr)} FROM employees AS emp"
     error: "SELECT VALUE is not supported in subquery expressions"
+
+  - description: an empty array datasource does not have a degree of one
+    current_db: foo
+    query: "SELECT VALUE {'sub': (SELECT * FROM [] AS arr)} FROM employees AS emp"
+    error: "subquery expressions must have a degree of 1"
+
+  - description: allow select star if we can statically prove the degree is equal to one
+    current_db: foo
+    query: "SELECT VALUE {'sub': (SELECT * FROM [{'a': 4}] AS arr)} FROM employees AS emp"
+    translation_target_db: foo
+    translation_target_coll: employees
+    translation:
+      - { '$project': { '_id': 0, 'employees': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'emp': '$employees' } }
+      - { '$project': { '_id': 0, '__bot': {
+        'sub': { '$subquery': {
+          'let': { 'emp_0': '$emp' },
+          'outputPath': [ '__bot', 'a' ],
+          'pipeline': [
+            { '$array': { 'arr': [ { 'a': 4 } ] } },
+            { '$project': { '_id': 0, '__bot': { 'a': '$arr.a' } } }
+          ]
+        } }
+      } } }
+    result:
+      - { '__bot': {'sub': 1 } }
+
+  - description: allow select substar if we can statically prove the degree is equal to one
+    current_db: foo
+    query: "SELECT VALUE {'sub': (SELECT arr.* FROM [{'a': 4}] AS arr)} FROM employees AS emp"
+    translation_target_db: foo
+    translation_target_coll: employees
+    translation:
+      - { '$project': { '_id': 0, 'employees': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'emp': '$employees' } }
+      - { '$project': { '_id': 0, '__bot': {
+        'sub': { '$subquery': {
+          'let': { 'emp_0': '$emp' },
+          'outputPath': [ '__bot', 'a' ],
+          'pipeline': [
+            { '$array': { 'arr': [ { 'a': 4 } ] } },
+            { '$project': { '_id': 0, '__bot': { 'a': '$arr.a' } } }
+          ]
+        } }
+      } } }
+    result:
+      - { '__bot': { 'sub': 1 } }
