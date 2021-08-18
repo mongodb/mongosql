@@ -791,7 +791,7 @@ impl MqlCodeGenerator {
                     "op": op,
                     "modifier": modifier,
                     "arg": self.codegen_expression(*s.argument)?,
-                    "subquery": self.codegen_subquery(*s.subquery, Some(*s.output_expr))?,
+                    "subquery": self.codegen_subquery(*s.subquery_expr.subquery, Some(*s.subquery_expr.output_expr))?,
                 }}))
             }
             Exists(e) => Ok(bson::bson!({ "$subqueryExists":  self.codegen_subquery(*e, None)? })),

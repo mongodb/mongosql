@@ -399,11 +399,10 @@ pub struct SubqueryExpr {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryComparison {
-    pub output_expr: Box<Expression>,
     pub operator: SubqueryComparisonOp,
     pub modifier: SubqueryModifier,
     pub argument: Box<Expression>,
-    pub subquery: Box<Stage>,
+    pub subquery_expr: SubqueryExpr,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -429,19 +428,6 @@ impl From<crate::ast::UnaryOp> for ScalarFunction {
             ast::UnaryOp::Pos => ScalarFunction::Pos,
             ast::UnaryOp::Neg => ScalarFunction::Neg,
             ast::UnaryOp::Not => ScalarFunction::Not,
-        }
-    }
-}
-
-impl From<SubqueryComparisonOp> for ScalarFunction {
-    fn from(op: SubqueryComparisonOp) -> ScalarFunction {
-        match op {
-            SubqueryComparisonOp::Lt => ScalarFunction::Lt,
-            SubqueryComparisonOp::Lte => ScalarFunction::Lte,
-            SubqueryComparisonOp::Neq => ScalarFunction::Neq,
-            SubqueryComparisonOp::Eq => ScalarFunction::Eq,
-            SubqueryComparisonOp::Gt => ScalarFunction::Gt,
-            SubqueryComparisonOp::Gte => ScalarFunction::Gte,
         }
     }
 }

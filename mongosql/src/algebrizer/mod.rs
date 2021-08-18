@@ -76,6 +76,8 @@ pub enum Error {
     PositionalSortKey,
     #[error("subquery expressions must have a degree of 1")]
     InvalidSubqueryDegree,
+    #[error("invalid subquery comparison operator: {0}")]
+    InvalidSubqueryComparisonOp(&'static str),
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -171,6 +173,22 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
             | ast::FunctionName::Upper => {
                 return Err(Error::ScalarInPlaceOfAggregation(f.to_string()))
             }
+        })
+    }
+}
+
+impl TryFrom<crate::ast::BinaryOp> for ir::SubqueryComparisonOp {
+    type Error = Error;
+
+    fn try_from(op: crate::ast::BinaryOp) -> Result<Self> {
+        Ok(match op {
+            ast::BinaryOp::Eq => ir::SubqueryComparisonOp::Eq,
+            ast::BinaryOp::Gt => ir::SubqueryComparisonOp::Gt,
+            ast::BinaryOp::Gte => ir::SubqueryComparisonOp::Gte,
+            ast::BinaryOp::Lt => ir::SubqueryComparisonOp::Lt,
+            ast::BinaryOp::Lte => ir::SubqueryComparisonOp::Lte,
+            ast::BinaryOp::Neq => ir::SubqueryComparisonOp::Neq,
+            _ => return Err(Error::InvalidSubqueryComparisonOp(op.as_str())),
         })
     }
 }
@@ -652,7 +670,7 @@ impl Algebrizer {
             // Tuples should all be rewritten away.
             ast::Expression::Tuple(_) => Err(Error::CannotBeAlgebrized("tuples")),
             ast::Expression::Subquery(s) => self.algebrize_subquery(*s),
-            ast::Expression::SubqueryComparison(_) => unimplemented!(),
+            ast::Expression::SubqueryComparison(s) => self.algebrize_subquery_comparison(s),
             ast::Expression::Exists(e) => self.algebrize_exists(*e),
         }
     }
@@ -913,7 +931,7 @@ impl Algebrizer {
         );
     }
 
-    pub fn algebrize_subquery(&self, ast_node: ast::Query) -> Result<ir::Expression> {
+    pub fn algebrize_subquery_expr(&self, ast_node: ast::Query) -> Result<ir::SubqueryExpr> {
         let subquery_algebrizer = self.subquery_algebrizer();
         let subquery = Box::new(subquery_algebrizer.algebrize_query(ast_node)?);
         let result_set = subquery.schema(&subquery_algebrizer.schema_inference_state())?;
@@ -928,16 +946,39 @@ impl Algebrizer {
                     }))),
                     None => Err(Error::InvalidSubqueryDegree),
                 }?;
-                schema_check_return!(
-                    self,
-                    ir::Expression::Subquery(ir::SubqueryExpr {
-                        output_expr,
-                        subquery
-                    })
-                )
+                Ok(ir::SubqueryExpr {
+                    output_expr,
+                    subquery,
+                })
             }
             _ => Err(Error::InvalidSubqueryDegree),
         }
+    }
+
+    pub fn algebrize_subquery(&self, ast_node: ast::Query) -> Result<ir::Expression> {
+        schema_check_return!(
+            self,
+            ir::Expression::Subquery(self.algebrize_subquery_expr(ast_node)?)
+        )
+    }
+
+    pub fn algebrize_subquery_comparison(
+        &self,
+        s: ast::SubqueryComparisonExpr,
+    ) -> Result<ir::Expression> {
+        let modifier = match s.quantifier {
+            ast::SubqueryQuantifier::All => ir::SubqueryModifier::All,
+            ast::SubqueryQuantifier::Any => ir::SubqueryModifier::Any,
+        };
+        schema_check_return!(
+            self,
+            ir::Expression::SubqueryComparison(ir::SubqueryComparison {
+                operator: ir::SubqueryComparisonOp::try_from(s.op)?,
+                modifier,
+                argument: Box::new(self.algebrize_expression(*s.expr)?),
+                subquery_expr: self.algebrize_subquery_expr(*s.subquery)?
+            })
+        )
     }
 
     pub fn algebrize_exists(&self, ast_node: ast::Query) -> Result<ir::Expression> {

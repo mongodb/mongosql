@@ -494,6 +494,28 @@ impl AggregationFunction {
     }
 }
 
+impl SubqueryExpr {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let result_set = self.subquery.schema(&state.subquery_state())?;
+        let schema = self.output_expr.schema(&SchemaInferenceState {
+            scope_level: state.scope_level + 1,
+            env: result_set.schema_env,
+        })?;
+
+        // The subquery's result set MUST have a cardinality of 0 or 1. The returned schema
+        // MUST include MISSING if the cardinality of the result set MAY be 0. We can exclude
+        // MISSING from the returned schema if the cardinality of the result set MUST be 1.
+        if result_set.max_size == None || result_set.max_size.unwrap() > 1 {
+            return Err(Error::InvalidSubqueryCardinality);
+        }
+        match result_set.min_size {
+            0 => Ok(Schema::AnyOf(set![schema, Schema::Missing])),
+            1 => Ok(schema),
+            _ => Err(Error::InvalidSubqueryCardinality),
+        }
+    }
+}
+
 impl Expression {
     // get_field_schema returns the Schema for a known field name retrieved
     // from the argument Schema. It follows the MongoSQL semantics for
@@ -576,29 +598,25 @@ impl Expression {
             Expression::SearchedCase(sc) => sc.schema(state),
             Expression::SimpleCase(sc) => sc.schema(state),
             Expression::TypeAssertion(t) => t.schema(state),
-            Expression::Subquery(SubqueryExpr {
-                output_expr,
-                subquery,
+            Expression::Subquery(s) => s.schema(state),
+            Expression::SubqueryComparison(SubqueryComparison {
+                operator: _operator,
+                modifier: _modifier,
+                argument,
+                subquery_expr,
             }) => {
-                let result_set = subquery.schema(&state.subquery_state())?;
-                let schema = output_expr.schema(&SchemaInferenceState {
-                    scope_level: state.scope_level + 1,
-                    env: result_set.schema_env,
-                })?;
-
-                // The subquery's result set MUST have a cardinality of 0 or 1. The returned schema
-                // MUST include MISSING if the cardinality of the result set MAY be 0. We can exclude
-                // MISSING from the returned schema if the cardinality of the result set MUST be 1.
-                if result_set.max_size == None || result_set.max_size.unwrap() > 1 {
-                    return Err(Error::InvalidSubqueryCardinality);
-                }
-                match result_set.min_size {
-                    0 => Ok(Schema::AnyOf(set![schema, Schema::Missing])),
-                    1 => Ok(schema),
-                    _ => Err(Error::InvalidSubqueryCardinality),
+                let argument_schema = argument.schema(state)?;
+                let subquery_schema = subquery_expr.schema(state)?;
+                if argument_schema.is_comparable_with(&subquery_schema) == Satisfaction::Must {
+                    Ok(subquery_schema)
+                } else {
+                    Err(Error::InvalidComparison(
+                        "subquery comparison",
+                        argument_schema,
+                        subquery_schema,
+                    ))
                 }
             }
-            Expression::SubqueryComparison(_) => unimplemented!(),
             Expression::Exists(stage) => {
                 stage.schema(&state.subquery_state())?;
                 Ok(Schema::Atomic(Atomic::Boolean))

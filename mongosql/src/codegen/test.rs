@@ -2457,14 +2457,16 @@ mod subquery {
             }}
         )),
         Expression::SubqueryComparison(SubqueryComparison {
-            output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
             operator: SubqueryComparisonOp::Eq,
             modifier: Any,
             argument: Box::new(Expression::Literal(Literal::Integer(5))),
-            subquery: Box::new(Stage::Collection(Collection {
-                db: "test".into(),
-                collection: "foo".into(),
-            }))
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                subquery: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "foo".into(),
+                }))
+            }
         }),
     );
     test_codegen_expr!(
@@ -2493,27 +2495,29 @@ mod subquery {
             }}
         )),
         Expression::SubqueryComparison(SubqueryComparison {
-            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
-                field: "a".into()
-            })),
             operator: SubqueryComparisonOp::Eq,
             modifier: Any,
             argument: Box::new(Expression::Reference(("x", 0u16).into())),
-            subquery: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "test".into(),
-                    collection: "bar".into(),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                    field: "a".into()
                 })),
-                expression: map! {
-                    (Bottom, 1u16).into() => Expression::Document(map! {
-                        "a".into() => Expression::FieldAccess(FieldAccess{
-                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                            field: "a".into()
+                subquery: Box::new(Stage::Project(Project {
+                    source: Box::new(Stage::Collection(Collection {
+                        db: "test".into(),
+                        collection: "bar".into(),
+                    })),
+                    expression: map! {
+                        (Bottom, 1u16).into() => Expression::Document(map! {
+                            "a".into() => Expression::FieldAccess(FieldAccess{
+                                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                                field: "a".into()
+                            })
                         })
-                    })
-                }
-            }))
+                    }
+                }))
+            }
         }),
     );
     test_codegen_expr!(

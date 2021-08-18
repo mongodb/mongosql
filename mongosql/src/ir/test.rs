@@ -4087,6 +4087,55 @@ mod schema {
         }),
     );
 
+    // Subquery Comparisons
+    test_schema!(
+        uncorrelated_subquery_comparison,
+        Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)])),
+        Expression::SubqueryComparison(SubqueryComparison {
+            operator: SubqueryComparisonOp::Eq,
+            modifier: SubqueryModifier::All,
+            argument: Box::new(Expression::Literal(Literal::Integer(5))),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                    field: "a".into()
+                })),
+                subquery: Box::new(Stage::Array(Array {
+                    array: vec![Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(5))
+                    })],
+                    alias: "foo".into(),
+                })),
+            }
+        }),
+    );
+
+    test_schema!(
+        incomparable_argument_and_output_expr,
+        Err(Error::InvalidComparison(
+            "subquery comparison",
+            Schema::Atomic(Atomic::String),
+            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
+        )),
+        Expression::SubqueryComparison(SubqueryComparison {
+            operator: SubqueryComparisonOp::Eq,
+            modifier: SubqueryModifier::All,
+            argument: Box::new(Expression::Literal(Literal::String("abc".into()))),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                    field: "a".into()
+                })),
+                subquery: Box::new(Stage::Array(Array {
+                    array: vec![Expression::Document(map! {
+                        "a".into() => Expression::Literal(Literal::Integer(5))
+                    })],
+                    alias: "foo".into(),
+                })),
+            }
+        }),
+    );
+
     // Set tests
     test_schema!(
         set_unionall_same_name_unioned,

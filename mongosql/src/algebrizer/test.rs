@@ -3347,4 +3347,214 @@ mod subquery {
             offset: None,
         },))),
     );
+    test_algebrize!(
+        uncorrelated_subquery_comparison_all,
+        algebrize_expression,
+        Ok(Expression::SubqueryComparison(SubqueryComparison {
+            operator: SubqueryComparisonOp::Eq,
+            modifier: SubqueryModifier::All,
+            argument: Box::new(Expression::Literal(Literal::Integer(5))),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
+                    field: "a_0".to_string()
+                })),
+                subquery: Box::new(Stage::Project(Project {
+                    source: Box::new(IR_ARRAY.clone()),
+                    expression: map! {
+                        (DatasourceName::Bottom, 1u16).into() => Expression::Document(map!{
+                            "a_0".into() => Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+                                field: "a".into()
+                            })
+                        })
+                    }
+                }))
+            }
+        })),
+        ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
+            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
+            op: ast::BinaryOp::Eq,
+            quantifier: ast::SubqueryQuantifier::All,
+            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(map! {
+                            "a_0".into() => ast::Expression::Identifier("a".into())
+                        })
+                    )])
+                },
+                from_clause: Some(AST_ARRAY.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            },))
+        }),
+    );
+    test_algebrize!(
+        uncorrelated_subquery_comparison_any,
+        algebrize_expression,
+        Ok(Expression::SubqueryComparison(SubqueryComparison {
+            operator: SubqueryComparisonOp::Eq,
+            modifier: SubqueryModifier::Any,
+            argument: Box::new(Expression::Literal(Literal::Integer(5))),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
+                    field: "a_0".to_string()
+                })),
+                subquery: Box::new(Stage::Project(Project {
+                    source: Box::new(IR_ARRAY.clone()),
+                    expression: map! {
+                        (DatasourceName::Bottom, 1u16).into() => Expression::Document(map!{
+                            "a_0".into() => Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+                                field: "a".into()
+                            })
+                        })
+                    }
+                }))
+            }
+        })),
+        ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
+            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
+            op: ast::BinaryOp::Eq,
+            quantifier: ast::SubqueryQuantifier::Any,
+            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(map! {
+                            "a_0".into() => ast::Expression::Identifier("a".into())
+                        })
+                    )])
+                },
+                from_clause: Some(AST_ARRAY.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            },))
+        }),
+    );
+    test_algebrize_with_env!(
+        argument_from_super_scope,
+        algebrize_expression,
+        Ok(Expression::SubqueryComparison(SubqueryComparison {
+            operator: SubqueryComparisonOp::Eq,
+            modifier: SubqueryModifier::All,
+            argument: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                field: "b".to_string()
+            })),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference((DatasourceName::Bottom, 2u16).into())),
+                    field: "a_0".to_string()
+                })),
+                subquery: Box::new(Stage::Project(Project {
+                    source: Box::new(IR_ARRAY.clone()),
+                    expression: map! {
+                        (DatasourceName::Bottom, 2u16).into() => Expression::Document(map!{
+                            "a_0".into() => Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Reference(("arr", 2u16).into())),
+                                field: "a".into()
+                            })
+                        })
+                    }
+                }))
+            }
+        })),
+        ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
+            expr: Box::new(ast::Expression::Identifier("b".into())),
+            op: ast::BinaryOp::Eq,
+            quantifier: ast::SubqueryQuantifier::All,
+            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(map! {
+                            "a_0".into() => ast::Expression::Identifier("a".into())
+                        })
+                    )])
+                },
+                from_clause: Some(AST_ARRAY.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            },))
+        }),
+        map! {
+            ("foo", 1u16).into() => Schema::Document( Document {
+                keys: map! {
+                    "b".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set!{"b".to_string()},
+                additional_properties: false,
+            })
+        },
+    );
+    test_algebrize!(
+        argument_only_evaluated_in_super_scope,
+        algebrize_expression,
+        Err(Error::FieldNotFound("a".into())),
+        ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
+            expr: Box::new(ast::Expression::Identifier("a".into())),
+            op: ast::BinaryOp::Eq,
+            quantifier: ast::SubqueryQuantifier::All,
+            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(map! {
+                            "a_0".into() => ast::Expression::Identifier("a".into())
+                        })
+                    )])
+                },
+                from_clause: Some(AST_ARRAY.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            },))
+        }),
+    );
+    test_algebrize!(
+        invalid_op,
+        algebrize_expression,
+        Err(Error::InvalidSubqueryComparisonOp("Add")),
+        ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
+            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
+            op: ast::BinaryOp::Add,
+            quantifier: ast::SubqueryQuantifier::All,
+            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(map! {
+                            "a_0".into() => ast::Expression::Identifier("a".into())
+                        })
+                    )])
+                },
+                from_clause: Some(AST_ARRAY.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            },))
+        }),
+    );
 }
