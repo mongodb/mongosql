@@ -162,7 +162,7 @@ func TestTranslateSQLQuery(t *testing.T) {
 			mongoVersion:       testMongoVersion4,
 			schema:             testSchema,
 			format:             "multiline",
-			expectedOutput:     "[\n\t{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$a\",null]},{\"$gt\": [\"$b\",null]},{\"$lt\": [\"$b\",\"$a\"]}]}}},\n\t{\"$group\": {\"_id\": {\"group_key_0\": {\"$ifNull\": [\"$c\",{\"$literal\": null}]}},\"test_DOT_foo_DOT_b\": {\"$first\": \"$b\"},\"test_DOT_foo_DOT_a\": {\"$first\": \"$a\"}}},\n\t{\"$sort\": {\"test_DOT_foo_DOT_b\": NumberInt(\"-1\")}},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\": \"$test_DOT_foo_DOT_b\",\"_id\": NumberInt(\"0\")}},\n]",
+			expectedOutput:     "[\n\t{\"$match\": {\"$expr\": {\"$and\": [{\"$gt\": [\"$a\",null]},{\"$gt\": [\"$b\",null]},{\"$lt\": [\"$b\",\"$a\"]}]}}},\n\t{\"$group\": {\"_id\": \"$c\",\"test_DOT_foo_DOT_b\": {\"$first\": \"$b\"},\"test_DOT_foo_DOT_a\": {\"$first\": \"$a\"}}},\n\t{\"$sort\": {\"test_DOT_foo_DOT_b\": NumberInt(\"-1\")}},\n\t{\"$project\": {\"test_DOT_foo_DOT_a\": \"$test_DOT_foo_DOT_a\",\"test_DOT_foo_DOT_b\": \"$test_DOT_foo_DOT_b\",\"_id\": NumberInt(\"0\")}},\n]",
 			expectedCollection: "foo",
 		},
 		{

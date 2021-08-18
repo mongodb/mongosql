@@ -52,7 +52,7 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: ''_id+_id'', type: ''float''}]', null, 'join_test', '[join_2]', '[b]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}},{"$unionWith": {"coll": "join_3","pipeline": [{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]}},{"$group": {"_id": {"group_key_0": {"$ifNull": ["$join_test_DOT_join_2_DOT__id",{"$literal": null}]}}}},{"$project": {"join_test_DOT_b_DOT__id+join_test_DOT_b_DOT__id": {"$add": ["$_id.group_key_0","$_id.group_key_0"]},"_id": NumberInt("0")}}]', null, null]
+      - [1, MongoSourceStage, '[{name: ''_id+_id'', type: ''float''}]', null, 'join_test', '[join_2]', '[b]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}},{"$unionWith": {"coll": "join_3","pipeline": [{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]}},{"$group": {"_id": "$join_test_DOT_join_2_DOT__id"}},{"$addFields": {"_id": {"group_key_0": "$_id"}}},{"$project": {"join_test_DOT_b_DOT__id+join_test_DOT_b_DOT__id": {"$add": ["$_id.group_key_0","$_id.group_key_0"]},"_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '5'
     min_server_version: '4.3'
@@ -63,7 +63,7 @@ testcases:
     description: explain query
     expected_names: [stage_id, plan_stage, plan_columns, sources, database, tables, aliases, collections, pipeline, pipeline_explain, comment]
     expected_results:
-      - [1, MongoSourceStage, '[{name: ''_id+_id'', type: ''float''}]', null, 'join_test', '[join_2]', '[b]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}},{"$unionWith": {"coll": "join_3","pipeline": [{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]}},{"$group": {"_id": {"group_key_0": {"$ifNull": ["$join_test_DOT_join_2_DOT__id",{"$literal": null}]}}}},{"$project": {"join_test_DOT_join_2_DOT__id": "$_id.group_key_0"}},{"$sort": {"join_test_DOT_join_2_DOT__id": NumberInt("1")}},{"$limit": NumberLong("10")},{"$project": {"join_test_DOT_b_DOT__id+join_test_DOT_b_DOT__id": {"$add": ["$join_test_DOT_join_2_DOT__id","$join_test_DOT_join_2_DOT__id"]},"_id": NumberInt("0")}}]', null, null]
+      - [1, MongoSourceStage, '[{name: ''_id+_id'', type: ''float''}]', null, 'join_test', '[join_2]', '[b]', '[join_2]', '[{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}},{"$unionWith": {"coll": "join_3","pipeline": [{"$project": {"join_test_DOT_join_2_DOT__id": "$_id"}}]}},{"$group": {"_id": "$join_test_DOT_join_2_DOT__id"}},{"$addFields": {"_id": {"group_key_0": "$_id"}}},{"$project": {"join_test_DOT_join_2_DOT__id": "$_id.group_key_0"}},{"$sort": {"join_test_DOT_join_2_DOT__id": NumberInt("1")}},{"$limit": NumberLong("10")},{"$project": {"join_test_DOT_b_DOT__id+join_test_DOT_b_DOT__id": {"$add": ["$join_test_DOT_join_2_DOT__id","$join_test_DOT_join_2_DOT__id"]},"_id": NumberInt("0")}}]', null, null]
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '6'
     min_server_version: '4.3'

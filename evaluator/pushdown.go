@@ -940,8 +940,30 @@ func (v *pushdownVisitor) translateGroupByKeys(keys []SQLExpr, lookupFieldRef Fi
 
 		uniqueKeyName := fmt.Sprintf("group_key_%d", i)
 
-		// Null and missing must be considered the same value for uniqueness in the union stage.
-		keyDocumentElements[i] = ast.NewDocumentElement(uniqueKeyName, astutil.WrapInIfNull(translatedKey, astutil.NullLiteral))
+		keyValue := translatedKey
+		// If there is more than one key, we need to convert MISSING to NULL using
+		// an $ifNull check because NULL and MISSING must be considered the same value for group by key values
+		// in mysql. MongoDB correctly treats them as the same, but only when there is only ony key.
+		// e.g.:
+		// > db.col.find()
+		//{ "_id" : ObjectId("611551d7a383be5dd4240f53"), "a" : 1 }
+		//{ "_id" : ObjectId("611551dba383be5dd4240f54") }
+		//{ "_id" : ObjectId("611551e1a383be5dd4240f55"), "a" : null }
+		//> db.col.aggregate({$group: {_id: '$a'}})
+		//{ "_id" : null }
+		//{ "_id" : 1 }
+		// works
+		// > db.col.aggregate({$group: {_id: {'a': '$a', 'b': '$a'}}})
+		//{ "_id" : { "a" : null, "b" : null } }
+		//{ "_id" : { "a" : 1, "b" : 1 } }
+		//{ "_id" : {  } }
+		// does not work
+		// additionally, the handling of EvalArrNumeric requires an ifNull
+		// check regardless of number of keys.
+		if len(keys) != 1 || key.EvalType() == types.EvalArrNumeric {
+			keyValue = astutil.WrapInIfNull(translatedKey, astutil.NullLiteral)
+		}
+		keyDocumentElements[i] = ast.NewDocumentElement(uniqueKeyName, keyValue)
 		keyNameMapping[key] = uniqueKeyName
 	}
 
