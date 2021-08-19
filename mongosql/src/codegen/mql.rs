@@ -319,7 +319,16 @@ impl MqlCodeGenerator {
                     database: None,
                     collection: None,
                     mapping_registry,
-                    pipeline: vec![doc! {"$array": {arr.alias: Bson::Array(docs)}}],
+                    pipeline: match arr.alias.as_ref() {
+                        "_id" => vec![
+                            doc! {"$documents": Bson::Array(docs)},
+                            doc! {"$project": {"_id": "$$ROOT"}},
+                        ],
+                        x => vec![
+                            doc! {"$documents": Bson::Array(docs)},
+                            doc! {"$project": {"_id": 0, x: "$$ROOT"}},
+                        ],
+                    },
                 })
             }
             Join(join) => {

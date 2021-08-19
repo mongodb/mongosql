@@ -98,7 +98,8 @@ mod array_stage {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": []}},
+                bson::doc!{"$documents": []},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
             ],
         }),
         Stage::Array(Array {
@@ -107,12 +108,28 @@ mod array_stage {
         }),
     );
     test_codegen_plan!(
+        empty_id_alias,
+        Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$documents": []},
+                bson::doc!{"$project": {"_id": "$$ROOT"}},
+            ],
+        }),
+        Stage::Array(Array {
+            array: vec![],
+            alias: "_id".to_string(),
+        }),
+    );
+    test_codegen_plan!(
         non_empty,
         Ok({
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": [{"$literal": false}]}},
+                bson::doc!{"$documents": [{"$literal": false}]},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
             ],
         }),
         Stage::Array(Array {
@@ -137,7 +154,8 @@ mod project {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$documents": [{"$literal": {}}]},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$project": {"_id": 0, "a": {"$literal": 1}, "b": {"$literal": 2}, "c": {"$literal": 3}}},
             ],
         }),
@@ -160,7 +178,8 @@ mod project {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$documents": [{"$literal": {}}]},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$project": {"_id": 0}},
             ],
         }),
@@ -179,7 +198,8 @@ mod project {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$documents": [{"$literal": {}}]},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$project": {"_id": 0, "foo": "$arr"}},
             ],
         }),
@@ -200,7 +220,8 @@ mod project {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": [{"$literal": {}}]}},
+                bson::doc!{"$documents": [{"$literal": {}}]},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$project": {"_id": {"$literal": 42.0}, "foo": {"$literal": 44.0}}},
             ],
         }),
@@ -222,7 +243,8 @@ mod project {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"__bot": [{"a": {"$literal": 42}}]}},
+                bson::doc!{"$documents": [{"a": {"$literal": 42}}]},
+                bson::doc!{"$project": {"_id": 0, "__bot": "$$ROOT"}},
                 bson::doc!{"$project": {
                     "_id": 0,
                     "____bot": "$__bot",
@@ -257,7 +279,8 @@ mod filter {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": []}},
+                bson::doc!{"$documents": []},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$match": {"$expr": {"$literal": true}}},
             ],
         }),
@@ -284,7 +307,8 @@ mod sort {
             database: None,
             collection: None,
             pipeline: vec![
-                bson::doc!{"$array": {"arr": []}},
+                bson::doc!{"$documents": []},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$sort": {}},
             ],
         }),
@@ -835,7 +859,10 @@ mod join {
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
                 "$join":
                 {"joinType":"left",
-                "pipeline": [{"$array": {"arr": [{"$literal": 1}, {"$literal": 1}]}}],
+                "pipeline": [
+                    {"$documents": [{"$literal": 1}, {"$literal": 1}]},
+                    bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
+                ],
             }}],
         }),
         Stage::Join(Join {
@@ -937,8 +964,13 @@ mod union {
         Ok({
             database: None,
             collection: None,
-            pipeline: vec![bson::doc!{"$array": {"arr1": [{"$literal": 1}]}},
-                bson::doc!{"$unionWith": {"pipeline": [{"$array": {"arr2": [{"$literal": 2}]}}]}}],
+            pipeline: vec![
+                bson::doc!{"$documents": [{"$literal": 1}]},
+                bson::doc!{"$project": {"_id": 0, "arr1": "$$ROOT"}},
+                bson::doc!{"$unionWith": {"pipeline": [
+                    {"$documents": [{"$literal": 2}]},
+                    {"$project": {"_id": 0, "arr2": "$$ROOT"}},
+                ]}}],
         }),
         Stage::Set(Set {
             operation: SetOperation::UnionAll,
@@ -957,7 +989,9 @@ mod union {
         Ok({
             database: None,
             collection: None,
-            pipeline: vec![bson::doc!{"$array": {"arr": [{"$literal": 1}]}},
+            pipeline: vec![
+                bson::doc!{"$documents": [{"$literal": 1}]},
+                bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$unionWith": {"coll": "b", "pipeline": [{"$project": {"_id": 0, "b": "$$ROOT"}}]}}],
         }),
         Stage::Set(Set {
@@ -978,7 +1012,10 @@ mod union {
             database: Some("foo".to_string()),
             collection: Some("a".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "a": "$$ROOT"}},
-                bson::doc!{"$unionWith": {"pipeline": [{"$array": {"arr": [{"$literal": 1}]}}]}}],
+                bson::doc!{"$unionWith": {"pipeline": [
+                    {"$documents": [{"$literal": 1}]},
+                    bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
+                ]}}],
         }),
         Stage::Set(Set {
             operation: SetOperation::UnionAll,
@@ -1001,7 +1038,8 @@ mod union {
                 bson::doc!{"$unionWith": {"coll": "b", "pipeline": [
                     {"$project": {"_id": 0, "b": "$$ROOT"}},
                     {"$unionWith": {"pipeline": [
-                        {"$array": {"arr": [{"$literal": 1}]}},
+                        {"$documents": [{"$literal": 1}]},
+                        {"$project": {"_id": 0, "arr": "$$ROOT"}},
                     ]}}
                 ]}}
             ],
@@ -2366,7 +2404,10 @@ mod subquery {
     test_codegen_expr!(
         subquery_expr_no_db_or_coll,
         Ok(bson::bson!(
-            {"$subquery": {"let": {},"outputPath": ["arr"],"pipeline": [{"$array": {"arr": []}}]}}
+            {"$subquery": {"let": {},"outputPath": ["arr"],"pipeline": [
+                {"$documents": []},
+                {"$project": {"_id": 0, "arr": "$$ROOT"}},
+            ]}}
         )),
         Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Reference(("arr", 1u16).into())),
