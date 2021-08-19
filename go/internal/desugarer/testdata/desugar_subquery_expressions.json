@@ -71,7 +71,6 @@
   },
   {
     "name": "desugar $subquery expression with no source",
-    "skip": "SQL-294",
     "input": [
       {
         "$project": {
@@ -84,13 +83,11 @@
               ],
               "pipeline": [
                 {
-                  "$array": {
-                    "arr": [
-                      {
-                        "a": 1
-                      }
-                    ]
-                  }
+                  "$documents": [
+                    {
+                      "a": 1
+                    }
+                  ]
                 }
               ]
             }
@@ -103,13 +100,11 @@
         "$lookup": {
           "pipeline": [
             {
-              "$array": {
-                "arr": [
+              "$documents": [
                   {
                     "a": 1
                   }
                 ]
-              }
             },
             {
               "$limit": 1
@@ -578,7 +573,6 @@
   },
   {
     "name": "desugar $subqueryExists expression with no source",
-    "skip": "SQL-294",
     "input": [
       {
         "$project": {
@@ -587,7 +581,7 @@
             "$subqueryExists": {
               "pipeline": [
                 {
-                  "$array": [
+                  "$documents": [
                     {
                       "a": 1
                     },
@@ -607,7 +601,7 @@
         "$lookup": {
           "pipeline": [
             {
-              "$array": [
+              "$documents": [
                 {
                   "a": 1
                 },
@@ -780,7 +774,6 @@
   },
   {
     "name": "desugar $subqueryComparison expression with no source",
-    "skip": "SQL-294",
     "input": [
       {
         "$project": {
@@ -794,7 +787,7 @@
                 "outputPath": ["a"],
                 "pipeline": [
                   {
-                    "$array": [
+                    "$documents": [
                       {
                         "a": 1
                       },
@@ -815,7 +808,7 @@
         "$lookup": {
           "pipeline": [
             {
-              "$array": [
+              "$documents": [
                 {
                   "a": 1
                 },

@@ -153,26 +153,23 @@
   },
   {
     "name": "desugar join with no collection and non-empty pipeline",
-    "skip": "SQL-294",
     "input": [
       {
         "$join": {
           "joinType": "inner",
           "pipeline": [
             {
-              "$array": {
-                "arr": [
-                  {
-                    "a": 1
-                  },
-                  {
-                    "a": 2
-                  },
-                  {
-                    "a": 3
-                  }
-                ]
-              }
+              "$documents": [
+                {
+                  "a": 1
+                },
+                {
+                  "a": 2
+                },
+                {
+                  "a": 3
+                }
+              ]
             }
           ]
         }
@@ -183,19 +180,17 @@
         "$lookup": {
           "pipeline": [
             {
-              "$array": {
-                "arr": [
-                  {
-                    "a": 1
-                  },
-                  {
-                    "a": 2
-                  },
-                  {
-                    "a": 3
-                  }
-                ]
-              }
+              "$documents": [
+                {
+                  "a": 1
+                },
+                {
+                  "a": 2
+                },
+                {
+                  "a": 3
+                }
+              ]
             }
           ],
           "as": "eca58228-b657-498a-b76e-f48a9161a404"
