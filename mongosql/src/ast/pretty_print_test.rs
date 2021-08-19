@@ -452,6 +452,7 @@ expression_printer_test!(literal_null, "NULL", "nUlL");
 expression_printer_test!(literal_true, "true", "tRuE");
 expression_printer_test!(literal_false, "false", "fALse");
 expression_printer_test!(literal_string, "'hellO'", "'hellO'");
+expression_printer_test!(literal_string_with_single_quote, "'''hellO'", "'''hellO'");
 expression_printer_test!(literal_int, "1", "1");
 expression_printer_test!(literal_long, "8000000000", "8000000000");
 expression_printer_test!(literal_double, "81111.1", "8.11111e4");

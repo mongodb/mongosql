@@ -663,7 +663,7 @@ impl Display for Literal {
         match self {
             Literal::Null => write!(f, "NULL"),
             Literal::Boolean(b) => write!(f, "{}", b),
-            Literal::String(s) => write!(f, "'{}'", s),
+            Literal::String(s) => write!(f, "'{}'", s.replace("'", "''")),
             Literal::Integer(i) => write!(f, "{}", i),
             Literal::Long(l) => write!(f, "{}", l),
             Literal::Double(d) => {
