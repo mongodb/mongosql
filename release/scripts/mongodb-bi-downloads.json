@@ -62,10 +62,6 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~SUSE15-64"
     },
     {
-      "name": "Ubuntu 14.04 x64",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU1404-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
-    },
-    {
       "name": "Ubuntu 16.04 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1604-64"
     },
@@ -87,7 +83,7 @@
     },
     {
       "name": "Ubuntu 20.04 x64",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-64"
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU2004-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
     },
     {
       "name": "Ubuntu 20.04 ARM",

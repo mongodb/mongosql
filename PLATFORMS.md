@@ -18,6 +18,9 @@ are not limited to) the following:
 - Changing the name of a buildvariant matrix or axis
 - Moving a variant to a different matrix
 
+For example, any of the above changes will necessitate updating the URL templates in the release
+JSON template files.
+
 ## Adding New Platforms
 This section describes the process for adding support for a new platform.
 

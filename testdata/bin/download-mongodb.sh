@@ -52,6 +52,9 @@ set_mongodb_binaries ()
 
        # If version is "latest", get the latest version available for that distro.
        version_for_curator=$mongodb_version
+       if [ "$mongodb_version" = "5.0" ]; then
+            version_for_curator="5.0.2-rc0"
+       fi
        if [ "$mongodb_version" = "latest" ]; then
             get_latest_for_distro $distro
        fi

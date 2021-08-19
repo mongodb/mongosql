@@ -89,12 +89,6 @@ suse15)
     PUSH_ARCH='x86_64-suse15'
     PUSH_NAME='linux'
     ;;
-ubuntu1404)
-    PUSH_ARCH='x86_64-ubuntu1404'
-    PUSH_NAME='linux'
-    BUILD_FIPS='false'
-    PATH="/usr/lib/binutils-2.26/bin:$PATH"
-    ;;
 ubuntu1604)
     PUSH_ARCH='x86_64-ubuntu1604'
     PUSH_NAME='linux'

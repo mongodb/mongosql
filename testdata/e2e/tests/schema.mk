@@ -258,6 +258,9 @@ test-sample-auth-failure-4.2: test-schema-unavailable
 test-sample-auth-failure-4.4: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth
 test-sample-auth-failure-4.4: test-schema-unavailable
 
+test-sample-auth-failure-5.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth
+test-sample-auth-failure-5.0: test-schema-unavailable
+
 test-sample-auth-failure-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),sqlproxy/schema/mapping-majority,mongo/auth
 test-sample-auth-failure-latest: test-schema-unavailable
 

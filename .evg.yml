@@ -1474,6 +1474,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-sample-auth-failure-5.0
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-sample-auth-failure-latest
   tags: ["test", "config"]
 
@@ -1719,6 +1723,10 @@ tasks:
   tags: ["test", "config"]
 
 - <<: *run-make-target
+  name: test-mongo-auth-sample-no-listdatabases-wildcard-db-5.0
+  tags: ["test", "config"]
+
+- <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-latest
   tags: ["test", "config"]
 
@@ -1907,23 +1915,20 @@ axes:
 - id: os_full_matrix
   display_name: OS
   values:
-  - id: ubuntu1404-64
-    display_name: Ubuntu 14.04
+
+  - id: ubuntu2004-64
+    display_name: Ubuntu 20.04
     run_on:
-    - ubuntu1404
+    - ubuntu2004
     variables:
-      _variant: ubuntu1404
-  - id: ubuntu1604-64
-    display_name: Ubuntu 16.04
-    run_on:
-    - ubuntu1604
-    variables:
-      _variant: ubuntu1604
+      _variant: ubuntu2004
+
   - id: osx
     display_name: macOS 10.14
     run_on: macos-1014
     variables:
       _variant: macos
+
   - id: windows
     display_name: Windows 64
     run_on:
@@ -2054,13 +2059,6 @@ axes:
     variables:
       _variant: ubuntu1804
 
-  - id: ubuntu2004-64
-    display_name: Ubuntu 20.04
-    run_on:
-    - ubuntu2004
-    variables:
-      _variant: ubuntu2004
-
   - id: ubuntu1804-arm64
     display_name: Ubuntu 18.04 arm
     run_on:
@@ -2113,6 +2111,10 @@ axes:
     display_name: MongoDB Latest
     variables:
       _mongodb_version: latest
+  - id: 5.0
+    display_name: MongoDB 5.0
+    variables:
+      _mongodb_version: 5.0
   - id: 4.4
     display_name: MongoDB 4.4
     variables:
@@ -2152,15 +2154,12 @@ buildvariants:
     mongodb_version: "*"
     mongodb_topology: "*"
   exclude_spec:
-  - os_full_matrix: ["osx", "ubuntu1404-64"]
-    mongodb_version: ["4.0", "4.2", "4.4"]
+  - os_full_matrix: ["osx", "ubuntu2004-64"]
+    mongodb_version: ["4.0", "4.2", "4.4", "5.0"]
     mongodb_topology: ["standalone", "replica-set", "sharded-cluster"]
-  - os_full_matrix: ["osx", "ubuntu1404-64"]
+  - os_full_matrix: ["osx", "ubuntu2004-64"]
     mongodb_version: "latest"
     mongodb_topology: ["replica-set", "sharded-cluster"]
-  - os_full_matrix: "ubuntu1604-64"
-    mongodb_version: "*"
-    mongodb_topology: "*"
   rules:
   - if:
       os_full_matrix: "osx"
@@ -2203,7 +2202,6 @@ buildvariants:
         os_single_variant:
           - debian10
           - rhel80
-          - ubuntu2004-64
           - suse15-64
           - ubi-8
       then:
@@ -2231,8 +2229,6 @@ buildvariants:
     - ".test .config !.gssapi"
   matrix_spec:
     os_full_matrix: "*"
-  exclude_spec:
-  - os_full_matrix: "ubuntu1404-64"
   rules:
   - if:
       os_full_matrix:

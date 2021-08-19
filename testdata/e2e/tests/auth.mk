@@ -145,6 +145,13 @@ test-mongo-auth-sample-no-listdatabases-wildcard-db-4.4: test-auth-schema-availa
 
 # when correct admin credentials are provided but the user does not have the listDatabases action,
 # we expect the connection to succeed as long as we are running against 3.7+, even when wildcards are used in db selectors
+test-mongo-auth-sample-no-listdatabases-wildcard-db-5.0: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-wildcard-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-listdatabases-wildcard-db-5.0: NO_FLUSH_SCHEMA := 1
+test-mongo-auth-sample-no-listdatabases-wildcard-db-5.0: EXPECTED_DB_COUNT := 4
+test-mongo-auth-sample-no-listdatabases-wildcard-db-5.0: test-auth-schema-available
+
+# when correct admin credentials are provided but the user does not have the listDatabases action,
+# we expect the connection to succeed as long as we are running against 3.7+, even when wildcards are used in db selectors
 test-mongo-auth-sample-no-listdatabases-wildcard-db-latest: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-wildcard-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-no-listdatabases-wildcard-db-latest: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-listdatabases-wildcard-db-latest: EXPECTED_DB_COUNT := 4
