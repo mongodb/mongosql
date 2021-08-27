@@ -21,7 +21,10 @@ pub extern "C" fn translate(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
 ) -> *const raw::c_char {
+    let previous_hook = panic::take_hook();
+    panic::set_hook(Box::new(|_| {}));
     let result = panic::catch_unwind(|| translate_sql_bson_base64(current_db, sql));
+    panic::set_hook(previous_hook);
 
     let payload = match result {
         Ok(result) => match result {
