@@ -2,6 +2,14 @@ use std::fmt::{Display, Formatter, Result};
 
 use crate::ast::*;
 
+fn identifier_to_string(s: &str) -> String {
+    if ident_needs_delimiters(s) {
+        format!("`{}`", s.replace("`", "``"))
+    } else {
+        s.to_string()
+    }
+}
+
 impl Display for Query {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
@@ -117,7 +125,7 @@ impl Display for SelectExpression {
 
 impl Display for SubstarExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}.*", self.datasource)
+        write!(f, "{}.*", identifier_to_string(self.datasource.as_str()))
     }
 }
 
@@ -127,9 +135,10 @@ impl Display for AliasedExpr {
             f,
             "{}{}",
             self.expr,
-            self.alias
-                .as_ref()
-                .map_or("".to_string(), |x| format!(" AS {}", x))
+            self.alias.as_ref().map_or("".to_string(), |x| format!(
+                " AS {}",
+                identifier_to_string(x)
+            ))
         )
     }
 }
@@ -164,7 +173,7 @@ impl Display for ArraySource {
                 .map(|x| format!("{}", x))
                 .collect::<Vec<_>>()
                 .join(", "),
-            self.alias,
+            identifier_to_string(self.alias.as_str()),
         )
     }
 }
@@ -174,20 +183,27 @@ impl Display for CollectionSource {
         write!(
             f,
             "{}{}{}",
-            self.database
-                .as_ref()
-                .map_or("".to_string(), |x| format!("{}.", x)),
+            self.database.as_ref().map_or("".to_string(), |x| format!(
+                "{}.",
+                identifier_to_string(x.as_str())
+            )),
             self.collection,
-            self.alias
-                .as_ref()
-                .map_or("".to_string(), |x| format!(" AS {}", x)),
+            self.alias.as_ref().map_or("".to_string(), |x| format!(
+                " AS {}",
+                identifier_to_string(x)
+            )),
         )
     }
 }
 
 impl Display for DerivedSource {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "({}) AS {}", self.query, self.alias)
+        write!(
+            f,
+            "({}) AS {}",
+            self.query,
+            identifier_to_string(self.alias.as_str())
+        )
     }
 }
 
@@ -366,13 +382,7 @@ impl Display for Expression {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         use Expression::*;
         match self {
-            Identifier(s) => {
-                if ident_needs_delimiters(s) {
-                    write!(f, "`{}`", s.replace("`", "``"))
-                } else {
-                    write!(f, "{}", s)
-                }
-            }
+            Identifier(s) => write!(f, "{}", identifier_to_string(s)),
             Is(i) => write!(f, "{}", i),
             Like(l) => write!(f, "{}", l),
             TypeAssertion(t) => write!(f, "{}", t),

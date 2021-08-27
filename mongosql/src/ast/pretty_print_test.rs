@@ -21,7 +21,17 @@ query_printer_test!(
 
 query_printer_test!(select_star, "SELECT *", "select *");
 query_printer_test!(select_sub_star, "SELECT foo.*", "select foo.*");
+query_printer_test!(
+    select_delimited_sub_star,
+    "SELECT `f\"o\"o`.*",
+    "select `f\"o\"o`.*"
+);
 query_printer_test!(select_alias_expression, "SELECT 42 AS bar", "select 42 bar");
+query_printer_test!(
+    select_delimited_alias_expression,
+    "SELECT 42 AS `b\"a\"r`",
+    "select 42 `b\"a\"r`"
+);
 query_printer_test!(
     select_alias_expression_and_substar,
     "SELECT 42 AS bar, foo.*, 42 AS car, fuzz.*",
@@ -54,6 +64,11 @@ query_printer_test!(
     "SELECT foo.* FROM [{'a': 42, 'b': 42}, {'a': 42, 'b': 43}] AS foo",
     "SeLeCT foo.* from [{'a':  42, 'b':   42},    {'a': 42, 'b': 43}] foo"
 );
+query_printer_test!(
+    select_from_delimited_alias_array,
+    "SELECT foo.* FROM [{'a': 42, 'b': 42}, {'a': 42, 'b': 43}] AS `f\"o\"o`",
+    "SeLeCT foo.* from [{'a':  42, 'b':   42},    {'a': 42, 'b': 43}] `f\"o\"o`"
+);
 
 query_printer_test!(
     select_from_local_collection,
@@ -66,14 +81,29 @@ query_printer_test!(
     "SeLeCT foo.* from foo foo"
 );
 query_printer_test!(
+    select_from_local_collection_with_delimited_alias,
+    "SELECT foo.* FROM foo AS `f\"o\"o`",
+    "SeLeCT foo.* from foo `f\"o\"o`"
+);
+query_printer_test!(
     select_from_qualified_collection,
     "SELECT foo.* FROM bar.foo",
     "SeLeCT foo.* from bar.foo"
 );
 query_printer_test!(
+    select_from_collection_with_delimited_qualifier,
+    "SELECT foo.* FROM `bar%`.foo",
+    "SeLeCT foo.* from `bar%`.foo"
+);
+query_printer_test!(
     select_from_qualified_collection_with_alias,
     "SELECT foo.* FROM bar.foo AS foo",
     "SeLeCT foo.* from bar.foo foo"
+);
+query_printer_test!(
+    select_from_qualified_collection_with_delimited_alias,
+    "SELECT foo.* FROM bar.foo AS `f\"o\"o`",
+    "SeLeCT foo.* from bar.foo `f\"o\"o`"
 );
 
 query_printer_test!(
@@ -81,11 +111,21 @@ query_printer_test!(
     "SELECT foo.* FROM (SELECT * FROM bar) AS foo",
     "SeLeCT foo.* from (SELECT * FROM bar) foo"
 );
+query_printer_test!(
+    select_from_derived_delimited_alias,
+    "SELECT foo.* FROM (SELECT * FROM bar) AS `f\"o\"o`",
+    "SeLeCT foo.* from (SELECT * FROM bar) `f\"o\"o`"
+);
 
 query_printer_test!(
     select_from_left_join,
     "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar",
     "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar"
+);
+query_printer_test!(
+    select_from_left_join_delimited_aliases,
+    "SELECT foo.* FROM (SELECT * FROM bar) AS `f\"o\"o` LEFT JOIN [{'a': 32}] AS `z\"a\"r`",
+    "SeLeCT foo.* from (SELECT * FROM bar) `f\"o\"o` LEFT JOIN [{'a': 32}] `z\"a\"r`"
 );
 query_printer_test!(
     select_from_left_outer_join,

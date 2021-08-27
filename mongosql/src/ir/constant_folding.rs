@@ -549,12 +549,12 @@ impl ConstantFoldExprVisitor {
     // Constant folds the computed field function
     fn fold_computed_field_function(&mut self, left: Expression, right: Expression) -> Expression {
         if let (Expression::Document(doc), Expression::Literal(Literal::String(field))) =
-            (&left.clone(), &right)
+            (&left, &right)
         {
             doc.get(field)
                 .unwrap_or(&Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::ComputedFieldAccess,
-                    args: vec![left, right],
+                    args: vec![left.clone(), right],
                 }))
                 .clone()
         } else {
