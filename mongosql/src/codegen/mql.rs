@@ -280,6 +280,10 @@ impl MqlCodeGenerator {
                 for (k, e) in p.expression.into_iter() {
                     let mapped_k =
                         MqlCodeGenerator::get_datasource_name(&k.datasource, &unique_bot_name);
+                    if mapped_k.starts_with('$') || mapped_k.contains('.') {
+                        return Err(Error::DotsOrDollarsInProjectField);
+                    }
+
                     project_body.insert(
                         mapped_k.clone(),
                         expression_generator.codegen_expression(e)?,

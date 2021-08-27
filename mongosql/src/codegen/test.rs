@@ -141,6 +141,7 @@ mod array_stage {
 
 mod project {
     use crate::{
+        codegen::Error,
         ir::{
             binding_tuple::{DatasourceName, Key},
             *,
@@ -266,6 +267,36 @@ mod project {
                 array: vec![Expression::Document(map!{"a".into() => Expression::Literal(Literal::Integer(42))})],
                 alias: "__bot".to_string(),
             }).into(),
+        }),
+    );
+
+    test_codegen_plan!(
+        dot_project_field,
+        Err(Error::DotsOrDollarsInProjectField),
+        Stage::Project(Project {
+            expression: map! {
+                ("a.b", 0u16).into() => Expression::Literal(Literal::Integer(1)),
+            },
+            source: Stage::Array(Array {
+                array: vec![Expression::Document(map! {})],
+                alias: "arr".to_string(),
+            })
+            .into(),
+        }),
+    );
+
+    test_codegen_plan!(
+        dollar_project_field,
+        Err(Error::DotsOrDollarsInProjectField),
+        Stage::Project(Project {
+            expression: map! {
+                ("$a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
+            },
+            source: Stage::Array(Array {
+                array: vec![Expression::Document(map! {})],
+                alias: "arr".to_string(),
+            })
+            .into(),
         }),
     );
 }
