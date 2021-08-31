@@ -22,56 +22,6 @@ macro_rules! set {
 	};
 }
 
-// ConstantVisitor is a simple ast visitor that reports
-// if a given expression can be evaluated at compile time:
-// meaning it can contain no Indentifiers or Subqueries.
-struct ConstantVisitor {
-    is_constant: bool,
-}
-
-#[allow(dead_code)]
-impl ConstantVisitor {
-    fn new() -> ConstantVisitor {
-        ConstantVisitor { is_constant: true }
-    }
-}
-
-impl ast::visitor::Visitor for ConstantVisitor {
-    fn visit_expression(&mut self, node: ast::Expression) -> ast::Expression {
-        match node {
-            ast::Expression::Identifier(_)
-            | ast::Expression::Exists(_)
-            | ast::Expression::Subquery(_)
-            | ast::Expression::SubqueryComparison(_) => {
-                self.is_constant = false;
-                // Do not walk if we have found a non-constant.
-                node
-            }
-            _ => node.walk(self),
-        }
-    }
-}
-
-// is_constant returns if a given ast::Expression is a constant, meaning
-// that it could be entirely evaluated to a value at compile time.
-#[allow(dead_code)]
-pub fn is_constant(node: ast::Expression) -> (ast::Expression, bool) {
-    let mut visitor = ConstantVisitor::new();
-    let out = node.walk(&mut visitor);
-    (out, visitor.is_constant)
-}
-
-// returns if all the passed Expressions are constant.
-#[allow(dead_code)]
-pub fn are_constant(ve: Vec<ast::Expression>) -> (Vec<ast::Expression>, bool) {
-    if let (ast::Expression::Array(ve), array_is_constant) = is_constant(ast::Expression::Array(ve))
-    {
-        (ve, array_is_constant)
-    } else {
-        unreachable!()
-    }
-}
-
 // LiteralVisitor is an ast visitor that reports if a given expression
 // is a literal. A literal can consist only of Arrays, Documents, and
 // scalar Literals.

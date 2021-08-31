@@ -361,12 +361,6 @@ impl FunctionName {
             | FunctionName::Upper => false,
         }
     }
-
-    /// Returns true if the `FunctionName` is any of the scalar functions, and false otherwise.
-    #[allow(dead_code)]
-    pub(crate) fn is_scalar_function(&self) -> bool {
-        !self.is_aggregation_function()
-    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
