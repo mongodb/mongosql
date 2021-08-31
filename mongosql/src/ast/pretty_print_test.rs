@@ -702,6 +702,7 @@ expression_printer_test!(access_access, "a[1][2]", "a[1][2]");
 
 expression_printer_test!(subpath, "{'a': 3}.a", "{'a': 3} .a");
 expression_printer_test!(subpath_identifier, "a.a", "a .a");
+expression_printer_test!(subpath_identifier_needs_delimiter, "a.`a\"b`", "a.`a\"b`");
 expression_printer_test!(subpath_with_parens, "(3 + 4).a", "(3+4) .a");
 
 expression_printer_test!(subpath_access, "a[1].b", "a[1].b");

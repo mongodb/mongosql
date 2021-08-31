@@ -487,10 +487,11 @@ impl Display for AccessExpr {
 
 impl Display for SubpathExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let subpath = identifier_to_string(&self.subpath);
         if self.expr.get_tier() < self.get_tier() {
-            write!(f, "({}).{}", self.expr, self.subpath)
+            write!(f, "({}).{}", self.expr, subpath)
         } else {
-            write!(f, "{}.{}", self.expr, self.subpath)
+            write!(f, "{}.{}", self.expr, subpath)
         }
     }
 }
