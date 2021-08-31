@@ -14,16 +14,6 @@
     done
     echo "done generating coverage reports"
 
-    echo "generating benchmark reports..."
-    for benchfile in $(ls | grep 'benchmarks.out'); do
-        cat $benchfile | \
-            grep '^Benchmark' | \
-            awk 'BEGIN{OFS="\t";print "Query","Minute/Op","MemAlloc/Op","ByteAlloc/Op","#Runs";}{gsub(/BenchmarkQuery/, "Q");gsub(/-16/, "");print $1, $3/60000000000, $5, $7, $2}'a | \
-            sed -e :a -e '$d;N;2,2ba' -e 'P;D' \
-            > "$ARTIFACTS_DIR/reports/${benchfile%.out}.txt"
-    done
-    echo "done generating benchmark reports"
-
     echo "generating test suite reports..."
     for suitefile in $(ls | grep 'suite.out'); do
         cat -v $suitefile | perl -ne 's/\^\[\[(0|31|32|33)m//g;print' > "$ARTIFACTS_DIR/reports/${suitefile%.out}.txt"

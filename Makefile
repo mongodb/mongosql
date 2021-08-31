@@ -12,35 +12,6 @@ SCHEMA_UNAVAILABLE_ERROR = ERROR 1043 (08S01): MongoDB schema not yet available
 
 default: test
 
-benchmark: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority
-benchmark: start-all _benchmark _parse-benchmarks
-
-benchmark-tpch: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/in-memory,sqlproxy/schema/mapping-majority
-benchmark-tpch: start-all _benchmark-tpch _parse-benchmarks
-
-
-benchmark-evaluator: _benchmark-evaluator _parse-unit-benchmarks
-_benchmark-evaluator:
-	$(ENV) PACKAGE='evaluator' testdata/bin/run-unit-benchmarks.sh
-
-_benchmark:
-	$(ENV) TYPE="queries|overhead" testdata/bin/run-benchmarks.sh
-
-_benchmark-tpch-micro-normalized:
-	$(ENV) TYPE="tpch-micro-normalized" testdata/bin/run-benchmarks.sh
-
-_benchmark-tpch-micro-denormalized:
-	$(ENV) TYPE="tpch-micro-denormalized" testdata/bin/run-benchmarks.sh
-
-_benchmark-tpch-micro-handwritten-denormalized:
-	$(ENV) TYPE="tpch-micro-handwritten-denormalized" testdata/bin/run-benchmarks.sh
-
-_parse-benchmarks:
-	$(ENV) testdata/bin/parse-benchmark-results.sh
-
-_parse-unit-benchmarks:
-	$(ENV) TYPE='unit' testdata/bin/parse-benchmark-results.sh
-
 build: build-mongodrdl build-mongosqld
 
 build-mongodrdl:

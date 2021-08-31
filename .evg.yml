@@ -228,55 +228,6 @@ functions:
           export MONGO_SHELL_SCRIPT_NAME='${var_script_name}'
           ${SCRIPT_DIR}/run-mongo-shell-script.sh
 
-  "process benchmark results":
-    - command: shell.exec
-      type: test
-      params:
-        script: |
-            ${PREPARE_SHELL}
-            export TYPE='${var_type}'
-            set -o errexit
-            ${SCRIPT_DIR}/parse-benchmark-results.sh
-    - command: shell.exec
-      type: test
-      params:
-        script: |
-            ${PREPARE_SHELL}
-            cp testdata/artifacts/out/benchmarks*.out testdata/artifacts/new.benchmark.txt
-            if [ "${is_patch}" = "" ]; then
-                cp testdata/artifacts/out/benchmarks*.out testdata/artifacts/${var_benchmark_set}.benchmark.txt
-            fi
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
-        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/perf.json
-        bucket: mciuploads
-        permissions: public-read
-        content_type: application/json
-        display_name: "Benchmark Results (perf.json)"
-    - command: json.send
-      params:
-        name: perf
-        file: src/github.com/10gen/sqlproxy/testdata/artifacts/perf.json
-    - command: shell.exec
-      type: test
-      params:
-        script: |
-            ${PREPARE_SHELL}
-            if [[ "${var_benchmark_set}" =~ ^overhead.* ]]; then
-                echo "skipping benchstat analysis for overhead benchmark"
-            else
-                # download the benchmark results from the base commit for comparison.
-                # If this is a commit, the base commit is the previous commit.
-                # If this is a patch, the base commit is the merge base with master.
-                export S3_URI="https://s3.amazonaws.com/mciuploads/sqlproxy/artifacts/${build_variant}/${BASE_GIT_SPEC}/${var_benchmark_set}.benchmark.txt"
-                export OLD="testdata/artifacts/old.benchmark.txt"
-                export NEW="testdata/artifacts/new.benchmark.txt"
-                ${SCRIPT_DIR}/compare-benchmark-results.sh
-            fi
-
   "release BI Connector":
     command: shell.exec
     type: test
@@ -338,30 +289,6 @@ functions:
         export NO_FLUSH_SCHEMA=1
         ${SCRIPT_DIR}/restore-test-data.sh
 
-  "run benchmarks":
-    command: shell.exec
-    type: test
-    timeout_secs: 57600  # 16h
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        export TYPE='${var_type}'
-        export TIMEOUT=16h
-        set -o errexit
-        ${SCRIPT_DIR}/run-benchmarks.sh
-
-  "run tpch benchmarks":
-    command: shell.exec
-    type: test
-    timeout_secs: 302400  # 3.5 days
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        export TYPE='${var_type}'
-        export TIMEOUT=84h
-        set -o errexit
-        ${SCRIPT_DIR}/run-benchmarks.sh
-
   "run integration tests":
     command: shell.exec
     type: test
@@ -395,16 +322,6 @@ functions:
         set -o errexit
         make ${var_target}
         [ -z "${_race_detector}" ] || ${SCRIPT_DIR}/check-races.sh
-
-  "run unit benchmarks":
-    command: shell.exec
-    type: test
-    params:
-      script: |
-        ${PREPARE_SHELL}
-        export PACKAGE='${var_package}'
-        set -o errexit
-        ${SCRIPT_DIR}/run-unit-benchmarks.sh
 
   "run unit tests":
     command: shell.exec
@@ -575,28 +492,6 @@ functions:
         bucket: mciuploads
         permissions: public-read
         display_name: "All Artifacts (.tar.gz)"
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_files_include_filter:
-          - src/github.com/10gen/sqlproxy/testdata/artifacts/*-latest.benchmark.txt
-        remote_file: sqlproxy/artifacts/${build_variant}/${GIT_SPEC}/
-        content_type: text/plain
-        bucket: mciuploads
-        permissions: public-read
-        display_name: "Benchmark Results - "
-    - command: s3.put
-      params:
-        optional: true
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: src/github.com/10gen/sqlproxy/testdata/artifacts/out/benchstat.out
-        remote_file: sqlproxy/artifacts/${build_variant}/${task_id}/benchstat.txt
-        content_type: text/plain
-        bucket: mciuploads
-        permissions: public-read
-        display_name: "Benchstat Results"
 
   "upload binaries":
     - command: s3.put
@@ -786,137 +681,6 @@ post:
   - func: "reset testing state"
 
 tasks:
-
-- name: benchmark-evaluator
-  tags: [ "benchmark" ]
-  commands:
-    - func: "run unit benchmarks"
-      vars:
-        var_package: evaluator
-    - func: "process benchmark results"
-      vars:
-        var_type: unit
-        var_benchmark_set: evaluator
-
-- name: benchmark-schema-mapping
-  tags: [ "benchmark" ]
-  commands:
-    - func: "run unit benchmarks"
-      vars:
-        var_package: schema/mapping
-    - func: "process benchmark results"
-      vars:
-        var_type: unit
-        var_benchmark_set: schema
-
-- name: benchmark-view-sampling
-  tags: [ "benchmark" ]
-  commands:
-    - func: "start mongodb"
-      vars:
-        var_version: 4.0
-    - func: "run unit benchmarks"
-      vars:
-        var_package: schema/sample
-    - func: "process benchmark results"
-      vars:
-        var_type: unit
-        var_benchmark_set: sample
-
-- name: benchmark-tpch-micro-normalized
-  tags: [ "benchmark" ]
-  exec_timeout_secs: 302400  # 3.5 days
-  commands:
-    - func: "start mongodb"
-      vars:
-        var_version: 4.0
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run tpch benchmarks"
-      vars:
-        var_type: tpch-micro-normalized
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: tpch-micro-normalized
-
-- name: benchmark-tpch-micro-denormalized
-  tags: [ "benchmark" ]
-  exec_timeout_secs: 302400  # 3.5 days
-  commands:
-    - func: "start mongodb"
-      vars:
-        var_version: 4.0
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run tpch benchmarks"
-      vars:
-        var_type: tpch-micro-denormalized
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: tpch-micro-denormalized
-
-- name: benchmark-tpch-micro-handwritten-denormalized
-  tags: [ "benchmark" ]
-  exec_timeout_secs: 302400  # 3.5 days
-  commands:
-    - func: "start mongodb"
-      vars:
-        var_version: 4.0
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run tpch benchmarks"
-      vars:
-        var_type: tpch-micro-handwritten-denormalized
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: tpch-micro-handwritten-denormalized
-
-- name: benchmark-overhead-4.0
-  tags: [ "benchmark" ]
-  exec_timeout_secs: 28800  # 8h
-  commands:
-    - func: "start mongodb"
-      vars:
-        var_version: 4.0
-    - func: "build mongosqld"
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run benchmarks"
-      vars:
-        var_type: overhead
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: overhead-4.0
-
-- name: benchmark-queries-4.0
-  tags: [ "benchmark" ]
-  exec_timeout_secs: 28800  # 8h
-  commands:
-    - func: "build mongosqld"
-    - func: "start mongodb"
-      vars:
-        var_version: 4.0
-    - func: "start mongosqld"
-      vars:
-        var_schema_mapping_mode: lattice
-    - func: "run benchmarks"
-      vars:
-        var_type: queries
-    - func: "process benchmark results"
-      vars:
-        var_type: integration
-        var_benchmark_set: queries-4.0
 
 - name: blackbox
   tags:
@@ -2206,16 +1970,6 @@ buildvariants:
           - ubi-8
       then:
         add_tasks: [ ".test !.config !.oneoff-task"]
-
-- name: benchmark
-  display_name: Benchmarks (CentOS 6)
-  expansions:
-    _variant: centos6-perf
-    _in_memory: true
-  run_on:
-    - centos6-perf
-  tasks:
-    - '.benchmark'
 
 # We are disabling .tls tests on Windows because currently there
 # is no built version of openssl that supports mysql with starttls.

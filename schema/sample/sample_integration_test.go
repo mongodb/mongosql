@@ -27,6 +27,11 @@ const (
 	c1, c2, c3, c4 = "c1", "c2", "c3", "c4"
 )
 
+var (
+	lgr = log.GlobalLogger()
+	cfg = config.Default()
+)
+
 func init() {
 	cfg.Schema.Stored.Source = "sampleStore"
 	cfg.Schema.Sample.Namespaces = []string{
@@ -963,4 +968,27 @@ func newTableTestHelper(lg log.Logger, tbl, col string,
 		panic("this table should not error")
 	}
 	return out
+}
+
+func createView(session *provider.Session, db, col, viewName string, pipeline []bson.D) error {
+	cmd := bsonutil.NewD(
+		bsonutil.NewDocElem("create", viewName),
+		bsonutil.NewDocElem("viewOn", col),
+		bsonutil.NewDocElem("pipeline", pipeline),
+	)
+
+	result := &struct {
+		N  int `bson:"n"`
+		Ok int `bson:"ok"`
+	}{}
+
+	if err := session.Run(context.Background(), db, cmd, result); err != nil {
+		return fmt.Errorf("error creating view: %v", err)
+	}
+
+	if result.Ok != 1 {
+		return fmt.Errorf("error executing view creation")
+	}
+
+	return nil
 }

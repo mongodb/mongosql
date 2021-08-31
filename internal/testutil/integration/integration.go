@@ -14,11 +14,10 @@ import (
 
 // TestSuite represents a suite of end-to-end correctness tests.
 type TestSuite struct {
-	Dirname    string
-	Name       string `yaml:"name"`
-	DefaultDb  string `yaml:"default_db"`
-	Tests      []*TestCase
-	Benchmarks []*TestCase
+	Dirname   string
+	Name      string `yaml:"name"`
+	DefaultDb string `yaml:"default_db"`
+	Tests     []*TestCase
 }
 
 // TestFile represents a single yml file in which integration tests are defined.
